@@ -1,0 +1,377 @@
+{
+  "categories": [
+    {
+      "id": "shelter",
+      "label": "Shelter",
+      "subcategories": [
+        {
+          "id": "tents",
+          "label": "Tents",
+          "productTypes": [
+            { "id": "freestanding-tent", "label": "Freestanding" },
+            { "id": "non-freestanding-tent", "label": "Non-freestanding" },
+            { "id": "pyramid-tent", "label": "Pyramid" },
+            { "id": "dome-tent", "label": "Dome" }
+          ]
+        },
+        {
+          "id": "tarps",
+          "label": "Tarps",
+          "productTypes": [
+            { "id": "flat-tarp", "label": "Flat Tarp" },
+            { "id": "shaped-tarp", "label": "Shaped Tarp" },
+            { "id": "poncho-tarp", "label": "Poncho Tarp" }
+          ]
+        },
+        {
+          "id": "bivys",
+          "label": "Bivys",
+          "productTypes": [
+            { "id": "bivy-sack", "label": "Bivy Sack" },
+            { "id": "emergency-bivy", "label": "Emergency Bivy" }
+          ]
+        },
+        {
+          "id": "hammocks",
+          "label": "Hammocks",
+          "productTypes": [
+            { "id": "camping-hammock", "label": "Camping Hammock" },
+            { "id": "hammock-system", "label": "Hammock System" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleep-system",
+      "label": "Sleep System",
+      "subcategories": [
+        {
+          "id": "sleeping-bags",
+          "label": "Sleeping Bags",
+          "productTypes": [
+            { "id": "down-bag", "label": "Down" },
+            { "id": "synthetic-bag", "label": "Synthetic" },
+            { "id": "quilt", "label": "Quilt" }
+          ]
+        },
+        {
+          "id": "sleeping-pads",
+          "label": "Sleeping Pads",
+          "productTypes": [
+            { "id": "inflatable-pad", "label": "Inflatable" },
+            { "id": "foam-pad", "label": "Foam" },
+            { "id": "self-inflating-pad", "label": "Self-inflating" }
+          ]
+        },
+        {
+          "id": "pillows",
+          "label": "Pillows",
+          "productTypes": [
+            { "id": "inflatable-pillow", "label": "Inflatable Pillow" },
+            { "id": "compressible-pillow", "label": "Compressible Pillow" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "packs",
+      "label": "Packs & Bags",
+      "subcategories": [
+        {
+          "id": "backpacks",
+          "label": "Backpacks",
+          "productTypes": [
+            { "id": "ultralight-pack", "label": "Ultralight" },
+            { "id": "framed-pack", "label": "Framed" },
+            { "id": "frameless-pack", "label": "Frameless" },
+            { "id": "daypack", "label": "Daypack" }
+          ]
+        },
+        {
+          "id": "stuff-sacks",
+          "label": "Stuff Sacks",
+          "productTypes": [
+            { "id": "compression-sack", "label": "Compression Sack" },
+            { "id": "dry-sack", "label": "Dry Sack" },
+            { "id": "mesh-sack", "label": "Mesh Sack" }
+          ]
+        },
+        {
+          "id": "pack-accessories",
+          "label": "Pack Accessories",
+          "productTypes": [
+            { "id": "hip-belt-pocket", "label": "Hip Belt Pocket" },
+            { "id": "shoulder-pouch", "label": "Shoulder Pouch" },
+            { "id": "pack-liner", "label": "Pack Liner" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clothing",
+      "label": "Clothing",
+      "subcategories": [
+        {
+          "id": "base-layers",
+          "label": "Base Layers",
+          "productTypes": [
+            { "id": "base-top", "label": "Base Layer Top" },
+            { "id": "base-bottom", "label": "Base Layer Bottom" }
+          ]
+        },
+        {
+          "id": "insulation",
+          "label": "Insulation",
+          "productTypes": [
+            { "id": "down-jacket", "label": "Down Jacket" },
+            { "id": "synthetic-jacket", "label": "Synthetic Jacket" },
+            { "id": "fleece", "label": "Fleece" },
+            { "id": "insulated-pants", "label": "Insulated Pants" }
+          ]
+        },
+        {
+          "id": "rain-gear",
+          "label": "Rain Gear",
+          "productTypes": [
+            { "id": "rain-jacket", "label": "Rain Jacket" },
+            { "id": "rain-pants", "label": "Rain Pants" },
+            { "id": "rain-poncho", "label": "Rain Poncho" }
+          ]
+        },
+        {
+          "id": "headwear",
+          "label": "Headwear",
+          "productTypes": [
+            { "id": "sun-hat", "label": "Sun Hat" },
+            { "id": "beanie", "label": "Beanie" },
+            { "id": "buff", "label": "Buff/Neck Gaiter" }
+          ]
+        },
+        {
+          "id": "footwear",
+          "label": "Footwear",
+          "productTypes": [
+            { "id": "hiking-boots", "label": "Hiking Boots" },
+            { "id": "trail-runners", "label": "Trail Runners" },
+            { "id": "camp-shoes", "label": "Camp Shoes" },
+            { "id": "gaiters", "label": "Gaiters" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cooking",
+      "label": "Cooking",
+      "subcategories": [
+        {
+          "id": "stoves",
+          "label": "Stoves",
+          "productTypes": [
+            { "id": "canister-stove", "label": "Canister Stove" },
+            { "id": "alcohol-stove", "label": "Alcohol Stove" },
+            { "id": "wood-stove", "label": "Wood Stove" },
+            { "id": "solid-fuel-stove", "label": "Solid Fuel Stove" }
+          ]
+        },
+        {
+          "id": "cookware",
+          "label": "Cookware",
+          "productTypes": [
+            { "id": "pot", "label": "Pot" },
+            { "id": "pan", "label": "Pan" },
+            { "id": "mug", "label": "Mug" },
+            { "id": "bowl", "label": "Bowl" }
+          ]
+        },
+        {
+          "id": "utensils",
+          "label": "Utensils",
+          "productTypes": [
+            { "id": "spork", "label": "Spork" },
+            { "id": "knife", "label": "Knife" },
+            { "id": "multi-tool", "label": "Multi-tool" }
+          ]
+        },
+        {
+          "id": "fuel",
+          "label": "Fuel",
+          "productTypes": [
+            { "id": "canister-fuel", "label": "Canister Fuel" },
+            { "id": "alcohol-fuel", "label": "Alcohol Fuel" },
+            { "id": "solid-fuel-tabs", "label": "Solid Fuel Tabs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "water",
+      "label": "Water",
+      "subcategories": [
+        {
+          "id": "water-storage",
+          "label": "Water Storage",
+          "productTypes": [
+            { "id": "water-bottle", "label": "Water Bottle" },
+            { "id": "hydration-bladder", "label": "Hydration Bladder" },
+            { "id": "collapsible-bottle", "label": "Collapsible Bottle" }
+          ]
+        },
+        {
+          "id": "water-treatment",
+          "label": "Water Treatment",
+          "productTypes": [
+            { "id": "water-filter", "label": "Water Filter" },
+            { "id": "uv-purifier", "label": "UV Purifier" },
+            { "id": "chemical-treatment", "label": "Chemical Treatment" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "electronics",
+      "label": "Electronics",
+      "subcategories": [
+        {
+          "id": "lighting",
+          "label": "Lighting",
+          "productTypes": [
+            { "id": "headlamp", "label": "Headlamp" },
+            { "id": "lantern", "label": "Lantern" },
+            { "id": "flashlight", "label": "Flashlight" }
+          ]
+        },
+        {
+          "id": "power",
+          "label": "Power",
+          "productTypes": [
+            { "id": "power-bank", "label": "Power Bank" },
+            { "id": "solar-panel", "label": "Solar Panel" },
+            { "id": "battery-case", "label": "Battery Case" }
+          ]
+        },
+        {
+          "id": "communication",
+          "label": "Communication",
+          "productTypes": [
+            { "id": "satellite-messenger", "label": "Satellite Messenger" },
+            { "id": "two-way-radio", "label": "Two-way Radio" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "navigation",
+      "label": "Navigation",
+      "subcategories": [
+        {
+          "id": "maps-compass",
+          "label": "Maps & Compass",
+          "productTypes": [
+            { "id": "compass", "label": "Compass" },
+            { "id": "map", "label": "Map" },
+            { "id": "map-case", "label": "Map Case" }
+          ]
+        },
+        {
+          "id": "gps-devices",
+          "label": "GPS Devices",
+          "productTypes": [
+            { "id": "handheld-gps", "label": "Handheld GPS" },
+            { "id": "gps-watch", "label": "GPS Watch" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "first-aid",
+      "label": "First Aid",
+      "subcategories": [
+        {
+          "id": "first-aid-kits",
+          "label": "First Aid Kits",
+          "productTypes": [
+            { "id": "personal-kit", "label": "Personal Kit" },
+            { "id": "group-kit", "label": "Group Kit" },
+            { "id": "emergency-kit", "label": "Emergency Kit" }
+          ]
+        },
+        {
+          "id": "sun-protection",
+          "label": "Sun Protection",
+          "productTypes": [
+            { "id": "sunscreen", "label": "Sunscreen" },
+            { "id": "sunglasses", "label": "Sunglasses" },
+            { "id": "lip-balm", "label": "Lip Balm" }
+          ]
+        },
+        {
+          "id": "insect-protection",
+          "label": "Insect Protection",
+          "productTypes": [
+            { "id": "bug-spray", "label": "Bug Spray" },
+            { "id": "head-net", "label": "Head Net" },
+            { "id": "permethrin", "label": "Permethrin" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toiletries",
+      "label": "Toiletries",
+      "subcategories": [
+        {
+          "id": "hygiene",
+          "label": "Hygiene",
+          "productTypes": [
+            { "id": "biodegradable-soap", "label": "Biodegradable Soap" },
+            { "id": "toothbrush", "label": "Toothbrush" },
+            { "id": "towel", "label": "Towel" }
+          ]
+        },
+        {
+          "id": "waste-management",
+          "label": "Waste Management",
+          "productTypes": [
+            { "id": "trowel", "label": "Trowel" },
+            { "id": "wag-bag", "label": "WAG Bag" },
+            { "id": "pee-rag", "label": "Pee Rag" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "miscellaneous",
+      "label": "Miscellaneous",
+      "subcategories": [
+        {
+          "id": "repair-maintenance",
+          "label": "Repair & Maintenance",
+          "productTypes": [
+            { "id": "repair-kit", "label": "Repair Kit" },
+            { "id": "duct-tape", "label": "Duct Tape" },
+            { "id": "seam-sealer", "label": "Seam Sealer" }
+          ]
+        },
+        {
+          "id": "trekking-poles",
+          "label": "Trekking Poles",
+          "productTypes": [
+            { "id": "carbon-poles", "label": "Carbon Poles" },
+            { "id": "aluminum-poles", "label": "Aluminum Poles" },
+            { "id": "folding-poles", "label": "Folding Poles" }
+          ]
+        },
+        {
+          "id": "accessories",
+          "label": "Accessories",
+          "productTypes": [
+            { "id": "carabiner", "label": "Carabiner" },
+            { "id": "cordage", "label": "Cordage" },
+            { "id": "whistle", "label": "Whistle" }
+          ]
+        }
+      ]
+    }
+  ],
+  "brands": []
+}
