@@ -2,14 +2,17 @@
  * useInventory Hook
  *
  * Feature: 002-inventory-gallery
- * Provides mock data, filtering, and view state for the inventory gallery
+ * Provides filtering and view state for the inventory gallery
+ *
+ * Updated: 005-loadout-management - Migrated to use zustand store
  */
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, UseInventoryReturn } from '@/types/inventory';
+import { useStore, useItems } from '@/hooks/useStore';
 
 // =============================================================================
 // Session Storage Key
@@ -466,6 +469,17 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
 
 export function useInventory(): UseInventoryReturn {
   // ---------------------------------------------------------------------------
+  // Store Integration
+  // ---------------------------------------------------------------------------
+  const items = useItems();
+  const initializeWithMockData = useStore((state) => state.initializeWithMockData);
+
+  // Initialize store with mock data on first load
+  useEffect(() => {
+    initializeWithMockData(MOCK_GEAR_ITEMS);
+  }, [initializeWithMockData]);
+
+  // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
   // ---------------------------------------------------------------------------
   const [viewDensity, setViewDensityState] = useState<ViewDensity>(getInitialViewDensity);
@@ -489,7 +503,7 @@ export function useInventory(): UseInventoryReturn {
   // Derived: Filtered Items
   // ---------------------------------------------------------------------------
   const filteredItems = useMemo(() => {
-    return MOCK_GEAR_ITEMS.filter((item) => {
+    return items.filter((item) => {
       // Search filter (case-insensitive, matches name or brand)
       const matchesSearch =
         !searchQuery ||
@@ -502,7 +516,7 @@ export function useInventory(): UseInventoryReturn {
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, categoryFilter]);
+  }, [items, searchQuery, categoryFilter]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -516,12 +530,12 @@ export function useInventory(): UseInventoryReturn {
   // Derived State
   // ---------------------------------------------------------------------------
   const hasActiveFilters = searchQuery !== '' || categoryFilter !== null;
-  const itemCount = MOCK_GEAR_ITEMS.length;
+  const itemCount = items.length;
   const filteredCount = filteredItems.length;
 
   return {
     // Data
-    items: MOCK_GEAR_ITEMS,
+    items,
     filteredItems,
     isLoading,
 

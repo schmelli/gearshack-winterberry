@@ -2,6 +2,7 @@
  * useGearEditor Hook
  *
  * Feature: 001-gear-item-editor
+ * Updated: 005-loadout-management - Migrated to use zustand store
  * Constitution: All form/business logic MUST reside in hooks
  *
  * Handles form state, validation, submission, and entity conversion
@@ -20,9 +21,9 @@ import { DEFAULT_GEAR_ITEM_FORM } from '@/types/gear';
 import { gearItemFormSchema } from '@/lib/validations/gear-schema';
 import {
   gearItemToFormData,
-  createNewGearItem,
-  updateGearItem,
+  formDataToGearItem,
 } from '@/lib/gear-utils';
+import { useStore } from '@/hooks/useStore';
 
 // =============================================================================
 // Types
@@ -73,6 +74,10 @@ export function useGearEditor(
   const router = useRouter();
   const isEditing = Boolean(initialItem);
 
+  // Store actions
+  const addItem = useStore((state) => state.addItem);
+  const updateItemInStore = useStore((state) => state.updateItem);
+
   // Compute initial form values
   const defaultValues = useMemo(() => {
     if (initialItem) {
@@ -103,22 +108,30 @@ export function useGearEditor(
   const onSubmit = useCallback(
     async (data: GearItemFormData) => {
       try {
-        let savedItem: GearItem;
+        const itemData = formDataToGearItem(data);
 
         if (isEditing && initialItem) {
-          // Update existing item
-          savedItem = updateGearItem(initialItem, data);
+          // Update existing item in store
+          updateItemInStore(initialItem.id, itemData);
+          // Reconstruct saved item for callback
+          const savedItem: GearItem = {
+            ...initialItem,
+            ...itemData,
+            updatedAt: new Date(),
+          };
+          onSaveSuccess?.(savedItem);
         } else {
-          // Create new item
-          savedItem = createNewGearItem(data);
+          // Add new item to store
+          const newId = addItem(itemData);
+          // Reconstruct saved item for callback
+          const savedItem: GearItem = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...itemData,
+          };
+          onSaveSuccess?.(savedItem);
         }
-
-        // TODO: Replace with actual API call / state management
-        // For MVP, we just simulate success
-        console.log('Saved gear item:', savedItem);
-
-        // Call success callback
-        onSaveSuccess?.(savedItem);
 
         // Navigate to inventory
         router.push(redirectPath);
@@ -128,7 +141,7 @@ export function useGearEditor(
         console.error('Failed to save gear item:', err);
       }
     },
-    [isEditing, initialItem, onSaveSuccess, onSaveError, router, redirectPath]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath]
   );
 
   // Wrapped submit handler

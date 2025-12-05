@@ -5,6 +5,9 @@
  * Route: /inventory
  *
  * Visual gallery view for browsing the gear collection
+ *
+ * Feature: 008-auth-and-profile
+ * T045: Protected route - requires authentication
  */
 
 'use client';
@@ -15,8 +18,9 @@ import { Button } from '@/components/ui/button';
 import { useInventory } from '@/hooks/useInventory';
 import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
-export default function InventoryPage() {
+function InventoryContent() {
   const {
     filteredItems,
     viewDensity,
@@ -95,5 +99,13 @@ export default function InventoryPage() {
         </>
       )}
     </main>
+  );
+}
+
+export default function InventoryPage() {
+  return (
+    <ProtectedRoute>
+      <InventoryContent />
+    </ProtectedRoute>
   );
 }

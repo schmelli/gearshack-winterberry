@@ -29,13 +29,15 @@ interface GearCardProps {
   item: GearItem;
   /** Current view density mode */
   viewDensity: ViewDensity;
+  /** Optional click handler for card body */
+  onClick?: () => void;
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function GearCard({ item, viewDensity }: GearCardProps) {
+export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
   const showImage = item.primaryImageUrl && !imageError;
@@ -46,7 +48,10 @@ export function GearCard({ item, viewDensity }: GearCardProps) {
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
   return (
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
+    <Card
+      className="group overflow-hidden border-border transition-shadow hover:shadow-md cursor-pointer"
+      onClick={onClick}
+    >
       {/* Image Section */}
       <div className="relative aspect-square bg-muted">
         {showImage ? (
@@ -75,6 +80,7 @@ export function GearCard({ item, viewDensity }: GearCardProps) {
             size="icon"
             variant="secondary"
             className="h-8 w-8 shadow-md"
+            onClick={(e) => e.stopPropagation()}
           >
             <Link href={`/inventory/${item.id}/edit`}>
               <Pencil className="h-4 w-4" />

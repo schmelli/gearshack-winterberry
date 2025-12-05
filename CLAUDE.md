@@ -75,6 +75,19 @@ Before writing code:
 - N/A (client-side mock data for MVP) (002-inventory-gallery)
 - TypeScript 5.x (strict mode) with React 19+ + Next.js 16+ (App Router), shadcn/ui, Tailwind CSS 4, lucide-react, next/font/google (003-app-shell-branding)
 - N/A (no data persistence for this feature) (003-app-shell-branding)
+- TypeScript 5.x (strict mode) with React 19+ + Next.js 16+ (App Router), shadcn/ui, Tailwind CSS 4, next-themes (for dark mode) (004-nature-vibe-polish)
+- localStorage for theme preference persistence (004-nature-vibe-polish)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, zustand (state management), recharts (charts), shadcn/ui (005-loadout-management)
+- Browser localStorage (via zustand persist middleware) (005-loadout-management)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui, recharts, Sonner (toast), next-themes (006-ui-makeover)
+- Browser localStorage (via zustand persist middleware) (006-ui-makeover)
+- TypeScript 5.x (strict mode) + Next.js 16+, React 19+, Tailwind CSS 4, shadcn/ui, zustand, recharts, sonner, lucide-reac (007-grand-polish-sprint)
+- localStorage via zustand persist middleware (no backend) (007-grand-polish-sprint)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Firebase Auth, Firebase Firestore, Firebase Storage, shadcn/ui, Tailwind CSS 4, react-hook-form + zod, sonner (toast) (008-auth-and-profile)
+- Firebase Firestore (`userBase/{uid}`), Firebase Storage (`backgrounds/hd`) (008-auth-and-profile)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Tailwind CSS 4, shadcn/ui, lucide-reac (009-grand-visual-polish)
+- N/A (existing zustand/localStorage persistence unchanged) (009-grand-visual-polish)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui
+- Always try tp try run multiple subagents in parallel to speed up development. In this (Next.js) project, always ONLY use the nextjs-gearshack-architect type subagent.

@@ -6,7 +6,7 @@ import type { NavItem, UserMenuItem } from '@/types/navigation';
  */
 export const MAIN_NAV_ITEMS: NavItem[] = [
   { label: 'Inventory', href: '/inventory', enabled: true },
-  { label: 'Loadouts', href: '/loadouts', enabled: false },
+  { label: 'Loadouts', href: '/loadouts', enabled: true },
   { label: 'Community', href: '/community', enabled: false },
 ];
 
