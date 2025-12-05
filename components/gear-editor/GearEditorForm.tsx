@@ -86,13 +86,13 @@ export function GearEditorForm({
         <form onSubmit={handleSubmit}>
           <CardContent>
             <Tabs defaultValue="general" className="w-full">
-              {/* Tab Navigation - T029, T031 (responsive) */}
-              <TabsList className="w-full flex flex-wrap h-auto gap-1 mb-6">
+              {/* Tab Navigation - T029, T031 (responsive), T023-T024 (pill styling) */}
+              <TabsList className="w-full flex flex-wrap h-auto gap-1 mb-6 bg-muted rounded-full p-1">
                 {TABS.map((tab) => (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="flex-1 min-w-[80px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="flex-1 min-w-[80px] rounded-full data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     {/* Show short label on mobile, full label on larger screens */}
                     <span className="sm:hidden">{tab.shortLabel}</span>

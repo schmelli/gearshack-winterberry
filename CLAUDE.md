@@ -87,6 +87,17 @@ Before writing code:
 - Firebase Firestore (`userBase/{uid}`), Firebase Storage (`backgrounds/hd`) (008-auth-and-profile)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Tailwind CSS 4, shadcn/ui, lucide-reac (009-grand-visual-polish)
 - N/A (existing zustand/localStorage persistence unchanged) (009-grand-visual-polish)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + Firebase SDK (auth, firestore, storage), zustand, zod, shadcn/ui, lucide-reac (010-firestore-sync)
+- Firebase Firestore (`userBase/{uid}/gearInventory`, `userBase/{uid}/loadouts`), Firebase Storage (010-firestore-sync)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Zod 4.x, shadcn/ui, Tailwind CSS 4, Firebase SDK (011-rescue-refine-bugs)
+- Firebase Firestore (legacy data in `userBase/{uid}/gearInventory`) (012-visual-identity-fixes)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Tailwind CSS 4, shadcn/ui, lucide-react, react-hook-form, Zod, Sonner (toast) (014-bugfix-sprint)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Firebase SDK (storage), Zod 4.x, sonner (toast) (015-storage-path-fix)
+- Firebase Storage (`userBase/{uid}/inventory/`) - path aligned with security rules (015-storage-path-fix)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Tailwind CSS 4 (CSS filters: brightness-0 invert) (016-header-polish-sprint)
+- N/A (styling changes only, no data persistence) (016-header-polish-sprint)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui, Tailwind CSS 4, lucide-reac (017-loadouts-search-filter)
+- zustand store (existing `useLoadouts` hook) (017-loadouts-search-filter)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

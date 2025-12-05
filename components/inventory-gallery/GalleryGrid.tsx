@@ -3,11 +3,18 @@
  *
  * Feature: 002-inventory-gallery
  * Responsive CSS Grid container for gear cards
+ *
+ * Feature: 018-gearcard-hierarchy-polish
+ * Adapts grid columns based on view density:
+ * - Compact: 1-2 columns (horizontal cards need more width)
+ * - Standard: 2-4 columns
+ * - Detailed: 1-3 columns (large cards)
  */
 
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
 import { GearCard } from './GearCard';
+import { cn } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -23,6 +30,19 @@ interface GalleryGridProps {
   /** Callback to clear filters */
   onClearFilters?: () => void;
 }
+
+// =============================================================================
+// Grid Configuration by Density
+// =============================================================================
+
+const GRID_CLASSES = {
+  // Compact: horizontal cards need more width - 1 col mobile, 2 cols tablet+
+  compact: 'grid grid-cols-1 gap-3 md:grid-cols-2',
+  // Standard: medium cards - 1 col mobile, 2 tablet, 3 desktop, 4 wide
+  standard: 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+  // Detailed: large cards - fewer columns
+  detailed: 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
+} as const;
 
 // =============================================================================
 // Component
@@ -56,8 +76,10 @@ export function GalleryGrid({
     );
   }
 
+  const gridClass = GRID_CLASSES[viewDensity] || GRID_CLASSES.standard;
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className={cn(gridClass)}>
       {items.map((item) => (
         <GearCard key={item.id} item={item} viewDensity={viewDensity} />
       ))}

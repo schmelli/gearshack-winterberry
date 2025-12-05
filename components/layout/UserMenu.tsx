@@ -44,7 +44,7 @@ export function UserMenu() {
   // Not authenticated - show sign in button
   if (!user) {
     return (
-      <Button variant="ghost" size="sm" asChild>
+      <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white" asChild>
         <Link href="/login">
           <LogIn className="mr-2 h-4 w-4" />
           Sign In
@@ -61,7 +61,7 @@ export function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-white/10">
             <AvatarWithFallback
               src={avatarUrl}
               name={displayName}

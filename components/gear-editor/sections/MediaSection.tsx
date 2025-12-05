@@ -5,10 +5,14 @@
  * Tasks: T040-T042, T044
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
+ * Feature: 010-firestore-sync
+ * Tasks: T019-T020 - Integrated Firebase Storage upload
+ *
  * Functional Fixes Sprint:
  * - Added image upload UI with local file selection
  * - Dual approach: Paste URL or Upload Image
  * - Local preview using URL.createObjectURL
+ * - Firebase Storage integration for file uploads
  *
  * Displays form fields for media management:
  * - Primary image URL with preview (URL or file upload)
@@ -19,7 +23,14 @@
 
 import { useCallback, useState, useRef } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { Plus, Trash2, Upload, Link as LinkIcon, X, Loader2, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   FormField,
   FormItem,
@@ -64,6 +75,8 @@ interface ImageUploadInputProps {
   label: string;
   description?: string;
   size?: 'sm' | 'lg';
+  /** If true, automatically upload to Firebase on file select */
+  enableFirebaseUpload?: boolean;
 }
 
 function ImageUploadInput({
@@ -74,16 +87,21 @@ function ImageUploadInput({
   label,
   description,
   size = 'lg',
+  enableFirebaseUpload = false,
 }: ImageUploadInputProps) {
   const [mode, setMode] = useState<ImageInputMode>(value ? 'url' : 'url');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Firebase upload hook (only used if enableFirebaseUpload is true)
+  const { status: uploadStatus, upload } = useImageUpload();
+
   // Display either the local preview (from file upload) or the URL value
   const displayUrl = localPreview || value;
+  const isUploading = uploadStatus === 'uploading';
 
   const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       setError(null);
       const file = event.target.files?.[0];
 
@@ -104,14 +122,31 @@ function ImageUploadInput({
         return;
       }
 
-      // Create local preview URL
+      // Create local preview URL for immediate feedback
       const previewUrl = URL.createObjectURL(file);
       onFileSelect?.(file, previewUrl);
 
-      // Clear the URL field since we're using a local file
-      onChange('');
+      // If Firebase upload is enabled, upload immediately
+      if (enableFirebaseUpload) {
+        const downloadUrl = await upload(file);
+        if (downloadUrl) {
+          // Set the download URL as the field value
+          onChange(downloadUrl);
+          // Clear local preview since we now have the Firebase URL
+          onFileSelect?.(null, null);
+          // Clean up the local preview URL
+          URL.revokeObjectURL(previewUrl);
+        } else {
+          // Upload failed, keep the local preview
+          setError('Upload failed. Please try again.');
+          toast.error('Image upload failed. Please try again.');
+        }
+      } else {
+        // Not uploading to Firebase, just clear the URL field
+        onChange('');
+      }
     },
-    [onChange, onFileSelect]
+    [onChange, onFileSelect, enableFirebaseUpload, upload]
   );
 
   const handleClearFile = useCallback(() => {
@@ -168,6 +203,26 @@ function ImageUploadInput({
               <Upload className="w-4 h-4 mr-1" />
               Upload
             </Button>
+            {/* Image Search - Coming in V2 */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="end">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Image Search</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Image search coming in V2. For now, use &quot;Paste URL&quot; or &quot;Upload&quot; to add images.
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* URL Input Mode */}
@@ -183,7 +238,15 @@ function ImageUploadInput({
           {/* File Upload Mode */}
           {mode === 'upload' && (
             <div className="space-y-2">
-              {localPreview ? (
+              {isUploading ? (
+                // Show upload progress
+                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm flex-1 truncate text-muted-foreground">
+                    Uploading to Firebase...
+                  </span>
+                </div>
+              ) : localPreview ? (
                 // Show selected file info
                 <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
                   <span className="text-sm flex-1 truncate text-muted-foreground">
@@ -203,24 +266,32 @@ function ImageUploadInput({
               ) : (
                 // Dropzone / File input
                 <div
-                  className="border-2 border-dashed rounded-md p-4 text-center hover:border-primary/50 hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-md p-4 text-center transition-colors ${
+                    isUploading
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'cursor-pointer hover:border-primary/50 hover:bg-muted/50'
+                  }`}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
                   onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    if (!isUploading) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
                   }}
                   onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file && fileInputRef.current) {
-                      // Create a new DataTransfer to set the file
-                      const dt = new DataTransfer();
-                      dt.items.add(file);
-                      fileInputRef.current.files = dt.files;
-                      // Trigger the change event manually
-                      const event = new Event('change', { bubbles: true });
-                      fileInputRef.current.dispatchEvent(event);
+                    if (!isUploading) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && fileInputRef.current) {
+                        // Create a new DataTransfer to set the file
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        fileInputRef.current.files = dt.files;
+                        // Trigger the change event manually
+                        const event = new Event('change', { bubbles: true });
+                        fileInputRef.current.dispatchEvent(event);
+                      }
                     }
                   }}
                 >
@@ -238,6 +309,7 @@ function ImageUploadInput({
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
+                disabled={isUploading}
                 className="hidden"
               />
             </div>
@@ -306,8 +378,9 @@ export function MediaSection() {
                   onFileSelect={handlePrimaryFileSelect}
                   localPreview={primaryImageLocal.previewUrl}
                   label="Primary image"
-                  description="Main product image displayed in inventory lists"
+                  description="Main product image displayed in inventory lists. Files are uploaded to Firebase Storage."
                   size="lg"
+                  enableFirebaseUpload={true}
                 />
               </FormControl>
               <FormMessage />

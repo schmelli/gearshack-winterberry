@@ -24,7 +24,7 @@ import { useChartFilter } from '@/hooks/useChartFilter';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
-import { LoadoutMetadataSheet } from '@/components/loadouts/LoadoutMetadataSheet';
+import { LoadoutMetadataDialog } from '@/components/loadouts/LoadoutMetadataDialog';
 import { WeightBar } from '@/components/loadouts/WeightBar';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +52,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
   const loadout = useLoadout(id);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-  const [metadataSheetOpen, setMetadataSheetOpen] = useState(false);
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
   const updateLoadout = useStore((state) => state.updateLoadout);
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
 
@@ -90,8 +90,8 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   };
 
   // Handle metadata save (US5)
-  const handleMetadataSave = (data: { name: string; description: string | null; season: Season | null; tripDate: Date | null }) => {
-    updateLoadout(id, {
+  const handleMetadataSave = async (data: { name: string; description: string | null; season: Season | null; tripDate: Date | null }) => {
+    await updateLoadout(id, {
       name: data.name,
       description: data.description,
       tripDate: data.tripDate,
@@ -104,8 +104,8 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   };
 
   // Handle inline description change (FR-014)
-  const handleDescriptionChange = (description: string | null) => {
-    updateLoadout(id, { description });
+  const handleDescriptionChange = async (description: string | null) => {
+    await updateLoadout(id, { description });
   };
 
   return (
@@ -122,15 +122,15 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
         onSegmentClick={toggleCategory}
-        onEdit={() => setMetadataSheetOpen(true)}
+        onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
       />
 
-      {/* Metadata Edit Sheet (US5) */}
-      <LoadoutMetadataSheet
+      {/* Metadata Edit Dialog (US5) */}
+      <LoadoutMetadataDialog
         loadout={loadout}
-        open={metadataSheetOpen}
-        onOpenChange={setMetadataSheetOpen}
+        open={metadataDialogOpen}
+        onOpenChange={setMetadataDialogOpen}
         onSave={handleMetadataSave}
       />
 

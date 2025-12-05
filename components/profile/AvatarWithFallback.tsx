@@ -70,7 +70,7 @@ export function AvatarWithFallback({
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
       {src && <AvatarImage src={src} alt={name || 'User avatar'} />}
-      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+      <AvatarFallback className="bg-white/20 text-white font-medium">
         {initials}
       </AvatarFallback>
     </Avatar>

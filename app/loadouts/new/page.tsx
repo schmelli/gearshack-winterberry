@@ -28,7 +28,7 @@ export default function NewLoadoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
@@ -45,8 +45,8 @@ export default function NewLoadoutPage() {
         return;
       }
 
-      // Create loadout in store
-      const loadoutId = createLoadout(result.data.name, result.data.tripDate);
+      // Create loadout in store (now async)
+      const loadoutId = await createLoadout(result.data.name, result.data.tripDate);
 
       // Redirect to editor
       router.push(`/loadouts/${loadoutId}`);

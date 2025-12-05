@@ -41,14 +41,20 @@ interface LoadoutCardProps {
 export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
   const deleteLoadout = useStore((state) => state.deleteLoadout);
 
+  // FR-004: Guard against invalid loadout IDs (e.g., hex colors, malformed data)
+  if (!loadout.id || !/^[a-zA-Z0-9_-]{10,}$/.test(loadout.id)) {
+    console.warn('[LoadoutCard] Invalid loadout ID, skipping render:', loadout.id);
+    return null;
+  }
+
   // Get items for this loadout
   const loadoutItems = items.filter((item) => loadout.itemIds.includes(item.id));
   const totalWeight = calculateTotalWeight(loadoutItems);
   const weightCategory = getWeightCategory(totalWeight);
   const weightColorClass = getWeightCategoryColor(weightCategory);
 
-  const handleDelete = () => {
-    deleteLoadout(loadout.id);
+  const handleDelete = async () => {
+    await deleteLoadout(loadout.id);
   };
 
   return (

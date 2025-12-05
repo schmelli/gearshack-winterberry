@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SyncProvider } from "@/components/providers/SyncProvider";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -41,6 +42,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
+            <SyncProvider />
             <div className="flex min-h-screen flex-col">
               <SiteHeader />
               <main className="flex-1">

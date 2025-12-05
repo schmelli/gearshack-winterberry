@@ -7,6 +7,7 @@
 
 import type { GearItem } from '@/types/gear';
 import type { Loadout, ActivityType, Season } from '@/types/loadout';
+import type { SyncState } from '@/types/sync';
 
 // =============================================================================
 // GearshackStore Interface
@@ -26,53 +27,56 @@ export interface GearshackStore {
   /** Whether store has been initialized (for migration check) */
   _initialized: boolean;
 
+  /** Sync state for Firestore synchronization (Feature: 010-firestore-sync) */
+  syncState: SyncState;
+
   // ==========================================================================
-  // Item Actions
+  // Item Actions (T013-T015: Now async with Firestore persistence)
   // ==========================================================================
 
   /**
-   * Add a new gear item to the store
-   * @returns The generated item ID
+   * Add a new gear item to the store (async - persists to Firestore)
+   * @returns Promise resolving to the generated item ID
    */
-  addItem: (item: Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  addItem: (item: Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
 
   /**
-   * Update an existing gear item
+   * Update an existing gear item (async - persists to Firestore)
    * @param id - Item ID to update
    * @param updates - Partial item data to merge
    */
-  updateItem: (id: string, updates: Partial<Omit<GearItem, 'id' | 'createdAt'>>) => void;
+  updateItem: (id: string, updates: Partial<Omit<GearItem, 'id' | 'createdAt'>>) => Promise<void>;
 
   /**
-   * Delete a gear item (also removes from all loadouts)
+   * Delete a gear item (async - persists to Firestore, also removes from all loadouts)
    * @param id - Item ID to delete
    */
-  deleteItem: (id: string) => void;
+  deleteItem: (id: string) => Promise<void>;
 
   // ==========================================================================
-  // Loadout Actions
+  // Loadout Actions (T017: Now async with Firestore persistence)
   // ==========================================================================
 
   /**
-   * Create a new loadout
+   * Create a new loadout (async - persists to Firestore)
    * @param name - Loadout name
    * @param tripDate - Optional trip date
-   * @returns The generated loadout ID
+   * @returns Promise resolving to the generated loadout ID
    */
-  createLoadout: (name: string, tripDate?: Date | null) => string;
+  createLoadout: (name: string, tripDate?: Date | null) => Promise<string>;
 
   /**
-   * Update loadout metadata (name, date, description)
+   * Update loadout metadata (async - persists to Firestore)
    * @param id - Loadout ID
    * @param updates - Partial loadout data to merge
    */
-  updateLoadout: (id: string, updates: Partial<Pick<Loadout, 'name' | 'tripDate' | 'description'>>) => void;
+  updateLoadout: (id: string, updates: Partial<Pick<Loadout, 'name' | 'tripDate' | 'description'>>) => Promise<void>;
 
   /**
-   * Delete a loadout
+   * Delete a loadout (async - persists to Firestore)
    * @param id - Loadout ID to delete
    */
-  deleteLoadout: (id: string) => void;
+  deleteLoadout: (id: string) => Promise<void>;
 
   /**
    * Add an item to a loadout (idempotent - ignores duplicates)
@@ -117,6 +121,38 @@ export interface GearshackStore {
    * @param isConsumable - New consumable state
    */
   setItemConsumable: (loadoutId: string, itemId: string, isConsumable: boolean) => void;
+
+  // ==========================================================================
+  // Sync Actions (Feature: 010-firestore-sync)
+  // ==========================================================================
+
+  /**
+   * Update sync state with partial updates
+   * @param updates - Partial sync state to merge
+   */
+  setSyncState: (updates: Partial<SyncState>) => void;
+
+  /**
+   * Replace all gear items with remote data from Firestore
+   * @param items - Complete gear items array from Firestore
+   */
+  setRemoteGearItems: (items: GearItem[]) => void;
+
+  /**
+   * Replace all loadouts with remote data from Firestore
+   * @param loadouts - Complete loadouts array from Firestore
+   */
+  setRemoteLoadouts: (loadouts: Loadout[]) => void;
+
+  /**
+   * Increment pending operations counter and set status to syncing
+   */
+  incrementPendingOps: () => void;
+
+  /**
+   * Decrement pending operations counter. Sets status to idle when reaching 0.
+   */
+  decrementPendingOps: () => void;
 
   // ==========================================================================
   // Initialization

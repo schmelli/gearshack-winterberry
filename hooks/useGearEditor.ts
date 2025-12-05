@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import type { GearItem, GearItemFormData } from '@/types/gear';
 import { DEFAULT_GEAR_ITEM_FORM } from '@/types/gear';
@@ -111,8 +112,8 @@ export function useGearEditor(
         const itemData = formDataToGearItem(data);
 
         if (isEditing && initialItem) {
-          // Update existing item in store
-          updateItemInStore(initialItem.id, itemData);
+          // Update existing item in store (now async with optimistic update)
+          await updateItemInStore(initialItem.id, itemData);
           // Reconstruct saved item for callback
           const savedItem: GearItem = {
             ...initialItem,
@@ -120,9 +121,10 @@ export function useGearEditor(
             updatedAt: new Date(),
           };
           onSaveSuccess?.(savedItem);
+          toast.success('Item updated successfully!');
         } else {
-          // Add new item to store
-          const newId = addItem(itemData);
+          // Add new item to store (now async with optimistic update)
+          const newId = await addItem(itemData);
           // Reconstruct saved item for callback
           const savedItem: GearItem = {
             id: newId,
@@ -131,9 +133,10 @@ export function useGearEditor(
             ...itemData,
           };
           onSaveSuccess?.(savedItem);
+          toast.success('Item saved successfully!');
         }
 
-        // Navigate to inventory
+        // Navigate to inventory (item already visible via optimistic update)
         router.push(redirectPath);
       } catch (error) {
         const err = error instanceof Error ? error : new Error('Save failed');
@@ -144,12 +147,23 @@ export function useGearEditor(
     [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath]
   );
 
-  // Wrapped submit handler
+  // Wrapped submit handler with validation
   const handleSubmit = useCallback(
     async (e?: React.BaseSyntheticEvent) => {
+      e?.preventDefault();
+
+      // Trigger validation on all fields first
+      const isValid = await form.trigger();
+
+      if (!isValid) {
+        toast.error('Please fix errors before saving');
+        return;
+      }
+
+      // Proceed with submission if validation passes
       await rhfHandleSubmit(onSubmit)(e);
     },
-    [rhfHandleSubmit, onSubmit]
+    [form, rhfHandleSubmit, onSubmit]
   );
 
   // Cancel handler with dirty check

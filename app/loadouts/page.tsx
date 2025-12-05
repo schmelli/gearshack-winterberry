@@ -10,56 +10,46 @@
  *
  * Feature: 008-auth-and-profile
  * T046: Protected route - requires authentication
+ *
+ * Feature: 017-loadouts-search-filter
+ * Extended with activity filter, sorting, and dedicated toolbar component
  */
 
 'use client';
 
 import Link from 'next/link';
-import { Plus, Backpack, Search, X } from 'lucide-react';
+import { Plus, Backpack, Search } from 'lucide-react';
 import { useLoadouts, useItems } from '@/hooks/useStore';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';
+import { LoadoutToolbar } from '@/components/loadouts/LoadoutToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { SEASON_LABELS } from '@/types/loadout';
-import type { Season } from '@/types/loadout';
 
 function LoadoutsContent() {
   const loadouts = useLoadouts();
   const items = useItems();
 
-  // US8: Search and filter functionality
+  // Feature 017: Extended search, filter, and sort functionality
   const {
     searchQuery,
     setSearchQuery,
-    seasonFilter,
-    setSeasonFilter,
+    activityFilter,
+    setActivityFilter,
+    sortOption,
+    setSortOption,
     clearFilters,
     hasActiveFilters,
     filteredLoadouts,
-  } = useLoadoutSearch(loadouts);
+  } = useLoadoutSearch(loadouts, items);
 
   const isEmpty = loadouts.length === 0;
   const hasResults = filteredLoadouts.length > 0;
 
   return (
     <div className="container py-8">
-      {/* Page Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Loadouts</h1>
-          <p className="mt-1 text-muted-foreground">
-            Plan your trips by combining gear from your inventory
-          </p>
-        </div>
+      {/* Page Header - Create New Loadout button */}
+      <div className="mb-6 flex items-center justify-end">
         <Button asChild>
           <Link href="/loadouts/new">
             <Plus className="mr-2 h-4 w-4" />
@@ -68,49 +58,23 @@ function LoadoutsContent() {
         </Button>
       </div>
 
-      {/* US8: Search and Filter Toolbar */}
+      {/* Feature 017: LoadoutToolbar with search, activity filter, and sort */}
       {!isEmpty && (
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search loadouts by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Season Filter */}
-          <Select
-            value={seasonFilter ?? 'all'}
-            onValueChange={(value) => setSeasonFilter(value === 'all' ? null : value as Season)}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="All seasons" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All seasons</SelectItem>
-              <SelectItem value="spring">{SEASON_LABELS.spring}</SelectItem>
-              <SelectItem value="summer">{SEASON_LABELS.summer}</SelectItem>
-              <SelectItem value="fall">{SEASON_LABELS.fall}</SelectItem>
-              <SelectItem value="winter">{SEASON_LABELS.winter}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Clear Filters Button */}
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="mr-2 h-4 w-4" />
-              Clear
-            </Button>
-          )}
-        </div>
+        <LoadoutToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activityFilter={activityFilter}
+          onActivityChange={setActivityFilter}
+          sortOption={sortOption}
+          onSortChange={setSortOption}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+          loadoutCount={loadouts.length}
+          filteredCount={filteredLoadouts.length}
+        />
       )}
 
-      {/* Empty State */}
+      {/* Empty State - No loadouts at all */}
       {isEmpty && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
@@ -130,11 +94,11 @@ function LoadoutsContent() {
         </div>
       )}
 
-      {/* US8: Empty Search Results */}
+      {/* Feature 017: Empty Search/Filter Results - distinct from no loadouts */}
       {!isEmpty && !hasResults && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-          <h2 className="mb-2 text-xl font-semibold">No loadouts found</h2>
+          <h2 className="mb-2 text-xl font-semibold">No matching loadouts found</h2>
           <p className="mb-6 max-w-sm text-center text-muted-foreground">
             No loadouts match your search criteria. Try adjusting your filters.
           </p>
@@ -144,7 +108,7 @@ function LoadoutsContent() {
         </div>
       )}
 
-      {/* Loadout Cards Grid (FR-005, US8: Using filtered results) */}
+      {/* Loadout Cards Grid (FR-005, Feature 017: Using filtered and sorted results) */}
       {!isEmpty && hasResults && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredLoadouts.map((loadout) => (

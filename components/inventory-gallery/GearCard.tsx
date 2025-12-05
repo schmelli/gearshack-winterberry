@@ -3,6 +3,14 @@
  *
  * Feature: 002-inventory-gallery
  * Displays a single gear item in the gallery with view density support
+ *
+ * Feature: 018-gearcard-hierarchy-polish
+ * US1: Compact view - horizontal layout with image left, text right
+ * US2: Standard view - large square image with full metadata
+ * US3: Detailed view - extra-large 4:3 image with description
+ * US4: Visual polish - shadows and borders for premium feel
+ *
+ * Fix: Added relative positioning, improved compact layout
  */
 
 'use client';
@@ -10,11 +18,17 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, ExternalLink } from 'lucide-react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { StatusBadge } from './StatusBadge';
 import { formatWeightForDisplay } from '@/lib/gear-utils';
@@ -47,13 +61,102 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
   const categoryLabel = getCategoryLabel(item.categoryId);
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
+  // =========================================================================
+  // US1: Compact view - horizontal layout
+  // =========================================================================
+  if (isCompact) {
+    return (
+      <Card
+        className={cn(
+          'group relative overflow-hidden cursor-pointer',
+          'flex flex-row items-center h-24',
+          'border-stone-200 shadow-sm',
+          'transition-shadow hover:shadow-md'
+        )}
+        onClick={onClick}
+      >
+        {/* Image Section - Left side, fixed width, white background */}
+        <div className="h-24 w-24 flex-shrink-0 bg-white relative flex items-center justify-center">
+          {showImage ? (
+            <Image
+              src={item.primaryImageUrl!}
+              alt={item.name}
+              fill
+              className="object-contain p-2"
+              sizes="96px"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <CategoryPlaceholder
+              categoryId={item.categoryId}
+              size="md"
+              className="h-12 w-12"
+            />
+          )}
+        </div>
+
+        {/* Content Section - Right side, flex-grow */}
+        <div className="flex flex-1 flex-col justify-center px-4 py-2 min-w-0">
+          {/* Brand - Small text */}
+          {item.brand && (
+            <p className="text-xs text-muted-foreground truncate">
+              {item.brand}
+            </p>
+          )}
+
+          {/* Name - Bold, single line */}
+          <h3 className="text-sm font-medium leading-tight line-clamp-1">
+            {item.name}
+          </h3>
+
+          {/* Weight - Small text */}
+          {item.weightGrams && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {weightDisplay}
+            </p>
+          )}
+        </div>
+
+        {/* Edit Button Overlay */}
+        <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            asChild
+            size="icon"
+            variant="secondary"
+            className="h-6 w-6 shadow-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Link href={`/inventory/${item.id}/edit`}>
+              <Pencil className="h-3 w-3" />
+              <span className="sr-only">Edit {item.name}</span>
+            </Link>
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  // =========================================================================
+  // US2/US3: Standard and Detailed views - vertical layout
+  // =========================================================================
   return (
     <Card
-      className="group overflow-hidden border-border transition-shadow hover:shadow-md cursor-pointer"
+      className={cn(
+        'group relative overflow-hidden cursor-pointer',
+        'flex flex-col',
+        'border-stone-200 shadow-sm',
+        'transition-shadow hover:shadow-md',
+        isDetailed ? 'min-h-[400px]' : 'min-h-[280px]'
+      )}
       onClick={onClick}
     >
       {/* Image Section */}
-      <div className="relative aspect-square bg-muted">
+      <div
+        className={cn(
+          'relative bg-muted flex items-center justify-center',
+          isDetailed ? 'aspect-[4/3]' : 'aspect-square'
+        )}
+      >
         {showImage ? (
           <Image
             src={item.primaryImageUrl!}
@@ -64,13 +167,11 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <CategoryPlaceholder
-              categoryId={item.categoryId}
-              size="lg"
-              className="h-full w-full rounded-none"
-            />
-          </div>
+          <CategoryPlaceholder
+            categoryId={item.categoryId}
+            size="lg"
+            className="h-full w-full rounded-none"
+          />
         )}
 
         {/* Edit Button Overlay */}
@@ -91,45 +192,74 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
       </div>
 
       {/* Content Section */}
-      <CardContent className="p-3">
-        {/* Brand - Always shown */}
+      <CardContent className="p-3 flex-1">
+        {/* Brand - With hover card for manufacturer info */}
         {item.brand && (
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {item.brand}
-          </p>
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors inline-block">
+                {item.brand}
+              </p>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-64" align="start">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">{item.brand}</h4>
+                <p className="text-xs text-muted-foreground">
+                  Manufacturer of outdoor and adventure gear.
+                </p>
+                {item.brandUrl && (
+                  <a
+                    href={item.brandUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Visit website
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            </HoverCardContent>
+          </HoverCard>
         )}
 
-        {/* Name - Always shown */}
-        <h3 className="font-semibold leading-tight">{item.name}</h3>
+        {/* Name */}
+        <h3
+          className={cn(
+            'font-semibold leading-tight',
+            isDetailed ? '' : 'line-clamp-2'
+          )}
+        >
+          {item.name}
+        </h3>
 
-        {/* Standard View: Category, Weight, Status */}
-        {!isCompact && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {/* Category Label */}
-            {categoryLabel && (
-              <span className="text-xs text-muted-foreground">
-                {categoryLabel}
-              </span>
-            )}
+        {/* Category, Weight, Status */}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {/* Category Label */}
+          {categoryLabel && (
+            <span className="text-xs text-muted-foreground">
+              {categoryLabel}
+            </span>
+          )}
 
-            {/* Separator dot */}
-            {categoryLabel && item.weightGrams && (
-              <span className="text-muted-foreground">·</span>
-            )}
+          {/* Separator dot */}
+          {categoryLabel && item.weightGrams && (
+            <span className="text-muted-foreground">·</span>
+          )}
 
-            {/* Weight */}
-            {item.weightGrams && (
-              <span className="text-xs text-muted-foreground">
-                {weightDisplay}
-              </span>
-            )}
+          {/* Weight */}
+          {item.weightGrams && (
+            <span className="text-xs text-muted-foreground">
+              {weightDisplay}
+            </span>
+          )}
 
-            {/* Status Badge */}
-            <StatusBadge status={item.status} className="ml-auto" />
-          </div>
-        )}
+          {/* Status Badge */}
+          <StatusBadge status={item.status} className="ml-auto" />
+        </div>
 
-        {/* Detailed View: Notes snippet */}
+        {/* US3: Detailed view - Notes snippet */}
         {isDetailed && item.notes && (
           <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
             {item.notes}

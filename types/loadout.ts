@@ -49,6 +49,21 @@ export const SEASON_LABELS: Record<Season, string> = {
 };
 
 // =============================================================================
+// Sort Options (Feature: 017-loadouts-search-filter)
+// =============================================================================
+
+/** Sort options for loadout list */
+export type LoadoutSortOption = 'date-newest' | 'date-oldest' | 'weight-lightest' | 'weight-heaviest';
+
+/** Sort option labels for UI display */
+export const SORT_OPTION_LABELS: Record<LoadoutSortOption, string> = {
+  'date-newest': 'Date (Newest)',
+  'date-oldest': 'Date (Oldest)',
+  'weight-lightest': 'Weight (Lightest)',
+  'weight-heaviest': 'Weight (Heaviest)',
+};
+
+// =============================================================================
 // LoadoutItemState (NEW - Feature: 007-grand-polish-sprint)
 // =============================================================================
 

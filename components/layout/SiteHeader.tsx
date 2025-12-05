@@ -11,6 +11,13 @@
  * FR-005: Vertical centering maintained
  * FR-006: Header height minimum 96px (h-24)
  * FR-007: Full viewport width background
+ *
+ * Feature: 012-visual-identity-fixes
+ * User Story 1 (Brand Identity):
+ * T002: Deep Forest Green background (#405A3D) with white text/icons
+ * T004: Active page indicator (border-b-2 border-white)
+ * T005: Larger nav font (text-lg font-bold)
+ * T006: Logo in Rock Salt font, text-3xl, white color
  */
 
 'use client';
@@ -18,21 +25,27 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Bell } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
+import { SyncIndicator } from './SyncIndicator';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 
 interface SiteHeaderProps {
   className?: string;
 }
 
 export function SiteHeader({ className }: SiteHeaderProps) {
+  const { user } = useAuthContext();
+  const pathname = usePathname();
+
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full border-b bg-emerald-50/90 backdrop-blur-md supports-[backdrop-filter]:bg-emerald-50/80 dark:bg-emerald-900/90 dark:supports-[backdrop-filter]:bg-emerald-900/80',
+        'sticky top-0 z-50 w-full border-b border-[#405A3D]/20 bg-[#405A3D]',
         className
       )}
     >
@@ -42,6 +55,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         <MobileNav />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
+        {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-20 w-20 items-center justify-center rounded-lg mix-blend-multiply dark:mix-blend-lighten">
             <Image
@@ -49,39 +63,48 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               alt="Gearshack Logo"
               width={80}
               height={80}
-              className="h-20 w-20"
+              className="h-20 w-20 brightness-0 invert"
               priority
             />
           </div>
-          <span className="font-[family-name:var(--font-rock-salt)] text-3xl leading-tight">
+          <span className="font-[family-name:var(--font-rock-salt)] text-3xl leading-tight text-white">
             Gearshack
           </span>
         </Link>
 
         {/* Desktop navigation (right side) - FR-021: baseline alignment via items-baseline */}
+        {/* T005: Larger nav font (text-lg font-bold) */}
         <nav className="ml-auto hidden items-baseline gap-8 md:flex">
-          {MAIN_NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.enabled ? item.href : '#'}
-              aria-disabled={!item.enabled}
-              tabIndex={item.enabled ? undefined : -1}
-              className={cn(
-                'text-sm font-medium transition-colors hover:underline hover:underline-offset-4',
-                item.enabled
-                  ? 'text-primary hover:text-primary/80'
-                  : 'pointer-events-none text-muted-foreground opacity-50'
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {MAIN_NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.enabled ? item.href : '#'}
+                aria-disabled={!item.enabled}
+                tabIndex={item.enabled ? undefined : -1}
+                className={cn(
+                  'text-lg font-bold text-white transition-colors hover:text-white/80',
+                  item.enabled
+                    ? isActive
+                      ? 'border-b-2 border-white'
+                      : ''
+                    : 'pointer-events-none opacity-50'
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Right side: notifications and user menu */}
+        {/* Right side: sync indicator, notifications and user menu */}
         <div className="flex items-center gap-2">
+          {/* Sync indicator - only show when authenticated */}
+          {user && <SyncIndicator />}
+
           {/* Notification bell */}
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white">
             <Bell className="h-5 w-5" />
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
             <span className="sr-only">Notifications</span>
