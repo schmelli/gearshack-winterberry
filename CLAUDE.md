@@ -98,6 +98,9 @@ Before writing code:
 - N/A (styling changes only, no data persistence) (016-header-polish-sprint)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui, Tailwind CSS 4, lucide-reac (017-loadouts-search-filter)
 - zustand store (existing `useLoadouts` hook) (017-loadouts-search-filter)
+- Firebase Firestore (`userBase/{uid}/gearInventory` - nobgImages field from Cloud Functions) (019-image-perfection)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui, Tailwind CSS 4 (020-form-completion-safety)
+- Firebase Firestore (existing deleteItem handles Firestore + local state) (020-form-completion-safety)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

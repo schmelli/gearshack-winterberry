@@ -148,6 +148,7 @@ export const FirestoreGearItemSchema = z.object({
   label: z.string().optional(),
 
   // General Info (optional fields with dual format support)
+  description: z.string().nullable().optional(),
   brand: z.string().nullable().optional(),
   brand_url: z.string().nullable().optional(),
   brandUrl: z.string().nullable().optional(),
@@ -192,6 +193,11 @@ export const FirestoreGearItemSchema = z.object({
   primaryImageUrl: z.string().nullable().optional(),
   gallery_images: z.array(z.string()).optional(),
   galleryImageUrls: z.array(z.string()).optional(),
+  // Feature 019: Processed images from Cloud Functions
+  nobgImages: z.record(z.string(), z.object({
+    png: z.string(),
+    webp: z.string().optional(),
+  })).optional(),
 
   // Status and Condition
   condition: GearConditionSchema.optional(),

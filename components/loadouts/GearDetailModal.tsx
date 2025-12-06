@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { GearItem } from '@/types/gear';
 import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
+import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import { GEAR_CONDITION_LABELS } from '@/types/gear';
 
 // =============================================================================
@@ -71,18 +72,18 @@ export function GearDetailModal({
               </div>
             </DialogHeader>
 
-            {/* Image */}
-            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-              {item.primaryImageUrl ? (
+            {/* Image - Feature 019: bg-white + object-contain for no cropping */}
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
+              {getOptimizedImageUrl(item) ? (
                 <Image
-                  src={item.primaryImageUrl}
+                  src={getOptimizedImageUrl(item)!}
                   alt={item.name}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 512px) 100vw, 512px"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center">
+                <div className="flex h-full items-center justify-center bg-muted">
                   <Package className="h-16 w-16 text-muted-foreground" />
                 </div>
               )}

@@ -38,6 +38,23 @@ export const GEAR_STATUS_LABELS: Record<GearStatus, string> = {
 };
 
 // =============================================================================
+// Cloud Function Processed Images (Feature: 019-image-perfection)
+// =============================================================================
+
+/** Single processed image from Cloud Functions background removal */
+export interface NobgImage {
+  /** PNG URL (required) */
+  png: string;
+  /** WebP URL (optional, future optimization) */
+  webp?: string;
+}
+
+/** Collection of processed images by size key */
+export interface NobgImages {
+  [size: string]: NobgImage;
+}
+
+// =============================================================================
 // GearItem Entity (Storage/Domain Model)
 // =============================================================================
 
@@ -50,6 +67,8 @@ export interface GearItem {
   // Section 1: General Info
   name: string;
   brand: string | null;
+  /** Product description for details, specifications, or notes */
+  description: string | null;
   brandUrl: string | null;
   modelNumber: string | null;
   productUrl: string | null;
@@ -76,6 +95,8 @@ export interface GearItem {
   // Section 5: Media
   primaryImageUrl: string | null;
   galleryImageUrls: string[];
+  /** Processed images from Cloud Functions (background removed) */
+  nobgImages?: NobgImages;
 
   // Section 6: Status & Condition
   condition: GearCondition;
@@ -91,6 +112,8 @@ export interface GearItemFormData {
   // Section 1: General Info
   name: string;
   brand: string;
+  /** Product description for details, specifications, or notes */
+  description: string;
   brandUrl: string;
   modelNumber: string;
   productUrl: string;
@@ -131,6 +154,7 @@ export interface GearItemFormData {
 export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   name: '',
   brand: '',
+  description: '',
   brandUrl: '',
   modelNumber: '',
   productUrl: '',

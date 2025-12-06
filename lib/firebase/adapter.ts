@@ -14,7 +14,7 @@
  */
 
 import { Timestamp } from 'firebase/firestore';
-import type { GearItem } from '@/types/gear';
+import type { GearItem, NobgImages } from '@/types/gear';
 import type { Loadout, LoadoutItemState, ActivityType } from '@/types/loadout';
 import {
   FirestoreGearItemSchema,
@@ -202,6 +202,7 @@ export function adaptGearItem(doc: unknown, id: string): GearItem {
       id,
       name: 'Unnamed Gear',
       brand: null,
+      description: null,
       brandUrl: null,
       modelNumber: null,
       productUrl: null,
@@ -296,6 +297,7 @@ export function adaptGearItem(doc: unknown, id: string): GearItem {
     id,
     name: finalName,
     brand: validated.brand ?? null,
+    description: validated.description ?? null,
     brandUrl:
       resolveField(
         validated as Record<string, unknown>,
@@ -366,6 +368,8 @@ export function adaptGearItem(doc: unknown, id: string): GearItem {
       ) ?? null,
     primaryImageUrl,
     galleryImageUrls,
+    // Feature 019: Pass through processed images from Cloud Functions
+    nobgImages: validated.nobgImages as NobgImages | undefined,
     condition: validated.condition ?? 'used',
     status: validated.status ?? 'active',
     notes: validated.notes ?? null,
@@ -520,6 +524,7 @@ export function prepareGearItemForFirestore(
 
     // General Info
     brand: item.brand,
+    description: item.description,
     brand_url: item.brandUrl,
     model_number: item.modelNumber,
     product_url: item.productUrl,

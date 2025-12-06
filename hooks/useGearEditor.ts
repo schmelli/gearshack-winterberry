@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -50,12 +50,16 @@ export interface UseGearEditorReturn {
   isDirty: boolean;
   /** Whether form is currently submitting */
   isSubmitting: boolean;
+  /** Whether delete operation is in progress */
+  isDeleting: boolean;
   /** Handle form submission */
   handleSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
   /** Handle cancel action */
   handleCancel: () => void;
   /** Reset form to initial values */
   resetForm: () => void;
+  /** Handle delete action (only available when editing) */
+  handleDelete: () => Promise<void>;
 }
 
 // =============================================================================
@@ -78,6 +82,10 @@ export function useGearEditor(
   // Store actions
   const addItem = useStore((state) => state.addItem);
   const updateItemInStore = useStore((state) => state.updateItem);
+  const deleteItemFromStore = useStore((state) => state.deleteItem);
+
+  // Delete state
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Compute initial form values
   const defaultValues = useMemo(() => {
@@ -182,6 +190,23 @@ export function useGearEditor(
     reset(defaultValues);
   }, [reset, defaultValues]);
 
+  // Delete handler
+  const handleDelete = useCallback(async () => {
+    if (!initialItem) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteItemFromStore(initialItem.id);
+      toast.success('Item deleted.');
+      router.push('/inventory');
+    } catch (error) {
+      toast.error('Failed to delete item');
+      console.error('Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [initialItem, deleteItemFromStore, router]);
+
   // Unsaved changes warning (T027 - implemented early for safety)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -200,8 +225,10 @@ export function useGearEditor(
     isEditing,
     isDirty,
     isSubmitting,
+    isDeleting,
     handleSubmit,
     handleCancel,
     resetForm,
+    handleDelete,
   };
 }

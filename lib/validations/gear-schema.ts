@@ -69,6 +69,7 @@ export const gearItemFormSchema = z.object({
     .min(1, 'Name is required')
     .max(200, 'Name must be 200 characters or less'),
   brand: z.string().max(100, 'Brand must be 100 characters or less'),
+  description: z.string().max(5000, 'Description must be 5000 characters or less'),
   brandUrl: optionalUrlSchema,
   modelNumber: z.string().max(100, 'Model number must be 100 characters or less'),
   productUrl: optionalUrlSchema,

@@ -11,6 +11,7 @@
 
 'use client';
 
+import { Trash2 } from 'lucide-react';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   useGearEditor,
   type UseGearEditorOptions,
@@ -65,7 +77,7 @@ export function GearEditorForm({
   onSaveError,
   redirectPath,
 }: GearEditorFormProps) {
-  const { form, isEditing, isDirty, isSubmitting, handleSubmit, handleCancel } =
+  const { form, isEditing, isDirty, isSubmitting, isDeleting, handleSubmit, handleCancel, handleDelete } =
     useGearEditor({
       initialItem,
       onSaveSuccess,
@@ -129,14 +141,51 @@ export function GearEditorForm({
           </CardContent>
 
           <CardFooter className="flex justify-between border-t pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+
+              {/* Delete button - only when editing */}
+              {isEditing && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10"
+                      disabled={isSubmitting || isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete item</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Gear Item?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
 
             <div className="flex gap-2 items-center">
               {isDirty && (

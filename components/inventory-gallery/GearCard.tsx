@@ -31,7 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { StatusBadge } from './StatusBadge';
-import { formatWeightForDisplay } from '@/lib/gear-utils';
+import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
 
 // =============================================================================
@@ -54,7 +54,9 @@ interface GearCardProps {
 export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
-  const showImage = item.primaryImageUrl && !imageError;
+  // Feature 019: Use optimized image (nobgImages > primaryImageUrl)
+  const optimizedImageUrl = getOptimizedImageUrl(item);
+  const showImage = optimizedImageUrl && !imageError;
   const isCompact = viewDensity === 'compact';
   const isDetailed = viewDensity === 'detailed';
 
@@ -79,7 +81,7 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
         <div className="h-24 w-24 flex-shrink-0 bg-white relative flex items-center justify-center">
           {showImage ? (
             <Image
-              src={item.primaryImageUrl!}
+              src={optimizedImageUrl}
               alt={item.name}
               fill
               className="object-contain p-2"
@@ -150,19 +152,19 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
       )}
       onClick={onClick}
     >
-      {/* Image Section */}
+      {/* Image Section - Feature 019: bg-white + object-contain for no cropping */}
       <div
         className={cn(
-          'relative bg-muted flex items-center justify-center',
+          'relative bg-white flex items-center justify-center',
           isDetailed ? 'aspect-[4/3]' : 'aspect-square'
         )}
       >
         {showImage ? (
           <Image
-            src={item.primaryImageUrl!}
+            src={optimizedImageUrl}
             alt={item.name}
             fill
-            className="object-cover"
+            className="object-contain"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             onError={() => setImageError(true)}
           />

@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import type { GearItemFormData } from '@/types/gear';
 
 // =============================================================================
@@ -63,6 +64,25 @@ export function GeneralInfoSection() {
             <FormLabel>Brand</FormLabel>
             <FormControl>
               <Input placeholder="e.g., Nemo Equipment" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Product Description */}
+      <FormField
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Product Description</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Enter product details, specifications, or notes..."
+                className="min-h-[100px] resize-y"
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
