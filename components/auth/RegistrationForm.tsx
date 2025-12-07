@@ -54,6 +54,8 @@ export function RegistrationForm({
   });
 
   async function onSubmit(data: RegistrationFormData) {
+    // Feature 023: Debug logging for form submission (FR-008)
+    console.log('[RegistrationForm] onSubmit triggered', { email: data.email });
     clearError();
     setIsLoading(true);
 

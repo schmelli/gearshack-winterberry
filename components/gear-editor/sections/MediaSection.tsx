@@ -175,11 +175,32 @@ function ImageUploadInput({
   return (
     <div className="space-y-3">
       <div className="flex gap-4 items-start">
-        <ImagePreview
-          src={displayUrl || ''}
-          alt={`${label} preview`}
-          size={size}
-        />
+        {/* Feature 024: Wrap ImagePreview with remove button (FR-001, FR-002) */}
+        <div className="relative">
+          <ImagePreview
+            src={displayUrl || ''}
+            alt={`${label} preview`}
+            size={size}
+          />
+          {/* Remove button - only visible when image exists (FR-001, FR-003, FR-006, FR-009) */}
+          {displayUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+              onClick={(e) => {
+                e.stopPropagation(); // FR-006: Prevent file dialog trigger
+                onChange(''); // FR-004: Clear form field
+                onFileSelect?.(null, null); // FR-005: Clear local preview
+                handleClearFile(); // Reset file input element
+              }}
+              aria-label="Remove image"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
         <div className="flex-1 space-y-3">
           {/* Mode Toggle */}
           <div className="flex gap-2">

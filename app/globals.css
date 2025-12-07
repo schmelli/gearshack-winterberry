@@ -105,8 +105,8 @@
 .dark {
   /* Nature Theme - Dark Mode (Forest Night) */
 
-  /* Deep Forest Background */
-  --background: oklch(0.18 0.02 155);
+  /* Deep Forest/Stone Background - Feature 021: #0C120C approximate */
+  --background: oklch(0.10 0.02 155);
   --foreground: oklch(0.92 0.01 90);
 
   /* Dark Card Surface */

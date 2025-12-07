@@ -1,20 +1,58 @@
 /**
  * BackgroundRotator Component
  *
- * Feature: 014-bugfix-sprint
+ * Feature: 014-bugfix-sprint, 022-login-rescue
  * User Story 1: Stable login screen with single random background
- * T003-T007: Simplified component with no rotation
+ * Feature 022: Smooth fade-in transition with gradient always visible
+ *
+ * Hybrid Background Strategy:
+ * - Displays local hero image immediately (no loading state)
+ * - Smoothly transitions to cloud images when they become available
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useBackgroundImages, FALLBACK_GRADIENT } from '@/hooks/useBackgroundImages';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
-// Component
+// Inner Image Component - re-mounts when image changes for clean fade transition
+// =============================================================================
+
+interface FadeImageProps {
+  src: string;
+}
+
+function FadeImage({ src }: FadeImageProps) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        'absolute inset-0 transition-opacity duration-500',
+        loaded ? 'opacity-100' : 'opacity-0'
+      )}
+    >
+      <Image
+        src={src}
+        alt=""
+        fill
+        priority
+        className="object-cover"
+        sizes="100vw"
+        onLoad={() => {
+          console.log('[BackgroundRotator] Image loaded:', src.slice(0, 50));
+          setLoaded(true);
+        }}
+      />
+    </div>
+  );
+}
+
+// =============================================================================
+// Main Component
 // =============================================================================
 
 interface BackgroundRotatorProps {
@@ -23,37 +61,31 @@ interface BackgroundRotatorProps {
 }
 
 export function BackgroundRotator({ className }: BackgroundRotatorProps) {
-  const { images, loading } = useBackgroundImages();
+  const { images } = useBackgroundImages();
 
-  // T004: Select ONE random image on mount using lazy initializer
-  const [imageIndex] = useState(() => Math.floor(Math.random() * images.length));
+  // Select ONE random image using lazy initializer
+  const [imageIndex] = useState<number>(() => Math.floor(Math.random() * 100));
 
-  // Loading state - show gradient
-  if (loading || images.length === 0) {
-    return (
-      <div
-        className={cn('fixed inset-0 w-screen h-screen -z-10', className)}
-        style={{ background: FALLBACK_GRADIENT }}
-      />
-    );
-  }
-
-  const selectedImage = images[imageIndex];
+  // Calculate selected image based on available images
+  const selectedImage = useMemo(() => {
+    return images.length > 0 ? images[imageIndex % images.length] : null;
+  }, [images, imageIndex]);
 
   return (
     <div className={cn('fixed inset-0 w-screen h-screen -z-10 overflow-hidden', className)}>
-      {/* Static Background Image - T005: Full viewport coverage */}
-      <Image
-        src={selectedImage}
-        alt=""
-        fill
-        priority
-        className="object-cover"
-        sizes="100vw"
+      {/* Base gradient - always visible as fallback */}
+      <div
+        className="absolute inset-0"
+        style={{ background: FALLBACK_GRADIENT }}
       />
 
-      {/* Overlay for better text contrast */}
-      <div className="absolute inset-0 bg-black/30" />
+      {/* Image overlay with fade-in transition - key forces remount on image change */}
+      {selectedImage && (
+        <FadeImage key={selectedImage} src={selectedImage} />
+      )}
+
+      {/* Overlay for better text contrast - pointer-events-none ensures clicks pass through */}
+      <div className="absolute inset-0 bg-black/30 pointer-events-none" />
     </div>
   );
 }

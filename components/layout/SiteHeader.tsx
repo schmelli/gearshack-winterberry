@@ -63,7 +63,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               alt="Gearshack Logo"
               width={80}
               height={80}
-              className="h-20 w-20 brightness-0 invert"
+              className="h-20 w-20"
               priority
             />
           </div>

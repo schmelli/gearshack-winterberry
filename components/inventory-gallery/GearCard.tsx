@@ -72,13 +72,13 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
         className={cn(
           'group relative overflow-hidden cursor-pointer',
           'flex flex-row items-center h-24',
-          'border-stone-200 shadow-sm',
+          'border-stone-200 dark:border-stone-700 shadow-sm',
           'transition-shadow hover:shadow-md'
         )}
         onClick={onClick}
       >
-        {/* Image Section - Left side, fixed width, white background */}
-        <div className="h-24 w-24 flex-shrink-0 bg-white relative flex items-center justify-center">
+        {/* Image Section - Left side, fixed width, gradient in dark mode */}
+        <div className="h-24 w-24 flex-shrink-0 bg-white dark:bg-gradient-to-b dark:from-stone-800 dark:to-stone-950 relative flex items-center justify-center">
           {showImage ? (
             <Image
               src={optimizedImageUrl}
@@ -146,16 +146,16 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
       className={cn(
         'group relative overflow-hidden cursor-pointer',
         'flex flex-col',
-        'border-stone-200 shadow-sm',
+        'border-stone-200 dark:border-stone-700 shadow-sm',
         'transition-shadow hover:shadow-md',
         isDetailed ? 'min-h-[400px]' : 'min-h-[280px]'
       )}
       onClick={onClick}
     >
-      {/* Image Section - Feature 019: bg-white + object-contain for no cropping */}
+      {/* Image Section - Feature 019/021: bg-white + gradient in dark mode */}
       <div
         className={cn(
-          'relative bg-white flex items-center justify-center',
+          'relative bg-white dark:bg-gradient-to-b dark:from-stone-800 dark:to-stone-950 flex items-center justify-center',
           isDetailed ? 'aspect-[4/3]' : 'aspect-square'
         )}
       >

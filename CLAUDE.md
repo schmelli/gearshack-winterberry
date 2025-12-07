@@ -101,6 +101,13 @@ Before writing code:
 - Firebase Firestore (`userBase/{uid}/gearInventory` - nobgImages field from Cloud Functions) (019-image-perfection)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui, Tailwind CSS 4 (020-form-completion-safety)
 - Firebase Firestore (existing deleteItem handles Firestore + local state) (020-form-completion-safety)
+- TypeScript 5.x (strict mode) + Next.js 16+, React 19+, Tailwind CSS 4, shadcn/ui, next-themes (021-dark-mode-logo)
+- N/A (styling changes only) (021-dark-mode-logo)
+- Firebase Storage (for background images - existing) (023-login-layout-repair)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, react-hook-form 7.x, shadcn/ui, Tailwind CSS 4, lucide-reac (024-image-management)
+- Firebase Firestore (`userBase/{uid}/gearInventory`) - existing save logic handles null values (024-image-management)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), Firebase Firestore deleteField() (025-image-freedom-fix)
+- Firebase Firestore (`userBase/{uid}/gearInventory`) - uses deleteField() for image removal, wildcard hostname in next.config.ts (025-image-freedom-fix)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

@@ -12,7 +12,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
 import { toast } from 'sonner';
 import type { GearItem } from '@/types/gear';
 import type { Loadout } from '@/types/loadout';
@@ -124,10 +124,24 @@ export const useStore = create<GearshackStore>()(
           markPendingGearWrite(id);
           try {
             const docRef = doc(db, `userBase/${userId}/gearInventory`, id);
-            await updateDoc(docRef, {
+
+            // Feature 025: Build Firestore updates with deleteField() for image removal
+            const firestoreUpdates: Record<string, unknown> = {
               ...updates,
               updated_at: now,
-            });
+            };
+
+            // Check if primaryImageUrl is being deleted (null = remove from DB)
+            if ('primaryImageUrl' in updates && updates.primaryImageUrl === null) {
+              // Use deleteField() to remove field from Firestore (not set to null)
+              firestoreUpdates['primary_image'] = deleteField();
+              // Also remove associated processed images (FR-002)
+              firestoreUpdates['nobgImages'] = deleteField();
+              // Remove the camelCase key (Firestore uses snake_case)
+              delete firestoreUpdates.primaryImageUrl;
+            }
+
+            await updateDoc(docRef, firestoreUpdates);
             console.log(`[useStore] Item ${id} updated in Firestore`);
           } catch (error) {
             // Rollback - restore previous state

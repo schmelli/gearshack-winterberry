@@ -56,6 +56,8 @@ export function LoginForm({
   });
 
   async function onSubmit(data: LoginFormData) {
+    // Feature 023: Debug logging for form submission (FR-008)
+    console.log('[LoginForm] onSubmit triggered', { email: data.email });
     clearError();
     setIsLoading(true);
 

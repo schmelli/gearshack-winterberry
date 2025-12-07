@@ -3,8 +3,7 @@ import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { SiteHeader } from "@/components/layout/SiteHeader";
-import { SiteFooter } from "@/components/layout/SiteFooter";
+import { Shell } from "@/components/layout/Shell";
 import { SyncProvider } from "@/components/providers/SyncProvider";
 import { Toaster } from "sonner";
 
@@ -43,15 +42,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <SyncProvider />
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader />
-              <main className="flex-1">
-                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                  {children}
-                </div>
-              </main>
-              <SiteFooter />
-            </div>
+            <Shell>{children}</Shell>
             <Toaster richColors position="bottom-right" />
           </AuthProvider>
         </ThemeProvider>

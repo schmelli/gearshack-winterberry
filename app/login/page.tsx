@@ -52,17 +52,12 @@ function LoginContent() {
     router.replace(decodeURIComponent(returnUrl));
   }
 
-  // Show nothing while checking auth or if already authenticated
-  if (loading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+  // Feature 022: Removed blocking render gate (if loading || user)
+  // The form now always renders immediately. The useEffect above handles redirect for authenticated users.
+  // This fixes the infinite loading spinner bug when Firebase Auth is slow to respond.
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center p-4">
+    <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
       {/* T040-T041: Rotating background images with fallback gradient */}
       <BackgroundRotator />
 
