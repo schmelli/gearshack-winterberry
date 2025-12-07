@@ -108,6 +108,8 @@ Before writing code:
 - Firebase Firestore (`userBase/{uid}/gearInventory`) - existing save logic handles null values (024-image-management)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), Firebase Firestore deleteField() (025-image-freedom-fix)
 - Firebase Firestore (`userBase/{uid}/gearInventory`) - uses deleteField() for image removal, wildcard hostname in next.config.ts (025-image-freedom-fix)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router) + @imgly/background-removal (WASM), shadcn/ui (Switch), Firebase Storage (026-client-bg-removal)
+- Firebase Storage (existing - uploads processed PNG) (026-client-bg-removal)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

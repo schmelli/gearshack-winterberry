@@ -8,6 +8,9 @@
  * Feature: 010-firestore-sync
  * Tasks: T019-T020 - Integrated Firebase Storage upload
  *
+ * Feature: 026-client-bg-removal
+ * Tasks: T006-T018 - Client-side background removal with toggle
+ *
  * Functional Fixes Sprint:
  * - Added image upload UI with local file selection
  * - Dual approach: Paste URL or Upload Image
@@ -17,6 +20,7 @@
  * Displays form fields for media management:
  * - Primary image URL with preview (URL or file upload)
  * - Gallery image URLs (multiple) with previews
+ * - Auto-remove background toggle (default: ON)
  */
 
 'use client';
@@ -41,7 +45,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
+import { removeBackground, blobToFile } from '@/lib/image-processing';
 import type { GearItemFormData } from '@/types/gear';
 
 // =============================================================================
@@ -93,6 +100,11 @@ function ImageUploadInput({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Feature 026: Auto-remove background toggle state (default: ON per FR-001)
+  const [autoRemoveBg, setAutoRemoveBg] = useState(true);
+  // Feature 026: Processing state for background removal
+  const [isProcessingBg, setIsProcessingBg] = useState(false);
+
   // Firebase upload hook (only used if enableFirebaseUpload is true)
   const { status: uploadStatus, upload } = useImageUpload();
 
@@ -122,13 +134,33 @@ function ImageUploadInput({
         return;
       }
 
+      // Feature 026: Process background removal if enabled (FR-002, FR-005)
+      let fileToUpload = file;
+
+      if (autoRemoveBg) {
+        setIsProcessingBg(true);
+        try {
+          const processedBlob = await removeBackground(file);
+          // Convert blob to file with _nobg suffix (FR-004, FR-005)
+          const baseName = file.name.replace(/\.[^/.]+$/, '');
+          fileToUpload = blobToFile(processedBlob, `${baseName}_nobg.png`);
+        } catch (error) {
+          // Feature 026 US3: Graceful error handling (FR-006, FR-007)
+          console.error('Background removal failed:', error);
+          toast.info('Could not remove background. Using original image.');
+          // Fall back to original file - no data loss
+        } finally {
+          setIsProcessingBg(false);
+        }
+      }
+
       // Create local preview URL for immediate feedback
-      const previewUrl = URL.createObjectURL(file);
-      onFileSelect?.(file, previewUrl);
+      const previewUrl = URL.createObjectURL(fileToUpload);
+      onFileSelect?.(fileToUpload, previewUrl);
 
       // If Firebase upload is enabled, upload immediately
       if (enableFirebaseUpload) {
-        const downloadUrl = await upload(file);
+        const downloadUrl = await upload(fileToUpload);
         if (downloadUrl) {
           // Set the download URL as the field value
           onChange(downloadUrl);
@@ -146,7 +178,7 @@ function ImageUploadInput({
         onChange('');
       }
     },
-    [onChange, onFileSelect, enableFirebaseUpload, upload]
+    [onChange, onFileSelect, enableFirebaseUpload, upload, autoRemoveBg]
   );
 
   const handleClearFile = useCallback(() => {
@@ -175,15 +207,22 @@ function ImageUploadInput({
   return (
     <div className="space-y-3">
       <div className="flex gap-4 items-start">
-        {/* Feature 024: Wrap ImagePreview with remove button (FR-001, FR-002) */}
+        {/* Feature 024 + 026: Wrap ImagePreview with remove button and processing overlay */}
         <div className="relative">
           <ImagePreview
             src={displayUrl || ''}
             alt={`${label} preview`}
             size={size}
           />
-          {/* Remove button - only visible when image exists (FR-001, FR-003, FR-006, FR-009) */}
-          {displayUrl && (
+          {/* Feature 026: Processing overlay (FR-003) */}
+          {isProcessingBg && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 rounded-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+              <span className="text-xs text-muted-foreground">Removing background...</span>
+            </div>
+          )}
+          {/* Remove button - only visible when image exists and not processing */}
+          {displayUrl && !isProcessingBg && (
             <Button
               type="button"
               variant="ghost"
@@ -202,6 +241,19 @@ function ImageUploadInput({
           )}
         </div>
         <div className="flex-1 space-y-3">
+          {/* Feature 026: Auto-remove background toggle (FR-001) */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="auto-remove-bg" className="text-sm cursor-pointer">
+              Auto-remove background
+            </Label>
+            <Switch
+              id="auto-remove-bg"
+              checked={autoRemoveBg}
+              onCheckedChange={setAutoRemoveBg}
+              disabled={isProcessingBg || isUploading}
+            />
+          </div>
+
           {/* Mode Toggle */}
           <div className="flex gap-2">
             <Button
