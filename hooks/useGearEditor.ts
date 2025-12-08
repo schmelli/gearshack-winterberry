@@ -71,7 +71,9 @@ async function importExternalImage(url: string): Promise<File> {
   }
 
   const blob = await response.blob();
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  // FR-036: Validate content-type - only use if it's a valid image type, otherwise default to image/jpeg
+  const rawContentType = response.headers.get('content-type') || '';
+  const contentType = rawContentType.startsWith('image/') ? rawContentType : 'image/jpeg';
   const extension = getExtensionFromContentType(contentType);
   const timestamp = Date.now();
 

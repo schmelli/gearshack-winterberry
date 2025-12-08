@@ -162,13 +162,9 @@ export function GalleryToolbar({
       {/* Item count display */}
       <div className="text-sm text-muted-foreground">
         {showingFiltered ? (
-          <span>
-            {t.showingItems
-              .replace('{filtered}', String(filteredCount))
-              .replace('{total}', String(itemCount))}
-          </span>
+          <span>{t.showingItems}</span>
         ) : (
-          <span>{t.itemsCount.replace('{count}', String(itemCount))}</span>
+          <span>{t.itemsCount}</span>
         )}
       </div>
     </div>

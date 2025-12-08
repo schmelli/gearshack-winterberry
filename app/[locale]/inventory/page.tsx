@@ -96,8 +96,8 @@ function InventoryContent() {
               searchPlaceholder: t('searchPlaceholder'),
               filterAll: t('filterAll'),
               clearFilters: t('clearFilters'),
-              showingItems: t('showingItems'),
-              itemsCount: t('itemCount'),
+              showingItems: t('showingItems', { filtered: filteredCount, total: itemCount }),
+              itemsCount: t('itemCount', { count: itemCount }),
             }}
           />
 
