@@ -3,6 +3,7 @@
  *
  * Feature: 001-gear-item-editor
  * Updated: 005-loadout-management - Migrated to use zustand store
+ * Updated: 037-final-stabilization - Error recovery and MIME sanitization
  * Constitution: All form/business logic MUST reside in hooks
  *
  * Handles form state, validation, submission, and entity conversion
@@ -29,7 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { uploadGearImage } from '@/lib/firebase/storage';
 
 // =============================================================================
-// Image Import Helpers (FR-004, FR-005, FR-010)
+// Image Import Helpers (FR-004, FR-005, FR-010, FR-037)
 // =============================================================================
 
 /**
@@ -43,23 +44,9 @@ function isExternalUrl(url: string | null | undefined): boolean {
 }
 
 /**
- * Get file extension from content type
- * FR-010: Preserve original file extension based on content type
- */
-function getExtensionFromContentType(contentType: string): string {
-  const mapping: Record<string, string> = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/gif': '.gif',
-    'image/webp': '.webp',
-    'image/svg+xml': '.svg',
-  };
-  return mapping[contentType] || '.jpg';
-}
-
-/**
  * Import external image via server proxy
  * FR-001: Use server-side proxy to bypass CORS
+ * FR-037: Force valid image MIME type for Firebase Storage
  */
 async function importExternalImage(url: string): Promise<File> {
   const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -71,13 +58,13 @@ async function importExternalImage(url: string): Promise<File> {
   }
 
   const blob = await response.blob();
-  // FR-036: Validate content-type - only use if it's a valid image type, otherwise default to image/jpeg
-  const rawContentType = response.headers.get('content-type') || '';
-  const contentType = rawContentType.startsWith('image/') ? rawContentType : 'image/jpeg';
-  const extension = getExtensionFromContentType(contentType);
-  const timestamp = Date.now();
 
-  return new File([blob], `imported_${timestamp}${extension}`, { type: contentType });
+  // FR-037: Force image type if missing or generic (e.g., application/octet-stream)
+  // Firebase Storage requires content_type.matches('image/.*')
+  const type = (blob.type && blob.type.startsWith('image/')) ? blob.type : 'image/jpeg';
+  const ext = type.split('/')[1] || 'jpg';
+
+  return new File([blob], `imported_${Date.now()}.${ext}`, { type });
 }
 
 // =============================================================================
@@ -104,6 +91,8 @@ export interface UseGearEditorReturn {
   isDirty: boolean;
   /** Whether form is currently submitting */
   isSubmitting: boolean;
+  /** Whether image upload is in progress */
+  isUploading: boolean;
   /** Whether delete operation is in progress */
   isDeleting: boolean;
   /** Handle form submission */
@@ -139,8 +128,10 @@ export function useGearEditor(
   const updateItemInStore = useStore((state) => state.updateItem);
   const deleteItemFromStore = useStore((state) => state.deleteItem);
 
-  // Delete state
+  // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
 
   // Compute initial form values
   const defaultValues = useMemo(() => {
@@ -159,7 +150,7 @@ export function useGearEditor(
 
   const {
     handleSubmit: rhfHandleSubmit,
-    formState: { isDirty, isSubmitting },
+    formState: { isDirty },
     reset,
   } = form;
 
@@ -168,15 +159,20 @@ export function useGearEditor(
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  // Form submission handler (T014, FR-004, FR-006, FR-007)
+  // Form submission handler (T014, FR-004, FR-006, FR-007, FR-037)
   const onSubmit = useCallback(
     async (data: GearItemFormData) => {
+      // FR-037: Wrap entire save logic in try/catch/finally for error recovery
+      setIsSubmittingLocal(true);
+
       try {
         // FR-004, FR-005: Import external images before saving
         // Check if primaryImageUrl needs to be imported
         if (isExternalUrl(data.primaryImageUrl) && user?.uid) {
           // FR-006: Show loading feedback during import
+          setIsUploading(true);
           toast.info('Importing image...');
+
           try {
             const importedFile = await importExternalImage(data.primaryImageUrl!);
             // Upload the imported file to Firebase Storage
@@ -191,6 +187,8 @@ export function useGearEditor(
             toast.error(errorMessage);
             console.error('Image import failed:', importError);
             return; // Don't proceed with save if import fails
+          } finally {
+            setIsUploading(false);
           }
         }
 
@@ -224,9 +222,15 @@ export function useGearEditor(
         // Navigate to inventory (item already visible via optimistic update)
         router.push(redirectPath);
       } catch (error) {
+        // FR-037: Ensure error is properly reported
         const err = error instanceof Error ? error : new Error('Save failed');
         onSaveError?.(err);
+        toast.error(err.message || 'Failed to save item');
         console.error('Failed to save gear item:', err);
+      } finally {
+        // FR-037: CRITICAL - Always reset submitting/uploading state to prevent hanging UI
+        setIsSubmittingLocal(false);
+        setIsUploading(false);
       }
     },
     [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user]
@@ -301,7 +305,8 @@ export function useGearEditor(
     form,
     isEditing,
     isDirty,
-    isSubmitting,
+    isSubmitting: isSubmittingLocal,
+    isUploading,
     isDeleting,
     handleSubmit,
     handleCancel,
