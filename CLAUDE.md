@@ -118,6 +118,10 @@ Before writing code:
 - N/A (no persistence - just API calls and form field population) (030-integrated-image-search)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + react-hook-form 7.x, Zod 4.x, shadcn/ui, Tailwind CSS 4, sonner (toast), next-intl (031-search-save-i18n-fix)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + Firebase Storage, sonner (toast), existing `uploadGearImage` service (032-secure-asset-pipeline)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + next-intl (i18n), existing `@/i18n/navigation` module (034-nav-i18n-rescue)
+- N/A (no data changes) (034-nav-i18n-rescue)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, next-intl, shadcn/ui (035-repair-sprint)
+- Firebase Firestore + Firebase Storage (035-repair-sprint)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

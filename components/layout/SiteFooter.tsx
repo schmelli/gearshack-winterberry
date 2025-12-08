@@ -13,7 +13,7 @@
  * T003: Deep Forest Green background (#405A3D) with white text
  */
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { FOOTER_LEGAL_LINKS, FOOTER_SOCIAL_LINKS } from '@/lib/constants/navigation';
 import { cn } from '@/lib/utils';

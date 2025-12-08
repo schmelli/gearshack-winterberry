@@ -8,9 +8,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

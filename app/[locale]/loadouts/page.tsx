@@ -17,7 +17,7 @@
 
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Plus, Backpack, Search } from 'lucide-react';
 import { useLoadouts, useItems } from '@/hooks/useStore';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';

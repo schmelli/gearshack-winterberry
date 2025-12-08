@@ -9,7 +9,7 @@
 
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Calendar, Package, Scale } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeleteLoadoutDialog } from '@/components/loadouts/DeleteLoadoutDialog';

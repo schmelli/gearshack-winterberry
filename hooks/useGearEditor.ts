@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
 
 import type { GearItem, GearItemFormData } from '@/types/gear';
