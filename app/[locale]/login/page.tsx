@@ -6,6 +6,9 @@
  * T024: Include LoginForm, RegistrationForm toggle, and ForgotPassword link
  * T020, T049: Redirect after successful sign-in to originally requested page or /inventory
  * T041-T042: Glassmorphism card styling (T039-T044 handles background later)
+ *
+ * Feature: 028-landing-page-i18n
+ * T025-T027: Use translations for auth flow (FR-009)
  */
 
 'use client';
@@ -13,6 +16,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
@@ -36,6 +40,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuthContext();
   const [view, setView] = useState<AuthView>('login');
+  const t = useTranslations('Auth');
 
   // Get return URL from query params (FR-009)
   const returnUrl = searchParams.get('returnUrl') || '/inventory';
@@ -79,9 +84,9 @@ function LoginContent() {
             Gearshack
           </h1>
           <p className="text-sm text-white/70">
-            {view === 'login' && 'Sign in to manage your gear'}
-            {view === 'register' && 'Create your account'}
-            {view === 'forgot-password' && 'Reset your password'}
+            {view === 'login' && t('loginSubtitle')}
+            {view === 'register' && t('registerSubtitle')}
+            {view === 'forgot-password' && t('forgotPassword')}
           </p>
         </CardHeader>
 
@@ -99,7 +104,7 @@ function LoginContent() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-transparent px-2 text-white/50">
-                    or continue with email
+                    {t('orContinueWith')}
                   </span>
                 </div>
               </div>
@@ -110,6 +115,14 @@ function LoginContent() {
                   onSuccess={handleAuthSuccess}
                   onRegisterClick={() => setView('register')}
                   onForgotPasswordClick={() => setView('forgot-password')}
+                  translations={{
+                    emailLabel: t('emailLabel'),
+                    passwordLabel: t('passwordLabel'),
+                    loginButton: t('loginButton'),
+                    forgotPassword: t('forgotPassword'),
+                    noAccount: t('noAccount'),
+                    signUpLink: t('signUpLink'),
+                  }}
                 />
               </div>
             </>
@@ -128,7 +141,7 @@ function LoginContent() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-transparent px-2 text-white/50">
-                    or register with email
+                    {t('orContinueWith')}
                   </span>
                 </div>
               </div>

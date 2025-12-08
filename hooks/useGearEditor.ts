@@ -25,6 +25,58 @@ import {
   formDataToGearItem,
 } from '@/lib/gear-utils';
 import { useStore } from '@/hooks/useStore';
+import { useAuth } from '@/hooks/useAuth';
+import { uploadGearImage } from '@/lib/firebase/storage';
+
+// =============================================================================
+// Image Import Helpers (FR-004, FR-005, FR-010)
+// =============================================================================
+
+/**
+ * Check if URL is external (needs import to Firebase)
+ * FR-005: Skip processing for images already stored internally
+ */
+function isExternalUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+  return !url.includes('firebasestorage.googleapis.com');
+}
+
+/**
+ * Get file extension from content type
+ * FR-010: Preserve original file extension based on content type
+ */
+function getExtensionFromContentType(contentType: string): string {
+  const mapping: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+    'image/svg+xml': '.svg',
+  };
+  return mapping[contentType] || '.jpg';
+}
+
+/**
+ * Import external image via server proxy
+ * FR-001: Use server-side proxy to bypass CORS
+ */
+async function importExternalImage(url: string): Promise<File> {
+  const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to import image' }));
+    throw new Error(error.message || 'Failed to import image');
+  }
+
+  const blob = await response.blob();
+  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  const extension = getExtensionFromContentType(contentType);
+  const timestamp = Date.now();
+
+  return new File([blob], `imported_${timestamp}${extension}`, { type: contentType });
+}
 
 // =============================================================================
 // Types
@@ -77,6 +129,7 @@ export function useGearEditor(
   } = options;
 
   const router = useRouter();
+  const { user } = useAuth();
   const isEditing = Boolean(initialItem);
 
   // Store actions
@@ -113,10 +166,32 @@ export function useGearEditor(
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  // Form submission handler (T014)
+  // Form submission handler (T014, FR-004, FR-006, FR-007)
   const onSubmit = useCallback(
     async (data: GearItemFormData) => {
       try {
+        // FR-004, FR-005: Import external images before saving
+        // Check if primaryImageUrl needs to be imported
+        if (isExternalUrl(data.primaryImageUrl) && user?.uid) {
+          // FR-006: Show loading feedback during import
+          toast.info('Importing image...');
+          try {
+            const importedFile = await importExternalImage(data.primaryImageUrl!);
+            // Upload the imported file to Firebase Storage
+            const uploadResult = await uploadGearImage(importedFile, user.uid);
+            // Update the form data with the Firebase Storage URL
+            data.primaryImageUrl = uploadResult.downloadUrl;
+          } catch (importError) {
+            // FR-007: Handle proxy failures gracefully
+            const errorMessage = importError instanceof Error
+              ? importError.message
+              : 'Failed to import image';
+            toast.error(errorMessage);
+            console.error('Image import failed:', importError);
+            return; // Don't proceed with save if import fails
+          }
+        }
+
         const itemData = formDataToGearItem(data);
 
         if (isEditing && initialItem) {
@@ -152,7 +227,7 @@ export function useGearEditor(
         console.error('Failed to save gear item:', err);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user]
   );
 
   // Wrapped submit handler with validation

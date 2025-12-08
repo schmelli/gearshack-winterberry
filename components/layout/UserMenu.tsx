@@ -5,14 +5,18 @@
  * T018: Show user avatar and display name when authenticated
  * T031: Profile menu item opens ProfileModal
  * T051-T053: Sign out menu item with redirect to /login
+ *
+ * Feature: 027-i18n-next-intl
+ * T027: Use locale-aware Link and useRouter from i18n/navigation
  */
 
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// T027: Replace next/link and next/navigation with locale-aware versions
+import { Link, useRouter } from '@/i18n/navigation';
 import { User, Settings, LogOut, LogIn } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -34,6 +38,7 @@ export function UserMenu() {
   const { user, signOut, profile } = useAuthContext();
   const { mergedUser } = profile;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const t = useTranslations('Navigation');
 
   // Handle sign out (T052, T053)
   async function handleSignOut() {
@@ -47,7 +52,7 @@ export function UserMenu() {
       <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white" asChild>
         <Link href="/login">
           <LogIn className="mr-2 h-4 w-4" />
-          Sign In
+          {t('login')}
         </Link>
       </Button>
     );
@@ -95,14 +100,14 @@ export function UserMenu() {
             className="cursor-pointer"
           >
             <User className="mr-2 h-4 w-4" />
-            Profile
+            {t('profile')}
           </DropdownMenuItem>
 
           {/* Settings */}
           <DropdownMenuItem asChild>
             <Link href="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              {t('settings')}
             </Link>
           </DropdownMenuItem>
 
@@ -114,7 +119,7 @@ export function UserMenu() {
             className="cursor-pointer text-destructive focus:text-destructive"
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+            {t('signOut')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

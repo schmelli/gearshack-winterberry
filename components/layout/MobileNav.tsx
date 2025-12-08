@@ -1,9 +1,18 @@
+/**
+ * MobileNav Component
+ *
+ * Feature: 027-i18n-next-intl
+ * T026: Use locale-aware Link from i18n/navigation
+ */
+
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+// T026: Replace next/link with locale-aware Link
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Menu } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -26,6 +35,7 @@ export function MobileNav({
   onNavigate,
 }: MobileNavProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('Navigation');
 
   const handleNavigate = () => {
     setOpen(false);
@@ -71,7 +81,8 @@ export function MobileNav({
               )}
             >
               {item.icon && <item.icon className="h-5 w-5" />}
-              {item.label}
+              {/* Use translation key for i18n */}
+              {t(item.translationKey as keyof IntlMessages['Navigation'])}
             </Link>
           ))}
         </nav>

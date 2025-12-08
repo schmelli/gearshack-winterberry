@@ -18,20 +18,27 @@
  * T004: Active page indicator (border-b-2 border-white)
  * T005: Larger nav font (text-lg font-bold)
  * T006: Logo in Rock Salt font, text-3xl, white color
+ *
+ * Feature: 027-i18n-next-intl
+ * T021-T025: Add LanguageSwitcher, useTranslations, locale-aware Link
  */
 
 'use client';
 
-import Link from 'next/link';
+// T025: Replace next/link with locale-aware Link from i18n/navigation
+import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Bell } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+// T022: Import useTranslations hook
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
+// T021: Import LanguageSwitcher
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 
 interface SiteHeaderProps {
@@ -41,6 +48,8 @@ interface SiteHeaderProps {
 export function SiteHeader({ className }: SiteHeaderProps) {
   const { user } = useAuthContext();
   const pathname = usePathname();
+  // T022: Use translations from Navigation namespace
+  const t = useTranslations('Navigation');
 
   return (
     <header
@@ -92,16 +101,20 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                     : 'pointer-events-none opacity-50'
                 )}
               >
-                {item.label}
+                {/* T023: Use translation key for navigation text */}
+                {t(item.translationKey as keyof IntlMessages['Navigation'])}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right side: sync indicator, notifications and user menu */}
+        {/* Right side: sync indicator, language switcher, notifications and user menu */}
         <div className="flex items-center gap-2">
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
+
+          {/* T021: Language switcher - toggle between EN/DE */}
+          <LanguageSwitcher />
 
           {/* Notification bell */}
           <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white">

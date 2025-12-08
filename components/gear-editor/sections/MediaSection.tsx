@@ -30,11 +30,11 @@ import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2, Upload, Link as LinkIcon, X, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  searchGearImages,
+  type ImageSearchResult,
+} from '@/app/actions/image-search';
 import {
   FormField,
   FormItem,
@@ -104,6 +104,14 @@ function ImageUploadInput({
   const [autoRemoveBg, setAutoRemoveBg] = useState(true);
   // Feature 026: Processing state for background removal
   const [isProcessingBg, setIsProcessingBg] = useState(false);
+
+  // Feature 030: Image search state
+  const [searchResults, setSearchResults] = useState<ImageSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Get form context for brand/name values (Feature 030)
+  const form = useFormContext<GearItemFormData>();
 
   // Firebase upload hook (only used if enableFirebaseUpload is true)
   const { status: uploadStatus, upload } = useImageUpload();
@@ -204,6 +212,51 @@ function ImageUploadInput({
     [onChange, handleClearFile]
   );
 
+  // Feature 030: Image search handler (T005)
+  const handleImageSearch = useCallback(async () => {
+    const brand = form.getValues('brand') || '';
+    const name = form.getValues('name') || '';
+    const query = [brand, name].filter(Boolean).join(' ').trim();
+
+    if (!query) {
+      setSearchError('Enter brand or name to search');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError(null);
+    setSearchResults([]);
+
+    const results = await searchGearImages(query);
+
+    setIsSearching(false);
+
+    if (results.length === 0) {
+      setSearchError('No images found. Try different search terms.');
+    } else {
+      setSearchResults(results);
+    }
+  }, [form]);
+
+  // Feature 030 + 031: Select image from search results
+  // FR-003: Clear local file state, FR-006: Add toast
+  const handleSelectImage = useCallback(
+    (imageUrl: string) => {
+      onChange(imageUrl);
+      onFileSelect?.(null, null); // FR-003: Clear any pending local file state
+      setSearchResults([]);        // Close grid after selection
+      setSearchError(null);
+      toast.info('Image selected'); // FR-006: User feedback
+    },
+    [onChange, onFileSelect]
+  );
+
+  // Feature 030: Dismiss search results (T007)
+  const handleDismissSearch = useCallback(() => {
+    setSearchResults([]);
+    setSearchError(null);
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex gap-4 items-start">
@@ -276,26 +329,20 @@ function ImageUploadInput({
               <Upload className="w-4 h-4 mr-1" />
               Upload
             </Button>
-            {/* Image Search - Coming in V2 */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64" align="end">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Image Search</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Image search coming in V2. For now, use &quot;Paste URL&quot; or &quot;Upload&quot; to add images.
-                  </p>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Feature 030: Image Search Button (T008, T010, T011) */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleImageSearch}
+              disabled={isSearching || isProcessingBg || isUploading}
+            >
+              {isSearching ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+            </Button>
           </div>
 
           {/* URL Input Mode */}
@@ -385,6 +432,42 @@ function ImageUploadInput({
                 disabled={isUploading}
                 className="hidden"
               />
+            </div>
+          )}
+
+          {/* Feature 030: Image Search Results Grid (T009, T013, T014) */}
+          {(searchResults.length > 0 || searchError) && (
+            <div className="mt-3 p-3 border rounded-lg bg-muted/30">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Search Results</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDismissSearch}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {searchError ? (
+                <p className="text-sm text-muted-foreground">{searchError}</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {searchResults.map((result, index) => (
+                    <AspectRatio ratio={1} key={`${result.imageUrl}-${index}`}>
+                      <img
+                        src={result.thumbnailUrl}
+                        alt={result.title}
+                        className="w-full h-full object-cover rounded-lg cursor-pointer transition-all hover:ring-2 hover:ring-primary hover:opacity-90"
+                        onClick={() => handleSelectImage(result.imageUrl)}
+                        title={result.title}
+                      />
+                    </AspectRatio>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

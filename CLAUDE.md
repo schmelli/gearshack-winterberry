@@ -110,6 +110,14 @@ Before writing code:
 - Firebase Firestore (`userBase/{uid}/gearInventory`) - uses deleteField() for image removal, wildcard hostname in next.config.ts (025-image-freedom-fix)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router) + @imgly/background-removal (WASM), shadcn/ui (Switch), Firebase Storage (026-client-bg-removal)
 - Firebase Storage (existing - uploads processed PNG) (026-client-bg-removal)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + next-intl (i18n), next/navigation (routing), shadcn/ui (UI components) (027-i18n-next-intl)
+- N/A (locale determined by URL, no persistence needed) (027-i18n-next-intl)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + next-intl (from Feature 027), shadcn/ui, Tailwind CSS 4, lucide-reac (028-landing-page-i18n)
+- N/A (landing page is stateless; auth state from existing Firebase Auth) (028-landing-page-i18n)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + Next.js Server Actions, Serper.dev Images API, shadcn/ui (Button, AspectRatio), react-hook-form (030-integrated-image-search)
+- N/A (no persistence - just API calls and form field population) (030-integrated-image-search)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + react-hook-form 7.x, Zod 4.x, shadcn/ui, Tailwind CSS 4, sonner (toast), next-intl (031-search-save-i18n-fix)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+ + Firebase Storage, sonner (toast), existing `uploadGearImage` service (032-secure-asset-pipeline)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

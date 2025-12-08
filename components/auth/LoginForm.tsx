@@ -4,6 +4,9 @@
  * Feature: 008-auth-and-profile
  * T021: Email/password login form with validation
  * FR-005: Generic error messages to prevent email enumeration
+ *
+ * Feature: 028-landing-page-i18n
+ * T026: Support translations via props (FR-009)
  */
 
 'use client';
@@ -29,6 +32,24 @@ import { loginSchema, type LoginFormData } from '@/lib/validations/profile-schem
 // Component
 // =============================================================================
 
+interface LoginFormTranslations {
+  emailLabel: string;
+  passwordLabel: string;
+  loginButton: string;
+  forgotPassword: string;
+  noAccount: string;
+  signUpLink: string;
+}
+
+const DEFAULT_TRANSLATIONS: LoginFormTranslations = {
+  emailLabel: 'Email',
+  passwordLabel: 'Password',
+  loginButton: 'Sign In',
+  forgotPassword: 'Forgot password?',
+  noAccount: "Don't have an account?",
+  signUpLink: 'Sign up',
+};
+
 interface LoginFormProps {
   /** Callback after successful login */
   onSuccess?: () => void;
@@ -36,16 +57,20 @@ interface LoginFormProps {
   onRegisterClick?: () => void;
   /** Callback to show forgot password form */
   onForgotPasswordClick?: () => void;
+  /** Translations for form labels and buttons */
+  translations?: Partial<LoginFormTranslations>;
 }
 
 export function LoginForm({
   onSuccess,
   onRegisterClick,
   onForgotPasswordClick,
+  translations: translationsProp,
 }: LoginFormProps) {
   const { signInWithEmail, error: authError, clearError } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const t = { ...DEFAULT_TRANSLATIONS, ...translationsProp };
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -80,7 +105,7 @@ export function LoginForm({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t.emailLabel}</FormLabel>
               <FormControl>
                 <Input
                   type="email"
@@ -101,7 +126,7 @@ export function LoginForm({
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>{t.passwordLabel}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -150,7 +175,7 @@ export function LoginForm({
               className="px-0 text-xs"
               onClick={onForgotPasswordClick}
             >
-              Forgot password?
+              {t.forgotPassword}
             </Button>
           </div>
         )}
@@ -158,13 +183,13 @@ export function LoginForm({
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sign In
+          {t.loginButton}
         </Button>
 
         {/* Register Link */}
         {onRegisterClick && (
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t.noAccount}{' '}
             <Button
               type="button"
               variant="link"
@@ -172,7 +197,7 @@ export function LoginForm({
               className="px-1"
               onClick={onRegisterClick}
             >
-              Sign up
+              {t.signUpLink}
             </Button>
           </p>
         )}

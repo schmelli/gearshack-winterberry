@@ -1,0 +1,164 @@
+{
+  "Navigation": {
+    "inventory": "Inventory",
+    "loadouts": "Loadouts",
+    "community": "Community",
+    "login": "Login",
+    "signOut": "Sign out",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "Hero": {
+    "title": "Master Your Loadout",
+    "subtitle": "Organize your gear, plan your adventures, conquer the outdoors."
+  },
+  "Common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "Landing": {
+    "heroTitle": "Organize Your Gear. Conquer the Trail.",
+    "heroSubtitle": "The ultimate gear management platform for outdoor enthusiasts. Track every item, build perfect loadouts, and never forget essential gear again.",
+    "ctaStartTrial": "Start Free Trial",
+    "ctaDashboard": "Go to Dashboard",
+    "features": {
+      "organize": {
+        "title": "Organize Everything",
+        "description": "Catalog all your gear with detailed specs, weights, and images. Know exactly what you own."
+      },
+      "loadouts": {
+        "title": "Build Smart Loadouts",
+        "description": "Create weight-optimized packing lists for any adventure. See total weight at a glance."
+      },
+      "share": {
+        "title": "Share & Discover",
+        "description": "Join a community of outdoor enthusiasts. Share your setups and discover new gear."
+      }
+    },
+    "socialProof": {
+      "title": "Trusted by Outdoor Enthusiasts",
+      "testimonial1": {
+        "quote": "GearGraph changed how I organize my hiking gear. No more forgotten items on the trail!",
+        "author": "Alex M., Thru-Hiker"
+      },
+      "testimonial2": {
+        "quote": "Finally, a tool that understands the obsession with gear weight. My pack has never been lighter.",
+        "author": "Sarah K., Ultralight Backpacker"
+      },
+      "testimonial3": {
+        "quote": "The loadout feature saved me hours of planning before my PCT section hike.",
+        "author": "Mike R., Weekend Warrior"
+      }
+    },
+    "pricing": {
+      "title": "Simple, Honest Pricing",
+      "subtitle": "Start free, upgrade when you need more.",
+      "basecamp": {
+        "name": "Basecamp",
+        "price": "Free",
+        "description": "Perfect for getting started",
+        "features": {
+          "items": "Up to 50 items",
+          "loadouts": "3 loadouts",
+          "images": "Basic image support",
+          "community": "Community access"
+        }
+      },
+      "trailblazer": {
+        "name": "Trailblazer",
+        "price": "$9/month",
+        "description": "For serious gear enthusiasts",
+        "features": {
+          "items": "Unlimited items",
+          "loadouts": "Unlimited loadouts",
+          "images": "HD images & galleries",
+          "community": "Priority community features",
+          "analytics": "Gear analytics & insights",
+          "export": "Export & backup"
+        }
+      }
+    }
+  },
+  "Auth": {
+    "loginTitle": "Welcome Back",
+    "loginSubtitle": "Sign in to access your gear inventory",
+    "registerTitle": "Create Your Account",
+    "registerSubtitle": "Start organizing your outdoor gear today",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "displayNameLabel": "Display Name",
+    "loginButton": "Log In",
+    "registerButton": "Create Account",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpLink": "Sign up",
+    "signInLink": "Sign in",
+    "orContinueWith": "Or continue with",
+    "googleButton": "Continue with Google",
+    "errors": {
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPassword": "Password must be at least 8 characters",
+      "loginFailed": "Login failed. Please check your credentials.",
+      "registerFailed": "Registration failed. Please try again.",
+      "emailInUse": "This email is already registered",
+      "weakPassword": "Password is too weak"
+    }
+  },
+  "Inventory": {
+    "title": "My Inventory",
+    "searchPlaceholder": "Search gear...",
+    "filterCategory": "Category",
+    "filterAll": "All Categories",
+    "sortBy": "Sort by",
+    "sortOptions": {
+      "name": "Name",
+      "weight": "Weight",
+      "price": "Price",
+      "recent": "Recently Added"
+    },
+    "emptyTitle": "No Gear Yet",
+    "emptyDescription": "Start building your inventory by adding your first piece of gear.",
+    "addFirstItem": "Add Your First Item",
+    "addItem": "Add Item",
+    "editItem": "Edit",
+    "deleteItem": "Delete",
+    "viewDetails": "View Details",
+    "itemCount": "{count} items",
+    "showingItems": "Showing {filtered} of {total} items",
+    "clearFilters": "Clear filters",
+    "totalWeight": "Total Weight",
+    "totalValue": "Total Value"
+  },
+  "GearEditor": {
+    "addTitle": "Add New Gear",
+    "editTitle": "Edit Gear",
+    "generalInfo": "General Information",
+    "specifications": "Specifications",
+    "images": "Images",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter gear name",
+    "brandLabel": "Brand",
+    "brandPlaceholder": "Enter brand name",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "Select category",
+    "weightLabel": "Weight",
+    "weightPlaceholder": "Enter weight",
+    "priceLabel": "Price",
+    "pricePlaceholder": "Enter price",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Add notes about this item...",
+    "validation": {
+      "nameRequired": "Name is required",
+      "weightInvalid": "Please enter a valid weight",
+      "priceInvalid": "Please enter a valid price"
+    },
+    "saveItem": "Save Item",
+    "discardChanges": "Discard Changes",
+    "deleteConfirm": "Are you sure you want to delete this item?",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  }
+}

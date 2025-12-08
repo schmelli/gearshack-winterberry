@@ -3,6 +3,9 @@
  *
  * Feature: 002-inventory-gallery
  * Contains search, category filter, view density toggle, and item count
+ *
+ * Feature: 028-landing-page-i18n
+ * T029: Support translations via props (FR-010)
  */
 
 import { Search, X } from 'lucide-react';
@@ -22,6 +25,22 @@ import { getCategories } from '@/lib/taxonomy/taxonomy-utils';
 // =============================================================================
 // Types
 // =============================================================================
+
+interface GalleryToolbarTranslations {
+  searchPlaceholder: string;
+  filterAll: string;
+  clearFilters: string;
+  showingItems: string;
+  itemsCount: string;
+}
+
+const DEFAULT_TRANSLATIONS: GalleryToolbarTranslations = {
+  searchPlaceholder: 'Search gear...',
+  filterAll: 'All Categories',
+  clearFilters: 'Clear filters',
+  showingItems: 'Showing {filtered} of {total} items',
+  itemsCount: '{count} items',
+};
 
 interface GalleryToolbarProps {
   // Search
@@ -43,6 +62,9 @@ interface GalleryToolbarProps {
   // Stats
   itemCount: number;
   filteredCount: number;
+
+  // Translations (Feature 028)
+  translations?: Partial<GalleryToolbarTranslations>;
 }
 
 // =============================================================================
@@ -60,9 +82,11 @@ export function GalleryToolbar({
   onClearFilters,
   itemCount,
   filteredCount,
+  translations: translationsProp,
 }: GalleryToolbarProps) {
   const categories = getCategories();
   const showingFiltered = hasActiveFilters && filteredCount !== itemCount;
+  const t = { ...DEFAULT_TRANSLATIONS, ...translationsProp };
 
   return (
     <div className="mb-6 space-y-4">
@@ -75,11 +99,11 @@ export function GalleryToolbar({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search gear..."
+              placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-9"
-              aria-label="Search gear by name or brand"
+              aria-label={t.searchPlaceholder}
             />
           </div>
 
@@ -90,11 +114,11 @@ export function GalleryToolbar({
               onCategoryChange(value === 'all' ? null : value)
             }
           >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by category">
-              <SelectValue placeholder="All Categories" />
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t.filterAll}>
+              <SelectValue placeholder={t.filterAll} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">{t.filterAll}</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.label}
@@ -112,7 +136,7 @@ export function GalleryToolbar({
               className="w-full sm:w-auto"
             >
               <X className="mr-1 h-4 w-4" />
-              Clear filters
+              {t.clearFilters}
             </Button>
           )}
         </div>
@@ -139,10 +163,12 @@ export function GalleryToolbar({
       <div className="text-sm text-muted-foreground">
         {showingFiltered ? (
           <span>
-            Showing {filteredCount} of {itemCount} items
+            {t.showingItems
+              .replace('{filtered}', String(filteredCount))
+              .replace('{total}', String(itemCount))}
           </span>
         ) : (
-          <span>{itemCount} items</span>
+          <span>{t.itemsCount.replace('{count}', String(itemCount))}</span>
         )}
       </div>
     </div>

@@ -8,19 +8,24 @@
  *
  * Feature: 008-auth-and-profile
  * T045: Protected route - requires authentication
+ *
+ * Feature: 028-landing-page-i18n
+ * T028-T029: Use translations for inventory UI (FR-010)
  */
 
 'use client';
 
-import Link from 'next/link';
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { useInventory } from '@/hooks/useInventory';
 import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 function InventoryContent() {
+  const t = useTranslations('Inventory');
   const {
     filteredItems,
     viewDensity,
@@ -54,7 +59,7 @@ function InventoryContent() {
         <Button asChild>
           <Link href="/inventory/new">
             <Plus className="mr-2 h-4 w-4" />
-            Add Gear
+            {t('addItem')}
           </Link>
         </Button>
       </div>
@@ -62,14 +67,14 @@ function InventoryContent() {
       {/* Empty State - No items at all */}
       {itemCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-lg font-medium">No gear items yet</p>
+          <p className="text-lg font-medium">{t('emptyTitle')}</p>
           <p className="mt-1 text-muted-foreground">
-            Start building your gear collection
+            {t('emptyDescription')}
           </p>
           <Button asChild className="mt-6">
             <Link href="/inventory/new">
               <Plus className="mr-2 h-4 w-4" />
-              Add Your First Item
+              {t('addFirstItem')}
             </Link>
           </Button>
         </div>
@@ -87,6 +92,13 @@ function InventoryContent() {
             onClearFilters={clearFilters}
             itemCount={itemCount}
             filteredCount={filteredCount}
+            translations={{
+              searchPlaceholder: t('searchPlaceholder'),
+              filterAll: t('filterAll'),
+              clearFilters: t('clearFilters'),
+              showingItems: t('showingItems'),
+              itemsCount: t('itemCount'),
+            }}
           />
 
           {/* Gallery Grid */}
