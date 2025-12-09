@@ -111,6 +111,7 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     condition: item.condition,
     status: item.status,
     notes: item.notes ?? '',
+    dependencyIds: item.dependencyIds ?? [],
   };
 }
 
@@ -154,6 +155,7 @@ export function formDataToGearItem(
     condition: formData.condition,
     status: formData.status,
     notes: formData.notes || null,
+    dependencyIds: formData.dependencyIds ?? [],
   };
 }
 

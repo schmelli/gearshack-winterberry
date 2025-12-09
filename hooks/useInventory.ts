@@ -69,6 +69,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'Ultralight 2-person tent with excellent ventilation.',
+    dependencyIds: [],
   },
   {
     id: 'gear-002',
@@ -98,6 +99,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'Spoon-shaped sleeping bag, 15°F rating.',
+    dependencyIds: [],
   },
   {
     id: 'gear-003',
@@ -127,6 +129,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'R-value 4.5, ultralight inflatable pad.',
+    dependencyIds: [],
   },
   {
     id: 'gear-004',
@@ -156,6 +159,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'used',
     status: 'active',
     notes: null,
+    dependencyIds: [],
   },
   {
     id: 'gear-005',
@@ -185,6 +189,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: '800-fill down, incredibly packable.',
+    dependencyIds: [],
   },
   {
     id: 'gear-006',
@@ -214,6 +219,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: null,
+    dependencyIds: [],
   },
   {
     id: 'gear-007',
@@ -243,6 +249,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'Pressure regulator for consistent flame.',
+    dependencyIds: [],
   },
   {
     id: 'gear-008',
@@ -272,6 +279,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'used',
     status: 'active',
     notes: null,
+    dependencyIds: [],
   },
   {
     id: 'gear-009',
@@ -301,6 +309,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'Fast flow rate, easy to squeeze.',
+    dependencyIds: [],
   },
   {
     id: 'gear-010',
@@ -330,6 +339,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: '200 lumens, red light mode.',
+    dependencyIds: [],
   },
   {
     id: 'gear-011',
@@ -359,6 +369,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: 'Pair weight, foldable.',
+    dependencyIds: [],
   },
   {
     id: 'gear-012',
@@ -388,6 +399,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'worn',
     status: 'active',
     notes: 'Great cushioning and grip.',
+    dependencyIds: [],
   },
   {
     id: 'gear-013',
@@ -417,6 +429,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'wishlist',
     notes: 'DCF version, double-wall design.',
+    dependencyIds: [],
   },
   {
     id: 'gear-014',
@@ -446,6 +459,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'active',
     notes: null,
+    dependencyIds: [],
   },
   {
     id: 'gear-015',
@@ -475,6 +489,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'used',
     status: 'sold',
     notes: 'Sold to upgrade to separate stove/pot system.',
+    dependencyIds: [],
   },
 ];
 

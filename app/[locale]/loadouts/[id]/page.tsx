@@ -16,15 +16,17 @@ import { use, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
-import { useLoadout, useStore } from '@/hooks/useStore';
+import { useLoadout, useStore, useItems } from '@/hooks/useStore';
 import { useLoadoutEditor } from '@/hooks/useLoadoutEditor';
 import { useLoadoutMetadata } from '@/hooks/useLoadoutMetadata';
 import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';
 import { useChartFilter } from '@/hooks/useChartFilter';
+import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
 import { LoadoutMetadataDialog } from '@/components/loadouts/LoadoutMetadataDialog';
+import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDialog';
 import { WeightBar } from '@/components/loadouts/WeightBar';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,10 +53,12 @@ interface LoadoutEditorPageProps {
 export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
   const loadout = useLoadout(id);
+  const allItems = useItems();
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
   const updateLoadout = useStore((state) => state.updateLoadout);
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
+  const addItemToLoadout = useStore((state) => state.addItemToLoadout);
 
   // Editor state and actions
   const {
@@ -68,6 +72,14 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     baseWeight,
     categoryWeights,
   } = useLoadoutEditor(id);
+
+  // Dependency prompt (Feature: 037-gear-dependencies)
+  const dependencyPrompt = useDependencyPrompt({
+    loadoutId: id,
+    addItemToLoadout,
+    currentLoadoutItemIds: loadout?.itemIds ?? [],
+    allItems,
+  });
 
   // Metadata state (activity types, seasons)
   const { activityTypes, seasons, toggleActivity, toggleSeason } =
@@ -84,9 +96,14 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     notFound();
   }
 
-  // Wrapper for addItem that keeps sheet open for multiple adds
+  // Wrapper for addItem with dependency check (Feature: 037-gear-dependencies)
   const handleAddItem = (itemId: string) => {
-    addItem(itemId);
+    // Check for dependencies - if modal is shown, it handles the add flow
+    const hasPrompt = dependencyPrompt.triggerCheck(itemId);
+    if (!hasPrompt) {
+      // No dependencies, add item directly
+      addItem(itemId);
+    }
   };
 
   // Handle metadata save (US5)
@@ -145,7 +162,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               loadoutItemIds={loadout.itemIds}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              onAddItem={addItem}
+              onAddItem={handleAddItem}
             />
           </div>
 
@@ -203,6 +220,22 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
       {/* Sticky Weight Bar */}
       <WeightBar totalWeight={totalWeight} itemCount={loadoutItems.length} />
+
+      {/* Dependency Prompt Dialog (Feature: 037-gear-dependencies) */}
+      <DependencyPromptDialog
+        isOpen={dependencyPrompt.isOpen}
+        pendingDependencies={dependencyPrompt.pendingDependencies}
+        triggeringItem={dependencyPrompt.triggeringItem}
+        totalCount={dependencyPrompt.totalCount}
+        selectedCount={dependencyPrompt.selectedCount}
+        toggleSelection={dependencyPrompt.toggleSelection}
+        selectAll={dependencyPrompt.selectAll}
+        deselectAll={dependencyPrompt.deselectAll}
+        onAddAll={dependencyPrompt.onAddAll}
+        onAddSelected={dependencyPrompt.onAddSelected}
+        onSkip={dependencyPrompt.onSkip}
+        onCancel={dependencyPrompt.onCancel}
+      />
     </div>
   );
 }

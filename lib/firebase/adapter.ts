@@ -226,6 +226,7 @@ export function adaptGearItem(doc: unknown, id: string): GearItem {
       notes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      dependencyIds: [],
     };
   }
 
@@ -389,6 +390,13 @@ export function adaptGearItem(doc: unknown, id: string): GearItem {
           'updated_at'
         )
       ) ?? new Date(),
+    // Feature 037: Dependencies (linked accessory items)
+    dependencyIds:
+      resolveField<string[]>(
+        validated as Record<string, unknown>,
+        'dependencyIds',
+        'dependency_ids'
+      ) ?? [],
   };
 }
 
@@ -556,6 +564,9 @@ export function prepareGearItemForFirestore(
     condition: item.condition,
     status: item.status,
     notes: item.notes,
+
+    // Feature 037: Dependencies
+    dependency_ids: item.dependencyIds ?? [],
 
     // Timestamps
     created_at: dateToTimestamp(item.createdAt),

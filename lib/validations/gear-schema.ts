@@ -110,6 +110,9 @@ export const gearItemFormSchema = z.object({
   condition: gearConditionSchema,
   status: gearStatusSchema,
   notes: z.string().max(5000, 'Notes must be 5000 characters or less'),
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  dependencyIds: z.array(z.string()),
 });
 
 export type GearItemFormSchema = z.infer<typeof gearItemFormSchema>;

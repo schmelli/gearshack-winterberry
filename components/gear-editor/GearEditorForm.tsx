@@ -43,6 +43,8 @@ import { WeightSpecsSection } from '@/components/gear-editor/sections/WeightSpec
 import { PurchaseSection } from '@/components/gear-editor/sections/PurchaseSection';
 import { MediaSection } from '@/components/gear-editor/sections/MediaSection';
 import { StatusSection } from '@/components/gear-editor/sections/StatusSection';
+import { DependenciesSection } from '@/components/gear-editor/sections/DependenciesSection';
+import { useItems } from '@/hooks/useStore';
 
 // =============================================================================
 // Types
@@ -64,6 +66,7 @@ const TABS = [
   { id: 'purchase', label: 'Purchase', shortLabel: 'Buy' },
   { id: 'media', label: 'Media', shortLabel: 'Media' },
   { id: 'status', label: 'Status', shortLabel: 'Status' },
+  { id: 'dependencies', label: 'Dependencies', shortLabel: 'Deps' },
 ] as const;
 
 // =============================================================================
@@ -84,6 +87,9 @@ export function GearEditorForm({
       onSaveError,
       redirectPath,
     });
+
+  // Get all items for dependency picker (Feature: 037-gear-dependencies)
+  const allItems = useItems();
 
   const formTitle =
     title ?? (isEditing ? 'Edit Gear Item' : 'Add New Gear Item');
@@ -136,6 +142,13 @@ export function GearEditorForm({
 
               <TabsContent value="status" className="mt-0">
                 <StatusSection />
+              </TabsContent>
+
+              <TabsContent value="dependencies" className="mt-0">
+                <DependenciesSection
+                  availableItems={allItems}
+                  currentItemId={initialItem?.id}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

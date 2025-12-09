@@ -102,6 +102,10 @@ export interface GearItem {
   condition: GearCondition;
   status: GearStatus;
   notes: string | null;
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
+  dependencyIds: string[];
 }
 
 // =============================================================================
@@ -145,6 +149,10 @@ export interface GearItemFormData {
   condition: GearCondition;
   status: GearStatus;
   notes: string;
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  /** IDs of gear items that typically go with this item */
+  dependencyIds: string[];
 }
 
 // =============================================================================
@@ -176,4 +184,5 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   condition: 'new',
   status: 'active',
   notes: '',
+  dependencyIds: [],
 };
