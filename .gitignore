@@ -46,4 +46,8 @@ next-env.d.ts
 .cursor/rules/byterover-rules.mdc
 .kiro/steering/byterover-rules.md
 .qoder/rules/byterover-rules.md
-.augment/rules/byterover-rules.mdfirebase-service-account.json
+.augment/rules/byterover-rules.md
+
+# Firebase credentials (never commit)
+firebase-service-account.json
+*-service-account.json
