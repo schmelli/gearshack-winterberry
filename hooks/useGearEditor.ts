@@ -216,29 +216,60 @@ export function useGearEditor(
         // FR-004, FR-005: Import external images before saving
         // Check if primaryImageUrl needs to be imported
         if (isExternalUrl(data.primaryImageUrl) && user?.uid) {
+          console.log('[GearEditor] ====== STARTING IMAGE IMPORT ======');
+          console.log('[GearEditor] External URL detected:', data.primaryImageUrl);
+          console.log('[GearEditor] User ID:', user.uid);
+
           // FR-006: Show loading feedback during import
           setIsUploading(true);
           toast.info('Importing image...');
 
           try {
+            // Step 1: Fetch and convert external image
+            console.log('[GearEditor] Step 1: Fetching external image via proxy...');
             const importedFile = await importExternalImage(data.primaryImageUrl!);
-            // FR-037: Log file type before upload for debugging
-            console.log('[GearEditor] Uploading file with type:', importedFile.type, 'name:', importedFile.name);
-            // Upload the imported file to Firebase Storage
+            console.log('[GearEditor] Step 1 SUCCESS: File created:', {
+              name: importedFile.name,
+              type: importedFile.type,
+              size: importedFile.size,
+            });
+
+            // Step 2: Upload to Firebase Storage
+            console.log('[GearEditor] Step 2: Uploading to Firebase Storage...');
             const uploadResult = await uploadGearImage(importedFile, user.uid);
+            console.log('[GearEditor] Step 2 SUCCESS: Upload complete:', uploadResult.downloadUrl);
+
             // Update the form data with the Firebase Storage URL
             data.primaryImageUrl = uploadResult.downloadUrl;
+            console.log('[GearEditor] Image import complete - Firebase URL:', data.primaryImageUrl);
+            toast.success('Image imported successfully!');
           } catch (importError) {
-            // FR-007: Handle proxy failures gracefully
-            const errorMessage = importError instanceof Error
-              ? importError.message
-              : 'Failed to import image';
-            toast.error(errorMessage);
-            console.error('Image import failed:', importError);
+            // FR-007: Handle proxy failures gracefully - show detailed error
+            console.error('[GearEditor] ====== IMAGE IMPORT FAILED ======');
+            console.error('[GearEditor] Error:', importError);
+
+            // Extract meaningful error message
+            let errorMessage = 'Failed to import image';
+            if (importError instanceof Error) {
+              errorMessage = importError.message;
+              // Log additional details if available
+              const errorDetails = (importError as { details?: unknown }).details;
+              if (errorDetails) {
+                console.error('[GearEditor] Error details:', errorDetails);
+              }
+            }
+
+            toast.error(`Image import failed: ${errorMessage}`);
             return; // Don't proceed with save if import fails
           } finally {
             setIsUploading(false);
           }
+        } else {
+          console.log('[GearEditor] No external image to import:', {
+            url: data.primaryImageUrl,
+            isExternal: isExternalUrl(data.primaryImageUrl),
+            hasUser: Boolean(user?.uid),
+          });
         }
 
         const itemData = formDataToGearItem(data);

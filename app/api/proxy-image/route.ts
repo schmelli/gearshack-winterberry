@@ -47,26 +47,34 @@ function isBlockedUrl(url: string): boolean {
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
+  console.log('[Proxy] ====== IMAGE PROXY REQUEST ======');
+  console.log('[Proxy] Requested URL:', url);
 
   if (!url) {
-    return NextResponse.json({ error: 'MISSING_URL' }, { status: 400 });
+    console.log('[Proxy] ERROR: Missing URL parameter');
+    return NextResponse.json({ error: 'MISSING_URL', message: 'No URL provided' }, { status: 400 });
   }
 
   // Validate URL presence and protocol
   try {
     const parsed = new URL(url);
+    console.log('[Proxy] Parsed URL:', { protocol: parsed.protocol, hostname: parsed.hostname });
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
   } catch {
-    return NextResponse.json({ error: 'INVALID_URL' }, { status: 400 });
+    console.log('[Proxy] ERROR: Invalid URL format');
+    return NextResponse.json({ error: 'INVALID_URL', message: 'Invalid URL format' }, { status: 400 });
   }
 
   if (isBlockedUrl(url)) {
-    return NextResponse.json({ error: 'BLOCKED_URL' }, { status: 400 });
+    console.log('[Proxy] ERROR: Blocked URL (security)');
+    return NextResponse.json({ error: 'BLOCKED_URL', message: 'URL is blocked for security' }, { status: 400 });
   }
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    console.log('[Proxy] Fetching external URL...');
 
     // FIX: Tarnung als echter Browser
     const response = await fetch(url, {
@@ -84,38 +92,57 @@ export async function GET(request: NextRequest) {
     });
 
     clearTimeout(timeout);
+    console.log('[Proxy] Fetch response:', { status: response.status, ok: response.ok });
 
     if (!response.ok) {
-      console.error(`Proxy upstream error: ${response.status} for ${url}`);
+      console.error(`[Proxy] Upstream error: ${response.status} ${response.statusText} for ${url}`);
       return NextResponse.json(
-        { error: 'FETCH_FAILED', details: `Upstream status: ${response.status}` },
-        { status: 502 } // Bad Gateway ist passender
+        { error: 'FETCH_FAILED', message: `Failed to fetch: HTTP ${response.status}`, details: response.statusText },
+        { status: 502 }
       );
     }
 
     const contentType = response.headers.get('content-type') || '';
-    
-    // Manche Server senden 'binary/octet-stream' oder keinen Type. 
-    // Wir sind hier etwas toleranter, solange wir Daten bekommen.
-    // Aber idealerweise sollte es image/* sein.
+    console.log('[Proxy] Response content-type:', contentType);
 
     const imageBuffer = await response.arrayBuffer();
+    console.log('[Proxy] Downloaded bytes:', imageBuffer.byteLength);
 
     if (imageBuffer.byteLength > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'TOO_LARGE' }, { status: 413 });
+      console.log('[Proxy] ERROR: File too large:', imageBuffer.byteLength);
+      return NextResponse.json({ error: 'TOO_LARGE', message: `File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` }, { status: 413 });
     }
+
+    // Determine final content type - be more intelligent about it
+    let finalContentType = contentType;
+    if (!finalContentType || !finalContentType.startsWith('image/')) {
+      // Try to detect from URL extension
+      const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
+      const extMap: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+      };
+      finalContentType = extMap[ext || ''] || 'image/jpeg';
+      console.log('[Proxy] Detected content-type from extension:', finalContentType);
+    }
+
+    console.log('[Proxy] SUCCESS - Returning image with type:', finalContentType, 'size:', imageBuffer.byteLength);
 
     return new NextResponse(imageBuffer, {
       headers: {
-        'Content-Type': contentType || 'image/jpeg', // Fallback
+        'Content-Type': finalContentType,
         'Content-Length': imageBuffer.byteLength.toString(),
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
   } catch (error) {
-    console.error('Proxy Fatal Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Proxy] FATAL ERROR:', errorMessage, error);
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR' },
+      { error: 'INTERNAL_ERROR', message: `Proxy error: ${errorMessage}` },
       { status: 500 }
     );
   }

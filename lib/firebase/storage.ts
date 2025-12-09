@@ -126,19 +126,36 @@ export async function uploadGearImage(
     return result;
   } catch (error) {
     // FR-037: Log detailed Firebase error for debugging before re-throwing
-    const firebaseError = error as { code?: string; message?: string };
-    console.error('[Storage] Upload failed:', {
-      code: firebaseError.code,
-      message: firebaseError.message,
-      path: storagePath,
-      fileType: file.type,
+    const firebaseError = error as { code?: string; message?: string; serverResponse?: string };
+    console.error('[Storage] ====== UPLOAD FAILED ======');
+    console.error('[Storage] Error code:', firebaseError.code);
+    console.error('[Storage] Error message:', firebaseError.message);
+    console.error('[Storage] Server response:', firebaseError.serverResponse);
+    console.error('[Storage] Storage path:', storagePath);
+    console.error('[Storage] File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
     });
+    console.error('[Storage] Full error object:', error);
 
-    // Wrap Firebase errors in StorageUploadError
+    // Build a descriptive error message for the user
+    let userMessage = 'Failed to upload image to Firebase Storage';
+    if (firebaseError.code === 'storage/unauthorized') {
+      userMessage = 'Upload denied: Check Firebase Storage security rules';
+    } else if (firebaseError.code === 'storage/canceled') {
+      userMessage = 'Upload was canceled';
+    } else if (firebaseError.code === 'storage/unknown') {
+      userMessage = `Upload failed: ${firebaseError.message || 'Unknown error'}`;
+    } else if (firebaseError.code) {
+      userMessage = `Upload failed (${firebaseError.code}): ${firebaseError.message || 'Unknown error'}`;
+    }
+
+    // Wrap Firebase errors in StorageUploadError with descriptive message
     throw new StorageUploadError(
       'UPLOAD_FAILED',
-      'Failed to upload image to Firebase Storage',
-      error
+      userMessage,
+      { code: firebaseError.code, message: firebaseError.message, serverResponse: firebaseError.serverResponse }
     );
   }
 }
