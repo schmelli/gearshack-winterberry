@@ -85,15 +85,29 @@ export async function uploadGearImage(
     // Create storage reference
     const storageRef = ref(storage, storagePath);
 
-    // Upload file with metadata
+    // FR-037: Force valid content-type metadata for Firebase Storage security rules
+    // Firebase Storage rules require: request.resource.contentType.matches('image/.*')
+    const contentType = (file.type && file.type.startsWith('image/'))
+      ? file.type
+      : 'image/jpeg';
+
+    // Upload file with explicit metadata
     const metadata = {
-      contentType: file.type,
+      contentType, // CRITICAL: Must be image/* for security rules
       customMetadata: {
         uploadedBy: userId,
         uploadedAt: new Date().toISOString(),
         originalFilename: file.name,
       },
     };
+
+    // FR-037: Log for debugging upload issues
+    console.log('[Storage] Upload metadata:', {
+      contentType: metadata.contentType,
+      fileType: file.type,
+      fileName: file.name,
+      fileSize: file.size
+    });
 
     await uploadBytes(storageRef, file, metadata);
 
@@ -105,11 +119,21 @@ export async function uploadGearImage(
       downloadUrl,
       storagePath,
       sizeBytes: file.size,
-      contentType: file.type,
+      contentType,
     };
 
+    console.log('[Storage] Upload successful:', storagePath);
     return result;
   } catch (error) {
+    // FR-037: Log detailed Firebase error for debugging before re-throwing
+    const firebaseError = error as { code?: string; message?: string };
+    console.error('[Storage] Upload failed:', {
+      code: firebaseError.code,
+      message: firebaseError.message,
+      path: storagePath,
+      fileType: file.type,
+    });
+
     // Wrap Firebase errors in StorageUploadError
     throw new StorageUploadError(
       'UPLOAD_FAILED',

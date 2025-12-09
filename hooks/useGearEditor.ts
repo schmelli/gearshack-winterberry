@@ -175,6 +175,8 @@ export function useGearEditor(
 
           try {
             const importedFile = await importExternalImage(data.primaryImageUrl!);
+            // FR-037: Log file type before upload for debugging
+            console.log('[GearEditor] Uploading file with type:', importedFile.type, 'name:', importedFile.name);
             // Upload the imported file to Firebase Storage
             const uploadResult = await uploadGearImage(importedFile, user.uid);
             // Update the form data with the Firebase Storage URL
