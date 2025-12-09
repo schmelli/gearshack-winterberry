@@ -84,6 +84,7 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
               src={optimizedImageUrl}
               alt={item.name}
               fill
+              unoptimized
               className="object-contain p-2"
               sizes="96px"
               onError={() => setImageError(true)}
@@ -164,6 +165,7 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
             src={optimizedImageUrl}
             alt={item.name}
             fill
+            unoptimized
             className="object-contain"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             onError={() => setImageError(true)}

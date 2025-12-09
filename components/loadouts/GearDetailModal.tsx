@@ -79,6 +79,7 @@ export function GearDetailModal({
                   src={getOptimizedImageUrl(item)!}
                   alt={item.name}
                   fill
+                  unoptimized
                   className="object-contain"
                   sizes="(max-width: 512px) 100vw, 512px"
                 />

@@ -156,6 +156,7 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
             src={item.primaryImageUrl}
             alt={item.name}
             fill
+            unoptimized
             className="object-cover"
             sizes="56px"
           />
