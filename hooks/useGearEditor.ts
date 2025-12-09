@@ -44,27 +44,74 @@ function isExternalUrl(url: string | null | undefined): boolean {
 }
 
 /**
+ * Normalize MIME type to a clean format
+ * Strips parameters and ensures it's a valid image type
+ */
+function normalizeImageMimeType(rawType: string | undefined | null): string {
+  if (!rawType) return 'image/jpeg';
+
+  // Strip any parameters like "; charset=utf-8"
+  const baseType = rawType.split(';')[0].trim().toLowerCase();
+
+  // Map common variations to standard types
+  const typeMap: Record<string, string> = {
+    'image/jpg': 'image/jpeg',
+    'image/pjpeg': 'image/jpeg',
+    'image/x-png': 'image/png',
+  };
+
+  const normalizedType = typeMap[baseType] || baseType;
+
+  // Only return if it's actually an image type
+  if (normalizedType.startsWith('image/')) {
+    return normalizedType;
+  }
+
+  return 'image/jpeg'; // Default fallback
+}
+
+/**
  * Import external image via server proxy
  * FR-001: Use server-side proxy to bypass CORS
  * FR-037: Force valid image MIME type for Firebase Storage
  */
 async function importExternalImage(url: string): Promise<File> {
+  console.log('[GearEditor] Importing external image:', url);
+
   const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
   const response = await fetch(proxyUrl);
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to import image' }));
-    throw new Error(error.message || 'Failed to import image');
+    const errorData = await response.json().catch(() => ({ error: 'UNKNOWN' }));
+    console.error('[GearEditor] Proxy fetch failed:', response.status, errorData);
+    throw new Error(errorData.message || errorData.error || `Failed to import image (${response.status})`);
   }
 
   const blob = await response.blob();
+  const contentTypeHeader = response.headers.get('content-type');
 
-  // FR-037: Force image type if missing or generic (e.g., application/octet-stream)
-  // Firebase Storage requires content_type.matches('image/.*')
-  const type = (blob.type && blob.type.startsWith('image/')) ? blob.type : 'image/jpeg';
-  const ext = type.split('/')[1] || 'jpg';
+  console.log('[GearEditor] Proxy response:', {
+    blobType: blob.type,
+    contentTypeHeader,
+    blobSize: blob.size,
+  });
 
-  return new File([blob], `imported_${Date.now()}.${ext}`, { type });
+  // Normalize the MIME type - try blob.type first, then header, then default
+  const mimeType = normalizeImageMimeType(blob.type || contentTypeHeader);
+
+  // Get extension from normalized type
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+  };
+  const ext = extMap[mimeType] || 'jpg';
+  const filename = `imported_${Date.now()}.${ext}`;
+
+  console.log('[GearEditor] Creating file:', { filename, mimeType });
+
+  return new File([blob], filename, { type: mimeType });
 }
 
 // =============================================================================

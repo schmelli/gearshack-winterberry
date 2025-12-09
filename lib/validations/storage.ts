@@ -88,20 +88,45 @@ export interface UploadError {
 // =============================================================================
 
 /**
+ * Normalizes a MIME type by removing parameters (e.g., charset)
+ * "image/jpeg; charset=utf-8" -> "image/jpeg"
+ */
+function normalizeMimeType(mimeType: string): string {
+  return mimeType.split(';')[0].trim().toLowerCase();
+}
+
+/**
  * Validates a file before upload
  * Returns null if valid, error message if invalid
  */
 export function validateUploadFile(file: File): string | null {
+  // Log for debugging
+  console.log('[Storage Validation] Validating file:', {
+    name: file.name,
+    type: file.type,
+    size: file.size,
+  });
+
   if (file.size > STORAGE_CONFIG.MAX_FILE_SIZE) {
     const maxMB = STORAGE_CONFIG.MAX_FILE_SIZE / (1024 * 1024);
     return `File size exceeds ${maxMB}MB limit`;
   }
 
+  // Normalize the file type to handle cases like "image/jpeg; charset=utf-8"
+  const normalizedType = normalizeMimeType(file.type);
   const allowedTypes = STORAGE_CONFIG.ALLOWED_MIME_TYPES as readonly string[];
-  if (!allowedTypes.includes(file.type)) {
-    return `Invalid file type. Allowed: ${STORAGE_CONFIG.ALLOWED_MIME_TYPES.join(', ')}`;
+
+  // Check if the normalized type matches any allowed type
+  const isValidType = allowedTypes.some(allowed =>
+    normalizedType === allowed || normalizedType === allowed.toLowerCase()
+  );
+
+  if (!isValidType) {
+    console.error('[Storage Validation] Invalid type:', normalizedType, 'Allowed:', allowedTypes);
+    return `Invalid file type "${file.type}". Allowed: ${STORAGE_CONFIG.ALLOWED_MIME_TYPES.join(', ')}`;
   }
 
+  console.log('[Storage Validation] File valid');
   return null;
 }
 
