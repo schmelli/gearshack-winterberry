@@ -11,6 +11,9 @@
  * Feature: 026-client-bg-removal
  * Tasks: T006-T018 - Client-side background removal with toggle
  *
+ * Feature: 038-cloudinary-hybrid-upload
+ * Tasks: T015 - Integrated ImageUploadZone for primary image
+ *
  * Functional Fixes Sprint:
  * - Added image upload UI with local file selection
  * - Dual approach: Paste URL or Upload Image
@@ -25,16 +28,10 @@
 
 'use client';
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, Upload, Link as LinkIcon, X, Loader2, Search } from 'lucide-react';
-import { toast } from 'sonner';
-import { useImageUpload } from '@/hooks/useImageUpload';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import {
-  searchGearImages,
-  type ImageSearchResult,
-} from '@/app/actions/image-search';
+import { Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import {
   FormField,
   FormItem,
@@ -45,457 +42,42 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
-import { removeBackground, blobToFile } from '@/lib/image-processing';
+import { ImageUploadZone } from '@/components/gear-editor/ImageUploadZone';
 import type { GearItemFormData } from '@/types/gear';
-
-// =============================================================================
-// Types
-// =============================================================================
-
-type ImageInputMode = 'url' | 'upload';
-
-interface LocalImageState {
-  file: File | null;
-  previewUrl: string | null;
-}
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const MAX_FILE_SIZE_MB = 5;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-// =============================================================================
-// ImageUploadInput Component
-// =============================================================================
-
-interface ImageUploadInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onFileSelect?: (file: File | null, previewUrl: string | null) => void;
-  localPreview?: string | null;
-  label: string;
-  description?: string;
-  size?: 'sm' | 'lg';
-  /** If true, automatically upload to Firebase on file select */
-  enableFirebaseUpload?: boolean;
-}
-
-function ImageUploadInput({
-  value,
-  onChange,
-  onFileSelect,
-  localPreview,
-  label,
-  description,
-  size = 'lg',
-  enableFirebaseUpload = false,
-}: ImageUploadInputProps) {
-  const [mode, setMode] = useState<ImageInputMode>(value ? 'url' : 'url');
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Feature 026: Auto-remove background toggle state (default: ON per FR-001)
-  const [autoRemoveBg, setAutoRemoveBg] = useState(true);
-  // Feature 026: Processing state for background removal
-  const [isProcessingBg, setIsProcessingBg] = useState(false);
-
-  // Feature 030: Image search state
-  const [searchResults, setSearchResults] = useState<ImageSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-
-  // Get form context for brand/name values (Feature 030)
-  const form = useFormContext<GearItemFormData>();
-
-  // Firebase upload hook (only used if enableFirebaseUpload is true)
-  const { status: uploadStatus, upload } = useImageUpload();
-
-  // Display either the local preview (from file upload) or the URL value
-  const displayUrl = localPreview || value;
-  const isUploading = uploadStatus === 'uploading';
-
-  const handleFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      setError(null);
-      const file = event.target.files?.[0];
-
-      if (!file) {
-        onFileSelect?.(null, null);
-        return;
-      }
-
-      // Validate file type
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        setError('Please select a valid image file (JPG, PNG, WebP, or GIF)');
-        return;
-      }
-
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        setError(`File size must be less than ${MAX_FILE_SIZE_MB}MB`);
-        return;
-      }
-
-      // Feature 026: Process background removal if enabled (FR-002, FR-005)
-      let fileToUpload = file;
-
-      if (autoRemoveBg) {
-        setIsProcessingBg(true);
-        try {
-          const processedBlob = await removeBackground(file);
-          // Convert blob to file with _nobg suffix (FR-004, FR-005)
-          const baseName = file.name.replace(/\.[^/.]+$/, '');
-          fileToUpload = blobToFile(processedBlob, `${baseName}_nobg.png`);
-        } catch (error) {
-          // Feature 026 US3: Graceful error handling (FR-006, FR-007)
-          console.error('Background removal failed:', error);
-          toast.info('Could not remove background. Using original image.');
-          // Fall back to original file - no data loss
-        } finally {
-          setIsProcessingBg(false);
-        }
-      }
-
-      // Create local preview URL for immediate feedback
-      const previewUrl = URL.createObjectURL(fileToUpload);
-      onFileSelect?.(fileToUpload, previewUrl);
-
-      // If Firebase upload is enabled, upload immediately
-      if (enableFirebaseUpload) {
-        const downloadUrl = await upload(fileToUpload);
-        if (downloadUrl) {
-          // Set the download URL as the field value
-          onChange(downloadUrl);
-          // Clear local preview since we now have the Firebase URL
-          onFileSelect?.(null, null);
-          // Clean up the local preview URL
-          URL.revokeObjectURL(previewUrl);
-        } else {
-          // Upload failed, keep the local preview
-          setError('Upload failed. Please try again.');
-          toast.error('Image upload failed. Please try again.');
-        }
-      } else {
-        // Not uploading to Firebase, just clear the URL field
-        onChange('');
-      }
-    },
-    [onChange, onFileSelect, enableFirebaseUpload, upload, autoRemoveBg]
-  );
-
-  const handleClearFile = useCallback(() => {
-    onFileSelect?.(null, null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    setError(null);
-  }, [onFileSelect]);
-
-  const handleModeSwitch = useCallback(
-    (newMode: ImageInputMode) => {
-      setMode(newMode);
-      setError(null);
-      if (newMode === 'url') {
-        // Clear file when switching to URL mode
-        handleClearFile();
-      } else {
-        // Clear URL when switching to upload mode
-        onChange('');
-      }
-    },
-    [onChange, handleClearFile]
-  );
-
-  // Feature 030: Image search handler (T005)
-  const handleImageSearch = useCallback(async () => {
-    const brand = form.getValues('brand') || '';
-    const name = form.getValues('name') || '';
-    const query = [brand, name].filter(Boolean).join(' ').trim();
-
-    if (!query) {
-      setSearchError('Enter brand or name to search');
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchError(null);
-    setSearchResults([]);
-
-    const results = await searchGearImages(query);
-
-    setIsSearching(false);
-
-    if (results.length === 0) {
-      setSearchError('No images found. Try different search terms.');
-    } else {
-      setSearchResults(results);
-    }
-  }, [form]);
-
-  // Feature 030 + 031: Select image from search results
-  // FR-003: Clear local file state, FR-006: Add toast
-  const handleSelectImage = useCallback(
-    (imageUrl: string) => {
-      onChange(imageUrl);
-      onFileSelect?.(null, null); // FR-003: Clear any pending local file state
-      setSearchResults([]);        // Close grid after selection
-      setSearchError(null);
-      toast.info('Image selected'); // FR-006: User feedback
-    },
-    [onChange, onFileSelect]
-  );
-
-  // Feature 030: Dismiss search results (T007)
-  const handleDismissSearch = useCallback(() => {
-    setSearchResults([]);
-    setSearchError(null);
-  }, []);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex gap-4 items-start">
-        {/* Feature 024 + 026: Wrap ImagePreview with remove button and processing overlay */}
-        <div className="relative">
-          <ImagePreview
-            src={displayUrl || ''}
-            alt={`${label} preview`}
-            size={size}
-          />
-          {/* Feature 026: Processing overlay (FR-003) */}
-          {isProcessingBg && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 rounded-lg">
-              <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-              <span className="text-xs text-muted-foreground">Removing background...</span>
-            </div>
-          )}
-          {/* Remove button - only visible when image exists and not processing */}
-          {displayUrl && !isProcessingBg && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
-              onClick={(e) => {
-                e.stopPropagation(); // FR-006: Prevent file dialog trigger
-                onChange(''); // FR-004: Clear form field
-                onFileSelect?.(null, null); // FR-005: Clear local preview
-                handleClearFile(); // Reset file input element
-              }}
-              aria-label="Remove image"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <div className="flex-1 space-y-3">
-          {/* Feature 026: Auto-remove background toggle (FR-001) */}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="auto-remove-bg" className="text-sm cursor-pointer">
-              Auto-remove background
-            </Label>
-            <Switch
-              id="auto-remove-bg"
-              checked={autoRemoveBg}
-              onCheckedChange={setAutoRemoveBg}
-              disabled={isProcessingBg || isUploading}
-            />
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={mode === 'url' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleModeSwitch('url')}
-              className="flex-1"
-            >
-              <LinkIcon className="w-4 h-4 mr-1" />
-              Paste URL
-            </Button>
-            <Button
-              type="button"
-              variant={mode === 'upload' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleModeSwitch('upload')}
-              className="flex-1"
-            >
-              <Upload className="w-4 h-4 mr-1" />
-              Upload
-            </Button>
-            {/* Feature 030: Image Search Button (T008, T010, T011) */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleImageSearch}
-              disabled={isSearching || isProcessingBg || isUploading}
-            >
-              {isSearching ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Search className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-
-          {/* URL Input Mode */}
-          {mode === 'url' && (
-            <Input
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-            />
-          )}
-
-          {/* File Upload Mode */}
-          {mode === 'upload' && (
-            <div className="space-y-2">
-              {isUploading ? (
-                // Show upload progress
-                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-sm flex-1 truncate text-muted-foreground">
-                    Uploading to Firebase...
-                  </span>
-                </div>
-              ) : localPreview ? (
-                // Show selected file info
-                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                  <span className="text-sm flex-1 truncate text-muted-foreground">
-                    Image selected
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFile}
-                    className="h-7 w-7 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Remove image</span>
-                  </Button>
-                </div>
-              ) : (
-                // Dropzone / File input
-                <div
-                  className={`border-2 border-dashed rounded-md p-4 text-center transition-colors ${
-                    isUploading
-                      ? 'cursor-not-allowed opacity-50'
-                      : 'cursor-pointer hover:border-primary/50 hover:bg-muted/50'
-                  }`}
-                  onClick={() => !isUploading && fileInputRef.current?.click()}
-                  onDragOver={(e) => {
-                    if (!isUploading) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                  }}
-                  onDrop={(e) => {
-                    if (!isUploading) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file && fileInputRef.current) {
-                        // Create a new DataTransfer to set the file
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        fileInputRef.current.files = dt.files;
-                        // Trigger the change event manually
-                        const event = new Event('change', { bubbles: true });
-                        fileInputRef.current.dispatchEvent(event);
-                      }
-                    }
-                  }}
-                >
-                  <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Click or drag image here
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JPG, PNG, WebP, GIF (max {MAX_FILE_SIZE_MB}MB)
-                  </p>
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={isUploading}
-                className="hidden"
-              />
-            </div>
-          )}
-
-          {/* Feature 030: Image Search Results Grid (T009, T013, T014) */}
-          {(searchResults.length > 0 || searchError) && (
-            <div className="mt-3 p-3 border rounded-lg bg-muted/30">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Search Results</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDismissSearch}
-                  className="h-6 w-6 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {searchError ? (
-                <p className="text-sm text-muted-foreground">{searchError}</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {searchResults.map((result, index) => (
-                    <AspectRatio ratio={1} key={`${result.imageUrl}-${index}`}>
-                      <img
-                        src={result.thumbnailUrl}
-                        alt={result.title}
-                        className="w-full h-full object-cover rounded-lg cursor-pointer transition-all hover:ring-2 hover:ring-primary hover:opacity-90"
-                        onClick={() => handleSelectImage(result.imageUrl)}
-                        title={result.title}
-                      />
-                    </AspectRatio>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          {/* Description */}
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+import type { GearItem } from '@/types/gear';
 
 // =============================================================================
 // MediaSection Component
 // =============================================================================
 
-export function MediaSection() {
-  const form = useFormContext<GearItemFormData>();
+export interface MediaSectionProps {
+  /** Initial item for editing (undefined for new items) */
+  initialItem?: GearItem;
+}
 
-  // Local state for file previews (UI only - actual upload handled elsewhere)
-  const [primaryImageLocal, setPrimaryImageLocal] = useState<LocalImageState>({
-    file: null,
-    previewUrl: null,
+export function MediaSection({ initialItem }: MediaSectionProps) {
+  const form = useFormContext<GearItemFormData>();
+  const { user } = useAuth();
+
+  // Watch brand and name fields to pass to ImageUploadZone for auto-search
+  const brand = form.watch('brand');
+  const productName = form.watch('name');
+
+  // Generate a temporary item ID for new items (Feature: 038-cloudinary-hybrid-upload)
+  // Use existing ID if editing, or generate a temporary UUID for new items
+  // NOTE: Using useState instead of useMemo to avoid impure functions in render
+  const [itemId] = useState(() => {
+    if (initialItem?.id) {
+      return initialItem.id;
+    }
+    // Generate a temporary UUID-like ID for new items
+    // This will be replaced with the real ID once the item is saved
+    return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   });
+
+  // Get userId from auth (required for Cloudinary upload)
+  const userId = user?.uid || 'anonymous';
 
   // Use field array for gallery images
   const { fields, append, remove } = useFieldArray({
@@ -507,38 +89,31 @@ export function MediaSection() {
     append('' as never);
   }, [append]);
 
-  const handlePrimaryFileSelect = useCallback((file: File | null, previewUrl: string | null) => {
-    // Clean up previous preview URL to avoid memory leaks
-    if (primaryImageLocal.previewUrl) {
-      URL.revokeObjectURL(primaryImageLocal.previewUrl);
-    }
-    setPrimaryImageLocal({ file, previewUrl });
-  }, [primaryImageLocal.previewUrl]);
-
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Media</h3>
 
-      {/* Primary Image */}
+      {/* Primary Image - Feature 038: Cloudinary Upload */}
       <div className="space-y-4">
         <FormField
           control={form.control}
           name="primaryImageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Primary Image</FormLabel>
               <FormControl>
-                <ImageUploadInput
+                <ImageUploadZone
                   value={field.value || ''}
                   onChange={field.onChange}
-                  onFileSelect={handlePrimaryFileSelect}
-                  localPreview={primaryImageLocal.previewUrl}
-                  label="Primary image"
-                  description="Main product image displayed in inventory lists. Files are uploaded to Firebase Storage."
-                  size="lg"
-                  enableFirebaseUpload={true}
+                  userId={userId}
+                  itemId={itemId}
+                  label="Primary Image"
+                  brand={brand}
+                  productName={productName}
                 />
               </FormControl>
+              <FormDescription>
+                Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

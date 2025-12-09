@@ -38,7 +38,7 @@ export async function searchGearImages(query: string): Promise<ImageSearchResult
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey) {
     console.error('[Image Search] SERPER_API_KEY not configured');
-    return [];
+    throw new Error('Image search is temporarily unavailable. Please try again later.');
   }
 
   // Validate query
@@ -56,28 +56,35 @@ export async function searchGearImages(query: string): Promise<ImageSearchResult
       },
       body: JSON.stringify({
         q: trimmedQuery,
-        num: 9,
+        num: 6,
       }),
     });
 
     if (!response.ok) {
       console.error('[Image Search] API error:', response.status, response.statusText);
-      return [];
+      throw new Error('Image search is temporarily unavailable. Please try again later.');
     }
 
     const data: SerperImageResponse = await response.json();
 
-    // Transform to our schema, filtering out invalid entries
+    // Transform to our schema, filtering out invalid entries (3x2 grid = 6 images)
     return (data.images || [])
       .filter((img) => img.imageUrl && img.thumbnailUrl)
-      .slice(0, 9)
+      .slice(0, 6)
       .map((img) => ({
         imageUrl: img.imageUrl,
         thumbnailUrl: img.thumbnailUrl,
         title: img.title || 'Product image',
       }));
   } catch (error) {
+    // Preserve existing error message if already thrown
+    if (error instanceof Error && error.message.includes('temporarily unavailable')) {
+      throw error;
+    }
+
+    // Network error or other fetch failure
     console.error('[Image Search] Request failed:', error);
-    return [];
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Image search failed: ${errorMessage}`);
   }
 }
