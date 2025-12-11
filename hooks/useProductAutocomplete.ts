@@ -15,7 +15,9 @@ export interface ProductSuggestion {
   id: string;
   name: string;
   brand: { id: string; name: string } | null;
-  category: string | null;
+  categoryMain: string | null;
+  productType: string | null;
+  weightGrams: number | null;
   score: number;
 }
 
@@ -24,13 +26,15 @@ interface ProductSearchResponse {
     id: string;
     name: string;
     brand: { id: string; name: string } | null;
-    category: string | null;
+    categoryMain: string | null;
+    subcategory: string | null;
+    productType: string | null;
+    weightGrams: number | null;
+    priceUsd: number | null;
     description: string | null;
-    specsSummary: string | null;
     score: number;
   }>;
   query: string;
-  mode: string;
   count: number;
 }
 
@@ -90,9 +94,9 @@ export function useProductAutocomplete(
         setError(null);
 
         // Build URL with optional brand filter
+        // Use the new catalog_products API
         const params = new URLSearchParams({
           q: query,
-          mode: 'fuzzy',
           limit: '8',
         });
 
@@ -100,7 +104,7 @@ export function useProductAutocomplete(
           params.set('brand_id', brandId);
         }
 
-        const response = await fetch(`/api/catalog/items/search?${params}`, {
+        const response = await fetch(`/api/catalog/products/search?${params}`, {
           signal: abortControllerRef.current.signal,
         });
 
@@ -115,7 +119,9 @@ export function useProductAutocomplete(
             id: result.id,
             name: result.name,
             brand: result.brand,
-            category: result.category,
+            categoryMain: result.categoryMain,
+            productType: result.productType,
+            weightGrams: result.weightGrams,
             score: result.score,
           }))
         );

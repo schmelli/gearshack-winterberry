@@ -394,7 +394,7 @@ export interface Database {
         };
         Relationships: [];
       };
-      /** Feature 042: Global Gear Catalog - Items table */
+      /** Feature 042: Global Gear Catalog - Items table (legacy) */
       catalog_items: {
         Row: {
           id: string;
@@ -436,6 +436,62 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: 'catalog_items_brand_id_fkey';
+            columns: ['brand_id'];
+            referencedRelation: 'catalog_brands';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 044: Global Gear Catalog - Products table (synced from GearGraph) */
+      catalog_products: {
+        Row: {
+          id: string;
+          external_id: string;
+          brand_id: string | null;
+          brand_external_id: string | null;
+          name: string;
+          category_main: string | null;
+          subcategory: string | null;
+          product_type: string | null;
+          price_usd: number | null;
+          weight_grams: number | null;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          external_id: string;
+          brand_id?: string | null;
+          brand_external_id?: string | null;
+          name: string;
+          category_main?: string | null;
+          subcategory?: string | null;
+          product_type?: string | null;
+          price_usd?: number | null;
+          weight_grams?: number | null;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          external_id?: string;
+          brand_id?: string | null;
+          brand_external_id?: string | null;
+          name?: string;
+          category_main?: string | null;
+          subcategory?: string | null;
+          product_type?: string | null;
+          price_usd?: number | null;
+          weight_grams?: number | null;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'catalog_products_brand_id_fkey';
             columns: ['brand_id'];
             referencedRelation: 'catalog_brands';
             referencedColumns: ['id'];

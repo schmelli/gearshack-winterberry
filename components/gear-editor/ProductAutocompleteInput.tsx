@@ -214,10 +214,16 @@ export function ProductAutocompleteInput({
                     {suggestion.brand && (
                       <span>{suggestion.brand.name}</span>
                     )}
-                    {suggestion.category && (
+                    {suggestion.productType && (
                       <>
                         {suggestion.brand && <span>•</span>}
-                        <span>{suggestion.category}</span>
+                        <span>{suggestion.productType}</span>
+                      </>
+                    )}
+                    {suggestion.weightGrams && (
+                      <>
+                        <span>•</span>
+                        <span>{suggestion.weightGrams}g</span>
                       </>
                     )}
                     <span className="ml-auto">
