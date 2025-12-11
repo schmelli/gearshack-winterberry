@@ -72,6 +72,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     totalWeight,
     baseWeight,
     categoryWeights,
+    itemStates,
   } = useLoadoutEditor(id);
 
   // Dependency prompt (Feature: 037-gear-dependencies)
