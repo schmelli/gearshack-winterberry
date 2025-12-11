@@ -93,9 +93,6 @@ interface SupabaseStore {
   setSyncState: (updates: Partial<SyncState>) => void;
   setRemoteGearItems: (items: GearItem[]) => void;
   setRemoteLoadouts: (loadouts: LoadoutLocal[]) => void;
-
-  // Initialize
-  initializeWithMockData: (items: GearItem[]) => void;
 }
 
 // =============================================================================
@@ -535,13 +532,6 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
       setRemoteLoadouts: (loadouts) => {
         set({ loadouts });
-      },
-
-      initializeWithMockData: (items) => {
-        const state = get();
-        if (!state._initialized && state.items.length === 0) {
-          set({ items, _initialized: true });
-        }
       },
     }),
     {
