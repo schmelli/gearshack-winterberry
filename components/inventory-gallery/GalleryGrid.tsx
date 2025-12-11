@@ -29,6 +29,8 @@ interface GalleryGridProps {
   hasActiveFilters?: boolean;
   /** Callback to clear filters */
   onClearFilters?: () => void;
+  /** Callback when a gear card is clicked (Feature 045) */
+  onItemClick?: (itemId: string) => void;
 }
 
 // =============================================================================
@@ -53,6 +55,7 @@ export function GalleryGrid({
   viewDensity,
   hasActiveFilters = false,
   onClearFilters,
+  onItemClick,
 }: GalleryGridProps) {
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -81,7 +84,12 @@ export function GalleryGrid({
   return (
     <div className={cn(gridClass)}>
       {items.map((item) => (
-        <GearCard key={item.id} item={item} viewDensity={viewDensity} />
+        <GearCard
+          key={item.id}
+          item={item}
+          viewDensity={viewDensity}
+          onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+        />
       ))}
     </div>
   );

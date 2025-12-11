@@ -40,6 +40,8 @@ interface LoadoutListProps {
   onToggleWorn: (itemId: string) => void;
   /** Toggle consumable state (US4) */
   onToggleConsumable: (itemId: string) => void;
+  /** Feature 045: Click to view gear details in modal */
+  onItemClick?: (itemId: string) => void;
 }
 
 // =============================================================================
@@ -54,6 +56,7 @@ export function LoadoutList({
   isConsumable,
   onToggleWorn,
   onToggleConsumable,
+  onItemClick,
 }: LoadoutListProps) {
   const categoryGroups = getSortedCategoryGroups(items);
   const isEmpty = items.length === 0;
@@ -100,6 +103,7 @@ export function LoadoutList({
                   isConsumable={isConsumable(item.id)}
                   onToggleWorn={() => onToggleWorn(item.id)}
                   onToggleConsumable={() => onToggleConsumable(item.id)}
+                  onClick={onItemClick ? () => onItemClick(item.id) : undefined}
                 />
               ))}
             </div>
@@ -121,6 +125,8 @@ interface LoadoutListItemProps {
   isConsumable: boolean;
   onToggleWorn: () => void;
   onToggleConsumable: () => void;
+  /** Feature 045: Click to view gear details */
+  onClick?: () => void;
 }
 
 function LoadoutListItem({
@@ -129,13 +135,31 @@ function LoadoutListItem({
   isWorn,
   isConsumable,
   onToggleWorn,
-  onToggleConsumable
+  onToggleConsumable,
+  onClick,
 }: LoadoutListItemProps) {
+  // Handle click on item body to open detail modal (Feature 045)
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={handleClick}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      } : undefined}
       className={cn(
         'group flex items-center justify-between rounded-lg border bg-card p-3',
-        'transition-colors hover:border-destructive/50 hover:bg-destructive/5'
+        'transition-colors',
+        onClick ? 'cursor-pointer hover:border-primary/50 hover:bg-muted/50' : 'hover:border-destructive/50 hover:bg-destructive/5'
       )}
     >
       <div className="min-w-0 flex-1">
@@ -146,8 +170,8 @@ function LoadoutListItem({
         </p>
       </div>
 
-      {/* Worn and Consumable Toggles (US4) */}
-      <div className="flex shrink-0 items-center gap-1">
+      {/* Worn and Consumable Toggles (US4) - stopPropagation to not trigger modal */}
+      <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
         <WornToggle pressed={isWorn} onPressedChange={onToggleWorn} />
         <ConsumableToggle pressed={isConsumable} onPressedChange={onToggleConsumable} />
         <Button

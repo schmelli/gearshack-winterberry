@@ -11,10 +11,14 @@
  *
  * Feature: 028-landing-page-i18n
  * T028-T029: Use translations for inventory UI (FR-010)
+ *
+ * Feature: 045-gear-detail-modal
+ * T019-T020: Add gear detail modal with URL deep linking
  */
 
 'use client';
 
+import { Suspense } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -23,11 +27,16 @@ import { useInventory } from '@/hooks/useInventory';
 import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
+import { useGearDetailModal } from '@/hooks/useGearDetailModal';
+import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
+import { useGearInsights } from '@/hooks/useGearInsights';
 
 function InventoryContent() {
   const t = useTranslations('Inventory');
   const {
     filteredItems,
+    items,
     viewDensity,
     setViewDensity,
     searchQuery,
@@ -40,6 +49,36 @@ function InventoryContent() {
     filteredCount,
     isLoading,
   } = useInventory();
+
+  // Feature 045: Gear detail modal state
+  const { isOpen, gearId, open, close, isMobile } = useGearDetailModal();
+
+  // Find the selected item for the modal
+  const selectedItem = gearId ? items.find((item) => item.id === gearId) ?? null : null;
+
+  // Feature 045: YouTube reviews for selected item
+  const {
+    videos: youtubeVideos,
+    isLoading: youtubeLoading,
+    error: youtubeError,
+    retry: retryYouTube,
+  } = useYouTubeReviews({
+    brand: selectedItem?.brand,
+    name: selectedItem?.name,
+    enabled: isOpen && !!selectedItem,
+  });
+
+  // Feature 045: GearGraph insights for selected item
+  const {
+    insights,
+    isLoading: insightsLoading,
+    error: insightsError,
+  } = useGearInsights({
+    categoryId: selectedItem?.categoryId,
+    brand: selectedItem?.brand,
+    name: selectedItem?.name,
+    enabled: isOpen && !!selectedItem,
+  });
 
   // Loading state
   if (isLoading) {
@@ -107,9 +146,25 @@ function InventoryContent() {
             viewDensity={viewDensity}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearFilters}
+            onItemClick={open}
           />
         </>
       )}
+
+      {/* Feature 045: Gear Detail Modal */}
+      <GearDetailModal
+        open={isOpen}
+        onOpenChange={(open) => !open && close()}
+        item={selectedItem}
+        isMobile={isMobile}
+        youtubeVideos={youtubeVideos}
+        youtubeLoading={youtubeLoading}
+        youtubeError={youtubeError}
+        onRetryYouTube={retryYouTube}
+        insights={insights}
+        insightsLoading={insightsLoading}
+        insightsError={insightsError}
+      />
     </main>
   );
 }
@@ -117,7 +172,9 @@ function InventoryContent() {
 export default function InventoryPage() {
   return (
     <ProtectedRoute>
-      <InventoryContent />
+      <Suspense fallback={<div className="container mx-auto max-w-6xl px-4 py-8"><div className="flex items-center justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div></div>}>
+        <InventoryContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

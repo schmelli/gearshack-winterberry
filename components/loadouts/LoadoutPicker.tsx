@@ -22,7 +22,8 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GearDetailModal } from '@/components/loadouts/GearDetailModal';
+import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
+import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
 import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
 
@@ -52,6 +53,9 @@ export function LoadoutPicker({
   // Modal state for gear detail view (FR-017)
   const [selectedItem, setSelectedItem] = useState<GearItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Feature 045: Responsive detection for modal
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const handleOpenDetail = (item: GearItem) => {
     setSelectedItem(item);
@@ -95,11 +99,12 @@ export function LoadoutPicker({
         </div>
       </ScrollArea>
 
-      {/* Gear Detail Modal (FR-017) */}
+      {/* Gear Detail Modal (FR-017, Feature 045) */}
       <GearDetailModal
         item={selectedItem}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        isMobile={isMobile}
       />
     </div>
   );
