@@ -12,7 +12,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, UseInventoryReturn } from '@/types/inventory';
-import { useStore, useItems } from '@/hooks/useStore';
+import { useStore, useItems } from '@/hooks/useSupabaseStore';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 
 // =============================================================================
 // Session Storage Key
@@ -67,8 +68,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'Ultralight 2-person tent with excellent ventilation.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -97,8 +99,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'Spoon-shaped sleeping bag, 15°F rating.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -127,8 +130,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'R-value 4.5, ultralight inflatable pad.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -157,8 +161,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'used',
-    status: 'active',
+    status: 'own',
     notes: null,
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -187,8 +192,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: '800-fill down, incredibly packable.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -217,8 +223,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: null,
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -247,8 +254,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'Pressure regulator for consistent flame.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -277,8 +285,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'used',
-    status: 'active',
+    status: 'own',
     notes: null,
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -307,8 +316,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'Fast flow rate, easy to squeeze.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -337,8 +347,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: '200 lumens, red light mode.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -367,8 +378,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: 'Pair weight, foldable.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -397,8 +409,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'worn',
-    status: 'active',
+    status: 'own',
     notes: 'Great cushioning and grip.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -429,6 +442,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'new',
     status: 'wishlist',
     notes: 'DCF version, double-wall design.',
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -457,8 +471,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     primaryImageUrl: null,
     galleryImageUrls: [],
     condition: 'new',
-    status: 'active',
+    status: 'own',
     notes: null,
+    isFavourite: false,
     dependencyIds: [],
   },
   {
@@ -489,6 +504,7 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     condition: 'used',
     status: 'sold',
     notes: 'Sold to upgrade to separate stove/pot system.',
+    isFavourite: false,
     dependencyIds: [],
   },
 ];
@@ -503,11 +519,15 @@ export function useInventory(): UseInventoryReturn {
   // ---------------------------------------------------------------------------
   const items = useItems();
   const initializeWithMockData = useStore((state) => state.initializeWithMockData);
+  const { user } = useAuthContext();
 
-  // Initialize store with mock data on first load
+  // Initialize store with mock data on first load (only when not logged in)
+  // When logged in, data is fetched from Supabase via SupabaseAuthProvider
   useEffect(() => {
-    initializeWithMockData(MOCK_GEAR_ITEMS);
-  }, [initializeWithMockData]);
+    if (!user) {
+      initializeWithMockData(MOCK_GEAR_ITEMS);
+    }
+  }, [initializeWithMockData, user]);
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence

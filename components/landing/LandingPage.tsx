@@ -13,7 +13,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { HeroSection } from './HeroSection';
 import { FeatureGrid } from './FeatureGrid';
 import { SocialProof } from './SocialProof';

@@ -25,9 +25,11 @@ interface StatusBadgeProps {
 // =============================================================================
 
 const STATUS_COLORS: Record<GearStatus, string> = {
-  active: 'bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary',
+  own: 'bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary',
   wishlist: 'bg-accent/15 text-accent dark:bg-accent/20 dark:text-accent',
   sold: 'bg-muted text-muted-foreground',
+  lent: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  retired: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
 };
 
 // =============================================================================

@@ -13,6 +13,7 @@ import { z } from 'zod';
  * FR-020b: trailName 2-30 chars optional
  * FR-020c: bio max 500 chars optional
  * FR-020d: URLs validated for proper format
+ * Feature 041: avatarUrl, locationName, latitude, longitude
  */
 export const profileSchema = z.object({
   displayName: z
@@ -39,25 +40,45 @@ export const profileSchema = z.object({
     .string()
     .url('Please enter a valid URL')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .nullable(),
+  // Feature 041: Location with coordinates
+  locationName: z
+    .string()
+    .max(200, 'Location name must be at most 200 characters')
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
+  latitude: z
+    .number()
+    .min(-90, 'Latitude must be between -90 and 90')
+    .max(90, 'Latitude must be between -90 and 90')
+    .optional()
+    .nullable(),
+  longitude: z
+    .number()
+    .min(-180, 'Longitude must be between -180 and 180')
+    .max(180, 'Longitude must be between -180 and 180')
+    .optional()
+    .nullable(),
   instagram: z
     .string()
-    .url('Please enter a valid Instagram URL')
+    .max(200, 'Instagram must be at most 200 characters')
     .optional()
     .or(z.literal('')),
   facebook: z
     .string()
-    .url('Please enter a valid Facebook URL')
+    .max(200, 'Facebook must be at most 200 characters')
     .optional()
     .or(z.literal('')),
   youtube: z
     .string()
-    .url('Please enter a valid YouTube URL')
+    .max(200, 'YouTube must be at most 200 characters')
     .optional()
     .or(z.literal('')),
   website: z
     .string()
-    .url('Please enter a valid website URL')
+    .max(200, 'Website must be at most 200 characters')
     .optional()
     .or(z.literal('')),
 });

@@ -25,93 +25,24 @@ import {
   gearItemToFormData,
   formDataToGearItem,
 } from '@/lib/gear-utils';
-import { useStore } from '@/hooks/useStore';
-import { useAuth } from '@/hooks/useAuth';
-import { uploadGearImage } from '@/lib/firebase/storage';
+import { useStore } from '@/hooks/useSupabaseStore';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 
 // =============================================================================
-// Image Import Helpers (FR-004, FR-005, FR-010, FR-037)
+// Image Import Helpers
 // =============================================================================
 
 /**
- * Check if URL is external (needs import to Firebase)
- * FR-005: Skip processing for images already stored internally
+ * Check if URL is external (needs import to Cloudinary)
+ * Skip Cloudinary URLs (already cloud-hosted)
  */
 function isExternalUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
-  return !url.includes('firebasestorage.googleapis.com');
-}
-
-/**
- * Normalize MIME type to a clean format
- * Strips parameters and ensures it's a valid image type
- */
-function normalizeImageMimeType(rawType: string | undefined | null): string {
-  if (!rawType) return 'image/jpeg';
-
-  // Strip any parameters like "; charset=utf-8"
-  const baseType = rawType.split(';')[0].trim().toLowerCase();
-
-  // Map common variations to standard types
-  const typeMap: Record<string, string> = {
-    'image/jpg': 'image/jpeg',
-    'image/pjpeg': 'image/jpeg',
-    'image/x-png': 'image/png',
-  };
-
-  const normalizedType = typeMap[baseType] || baseType;
-
-  // Only return if it's actually an image type
-  if (normalizedType.startsWith('image/')) {
-    return normalizedType;
-  }
-
-  return 'image/jpeg'; // Default fallback
-}
-
-/**
- * Import external image via server proxy
- * FR-001: Use server-side proxy to bypass CORS
- * FR-037: Force valid image MIME type for Firebase Storage
- */
-async function importExternalImage(url: string): Promise<File> {
-  console.log('[GearEditor] Importing external image:', url);
-
-  const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'UNKNOWN' }));
-    console.error('[GearEditor] Proxy fetch failed:', response.status, errorData);
-    throw new Error(errorData.message || errorData.error || `Failed to import image (${response.status})`);
-  }
-
-  const blob = await response.blob();
-  const contentTypeHeader = response.headers.get('content-type');
-
-  console.log('[GearEditor] Proxy response:', {
-    blobType: blob.type,
-    contentTypeHeader,
-    blobSize: blob.size,
-  });
-
-  // Normalize the MIME type - try blob.type first, then header, then default
-  const mimeType = normalizeImageMimeType(blob.type || contentTypeHeader);
-
-  // Get extension from normalized type
-  const extMap: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-  };
-  const ext = extMap[mimeType] || 'jpg';
-  const filename = `imported_${Date.now()}.${ext}`;
-
-  console.log('[GearEditor] Creating file:', { filename, mimeType });
-
-  return new File([blob], filename, { type: mimeType });
+  // Skip Cloudinary URLs (already cloud-hosted, no need to import)
+  if (url.includes('res.cloudinary.com')) return false;
+  return true;
 }
 
 // =============================================================================
@@ -167,7 +98,8 @@ export function useGearEditor(
   } = options;
 
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
+  const { uploadUrl: uploadToCloudinary } = useCloudinaryUpload();
   const isEditing = Boolean(initialItem);
 
   // Store actions
@@ -225,23 +157,25 @@ export function useGearEditor(
           toast.info('Importing image...');
 
           try {
-            // Step 1: Fetch and convert external image
-            console.log('[GearEditor] Step 1: Fetching external image via proxy...');
-            const importedFile = await importExternalImage(data.primaryImageUrl!);
-            console.log('[GearEditor] Step 1 SUCCESS: File created:', {
-              name: importedFile.name,
-              type: importedFile.type,
-              size: importedFile.size,
+            // Upload external URL directly to Cloudinary (server-side fetch bypasses CORS)
+            console.log('[GearEditor] Uploading external URL to Cloudinary...');
+
+            // Generate a temporary item ID for new items
+            const itemId = initialItem?.id ?? `temp-${Date.now()}`;
+
+            const cloudinaryUrl = await uploadToCloudinary(data.primaryImageUrl!, {
+              userId: user.uid,
+              itemId,
             });
 
-            // Step 2: Upload to Firebase Storage
-            console.log('[GearEditor] Step 2: Uploading to Firebase Storage...');
-            const uploadResult = await uploadGearImage(importedFile, user.uid);
-            console.log('[GearEditor] Step 2 SUCCESS: Upload complete:', uploadResult.downloadUrl);
+            if (!cloudinaryUrl) {
+              throw new Error('Failed to upload to Cloudinary');
+            }
 
-            // Update the form data with the Firebase Storage URL
-            data.primaryImageUrl = uploadResult.downloadUrl;
-            console.log('[GearEditor] Image import complete - Firebase URL:', data.primaryImageUrl);
+            console.log('[GearEditor] Upload complete - Cloudinary URL:', cloudinaryUrl);
+
+            // Update the form data with the Cloudinary URL
+            data.primaryImageUrl = cloudinaryUrl;
             toast.success('Image imported successfully!');
           } catch (importError) {
             // FR-007: Handle proxy failures gracefully - show detailed error
@@ -313,7 +247,7 @@ export function useGearEditor(
         setIsUploading(false);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary]
   );
 
   // Wrapped submit handler with validation

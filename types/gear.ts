@@ -13,7 +13,9 @@ export type WeightUnit = 'g' | 'oz' | 'lb';
 
 export type GearCondition = 'new' | 'used' | 'worn';
 
-export type GearStatus = 'active' | 'wishlist' | 'sold';
+// Note: 'active' renamed to 'own' for Supabase migration (040-supabase-migration, T018)
+// Added 'lent' and 'retired' statuses for extended lifecycle
+export type GearStatus = 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
 
 // =============================================================================
 // UI Labels for Enumerations
@@ -32,9 +34,11 @@ export const GEAR_CONDITION_LABELS: Record<GearCondition, string> = {
 };
 
 export const GEAR_STATUS_LABELS: Record<GearStatus, string> = {
-  active: 'Active',
+  own: 'Own',
   wishlist: 'Wishlist',
   sold: 'Sold',
+  lent: 'Lent',
+  retired: 'Retired',
 };
 
 // =============================================================================
@@ -102,6 +106,8 @@ export interface GearItem {
   condition: GearCondition;
   status: GearStatus;
   notes: string | null;
+  /** Whether this item is marked as favourite - Feature 041 */
+  isFavourite: boolean;
 
   // Section 7: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
@@ -149,6 +155,8 @@ export interface GearItemFormData {
   condition: GearCondition;
   status: GearStatus;
   notes: string;
+  /** Whether this item is marked as favourite - Feature 041 */
+  isFavourite: boolean;
 
   // Section 7: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item */
@@ -182,7 +190,8 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   primaryImageUrl: '',
   galleryImageUrls: [],
   condition: 'new',
-  status: 'active',
+  status: 'own',
   notes: '',
+  isFavourite: false,
   dependencyIds: [],
 };

@@ -19,7 +19,7 @@
 
 import { Link } from '@/i18n/navigation';
 import { Plus, Backpack, Search } from 'lucide-react';
-import { useLoadouts, useItems } from '@/hooks/useStore';
+import { useLoadouts, useItems } from '@/hooks/useSupabaseStore';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';

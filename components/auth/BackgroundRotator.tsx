@@ -37,9 +37,10 @@ function FadeImage({ src }: FadeImageProps) {
     >
       <Image
         src={src}
-        alt=""
+        alt="Background"
         fill
         priority
+        unoptimized
         className="object-cover"
         sizes="100vw"
         onLoad={() => {

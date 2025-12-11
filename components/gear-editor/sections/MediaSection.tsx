@@ -31,7 +31,7 @@
 import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   FormField,
   FormItem,
@@ -58,7 +58,7 @@ export interface MediaSectionProps {
 
 export function MediaSection({ initialItem }: MediaSectionProps) {
   const form = useFormContext<GearItemFormData>();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   // Watch brand and name fields to pass to ImageUploadZone for auto-search
   const brand = form.watch('brand');

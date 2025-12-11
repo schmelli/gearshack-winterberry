@@ -12,7 +12,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useStore, useLoadout, useItems } from '@/hooks/useStore';
+import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
 import { calculateTotalWeight, calculateCategoryWeights, calculateWeightSummary, formatWeight, ACTIVITY_PRIORITY_MATRIX } from '@/lib/loadout-utils';

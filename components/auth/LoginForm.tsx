@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { loginSchema, type LoginFormData } from '@/lib/validations/profile-schema';
 
 // =============================================================================

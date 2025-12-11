@@ -39,7 +39,7 @@ import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
 // T021: Import LanguageSwitcher
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 
 interface SiteHeaderProps {
   className?: string;

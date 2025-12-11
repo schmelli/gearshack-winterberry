@@ -44,7 +44,7 @@ import { PurchaseSection } from '@/components/gear-editor/sections/PurchaseSecti
 import { MediaSection } from '@/components/gear-editor/sections/MediaSection';
 import { StatusSection } from '@/components/gear-editor/sections/StatusSection';
 import { DependenciesSection } from '@/components/gear-editor/sections/DependenciesSection';
-import { useItems } from '@/hooks/useStore';
+import { useItems } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
 // Types
@@ -137,7 +137,7 @@ export function GearEditorForm({
               </TabsContent>
 
               <TabsContent value="media" className="mt-0">
-                <MediaSection />
+                <MediaSection initialItem={initialItem} />
               </TabsContent>
 
               <TabsContent value="status" className="mt-0">

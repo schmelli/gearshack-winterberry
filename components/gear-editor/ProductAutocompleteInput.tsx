@@ -1,0 +1,244 @@
+/**
+ * ProductAutocompleteInput Component
+ *
+ * Feature: 044-intelligence-integration
+ * Constitution: UI components MUST be stateless (logic in hooks)
+ *
+ * Input field with product autocomplete suggestions.
+ * - When brand is selected: filters products by that brand
+ * - When no brand: searches all products
+ * - When product selected: auto-fills brand if not already set
+ */
+
+'use client';
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import {
+  useProductAutocomplete,
+  type ProductSuggestion,
+} from '@/hooks/useProductAutocomplete';
+import type { GearItemFormData } from '@/types/gear';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface ProductAutocompleteInputProps {
+  /** Called when a product is selected, passes brand info for auto-fill */
+  onProductSelect?: (product: ProductSuggestion) => void;
+  /** Optional brand ID to filter products */
+  brandId?: string;
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+export function ProductAutocompleteInput({
+  onProductSelect,
+  brandId,
+}: ProductAutocompleteInputProps) {
+  const form = useFormContext<GearItemFormData>();
+  const { suggestions, isLoading, search, clear } = useProductAutocomplete({
+    brandId,
+  });
+
+  // Local state for showing suggestions dropdown
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  // Refs for click outside detection
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Watch the current name value
+  const nameValue = useWatch({ control: form.control, name: 'name' });
+
+  // Handle input change - trigger search
+  const handleInputChange = useCallback(
+    (value: string) => {
+      form.setValue('name', value);
+      if (value.length >= 2) {
+        search(value);
+        setShowSuggestions(true);
+        setHighlightedIndex(-1);
+      } else {
+        clear();
+        setShowSuggestions(false);
+      }
+    },
+    [form, search, clear]
+  );
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = useCallback(
+    (suggestion: ProductSuggestion) => {
+      form.setValue('name', suggestion.name);
+
+      // Notify parent to handle brand auto-fill
+      if (onProductSelect) {
+        onProductSelect(suggestion);
+      }
+
+      clear();
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+    },
+    [form, clear, onProductSelect]
+  );
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!showSuggestions || suggestions.length === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setHighlightedIndex((prev) =>
+            prev < suggestions.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
+            handleSelectSuggestion(suggestions[highlightedIndex]);
+          }
+          break;
+        case 'Escape':
+          setShowSuggestions(false);
+          setHighlightedIndex(-1);
+          break;
+      }
+    },
+    [showSuggestions, suggestions, highlightedIndex, handleSelectSuggestion]
+  );
+
+  // Handle focus
+  const handleFocus = useCallback(() => {
+    if (nameValue && nameValue.length >= 2 && suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  }, [nameValue, suggestions.length]);
+
+  // Handle blur - delay to allow click on suggestions
+  const handleBlur = useCallback(() => {
+    setTimeout(() => {
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+    }, 200);
+  }, []);
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              Name <span className="text-destructive">*</span>
+            </FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g., Nemo Hornet Elite 2P"
+                {...field}
+                ref={(el) => {
+                  field.ref(el);
+                  (
+                    inputRef as React.MutableRefObject<HTMLInputElement | null>
+                  ).current = el;
+                }}
+                value={field.value || ''}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                autoComplete="off"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Suggestions dropdown */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
+          <ul className="max-h-60 overflow-auto py-1">
+            {suggestions.map((suggestion, index) => (
+              <li
+                key={suggestion.id}
+                className={cn(
+                  'cursor-pointer px-3 py-2 text-sm',
+                  index === highlightedIndex
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                )}
+                onMouseDown={() => handleSelectSuggestion(suggestion)}
+                onMouseEnter={() => setHighlightedIndex(index)}
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium">{suggestion.name}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {suggestion.brand && (
+                      <span>{suggestion.brand.name}</span>
+                    )}
+                    {suggestion.category && (
+                      <>
+                        {suggestion.brand && <span>•</span>}
+                        <span>{suggestion.category}</span>
+                      </>
+                    )}
+                    <span className="ml-auto">
+                      {Math.round(suggestion.score * 100)}% match
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Loading indicator */}
+      {isLoading && showSuggestions && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-lg">
+          <p className="text-center text-sm text-muted-foreground">
+            Searching products...
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

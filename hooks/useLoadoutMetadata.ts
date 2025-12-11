@@ -10,7 +10,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useStore } from '@/hooks/useStore';
+import { useStore } from '@/hooks/useSupabaseStore';
 import type { ActivityType, Season } from '@/types/loadout';
 
 // =============================================================================

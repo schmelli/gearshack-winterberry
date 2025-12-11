@@ -122,6 +122,20 @@ Before writing code:
 - N/A (no data changes) (034-nav-i18n-rescue)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, next-intl, shadcn/ui (035-repair-sprint)
 - Firebase Firestore + Firebase Storage (035-repair-sprint)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, @imgly/background-removal (WASM), next-cloudinary or cloudinary-upload-widget, shadcn/ui, Tailwind CSS 4 (038-cloudinary-hybrid-upload)
+- Firebase Firestore (`userBase/{uid}/gearInventory`), Cloudinary (image assets) (038-cloudinary-hybrid-upload)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Tailwind CSS 4, shadcn/ui, lucide-react, next-cloudinary (039-product-search-cloudinary)
+- Cloudinary (via existing unsigned upload preset), Firebase Firestore (existing gear items) (039-product-search-cloudinary)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, @supabase/supabase-js, @supabase/ssr, react-hook-form, zod, shadcn/ui (040-supabase-migration)
+- PostgreSQL (Supabase), Cloudinary (images - unchanged) (040-supabase-migration)
+- TypeScript 5.x (strict mode) + React 19+ + Next.js 16 (App Router) + @supabase/supabase-js, @react-google-maps/api (new), react-hook-form, zod, shadcn/ui (041-loadout-ux-profile)
+- PostgreSQL (Supabase), Cloudinary (images) (041-loadout-ux-profile)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router) + @supabase/supabase-js, @supabase/ssr, zod (validation), react-hook-form (existing) (042-catalog-sync-api)
+- PostgreSQL (Supabase) with pg_trgm and pgvector extensions (042-catalog-sync-api)
+- TypeScript 5.x (strict mode) + @supabase/supabase-js, zod (validation), tsx (script runner) (043-ontology-i18n-import)
+- PostgreSQL (Supabase) - `categories` table (043-ontology-i18n-import)
+- TypeScript 5.x (strict mode) + Next.js 16+, React 19+, @supabase/supabase-js, react-hook-form, zod, shadcn/ui (044-intelligence-integration)
+- PostgreSQL (Supabase) with `categories` and `catalog_brands` tables (044-intelligence-integration)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

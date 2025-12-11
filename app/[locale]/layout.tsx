@@ -1,7 +1,7 @@
 /**
  * Root Layout with i18n Support
  *
- * Feature: 027-i18n-next-intl
+ * Feature: 027-i18n-next-intl, 040-supabase-migration
  * DR-004: Wrap existing providers with NextIntlClientProvider
  * FR-007: Dynamic lang attribute on html tag
  */
@@ -10,9 +10,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import { AuthProvider } from "@/components/auth/AuthProvider";
+import { SupabaseAuthProvider } from "@/components/auth/SupabaseAuthProvider";
 import { Shell } from "@/components/layout/Shell";
-import { SyncProvider } from "@/components/providers/SyncProvider";
 import { Toaster } from "sonner";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
@@ -63,13 +62,12 @@ export default async function RootLayout({ children, params }: Props) {
       >
         {/* Feature 027: NextIntlClientProvider wraps all providers */}
         <NextIntlClientProvider messages={messages} locale={locale}>
-          {/* T019: Existing providers preserved in same order */}
+          {/* Feature 040: Supabase auth provider replaces Firebase */}
           <ThemeProvider>
-            <AuthProvider>
-              <SyncProvider />
+            <SupabaseAuthProvider>
               <Shell>{children}</Shell>
               <Toaster richColors position="bottom-right" />
-            </AuthProvider>
+            </SupabaseAuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

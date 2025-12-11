@@ -13,7 +13,7 @@
 'use client';
 
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { useSyncState } from '@/hooks/useStore';
+import { useSyncState } from '@/hooks/useSupabaseStore';
 import {
   Tooltip,
   TooltipContent,

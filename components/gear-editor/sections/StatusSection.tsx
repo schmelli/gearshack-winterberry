@@ -1,19 +1,21 @@
 /**
  * StatusSection Component
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, 041-loadout-ux-profile
  * Task: T018
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for status and condition:
  * - Condition (new, used, worn)
  * - Status (active, wishlist, sold)
+ * - Favourite toggle (Feature 041)
  * - Notes
  */
 
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { Heart } from 'lucide-react';
 import {
   FormField,
   FormItem,
@@ -30,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import type { GearItemFormData, GearCondition, GearStatus } from '@/types/gear';
 import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 
@@ -41,7 +44,7 @@ export function StatusSection() {
   const form = useFormContext<GearItemFormData>();
 
   const conditions: GearCondition[] = ['new', 'used', 'worn'];
-  const statuses: GearStatus[] = ['active', 'wishlist', 'sold'];
+  const statuses: GearStatus[] = ['own', 'wishlist', 'sold', 'lent', 'retired'];
 
   return (
     <div className="space-y-4">
@@ -100,14 +103,38 @@ export function StatusSection() {
                 </SelectContent>
               </Select>
               <FormDescription>
-                Active = in your gear closet, Wishlist = planning to buy, Sold =
-                no longer owned
+                Own = in your gear closet, Wishlist = planning to buy
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
+
+      {/* Favourite Toggle - Feature 041 */}
+      <FormField
+        control={form.control}
+        name="isFavourite"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="flex items-center gap-2">
+                <Heart className={`h-4 w-4 ${field.value ? 'fill-red-500 text-red-500' : ''}`} />
+                Favourite
+              </FormLabel>
+              <FormDescription>
+                Mark this item as a favourite to show it on your profile
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
 
       {/* Notes */}
       <FormField

@@ -17,7 +17,7 @@
 import { use } from 'react';
 import { notFound } from 'next/navigation';
 import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
-import { useItems } from '@/hooks/useStore';
+import { useItems } from '@/hooks/useSupabaseStore';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // =============================================================================

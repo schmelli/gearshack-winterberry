@@ -9,7 +9,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useStore } from '@/hooks/useStore';
+import { useStore } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
 // Types

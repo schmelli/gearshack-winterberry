@@ -1,17 +1,18 @@
 /**
  * TaxonomySelect Component
  *
- * Feature: 001-gear-item-editor
- * Tasks: T032-T036
+ * Feature: 001-gear-item-editor, 043-ontology-i18n-import
+ * Tasks: T032-T036, T023
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Hierarchical Category → Subcategory → ProductType selection
  * with cascading clear behavior when parent changes.
+ * Now uses database-backed categories with i18n support.
  */
 
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import {
   FormField,
@@ -29,11 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { GearItemFormData } from '@/types/gear';
-import {
-  getCategories,
-  getSubcategoriesForCategory,
-  getProductTypesForSubcategory,
-} from '@/lib/taxonomy/taxonomy-utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Component
@@ -41,6 +38,7 @@ import {
 
 export function TaxonomySelect() {
   const form = useFormContext<GearItemFormData>();
+  const { getOptionsForLevel, isLoading, error } = useCategories();
 
   // Watch category and subcategory for cascading updates
   const categoryId = useWatch({ control: form.control, name: 'categoryId' });
@@ -49,16 +47,14 @@ export function TaxonomySelect() {
     name: 'subcategoryId',
   });
 
-  // Get available options based on current selections
-  const categories = useMemo(() => getCategories(), []);
-  const subcategories = useMemo(
-    () => getSubcategoriesForCategory(categoryId || null),
-    [categoryId]
-  );
-  const productTypes = useMemo(
-    () => getProductTypesForSubcategory(categoryId || null, subcategoryId || null),
-    [categoryId, subcategoryId]
-  );
+  // Get available options based on current selections (localized)
+  const categories = getOptionsForLevel(1);
+  const subcategories = categoryId
+    ? getOptionsForLevel(2, categoryId)
+    : [];
+  const productTypes = subcategoryId
+    ? getOptionsForLevel(3, subcategoryId)
+    : [];
 
   // T036: Cascading clear logic when parent changes
   const handleCategoryChange = useCallback(
@@ -80,6 +76,17 @@ export function TaxonomySelect() {
     [form]
   );
 
+  // Show error state if categories failed to load
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <p className="text-destructive text-sm">
+          Failed to load categories. Please try refreshing the page.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Category - T033 */}
@@ -92,15 +99,18 @@ export function TaxonomySelect() {
             <Select
               onValueChange={handleCategoryChange}
               value={field.value || ''}
+              disabled={isLoading}
             >
               <FormControl>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue
+                    placeholder={isLoading ? 'Loading...' : 'Select a category'}
+                  />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>
                 ))}
@@ -124,14 +134,16 @@ export function TaxonomySelect() {
             <Select
               onValueChange={handleSubcategoryChange}
               value={field.value || ''}
-              disabled={!categoryId || subcategories.length === 0}
+              disabled={!categoryId || subcategories.length === 0 || isLoading}
             >
               <FormControl>
                 <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={
                       categoryId
-                        ? 'Select a subcategory'
+                        ? subcategories.length === 0
+                          ? 'No subcategories available'
+                          : 'Select a subcategory'
                         : 'Select a category first'
                     }
                   />
@@ -139,7 +151,7 @@ export function TaxonomySelect() {
               </FormControl>
               <SelectContent>
                 {subcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.id} value={subcategory.id}>
+                  <SelectItem key={subcategory.value} value={subcategory.value}>
                     {subcategory.label}
                   </SelectItem>
                 ))}
@@ -163,14 +175,16 @@ export function TaxonomySelect() {
             <Select
               onValueChange={field.onChange}
               value={field.value || ''}
-              disabled={!subcategoryId || productTypes.length === 0}
+              disabled={!subcategoryId || productTypes.length === 0 || isLoading}
             >
               <FormControl>
                 <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={
                       subcategoryId
-                        ? 'Select a product type'
+                        ? productTypes.length === 0
+                          ? 'No product types available'
+                          : 'Select a product type'
                         : 'Select a subcategory first'
                     }
                   />
@@ -178,7 +192,7 @@ export function TaxonomySelect() {
               </FormControl>
               <SelectContent>
                 {productTypes.map((productType) => (
-                  <SelectItem key={productType.id} value={productType.id}>
+                  <SelectItem key={productType.value} value={productType.value}>
                     {productType.label}
                   </SelectItem>
                 ))}

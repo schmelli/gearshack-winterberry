@@ -1,14 +1,12 @@
 /**
  * Auth Types
  *
- * Feature: 008-auth-and-profile
+ * Feature: 008-auth-and-profile, 040-supabase-migration
  * Type definitions for authentication and user profiles
  */
 
-import type { Timestamp } from 'firebase/firestore';
-
 /**
- * Firebase Auth User (subset of Firebase User type)
+ * Auth User (compatible with both Firebase and Supabase)
  */
 export interface AuthUser {
   uid: string;
@@ -19,15 +17,19 @@ export interface AuthUser {
 }
 
 /**
- * User Profile stored in Firestore at userBase/{uid}
+ * User Profile stored in database
  */
 export interface UserProfile {
   // Core fields
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   displayName: string;
   trailName?: string;
   bio?: string;
   location?: string;
+  // Feature 041: Location with coordinates
+  locationName?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 
   // Social links
   instagram?: string;
@@ -37,21 +39,31 @@ export interface UserProfile {
 
   // System fields (read-only, preserved during updates)
   isVIP?: boolean;
-  first_launch?: Timestamp;
+  first_launch?: Date;
 }
 
 /**
  * Merged User - combined Auth + Profile for UI consumption
- * Priority: Firestore fields > Auth fields
+ * Priority: Profile fields > Auth fields
  */
 export interface MergedUser {
   uid: string;
   email: string | null;
   displayName: string;
+  /** Custom avatar URL (takes precedence over provider avatar) - Feature 041 */
   avatarUrl: string | null;
+  /** Provider avatar URL (Google, etc.) for fallback - Feature 041 */
+  providerAvatarUrl: string | null;
   trailName: string | null;
   bio: string | null;
+  /** Legacy location field (text only) */
   location: string | null;
+  /** Human-readable location (e.g., "Berlin, Germany") - Feature 041 */
+  locationName: string | null;
+  /** Geographic latitude (-90 to 90) - Feature 041 */
+  latitude: number | null;
+  /** Geographic longitude (-180 to 180) - Feature 041 */
+  longitude: number | null;
   instagram: string | null;
   facebook: string | null;
   youtube: string | null;

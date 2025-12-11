@@ -16,7 +16,7 @@ import { use, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
-import { useLoadout, useStore, useItems } from '@/hooks/useStore';
+import { useLoadout, useStore, useItems } from '@/hooks/useSupabaseStore';
 import { useLoadoutEditor } from '@/hooks/useLoadoutEditor';
 import { useLoadoutMetadata } from '@/hooks/useLoadoutMetadata';
 import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';

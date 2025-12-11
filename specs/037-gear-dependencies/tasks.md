@@ -131,7 +131,7 @@
 - [x] T042 Prevent duplicate items when same accessory linked to multiple parents in useDependencyPrompt.ts
 - [x] T043 Run npm run lint and fix any TypeScript/ESLint errors
 - [x] T044 Run npm run build and verify no build errors
-- [ ] T045 Manual testing: Execute all acceptance scenarios from spec.md
+- [x] T045 Manual testing: Execute all acceptance scenarios from spec.md
 
 ---
 

@@ -111,6 +111,7 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     condition: item.condition,
     status: item.status,
     notes: item.notes ?? '',
+    isFavourite: item.isFavourite ?? false,
     dependencyIds: item.dependencyIds ?? [],
   };
 }
@@ -155,6 +156,7 @@ export function formDataToGearItem(
     condition: formData.condition,
     status: formData.status,
     notes: formData.notes || null,
+    isFavourite: formData.isFavourite ?? false,
     dependencyIds: formData.dependencyIds ?? [],
   };
 }

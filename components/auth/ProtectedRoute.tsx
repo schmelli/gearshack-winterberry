@@ -11,7 +11,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { Loader2 } from 'lucide-react';
 
 // =============================================================================

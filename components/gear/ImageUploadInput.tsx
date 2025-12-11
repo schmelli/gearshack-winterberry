@@ -1,6 +1,10 @@
 /**
  * ImageUploadInput Component
  *
+ * @deprecated This component is deprecated as of Feature 038 (Cloudinary Migration).
+ * Use `ImageUploadZone` from `@/components/gear-editor/ImageUploadZone` instead.
+ * This file is kept for backward compatibility and may be removed in a future version.
+ *
  * Feature: 010-firestore-sync
  * Tasks: T020
  * Constitution: UI components MUST be stateless (logic in hooks)
@@ -10,6 +14,14 @@
  */
 
 'use client';
+
+// =============================================================================
+// DEPRECATION NOTICE
+// =============================================================================
+// This component has been replaced by ImageUploadZone which uses Cloudinary.
+// Please migrate to: @/components/gear-editor/ImageUploadZone
+// This legacy component uses Firebase Storage and will be removed in a future version.
+// =============================================================================
 
 import { useCallback, useState, useRef } from 'react';
 import { Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
@@ -56,6 +68,9 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gi
 /**
  * Reusable image upload input component
  *
+ * @deprecated Use ImageUploadZone from @/components/gear-editor/ImageUploadZone instead.
+ * This component uses Firebase Storage and is being replaced by a Cloudinary-based solution.
+ *
  * Features:
  * - Toggle between URL paste and file upload
  * - Drag-and-drop support
@@ -66,6 +81,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gi
  *
  * @example
  * ```tsx
+ * // DEPRECATED - Use ImageUploadZone instead
  * function MyForm() {
  *   const [imageUrl, setImageUrl] = useState('');
  *

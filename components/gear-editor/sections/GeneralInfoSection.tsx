@@ -1,20 +1,25 @@
 /**
  * GeneralInfoSection Component
  *
- * Feature: 001-gear-item-editor
- * Task: T015
+ * Feature: 001-gear-item-editor, 044-intelligence-integration
+ * Task: T015, T027
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for general gear information:
- * - Name (required)
- * - Brand
+ * - Name (required, with product autocomplete)
+ * - Brand (with autocomplete)
  * - Brand URL
  * - Model Number
  * - Product URL
+ *
+ * Brand-Product linking:
+ * - When brand selected: product autocomplete filters by that brand
+ * - When product selected: auto-fills brand if not already set
  */
 
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   FormField,
@@ -25,6 +30,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  BrandAutocompleteInput,
+  type BrandSelection,
+} from '@/components/gear-editor/BrandAutocompleteInput';
+import { ProductAutocompleteInput } from '@/components/gear-editor/ProductAutocompleteInput';
+import type { ProductSuggestion } from '@/hooks/useProductAutocomplete';
 import type { GearItemFormData } from '@/types/gear';
 
 // =============================================================================
@@ -34,41 +45,38 @@ import type { GearItemFormData } from '@/types/gear';
 export function GeneralInfoSection() {
   const form = useFormContext<GearItemFormData>();
 
+  // Track selected brand for product filtering
+  const [selectedBrandId, setSelectedBrandId] = useState<string | undefined>();
+
+  // Handle brand selection
+  const handleBrandSelect = useCallback((brand: BrandSelection | null) => {
+    setSelectedBrandId(brand?.id);
+  }, []);
+
+  // Handle product selection - auto-fill brand if not already set
+  const handleProductSelect = useCallback(
+    (product: ProductSuggestion) => {
+      // If product has a brand and no brand is currently selected, auto-fill it
+      if (product.brand && !form.getValues('brand')) {
+        form.setValue('brand', product.brand.name);
+        setSelectedBrandId(product.brand.id);
+      }
+    },
+    [form]
+  );
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">General Information</h3>
 
-      {/* Name - Required */}
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Name <span className="text-destructive">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="e.g., Nemo Hornet Elite 2P" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      {/* Name - Required, with product autocomplete */}
+      <ProductAutocompleteInput
+        brandId={selectedBrandId}
+        onProductSelect={handleProductSelect}
       />
 
-      {/* Brand */}
-      <FormField
-        control={form.control}
-        name="brand"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Brand</FormLabel>
-            <FormControl>
-              <Input placeholder="e.g., Nemo Equipment" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Brand - with autocomplete */}
+      <BrandAutocompleteInput onBrandSelect={handleBrandSelect} />
 
       {/* Product Description */}
       <FormField

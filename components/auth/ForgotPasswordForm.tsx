@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { passwordResetSchema, type PasswordResetFormData } from '@/lib/validations/profile-schema';
 
 // =============================================================================

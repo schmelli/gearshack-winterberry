@@ -13,7 +13,7 @@ import { Link } from '@/i18n/navigation';
 import { Calendar, Package, Scale } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeleteLoadoutDialog } from '@/components/loadouts/DeleteLoadoutDialog';
-import { useStore } from '@/hooks/useStore';
+import { useStore } from '@/hooks/useSupabaseStore';
 import type { Loadout } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import {

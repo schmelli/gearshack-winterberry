@@ -1,12 +1,13 @@
 /**
  * ProfileEditForm Component
  *
- * Feature: 008-auth-and-profile
+ * Feature: 008-auth-and-profile, 041-loadout-ux-profile
  * T033: Profile edit form with react-hook-form and Zod validation
  * T035: Field validation (displayName 2-50, trailName 2-30, bio max 500, URL validation)
  * T036: Save action preserving isVIP and first_launch
  * T037: Cancel action discarding unsaved changes
  * T038: Toast notifications for save success/error
+ * Feature 041: Avatar upload component added at top of form
  */
 
 'use client';
@@ -19,6 +20,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import {
   Form,
   FormControl,
@@ -29,7 +31,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { profileSchema, type ProfileFormData } from '@/lib/validations/profile-schema';
+import { AvatarUploadInput } from '@/components/profile/AvatarUploadInput';
+import { LocationAutocomplete } from '@/components/profile/LocationAutocomplete';
 import type { MergedUser } from '@/types/auth';
+import type { LocationSelection } from '@/types/profile';
 
 // =============================================================================
 // Component
@@ -46,6 +51,10 @@ interface ProfileEditFormProps {
 
 export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  // Feature 041: Track avatar changes separately (outside form state)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl);
+  // Feature 041: Track location with coordinates
+  const [locationName, setLocationName] = useState<string>(user.locationName || '');
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -54,12 +63,38 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       trailName: user.trailName || '',
       bio: user.bio || '',
       location: user.location || '',
+      avatarUrl: user.avatarUrl || '',
+      // Feature 041: Location fields
+      locationName: user.locationName || '',
+      latitude: user.latitude ?? undefined,
+      longitude: user.longitude ?? undefined,
       instagram: user.instagram || '',
       facebook: user.facebook || '',
       youtube: user.youtube || '',
       website: user.website || '',
     },
   });
+
+  // Feature 041: Handle avatar changes
+  const handleAvatarChange = (url: string | null) => {
+    setAvatarUrl(url);
+    form.setValue('avatarUrl', url ?? '');
+  };
+
+  // Feature 041: Handle location selection
+  const handleLocationSelect = (location: LocationSelection | null) => {
+    if (location) {
+      setLocationName(location.formattedAddress);
+      form.setValue('locationName', location.formattedAddress);
+      form.setValue('latitude', location.latitude);
+      form.setValue('longitude', location.longitude);
+    } else {
+      setLocationName('');
+      form.setValue('locationName', '');
+      form.setValue('latitude', undefined);
+      form.setValue('longitude', undefined);
+    }
+  };
 
   async function onSubmit(data: ProfileFormData) {
     setIsLoading(true);
@@ -90,6 +125,20 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Feature 041: Avatar Upload Section */}
+        <div className="py-2">
+          <AvatarUploadInput
+            value={avatarUrl}
+            providerAvatarUrl={user.providerAvatarUrl}
+            displayName={user.displayName}
+            userId={user.uid}
+            onChange={handleAvatarChange}
+            disabled={isLoading}
+          />
+        </div>
+
+        <Separator />
+
         {/* Display Name */}
         <FormField
           control={form.control}
@@ -153,24 +202,21 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
           )}
         />
 
-        {/* Location */}
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="City, Country"
-                  disabled={isLoading}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Feature 041: Location with autocomplete */}
+        <FormItem>
+          <FormLabel>Location</FormLabel>
+          <FormControl>
+            <LocationAutocomplete
+              value={locationName}
+              onSelect={handleLocationSelect}
+              placeholder="Search for a city..."
+              disabled={isLoading}
+            />
+          </FormControl>
+          <FormDescription>
+            Search and select your home location
+          </FormDescription>
+        </FormItem>
 
         {/* Social Links Section */}
         <div className="space-y-3 rounded-lg border p-4">

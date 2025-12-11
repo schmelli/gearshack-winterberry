@@ -8,6 +8,9 @@
  *
  * Feature: 027-i18n-next-intl
  * T027: Use locale-aware Link and useRouter from i18n/navigation
+ *
+ * Feature: 041-loadout-ux-profile
+ * Avatar fallback chain: custom > provider > initials
  */
 
 'use client';
@@ -25,9 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
 import { ProfileModal } from '@/components/profile/ProfileModal';
+import { getDisplayAvatarUrl } from '@/lib/utils/avatar';
 
 // =============================================================================
 // Component
@@ -60,7 +64,11 @@ export function UserMenu() {
 
   // Authenticated - show user menu
   const displayName = mergedUser?.displayName || user.displayName || 'User';
-  const avatarUrl = mergedUser?.avatarUrl || user.photoURL;
+  // Feature 041: Use avatar fallback chain (custom > provider > initials)
+  const avatarUrl = getDisplayAvatarUrl(
+    mergedUser?.avatarUrl,
+    mergedUser?.providerAvatarUrl ?? user.photoURL
+  );
 
   return (
     <>
