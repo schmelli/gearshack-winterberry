@@ -413,7 +413,12 @@ export function ImageUploadZone({
             disabled={isLoading || !urlInput.trim().startsWith('http')}
             className="w-full"
           >
-            {isUploading ? (
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Removing background...
+              </>
+            ) : isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Uploading...

@@ -34,10 +34,10 @@ export interface UseCloudinaryUploadReturn {
     file: File,
     options: { userId: string; itemId: string; removeBackground?: boolean }
   ) => Promise<string | null>;
-  /** Upload an external URL to Cloudinary (bypasses CORS via server-side fetch) */
+  /** Upload an external URL to Cloudinary with optional background removal */
   uploadUrl: (
     url: string,
-    options: { userId: string; itemId: string }
+    options: { userId: string; itemId: string; removeBackground?: boolean }
   ) => Promise<string | null>;
   /** Handle successful upload from Cloudinary Widget */
   handleWidgetResult: (secureUrl: string) => void;
@@ -195,19 +195,21 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
   );
 
   /**
-   * Upload an external URL to Cloudinary (server-side fetch, bypasses CORS)
+   * Upload an external URL to Cloudinary with WASM background removal
    *
    * Pipeline:
    * 1. Validate URL format (http:// or https://)
-   * 2. Upload to Cloudinary via REST API (Cloudinary fetches the URL server-side)
-   * 3. Return secure_url or null on error
+   * 2. Fetch image via proxy (to bypass CORS)
+   * 3. Remove background using WASM
+   * 4. Upload processed image to Cloudinary
+   * 5. Return secure_url or null on error
    */
   const uploadUrl = useCallback(
     async (
       url: string,
-      options: { userId: string; itemId: string }
+      options: { userId: string; itemId: string; removeBackground?: boolean }
     ): Promise<string | null> => {
-      const { userId, itemId } = options;
+      const { userId, itemId, removeBackground: shouldRemoveBackground = true } = options;
 
       try {
         // Reset state
@@ -226,25 +228,71 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
           return null;
         }
 
-        // Step 2: Upload URL to Cloudinary
+        // Step 2: Fetch image via proxy to bypass CORS
+        setStatus('processing');
+        setProgress(10);
+
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+        const fetchResponse = await fetch(proxyUrl);
+
+        if (!fetchResponse.ok) {
+          const errorMessage = `Failed to fetch image: ${fetchResponse.status}`;
+          setError(errorMessage);
+          setStatus('error');
+          toast.error('Image fetch failed', {
+            description: errorMessage,
+          });
+          return null;
+        }
+
+        const imageBlob = await fetchResponse.blob();
+        setProgress(25);
+
+        // Convert blob to File for processing
+        const fileName = url.split('/').pop()?.split('?')[0] || 'image.jpg';
+        let fileToUpload = new File([imageBlob], fileName, { type: imageBlob.type });
+
+        // Step 3: Remove background if requested
+        if (shouldRemoveBackground) {
+          setProgress(30);
+
+          try {
+            const processedBlob = await removeBackground(fileToUpload);
+            fileToUpload = blobToFile(processedBlob, `${fileName.split('.')[0]}_nobg.png`);
+            setProgress(60);
+          } catch (processingError) {
+            const errorMessage =
+              processingError instanceof Error
+                ? processingError.message
+                : 'Failed to process image';
+            setError(errorMessage);
+            setStatus('error');
+            toast.error('Background removal failed', {
+              description: errorMessage,
+            });
+            return null;
+          }
+        }
+
+        // Step 4: Upload to Cloudinary
         setStatus('uploading');
-        setProgress(30);
+        setProgress(70);
 
         const config = getCloudinaryConfig();
-        const uploadUrl = getCloudinaryUploadUrl(config.cloudName);
+        const cloudinaryUploadUrl = getCloudinaryUploadUrl(config.cloudName);
 
         // Construct folder path: gearshack/users/{userId}/{itemId}
         const folder = `gearshack/users/${userId}/${itemId}`;
 
-        // Build FormData with URL as the file parameter
+        // Build FormData
         const formData = new FormData();
-        formData.append('file', url); // Cloudinary accepts URLs directly
+        formData.append('file', fileToUpload);
         formData.append('upload_preset', config.uploadPreset);
         formData.append('folder', folder);
 
-        setProgress(60); // Upload starting
+        setProgress(80);
 
-        const response = await fetch(uploadUrl, {
+        const response = await fetch(cloudinaryUploadUrl, {
           method: 'POST',
           body: formData,
         });
@@ -269,11 +317,13 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
 
         const result: CloudinaryUploadResult = await response.json();
 
-        // Step 3: Success
+        // Step 5: Success
         setProgress(100);
         setStatus('success');
         toast.success('Image uploaded successfully', {
-          description: 'URL uploaded to Cloudinary',
+          description: shouldRemoveBackground
+            ? 'Background removed and uploaded to Cloudinary'
+            : 'URL uploaded to Cloudinary',
         });
 
         return result.secure_url;

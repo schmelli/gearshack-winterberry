@@ -106,8 +106,9 @@ export function ProductSearchModal({
   };
 
   const isSearching = searchStatus === 'searching';
+  const isProcessing = uploadStatus === 'processing';
   const isUploading = uploadStatus === 'uploading';
-  const isLoading = isSearching || isUploading;
+  const isLoading = isSearching || isProcessing || isUploading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -170,7 +171,7 @@ export function ProductSearchModal({
             <ProductSearchGrid
               results={results}
               onSelect={handleImageSelect}
-              isUploading={isUploading}
+              isUploading={isProcessing || isUploading}
               selectedUrl={uploadingUrl}
             />
           )}
@@ -182,7 +183,13 @@ export function ProductSearchModal({
             </p>
           )}
 
-          {/* Upload Progress */}
+          {/* Processing / Upload Progress */}
+          {isProcessing && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Removing background...
+            </div>
+          )}
           {isUploading && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
