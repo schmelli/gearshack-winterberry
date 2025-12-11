@@ -1,12 +1,17 @@
 /**
  * GearEditorForm Component
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, 045-gear-editor-tabs-marketplace
  * Tasks: T019, T021, T028-T031
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Main container component for the gear item editor form.
- * Organizes sections into tabs for better navigation.
+ * Organizes sections into 5 tabs for better navigation:
+ * - General (+ Dependencies)
+ * - Category (Classification + Weight/Specs)
+ * - Purchase
+ * - Media
+ * - Status (+ Marketplace toggles)
  */
 
 'use client';
@@ -38,12 +43,10 @@ import {
   type UseGearEditorOptions,
 } from '@/hooks/useGearEditor';
 import { GeneralInfoSection } from '@/components/gear-editor/sections/GeneralInfoSection';
-import { ClassificationSection } from '@/components/gear-editor/sections/ClassificationSection';
-import { WeightSpecsSection } from '@/components/gear-editor/sections/WeightSpecsSection';
+import { CategorySpecsSection } from '@/components/gear-editor/sections/CategorySpecsSection';
 import { PurchaseSection } from '@/components/gear-editor/sections/PurchaseSection';
 import { MediaSection } from '@/components/gear-editor/sections/MediaSection';
 import { StatusSection } from '@/components/gear-editor/sections/StatusSection';
-import { DependenciesSection } from '@/components/gear-editor/sections/DependenciesSection';
 import { useItems } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -56,17 +59,15 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
 }
 
 // =============================================================================
-// Tab Configuration
+// Tab Configuration - Reduced from 7 to 5 tabs for better readability
 // =============================================================================
 
 const TABS = [
-  { id: 'general', label: 'General', shortLabel: 'Gen' },
-  { id: 'classification', label: 'Classification', shortLabel: 'Class' },
-  { id: 'weight', label: 'Weight & Specs', shortLabel: 'Weight' },
-  { id: 'purchase', label: 'Purchase', shortLabel: 'Buy' },
-  { id: 'media', label: 'Media', shortLabel: 'Media' },
-  { id: 'status', label: 'Status', shortLabel: 'Status' },
-  { id: 'dependencies', label: 'Dependencies', shortLabel: 'Deps' },
+  { id: 'general', label: 'General' },
+  { id: 'category', label: 'Category' },
+  { id: 'purchase', label: 'Purchase' },
+  { id: 'media', label: 'Media' },
+  { id: 'status', label: 'Status' },
 ] as const;
 
 // =============================================================================
@@ -104,32 +105,29 @@ export function GearEditorForm({
         <form onSubmit={handleSubmit}>
           <CardContent>
             <Tabs defaultValue="general" className="w-full">
-              {/* Tab Navigation - T029, T031 (responsive), T023-T024 (pill styling) */}
-              <TabsList className="w-full flex flex-wrap h-auto gap-1 mb-6 bg-muted rounded-full p-1">
+              {/* Tab Navigation - Simplified 5 tabs with full labels */}
+              <TabsList className="w-full flex h-auto gap-1 mb-6 bg-muted rounded-full p-1">
                 {TABS.map((tab) => (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="flex-1 min-w-[80px] rounded-full data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    className="flex-1 rounded-full data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-sm"
                   >
-                    {/* Show short label on mobile, full label on larger screens */}
-                    <span className="sm:hidden">{tab.shortLabel}</span>
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    {tab.label}
                   </TabsTrigger>
                 ))}
               </TabsList>
 
-              {/* Tab Content - T030 */}
+              {/* Tab Content */}
               <TabsContent value="general" className="mt-0">
-                <GeneralInfoSection />
+                <GeneralInfoSection
+                  availableItems={allItems}
+                  currentItemId={initialItem?.id}
+                />
               </TabsContent>
 
-              <TabsContent value="classification" className="mt-0">
-                <ClassificationSection />
-              </TabsContent>
-
-              <TabsContent value="weight" className="mt-0">
-                <WeightSpecsSection />
+              <TabsContent value="category" className="mt-0">
+                <CategorySpecsSection />
               </TabsContent>
 
               <TabsContent value="purchase" className="mt-0">
@@ -142,13 +140,6 @@ export function GearEditorForm({
 
               <TabsContent value="status" className="mt-0">
                 <StatusSection />
-              </TabsContent>
-
-              <TabsContent value="dependencies" className="mt-0">
-                <DependenciesSection
-                  availableItems={allItems}
-                  currentItemId={initialItem?.id}
-                />
               </TabsContent>
             </Tabs>
           </CardContent>

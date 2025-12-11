@@ -71,6 +71,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Ultralight 2-person tent with excellent ventilation.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -102,6 +105,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Spoon-shaped sleeping bag, 15°F rating.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -133,6 +139,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'R-value 4.5, ultralight inflatable pad.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -164,6 +173,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: null,
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -195,6 +207,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: '800-fill down, incredibly packable.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -226,6 +241,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: null,
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -257,6 +275,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Pressure regulator for consistent flame.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -288,6 +309,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: null,
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -319,6 +343,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Fast flow rate, easy to squeeze.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -350,6 +377,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: '200 lumens, red light mode.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -381,6 +411,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Pair weight, foldable.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -412,6 +445,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: 'Great cushioning and grip.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -443,6 +479,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'wishlist',
     notes: 'DCF version, double-wall design.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -474,6 +513,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'own',
     notes: null,
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
   {
@@ -505,6 +547,9 @@ const MOCK_GEAR_ITEMS: GearItem[] = [
     status: 'sold',
     notes: 'Sold to upgrade to separate stove/pot system.',
     isFavourite: false,
+    isForSale: false,
+    canBeBorrowed: false,
+    canBeTraded: false,
     dependencyIds: [],
   },
 ];

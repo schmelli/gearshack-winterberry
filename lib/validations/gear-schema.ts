@@ -112,6 +112,12 @@ export const gearItemFormSchema = z.object({
   notes: z.string().max(5000, 'Notes must be 5000 characters or less'),
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: z.boolean(),
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: z.boolean(),
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: z.boolean(),
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: z.boolean(),
 
   // Section 7: Dependencies (Feature: 037-gear-dependencies)
   dependencyIds: z.array(z.string()),

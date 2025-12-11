@@ -112,6 +112,9 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     status: item.status,
     notes: item.notes ?? '',
     isFavourite: item.isFavourite ?? false,
+    isForSale: item.isForSale ?? false,
+    canBeBorrowed: item.canBeBorrowed ?? false,
+    canBeTraded: item.canBeTraded ?? false,
     dependencyIds: item.dependencyIds ?? [],
   };
 }
@@ -157,6 +160,9 @@ export function formDataToGearItem(
     status: formData.status,
     notes: formData.notes || null,
     isFavourite: formData.isFavourite ?? false,
+    isForSale: formData.isForSale ?? false,
+    canBeBorrowed: formData.canBeBorrowed ?? false,
+    canBeTraded: formData.canBeTraded ?? false,
     dependencyIds: formData.dependencyIds ?? [],
   };
 }

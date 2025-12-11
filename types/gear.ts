@@ -108,6 +108,12 @@ export interface GearItem {
   notes: string | null;
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: boolean;
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: boolean;
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: boolean;
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: boolean;
 
   // Section 7: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
@@ -157,6 +163,12 @@ export interface GearItemFormData {
   notes: string;
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: boolean;
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: boolean;
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: boolean;
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: boolean;
 
   // Section 7: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item */
@@ -193,5 +205,8 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   status: 'own',
   notes: '',
   isFavourite: false,
+  isForSale: false,
+  canBeBorrowed: false,
+  canBeTraded: false,
   dependencyIds: [],
 };

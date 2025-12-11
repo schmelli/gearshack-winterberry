@@ -178,6 +178,12 @@ export interface Database {
           dependency_ids: string[];
           /** Whether this item is marked as favourite - Feature 041 */
           is_favourite: boolean;
+          /** Whether this item is available for sale - Feature 045 */
+          is_for_sale: boolean;
+          /** Whether this item can be borrowed by others - Feature 045 */
+          can_be_borrowed: boolean;
+          /** Whether this item can be traded - Feature 045 */
+          can_be_traded: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -212,6 +218,12 @@ export interface Database {
           dependency_ids?: string[];
           /** Whether this item is marked as favourite - Feature 041 */
           is_favourite?: boolean;
+          /** Whether this item is available for sale - Feature 045 */
+          is_for_sale?: boolean;
+          /** Whether this item can be borrowed by others - Feature 045 */
+          can_be_borrowed?: boolean;
+          /** Whether this item can be traded - Feature 045 */
+          can_be_traded?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -246,6 +258,12 @@ export interface Database {
           dependency_ids?: string[];
           /** Whether this item is marked as favourite - Feature 041 */
           is_favourite?: boolean;
+          /** Whether this item is available for sale - Feature 045 */
+          is_for_sale?: boolean;
+          /** Whether this item can be borrowed by others - Feature 045 */
+          can_be_borrowed?: boolean;
+          /** Whether this item can be traded - Feature 045 */
+          can_be_traded?: boolean;
           created_at?: string;
           updated_at?: string;
         };

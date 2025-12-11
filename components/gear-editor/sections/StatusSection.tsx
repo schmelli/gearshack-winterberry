@@ -1,7 +1,7 @@
 /**
  * StatusSection Component
  *
- * Feature: 001-gear-item-editor, 041-loadout-ux-profile
+ * Feature: 001-gear-item-editor, 041-loadout-ux-profile, 045-gear-editor-tabs-marketplace
  * Task: T018
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
@@ -9,13 +9,16 @@
  * - Condition (new, used, worn)
  * - Status (active, wishlist, sold)
  * - Favourite toggle (Feature 041)
+ * - For Sale toggle (Feature 045)
+ * - Can be Borrowed toggle (Feature 045)
+ * - Can be Traded toggle (Feature 045)
  * - Notes
  */
 
 'use client';
 
 import { useFormContext } from 'react-hook-form';
-import { Heart } from 'lucide-react';
+import { Heart, DollarSign, HandHelping, ArrowLeftRight } from 'lucide-react';
 import {
   FormField,
   FormItem,
@@ -111,30 +114,108 @@ export function StatusSection() {
         />
       </div>
 
-      {/* Favourite Toggle - Feature 041 */}
-      <FormField
-        control={form.control}
-        name="isFavourite"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <FormLabel className="flex items-center gap-2">
-                <Heart className={`h-4 w-4 ${field.value ? 'fill-red-500 text-red-500' : ''}`} />
-                Favourite
-              </FormLabel>
-              <FormDescription>
-                Mark this item as a favourite to show it on your profile
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
+      {/* Toggles Section */}
+      <div className="space-y-3">
+        {/* Favourite Toggle - Feature 041 */}
+        <FormField
+          control={form.control}
+          name="isFavourite"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="flex items-center gap-2">
+                  <Heart className={`h-4 w-4 ${field.value ? 'fill-red-500 text-red-500' : ''}`} />
+                  Favourite
+                </FormLabel>
+                <FormDescription>
+                  Mark this item as a favourite to show it on your profile
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* For Sale Toggle - Feature 045 */}
+        <FormField
+          control={form.control}
+          name="isForSale"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="flex items-center gap-2">
+                  <DollarSign className={`h-4 w-4 ${field.value ? 'text-green-600' : ''}`} />
+                  For Sale
+                </FormLabel>
+                <FormDescription>
+                  Mark this item as available for sale
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Can be Borrowed Toggle - Feature 045 */}
+        <FormField
+          control={form.control}
+          name="canBeBorrowed"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="flex items-center gap-2">
+                  <HandHelping className={`h-4 w-4 ${field.value ? 'text-blue-600' : ''}`} />
+                  Can be Borrowed
+                </FormLabel>
+                <FormDescription>
+                  Allow others to borrow this item
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Can be Traded Toggle - Feature 045 */}
+        <FormField
+          control={form.control}
+          name="canBeTraded"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="flex items-center gap-2">
+                  <ArrowLeftRight className={`h-4 w-4 ${field.value ? 'text-orange-600' : ''}`} />
+                  Can be Traded
+                </FormLabel>
+                <FormDescription>
+                  Open to trading this item
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </div>
 
       {/* Notes */}
       <FormField

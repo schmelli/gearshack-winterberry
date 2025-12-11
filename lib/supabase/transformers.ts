@@ -84,6 +84,9 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     status: mapStatusFromDb(row.status),
     notes: row.notes,
     isFavourite: row.is_favourite ?? false,
+    isForSale: row.is_for_sale ?? false,
+    canBeBorrowed: row.can_be_borrowed ?? false,
+    canBeTraded: row.can_be_traded ?? false,
 
     // Section 7: Dependencies
     dependencyIds: row.dependency_ids || [],
@@ -127,6 +130,9 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     status: mapStatusToDb(item.status),
     notes: item.notes,
     is_favourite: item.isFavourite ?? false,
+    is_for_sale: item.isForSale ?? false,
+    can_be_borrowed: item.canBeBorrowed ?? false,
+    can_be_traded: item.canBeTraded ?? false,
 
     dependency_ids: item.dependencyIds,
   };
@@ -171,6 +177,9 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.status !== undefined) update.status = mapStatusToDb(item.status);
   if (item.notes !== undefined) update.notes = item.notes;
   if (item.isFavourite !== undefined) update.is_favourite = item.isFavourite;
+  if (item.isForSale !== undefined) update.is_for_sale = item.isForSale;
+  if (item.canBeBorrowed !== undefined) update.can_be_borrowed = item.canBeBorrowed;
+  if (item.canBeTraded !== undefined) update.can_be_traded = item.canBeTraded;
 
   if (item.dependencyIds !== undefined) update.dependency_ids = item.dependencyIds;
 
