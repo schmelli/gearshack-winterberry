@@ -28,6 +28,7 @@ import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
 import { LoadoutMetadataDialog } from '@/components/loadouts/LoadoutMetadataDialog';
 import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDialog';
 import { WeightBar } from '@/components/loadouts/WeightBar';
+import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -168,16 +169,27 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
           {/* Right: Loadout List with sticky positioning - FR-003, FR-009 (header buffer) */}
           <div className="space-y-4 md:sticky md:top-28 md:self-start">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Loadout Items</h2>
-              {selectedCategoryId && (
-                <button
-                  onClick={clearFilter}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Clear filter
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedCategoryId && (
+                  <button
+                    onClick={clearFilter}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Clear filter
+                  </button>
+                )}
+                <LoadoutExportMenu
+                  loadout={loadout}
+                  items={loadoutItems}
+                  itemStates={itemStates}
+                  activityTypes={activityTypes}
+                  seasons={seasons}
+                  totalWeight={totalWeight}
+                  baseWeight={baseWeight}
+                />
+              </div>
             </div>
             <LoadoutList
               items={loadoutItems}
