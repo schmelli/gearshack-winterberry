@@ -101,6 +101,10 @@ export function VirtualGearShakedown({ shareToken, payload, allowComments, creat
       toast.error('Add a comment before sending');
       return;
     }
+    if (trimmed.length < 3) {
+      toast.error('Please share at least a few characters of feedback');
+      return;
+    }
 
     setIsSubmitting(true);
     try {

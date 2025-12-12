@@ -96,11 +96,19 @@ export function LoadoutShareButton({
 
       const url = `${window.location.origin}/${locale}/shakedown/${shareToken}`;
       setShareUrl(url);
-      await navigator.clipboard?.writeText(url);
-      setCopied(true);
-      toast.success('Share link ready', {
-        description: 'Copied to your clipboard',
-      });
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          toast.success('Share link ready', {
+            description: 'Copied to your clipboard',
+          });
+        } catch {
+          toast.success('Share link ready', { description: url });
+        }
+      } else {
+        toast.success('Share link ready', { description: url });
+      }
     } catch (err) {
       console.error('[LoadoutShareButton] Failed to generate share link', err);
       toast.error('Failed to generate share link');
@@ -111,9 +119,17 @@ export function LoadoutShareButton({
 
   const handleCopy = async () => {
     if (!shareUrl) return;
-    await navigator.clipboard?.writeText(shareUrl);
-    setCopied(true);
-    toast.success('Link copied');
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        toast.success('Link copied');
+      } catch {
+        toast.error('Clipboard is unavailable');
+      }
+    } else {
+      toast.error('Clipboard is unavailable');
+    }
   };
 
   return (
