@@ -30,6 +30,7 @@ import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDi
 import { WeightBar } from '@/components/loadouts/WeightBar';
 
 import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
+import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
 
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
@@ -194,6 +195,13 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Loadout Items</h2>
               <div className="flex items-center gap-2">
+                <LoadoutShareButton
+                  loadout={loadout}
+                  items={loadoutItems}
+                  itemStates={itemStates}
+                  activityTypes={activityTypes}
+                  seasons={seasons}
+                />
                 {selectedCategoryId && (
                   <button
                     onClick={clearFilter}
