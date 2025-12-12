@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
+import { MessagingCenter } from '@/components/messaging/MessagingCenter';
 
 interface SiteHeaderProps {
   className?: string;
@@ -64,6 +65,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
         {/* Right side: notifications and user menu */}
         <div className="ml-auto flex items-center gap-2">
+          <MessagingCenter />
+
           {/* Notification bell */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
