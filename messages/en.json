@@ -167,10 +167,7 @@
     "sortOptions": {
       "name": "Name (A-Z)",
       "category": "Category",
-      "dateAdded": "Date Added",
-      "weight": "Weight",
-      "price": "Price",
-      "recent": "Recently Added"
+      "dateAdded": "Date Added"
     },
     "emptyTitle": "No Gear Yet",
     "emptyDescription": "Start building your inventory by adding your first piece of gear.",

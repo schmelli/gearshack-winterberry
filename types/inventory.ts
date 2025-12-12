@@ -24,15 +24,6 @@ import type { GearItem } from './gear';
 export type SortOption = 'name' | 'category' | 'dateAdded';
 
 /**
- * UI Labels for sort options
- */
-export const SORT_OPTION_LABELS: Record<SortOption, string> = {
-  name: 'Name',
-  category: 'Category',
-  dateAdded: 'Date Added',
-};
-
-/**
  * All sort options for iteration
  */
 export const SORT_OPTIONS: SortOption[] = ['name', 'category', 'dateAdded'];

@@ -167,10 +167,7 @@
     "sortOptions": {
       "name": "Name (A-Z)",
       "category": "Kategorie",
-      "dateAdded": "Hinzugefügt am",
-      "weight": "Gewicht",
-      "price": "Preis",
-      "recent": "Kürzlich hinzugefügt"
+      "dateAdded": "Hinzugefügt am"
     },
     "emptyTitle": "Noch keine Ausrüstung",
     "emptyDescription": "Beginne mit dem Aufbau deines Inventars, indem du dein erstes Ausrüstungsteil hinzufügst.",
