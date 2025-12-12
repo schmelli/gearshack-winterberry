@@ -165,6 +165,7 @@ function InventoryContent() {
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearFilters}
             onItemClick={open}
+            getItemCountLabel={(count) => t('itemCount', { count })}
           />
         </>
       )}

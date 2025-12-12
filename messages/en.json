@@ -179,7 +179,7 @@
     "editItem": "Edit",
     "deleteItem": "Delete",
     "viewDetails": "View Details",
-    "itemCount": "{count} items",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
     "showingItems": "Showing {filtered} of {total} items",
     "clearFilters": "Clear filters",
     "totalWeight": "Total Weight",

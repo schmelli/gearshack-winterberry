@@ -179,7 +179,7 @@
     "editItem": "Bearbeiten",
     "deleteItem": "Löschen",
     "viewDetails": "Details anzeigen",
-    "itemCount": "{count} Gegenstände",
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "showingItems": "Zeige {filtered} von {total} Gegenständen",
     "clearFilters": "Filter löschen",
     "totalWeight": "Gesamtgewicht",

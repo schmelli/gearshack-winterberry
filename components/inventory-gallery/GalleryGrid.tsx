@@ -38,6 +38,8 @@ interface GalleryGridProps {
   onClearFilters?: () => void;
   /** Callback when a gear card is clicked (Feature 045) */
   onItemClick?: (itemId: string) => void;
+  /** Function to get translated item count string (Feature 046) */
+  getItemCountLabel?: (count: number) => string;
 }
 
 // =============================================================================
@@ -65,6 +67,7 @@ export function GalleryGrid({
   hasActiveFilters = false,
   onClearFilters,
   onItemClick,
+  getItemCountLabel,
 }: GalleryGridProps) {
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -103,7 +106,7 @@ export function GalleryGrid({
               </h2>
               <div className="h-px flex-1 bg-border" />
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+                {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
               </span>
             </div>
             {/* Items Grid */}
