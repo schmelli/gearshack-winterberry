@@ -272,8 +272,8 @@ export function LoadoutExportMenu({
                 </div>
               </div>
               <div class="meta" style="text-align: right;">
-                <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
-                <div><strong>Items:</strong> ${items.length}</div>
+                <div><strong>Generated:</strong> ${escape(new Date().toLocaleString())}</div>
+                <div><strong>Items:</strong> ${escape(String(items.length))}</div>
               </div>
             </header>
 
