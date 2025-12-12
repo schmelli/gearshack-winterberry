@@ -237,10 +237,24 @@ export function useGearEditor(
         router.push(redirectPath);
       } catch (error) {
         // FR-037: Ensure error is properly reported
-        const err = error instanceof Error ? error : new Error('Save failed');
+        // Handle Supabase errors which have a different structure
+        let errorMessage = 'Save failed';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (error && typeof error === 'object') {
+          // Supabase errors have code, message, details properties
+          const supabaseError = error as { message?: string; code?: string; details?: string };
+          errorMessage = supabaseError.message || supabaseError.details || 'Save failed';
+          console.error('[GearEditor] Supabase error details:', {
+            code: supabaseError.code,
+            message: supabaseError.message,
+            details: supabaseError.details,
+          });
+        }
+        const err = new Error(errorMessage);
         onSaveError?.(err);
-        toast.error(err.message || 'Failed to save item');
-        console.error('Failed to save gear item:', err);
+        toast.error(errorMessage);
+        console.error('Failed to save gear item:', error);
       } finally {
         // FR-037: CRITICAL - Always reset submitting/uploading state to prevent hanging UI
         setIsSubmittingLocal(false);

@@ -3,7 +3,7 @@
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag } from 'lucide-react';
+import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag, DollarSign, HandHeart, ArrowLeftRight } from 'lucide-react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,13 +44,52 @@ function StatusIcons({ item, className }: StatusIconsProps) {
     );
   }
 
-  // Recycle icon for lent/tradeable items
+  // Dollar sign for items for sale
+  if (item.isForSale) {
+    icons.push(
+      <div
+        key="for-sale"
+        className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm"
+        title="For Sale"
+      >
+        <DollarSign className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+
+  // Hand heart icon for items that can be borrowed
+  if (item.canBeBorrowed) {
+    icons.push(
+      <div
+        key="borrowable"
+        className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm"
+        title="Can be Borrowed"
+      >
+        <HandHeart className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+
+  // Arrow swap icon for items that can be traded
+  if (item.canBeTraded) {
+    icons.push(
+      <div
+        key="tradeable"
+        className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm"
+        title="Up for Trade"
+      >
+        <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+
+  // Recycle icon for lent items
   if (item.status === 'lent') {
     icons.push(
       <div
         key="lent"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm"
-        title="Tauschbar"
+        title="Currently Lent"
       >
         <Recycle className="h-3.5 w-3.5 text-white" />
       </div>
@@ -63,7 +102,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="sold"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm"
-        title="Verkauft"
+        title="Sold"
       >
         <Tag className="h-3.5 w-3.5 text-white" />
       </div>
@@ -73,7 +112,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
   if (icons.length === 0) return null;
 
   return (
-    <div className={cn("flex gap-1", className)}>
+    <div className={cn("flex gap-1 flex-wrap", className)}>
       {icons}
     </div>
   );

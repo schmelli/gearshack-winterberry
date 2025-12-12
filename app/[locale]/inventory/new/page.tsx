@@ -6,19 +6,20 @@
  * Route: /inventory/new
  *
  * Page for creating a new gear item.
+ * Feature: 008-auth-and-profile - Protected route (requires authentication)
  */
 
-import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
+'use client';
 
-export const metadata = {
-  title: 'Add New Gear Item',
-  description: 'Add a new item to your gear inventory',
-};
+import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export default function NewGearItemPage() {
   return (
-    <main className="container py-8">
-      <GearEditorForm />
-    </main>
+    <ProtectedRoute>
+      <main className="container py-8">
+        <GearEditorForm />
+      </main>
+    </ProtectedRoute>
   );
 }

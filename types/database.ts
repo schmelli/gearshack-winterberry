@@ -460,6 +460,34 @@ export interface Database {
           }
         ];
       };
+      /** Feature 045: API Cache table for external service responses */
+      api_cache: {
+        Row: {
+          id: string;
+          service: 'youtube' | 'geargraph';
+          cache_key: string;
+          response_data: Json;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          service: 'youtube' | 'geargraph';
+          cache_key: string;
+          response_data: Json;
+          created_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          id?: string;
+          service?: 'youtube' | 'geargraph';
+          cache_key?: string;
+          response_data?: Json;
+          created_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [];
+      };
       /** Feature 044: Global Gear Catalog - Products table (synced from GearGraph) */
       catalog_products: {
         Row: {

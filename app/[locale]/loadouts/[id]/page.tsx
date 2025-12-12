@@ -28,7 +28,12 @@ import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
 import { LoadoutMetadataDialog } from '@/components/loadouts/LoadoutMetadataDialog';
 import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDialog';
 import { WeightBar } from '@/components/loadouts/WeightBar';
+
 import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
+
+import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
+import { useMediaQuery } from '@/hooks/useGearDetailModal';
+
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -92,6 +97,22 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
   // Item state for worn/consumable tracking (US4)
   const { isWorn, isConsumable, toggleWorn, toggleConsumable } = useLoadoutItemState(id);
+
+  // Feature 045: Gear detail modal state
+  const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
+  const [gearModalOpen, setGearModalOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  // Find selected gear item
+  const selectedGearItem = selectedGearId
+    ? loadoutItems.find((item) => item.id === selectedGearId) ?? null
+    : null;
+
+  // Open gear detail modal
+  const handleGearClick = (itemId: string) => {
+    setSelectedGearId(itemId);
+    setGearModalOpen(true);
+  };
 
   // Handle not found
   if (!loadout) {
@@ -200,6 +221,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               isConsumable={isConsumable}
               onToggleWorn={toggleWorn}
               onToggleConsumable={toggleConsumable}
+              onItemClick={handleGearClick}
             />
           </div>
         </div>
@@ -248,6 +270,14 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onAddSelected={dependencyPrompt.onAddSelected}
         onSkip={dependencyPrompt.onSkip}
         onCancel={dependencyPrompt.onCancel}
+      />
+
+      {/* Feature 045: Gear Detail Modal */}
+      <GearDetailModal
+        open={gearModalOpen}
+        onOpenChange={setGearModalOpen}
+        item={selectedGearItem}
+        isMobile={isMobile}
       />
     </div>
   );

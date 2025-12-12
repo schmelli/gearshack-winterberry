@@ -136,6 +136,8 @@ Before writing code:
 - PostgreSQL (Supabase) - `categories` table (043-ontology-i18n-import)
 - TypeScript 5.x (strict mode) + Next.js 16+, React 19+, @supabase/supabase-js, react-hook-form, zod, shadcn/ui (044-intelligence-integration)
 - PostgreSQL (Supabase) with `categories` and `catalog_brands` tables (044-intelligence-integration)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui (Dialog, Sheet), Tailwind CSS 4, zustand (state), zod (validation) (045-gear-detail-modal)
+- PostgreSQL (Supabase) - existing gear_items table + new api_cache table (045-gear-detail-modal)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui

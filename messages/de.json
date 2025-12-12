@@ -1,7 +1,7 @@
 {
   "Navigation": {
     "inventory": "Inventar",
-    "loadouts": "Ladungen",
+    "loadouts": "Packlisten",
     "community": "Community",
     "login": "Anmelden",
     "signOut": "Abmelden",
@@ -24,6 +24,56 @@
     "heroSubtitle": "Die ultimative Ausrüstungsverwaltung für Outdoor-Enthusiasten. Erfasse jeden Gegenstand, erstelle perfekte Packlisten und vergiss nie wieder wichtige Ausrüstung.",
     "ctaStartTrial": "Kostenlos starten",
     "ctaDashboard": "Zum Dashboard",
+    "painPoints": {
+      "eyebrow": "Kommt dir das bekannt vor?",
+      "title": "Der Kampf ist real",
+      "subtitle": "Jeder Outdoor-Enthusiast kennt diese Frustrationen. Wir waren auch dort.",
+      "spreadsheets": {
+        "title": "Tabellen-Hölle",
+        "description": "Endlose Zeilen und Spalten, um deine Ausrüstung zu verfolgen. Mehrere Dateien, verlorene Updates und keine Möglichkeit, deine Packlisten zu visualisieren."
+      },
+      "manual": {
+        "title": "Manuelle Dateneingabe",
+        "description": "Stunden damit verbracht, Spezifikationen, Gewichte und Preise zu recherchieren. Copy-Paste von Herstellerseiten und Foren."
+      },
+      "guessing": {
+        "title": "Rucksackgewicht raten",
+        "description": "Mit dem Rucksack auf der Waage stehen und im Kopf rechnen. Nie ganz sicher, ob du alles hast, was du brauchst."
+      }
+    },
+    "solutions": {
+      "eyebrow": "Der GearShack Weg",
+      "title": "Alles was du brauchst, wunderschön organisiert",
+      "subtitle": "Wir haben das Tool gebaut, das wir uns immer gewünscht haben. So revolutioniert GearShack dein Gear-Game.",
+      "inventory": {
+        "title": "Deine komplette Ausrüstungsbibliothek",
+        "description": "Jedes Ausrüstungsteil, dokumentiert mit Fotos, Specs und Kaufinformationen. Suchen, filtern und sofort alles finden.",
+        "benefit1": "Specs automatisch aus unserer Gear-Datenbank",
+        "benefit2": "Zustand, Kaufdatum und Garantie tracken",
+        "benefit3": "Schöne Fotogalerien für jeden Artikel"
+      },
+      "loadouts": {
+        "title": "Perfekte Packlisten erstellen",
+        "description": "Packlisten für jedes Abenteuer erstellen. Gesamtgewicht sehen, Lücken erkennen und nie wieder wichtige Ausrüstung vergessen.",
+        "benefit1": "Echtzeit-Gewichtsberechnungen",
+        "benefit2": "Kopieren und für verschiedene Trips anpassen",
+        "benefit3": "Visuelle Aufschlüsselung nach Kategorie"
+      },
+      "community": {
+        "title": "Von der Community lernen",
+        "description": "Mit anderen Outdoor-Enthusiasten verbinden. Setups teilen, Feedback bekommen und neue Ausrüstung entdecken.",
+        "benefit1": "Echte Packlisten-Beispiele durchstöbern",
+        "benefit2": "Ehrliche Gear-Bewertungen von Nutzern",
+        "benefit3": "Inspiration für dein nächstes Abenteuer"
+      },
+      "wishlist": {
+        "title": "Deinen nächsten Kauf planen",
+        "description": "Ausrüstung im Auge behalten. Optionen vergleichen, Budgets setzen und fundierte Entscheidungen treffen.",
+        "benefit1": "Artikel von jedem Händler speichern",
+        "benefit2": "Preisverfolgung und Benachrichtigungen",
+        "benefit3": "Specs nebeneinander vergleichen"
+      }
+    },
     "features": {
       "organize": {
         "title": "Alles organisieren",
@@ -115,10 +165,9 @@
     "filterAll": "Alle Kategorien",
     "sortBy": "Sortieren nach",
     "sortOptions": {
-      "name": "Name",
-      "weight": "Gewicht",
-      "price": "Preis",
-      "recent": "Kürzlich hinzugefügt"
+      "name": "Name (A-Z)",
+      "category": "Kategorie",
+      "dateAdded": "Hinzugefügt am"
     },
     "emptyTitle": "Noch keine Ausrüstung",
     "emptyDescription": "Beginne mit dem Aufbau deines Inventars, indem du dein erstes Ausrüstungsteil hinzufügst.",
@@ -127,7 +176,7 @@
     "editItem": "Bearbeiten",
     "deleteItem": "Löschen",
     "viewDetails": "Details anzeigen",
-    "itemCount": "{count} Gegenstände",
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "showingItems": "Zeige {filtered} von {total} Gegenständen",
     "clearFilters": "Filter löschen",
     "totalWeight": "Gesamtgewicht",
