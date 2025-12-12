@@ -45,6 +45,9 @@ function InventoryContent() {
     setSearchQuery,
     categoryFilter,
     setCategoryFilter,
+    sortOption,
+    setSortOption,
+    groupedItems,
     hasActiveFilters,
     clearFilters,
     itemCount,
@@ -124,12 +127,14 @@ function InventoryContent() {
         </div>
       ) : (
         <>
-          {/* Toolbar with Search, Filter, and View Density */}
+          {/* Toolbar with Search, Filter, Sort, and View Density */}
           <GalleryToolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             categoryFilter={categoryFilter}
             onCategoryChange={setCategoryFilter}
+            sortOption={sortOption}
+            onSortChange={setSortOption}
             viewDensity={viewDensity}
             onViewDensityChange={setViewDensity}
             hasActiveFilters={hasActiveFilters}
@@ -142,12 +147,20 @@ function InventoryContent() {
               clearFilters: t('clearFilters'),
               showingItems: t('showingItems', { filtered: filteredCount, total: itemCount }),
               itemsCount: t('itemCount', { count: itemCount }),
+              sortBy: t('sortBy'),
+              sortOptions: {
+                name: t('sortOptions.name'),
+                category: t('sortOptions.category'),
+                dateAdded: t('sortOptions.dateAdded'),
+              },
             }}
           />
 
           {/* Gallery Grid */}
           <GalleryGrid
             items={filteredItems}
+            groupedItems={groupedItems}
+            sortOption={sortOption}
             viewDensity={viewDensity}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearFilters}

@@ -165,7 +165,9 @@
     "filterAll": "All Categories",
     "sortBy": "Sort by",
     "sortOptions": {
-      "name": "Name",
+      "name": "Name (A-Z)",
+      "category": "Category",
+      "dateAdded": "Date Added",
       "weight": "Weight",
       "price": "Price",
       "recent": "Recently Added"
