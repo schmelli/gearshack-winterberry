@@ -19,6 +19,10 @@ import type {
 } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 
+/**
+ * Export dropdown for the loadout page.
+ * Provides CSV and PDF (clean or checklist) generation using client-side rendering.
+ */
 interface LoadoutExportMenuProps {
   loadout: Loadout;
   items: GearItem[];
@@ -29,8 +33,10 @@ interface LoadoutExportMenuProps {
   baseWeight: number;
 }
 
-function escape(value: string): string {
-  return value
+/** HTML escape helper to prevent injection in generated markup. */
+function escape(value: string | null | undefined): string {
+  const safe = value ?? '';
+  return String(safe)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -38,15 +44,18 @@ function escape(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Sanitize filenames to be filesystem-friendly. */
 function sanitizeFileName(name: string): string {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'loadout';
 }
 
+/** Resolve a human-readable category label with fallback. */
 function buildCategoryLabel(categoryId: string | null): string {
   if (!categoryId) return 'Uncategorized';
   return CATEGORY_LABELS[categoryId] || categoryId;
 }
 
+/** Map boolean flags to human-readable strings. */
 function formatBoolean(value: boolean | undefined): string {
   return value ? 'Yes' : 'No';
 }
@@ -90,7 +99,7 @@ export function LoadoutExportMenu({
       )
       .join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -101,7 +110,10 @@ export function LoadoutExportMenu({
 
   const renderPdf = (includeChecklist: boolean) => {
     const printWindow = window.open('', '_blank', 'width=900,height=1200');
-    if (!printWindow) return;
+    if (!printWindow) {
+      alert('Unable to open export window. Please allow popups for this site and try again.');
+      return;
+    }
 
     const formattedDate = formatTripDate(loadout.tripDate) ?? 'Not set';
     const activitiesLabel =
@@ -114,6 +126,14 @@ export function LoadoutExportMenu({
       seasons.length > 0
         ? seasons.map((season) => escape(season.charAt(0).toUpperCase() + season.slice(1))).join(', ')
         : 'Not set';
+
+    const itemWeightMap = new Map(items.map((item) => [item.id, item.weightGrams ?? 0]));
+    const wornWeight = itemStates
+      .filter((state) => state.isWorn)
+      .reduce((sum, state) => sum + (itemWeightMap.get(state.itemId) ?? 0), 0);
+    const consumableWeight = itemStates
+      .filter((state) => state.isConsumable)
+      .reduce((sum, state) => sum + (itemWeightMap.get(state.itemId) ?? 0), 0);
 
     const rows = items
       .map((item) => {
@@ -132,7 +152,7 @@ export function LoadoutExportMenu({
             </td>
             <td>${escape(buildCategoryLabel(item.categoryId))}</td>
             <td class="right">${formatWeight(item.weightGrams)}</td>
-            <td>${statusParts.join(' • ') || '—'}</td>
+            <td>${statusParts.length > 0 ? statusParts.map(escape).join(' • ') : '—'}</td>
           </tr>
         `;
       })
@@ -290,25 +310,11 @@ export function LoadoutExportMenu({
               </div>
               <div class="pill">
                 <div class="label">Worn Items</div>
-                <div class="value">${formatWeight(
-                  itemStates
-                    .filter((state) => state.isWorn)
-                    .reduce((sum, state) => {
-                      const match = items.find((item) => item.id === state.itemId);
-                      return sum + (match?.weightGrams ?? 0);
-                    }, 0)
-                )}</div>
+                <div class="value">${formatWeight(wornWeight)}</div>
               </div>
               <div class="pill">
                 <div class="label">Consumables</div>
-                <div class="value">${formatWeight(
-                  itemStates
-                    .filter((state) => state.isConsumable)
-                    .reduce((sum, state) => {
-                      const match = items.find((item) => item.id === state.itemId);
-                      return sum + (match?.weightGrams ?? 0);
-                    }, 0)
-                )}</div>
+                <div class="value">${formatWeight(consumableWeight)}</div>
               </div>
             </div>
 
