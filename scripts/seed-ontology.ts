@@ -82,7 +82,7 @@ async function seedOntology() {
     // Helper to process categories
     const processItems = async (
       level: number, 
-      items: Record<string, any>, 
+      items: Record<string, unknown>, 
       parentKeyField?: string
     ) => {
       let count = 0;
