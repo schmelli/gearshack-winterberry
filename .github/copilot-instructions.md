@@ -335,8 +335,6 @@ try {
 
 ## 🤖 Byterover MCP Integration
 
-[byterover-mcp]
-
 You are given two tools from Byterover MCP server:
 
 ### 1. `byterover-store-knowledge`
