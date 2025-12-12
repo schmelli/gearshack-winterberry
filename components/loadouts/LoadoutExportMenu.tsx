@@ -148,7 +148,7 @@ export function LoadoutExportMenu({
           <style>
             :root {
               color-scheme: light;
-              font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             }
             body {
               margin: 0;
