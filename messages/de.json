@@ -165,10 +165,9 @@
     "filterAll": "Alle Kategorien",
     "sortBy": "Sortieren nach",
     "sortOptions": {
-      "name": "Name",
-      "weight": "Gewicht",
-      "price": "Preis",
-      "recent": "Kürzlich hinzugefügt"
+      "name": "Name (A-Z)",
+      "category": "Kategorie",
+      "dateAdded": "Hinzugefügt am"
     },
     "emptyTitle": "Noch keine Ausrüstung",
     "emptyDescription": "Beginne mit dem Aufbau deines Inventars, indem du dein erstes Ausrüstungsteil hinzufügst.",
@@ -177,7 +176,7 @@
     "editItem": "Bearbeiten",
     "deleteItem": "Löschen",
     "viewDetails": "Details anzeigen",
-    "itemCount": "{count} Gegenstände",
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "showingItems": "Zeige {filtered} von {total} Gegenständen",
     "clearFilters": "Filter löschen",
     "totalWeight": "Gesamtgewicht",

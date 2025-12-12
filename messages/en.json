@@ -165,10 +165,9 @@
     "filterAll": "All Categories",
     "sortBy": "Sort by",
     "sortOptions": {
-      "name": "Name",
-      "weight": "Weight",
-      "price": "Price",
-      "recent": "Recently Added"
+      "name": "Name (A-Z)",
+      "category": "Category",
+      "dateAdded": "Date Added"
     },
     "emptyTitle": "No Gear Yet",
     "emptyDescription": "Start building your inventory by adding your first piece of gear.",
@@ -177,7 +176,7 @@
     "editItem": "Edit",
     "deleteItem": "Delete",
     "viewDetails": "View Details",
-    "itemCount": "{count} items",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
     "showingItems": "Showing {filtered} of {total} items",
     "clearFilters": "Clear filters",
     "totalWeight": "Total Weight",
