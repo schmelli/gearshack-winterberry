@@ -5,16 +5,33 @@
  * Tasks: T040-T042, T044
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
+ * Feature: 010-firestore-sync
+ * Tasks: T019-T020 - Integrated Firebase Storage upload
+ *
+ * Feature: 026-client-bg-removal
+ * Tasks: T006-T018 - Client-side background removal with toggle
+ *
+ * Feature: 038-cloudinary-hybrid-upload
+ * Tasks: T015 - Integrated ImageUploadZone for primary image
+ *
+ * Functional Fixes Sprint:
+ * - Added image upload UI with local file selection
+ * - Dual approach: Paste URL or Upload Image
+ * - Local preview using URL.createObjectURL
+ * - Firebase Storage integration for file uploads
+ *
  * Displays form fields for media management:
- * - Primary image URL with preview
+ * - Primary image URL with preview (URL or file upload)
  * - Gallery image URLs (multiple) with previews
+ * - Auto-remove background toggle (default: ON)
  */
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   FormField,
   FormItem,
@@ -26,19 +43,46 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
+import { ImageUploadZone } from '@/components/gear-editor/ImageUploadZone';
 import type { GearItemFormData } from '@/types/gear';
+import type { GearItem } from '@/types/gear';
 
 // =============================================================================
-// Component
+// MediaSection Component
 // =============================================================================
 
-export function MediaSection() {
+export interface MediaSectionProps {
+  /** Initial item for editing (undefined for new items) */
+  initialItem?: GearItem;
+}
+
+export function MediaSection({ initialItem }: MediaSectionProps) {
   const form = useFormContext<GearItemFormData>();
+  const { user } = useAuthContext();
+
+  // Watch brand and name fields to pass to ImageUploadZone for auto-search
+  const brand = form.watch('brand');
+  const productName = form.watch('name');
+
+  // Generate a temporary item ID for new items (Feature: 038-cloudinary-hybrid-upload)
+  // Use existing ID if editing, or generate a temporary UUID for new items
+  // NOTE: Using useState instead of useMemo to avoid impure functions in render
+  const [itemId] = useState(() => {
+    if (initialItem?.id) {
+      return initialItem.id;
+    }
+    // Generate a temporary UUID-like ID for new items
+    // This will be replaced with the real ID once the item is saved
+    return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  });
+
+  // Get userId from auth (required for Cloudinary upload)
+  const userId = user?.uid || 'anonymous';
 
   // Use field array for gallery images
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'galleryImageUrls' as never, // Type assertion needed for string[]
+    name: 'galleryImageUrls' as never,
   });
 
   const handleAddGalleryImage = useCallback(() => {
@@ -49,40 +93,34 @@ export function MediaSection() {
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Media</h3>
 
-      {/* Primary Image - T041 */}
+      {/* Primary Image - Feature 038: Cloudinary Upload */}
       <div className="space-y-4">
         <FormField
           control={form.control}
           name="primaryImageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Primary Image URL</FormLabel>
-              <div className="flex gap-4 items-start">
-                <ImagePreview
-                  src={field.value || ''}
-                  alt="Primary image preview"
-                  size="lg"
+              <FormControl>
+                <ImageUploadZone
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  userId={userId}
+                  itemId={itemId}
+                  label="Primary Image"
+                  brand={brand}
+                  productName={productName}
                 />
-                <div className="flex-1">
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://example.com/image.jpg"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription className="mt-2">
-                    Main product image displayed in inventory lists
-                  </FormDescription>
-                  <FormMessage />
-                </div>
-              </div>
+              </FormControl>
+              <FormDescription>
+                Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
       </div>
 
-      {/* Gallery Images - T042 */}
+      {/* Gallery Images */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <FormLabel className="text-base">Gallery Images</FormLabel>

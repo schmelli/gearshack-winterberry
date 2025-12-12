@@ -1,13 +1,21 @@
+/**
+ * Navigation Constants
+ *
+ * Feature: 027-i18n-next-intl
+ * T024: Updated navigation items with translation keys
+ */
+
 import { Instagram, Twitter } from 'lucide-react';
 import type { NavItem, UserMenuItem } from '@/types/navigation';
 
 /**
  * Main navigation items for the application.
+ * Uses translationKey for i18n lookup in Navigation namespace.
  */
 export const MAIN_NAV_ITEMS: NavItem[] = [
-  { label: 'Inventory', href: '/inventory', enabled: true },
-  { label: 'Loadouts', href: '/loadouts', enabled: false },
-  { label: 'Community', href: '/community', enabled: false },
+  { label: 'Inventory', translationKey: 'inventory', href: '/inventory', enabled: true },
+  { label: 'Loadouts', translationKey: 'loadouts', href: '/loadouts', enabled: true },
+  { label: 'Community', translationKey: 'community', href: '/community', enabled: false },
 ];
 
 /**

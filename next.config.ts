@@ -1,7 +1,25 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+// Feature 027: i18n with next-intl
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    // Feature 025: Allow all HTTPS domains for external product images
+    // Users need to paste image URLs from any retailer (fjellsport.no, REI, etc.)
+    // Feature 038: Explicit Cloudinary CDN support
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

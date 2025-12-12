@@ -2,20 +2,32 @@
  * useInventory Hook
  *
  * Feature: 002-inventory-gallery
- * Provides mock data, filtering, and view state for the inventory gallery
+ * Provides filtering and view state for the inventory gallery
+ *
+ * Updated: 005-loadout-management - Migrated to use zustand store
+ * Updated: 045 - Removed mock data (auth is required for inventory access)
+ * Updated: 046-inventory-sorting - Added sorting with category grouping
  */
 
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { GearItem } from '@/types/gear';
-import type { ViewDensity, UseInventoryReturn } from '@/types/inventory';
+import type {
+  ViewDensity,
+  UseInventoryReturn,
+  SortOption,
+  CategoryGroup,
+} from '@/types/inventory';
+import { DEFAULT_SORT_OPTION } from '@/types/inventory';
+import { useItems } from '@/hooks/useSupabaseStore';
+import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
 
 // =============================================================================
-// Session Storage Key
+// Session Storage Keys
 // =============================================================================
 
 const VIEW_DENSITY_STORAGE_KEY = 'gearshack-view-density';
+const SORT_OPTION_STORAGE_KEY = 'gearshack-sort-option';
 
 // =============================================================================
 // Session Storage Helpers
@@ -33,438 +45,28 @@ function getInitialViewDensity(): ViewDensity {
   return 'standard';
 }
 
-// =============================================================================
-// Mock Data (10-15 items across categories)
-// =============================================================================
-
-const MOCK_GEAR_ITEMS: GearItem[] = [
-  {
-    id: 'gear-001',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    name: 'Hornet Elite 2P',
-    brand: 'NEMO',
-    brandUrl: 'https://www.nemoequipment.com',
-    modelNumber: 'NE-HE2P',
-    productUrl: null,
-    categoryId: 'shelter',
-    subcategoryId: 'tents',
-    productTypeId: 'freestanding-tent',
-    weightGrams: 1180,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 450,
-    currency: 'USD',
-    purchaseDate: new Date('2024-01-10'),
-    retailer: 'REI',
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'Ultralight 2-person tent with excellent ventilation.',
-  },
-  {
-    id: 'gear-002',
-    createdAt: new Date('2024-02-01'),
-    updatedAt: new Date('2024-02-01'),
-    name: 'Disco 15',
-    brand: 'NEMO',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'sleep-system',
-    subcategoryId: 'sleeping-bags',
-    productTypeId: 'down-bag',
-    weightGrams: 1130,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 380,
-    currency: 'USD',
-    purchaseDate: new Date('2024-02-01'),
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'Spoon-shaped sleeping bag, 15°F rating.',
-  },
-  {
-    id: 'gear-003',
-    createdAt: new Date('2024-03-10'),
-    updatedAt: new Date('2024-03-10'),
-    name: 'NeoAir XLite NXT',
-    brand: 'Therm-a-Rest',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'sleep-system',
-    subcategoryId: 'sleeping-pads',
-    productTypeId: 'inflatable-pad',
-    weightGrams: 340,
-    weightDisplayUnit: 'g',
-    lengthCm: 183,
-    widthCm: 64,
-    heightCm: 7,
-    pricePaid: 220,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'R-value 4.5, ultralight inflatable pad.',
-  },
-  {
-    id: 'gear-004',
-    createdAt: new Date('2024-04-05'),
-    updatedAt: new Date('2024-04-05'),
-    name: 'Ohm 2.0 50L',
-    brand: 'Gossamer Gear',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'packs',
-    subcategoryId: 'backpacks',
-    productTypeId: 'ultralight-pack',
-    weightGrams: 780,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 260,
-    currency: 'USD',
-    purchaseDate: new Date('2024-04-01'),
-    retailer: 'Gossamer Gear',
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'used',
-    status: 'active',
-    notes: null,
-  },
-  {
-    id: 'gear-005',
-    createdAt: new Date('2024-05-20'),
-    updatedAt: new Date('2024-05-20'),
-    name: 'Ghost Whisperer/2',
-    brand: 'Mountain Hardwear',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'clothing',
-    subcategoryId: 'insulation',
-    productTypeId: 'down-jacket',
-    weightGrams: 220,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 325,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: '800-fill down, incredibly packable.',
-  },
-  {
-    id: 'gear-006',
-    createdAt: new Date('2024-06-01'),
-    updatedAt: new Date('2024-06-01'),
-    name: 'Torrent Shell 3L',
-    brand: 'Patagonia',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'clothing',
-    subcategoryId: 'rain-gear',
-    productTypeId: 'rain-jacket',
-    weightGrams: 394,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 179,
-    currency: 'USD',
-    purchaseDate: new Date('2024-05-15'),
-    retailer: 'Patagonia',
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: null,
-  },
-  {
-    id: 'gear-007',
-    createdAt: new Date('2024-06-15'),
-    updatedAt: new Date('2024-06-15'),
-    name: 'PocketRocket Deluxe',
-    brand: 'MSR',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'cooking',
-    subcategoryId: 'stoves',
-    productTypeId: 'canister-stove',
-    weightGrams: 83,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 70,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'Pressure regulator for consistent flame.',
-  },
-  {
-    id: 'gear-008',
-    createdAt: new Date('2024-07-01'),
-    updatedAt: new Date('2024-07-01'),
-    name: 'Titanium 750ml Pot',
-    brand: 'TOAKS',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'cooking',
-    subcategoryId: 'cookware',
-    productTypeId: 'pot',
-    weightGrams: 103,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 35,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'used',
-    status: 'active',
-    notes: null,
-  },
-  {
-    id: 'gear-009',
-    createdAt: new Date('2024-07-15'),
-    updatedAt: new Date('2024-07-15'),
-    name: 'BeFree 1L',
-    brand: 'Katadyn',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'water',
-    subcategoryId: 'water-treatment',
-    productTypeId: 'water-filter',
-    weightGrams: 63,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 45,
-    currency: 'USD',
-    purchaseDate: new Date('2024-07-10'),
-    retailer: 'REI',
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'Fast flow rate, easy to squeeze.',
-  },
-  {
-    id: 'gear-010',
-    createdAt: new Date('2024-08-01'),
-    updatedAt: new Date('2024-08-01'),
-    name: 'Spot X 200',
-    brand: 'Black Diamond',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'electronics',
-    subcategoryId: 'lighting',
-    productTypeId: 'headlamp',
-    weightGrams: 86,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 50,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: '200 lumens, red light mode.',
-  },
-  {
-    id: 'gear-011',
-    createdAt: new Date('2024-08-15'),
-    updatedAt: new Date('2024-08-15'),
-    name: 'Distance Carbon Z',
-    brand: 'Black Diamond',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'miscellaneous',
-    subcategoryId: 'trekking-poles',
-    productTypeId: 'carbon-poles',
-    weightGrams: 310,
-    weightDisplayUnit: 'g',
-    lengthCm: 130,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 180,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: 'Pair weight, foldable.',
-  },
-  {
-    id: 'gear-012',
-    createdAt: new Date('2024-09-01'),
-    updatedAt: new Date('2024-09-01'),
-    name: 'Speedgoat 5',
-    brand: 'HOKA',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'clothing',
-    subcategoryId: 'footwear',
-    productTypeId: 'trail-runners',
-    weightGrams: 620,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 155,
-    currency: 'USD',
-    purchaseDate: new Date('2024-08-20'),
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'worn',
-    status: 'active',
-    notes: 'Great cushioning and grip.',
-  },
-  {
-    id: 'gear-013',
-    createdAt: new Date('2024-09-15'),
-    updatedAt: new Date('2024-09-15'),
-    name: 'X-Mid 2 Pro',
-    brand: 'Durston Gear',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'shelter',
-    subcategoryId: 'tents',
-    productTypeId: 'non-freestanding-tent',
-    weightGrams: 680,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 450,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'wishlist',
-    notes: 'DCF version, double-wall design.',
-  },
-  {
-    id: 'gear-014',
-    createdAt: new Date('2024-10-01'),
-    updatedAt: new Date('2024-10-01'),
-    name: 'UL First Aid Kit',
-    brand: 'Adventure Medical',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'first-aid',
-    subcategoryId: 'first-aid-kits',
-    productTypeId: 'personal-kit',
-    weightGrams: 142,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 25,
-    currency: 'USD',
-    purchaseDate: null,
-    retailer: null,
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'new',
-    status: 'active',
-    notes: null,
-  },
-  {
-    id: 'gear-015',
-    createdAt: new Date('2024-10-10'),
-    updatedAt: new Date('2024-10-10'),
-    name: 'MiniMo',
-    brand: 'Jetboil',
-    brandUrl: null,
-    modelNumber: null,
-    productUrl: null,
-    categoryId: 'cooking',
-    subcategoryId: 'stoves',
-    productTypeId: 'canister-stove',
-    weightGrams: 415,
-    weightDisplayUnit: 'g',
-    lengthCm: null,
-    widthCm: null,
-    heightCm: null,
-    pricePaid: 145,
-    currency: 'USD',
-    purchaseDate: new Date('2023-06-01'),
-    retailer: 'REI',
-    retailerUrl: null,
-    primaryImageUrl: null,
-    galleryImageUrls: [],
-    condition: 'used',
-    status: 'sold',
-    notes: 'Sold to upgrade to separate stove/pot system.',
-  },
-];
+/**
+ * Get initial sort option from session storage (client-side only)
+ */
+function getInitialSortOption(): SortOption {
+  if (typeof window === 'undefined') return DEFAULT_SORT_OPTION;
+  const stored = sessionStorage.getItem(SORT_OPTION_STORAGE_KEY);
+  if (stored && ['name', 'category', 'dateAdded'].includes(stored)) {
+    return stored as SortOption;
+  }
+  return DEFAULT_SORT_OPTION;
+}
 
 // =============================================================================
 // Hook Implementation
 // =============================================================================
 
 export function useInventory(): UseInventoryReturn {
+  // ---------------------------------------------------------------------------
+  // Store Integration
+  // ---------------------------------------------------------------------------
+  const items = useItems();
+
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
   // ---------------------------------------------------------------------------
@@ -480,16 +82,28 @@ export function useInventory(): UseInventoryReturn {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // State: Sort Option with sessionStorage persistence (Feature 046)
+  // ---------------------------------------------------------------------------
+  const [sortOption, setSortOptionState] = useState<SortOption>(getInitialSortOption);
+
+  // Persist sort option to sessionStorage
+  const setSortOption = useCallback((option: SortOption) => {
+    setSortOptionState(option);
+    sessionStorage.setItem(SORT_OPTION_STORAGE_KEY, option);
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // State: Filters
   // ---------------------------------------------------------------------------
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Derived: Filtered Items
+  // Derived: Filtered and Sorted Items (Feature 046)
   // ---------------------------------------------------------------------------
   const filteredItems = useMemo(() => {
-    return MOCK_GEAR_ITEMS.filter((item) => {
+    // Step 1: Filter items
+    const filtered = items.filter((item) => {
       // Search filter (case-insensitive, matches name or brand)
       const matchesSearch =
         !searchQuery ||
@@ -502,7 +116,63 @@ export function useInventory(): UseInventoryReturn {
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, categoryFilter]);
+
+    // Step 2: Sort items based on sortOption
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortOption) {
+        case 'name':
+          // Alphabetical sort (A-Z)
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+
+        case 'category':
+          // Sort by category label, then by name within category
+          const catLabelA = getCategoryLabel(a.categoryId) ?? 'zzz'; // Uncategorized at end
+          const catLabelB = getCategoryLabel(b.categoryId) ?? 'zzz';
+          const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
+          if (catCompare !== 0) return catCompare;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+
+        case 'dateAdded':
+        default:
+          // Newest first
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
+    return sorted;
+  }, [items, searchQuery, categoryFilter, sortOption]);
+
+  // ---------------------------------------------------------------------------
+  // Derived: Grouped Items by Category (Feature 046)
+  // ---------------------------------------------------------------------------
+  const groupedItems = useMemo<CategoryGroup[]>(() => {
+    if (sortOption !== 'category') {
+      return [];
+    }
+
+    // Group items by categoryId
+    const groups = new Map<string | null, CategoryGroup>();
+
+    for (const item of filteredItems) {
+      const catId = item.categoryId;
+      if (!groups.has(catId)) {
+        groups.set(catId, {
+          categoryId: catId,
+          categoryLabel: getCategoryLabel(catId) ?? 'Uncategorized',
+          items: [],
+        });
+      }
+      groups.get(catId)!.items.push(item);
+    }
+
+    // Convert to array and sort by category label
+    return Array.from(groups.values()).sort((a, b) => {
+      // Put uncategorized at the end
+      if (a.categoryId === null) return 1;
+      if (b.categoryId === null) return -1;
+      return a.categoryLabel.localeCompare(b.categoryLabel, undefined, { sensitivity: 'base' });
+    });
+  }, [filteredItems, sortOption]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -516,12 +186,12 @@ export function useInventory(): UseInventoryReturn {
   // Derived State
   // ---------------------------------------------------------------------------
   const hasActiveFilters = searchQuery !== '' || categoryFilter !== null;
-  const itemCount = MOCK_GEAR_ITEMS.length;
+  const itemCount = items.length;
   const filteredCount = filteredItems.length;
 
   return {
     // Data
-    items: MOCK_GEAR_ITEMS,
+    items,
     filteredItems,
     isLoading,
 
@@ -535,6 +205,11 @@ export function useInventory(): UseInventoryReturn {
     categoryFilter,
     setCategoryFilter,
     clearFilters,
+
+    // Sorting (Feature 046)
+    sortOption,
+    setSortOption,
+    groupedItems,
 
     // Derived State
     hasActiveFilters,

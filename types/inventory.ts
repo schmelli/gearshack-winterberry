@@ -3,9 +3,48 @@
  *
  * Feature: 002-inventory-gallery
  * Constitution: Types MUST be defined in @/types directory
+ *
+ * Feature: 046-inventory-sorting
+ * Added sorting functionality with category grouping
  */
 
 import type { GearItem } from './gear';
+
+// =============================================================================
+// Sort Options
+// =============================================================================
+
+/**
+ * Available sort options for the inventory gallery.
+ *
+ * - name: Sort alphabetically by item name (A-Z)
+ * - category: Sort by category with visual separators between groups
+ * - dateAdded: Sort by creation date (newest first)
+ */
+export type SortOption = 'name' | 'category' | 'dateAdded';
+
+/**
+ * All sort options for iteration
+ */
+export const SORT_OPTIONS: SortOption[] = ['name', 'category', 'dateAdded'];
+
+/**
+ * Default sort option
+ */
+export const DEFAULT_SORT_OPTION: SortOption = 'dateAdded';
+
+/**
+ * Represents a group of gear items under a category heading.
+ * Used when sorting by category to create visual separators.
+ */
+export interface CategoryGroup {
+  /** Category ID (null for uncategorized items) */
+  categoryId: string | null;
+  /** Display label for the category */
+  categoryLabel: string;
+  /** Items belonging to this category */
+  items: GearItem[];
+}
 
 // =============================================================================
 // View Density
@@ -86,6 +125,12 @@ export interface UseInventoryReturn {
   categoryFilter: string | null;
   setCategoryFilter: (categoryId: string | null) => void;
   clearFilters: () => void;
+
+  // Sorting (Feature 046)
+  sortOption: SortOption;
+  setSortOption: (option: SortOption) => void;
+  /** Items grouped by category (only populated when sortOption === 'category') */
+  groupedItems: CategoryGroup[];
 
   // Derived State
   hasActiveFilters: boolean;

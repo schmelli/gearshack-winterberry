@@ -92,7 +92,7 @@ export function CategoryPlaceholder({
       )}
     >
       <Icon
-        className={cn('text-muted-foreground', ICON_SIZE_CLASSES[size])}
+        className={cn('text-primary/50', ICON_SIZE_CLASSES[size])}
         aria-hidden="true"
       />
     </div>

@@ -3,10 +3,17 @@
  *
  * Feature: 002-inventory-gallery
  * Contains search, category filter, view density toggle, and item count
+ *
+ * Feature: 028-landing-page-i18n
+ * T029: Support translations via props (FR-010)
+ *
+ * Feature: 046-inventory-sorting
+ * Added sort dropdown with options: name, category, dateAdded
  */
 
-import { Search, X } from 'lucide-react';
-import type { ViewDensity } from '@/types/inventory';
+import { Search, X, ArrowUpDown } from 'lucide-react';
+import type { ViewDensity, SortOption } from '@/types/inventory';
+import { SORT_OPTIONS } from '@/types/inventory';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -23,6 +30,36 @@ import { getCategories } from '@/lib/taxonomy/taxonomy-utils';
 // Types
 // =============================================================================
 
+interface SortOptionTranslations {
+  name: string;
+  category: string;
+  dateAdded: string;
+}
+
+interface GalleryToolbarTranslations {
+  searchPlaceholder: string;
+  filterAll: string;
+  clearFilters: string;
+  showingItems: string;
+  itemsCount: string;
+  sortBy: string;
+  sortOptions: SortOptionTranslations;
+}
+
+const DEFAULT_TRANSLATIONS: GalleryToolbarTranslations = {
+  searchPlaceholder: 'Search gear...',
+  filterAll: 'All Categories',
+  clearFilters: 'Clear filters',
+  showingItems: 'Showing {filtered} of {total} items',
+  itemsCount: '{count} items',
+  sortBy: 'Sort by',
+  sortOptions: {
+    name: 'Name (A-Z)',
+    category: 'Category',
+    dateAdded: 'Date Added',
+  },
+};
+
 interface GalleryToolbarProps {
   // Search
   searchQuery: string;
@@ -31,6 +68,10 @@ interface GalleryToolbarProps {
   // Category Filter
   categoryFilter: string | null;
   onCategoryChange: (categoryId: string | null) => void;
+
+  // Sorting (Feature 046)
+  sortOption: SortOption;
+  onSortChange: (option: SortOption) => void;
 
   // View Density
   viewDensity: ViewDensity;
@@ -43,6 +84,9 @@ interface GalleryToolbarProps {
   // Stats
   itemCount: number;
   filteredCount: number;
+
+  // Translations (Feature 028)
+  translations?: Partial<GalleryToolbarTranslations>;
 }
 
 // =============================================================================
@@ -54,15 +98,26 @@ export function GalleryToolbar({
   onSearchChange,
   categoryFilter,
   onCategoryChange,
+  sortOption,
+  onSortChange,
   viewDensity,
   onViewDensityChange,
   hasActiveFilters,
   onClearFilters,
   itemCount,
   filteredCount,
+  translations: translationsProp,
 }: GalleryToolbarProps) {
   const categories = getCategories();
   const showingFiltered = hasActiveFilters && filteredCount !== itemCount;
+  const t = {
+    ...DEFAULT_TRANSLATIONS,
+    ...translationsProp,
+    sortOptions: {
+      ...DEFAULT_TRANSLATIONS.sortOptions,
+      ...translationsProp?.sortOptions,
+    },
+  };
 
   return (
     <div className="mb-6 space-y-4">
@@ -75,11 +130,11 @@ export function GalleryToolbar({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search gear..."
+              placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-9"
-              aria-label="Search gear by name or brand"
+              aria-label={t.searchPlaceholder}
             />
           </div>
 
@@ -90,14 +145,32 @@ export function GalleryToolbar({
               onCategoryChange(value === 'all' ? null : value)
             }
           >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by category">
-              <SelectValue placeholder="All Categories" />
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t.filterAll}>
+              <SelectValue placeholder={t.filterAll} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">{t.filterAll}</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort Dropdown (Feature 046) */}
+          <Select
+            value={sortOption}
+            onValueChange={(value) => onSortChange(value as SortOption)}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t.sortBy}>
+              <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder={t.sortBy} />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t.sortOptions[option]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -112,7 +185,7 @@ export function GalleryToolbar({
               className="w-full sm:w-auto"
             >
               <X className="mr-1 h-4 w-4" />
-              Clear filters
+              {t.clearFilters}
             </Button>
           )}
         </div>
@@ -138,11 +211,9 @@ export function GalleryToolbar({
       {/* Item count display */}
       <div className="text-sm text-muted-foreground">
         {showingFiltered ? (
-          <span>
-            Showing {filteredCount} of {itemCount} items
-          </span>
+          <span>{t.showingItems}</span>
         ) : (
-          <span>{itemCount} items</span>
+          <span>{t.itemsCount}</span>
         )}
       </div>
     </div>

@@ -1,0 +1,213 @@
+{
+  "Navigation": {
+    "inventory": "Inventar",
+    "loadouts": "Packlisten",
+    "community": "Community",
+    "login": "Anmelden",
+    "signOut": "Abmelden",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "Hero": {
+    "title": "Meistere Deine Ausrüstung",
+    "subtitle": "Organisiere deine Ausrüstung, plane deine Abenteuer, erobere die Natur."
+  },
+  "Common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten"
+  },
+  "Landing": {
+    "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
+    "heroSubtitle": "Die ultimative Ausrüstungsverwaltung für Outdoor-Enthusiasten. Erfasse jeden Gegenstand, erstelle perfekte Packlisten und vergiss nie wieder wichtige Ausrüstung.",
+    "ctaStartTrial": "Kostenlos starten",
+    "ctaDashboard": "Zum Dashboard",
+    "painPoints": {
+      "eyebrow": "Kommt dir das bekannt vor?",
+      "title": "Der Kampf ist real",
+      "subtitle": "Jeder Outdoor-Enthusiast kennt diese Frustrationen. Wir waren auch dort.",
+      "spreadsheets": {
+        "title": "Tabellen-Hölle",
+        "description": "Endlose Zeilen und Spalten, um deine Ausrüstung zu verfolgen. Mehrere Dateien, verlorene Updates und keine Möglichkeit, deine Packlisten zu visualisieren."
+      },
+      "manual": {
+        "title": "Manuelle Dateneingabe",
+        "description": "Stunden damit verbracht, Spezifikationen, Gewichte und Preise zu recherchieren. Copy-Paste von Herstellerseiten und Foren."
+      },
+      "guessing": {
+        "title": "Rucksackgewicht raten",
+        "description": "Mit dem Rucksack auf der Waage stehen und im Kopf rechnen. Nie ganz sicher, ob du alles hast, was du brauchst."
+      }
+    },
+    "solutions": {
+      "eyebrow": "Der GearShack Weg",
+      "title": "Alles was du brauchst, wunderschön organisiert",
+      "subtitle": "Wir haben das Tool gebaut, das wir uns immer gewünscht haben. So revolutioniert GearShack dein Gear-Game.",
+      "inventory": {
+        "title": "Deine komplette Ausrüstungsbibliothek",
+        "description": "Jedes Ausrüstungsteil, dokumentiert mit Fotos, Specs und Kaufinformationen. Suchen, filtern und sofort alles finden.",
+        "benefit1": "Specs automatisch aus unserer Gear-Datenbank",
+        "benefit2": "Zustand, Kaufdatum und Garantie tracken",
+        "benefit3": "Schöne Fotogalerien für jeden Artikel"
+      },
+      "loadouts": {
+        "title": "Perfekte Packlisten erstellen",
+        "description": "Packlisten für jedes Abenteuer erstellen. Gesamtgewicht sehen, Lücken erkennen und nie wieder wichtige Ausrüstung vergessen.",
+        "benefit1": "Echtzeit-Gewichtsberechnungen",
+        "benefit2": "Kopieren und für verschiedene Trips anpassen",
+        "benefit3": "Visuelle Aufschlüsselung nach Kategorie"
+      },
+      "community": {
+        "title": "Von der Community lernen",
+        "description": "Mit anderen Outdoor-Enthusiasten verbinden. Setups teilen, Feedback bekommen und neue Ausrüstung entdecken.",
+        "benefit1": "Echte Packlisten-Beispiele durchstöbern",
+        "benefit2": "Ehrliche Gear-Bewertungen von Nutzern",
+        "benefit3": "Inspiration für dein nächstes Abenteuer"
+      },
+      "wishlist": {
+        "title": "Deinen nächsten Kauf planen",
+        "description": "Ausrüstung im Auge behalten. Optionen vergleichen, Budgets setzen und fundierte Entscheidungen treffen.",
+        "benefit1": "Artikel von jedem Händler speichern",
+        "benefit2": "Preisverfolgung und Benachrichtigungen",
+        "benefit3": "Specs nebeneinander vergleichen"
+      }
+    },
+    "features": {
+      "organize": {
+        "title": "Alles organisieren",
+        "description": "Katalogisiere deine gesamte Ausrüstung mit Details, Gewichten und Bildern. Wisse genau, was du besitzt."
+      },
+      "loadouts": {
+        "title": "Smarte Packlisten",
+        "description": "Erstelle gewichtsoptimierte Packlisten für jedes Abenteuer. Sieh das Gesamtgewicht auf einen Blick."
+      },
+      "share": {
+        "title": "Teilen & Entdecken",
+        "description": "Werde Teil einer Community von Outdoor-Enthusiasten. Teile deine Setups und entdecke neue Ausrüstung."
+      }
+    },
+    "socialProof": {
+      "title": "Von Outdoor-Enthusiasten geschätzt",
+      "testimonial1": {
+        "quote": "GearGraph hat verändert, wie ich meine Wanderausrüstung organisiere. Keine vergessenen Sachen mehr auf dem Trail!",
+        "author": "Alex M., Fernwanderer"
+      },
+      "testimonial2": {
+        "quote": "Endlich ein Tool, das die Besessenheit mit Ausrüstungsgewicht versteht. Mein Rucksack war noch nie leichter.",
+        "author": "Sarah K., Ultraleicht-Backpackerin"
+      },
+      "testimonial3": {
+        "quote": "Die Packlisten-Funktion hat mir Stunden der Planung vor meiner Alpenüberquerung gespart.",
+        "author": "Mike R., Wochenend-Wanderer"
+      }
+    },
+    "pricing": {
+      "title": "Einfache, faire Preise",
+      "subtitle": "Starte kostenlos, upgrade wenn du mehr brauchst.",
+      "basecamp": {
+        "name": "Basecamp",
+        "price": "Kostenlos",
+        "description": "Perfekt zum Einstieg",
+        "features": {
+          "items": "Bis zu 50 Gegenstände",
+          "loadouts": "3 Packlisten",
+          "images": "Basis-Bildunterstützung",
+          "community": "Community-Zugang"
+        }
+      },
+      "trailblazer": {
+        "name": "Trailblazer",
+        "price": "9€/Monat",
+        "description": "Für ernsthafte Ausrüstungs-Enthusiasten",
+        "features": {
+          "items": "Unbegrenzte Gegenstände",
+          "loadouts": "Unbegrenzte Packlisten",
+          "images": "HD-Bilder & Galerien",
+          "community": "Prioritäts-Community-Features",
+          "analytics": "Ausrüstungs-Analysen & Einblicke",
+          "export": "Export & Backup"
+        }
+      }
+    }
+  },
+  "Auth": {
+    "loginTitle": "Willkommen zurück",
+    "loginSubtitle": "Melde dich an, um auf dein Ausrüstungsinventar zuzugreifen",
+    "registerTitle": "Konto erstellen",
+    "registerSubtitle": "Beginne noch heute, deine Outdoor-Ausrüstung zu organisieren",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "displayNameLabel": "Anzeigename",
+    "loginButton": "Anmelden",
+    "registerButton": "Konto erstellen",
+    "forgotPassword": "Passwort vergessen?",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto?",
+    "signUpLink": "Registrieren",
+    "signInLink": "Anmelden",
+    "orContinueWith": "Oder fortfahren mit",
+    "googleButton": "Mit Google fortfahren",
+    "errors": {
+      "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
+      "invalidPassword": "Das Passwort muss mindestens 8 Zeichen lang sein",
+      "loginFailed": "Anmeldung fehlgeschlagen. Bitte überprüfe deine Anmeldedaten.",
+      "registerFailed": "Registrierung fehlgeschlagen. Bitte versuche es erneut.",
+      "emailInUse": "Diese E-Mail-Adresse ist bereits registriert",
+      "weakPassword": "Das Passwort ist zu schwach"
+    }
+  },
+  "Inventory": {
+    "title": "Mein Inventar",
+    "searchPlaceholder": "Ausrüstung suchen...",
+    "filterCategory": "Kategorie",
+    "filterAll": "Alle Kategorien",
+    "sortBy": "Sortieren nach",
+    "sortOptions": {
+      "name": "Name (A-Z)",
+      "category": "Kategorie",
+      "dateAdded": "Hinzugefügt am"
+    },
+    "emptyTitle": "Noch keine Ausrüstung",
+    "emptyDescription": "Beginne mit dem Aufbau deines Inventars, indem du dein erstes Ausrüstungsteil hinzufügst.",
+    "addFirstItem": "Erstes Teil hinzufügen",
+    "addItem": "Hinzufügen",
+    "editItem": "Bearbeiten",
+    "deleteItem": "Löschen",
+    "viewDetails": "Details anzeigen",
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
+    "showingItems": "Zeige {filtered} von {total} Gegenständen",
+    "clearFilters": "Filter löschen",
+    "totalWeight": "Gesamtgewicht",
+    "totalValue": "Gesamtwert"
+  },
+  "GearEditor": {
+    "addTitle": "Neue Ausrüstung hinzufügen",
+    "editTitle": "Ausrüstung bearbeiten",
+    "generalInfo": "Allgemeine Informationen",
+    "specifications": "Spezifikationen",
+    "images": "Bilder",
+    "nameLabel": "Name",
+    "namePlaceholder": "Name eingeben",
+    "brandLabel": "Marke",
+    "brandPlaceholder": "Markenname eingeben",
+    "categoryLabel": "Kategorie",
+    "categoryPlaceholder": "Kategorie auswählen",
+    "weightLabel": "Gewicht",
+    "weightPlaceholder": "Gewicht eingeben",
+    "priceLabel": "Preis",
+    "pricePlaceholder": "Preis eingeben",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Notizen zu diesem Gegenstand hinzufügen...",
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "weightInvalid": "Bitte gib ein gültiges Gewicht ein",
+      "priceInvalid": "Bitte gib einen gültigen Preis ein"
+    },
+    "saveItem": "Speichern",
+    "discardChanges": "Änderungen verwerfen",
+    "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
+    "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?"
+  }
+}

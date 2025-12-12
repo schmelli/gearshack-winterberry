@@ -13,7 +13,9 @@ export type WeightUnit = 'g' | 'oz' | 'lb';
 
 export type GearCondition = 'new' | 'used' | 'worn';
 
-export type GearStatus = 'active' | 'wishlist' | 'sold';
+// Note: 'active' renamed to 'own' for Supabase migration (040-supabase-migration, T018)
+// Added 'lent' and 'retired' statuses for extended lifecycle
+export type GearStatus = 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
 
 // =============================================================================
 // UI Labels for Enumerations
@@ -32,10 +34,29 @@ export const GEAR_CONDITION_LABELS: Record<GearCondition, string> = {
 };
 
 export const GEAR_STATUS_LABELS: Record<GearStatus, string> = {
-  active: 'Active',
+  own: 'Own',
   wishlist: 'Wishlist',
   sold: 'Sold',
+  lent: 'Lent',
+  retired: 'Retired',
 };
+
+// =============================================================================
+// Cloud Function Processed Images (Feature: 019-image-perfection)
+// =============================================================================
+
+/** Single processed image from Cloud Functions background removal */
+export interface NobgImage {
+  /** PNG URL (required) */
+  png: string;
+  /** WebP URL (optional, future optimization) */
+  webp?: string;
+}
+
+/** Collection of processed images by size key */
+export interface NobgImages {
+  [size: string]: NobgImage;
+}
 
 // =============================================================================
 // GearItem Entity (Storage/Domain Model)
@@ -50,6 +71,8 @@ export interface GearItem {
   // Section 1: General Info
   name: string;
   brand: string | null;
+  /** Product description for details, specifications, or notes */
+  description: string | null;
   brandUrl: string | null;
   modelNumber: string | null;
   productUrl: string | null;
@@ -76,11 +99,25 @@ export interface GearItem {
   // Section 5: Media
   primaryImageUrl: string | null;
   galleryImageUrls: string[];
+  /** Processed images from Cloud Functions (background removed) */
+  nobgImages?: NobgImages;
 
   // Section 6: Status & Condition
   condition: GearCondition;
   status: GearStatus;
   notes: string | null;
+  /** Whether this item is marked as favourite - Feature 041 */
+  isFavourite: boolean;
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: boolean;
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: boolean;
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: boolean;
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
+  dependencyIds: string[];
 }
 
 // =============================================================================
@@ -91,6 +128,8 @@ export interface GearItemFormData {
   // Section 1: General Info
   name: string;
   brand: string;
+  /** Product description for details, specifications, or notes */
+  description: string;
   brandUrl: string;
   modelNumber: string;
   productUrl: string;
@@ -122,6 +161,18 @@ export interface GearItemFormData {
   condition: GearCondition;
   status: GearStatus;
   notes: string;
+  /** Whether this item is marked as favourite - Feature 041 */
+  isFavourite: boolean;
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: boolean;
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: boolean;
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: boolean;
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  /** IDs of gear items that typically go with this item */
+  dependencyIds: string[];
 }
 
 // =============================================================================
@@ -131,6 +182,7 @@ export interface GearItemFormData {
 export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   name: '',
   brand: '',
+  description: '',
   brandUrl: '',
   modelNumber: '',
   productUrl: '',
@@ -150,6 +202,11 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   primaryImageUrl: '',
   galleryImageUrls: [],
   condition: 'new',
-  status: 'active',
+  status: 'own',
   notes: '',
+  isFavourite: false,
+  isForSale: false,
+  canBeBorrowed: false,
+  canBeTraded: false,
+  dependencyIds: [],
 };

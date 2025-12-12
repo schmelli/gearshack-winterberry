@@ -5,10 +5,16 @@
 /**
  * Represents a navigation menu entry.
  * Used in both desktop nav and mobile menu.
+ *
+ * Feature: 027-i18n-next-intl
+ * Added translationKey for i18n support.
  */
 export interface NavItem {
-  /** Display label for the navigation link */
+  /** Display label for the navigation link (fallback if no translation) */
   label: string;
+
+  /** Translation key for i18n lookup (e.g., 'inventory', 'loadouts') */
+  translationKey: string;
 
   /** Target URL path */
   href: string;

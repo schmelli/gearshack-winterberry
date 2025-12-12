@@ -20,7 +20,7 @@ export type WeightUnit = z.infer<typeof weightUnitSchema>;
 export const gearConditionSchema = z.enum(['new', 'used', 'worn']);
 export type GearCondition = z.infer<typeof gearConditionSchema>;
 
-export const gearStatusSchema = z.enum(['active', 'wishlist', 'sold']);
+export const gearStatusSchema = z.enum(['own', 'wishlist', 'sold', 'lent', 'retired']);
 export type GearStatus = z.infer<typeof gearStatusSchema>;
 
 // =============================================================================
@@ -69,6 +69,7 @@ export const gearItemFormSchema = z.object({
     .min(1, 'Name is required')
     .max(200, 'Name must be 200 characters or less'),
   brand: z.string().max(100, 'Brand must be 100 characters or less'),
+  description: z.string().max(5000, 'Description must be 5000 characters or less'),
   brandUrl: optionalUrlSchema,
   modelNumber: z.string().max(100, 'Model number must be 100 characters or less'),
   productUrl: optionalUrlSchema,
@@ -109,6 +110,17 @@ export const gearItemFormSchema = z.object({
   condition: gearConditionSchema,
   status: gearStatusSchema,
   notes: z.string().max(5000, 'Notes must be 5000 characters or less'),
+  /** Whether this item is marked as favourite - Feature 041 */
+  isFavourite: z.boolean(),
+  /** Whether this item is available for sale - Feature 045 */
+  isForSale: z.boolean(),
+  /** Whether this item can be borrowed by others - Feature 045 */
+  canBeBorrowed: z.boolean(),
+  /** Whether this item can be traded - Feature 045 */
+  canBeTraded: z.boolean(),
+
+  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  dependencyIds: z.array(z.string()),
 });
 
 export type GearItemFormSchema = z.infer<typeof gearItemFormSchema>;

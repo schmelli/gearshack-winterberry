@@ -1,0 +1,1390 @@
+{
+  "version": "2.0.0",
+  "supportedLocales": [
+    "en",
+    "de"
+  ],
+  "categories": {
+    "clothing": {
+      "en": "Clothing",
+      "de": "Bekleidung"
+    },
+    "packs": {
+      "en": "Packs",
+      "de": "Rucksäcke"
+    },
+    "shelter": {
+      "en": "Shelter",
+      "de": "Unterkunft"
+    },
+    "sleeping": {
+      "en": "Sleeping",
+      "de": "Schlafsysteme"
+    },
+    "cooking": {
+      "en": "Cooking",
+      "de": "Kochen"
+    },
+    "hydration": {
+      "en": "Hydration",
+      "de": "Trinken"
+    },
+    "navigation": {
+      "en": "Navigation",
+      "de": "Navigation"
+    },
+    "electronics": {
+      "en": "Electronics",
+      "de": "Elektronik"
+    },
+    "medical_hygiene": {
+      "en": "Medical & Hygiene",
+      "de": "Medizin & Hygiene"
+    },
+    "safety_emergency": {
+      "en": "Safety & Emergency",
+      "de": "Sicherheit & Notfall"
+    },
+    "tools_accessories": {
+      "en": "Tools & Accessories",
+      "de": "Werkzeuge & Zubehör"
+    },
+    "packrafts_kayaks": {
+      "en": "Packrafts & Kayaks",
+      "de": "Packrafts & Kajaks"
+    },
+    "consumables": {
+      "en": "Consumables",
+      "de": "Verbrauchsmaterialien"
+    }
+  },
+  "subcategories": {
+    "outerwear": {
+      "categoryId": "clothing",
+      "en": "Outerwear",
+      "de": "Oberbekleidung"
+    },
+    "mid_layers": {
+      "categoryId": "clothing",
+      "en": "Mid-Layers",
+      "de": "Zwischenschichten"
+    },
+    "base_layers": {
+      "categoryId": "clothing",
+      "en": "Base Layers",
+      "de": "Basisschichten"
+    },
+    "bottoms": {
+      "categoryId": "clothing",
+      "en": "Bottoms",
+      "de": "Hosen"
+    },
+    "headwear": {
+      "categoryId": "clothing",
+      "en": "Headwear",
+      "de": "Kopfbedeckung"
+    },
+    "handwear": {
+      "categoryId": "clothing",
+      "en": "Handwear",
+      "de": "Handschuhe"
+    },
+    "socks": {
+      "categoryId": "clothing",
+      "en": "Socks",
+      "de": "Socken"
+    },
+    "underwear": {
+      "categoryId": "clothing",
+      "en": "Underwear",
+      "de": "Unterwäsche"
+    },
+    "footwear": {
+      "categoryId": "clothing",
+      "en": "Footwear",
+      "de": "Schuhe"
+    },
+    "backpacks": {
+      "categoryId": "packs",
+      "en": "Backpacks",
+      "de": "Rucksäcke"
+    },
+    "carrying_accessories": {
+      "categoryId": "packs",
+      "en": "Carrying Accessories",
+      "de": "Transportzubehör"
+    },
+    "tents": {
+      "categoryId": "shelter",
+      "en": "Tents",
+      "de": "Zelte"
+    },
+    "tarps": {
+      "categoryId": "shelter",
+      "en": "Tarps",
+      "de": "Planen"
+    },
+    "bivaque_solutions": {
+      "categoryId": "shelter",
+      "en": "Bivaque Solutions",
+      "de": "Biwak-Lösungen"
+    },
+    "sleeping_bags": {
+      "categoryId": "sleeping",
+      "en": "Sleeping Bags",
+      "de": "Schlafsäcke"
+    },
+    "quilts": {
+      "categoryId": "sleeping",
+      "en": "Quilts",
+      "de": "Quilts"
+    },
+    "sleeping_pads_pillows": {
+      "categoryId": "sleeping",
+      "en": "Sleeping Pads & Pillows",
+      "de": "Isomatten & Kissen"
+    },
+    "hammocks": {
+      "categoryId": "sleeping",
+      "en": "Hammocks",
+      "de": "Hängematten"
+    },
+    "cooking_systems": {
+      "categoryId": "cooking",
+      "en": "Cooking Systems",
+      "de": "Kochsysteme"
+    },
+    "camp_stoves": {
+      "categoryId": "cooking",
+      "en": "Camp Stoves",
+      "de": "Campingkocher"
+    },
+    "cookware": {
+      "categoryId": "cooking",
+      "en": "Cookware",
+      "de": "Kochgeschirr"
+    },
+    "water_storage_treatment": {
+      "categoryId": "hydration",
+      "en": "Water Storage & Treatment",
+      "de": "Wasserspeicherung & -aufbereitung"
+    },
+    "food_storage": {
+      "categoryId": "cooking",
+      "en": "Food Storage",
+      "de": "Lebensmittelaufbewahrung"
+    },
+    "navigation_tools": {
+      "categoryId": "navigation",
+      "en": "Navigation Tools",
+      "de": "Navigationswerkzeuge"
+    },
+    "lighting": {
+      "categoryId": "electronics",
+      "en": "Lighting",
+      "de": "Beleuchtung"
+    },
+    "power_communication": {
+      "categoryId": "electronics",
+      "en": "Power & Communication",
+      "de": "Energie & Kommunikation"
+    },
+    "optics": {
+      "categoryId": "navigation",
+      "en": "Optics",
+      "de": "Optik"
+    },
+    "first_aid_health_protection": {
+      "categoryId": "medical_hygiene",
+      "en": "First Aid & Health Protection",
+      "de": "Erste Hilfe & Gesundheitsschutz"
+    },
+    "personal_hygiene": {
+      "categoryId": "medical_hygiene",
+      "en": "Personal Hygiene",
+      "de": "Körperhygiene"
+    },
+    "safety": {
+      "categoryId": "safety_emergency",
+      "en": "Safety",
+      "de": "Sicherheit"
+    },
+    "emergency_survival": {
+      "categoryId": "safety_emergency",
+      "en": "Emergency & Survival",
+      "de": "Notfall & Überleben"
+    },
+    "trekking_support": {
+      "categoryId": "tools_accessories",
+      "en": "Trekking & Support",
+      "de": "Trekking & Unterstützung"
+    },
+    "knives_multitools": {
+      "categoryId": "tools_accessories",
+      "en": "Knives & Multi-tools",
+      "de": "Messer & Multiwerkzeuge"
+    },
+    "camp_furniture_comfort": {
+      "categoryId": "tools_accessories",
+      "en": "Camp Furniture & Comfort",
+      "de": "Campingmöbel & Komfort"
+    },
+    "gear_repair_maintenance": {
+      "categoryId": "tools_accessories",
+      "en": "Gear Repair & Maintenance",
+      "de": "Ausrüstungsreparatur & -wartung"
+    },
+    "miscellaneous_accessories": {
+      "categoryId": "tools_accessories",
+      "en": "Miscellaneous Accessories",
+      "de": "Diverses Zubehör"
+    },
+    "packrafts": {
+      "categoryId": "packrafts_kayaks",
+      "en": "Packrafts",
+      "de": "Packrafts"
+    },
+    "packrafting_accessories": {
+      "categoryId": "packrafts_kayaks",
+      "en": "Packrafting Accessories",
+      "de": "Packrafting-Zubehör"
+    },
+    "kayaks": {
+      "categoryId": "packrafts_kayaks",
+      "en": "Kayaks",
+      "de": "Kajaks"
+    },
+    "kayak_accessories": {
+      "categoryId": "packrafts_kayaks",
+      "en": "Kayak Accessories",
+      "de": "Kajak-Zubehör"
+    },
+    "water_safety": {
+      "categoryId": "packrafts_kayaks",
+      "en": "Water Safety",
+      "de": "Wassersicherheit"
+    },
+    "food": {
+      "categoryId": "consumables",
+      "en": "Food",
+      "de": "Lebensmittel"
+    },
+    "water": {
+      "categoryId": "consumables",
+      "en": "Water",
+      "de": "Wasser"
+    },
+    "fuel": {
+      "categoryId": "consumables",
+      "en": "Fuel",
+      "de": "Brennstoff"
+    }
+  },
+  "productTypes": {
+    "rain_jackets": {
+      "subcategoryId": "outerwear",
+      "en": "Rain Jackets",
+      "de": "Regenjacken"
+    },
+    "insulated_jackets": {
+      "subcategoryId": "outerwear",
+      "en": "Insulated Jackets",
+      "de": "Isolationsjacken"
+    },
+    "softshell_jackets": {
+      "subcategoryId": "outerwear",
+      "en": "Softshell Jackets",
+      "de": "Softshelljacken"
+    },
+    "wind_jackets": {
+      "subcategoryId": "outerwear",
+      "en": "Wind Jackets",
+      "de": "Windjacken"
+    },
+    "vests": {
+      "subcategoryId": "outerwear",
+      "en": "Vests",
+      "de": "Westen"
+    },
+    "ponchos": {
+      "subcategoryId": "outerwear",
+      "en": "Ponchos",
+      "de": "Ponchos"
+    },
+    "hiking_jackets": {
+      "subcategoryId": "outerwear",
+      "en": "Hiking Jackets",
+      "de": "Wanderjacken"
+    },
+    "long_sleeve_shirts": {
+      "subcategoryId": "mid_layers",
+      "en": "Long-Sleeve Shirts",
+      "de": "Langarmshirts"
+    },
+    "sun_shirts": {
+      "subcategoryId": "mid_layers",
+      "en": "Sun Shirts",
+      "de": "Sonnenschutzshirts"
+    },
+    "fleece_jackets": {
+      "subcategoryId": "mid_layers",
+      "en": "Fleece Jackets",
+      "de": "Fleecejacken"
+    },
+    "insulated_mid_layers": {
+      "subcategoryId": "mid_layers",
+      "en": "Insulated Mid-Layers",
+      "de": "Isolierte Zwischenschichten"
+    },
+    "sweaters_hoodies": {
+      "subcategoryId": "mid_layers",
+      "en": "Sweaters & Hoodies",
+      "de": "Pullover & Kapuzenpullis"
+    },
+    "short_sleeve_base_layers": {
+      "subcategoryId": "base_layers",
+      "en": "Short-Sleeve Base Layers",
+      "de": "Kurzarm-Basisschichten"
+    },
+    "long_sleeve_base_layers": {
+      "subcategoryId": "base_layers",
+      "en": "Long-Sleeve Base Layers",
+      "de": "Langarm-Basisschichten"
+    },
+    "base_layer_bottoms": {
+      "subcategoryId": "base_layers",
+      "en": "Base Layer Bottoms",
+      "de": "Unterhosen-Basisschicht"
+    },
+    "hiking_pants": {
+      "subcategoryId": "bottoms",
+      "en": "Hiking Pants",
+      "de": "Wanderhosen"
+    },
+    "hiking_shorts": {
+      "subcategoryId": "bottoms",
+      "en": "Hiking Shorts",
+      "de": "Wandershorts"
+    },
+    "convertible_pants": {
+      "subcategoryId": "bottoms",
+      "en": "Convertible Pants",
+      "de": "Zip-Off-Hosen"
+    },
+    "rain_pants": {
+      "subcategoryId": "bottoms",
+      "en": "Rain Pants",
+      "de": "Regenhosen"
+    },
+    "insulated_pants": {
+      "subcategoryId": "bottoms",
+      "en": "Insulated Pants",
+      "de": "Isolationshosen"
+    },
+    "skirts_skorts": {
+      "subcategoryId": "bottoms",
+      "en": "Skirts/Skorts",
+      "de": "Röcke/Hosenröcke"
+    },
+    "hats": {
+      "subcategoryId": "headwear",
+      "en": "Hats",
+      "de": "Hüte"
+    },
+    "caps": {
+      "subcategoryId": "headwear",
+      "en": "Caps",
+      "de": "Kappen"
+    },
+    "beanies": {
+      "subcategoryId": "headwear",
+      "en": "Beanies",
+      "de": "Mützen"
+    },
+    "headbands": {
+      "subcategoryId": "headwear",
+      "en": "Headbands",
+      "de": "Stirnbänder"
+    },
+    "neck_gaiters_buffs": {
+      "subcategoryId": "headwear",
+      "en": "Neck Gaiters/Buffs",
+      "de": "Halstücher/Buffs"
+    },
+    "gloves": {
+      "subcategoryId": "handwear",
+      "en": "Gloves",
+      "de": "Handschuhe"
+    },
+    "mittens": {
+      "subcategoryId": "handwear",
+      "en": "Mittens",
+      "de": "Fäustlinge"
+    },
+    "glove_liners": {
+      "subcategoryId": "handwear",
+      "en": "Glove Liners",
+      "de": "Handschuh-Liner"
+    },
+    "rain_mittens": {
+      "subcategoryId": "handwear",
+      "en": "Rain Mittens",
+      "de": "Regenfäustlinge"
+    },
+    "hiking_socks": {
+      "subcategoryId": "socks",
+      "en": "Hiking Socks",
+      "de": "Wandersocken"
+    },
+    "liner_socks": {
+      "subcategoryId": "socks",
+      "en": "Liner Socks",
+      "de": "Liner-Socken"
+    },
+    "winter_socks": {
+      "subcategoryId": "socks",
+      "en": "Winter Socks",
+      "de": "Wintersocken"
+    },
+    "briefs": {
+      "subcategoryId": "underwear",
+      "en": "Briefs",
+      "de": "Slips"
+    },
+    "boxer_briefs": {
+      "subcategoryId": "underwear",
+      "en": "Boxer Briefs",
+      "de": "Boxershorts"
+    },
+    "sports_bras": {
+      "subcategoryId": "underwear",
+      "en": "Sports Bras",
+      "de": "Sport-BHs"
+    },
+    "hiking_boots": {
+      "subcategoryId": "footwear",
+      "en": "Hiking Boots",
+      "de": "Wanderstiefel"
+    },
+    "hiking_shoes": {
+      "subcategoryId": "footwear",
+      "en": "Hiking Shoes",
+      "de": "Wanderschuhe"
+    },
+    "trail_running_shoes": {
+      "subcategoryId": "footwear",
+      "en": "Trail Running Shoes",
+      "de": "Trailrunning-Schuhe"
+    },
+    "approach_shoes": {
+      "subcategoryId": "footwear",
+      "en": "Approach Shoes",
+      "de": "Zustiegsschuhe"
+    },
+    "camp_shoes_sandals": {
+      "subcategoryId": "footwear",
+      "en": "Camp Shoes/Sandals",
+      "de": "Campingschuhe/Sandalen"
+    },
+    "winter_boots": {
+      "subcategoryId": "footwear",
+      "en": "Winter Boots",
+      "de": "Winterstiefel"
+    },
+    "gaiters": {
+      "subcategoryId": "footwear",
+      "en": "Gaiters",
+      "de": "Gamaschen"
+    },
+    "insoles": {
+      "subcategoryId": "footwear",
+      "en": "Insoles",
+      "de": "Einlegesohlen"
+    },
+    "insulated_campboots": {
+      "subcategoryId": "footwear",
+      "en": "Insulated Campboots",
+      "de": "Isolierte Campingstiefel"
+    },
+    "neoprene_boots": {
+      "subcategoryId": "footwear",
+      "en": "Neoprene Boots",
+      "de": "Neoprenstiefel"
+    },
+    "daypacks": {
+      "subcategoryId": "backpacks",
+      "en": "Daypacks (15-35L)",
+      "de": "Tagesrucksäcke (15-35L)"
+    },
+    "overnight_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Overnight Packs (35-50L+)",
+      "de": "Übernachtungsrucksäcke (35-50L+)"
+    },
+    "trekking_backpacks": {
+      "subcategoryId": "backpacks",
+      "en": "Trekking Backpacks (50L+)",
+      "de": "Trekkingrucksäcke (50L+)"
+    },
+    "expedition_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Expedition Packs (90L+)",
+      "de": "Expeditionsrucksäcke (90L+)"
+    },
+    "hydration_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Hydration Packs",
+      "de": "Trinkrucksäcke"
+    },
+    "summit_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Summit Packs",
+      "de": "Gipfelrucksäcke"
+    },
+    "ultralight_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Ultralight Packs (<1kg)",
+      "de": "Ultraleicht-Rucksäcke (<1kg)"
+    },
+    "mountaineering_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Mountaineering Packs",
+      "de": "Bergsteigerrucksäcke"
+    },
+    "child_carriers": {
+      "subcategoryId": "backpacks",
+      "en": "Child Carriers",
+      "de": "Kindertragen"
+    },
+    "dry_packs": {
+      "subcategoryId": "backpacks",
+      "en": "Dry Packs",
+      "de": "Wasserdichte Rucksäcke"
+    },
+    "pack_rain_covers": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Pack Rain Covers",
+      "de": "Regenhüllen"
+    },
+    "stuff_sacks": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Stuff Sacks",
+      "de": "Packsäcke"
+    },
+    "compression_sacks": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Compression Sacks",
+      "de": "Kompressionssäcke"
+    },
+    "dry_bags": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Dry Bags",
+      "de": "Wasserdichte Beutel"
+    },
+    "waist_packs_fanny_packs": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Waist Packs/Fanny Packs",
+      "de": "Hüfttaschen/Bauchtaschen"
+    },
+    "pack_organizers": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Pack Organizers",
+      "de": "Rucksack-Organizer"
+    },
+    "compression_straps": {
+      "subcategoryId": "carrying_accessories",
+      "en": "Compression Straps",
+      "de": "Kompressionsriemen"
+    },
+    "1_person_tents": {
+      "subcategoryId": "tents",
+      "en": "1-person Tents",
+      "de": "1-Personen-Zelte"
+    },
+    "2_person_tents": {
+      "subcategoryId": "tents",
+      "en": "2-person Tents",
+      "de": "2-Personen-Zelte"
+    },
+    "3_plus_person_tents": {
+      "subcategoryId": "tents",
+      "en": "3+ person Tents",
+      "de": "3+ Personen-Zelte"
+    },
+    "ultralight_tents": {
+      "subcategoryId": "tents",
+      "en": "Ultralight Tents (<1kg)",
+      "de": "Ultraleicht-Zelte (<1kg)"
+    },
+    "3_season_tents": {
+      "subcategoryId": "tents",
+      "en": "3-Season Tents",
+      "de": "3-Jahreszeiten-Zelte"
+    },
+    "4_season_winter_tents": {
+      "subcategoryId": "tents",
+      "en": "4-Season/Winter Tents",
+      "de": "4-Jahreszeiten/Winter-Zelte"
+    },
+    "shelter_tarps": {
+      "subcategoryId": "tarps",
+      "en": "Shelter Tarps",
+      "de": "Schutzplanen"
+    },
+    "loue_tarps": {
+      "subcategoryId": "tarps",
+      "en": "Loue Tarps",
+      "de": "Loue-Planen"
+    },
+    "ultralight_tarps": {
+      "subcategoryId": "tarps",
+      "en": "Ultralight Tarps (<500g)",
+      "de": "Ultraleicht-Planen (<500g)"
+    },
+    "hammock_tarps": {
+      "subcategoryId": "tarps",
+      "en": "Hammock Tarps",
+      "de": "Hängematten-Planen"
+    },
+    "bivy_bags": {
+      "subcategoryId": "bivaque_solutions",
+      "en": "Bivy Bags",
+      "de": "Biwaksäcke"
+    },
+    "emergency_shelters": {
+      "subcategoryId": "bivaque_solutions",
+      "en": "Emergency Shelters",
+      "de": "Notunterkünfte"
+    },
+    "down_sleeping_bags": {
+      "subcategoryId": "sleeping_bags",
+      "en": "Down Sleeping Bags",
+      "de": "Daunenschlafsäcke"
+    },
+    "synthetic_sleeping_bags": {
+      "subcategoryId": "sleeping_bags",
+      "en": "Synthetic Sleeping Bags",
+      "de": "Kunstfaserschlafsäcke"
+    },
+    "kids_sleeping_bags": {
+      "subcategoryId": "sleeping_bags",
+      "en": "Kids Sleeping Bags",
+      "de": "Kinderschlafsäcke"
+    },
+    "down_quilts": {
+      "subcategoryId": "quilts",
+      "en": "Down Quilts",
+      "de": "Daunen-Quilts"
+    },
+    "synthetic_quilts": {
+      "subcategoryId": "quilts",
+      "en": "Synthetic Quilts",
+      "de": "Kunstfaser-Quilts"
+    },
+    "hammock_topquilts": {
+      "subcategoryId": "quilts",
+      "en": "Hammock Topquilts",
+      "de": "Hängematten-Oberdecken"
+    },
+    "hammock_underquilts": {
+      "subcategoryId": "quilts",
+      "en": "Hammock Underquilts",
+      "de": "Hängematten-Unterdecken"
+    },
+    "foam_sleeping_pads": {
+      "subcategoryId": "sleeping_pads_pillows",
+      "en": "Foam Sleeping Pads",
+      "de": "Schaumstoff-Isomatten"
+    },
+    "inflatable_sleeping_pads": {
+      "subcategoryId": "sleeping_pads_pillows",
+      "en": "Inflatable Sleeping Pads",
+      "de": "Aufblasbare Isomatten"
+    },
+    "camp_pillows": {
+      "subcategoryId": "sleeping_pads_pillows",
+      "en": "Camp Pillows",
+      "de": "Campingkissen"
+    },
+    "sleeping_bag_liners": {
+      "subcategoryId": "sleeping_pads_pillows",
+      "en": "Sleeping Bag Liners",
+      "de": "Schlafsack-Inletts"
+    },
+    "cots": {
+      "subcategoryId": "sleeping_pads_pillows",
+      "en": "Cots",
+      "de": "Feldbetten"
+    },
+    "bridge_hammocks": {
+      "subcategoryId": "hammocks",
+      "en": "Bridge Hammocks",
+      "de": "Brücken-Hängematten"
+    },
+    "gathered_end_hammocks": {
+      "subcategoryId": "hammocks",
+      "en": "Gathered-End Hammocks",
+      "de": "Geraffte Hängematten"
+    },
+    "hammock_socks": {
+      "subcategoryId": "hammocks",
+      "en": "Hammock Socks",
+      "de": "Hängematten-Socken"
+    },
+    "trangia_stormcookers": {
+      "subcategoryId": "cooking_systems",
+      "en": "Trangia Stormcookers",
+      "de": "Trangia Sturmkocher"
+    },
+    "jetboil_cooking_systems": {
+      "subcategoryId": "cooking_systems",
+      "en": "Jetboil Cooking Systems",
+      "de": "Jetboil Kochsysteme"
+    },
+    "gas_stoves": {
+      "subcategoryId": "camp_stoves",
+      "en": "Gas Stoves",
+      "de": "Gaskocher"
+    },
+    "alcohol_stoves": {
+      "subcategoryId": "camp_stoves",
+      "en": "Alcohol Stoves",
+      "de": "Spirituskocher"
+    },
+    "liquid_fuel_stoves": {
+      "subcategoryId": "camp_stoves",
+      "en": "Liquid Fuel Stoves",
+      "de": "Benzinkocher"
+    },
+    "multifuel_stoves": {
+      "subcategoryId": "camp_stoves",
+      "en": "Multifuel Stoves",
+      "de": "Multifuel-Kocher"
+    },
+    "solid_fuel_stoves": {
+      "subcategoryId": "camp_stoves",
+      "en": "Solid Fuel Stoves",
+      "de": "Festbrennstoffkocher"
+    },
+    "camp_grills": {
+      "subcategoryId": "camp_stoves",
+      "en": "Camp Grills",
+      "de": "Campinggrills"
+    },
+    "fuel_bottles": {
+      "subcategoryId": "camp_stoves",
+      "en": "Fuel Bottles",
+      "de": "Brennstoffflaschen"
+    },
+    "gas_canisters": {
+      "subcategoryId": "camp_stoves",
+      "en": "Gas Canisters",
+      "de": "Gaskartuschen"
+    },
+    "water_kettles": {
+      "subcategoryId": "cookware",
+      "en": "Water Kettles",
+      "de": "Wasserkessel"
+    },
+    "pots_pans": {
+      "subcategoryId": "cookware",
+      "en": "Pots & Pans",
+      "de": "Töpfe & Pfannen"
+    },
+    "dutch_ovens": {
+      "subcategoryId": "cookware",
+      "en": "Dutch Ovens",
+      "de": "Dutch Ovens"
+    },
+    "camping_ovens": {
+      "subcategoryId": "cookware",
+      "en": "Camping Ovens",
+      "de": "Campingöfen"
+    },
+    "cooking_utensils": {
+      "subcategoryId": "cookware",
+      "en": "Cooking Utensils",
+      "de": "Kochutensilien"
+    },
+    "plates_bowls": {
+      "subcategoryId": "cookware",
+      "en": "Plates & Bowls",
+      "de": "Teller & Schüsseln"
+    },
+    "mugs_cups": {
+      "subcategoryId": "cookware",
+      "en": "Mugs & Cups",
+      "de": "Becher & Tassen"
+    },
+    "water_bottles": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Water Bottles",
+      "de": "Wasserflaschen"
+    },
+    "hydration_reservoirs": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Hydration Reservoirs",
+      "de": "Trinkblasen"
+    },
+    "water_filters": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Water Filters",
+      "de": "Wasserfilter"
+    },
+    "water_purifiers": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Water Purifiers",
+      "de": "Wasserentkeimer"
+    },
+    "water_treatment_chemicals": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Water Treatment Chemicals",
+      "de": "Wasseraufbereitungsmittel"
+    },
+    "insulated_bottles": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Insulated Bottles",
+      "de": "Isolierflaschen"
+    },
+    "flasks": {
+      "subcategoryId": "water_storage_treatment",
+      "en": "Flasks",
+      "de": "Flachmann"
+    },
+    "food_bags": {
+      "subcategoryId": "food_storage",
+      "en": "Food Bags",
+      "de": "Lebensmittelbeutel"
+    },
+    "food_storage_containers": {
+      "subcategoryId": "food_storage",
+      "en": "Food Storage Containers",
+      "de": "Lebensmittelbehälter"
+    },
+    "bear_canisters": {
+      "subcategoryId": "food_storage",
+      "en": "Bear Canisters",
+      "de": "Bärenkanister"
+    },
+    "bear_bags": {
+      "subcategoryId": "food_storage",
+      "en": "Bear Bags",
+      "de": "Bärensäcke"
+    },
+    "gps_devices": {
+      "subcategoryId": "navigation_tools",
+      "en": "GPS Devices",
+      "de": "GPS-Geräte"
+    },
+    "gps_watches": {
+      "subcategoryId": "navigation_tools",
+      "en": "GPS Watches",
+      "de": "GPS-Uhren"
+    },
+    "compasses": {
+      "subcategoryId": "navigation_tools",
+      "en": "Compasses",
+      "de": "Kompasse"
+    },
+    "maps": {
+      "subcategoryId": "navigation_tools",
+      "en": "Maps",
+      "de": "Karten"
+    },
+    "altimeters": {
+      "subcategoryId": "navigation_tools",
+      "en": "Altimeters",
+      "de": "Höhenmesser"
+    },
+    "headlamps": {
+      "subcategoryId": "lighting",
+      "en": "Headlamps",
+      "de": "Stirnlampen"
+    },
+    "flashlights": {
+      "subcategoryId": "lighting",
+      "en": "Flashlights",
+      "de": "Taschenlampen"
+    },
+    "camping_lanterns": {
+      "subcategoryId": "lighting",
+      "en": "Camping Lanterns",
+      "de": "Campinglaternen"
+    },
+    "power_adapters": {
+      "subcategoryId": "power_communication",
+      "en": "Power Adapters",
+      "de": "Netzadapter"
+    },
+    "power_banks": {
+      "subcategoryId": "power_communication",
+      "en": "Power Banks",
+      "de": "Powerbanks"
+    },
+    "charging_cables": {
+      "subcategoryId": "power_communication",
+      "en": "Charging Cables",
+      "de": "Ladekabel"
+    },
+    "solar_chargers": {
+      "subcategoryId": "power_communication",
+      "en": "Solar Chargers",
+      "de": "Solarladegeräte"
+    },
+    "batteries": {
+      "subcategoryId": "power_communication",
+      "en": "Batteries",
+      "de": "Batterien"
+    },
+    "satellite_communicators": {
+      "subcategoryId": "power_communication",
+      "en": "Satellite Communicators",
+      "de": "Satelliten-Kommunikatoren"
+    },
+    "two_way_radios": {
+      "subcategoryId": "power_communication",
+      "en": "Two-Way Radios",
+      "de": "Funkgeräte"
+    },
+    "binoculars": {
+      "subcategoryId": "optics",
+      "en": "Binoculars",
+      "de": "Ferngläser"
+    },
+    "monoculars": {
+      "subcategoryId": "optics",
+      "en": "Monoculars",
+      "de": "Monokulare"
+    },
+    "first_aid_kits": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "First Aid Kits",
+      "de": "Erste-Hilfe-Sets"
+    },
+    "blister_care": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Blister Care",
+      "de": "Blasenpflege"
+    },
+    "medication": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Medication",
+      "de": "Medikamente"
+    },
+    "insect_repellent": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Insect Repellent",
+      "de": "Insektenschutzmittel"
+    },
+    "sunscreen": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Sunscreen",
+      "de": "Sonnencreme"
+    },
+    "sun_glasses": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Sun Glasses",
+      "de": "Sonnenbrillen"
+    },
+    "snow_glasses": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Snow Glasses",
+      "de": "Schneebrillen"
+    },
+    "hand_sanitizer": {
+      "subcategoryId": "first_aid_health_protection",
+      "en": "Hand Sanitizer",
+      "de": "Handdesinfektionsmittel"
+    },
+    "teeth_hygiene": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Teeth Hygiene",
+      "de": "Zahnhygiene"
+    },
+    "trowels": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Trowels",
+      "de": "Schaufeln"
+    },
+    "camping_bidets": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Camping Bidets",
+      "de": "Camping-Bidets"
+    },
+    "biodegradable_soap": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Biodegradable Soap",
+      "de": "Biologisch abbaubare Seife"
+    },
+    "feminine_hygiene_products": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Feminine Hygiene Products",
+      "de": "Damenhygieneartikel"
+    },
+    "compressed_towels": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Compressed Towels",
+      "de": "Komprimierte Handtücher"
+    },
+    "pack_towels": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Pack Towels",
+      "de": "Reisehandtücher"
+    },
+    "disposable_wipes": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Disposable Wipes",
+      "de": "Einwegtücher"
+    },
+    "kula_cloths": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Kula Cloths",
+      "de": "Kula-Tücher"
+    },
+    "waste_bags": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Waste Bags",
+      "de": "Abfallbeutel"
+    },
+    "bandana": {
+      "subcategoryId": "personal_hygiene",
+      "en": "Bandana",
+      "de": "Bandana"
+    },
+    "avalanche_safety_gear": {
+      "subcategoryId": "safety",
+      "en": "Avalanche Safety Gear",
+      "de": "Lawinensicherheitsausrüstung"
+    },
+    "bear_protection": {
+      "subcategoryId": "safety",
+      "en": "Bear Protection",
+      "de": "Bärenschutz"
+    },
+    "fire_starters": {
+      "subcategoryId": "emergency_survival",
+      "en": "Fire Starters",
+      "de": "Feuerstarter"
+    },
+    "emergency_whistles": {
+      "subcategoryId": "emergency_survival",
+      "en": "Emergency Whistles",
+      "de": "Notfallpfeifen"
+    },
+    "emergency_signaling": {
+      "subcategoryId": "emergency_survival",
+      "en": "Emergency Signaling",
+      "de": "Notsignalgeräte"
+    },
+    "survival_kits": {
+      "subcategoryId": "emergency_survival",
+      "en": "Survival Kits",
+      "de": "Überlebenskits"
+    },
+    "personal_locator_beacons": {
+      "subcategoryId": "emergency_survival",
+      "en": "Personal Locator Beacons (PLBs)",
+      "de": "Persönliche Notfallbaken (PLBs)"
+    },
+    "satellite_emergency_devices": {
+      "subcategoryId": "emergency_survival",
+      "en": "Satellite Emergency Devices",
+      "de": "Satelliten-Notfallgeräte"
+    },
+    "trekking_poles": {
+      "subcategoryId": "trekking_support",
+      "en": "Trekking Poles",
+      "de": "Trekkingstöcke"
+    },
+    "ice_axes": {
+      "subcategoryId": "trekking_support",
+      "en": "Ice Axes",
+      "de": "Eispickel"
+    },
+    "crampons": {
+      "subcategoryId": "trekking_support",
+      "en": "Crampons",
+      "de": "Steigeisen"
+    },
+    "snowshoes": {
+      "subcategoryId": "trekking_support",
+      "en": "Snowshoes",
+      "de": "Schneeschuhe"
+    },
+    "folding_knives": {
+      "subcategoryId": "knives_multitools",
+      "en": "Folding Knives",
+      "de": "Klappmesser"
+    },
+    "fixed_blade_knives": {
+      "subcategoryId": "knives_multitools",
+      "en": "Fixed Blade Knives",
+      "de": "Feststehende Messer"
+    },
+    "multitools": {
+      "subcategoryId": "knives_multitools",
+      "en": "Multi-tools",
+      "de": "Multiwerkzeuge"
+    },
+    "axes_hatchets": {
+      "subcategoryId": "knives_multitools",
+      "en": "Axes/Hatchets",
+      "de": "Äxte/Beile"
+    },
+    "camp_chairs": {
+      "subcategoryId": "camp_furniture_comfort",
+      "en": "Camp Chairs",
+      "de": "Campingstühle"
+    },
+    "camp_tables": {
+      "subcategoryId": "camp_furniture_comfort",
+      "en": "Camp Tables",
+      "de": "Campingtische"
+    },
+    "camp_lights_decor": {
+      "subcategoryId": "camp_furniture_comfort",
+      "en": "Camp Lights/Decor",
+      "de": "Campinglichter/Deko"
+    },
+    "hammock_stands": {
+      "subcategoryId": "camp_furniture_comfort",
+      "en": "Hammock Stands",
+      "de": "Hängemattengestelle"
+    },
+    "repair_kits": {
+      "subcategoryId": "gear_repair_maintenance",
+      "en": "Repair Kits",
+      "de": "Reparatursets"
+    },
+    "seam_sealers": {
+      "subcategoryId": "gear_repair_maintenance",
+      "en": "Seam Sealers",
+      "de": "Nahtversiegler"
+    },
+    "waterproofing_treatments": {
+      "subcategoryId": "gear_repair_maintenance",
+      "en": "Waterproofing Treatments",
+      "de": "Imprägnierungen"
+    },
+    "cleaning_products": {
+      "subcategoryId": "gear_repair_maintenance",
+      "en": "Cleaning Products",
+      "de": "Reinigungsprodukte"
+    },
+    "dry_bags_general": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Dry Bags (general)",
+      "de": "Wasserdichte Beutel (allgemein)"
+    },
+    "ropes_cordage": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Ropes/Cordage",
+      "de": "Seile/Schnüre"
+    },
+    "duct_tape": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Duct Tape",
+      "de": "Panzertape"
+    },
+    "carabiners": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Carabiners",
+      "de": "Karabiner"
+    },
+    "books_maps": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Books & Maps",
+      "de": "Bücher & Karten"
+    },
+    "dog_gear": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Dog Gear",
+      "de": "Hundeausrüstung"
+    },
+    "travel_accessories": {
+      "subcategoryId": "miscellaneous_accessories",
+      "en": "Travel Accessories",
+      "de": "Reisezubehör"
+    },
+    "1_person_packrafts": {
+      "subcategoryId": "packrafts",
+      "en": "1-Person Packrafts",
+      "de": "1-Personen-Packrafts"
+    },
+    "2_person_packrafts": {
+      "subcategoryId": "packrafts",
+      "en": "2-Person Packrafts",
+      "de": "2-Personen-Packrafts"
+    },
+    "ultralight_packrafts": {
+      "subcategoryId": "packrafts",
+      "en": "Ultralight Packrafts",
+      "de": "Ultraleicht-Packrafts"
+    },
+    "white_water_packrafts": {
+      "subcategoryId": "packrafts",
+      "en": "White-Water Packrafts",
+      "de": "Wildwasser-Packrafts"
+    },
+    "packrafting_gear_bags": {
+      "subcategoryId": "packrafting_accessories",
+      "en": "Packrafting Gear Bags",
+      "de": "Packrafting-Ausrüstungstaschen"
+    },
+    "packrafting_paddles": {
+      "subcategoryId": "packrafting_accessories",
+      "en": "Packrafting Paddles",
+      "de": "Packrafting-Paddel"
+    },
+    "1_person_kayaks": {
+      "subcategoryId": "kayaks",
+      "en": "1-Person Kayaks",
+      "de": "1-Personen-Kajaks"
+    },
+    "2_person_kayaks": {
+      "subcategoryId": "kayaks",
+      "en": "2-Person Kayaks",
+      "de": "2-Personen-Kajaks"
+    },
+    "3_plus_person_kayaks": {
+      "subcategoryId": "kayaks",
+      "en": "3+ Person Kayaks",
+      "de": "3+ Personen-Kajaks"
+    },
+    "kayak_bags": {
+      "subcategoryId": "kayak_accessories",
+      "en": "Kayak Bags",
+      "de": "Kajaktaschen"
+    },
+    "kayak_paddles": {
+      "subcategoryId": "kayak_accessories",
+      "en": "Kayak Paddles",
+      "de": "Kajakpaddel"
+    },
+    "kayak_rollers": {
+      "subcategoryId": "kayak_accessories",
+      "en": "Kayak Rollers",
+      "de": "Kajakrollen"
+    },
+    "floatation_devices": {
+      "subcategoryId": "water_safety",
+      "en": "Floatation Devices",
+      "de": "Schwimmhilfen"
+    },
+    "life_jackets": {
+      "subcategoryId": "water_safety",
+      "en": "Life Jackets",
+      "de": "Schwimmwesten"
+    },
+    "throw_lines": {
+      "subcategoryId": "water_safety",
+      "en": "Throw Lines",
+      "de": "Wurfsäcke"
+    },
+    "life_preservers": {
+      "subcategoryId": "water_safety",
+      "en": "Life Preservers",
+      "de": "Rettungsringe"
+    },
+    "freeze_dried_meals": {
+      "subcategoryId": "food",
+      "en": "Freeze-Dried Meals",
+      "de": "Gefriergetrocknete Mahlzeiten"
+    },
+    "dehydrated_meals": {
+      "subcategoryId": "food",
+      "en": "Dehydrated Meals",
+      "de": "Dehydrierte Mahlzeiten"
+    },
+    "energy_bars": {
+      "subcategoryId": "food",
+      "en": "Energy Bars",
+      "de": "Energieriegel"
+    },
+    "trail_mix": {
+      "subcategoryId": "food",
+      "en": "Trail Mix",
+      "de": "Studentenfutter"
+    },
+    "jerky": {
+      "subcategoryId": "food",
+      "en": "Jerky",
+      "de": "Dörrfleisch"
+    },
+    "instant_noodles": {
+      "subcategoryId": "food",
+      "en": "Instant Noodles",
+      "de": "Instantnudeln"
+    },
+    "breakfast_items": {
+      "subcategoryId": "food",
+      "en": "Breakfast Items",
+      "de": "Frühstücksartikel"
+    },
+    "snacks": {
+      "subcategoryId": "food",
+      "en": "Snacks",
+      "de": "Snacks"
+    },
+    "condiments_spices": {
+      "subcategoryId": "food",
+      "en": "Condiments & Spices",
+      "de": "Gewürze & Würzmittel"
+    },
+    "bottled_water": {
+      "subcategoryId": "water",
+      "en": "Bottled Water",
+      "de": "Flaschenwasser"
+    },
+    "water_pouches": {
+      "subcategoryId": "water",
+      "en": "Water Pouches",
+      "de": "Wasserbeutel"
+    },
+    "electrolyte_drinks": {
+      "subcategoryId": "water",
+      "en": "Electrolyte Drinks",
+      "de": "Elektrolytgetränke"
+    },
+    "drink_mixes": {
+      "subcategoryId": "water",
+      "en": "Drink Mixes",
+      "de": "Getränkepulver"
+    },
+    "canister_gas": {
+      "subcategoryId": "fuel",
+      "en": "Canister Gas",
+      "de": "Gaskartusche"
+    },
+    "white_gas": {
+      "subcategoryId": "fuel",
+      "en": "White Gas",
+      "de": "Reinbenzin"
+    },
+    "alcohol_fuel": {
+      "subcategoryId": "fuel",
+      "en": "Alcohol Fuel",
+      "de": "Spiritus"
+    },
+    "solid_fuel_tablets": {
+      "subcategoryId": "fuel",
+      "en": "Solid Fuel Tablets",
+      "de": "Festbrennstofftabletten"
+    },
+    "wood_pellets": {
+      "subcategoryId": "fuel",
+      "en": "Wood Pellets",
+      "de": "Holzpellets"
+    },
+    "kerosene": {
+      "subcategoryId": "fuel",
+      "en": "Kerosene",
+      "de": "Kerosin"
+    },
+    "propane": {
+      "subcategoryId": "fuel",
+      "en": "Propane",
+      "de": "Propan"
+    }
+  }
+}

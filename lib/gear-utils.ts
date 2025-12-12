@@ -89,6 +89,7 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
   return {
     name: item.name,
     brand: item.brand ?? '',
+    description: item.description ?? '',
     brandUrl: item.brandUrl ?? '',
     modelNumber: item.modelNumber ?? '',
     productUrl: item.productUrl ?? '',
@@ -110,6 +111,11 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     condition: item.condition,
     status: item.status,
     notes: item.notes ?? '',
+    isFavourite: item.isFavourite ?? false,
+    isForSale: item.isForSale ?? false,
+    canBeBorrowed: item.canBeBorrowed ?? false,
+    canBeTraded: item.canBeTraded ?? false,
+    dependencyIds: item.dependencyIds ?? [],
   };
 }
 
@@ -131,6 +137,7 @@ export function formDataToGearItem(
   return {
     name: formData.name,
     brand: formData.brand || null,
+    description: formData.description || null,
     brandUrl: formData.brandUrl || null,
     modelNumber: formData.modelNumber || null,
     productUrl: formData.productUrl || null,
@@ -152,6 +159,11 @@ export function formDataToGearItem(
     condition: formData.condition,
     status: formData.status,
     notes: formData.notes || null,
+    isFavourite: formData.isFavourite ?? false,
+    isForSale: formData.isForSale ?? false,
+    canBeBorrowed: formData.canBeBorrowed ?? false,
+    canBeTraded: formData.canBeTraded ?? false,
+    dependencyIds: formData.dependencyIds ?? [],
   };
 }
 
@@ -193,4 +205,32 @@ export function updateGearItem(
     ...formDataToGearItem(formData),
     updatedAt: new Date(),
   };
+}
+
+// =============================================================================
+// Optimized Image Selection (Feature: 019-image-perfection)
+// =============================================================================
+
+/**
+ * Returns the best available image URL for a gear item
+ *
+ * Priority order:
+ * 1. nobgImages (first available PNG from Cloud Functions)
+ * 2. primaryImageUrl (original uploaded image)
+ * 3. null (no image available)
+ *
+ * @param item - GearItem to get image URL for
+ * @returns Best available image URL or null
+ */
+export function getOptimizedImageUrl(item: GearItem): string | null {
+  // Check for processed background-removed images first
+  if (item.nobgImages) {
+    const sizes = Object.values(item.nobgImages);
+    if (sizes.length > 0 && sizes[0]?.png) {
+      return sizes[0].png;
+    }
+  }
+
+  // Fall back to primary image
+  return item.primaryImageUrl;
 }
