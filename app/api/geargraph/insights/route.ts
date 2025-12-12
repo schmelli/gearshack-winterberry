@@ -37,48 +37,136 @@ const gearInsightsParamsSchema = z
 // =============================================================================
 
 const CACHE_TTL_DAYS = 7;
+const GEARGRAPH_QUERY_URL = 'https://geargraph.gearshack.app/api/query';
 
 // =============================================================================
-// Mock GearGraph Data (for development)
+// GearGraph Cypher API Types
 // =============================================================================
 
-// In production, this would call an actual GearGraph API
-// For now, we return mock data based on category/product type
-const MOCK_INSIGHTS: Record<string, GearInsight[]> = {
-  shelter: [
-    { type: 'seasonality' as InsightType, label: '3-Season', confidence: 0.9 },
-    { type: 'category' as InsightType, label: 'Backpacking', confidence: 0.95 },
-    { type: 'use_case' as InsightType, label: 'Solo & Duo Camping', confidence: 0.85 },
-  ],
-  sleep_system: [
-    { type: 'seasonality' as InsightType, label: 'Summer', confidence: 0.88 },
-    { type: 'weight_class' as InsightType, label: 'Ultralight', confidence: 0.82 },
-    { type: 'category' as InsightType, label: 'Backpacking', confidence: 0.9 },
-  ],
-  clothing: [
-    { type: 'seasonality' as InsightType, label: 'Multi-Season', confidence: 0.85 },
-    { type: 'category' as InsightType, label: 'Technical Apparel', confidence: 0.88 },
-  ],
-  kitchen: [
-    { type: 'use_case' as InsightType, label: 'Hot Meals', confidence: 0.9 },
-    { type: 'weight_class' as InsightType, label: 'Lightweight', confidence: 0.75 },
-  ],
-  electronics: [
-    { type: 'use_case' as InsightType, label: 'Navigation', confidence: 0.85 },
-    { type: 'use_case' as InsightType, label: 'Safety', confidence: 0.8 },
-  ],
-  hygiene: [
-    { type: 'category' as InsightType, label: 'Personal Care', confidence: 0.95 },
-  ],
-  tools: [
-    { type: 'use_case' as InsightType, label: 'Camp Tasks', confidence: 0.9 },
-    { type: 'compatibility' as InsightType, label: 'Multi-purpose', confidence: 0.85 },
-  ],
-};
+interface CypherInsightResult {
+  'i.summary': string;
+  'i.content': string;
+  'g.name'?: string;
+  'g.category'?: string;
+}
+
+interface CypherQueryResponse {
+  results: CypherInsightResult[];
+  count: number;
+}
+
+// =============================================================================
+// GearGraph Cypher Query Integration
+// =============================================================================
 
 /**
- * Mock function to simulate GearGraph API call
- * In production, replace with actual API integration
+ * Execute a Cypher query against the GearGraph API
+ */
+async function executeCypher(
+  query: string,
+  parameters: Record<string, string | number>,
+  apiKey: string
+): Promise<CypherInsightResult[]> {
+  try {
+    console.log('[GearGraph] Executing Cypher:', query, parameters);
+
+    const response = await fetch(GEARGRAPH_QUERY_URL, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, parameters }),
+    });
+
+    if (!response.ok) {
+      console.error('[GearGraph] Cypher error:', response.status, response.statusText);
+      return [];
+    }
+
+    const result: CypherQueryResponse = await response.json();
+    return result.results || [];
+  } catch (error) {
+    console.error('[GearGraph] Cypher fetch error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get insights for a specific gear item by name search
+ */
+async function getInsightsForProduct(
+  searchTerm: string,
+  apiKey: string,
+  limit = 5
+): Promise<GearInsight[]> {
+  const query = `
+    MATCH (g:GearItem)-[:HAS_TIP]->(i:Insight)
+    WHERE toLower(g.name) CONTAINS toLower($search)
+       OR toLower(g.brand) CONTAINS toLower($search)
+    RETURN g.name, i.summary, i.content
+    LIMIT $limit
+  `;
+
+  const results = await executeCypher(query, { search: searchTerm, limit }, apiKey);
+
+  return results.map((r) => ({
+    type: 'tip' as InsightType,
+    content: r['i.content'] || r['i.summary'],
+    confidence: 0.9,
+  }));
+}
+
+/**
+ * Get insights for a category (broader context)
+ */
+async function getInsightsForCategory(
+  category: string,
+  apiKey: string,
+  limit = 5
+): Promise<GearInsight[]> {
+  const query = `
+    MATCH (g:GearItem)-[:HAS_TIP]->(i:Insight)
+    WHERE g.category = $category
+    RETURN DISTINCT i.summary, i.content
+    LIMIT $limit
+  `;
+
+  const results = await executeCypher(query, { category, limit }, apiKey);
+
+  return results.map((r) => ({
+    type: 'tip' as InsightType,
+    content: r['i.content'] || r['i.summary'],
+    confidence: 0.75,
+  }));
+}
+
+/**
+ * Get general insights (not tied to specific gear)
+ */
+async function getGeneralInsights(
+  apiKey: string,
+  limit = 3
+): Promise<GearInsight[]> {
+  const query = `
+    MATCH (i:Insight)
+    WHERE NOT (i)<-[:HAS_TIP]-()
+    RETURN i.summary, i.content
+    LIMIT $limit
+  `;
+
+  const results = await executeCypher(query, { limit }, apiKey);
+
+  return results.map((r) => ({
+    type: 'tip' as InsightType,
+    content: r['i.content'] || r['i.summary'],
+    confidence: 0.6,
+  }));
+}
+
+/**
+ * Fetch insights from the GearGraph Cypher API
+ * Searches for both specific product AND broader category context
  */
 async function fetchGearGraphInsights(params: {
   productTypeId?: string;
@@ -86,22 +174,69 @@ async function fetchGearGraphInsights(params: {
   brand?: string;
   name?: string;
 }): Promise<GearInsight[]> {
-  // Simulate API latency
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const apiKey = process.env.GEARGRAPH_API_KEY;
 
-  // Return insights based on category if available
-  if (params.categoryId && MOCK_INSIGHTS[params.categoryId]) {
-    return MOCK_INSIGHTS[params.categoryId];
+  if (!apiKey) {
+    console.warn('[GearGraph] Missing GEARGRAPH_API_KEY');
+    return [];
   }
 
-  // Return generic insights for unknown products
-  if (params.brand && params.name) {
-    return [
-      { type: 'category' as InsightType, label: 'Outdoor Gear', confidence: 0.7 },
-    ];
+  const allInsights: GearInsight[] = [];
+
+  // 1. Search for specific product insights
+  const searchTerms = [params.brand, params.name].filter(Boolean);
+  if (searchTerms.length > 0) {
+    // Try full search first
+    const fullSearch = searchTerms.join(' ');
+    console.log('[GearGraph] Searching for product:', fullSearch);
+    const productInsights = await getInsightsForProduct(fullSearch, apiKey, 5);
+    allInsights.push(...productInsights);
+
+    // If no results, try just the name
+    if (productInsights.length === 0 && params.name) {
+      const nameInsights = await getInsightsForProduct(params.name, apiKey, 5);
+      allInsights.push(...nameInsights);
+    }
   }
 
-  return [];
+  // 2. Get category context if we don't have enough insights
+  if (allInsights.length < 3 && params.categoryId) {
+    // Map our category IDs to GearGraph categories
+    const categoryMap: Record<string, string> = {
+      shelter: 'tent',
+      sleep_system: 'sleeping_bag',
+      clothing: 'clothing',
+      kitchen: 'cookware',
+      electronics: 'accessories',
+      hygiene: 'accessories',
+      tools: 'accessories',
+      hydration: 'water_filter',
+    };
+
+    const gearGraphCategory = categoryMap[params.categoryId] || params.categoryId;
+    console.log('[GearGraph] Fetching category insights:', gearGraphCategory);
+
+    const categoryInsights = await getInsightsForCategory(gearGraphCategory, apiKey, 5);
+    allInsights.push(...categoryInsights);
+  }
+
+  // 3. If still no insights, get some general ones
+  if (allInsights.length === 0) {
+    console.log('[GearGraph] Fetching general insights');
+    const generalInsights = await getGeneralInsights(apiKey, 3);
+    allInsights.push(...generalInsights);
+  }
+
+  // Deduplicate by content
+  const seen = new Set<string>();
+  const uniqueInsights = allInsights.filter((insight) => {
+    const key = insight.content.toLowerCase().trim().slice(0, 100);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueInsights.slice(0, 6);
 }
 
 // =============================================================================

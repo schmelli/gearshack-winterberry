@@ -11,7 +11,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -64,7 +63,7 @@ export function ImageGallery({
     return (
       <div
         className={cn(
-          'relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-muted',
+          'relative flex h-48 w-full items-center justify-center overflow-hidden rounded-lg bg-muted',
           className
         )}
       >
@@ -75,15 +74,13 @@ export function ImageGallery({
 
   return (
     <div className={cn('relative', className)}>
-      {/* Main Image */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
-        <Image
+      {/* Main Image - constrained height, centered */}
+      <div className="relative flex h-48 w-full items-center justify-center overflow-hidden rounded-lg bg-muted/30">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={currentImage}
           alt={`${altText} - Image ${currentIndex + 1}`}
-          fill
-          unoptimized
-          className="object-contain"
-          sizes="(max-width: 512px) 100vw, 512px"
+          className="max-h-full max-w-full object-contain"
         />
 
         {/* Navigation Arrows */}
@@ -92,7 +89,7 @@ export function ImageGallery({
             <Button
               variant="secondary"
               size="icon"
-              className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
+              className="absolute left-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToPrevious}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -101,7 +98,7 @@ export function ImageGallery({
             <Button
               variant="secondary"
               size="icon"
-              className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
+              className="absolute right-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToNext}
             >
               <ChevronRight className="h-4 w-4" />
@@ -112,7 +109,7 @@ export function ImageGallery({
 
         {/* Image Counter */}
         {hasMultipleImages && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
+          <div className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
             {currentIndex + 1} / {allImages.length}
           </div>
         )}
@@ -132,13 +129,11 @@ export function ImageGallery({
                   : 'border-transparent opacity-60 hover:opacity-100'
               )}
             >
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={url}
                 alt={`${altText} thumbnail ${index + 1}`}
-                fill
-                unoptimized
-                className="object-cover"
-                sizes="48px"
+                className="h-full w-full object-cover"
               />
             </button>
           ))}

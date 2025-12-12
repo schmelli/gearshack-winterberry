@@ -66,7 +66,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-20 w-20 items-center justify-center rounded-lg mix-blend-multiply dark:mix-blend-lighten">
+          <div className="flex h-20 w-20 items-center justify-center rounded-lg">
             <Image
               src="/logos/small_gearshack_logo.png"
               alt="Gearshack Logo"

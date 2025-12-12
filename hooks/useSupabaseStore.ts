@@ -117,6 +117,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       // Item Actions
       addItem: async (item) => {
         const { userId } = get();
+        console.log('[SupabaseStore] addItem called, userId:', userId);
         if (!userId) {
           toast.error('Please sign in to add items');
           throw new Error('User not authenticated');
@@ -143,12 +144,16 @@ export const useSupabaseStore = create<SupabaseStore>()(
         try {
           const insertData = gearItemToDbInsert(item, userId);
           insertData.id = id; // Use our generated ID
+          console.log('[SupabaseStore] Inserting gear item:', { id, userId, name: item.name });
 
           const { error } = await supabase
             .from('gear_items')
             .insert(insertData as TablesInsert<'gear_items'>);
 
-          if (error) throw error;
+          if (error) {
+            console.error('[SupabaseStore] Supabase insert error:', error);
+            throw error;
+          }
 
           set((state) => ({
             syncState: {

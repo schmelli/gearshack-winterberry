@@ -16,26 +16,27 @@ import { z } from 'zod';
 
 /**
  * Types of insights available from the GearGraph knowledge base.
+ * Updated to match real GearGraph API response types.
  */
 export type InsightType =
-  | 'seasonality'
-  | 'weight_class'
-  | 'compatibility'
-  | 'category'
-  | 'use_case';
+  | 'tip'
+  | 'comparison'
+  | 'warning'
+  | 'recommendation';
 
 /**
  * Represents a single insight from the GearGraph knowledge base.
+ * Updated to match real GearGraph API response structure.
  */
 export interface GearInsight {
-  /** Type of insight */
+  /** Type of insight: tip, comparison, warning, recommendation */
   type: InsightType;
-  /** Human-readable label (e.g., "Winter Suitable", "Ultralight") */
-  label: string;
+  /** The insight content/text */
+  content: string;
+  /** Optional source URL for the insight */
+  sourceUrl?: string;
   /** Confidence score 0-1 (optional, for ranked display) */
   confidence?: number;
-  /** Related item IDs for compatibility insights */
-  relatedIds?: string[];
 }
 
 /**
@@ -87,11 +88,10 @@ export type GearInsightsParams = z.infer<typeof gearInsightsParamsSchema>;
  * Schema for validating insight types.
  */
 export const insightTypeSchema = z.enum([
-  'seasonality',
-  'weight_class',
-  'compatibility',
-  'category',
-  'use_case',
+  'tip',
+  'comparison',
+  'warning',
+  'recommendation',
 ]);
 
 /**
@@ -99,9 +99,9 @@ export const insightTypeSchema = z.enum([
  */
 export const gearInsightSchema = z.object({
   type: insightTypeSchema,
-  label: z.string().max(100),
+  content: z.string(),
+  sourceUrl: z.string().url().optional(),
   confidence: z.number().min(0).max(1).optional(),
-  relatedIds: z.array(z.string()).optional(),
 });
 
 /**

@@ -31,7 +31,7 @@ interface UseGearInsightsOptions {
 }
 
 interface UseGearInsightsReturn {
-  /** Array of gear insights */
+  /** Array of gear insights (visible, not dismissed) */
   insights: GearInsight[] | null;
   /** Whether data is loading */
   isLoading: boolean;
@@ -41,11 +41,16 @@ interface UseGearInsightsReturn {
   cached: boolean;
   /** Cache expiration date */
   expiresAt: string | null;
+  /** Dismiss an insight (thumbs down) - will be replaced by reserve if available */
+  dismissInsight: (content: string) => void;
 }
 
 // =============================================================================
 // Hook
 // =============================================================================
+
+/** Number of insights to display to user */
+const VISIBLE_INSIGHT_COUNT = 3;
 
 export function useGearInsights({
   productTypeId,
@@ -55,7 +60,8 @@ export function useGearInsights({
   enabled = true,
 }: UseGearInsightsOptions): UseGearInsightsReturn {
   // T052: Loading, error, and data states
-  const [insights, setInsights] = useState<GearInsight[] | null>(null);
+  const [allInsights, setAllInsights] = useState<GearInsight[] | null>(null);
+  const [dismissedContents, setDismissedContents] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cached, setCached] = useState(false);
@@ -71,7 +77,7 @@ export function useGearInsights({
   const fetchInsights = useCallback(async () => {
     // Skip if no identifiers available
     if (!canFetch) {
-      setInsights(null);
+      setAllInsights(null);
       setError(null);
       return;
     }
@@ -79,7 +85,7 @@ export function useGearInsights({
     const fetchKey = `${productTypeId ?? ''}|${categoryId ?? ''}|${brand ?? ''}|${name ?? ''}`;
 
     // Skip if already fetched with same params
-    if (fetchKey === lastFetchParams && insights !== null) {
+    if (fetchKey === lastFetchParams && allInsights !== null) {
       return;
     }
 
@@ -102,18 +108,21 @@ export function useGearInsights({
 
       const data: GearInsightsResponse = await response.json();
 
-      setInsights(data.insights);
+      // Store all fetched insights (API returns up to 6, we show 3)
+      setAllInsights(data.insights);
       setCached(data.cached);
       setExpiresAt(data.expiresAt);
       setLastFetchParams(fetchKey);
+      // Reset dismissed when fetching new data
+      setDismissedContents(new Set());
     } catch (err) {
       console.error('GearGraph fetch error:', err);
       setError(err instanceof Error ? err.message : 'Insights temporarily unavailable');
-      setInsights(null);
+      setAllInsights(null);
     } finally {
       setIsLoading(false);
     }
-  }, [productTypeId, categoryId, brand, name, canFetch, lastFetchParams, insights]);
+  }, [productTypeId, categoryId, brand, name, canFetch, lastFetchParams, allInsights]);
 
   // T053: Trigger fetch when modal opens with productTypeId or categoryId
   useEffect(() => {
@@ -122,12 +131,26 @@ export function useGearInsights({
     }
   }, [enabled, canFetch, fetchInsights]);
 
+  // Dismiss an insight - removes it and shows replacement from reserve
+  const dismissInsight = useCallback((content: string) => {
+    const normalizedContent = content.toLowerCase().trim();
+    setDismissedContents((prev) => new Set([...prev, normalizedContent]));
+  }, []);
+
+  // Compute visible insights: filter out dismissed, take first N
+  const visibleInsights = allInsights
+    ? allInsights
+        .filter((insight) => !dismissedContents.has(insight.content.toLowerCase().trim()))
+        .slice(0, VISIBLE_INSIGHT_COUNT)
+    : null;
+
   return {
-    insights,
+    insights: visibleInsights,
     isLoading,
     error,
     cached,
     expiresAt,
+    dismissInsight,
   };
 }
 

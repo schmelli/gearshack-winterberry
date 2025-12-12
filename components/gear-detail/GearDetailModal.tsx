@@ -56,6 +56,10 @@ interface GearDetailModalProps {
   insightsLoading?: boolean;
   /** Insights error message */
   insightsError?: string | null;
+  /** User ID for insight feedback */
+  userId?: string;
+  /** Callback when insight is dismissed */
+  onInsightDismissed?: (insight: GearInsight) => void;
 }
 
 // =============================================================================
@@ -74,6 +78,8 @@ export function GearDetailModal({
   insights = null,
   insightsLoading = false,
   insightsError = null,
+  userId,
+  onInsightDismissed,
 }: GearDetailModalProps) {
   // Don't render if no item
   if (!item) {
@@ -91,7 +97,9 @@ export function GearDetailModal({
       insights={insights}
       insightsLoading={insightsLoading}
       insightsError={insightsError}
+      userId={userId}
       onEditClick={() => onOpenChange(false)}
+      onInsightDismissed={onInsightDismissed}
     />
   );
 

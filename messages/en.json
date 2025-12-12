@@ -24,6 +24,56 @@
     "heroSubtitle": "The ultimate gear management platform for outdoor enthusiasts. Track every item, build perfect loadouts, and never forget essential gear again.",
     "ctaStartTrial": "Start Free Trial",
     "ctaDashboard": "Go to Dashboard",
+    "painPoints": {
+      "eyebrow": "Sound Familiar?",
+      "title": "The Struggle Is Real",
+      "subtitle": "Every outdoor enthusiast knows these frustrations. We've been there too.",
+      "spreadsheets": {
+        "title": "Spreadsheet Hell",
+        "description": "Endless rows and columns trying to track your gear. Multiple files, lost updates, and no way to visualize your loadouts."
+      },
+      "manual": {
+        "title": "Manual Data Entry",
+        "description": "Hours spent researching specs, weights, and prices. Copy-pasting from manufacturer sites and forums."
+      },
+      "guessing": {
+        "title": "Guessing Your Pack Weight",
+        "description": "Standing on a scale with your pack, doing math in your head. Never quite sure if you've got everything you need."
+      }
+    },
+    "solutions": {
+      "eyebrow": "The GearShack Way",
+      "title": "Everything You Need, Beautifully Organized",
+      "subtitle": "We built the tool we always wished existed. Here's how GearShack transforms your gear game.",
+      "inventory": {
+        "title": "Your Complete Gear Library",
+        "description": "Every piece of gear, documented with photos, specs, and purchase info. Search, filter, and find anything instantly.",
+        "benefit1": "Auto-populate specs from our gear database",
+        "benefit2": "Track condition, purchase date, and warranty",
+        "benefit3": "Beautiful photo galleries for each item"
+      },
+      "loadouts": {
+        "title": "Build Perfect Loadouts",
+        "description": "Create packing lists for any adventure. See total weight, spot gaps, and never forget essential gear again.",
+        "benefit1": "Real-time weight calculations",
+        "benefit2": "Copy and customize for different trips",
+        "benefit3": "Visual breakdown by category"
+      },
+      "community": {
+        "title": "Learn from the Community",
+        "description": "Connect with fellow outdoor enthusiasts. Share your setups, get feedback, and discover new gear.",
+        "benefit1": "Browse real-world loadout examples",
+        "benefit2": "Get honest gear reviews from users",
+        "benefit3": "Find inspiration for your next adventure"
+      },
+      "wishlist": {
+        "title": "Plan Your Next Purchase",
+        "description": "Track gear you're eyeing. Compare options, set budgets, and make informed decisions.",
+        "benefit1": "Save items from any retailer",
+        "benefit2": "Price tracking and alerts",
+        "benefit3": "Compare specs side by side"
+      }
+    },
     "features": {
       "organize": {
         "title": "Organize Everything",

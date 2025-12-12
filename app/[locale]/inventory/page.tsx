@@ -31,9 +31,11 @@ import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 function InventoryContent() {
   const t = useTranslations('Inventory');
+  const { user } = useSupabaseAuth();
   const {
     filteredItems,
     items,
@@ -69,11 +71,14 @@ function InventoryContent() {
   });
 
   // Feature 045: GearGraph insights for selected item
+  // Searches for specific product AND broader category context
   const {
     insights,
     isLoading: insightsLoading,
     error: insightsError,
+    dismissInsight,
   } = useGearInsights({
+    productTypeId: selectedItem?.productTypeId,
     categoryId: selectedItem?.categoryId,
     brand: selectedItem?.brand,
     name: selectedItem?.name,
@@ -164,6 +169,8 @@ function InventoryContent() {
         insights={insights}
         insightsLoading={insightsLoading}
         insightsError={insightsError}
+        userId={user?.id}
+        onInsightDismissed={(insight) => dismissInsight(insight.content)}
       />
     </main>
   );

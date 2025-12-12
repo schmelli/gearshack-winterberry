@@ -14,7 +14,6 @@ import Image from 'next/image';
 import { Play, RotateCcw, Youtube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import type { YouTubeVideo } from '@/types/youtube';
 import { cn } from '@/lib/utils';
 
@@ -93,14 +92,21 @@ export function YouTubeCarousel({
 
   // T036, T037, T038: Carousel with video cards
   return (
-    <ScrollArea className={cn('w-full', className)}>
-      <div className="flex gap-3 pb-2">
-        {videos.map((video) => (
-          <VideoCard key={video.videoId} video={video} />
-        ))}
-      </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    <div
+      className={cn(
+        'flex gap-3 overflow-x-auto pb-3',
+        // Custom scrollbar styling
+        '[&::-webkit-scrollbar]:h-2',
+        '[&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/50',
+        '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+        '[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50',
+        className
+      )}
+    >
+      {videos.map((video) => (
+        <VideoCard key={video.videoId} video={video} />
+      ))}
+    </div>
   );
 }
 

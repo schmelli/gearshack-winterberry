@@ -15,7 +15,8 @@
 import { useTranslations } from 'next-intl';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { HeroSection } from './HeroSection';
-import { FeatureGrid } from './FeatureGrid';
+import { PainPointsSection } from './PainPointsSection';
+import { SolutionSection } from './SolutionSection';
 import { SocialProof } from './SocialProof';
 import { PricingPreview } from './PricingPreview';
 
@@ -30,7 +31,7 @@ export function LandingPage() {
 
   return (
     <main className="min-h-screen">
-      {/* FR-001: Hero section with headline, subtitle, and CTA */}
+      {/* Hero section with background image, logo, headline, subtitle, and CTA */}
       <HeroSection
         title={t('heroTitle')}
         subtitle={t('heroSubtitle')}
@@ -38,13 +39,16 @@ export function LandingPage() {
         ctaHref={ctaHref}
       />
 
-      {/* FR-002: Feature grid with 3 product benefits */}
-      <FeatureGrid t={t} />
+      {/* Pain Points section - the problems we solve */}
+      <PainPointsSection t={t} />
 
-      {/* FR-003: Social proof section */}
+      {/* Solutions section - how GearShack helps */}
+      <SolutionSection t={t} />
+
+      {/* Social proof section */}
       <SocialProof t={t} />
 
-      {/* FR-004: Pricing preview section */}
+      {/* Pricing preview section */}
       <PricingPreview t={t} />
     </main>
   );

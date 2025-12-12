@@ -11,11 +11,16 @@
 
 'use client';
 
-import { Pencil, ExternalLink } from 'lucide-react';
+import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ImageGallery } from '@/components/gear-detail/ImageGallery';
 import type { GearItem } from '@/types/gear';
 import type { YouTubeVideo } from '@/types/youtube';
@@ -47,8 +52,12 @@ interface GearDetailContentProps {
   insightsLoading: boolean;
   /** Insights error message (if any) */
   insightsError: string | null;
+  /** User ID for insight feedback */
+  userId?: string;
   /** Callback when edit button is clicked (for modal close) */
   onEditClick?: () => void;
+  /** Callback when an insight is dismissed */
+  onInsightDismissed?: (insight: GearInsight) => void;
   /** Optional class name */
   className?: string;
 }
@@ -95,6 +104,56 @@ function TruncatedText({
   );
 }
 
+function DetailStatusIcons({ item }: { item: GearItem }) {
+  const icons: React.ReactNode[] = [];
+
+  if (item.isFavourite) {
+    icons.push(
+      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" title="Favourite">
+        <Heart className="h-3.5 w-3.5 text-white fill-white" />
+      </div>
+    );
+  }
+  if (item.isForSale) {
+    icons.push(
+      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" title="For Sale">
+        <DollarSign className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+  if (item.canBeBorrowed) {
+    icons.push(
+      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" title="Can be Borrowed">
+        <HandHeart className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+  if (item.canBeTraded) {
+    icons.push(
+      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" title="Up for Trade">
+        <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+  if (item.status === 'lent') {
+    icons.push(
+      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" title="Currently Lent">
+        <Recycle className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+  if (item.status === 'sold') {
+    icons.push(
+      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" title="Sold">
+        <Tag className="h-3.5 w-3.5 text-white" />
+      </div>
+    );
+  }
+
+  if (icons.length === 0) return null;
+  return <div className="flex gap-1 flex-wrap">{icons}</div>;
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -108,38 +167,69 @@ export function GearDetailContent({
   insights,
   insightsLoading,
   insightsError,
+  userId,
   onEditClick,
+  onInsightDismissed,
   className,
 }: GearDetailContentProps) {
   return (
-    <ScrollArea className={cn('max-h-[80vh]', className)}>
+    <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
       <div className="space-y-6 p-6">
-        {/* Header with Edit Button */}
-        <div className="flex items-start gap-3">
-          <Button
-            asChild
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 shrink-0"
-            onClick={onEditClick}
-          >
-            <Link href={`/inventory/${item.id}/edit`}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Edit {item.name}</span>
-            </Link>
-          </Button>
-          <div className="min-w-0 flex-1">
-            {/* T017a: Truncate long names */}
-            <h2
-              className="text-xl font-semibold leading-tight line-clamp-2"
-              title={item.name.length > 60 ? item.name : undefined}
+        {/* Header */}
+        <div className="space-y-2">
+          {/* Product name with edit button snug to the right */}
+          <div className="flex items-start gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h2
+                    className="text-xl font-semibold leading-tight line-clamp-2 cursor-default"
+                    title={item.name.length > 60 ? item.name : undefined}
+                  >
+                    {item.name}
+                  </h2>
+                </TooltipTrigger>
+                {item.description && (
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="text-sm">{item.description}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            {/* Edit button snug to name */}
+            <Button
+              asChild
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0 -mt-0.5"
+              onClick={onEditClick}
             >
-              {item.name}
-            </h2>
-            {item.brand && (
-              <p className="mt-1 text-sm text-muted-foreground">{item.brand}</p>
-            )}
+              <Link href={`/inventory/${item.id}/edit`}>
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit {item.name}</span>
+              </Link>
+            </Button>
           </div>
+          {/* Brand with optional link */}
+          {item.brand && (
+            <div>
+              {item.brandUrl ? (
+                <a
+                  href={item.brandUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  {item.brand}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">{item.brand}</p>
+              )}
+            </div>
+          )}
+          {/* Status icons row */}
+          <DetailStatusIcons item={item} />
         </div>
 
         {/* Image Gallery */}
@@ -284,10 +374,18 @@ export function GearDetailContent({
             insights={insights}
             isLoading={insightsLoading}
             error={insightsError}
+            userId={userId}
+            gearContext={{
+              gearItemId: item.id,
+              brand: item.brand ?? undefined,
+              name: item.name,
+              categoryId: item.categoryId ?? undefined,
+            }}
+            onInsightDismissed={onInsightDismissed}
           />
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 

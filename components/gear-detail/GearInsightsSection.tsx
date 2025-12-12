@@ -4,14 +4,16 @@
  * Feature: 045-gear-detail-modal
  * Tasks: T054-T058
  *
- * Displays GearGraph insights as styled badges with type-specific styling.
+ * Displays GearGraph insights as styled cards with feedback buttons.
+ * Users can thumbs up/down insights, and dismissed insights are replaced.
  */
 
 'use client';
 
-import { Lightbulb, AlertCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { useState, useCallback } from 'react';
+import { Lightbulb, AlertCircle, ExternalLink, AlertTriangle, GitCompare, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import type { GearInsight, InsightType } from '@/types/geargraph';
 import { cn } from '@/lib/utils';
 
@@ -28,32 +30,57 @@ interface GearInsightsSectionProps {
   error: string | null;
   /** Optional class name */
   className?: string;
+  /** User ID for feedback submission */
+  userId?: string;
+  /** Gear context for feedback */
+  gearContext?: {
+    gearItemId?: string;
+    brand?: string;
+    name?: string;
+    categoryId?: string;
+  };
+  /** Callback when an insight is dismissed (thumbs down) */
+  onInsightDismissed?: (insight: GearInsight) => void;
 }
 
 // =============================================================================
 // Insight Type Styling
 // =============================================================================
 
-const INSIGHT_TYPE_STYLES: Record<InsightType, { bg: string; text: string; icon?: string }> = {
-  seasonality: {
-    bg: 'bg-amber-100 dark:bg-amber-900/30',
-    text: 'text-amber-800 dark:text-amber-200',
-  },
-  weight_class: {
-    bg: 'bg-blue-100 dark:bg-blue-900/30',
+const INSIGHT_TYPE_CONFIG: Record<InsightType, {
+  bg: string;
+  text: string;
+  border: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}> = {
+  tip: {
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
     text: 'text-blue-800 dark:text-blue-200',
+    border: 'border-blue-200 dark:border-blue-800',
+    icon: Lightbulb,
+    label: 'Tip',
   },
-  compatibility: {
-    bg: 'bg-green-100 dark:bg-green-900/30',
-    text: 'text-green-800 dark:text-green-200',
-  },
-  category: {
-    bg: 'bg-purple-100 dark:bg-purple-900/30',
+  comparison: {
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
     text: 'text-purple-800 dark:text-purple-200',
+    border: 'border-purple-200 dark:border-purple-800',
+    icon: GitCompare,
+    label: 'Comparison',
   },
-  use_case: {
-    bg: 'bg-orange-100 dark:bg-orange-900/30',
-    text: 'text-orange-800 dark:text-orange-200',
+  warning: {
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    text: 'text-amber-800 dark:text-amber-200',
+    border: 'border-amber-200 dark:border-amber-800',
+    icon: AlertTriangle,
+    label: 'Warning',
+  },
+  recommendation: {
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    text: 'text-green-800 dark:text-green-200',
+    border: 'border-green-200 dark:border-green-800',
+    icon: Sparkles,
+    label: 'Recommendation',
   },
 };
 
@@ -66,6 +93,9 @@ export function GearInsightsSection({
   isLoading,
   error,
   className,
+  userId,
+  gearContext,
+  onInsightDismissed,
 }: GearInsightsSectionProps) {
   // T056: Loading skeleton state
   if (isLoading) {
@@ -100,39 +130,142 @@ export function GearInsightsSection({
     );
   }
 
-  // T054, T055: Display insights as styled badges
+  // T054, T055: Display insights as styled cards with feedback
   return (
-    <div className={cn('flex flex-wrap gap-2', className)}>
+    <div className={cn('space-y-3', className)}>
       {insights.map((insight, index) => (
-        <InsightBadge key={`${insight.type}-${index}`} insight={insight} />
+        <InsightCard
+          key={`${insight.type}-${index}`}
+          insight={insight}
+          userId={userId}
+          gearContext={gearContext}
+          onDismiss={onInsightDismissed}
+        />
       ))}
     </div>
   );
 }
 
 // =============================================================================
-// Insight Badge Sub-Component
+// Insight Card Sub-Component
 // =============================================================================
 
-interface InsightBadgeProps {
+interface InsightCardProps {
   insight: GearInsight;
+  userId?: string;
+  gearContext?: {
+    gearItemId?: string;
+    brand?: string;
+    name?: string;
+    categoryId?: string;
+  };
+  onDismiss?: (insight: GearInsight) => void;
 }
 
-function InsightBadge({ insight }: InsightBadgeProps) {
-  const style = INSIGHT_TYPE_STYLES[insight.type] || INSIGHT_TYPE_STYLES.category;
+function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardProps) {
+  const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const config = INSIGHT_TYPE_CONFIG[insight.type] || INSIGHT_TYPE_CONFIG.tip;
+  const Icon = config.icon;
+
+  const submitFeedback = useCallback(async (isPositive: boolean) => {
+    if (!userId || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/insights/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          insightContent: insight.content,
+          isPositive,
+          gearItemId: gearContext?.gearItemId,
+          gearBrand: gearContext?.brand,
+          gearName: gearContext?.name,
+          categoryId: gearContext?.categoryId,
+        }),
+      });
+
+      if (response.ok) {
+        setFeedbackState(isPositive ? 'positive' : 'negative');
+        // If thumbs down, dismiss the insight after a short delay
+        if (!isPositive && onDismiss) {
+          setTimeout(() => onDismiss(insight), 300);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [userId, insight, gearContext, onDismiss, isSubmitting]);
 
   return (
-    <Badge
-      variant="secondary"
+    <div
       className={cn(
-        'border-0 font-normal',
-        style.bg,
-        style.text
+        'rounded-lg border p-3 transition-opacity duration-300',
+        config.bg,
+        config.border,
+        feedbackState === 'negative' && 'opacity-50'
       )}
-      title={insight.confidence ? `Confidence: ${Math.round(insight.confidence * 100)}%` : undefined}
     >
-      {insight.label}
-    </Badge>
+      <div className="flex items-start gap-2">
+        <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', config.text)} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className={cn('text-xs font-medium uppercase tracking-wide', config.text)}>
+              {config.label}
+            </p>
+            {/* Feedback buttons */}
+            {userId && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6',
+                    feedbackState === 'positive' && 'text-green-600 bg-green-100'
+                  )}
+                  onClick={() => submitFeedback(true)}
+                  disabled={isSubmitting || feedbackState !== 'none'}
+                >
+                  <ThumbsUp className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6',
+                    feedbackState === 'negative' && 'text-red-600 bg-red-100'
+                  )}
+                  onClick={() => submitFeedback(false)}
+                  disabled={isSubmitting || feedbackState !== 'none'}
+                >
+                  <ThumbsDown className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <p className="text-sm text-foreground">{insight.content}</p>
+          {insight.sourceUrl && (
+            <a
+              href={insight.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'inline-flex items-center gap-1 mt-2 text-xs hover:underline',
+                config.text
+              )}
+            >
+              <ExternalLink className="h-3 w-3" />
+              Source
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
