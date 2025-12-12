@@ -82,7 +82,7 @@ async function seedOntology() {
     // Helper to process categories
     const processItems = async (
       level: number, 
-      items: Record<string, unknown>, 
+      items: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
       parentKeyField?: string
     ) => {
       let count = 0;
