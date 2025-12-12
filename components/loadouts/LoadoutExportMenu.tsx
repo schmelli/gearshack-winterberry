@@ -410,6 +410,7 @@ export function LoadoutExportMenu({
       consumableWeight,
       rows,
       checklistHeader,
+      includeChecklist,
       formattedDate,
     });
 
