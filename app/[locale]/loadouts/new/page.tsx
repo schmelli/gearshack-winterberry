@@ -28,19 +28,7 @@ import {
 } from '@/components/ui/card';
 import { useLoadoutCreationForm } from '@/hooks/useLoadoutCreationForm';
 import type { Season, ActivityType } from '@/types/loadout';
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const SEASONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
-const ACTIVITIES: ActivityType[] = [
-  'hiking',
-  'camping',
-  'climbing',
-  'skiing',
-  'backpacking',
-];
+import { SEASONS, ACTIVITIES } from '@/lib/constants/loadout';
 
 // =============================================================================
 // Component

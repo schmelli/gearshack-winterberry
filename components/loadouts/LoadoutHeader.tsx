@@ -30,6 +30,7 @@ import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { ActivityMatrix } from '@/components/loadouts/ActivityMatrix';
 import type { Loadout, CategoryWeight, ActivityType, Season } from '@/types/loadout';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
+import { ACTIVITIES, SEASONS } from '@/lib/constants/loadout';
 
 // =============================================================================
 // Types
@@ -53,13 +54,6 @@ interface LoadoutHeaderProps {
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
 }
-
-// =============================================================================
-// Activity Types and Seasons Lists
-// =============================================================================
-
-const ACTIVITY_OPTIONS: ActivityType[] = ['hiking', 'camping', 'backpacking', 'climbing', 'skiing'];
-const SEASON_OPTIONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
 
 // =============================================================================
 // Weight Progress Bar Component (US4: Enhanced with Total/Base display)
@@ -184,7 +178,7 @@ export function LoadoutHeader({
                 Activity
               </p>
               <div className="flex flex-wrap gap-2">
-                {ACTIVITY_OPTIONS.map((activity) => (
+                {ACTIVITIES.map((activity) => (
                   <ToggleBadge
                     key={activity}
                     label={ACTIVITY_TYPE_LABELS[activity]}
@@ -207,7 +201,7 @@ export function LoadoutHeader({
                 Season
               </p>
               <div className="flex flex-wrap gap-2">
-                {SEASON_OPTIONS.map((season) => (
+                {SEASONS.map((season) => (
                   <ToggleBadge
                     key={season}
                     label={SEASON_LABELS[season]}
