@@ -30,6 +30,8 @@ import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 import { cn } from '@/lib/utils';
 import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
+import { SpecIcon } from '@/components/gear/SpecIcon';
+import type { SpecIconType } from '@/components/gear/SpecIcon';
 
 // =============================================================================
 // Types
@@ -69,16 +71,21 @@ interface GearDetailContentProps {
 function SpecRow({
   label,
   value,
+  icon,
   className,
 }: {
   label: string;
   value: string | null | undefined;
+  icon?: SpecIconType;
   className?: string;
 }) {
   if (!value) return null;
   return (
     <div className={className}>
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
+        {icon && <SpecIcon type={icon} size={14} className="opacity-70" />}
+        {label}
+      </p>
       <p className="font-medium">{value}</p>
     </div>
   );
@@ -253,11 +260,13 @@ export function GearDetailContent({
           <SpecRow
             label="Weight"
             value={item.weightGrams ? formatWeight(item.weightGrams) : null}
+            icon="weight"
           />
-          <SpecRow label="Model" value={item.modelNumber} />
+          <SpecRow label="Model" value={item.modelNumber} icon="model" />
           {(item.lengthCm || item.widthCm || item.heightCm) && (
             <div className="col-span-2">
-              <p className="text-xs uppercase text-muted-foreground">
+              <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
+                <SpecIcon type="dimensions" size={14} className="opacity-70" />
                 Dimensions (L × W × H)
               </p>
               <p className="font-medium">

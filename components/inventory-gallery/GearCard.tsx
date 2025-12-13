@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
+import { SpecIcon } from '@/components/gear/SpecIcon';
 
 // =============================================================================
 // Status Icons Component - Feature 041
@@ -192,7 +193,8 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
               {item.name}
             </h3>
             {item.weightGrams && (
-              <span className="text-xs text-muted-foreground flex-shrink-0 font-mono">
+              <span className="text-xs text-muted-foreground flex-shrink-0 font-mono flex items-center gap-1">
+                <SpecIcon type="weight" size={12} className="opacity-60" />
                 {weightDisplay}
               </span>
             )}
@@ -331,9 +333,10 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
           
           {item.weightGrams && (
             <span className={cn(
-              "text-muted-foreground font-mono", 
+              "text-muted-foreground font-mono flex items-center gap-1",
               isDetailed ? "text-sm" : "text-xs"
             )}>
+              <SpecIcon type="weight" size={isDetailed ? 14 : 12} className="opacity-60" />
               {weightDisplay}
             </span>
           )}
