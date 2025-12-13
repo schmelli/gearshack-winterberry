@@ -56,13 +56,6 @@ interface LoadoutHeaderProps {
 }
 
 // =============================================================================
-// Activity Types and Seasons Lists
-// =============================================================================
-
-const ACTIVITY_OPTIONS: ActivityType[] = ACTIVITIES;
-const SEASON_OPTIONS: Season[] = SEASONS;
-
-// =============================================================================
 // Weight Progress Bar Component (US4: Enhanced with Total/Base display)
 // =============================================================================
 
@@ -185,7 +178,7 @@ export function LoadoutHeader({
                 Activity
               </p>
               <div className="flex flex-wrap gap-2">
-                {ACTIVITY_OPTIONS.map((activity) => (
+                {ACTIVITIES.map((activity) => (
                   <ToggleBadge
                     key={activity}
                     label={ACTIVITY_TYPE_LABELS[activity]}
@@ -208,7 +201,7 @@ export function LoadoutHeader({
                 Season
               </p>
               <div className="flex flex-wrap gap-2">
-                {SEASON_OPTIONS.map((season) => (
+                {SEASONS.map((season) => (
                   <ToggleBadge
                     key={season}
                     label={SEASON_LABELS[season]}
