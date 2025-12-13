@@ -9,6 +9,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { HelpCircle } from 'lucide-react';
@@ -109,10 +110,11 @@ export function SpecIcon({
   alt,
   categoryId,
 }: SpecIconProps) {
+  const [hasError, setHasError] = useState(false);
   const iconPath = getIconPath(type, categoryId);
 
-  // Fallback to placeholder if no icon found
-  if (!iconPath) {
+  // Fallback to placeholder if no icon found or if image fails to load
+  if (!iconPath || hasError) {
     return (
       <HelpCircle
         className={cn('text-muted-foreground', className)}
@@ -130,6 +132,7 @@ export function SpecIcon({
       height={size}
       className={cn('inline-block', className)}
       unoptimized
+      onError={() => setHasError(true)}
     />
   );
 }
