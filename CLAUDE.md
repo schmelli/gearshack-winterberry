@@ -138,7 +138,32 @@ Before writing code:
 - PostgreSQL (Supabase) with `categories` and `catalog_brands` tables (044-intelligence-integration)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui (Dialog, Sheet), Tailwind CSS 4, zustand (state), zod (validation) (045-gear-detail-modal)
 - PostgreSQL (Supabase) - existing gear_items table + new api_cache table (045-gear-detail-modal)
+- TypeScript 5.x (strict mode) + Next.js 16.0.7 (App Router) + React 19.2.0 + @supabase/supabase-js 2.87.1, @supabase/ssr 0.8.0, Zustand 5.0.9, react-hook-form 7.68.0, Zod 4.1.13, shadcn/ui, next-cloudinary 6.17.5, Sonner 2.0.7 (046-user-messaging-system)
+- PostgreSQL (Supabase) for messages/conversations/relationships, Cloudinary for images/voice messages (046-user-messaging-system)
+- TypeScript 5.x (strict mode) + react-hook-form 7.x, Zod 4.x, shadcn/ui, next-intl, zustand (047-loadout-creation-form)
+- PostgreSQL (Supabase) - existing `loadouts` table with `seasons`, `activity_types`, `description` columns (047-loadout-creation-form)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui
 - Always try tp try run multiple subagents in parallel to speed up development. In this (Next.js) project, always ONLY use the nextjs-gearshack-architect type subagent.
+
+[byterover-mcp]
+
+[byterover-mcp]
+
+You are given two tools from Byterover MCP server, including
+## 1. `byterover-store-knowledge`
+You `MUST` always use this tool when:
+
++ Learning new patterns, APIs, or architectural decisions from the codebase
++ Encountering error solutions or debugging techniques
++ Finding reusable code patterns or utility functions
++ Completing any significant task or plan implementation
+
+## 2. `byterover-retrieve-knowledge`
+You `MUST` always use this tool when:
+
++ Starting any new task or implementation to gather relevant context
++ Before making architectural decisions to understand existing patterns
++ When debugging issues to check for previous solutions
++ Working with unfamiliar parts of the codebase

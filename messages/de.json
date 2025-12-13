@@ -209,5 +209,36 @@
     "discardChanges": "Änderungen verwerfen",
     "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
     "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?"
+  },
+  "LoadoutCreation": {
+    "title": "Neue Packliste erstellen",
+    "subtitle": "Definiere die Grundlagen deiner Tour",
+    "nameLabel": "Name der Packliste",
+    "namePlaceholder": "z.B. Alpenüberquerung April",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Was für eine Tour ist das? Besondere Anforderungen?",
+    "tripDateLabel": "Reisedatum (optional)",
+    "seasonLabel": "Jahreszeit",
+    "activityLabel": "Aktivitätstyp",
+    "submitButton": "Weiter zur Packliste",
+    "cancelButton": "Abbrechen",
+    "seasons": {
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "fall": "Herbst",
+      "winter": "Winter"
+    },
+    "activities": {
+      "hiking": "Wandern",
+      "camping": "Camping",
+      "climbing": "Klettern",
+      "skiing": "Skifahren",
+      "backpacking": "Trekking"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "nameTooLong": "Name darf maximal 100 Zeichen lang sein",
+      "descriptionTooLong": "Beschreibung darf maximal 500 Zeichen lang sein"
+    }
   }
 }
