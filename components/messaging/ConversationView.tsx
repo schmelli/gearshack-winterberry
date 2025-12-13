@@ -149,7 +149,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   }, []);
 
   // Check if conversation is blocked or privacy restricted
-  const isPrivacyBlocked = false; // TODO: Check against privacy settings
+  const isPrivacyBlocked = false; // TODO: Implement this check based on conversation participants and privacy settings.
 
   if (isLoading) {
     return <ConversationViewSkeleton />;
