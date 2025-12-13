@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { SEASONS, ACTIVITIES } from '@/lib/constants/loadout';
 
 // =============================================================================
 // Loadout Form Schema (Legacy - for basic form)
@@ -32,9 +33,6 @@ export const loadoutFormSchema = z.object({
 // Enhanced form with description, seasons, and activity types
 // =============================================================================
 
-const seasonValues = ['spring', 'summer', 'fall', 'winter'] as const;
-const activityTypeValues = ['hiking', 'camping', 'climbing', 'skiing', 'backpacking'] as const;
-
 export const loadoutCreationFormSchema = z.object({
   name: z
     .string()
@@ -49,9 +47,9 @@ export const loadoutCreationFormSchema = z.object({
     .optional()
     .default(''),
 
-  seasons: z.array(z.enum(seasonValues)).optional().default([]),
+  seasons: z.array(z.enum(SEASONS)).optional().default([]),
 
-  activityTypes: z.array(z.enum(activityTypeValues)).optional().default([]),
+  activityTypes: z.array(z.enum(ACTIVITIES)).optional().default([]),
 });
 
 // =============================================================================

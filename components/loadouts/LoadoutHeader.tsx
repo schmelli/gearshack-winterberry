@@ -30,6 +30,7 @@ import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { ActivityMatrix } from '@/components/loadouts/ActivityMatrix';
 import type { Loadout, CategoryWeight, ActivityType, Season } from '@/types/loadout';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
+import { ACTIVITIES, SEASONS } from '@/lib/constants/loadout';
 
 // =============================================================================
 // Types
@@ -58,8 +59,8 @@ interface LoadoutHeaderProps {
 // Activity Types and Seasons Lists
 // =============================================================================
 
-const ACTIVITY_OPTIONS: ActivityType[] = ['hiking', 'camping', 'backpacking', 'climbing', 'skiing'];
-const SEASON_OPTIONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
+const ACTIVITY_OPTIONS: ActivityType[] = ACTIVITIES;
+const SEASON_OPTIONS: Season[] = SEASONS;
 
 // =============================================================================
 // Weight Progress Bar Component (US4: Enhanced with Total/Base display)
