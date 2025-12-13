@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Lock } from 'lucide-react';
@@ -21,7 +21,7 @@ import { useTypingIndicator } from '@/hooks/messaging/useTypingIndicator';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { ConversationListItem, ReactionEmoji, MessageType, MessageMetadata } from '@/types/messaging';
 import { toast } from 'sonner';
-import { addReaction, removeReaction } from '@/lib/supabase/messaging-queries';
+import { addReaction, removeReaction, canMessageUser } from '@/lib/supabase/messaging-queries';
 
 interface ConversationViewProps {
   conversation: ConversationListItem;
@@ -149,9 +149,53 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   }, []);
 
   // Check if conversation is blocked or privacy restricted
-  const isPrivacyBlocked = false; // TODO: Check against privacy settings
+  const [isPrivacyBlocked, setIsPrivacyBlocked] = useState(false);
+  const [isCheckingPrivacy, setIsCheckingPrivacy] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    const checkPrivacy = async () => {
+      if (!user?.id) {
+        setIsPrivacyBlocked(false);
+        setIsCheckingPrivacy(false);
+        return;
+      }
+
+      // For group conversations, privacy checks are not applicable
+      if (conversation.conversation.type === 'group') {
+        setIsPrivacyBlocked(false);
+        setIsCheckingPrivacy(false);
+        return;
+      }
+
+      // For direct conversations, find the other participant
+      const otherParticipant = conversation.participants.find(
+        (p) => p.id !== user.id
+      );
+
+      if (!otherParticipant) {
+        // If no other participant found, allow messaging (shouldn't happen in normal flow)
+        setIsPrivacyBlocked(false);
+        setIsCheckingPrivacy(false);
+        return;
+      }
+
+      try {
+        // Check if current user can message the other participant
+        const canMessage = await canMessageUser(user.id, otherParticipant.id);
+        setIsPrivacyBlocked(!canMessage);
+      } catch (error) {
+        console.error('Error checking privacy settings:', error);
+        // On error, default to not blocking to avoid breaking existing conversations
+        setIsPrivacyBlocked(false);
+      } finally {
+        setIsCheckingPrivacy(false);
+      }
+    };
+
+    void checkPrivacy();
+  }, [conversation, user?.id]);
+
+  if (isLoading || isCheckingPrivacy) {
     return <ConversationViewSkeleton />;
   }
 
