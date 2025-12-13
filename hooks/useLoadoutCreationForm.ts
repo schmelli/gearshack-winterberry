@@ -17,6 +17,7 @@ import { useSupabaseStore } from '@/hooks/useSupabaseStore';
 import {
   loadoutCreationFormSchema,
   type LoadoutCreationFormInput,
+  type LoadoutCreationFormOutput,
 } from '@/lib/validations/loadout-schema';
 import type { Season, ActivityType } from '@/types/loadout';
 
@@ -95,21 +96,16 @@ export function useLoadoutCreationForm(): UseLoadoutCreationFormReturn {
 
   const onSubmit = async (data: LoadoutCreationFormInput) => {
     try {
-      // Parse the validated data
-      const parsed = loadoutCreationFormSchema.parse(data);
-
-      // Convert tripDate string to Date or null
-      const tripDate =
-        parsed.tripDate && parsed.tripDate.trim()
-          ? new Date(parsed.tripDate)
-          : null;
+      // Parse and transform the validated data
+      const parsed: LoadoutCreationFormOutput = loadoutCreationFormSchema.parse(data);
 
       // Create the loadout with all form data
+      // All transformations are handled by the schema
       const loadoutId = await createLoadout(
-        parsed.name.trim(),
-        tripDate,
+        parsed.name,
+        parsed.tripDate,
         {
-          description: parsed.description?.trim() || '',
+          description: parsed.description || '',
           seasons: parsed.seasons || [],
           activityTypes: parsed.activityTypes || [],
         }

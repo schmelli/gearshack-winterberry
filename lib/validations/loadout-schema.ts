@@ -39,15 +39,23 @@ export const loadoutCreationFormSchema = z.object({
   name: z
     .string()
     .min(1, 'Name is required')
-    .max(100, 'Name must be 100 characters or less'),
+    .max(100, 'Name must be 100 characters or less')
+    .transform((val) => val.trim()),
 
-  tripDate: z.string().optional(),
+  tripDate: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? new Date(val) : null))
+    .refine((val) => val === null || !isNaN(val.getTime()), {
+      message: 'Invalid date',
+    }),
 
   description: z
     .string()
     .max(500, 'Description must be 500 characters or less')
     .optional()
-    .default(''),
+    .default('')
+    .transform((val) => val.trim()),
 
   seasons: z.array(z.enum(seasonValues)).optional().default([]),
 
