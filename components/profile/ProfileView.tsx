@@ -29,6 +29,7 @@ import {
   Handshake,
   Repeat2,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
@@ -77,11 +78,15 @@ function StatTile({ icon, value, label }: StatTileProps) {
 
 interface MiniGearCardProps {
   item: FavoriteItem;
+  onClick?: () => void;
 }
 
-function MiniGearCard({ item }: MiniGearCardProps) {
+function MiniGearCard({ item, onClick }: MiniGearCardProps) {
   return (
-    <div className="flex-shrink-0 w-16 flex flex-col items-center gap-1">
+    <button
+      onClick={onClick}
+      className="flex-shrink-0 w-16 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+    >
       <div className="relative w-14 h-14 rounded-lg bg-muted/50 overflow-hidden">
         {item.imageUrl ? (
           <img
@@ -98,7 +103,7 @@ function MiniGearCard({ item }: MiniGearCardProps) {
       <span className="text-[10px] text-muted-foreground text-center line-clamp-2 leading-tight">
         {item.name}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -135,6 +140,8 @@ interface ProfileViewProps {
   user: MergedUser;
   /** Callback to switch to edit mode */
   onEditClick?: () => void;
+  /** Callback when a gear item is clicked */
+  onItemClick?: (itemId: string) => void;
   /** User statistics */
   stats?: ProfileStats;
   /** Favorite items for carousel */
@@ -147,7 +154,8 @@ interface ProfileViewProps {
   forTrade?: FavoriteItem[];
 }
 
-export function ProfileView({ user, onEditClick, stats, favorites, forSale, forRent, forTrade }: ProfileViewProps) {
+export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade }: ProfileViewProps) {
+  const t = useTranslations('Profile');
   // Feature 041: Use avatar fallback chain
   const displayAvatarUrl = getDisplayAvatarUrl(user.avatarUrl, user.providerAvatarUrl);
   // Feature 041: Show locationName if available, fallback to legacy location
@@ -300,12 +308,16 @@ export function ProfileView({ user, onEditClick, stats, favorites, forSale, forR
             <div className="flex items-center gap-1.5 mb-2">
               <Heart className="h-4 w-4 text-red-500" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Favorites
+                {t('favorites')}
               </span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
               {favorites.map((item) => (
-                <MiniGearCard key={item.id} item={item} />
+                <MiniGearCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => onItemClick?.(item.id)}
+                />
               ))}
             </div>
           </div>
@@ -315,14 +327,18 @@ export function ProfileView({ user, onEditClick, stats, favorites, forSale, forR
         {hasForSale && (
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2">
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                For Sale
+                {t('forSale')}
               </span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
               {forSale.map((item) => (
-                <MiniGearCard key={item.id} item={item} />
+                <MiniGearCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => onItemClick?.(item.id)}
+                />
               ))}
             </div>
           </div>
@@ -332,14 +348,18 @@ export function ProfileView({ user, onEditClick, stats, favorites, forSale, forR
         {hasForRent && (
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2">
-              <Handshake className="h-4 w-4 text-blue-600" />
+              <Handshake className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                For Rent
+                {t('forRent')}
               </span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
               {forRent.map((item) => (
-                <MiniGearCard key={item.id} item={item} />
+                <MiniGearCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => onItemClick?.(item.id)}
+                />
               ))}
             </div>
           </div>
@@ -349,14 +369,18 @@ export function ProfileView({ user, onEditClick, stats, favorites, forSale, forR
         {hasForTrade && (
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2">
-              <Repeat2 className="h-4 w-4 text-purple-600" />
+              <Repeat2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                For Trade
+                {t('forTrade')}
               </span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
               {forTrade.map((item) => (
-                <MiniGearCard key={item.id} item={item} />
+                <MiniGearCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => onItemClick?.(item.id)}
+                />
               ))}
             </div>
           </div>

@@ -18,6 +18,7 @@ import {
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useGearItems } from '@/hooks/useGearItems';
 import { useLoadouts } from '@/hooks/useLoadouts';
+import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { ProfileView } from '@/components/profile/ProfileView';
 import { ProfileEditForm } from '@/components/profile/ProfileEditForm';
 import type { ProfileFormData } from '@/lib/validations/profile-schema';
@@ -47,6 +48,9 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
   // Get gear items and loadouts for stats
   const { items: gearItems } = useGearItems(user?.uid ?? null);
   const { loadouts } = useLoadouts(user?.uid ?? null);
+
+  // Gear detail modal state
+  const { open: openGearDetail } = useGearDetailModal();
 
   // Compute stats
   const stats = useMemo(() => ({
@@ -137,6 +141,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
           <ProfileView
             user={mergedUser}
             onEditClick={() => setMode('edit')}
+            onItemClick={openGearDetail}
             stats={stats}
             favorites={favorites}
             forSale={forSale}

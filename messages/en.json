@@ -210,5 +210,11 @@
     "discardChanges": "Discard Changes",
     "deleteConfirm": "Are you sure you want to delete this item?",
     "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "Profile": {
+    "favorites": "Favorites",
+    "forSale": "For Sale",
+    "forRent": "For Rent",
+    "forTrade": "For Trade"
   }
 }
