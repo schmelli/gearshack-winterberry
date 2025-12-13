@@ -5,7 +5,8 @@ import { Share2, Clipboard, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocale } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import type { VariantProps } from 'class-variance-authority';
 import {
   Dialog,
   DialogContent,
