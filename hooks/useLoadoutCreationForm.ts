@@ -97,7 +97,7 @@ export function useLoadoutCreationForm(): UseLoadoutCreationFormReturn {
   const onSubmit = async (data: LoadoutCreationFormInput) => {
     try {
       // Parse and transform the validated data
-      const parsed = loadoutCreationFormSchema.parse(data);
+      const parsed: LoadoutCreationFormOutput = loadoutCreationFormSchema.parse(data);
 
       // Create the loadout with all form data
       // tripDate is already transformed to Date | null by the schema
