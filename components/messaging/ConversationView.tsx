@@ -173,8 +173,13 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       );
 
       if (!otherParticipant) {
-        // If no other participant found, allow messaging (shouldn't happen in normal flow)
-        setIsPrivacyBlocked(false);
+        // If no other participant found, block messaging as this indicates a data integrity issue
+        console.error('ConversationView: No other participant found in direct conversation', {
+          conversationId: conversation.conversation.id,
+          userId: user.id,
+          participantCount: conversation.participants.length,
+        });
+        setIsPrivacyBlocked(true);
         setIsCheckingPrivacy(false);
         return;
       }
