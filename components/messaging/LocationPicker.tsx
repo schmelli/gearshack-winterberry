@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -80,8 +81,15 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
         }
         setIsGettingLocation(false);
       },
-      () => {
+      (error) => {
         setIsGettingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location access denied. Please enable it in your browser settings.');
+        } else if (error.code === error.TIMEOUT) {
+          toast.error('Location request timed out. Please try again.');
+        } else {
+          toast.error('Could not get your location. Please try again.');
+        }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );

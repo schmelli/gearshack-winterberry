@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Send, Loader2, Paperclip, Image as ImageIcon, MapPin, Package, Mic } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ImageAttachmentPreview } from './ImageAttachmentPreview';
 import { GearPicker } from './GearPicker';
@@ -96,8 +97,9 @@ export function MessageInput({
           setMessage('');
           setImageAttachment(null);
         }
-      } catch {
-        // Error handled by parent
+      } catch (error) {
+        console.error('Image upload failed:', error);
+        toast.error('Failed to upload image. Please try again.');
       } finally {
         setIsSending(false);
         setIsUploadingImage(false);
@@ -123,8 +125,9 @@ export function MessageInput({
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-    } catch {
-      // Error is handled by parent component
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -238,6 +241,20 @@ export function MessageInput({
   );
 
   const canSend = (message.trim().length > 0 || imageAttachment) && !isSending && !disabled;
+
+  // Cleanup on unmount: revoke object URLs and clear typing timeout
+  useEffect(() => {
+    return () => {
+      // Clean up image attachment object URL
+      if (imageAttachment) {
+        URL.revokeObjectURL(imageAttachment.url);
+      }
+      // Clear typing indicator timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [imageAttachment]);
 
   return (
     <div className={cn('flex flex-col gap-2 border-t bg-background p-3', className)}>

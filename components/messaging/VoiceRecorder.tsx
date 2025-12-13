@@ -11,6 +11,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Mic, Square, Send, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -91,6 +92,7 @@ export function VoiceRecorder({
       }, 100);
     } catch (error) {
       console.error('Failed to start recording:', error);
+      toast.error('Microphone access denied. Please enable it in your browser settings.');
       setIsPreparing(false);
     }
   }, []);
@@ -123,6 +125,7 @@ export function VoiceRecorder({
       setDuration(0);
     } catch (error) {
       console.error('Failed to send voice message:', error);
+      toast.error('Failed to send voice message. Please try again.');
     } finally {
       setIsSending(false);
     }
