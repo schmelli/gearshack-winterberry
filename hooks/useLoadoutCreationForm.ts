@@ -101,8 +101,9 @@ export function useLoadoutCreationForm(): UseLoadoutCreationFormReturn {
 
       // Create the loadout with all form data
       // tripDate is already transformed to Date | null by the schema
+      // name is already trimmed by the schema
       const loadoutId = await createLoadout(
-        parsed.name.trim(),
+        parsed.name,
         parsed.tripDate,
         {
           description: parsed.description?.trim() || '',

@@ -39,7 +39,8 @@ export const loadoutCreationFormSchema = z.object({
   name: z
     .string()
     .min(1, 'Name is required')
-    .max(100, 'Name must be 100 characters or less'),
+    .max(100, 'Name must be 100 characters or less')
+    .transform((val) => val.trim()),
 
   tripDate: z
     .string()
