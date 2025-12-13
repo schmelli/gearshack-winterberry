@@ -380,6 +380,80 @@ export interface Database {
           }
         ];
       };
+      loadout_shares: {
+        Row: {
+          share_token: string;
+          loadout_id: string | null;
+          owner_id: string | null;
+          allow_comments: boolean;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          share_token?: string;
+          loadout_id?: string | null;
+          owner_id?: string | null;
+          allow_comments?: boolean;
+          payload: Json;
+          created_at?: string;
+        };
+        Update: {
+          share_token?: string;
+          loadout_id?: string | null;
+          owner_id?: string | null;
+          allow_comments?: boolean;
+          payload?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'loadout_shares_loadout_id_fkey';
+            columns: ['loadout_id'];
+            referencedRelation: 'loadouts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'loadout_shares_owner_id_fkey';
+            columns: ['owner_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      loadout_comments: {
+        Row: {
+          id: string;
+          share_token: string;
+          item_id: string | null;
+          author: string | null;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          share_token: string;
+          item_id?: string | null;
+          author?: string | null;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          share_token?: string;
+          item_id?: string | null;
+          author?: string | null;
+          message?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'loadout_comments_share_token_fkey';
+            columns: ['share_token'];
+            referencedRelation: 'loadout_shares';
+            referencedColumns: ['share_token'];
+          }
+        ];
+      };
       /** Feature 042: Global Gear Catalog - Brands table */
       catalog_brands: {
         Row: {

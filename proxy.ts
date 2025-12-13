@@ -1,8 +1,11 @@
 /**
- * Combined Middleware: i18n + Supabase Session
+ * Combined Proxy: i18n + Supabase Session
  *
  * Features: 027-i18n-next-intl, 040-supabase-migration
  * Tasks: T016 (Supabase session refresh)
+ *
+ * Next.js 16: Renamed from middleware.ts to proxy.ts
+ * See: https://nextjs.org/docs/messages/middleware-to-proxy
  *
  * Handles:
  * - Supabase session refresh on every request
@@ -21,7 +24,7 @@ const intlMiddleware = createIntlMiddleware({
   defaultLocale: 'en',
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip i18n middleware for API routes and auth callback
