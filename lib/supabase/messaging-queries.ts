@@ -26,6 +26,9 @@ import type {
   ParticipantRole,
 } from '@/types/messaging';
 
+// Helper type for Supabase query results
+type QueryResult = Record<string, unknown>;
+
 // ----- Conversation Queries -----
 
 /**
@@ -252,7 +255,6 @@ export async function fetchConversationById(
   }
 
   // Transform participants
-  type QueryResult = Record<string, unknown>;
   const participants: ParticipantInfo[] = (allParticipants ?? []).map((row: QueryResult) => {
     const profile = row.profiles as {
       id: string;
