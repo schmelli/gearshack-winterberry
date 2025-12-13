@@ -25,6 +25,7 @@ import { GearPicker } from './GearPicker';
 import { LocationPicker } from './LocationPicker';
 import { VoiceRecorder } from './VoiceRecorder';
 import type { MessageType, MessageMetadata, GearReferenceMetadata, LocationMetadata, VoiceMetadata } from '@/types/messaging';
+import { uploadImageToCloudinary, uploadVoiceToCloudinary } from '@/lib/cloudinary-upload';
 
 interface MessageInputProps {
   onSend: (message: string) => Promise<void>;
@@ -75,28 +76,21 @@ export function MessageInput({
         setIsSending(true);
         setIsUploadingImage(true);
 
-        // Upload image to Cloudinary
-        const formData = new FormData();
-        formData.append('file', imageAttachment.file);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
-        formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '');
+        // Upload image to Cloudinary using utility function
+        const uploadResult = await uploadImageToCloudinary(imageAttachment.file);
 
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          { method: 'POST', body: formData }
+        await onSendWithMedia(
+          trimmedMessage || null,
+          'image',
+          uploadResult.secure_url,
+          {
+            width: uploadResult.width,
+            height: uploadResult.height,
+            thumbnail_url: uploadResult.secure_url
+          }
         );
-        const data = await response.json();
-
-        if (data.secure_url) {
-          await onSendWithMedia(
-            trimmedMessage || null,
-            'image',
-            data.secure_url,
-            { width: data.width, height: data.height, thumbnail_url: data.secure_url }
-          );
-          setMessage('');
-          setImageAttachment(null);
-        }
+        setMessage('');
+        setImageAttachment(null);
       } catch (error) {
         console.error('Image upload failed:', error);
         toast.error('Failed to upload image. Please try again.');
@@ -216,26 +210,21 @@ export function MessageInput({
     async (audioBlob: Blob, durationSeconds: number) => {
       if (!onSendWithMedia) return;
 
-      // Upload audio to Cloudinary
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice-message.webm');
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
-      formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
+      try {
+        // Upload audio to Cloudinary using utility function
+        const uploadResult = await uploadVoiceToCloudinary(audioBlob);
 
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
-        { method: 'POST', body: formData }
-      );
-      const data = await response.json();
-
-      if (data.secure_url) {
         const metadata: VoiceMetadata = {
           duration_seconds: durationSeconds,
           waveform: [], // Could be populated with actual waveform data
         };
-        await onSendWithMedia(null, 'voice', data.secure_url, metadata);
+        await onSendWithMedia(null, 'voice', uploadResult.secure_url, metadata);
+        setIsRecordingVoice(false);
+      } catch (error) {
+        console.error('Voice upload failed:', error);
+        toast.error('Failed to upload voice message. Please try again.');
+        // Keep recording UI open on failure so user can retry
       }
-      setIsRecordingVoice(false);
     },
     [onSendWithMedia]
   );

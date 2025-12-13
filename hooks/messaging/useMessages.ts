@@ -90,6 +90,9 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
   useEffect(() => {
     if (!conversationId || !user?.id) return;
 
+    // Track mounted state to prevent memory leaks
+    let isMounted = true;
+
     const supabase = createClient();
 
     const channel = supabase
@@ -106,31 +109,43 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           // Fetch the full message with sender info
           const newMessage = payload.new as Message;
           if (!newMessage.sender_id) {
-            setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            if (isMounted) {
+              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            }
             return;
           }
 
-          // Get sender profile
-          supabase
+          // Get sender profile with error handling
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('id, display_name, avatar_url')
             .eq('id', newMessage.sender_id)
-            .single()
-            .then(({ data: profile }) => {
-              const sender = profile ? {
-                id: profile.id,
-                display_name: profile.display_name ?? 'Unknown',
-                avatar_url: profile.avatar_url,
-              } : null;
+            .single();
 
-              const messageWithSender: MessageWithSender = {
-                ...newMessage,
-                sender,
-                reactions: [],
-              };
+          if (error) {
+            console.error('Failed to fetch sender profile:', error);
+            // Still add the message but with null sender
+            if (isMounted) {
+              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            }
+            return;
+          }
 
-              setMessages((prev) => [...prev, messageWithSender]);
-            });
+          const sender = profile ? {
+            id: profile.id,
+            display_name: profile.display_name ?? 'Unknown',
+            avatar_url: profile.avatar_url,
+          } : null;
+
+          const messageWithSender: MessageWithSender = {
+            ...newMessage,
+            sender,
+            reactions: [],
+          };
+
+          if (isMounted) {
+            setMessages((prev) => [...prev, messageWithSender]);
+          }
         }
       )
       .on(
@@ -169,27 +184,35 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           if (!messageId) return;
 
           // Fetch updated reactions for this specific message
-          const { data: updatedReactions } = await supabase
+          const { data: updatedReactions, error } = await supabase
             .from('message_reactions')
             .select('id, user_id, emoji, created_at')
             .eq('message_id', messageId);
 
-          // Update only the affected message's reactions (if it exists in current conversation)
-          setMessages((prev) => {
-            const messageExists = prev.some((m) => m.id === messageId);
-            if (!messageExists) return prev; // Not in this conversation, ignore
+          if (error) {
+            console.error('Failed to fetch updated reactions:', error);
+            return; // Preserve existing reactions instead of clearing them
+          }
 
-            return prev.map((m) =>
-              m.id === messageId
-                ? { ...m, reactions: updatedReactions ?? [] }
-                : m
-            );
-          });
+          // Update only the affected message's reactions (if it exists in current conversation)
+          if (isMounted) {
+            setMessages((prev) => {
+              const messageExists = prev.some((m) => m.id === messageId);
+              if (!messageExists) return prev; // Not in this conversation, ignore
+
+              return prev.map((m) =>
+                m.id === messageId
+                  ? { ...m, reactions: updatedReactions ?? [] }
+                  : m
+              );
+            });
+          }
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [conversationId, user?.id, loadMessages]);

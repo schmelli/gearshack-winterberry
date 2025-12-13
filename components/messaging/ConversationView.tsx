@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Lock } from 'lucide-react';
@@ -21,7 +21,7 @@ import { useTypingIndicator } from '@/hooks/messaging/useTypingIndicator';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { ConversationListItem, ReactionEmoji, MessageType, MessageMetadata } from '@/types/messaging';
 import { toast } from 'sonner';
-import { addReaction, removeReaction } from '@/lib/supabase/messaging-queries';
+import { addReaction, removeReaction, canMessageUser } from '@/lib/supabase/messaging-queries';
 
 interface ConversationViewProps {
   conversation: ConversationListItem;
@@ -149,7 +149,35 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   }, []);
 
   // Check if conversation is blocked or privacy restricted
-  const isPrivacyBlocked = false; // TODO: Implement this check based on conversation participants and privacy settings.
+  const [isPrivacyBlocked, setIsPrivacyBlocked] = useState(false);
+
+  useEffect(() => {
+    async function checkPrivacy() {
+      // Group chats don't have privacy restrictions (users are already participants)
+      if (conversation.conversation.type === 'group' || !user?.id) {
+        setIsPrivacyBlocked(false);
+        return;
+      }
+
+      // For direct messages, check if current user can message the other participant
+      const otherParticipant = conversation.participants.find((p) => p.id !== user.id);
+      if (!otherParticipant) {
+        setIsPrivacyBlocked(false);
+        return;
+      }
+
+      try {
+        const canMessage = await canMessageUser(user.id, otherParticipant.id);
+        setIsPrivacyBlocked(!canMessage);
+      } catch (error) {
+        console.error('Failed to check messaging permission:', error);
+        // On error, allow messaging (fail open for better UX)
+        setIsPrivacyBlocked(false);
+      }
+    }
+
+    checkPrivacy();
+  }, [conversation, user?.id]);
 
   if (isLoading) {
     return <ConversationViewSkeleton />;
