@@ -78,7 +78,13 @@ interface SupabaseStore {
   deleteItem: (id: string) => Promise<void>;
 
   // Loadout Actions
-  createLoadout: (name: string, tripDate?: Date | null) => Promise<string>;
+  createLoadout: (
+    name: string,
+    tripDate?: Date | null,
+    description?: string,
+    activityTypes?: ActivityType[],
+    seasons?: Season[]
+  ) => Promise<string>;
   updateLoadout: (id: string, updates: Partial<LoadoutLocal>) => Promise<void>;
   deleteLoadout: (id: string) => Promise<void>;
   addItemToLoadout: (loadoutId: string, itemId: string) => void;
@@ -301,7 +307,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       },
 
       // Loadout Actions
-      createLoadout: async (name, tripDate = null) => {
+      createLoadout: async (name, tripDate = null, description = '', activityTypes = [], seasons = []) => {
         const { userId } = get();
         if (!userId) {
           toast.error('Please sign in to create loadouts');
@@ -317,9 +323,9 @@ export const useSupabaseStore = create<SupabaseStore>()(
           name,
           tripDate,
           itemIds: [],
-          description: null,
-          activityTypes: [],
-          seasons: [],
+          description: description || null,
+          activityTypes,
+          seasons,
           itemStates: [],
           createdAt: now,
           updatedAt: now,
@@ -338,7 +344,10 @@ export const useSupabaseStore = create<SupabaseStore>()(
               id,
               user_id: userId,
               name,
+              description: description || null,
               trip_date: tripDate?.toISOString().split('T')[0] ?? null,
+              activity_types: activityTypes as never[],
+              seasons: seasons as never[],
             });
 
           if (error) throw error;
