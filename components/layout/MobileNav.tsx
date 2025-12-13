@@ -48,6 +48,7 @@ export function MobileNav({
   const { user, signOut, profile } = useAuthContext();
   const { mergedUser } = profile;
   const t = useTranslations('Navigation');
+  const tCommon = useTranslations('Common');
 
   const handleNavigate = () => {
     setOpen(false);
@@ -61,12 +62,17 @@ export function MobileNav({
 
   const handleSignOut = async () => {
     setOpen(false);
-    await signOut();
-    router.replace('/login');
+    try {
+      await signOut();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+      // TODO: Consider showing a toast notification to the user
+    }
   };
 
   // Get user display info
-  const displayName = mergedUser?.displayName || user?.displayName || 'User';
+  const displayName = mergedUser?.displayName || user?.displayName || tCommon('genericUser');
   const avatarUrl = user ? getDisplayAvatarUrl(
     mergedUser?.avatarUrl,
     mergedUser?.providerAvatarUrl ?? user.photoURL

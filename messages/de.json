@@ -17,7 +17,8 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "genericUser": "Benutzer"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
