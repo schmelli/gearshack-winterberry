@@ -131,7 +131,6 @@ export function SpecIcon({
       width={size}
       height={size}
       className={cn('inline-block', className)}
-      unoptimized
       onError={() => setHasError(true)}
     />
   );
