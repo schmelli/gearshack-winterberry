@@ -210,6 +210,12 @@
     "deleteConfirm": "Are you sure you want to delete this item?",
     "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
   },
+  "Profile": {
+    "favorites": "Favorites",
+    "forSale": "For Sale",
+    "forRent": "For Rent",
+    "forTrade": "For Trade"
+  },
   "LoadoutCreation": {
     "title": "Create New Loadout",
     "subtitle": "Start planning your trip by defining the basics",

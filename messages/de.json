@@ -210,6 +210,12 @@
     "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
     "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?"
   },
+  "Profile": {
+    "favorites": "Favoriten",
+    "forSale": "Zu verkaufen",
+    "forRent": "Zu verleihen",
+    "forTrade": "Zu tauschen"
+  },
   "LoadoutCreation": {
     "title": "Neue Packliste erstellen",
     "subtitle": "Definiere die Grundlagen deiner Tour",
