@@ -10,6 +10,7 @@
 
 'use client';
 
+import { ChevronRight, Shield } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { Link } from '@/i18n/navigation';
 
 function SettingsContent() {
   return (
@@ -39,6 +41,27 @@ function SettingsContent() {
           <ThemeToggle />
         </CardContent>
       </Card>
+
+      <Link href="/settings/privacy">
+        <Card className="mt-4 cursor-pointer transition-colors hover:bg-muted/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Privacy</CardTitle>
+                  <CardDescription>
+                    Control who can contact you and see your activity
+                  </CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+        </Card>
+      </Link>
     </main>
   );
 }
