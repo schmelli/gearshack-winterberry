@@ -30,7 +30,7 @@ export default async function ShakedownPage({ params }: ShakedownPageProps) {
   return (
     <VirtualGearShakedown
       shareToken={token}
-      payload={data.payload as SharedLoadoutPayload}
+      payload={data.payload as unknown as SharedLoadoutPayload}
       allowComments={data.allow_comments}
       createdAt={data.created_at}
     />
