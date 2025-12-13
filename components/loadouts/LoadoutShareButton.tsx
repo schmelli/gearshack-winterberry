@@ -29,6 +29,9 @@ interface LoadoutShareButtonProps {
   itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  showLabel?: boolean;
 }
 
 export function LoadoutShareButton({
@@ -37,6 +40,9 @@ export function LoadoutShareButton({
   itemStates,
   activityTypes,
   seasons,
+  variant = 'outline',
+  size = 'sm',
+  showLabel = true,
 }: LoadoutShareButtonProps) {
   const supabase = useMemo(() => createClient(), []);
   const locale = useLocale();
@@ -135,9 +141,14 @@ export function LoadoutShareButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-2">
+        <Button
+          variant={variant}
+          size={size}
+          className="flex items-center gap-2"
+          aria-label={showLabel ? undefined : "Share loadout"}
+        >
           <Share2 className="h-4 w-4" />
-          Share
+          {showLabel && 'Share'}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">

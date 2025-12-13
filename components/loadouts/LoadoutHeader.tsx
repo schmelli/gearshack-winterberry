@@ -28,7 +28,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatTripDate, formatWeight, DEFAULT_WEIGHT_GOAL_GRAMS } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { ActivityMatrix } from '@/components/loadouts/ActivityMatrix';
-import type { Loadout, CategoryWeight, ActivityType, Season } from '@/types/loadout';
+import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
+import type { Loadout, CategoryWeight, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
+import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 
 // =============================================================================
@@ -52,6 +54,9 @@ interface LoadoutHeaderProps {
   onEdit?: () => void;
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
+  /** Props for share button */
+  items?: GearItem[];
+  itemStates?: LoadoutItemState[];
 }
 
 // =============================================================================
@@ -118,6 +123,8 @@ export function LoadoutHeader({
   onSegmentClick,
   onEdit,
   onDescriptionChange,
+  items = [],
+  itemStates = [],
 }: LoadoutHeaderProps) {
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
@@ -152,22 +159,34 @@ export function LoadoutHeader({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           {/* Left: Title, Date, and Badges */}
           <div className="flex-1 space-y-4">
-            {/* Title in sans-serif font with edit icon (Feature: 009-grand-visual-polish FR-012) */}
+            {/* Title in sans-serif font with edit and share icons (Feature: 009-grand-visual-polish FR-012) */}
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold leading-relaxed">
                 {loadout.name}
               </h1>
-              {onEdit && (
-                <Button
+              <div className="flex items-center gap-1">
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onEdit}
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Edit loadout metadata"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+                <LoadoutShareButton
+                  loadout={loadout}
+                  items={items}
+                  itemStates={itemStates}
+                  activityTypes={activityTypes}
+                  seasons={seasons}
                   variant="ghost"
                   size="icon"
-                  onClick={onEdit}
-                  className="h-8 w-8 shrink-0"
-                  aria-label="Edit loadout metadata"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              )}
+                  showLabel={false}
+                />
+              </div>
             </div>
 
             {/* Trip Date */}
