@@ -191,6 +191,141 @@ export async function fetchConversations(
 }
 
 /**
+ * Fetches a single conversation by ID with all participant and message data.
+ * Used when navigating to a conversation from search results or deep links.
+ */
+export async function fetchConversationById(
+  conversationId: string,
+  userId: string
+): Promise<ConversationListItem | null> {
+  const supabase = createClient();
+
+  // Fetch the user's participant record for this conversation
+  const { data: participantData, error: participantError } = await supabase
+    .from('conversation_participants')
+    .select(
+      `
+      conversation_id,
+      role,
+      is_muted,
+      is_archived,
+      unread_count,
+      last_read_at,
+      conversations!inner (
+        id,
+        type,
+        name,
+        created_by,
+        created_at,
+        updated_at
+      )
+    `
+    )
+    .eq('conversation_id', conversationId)
+    .eq('user_id', userId)
+    .single();
+
+  if (participantError || !participantData) {
+    return null;
+  }
+
+  // Fetch all participants for this conversation
+  const { data: allParticipants, error: participantsError } = await supabase
+    .from('conversation_participants')
+    .select(
+      `
+      conversation_id,
+      user_id,
+      role,
+      joined_at,
+      profiles!inner (
+        id,
+        display_name,
+        avatar_url
+      )
+    `
+    )
+    .eq('conversation_id', conversationId);
+
+  if (participantsError) {
+    throw new Error(`Failed to fetch participants: ${participantsError.message}`);
+  }
+
+  // Transform participants
+  type QueryResult = Record<string, unknown>;
+  const participants: ParticipantInfo[] = (allParticipants ?? []).map((row: QueryResult) => {
+    const profile = row.profiles as {
+      id: string;
+      display_name: string;
+      avatar_url: string | null;
+    };
+    return {
+      id: profile.id,
+      display_name: profile.display_name ?? 'Unknown',
+      avatar_url: profile.avatar_url,
+      role: row.role as ParticipantRole,
+      joined_at: row.joined_at as string,
+    };
+  });
+
+  // Fetch the last message for this conversation
+  const { data: lastMessageData, error: messageError } = await supabase
+    .from('messages')
+    .select(
+      `
+      id,
+      conversation_id,
+      content,
+      message_type,
+      sender_id,
+      created_at,
+      profiles!sender_id (
+        display_name
+      )
+    `
+    )
+    .eq('conversation_id', conversationId)
+    .eq('deletion_state', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (messageError) {
+    throw new Error(`Failed to fetch last message: ${messageError.message}`);
+  }
+
+  // Transform last message if it exists
+  let lastMessage: MessagePreview | undefined;
+  if (lastMessageData) {
+    const msg = lastMessageData as QueryResult;
+    const profile = msg.profiles as { display_name: string } | null;
+    lastMessage = {
+      id: msg.id as string,
+      content: msg.content as string | null,
+      message_type: msg.message_type as string,
+      sender_id: msg.sender_id as string | null,
+      sender_name: profile?.display_name ?? null,
+      created_at: msg.created_at as string,
+    };
+  }
+
+  // Construct the conversation list item
+  const row = participantData as QueryResult;
+  const conv = row.conversations as Conversation;
+
+  return {
+    conversation: conv,
+    role: row.role as ParticipantRole,
+    is_muted: row.is_muted as boolean,
+    is_archived: row.is_archived as boolean,
+    unread_count: row.unread_count as number,
+    last_read_at: row.last_read_at as string | null,
+    last_message: lastMessage,
+    participants,
+  };
+}
+
+/**
  * Fetches participants of a conversation with profile info.
  */
 export async function fetchConversationParticipants(

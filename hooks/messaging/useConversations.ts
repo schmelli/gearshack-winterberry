@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   fetchConversations,
+  fetchConversationById,
   getOrCreateDirectConversation,
   createGroupConversation,
   toggleMute,
@@ -31,6 +32,7 @@ interface UseConversationsReturn {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  getConversationById: (conversationId: string) => Promise<ConversationListItem | null>;
   startDirectConversation: (recipientId: string) => Promise<{ success: boolean; conversationId?: string; error?: string }>;
   createGroup: (name: string, participantIds: string[]) => Promise<{ success: boolean; conversationId?: string; error?: string }>;
   muteConversation: (conversationId: string, muted: boolean) => Promise<void>;
@@ -324,11 +326,25 @@ export function useConversations(
     [user?.id]
   );
 
+  const getConversationById = useCallback(
+    async (conversationId: string): Promise<ConversationListItem | null> => {
+      if (!user?.id) return null;
+
+      try {
+        return await fetchConversationById(conversationId, user.id);
+      } catch {
+        return null;
+      }
+    },
+    [user?.id]
+  );
+
   return {
     conversations,
     isLoading,
     error,
     refresh,
+    getConversationById,
     startDirectConversation,
     createGroup,
     muteConversation,

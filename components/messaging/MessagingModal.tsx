@@ -49,7 +49,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationListItem | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const { startDirectConversation } = useConversations();
+  const { startDirectConversation, getConversationById } = useConversations();
 
   // Detect mobile for responsive layout
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -206,27 +206,14 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
 
                 <div className="flex-1 overflow-hidden p-4">
                   <MessageSearch
-                    onSelectResult={(conversationId) => {
-                      // Navigate to conversation
+                    onSelectResult={async (conversationId) => {
+                      // Fetch the full conversation with all participant data
+                      const conversation = await getConversationById(conversationId);
+                      if (conversation) {
+                        setSelectedConversation(conversation);
+                        setViewState('conversation');
+                      }
                       // TODO: Scroll to specific message
-                      const tempConversation: ConversationListItem = {
-                        conversation: {
-                          id: conversationId,
-                          type: 'direct',
-                          name: null,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString(),
-                          created_by: null,
-                        },
-                        participants: [],
-                        role: 'member',
-                        unread_count: 0,
-                        is_muted: false,
-                        is_archived: false,
-                        last_read_at: null,
-                      };
-                      setSelectedConversation(tempConversation);
-                      setViewState('conversation');
                     }}
                   />
                 </div>
