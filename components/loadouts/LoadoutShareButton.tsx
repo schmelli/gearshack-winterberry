@@ -29,8 +29,8 @@ interface LoadoutShareButtonProps {
   itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+  size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
 }
 
