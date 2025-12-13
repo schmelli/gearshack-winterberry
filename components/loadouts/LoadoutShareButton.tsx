@@ -87,7 +87,7 @@ export function LoadoutShareButton({
           loadout_id: loadout.id,
           owner_id: userResult?.user?.id ?? null,
           allow_comments: allowComments,
-          payload,
+          payload: payload as unknown as import('@/types/database').Json,
         });
 
       if (error) {
