@@ -25,6 +25,9 @@ import {
   Backpack,
   CheckCircle2,
   Heart,
+  DollarSign,
+  Handshake,
+  Repeat2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -137,9 +140,15 @@ interface ProfileViewProps {
   stats?: ProfileStats;
   /** Favorite items for carousel */
   favorites?: FavoriteItem[];
+  /** Items for sale */
+  forSale?: FavoriteItem[];
+  /** Items for rent/borrow */
+  forRent?: FavoriteItem[];
+  /** Items for trade */
+  forTrade?: FavoriteItem[];
 }
 
-export function ProfileView({ user, onEditClick, stats, favorites }: ProfileViewProps) {
+export function ProfileView({ user, onEditClick, stats, favorites, forSale, forRent, forTrade }: ProfileViewProps) {
   // Feature 041: Use avatar fallback chain
   const displayAvatarUrl = getDisplayAvatarUrl(user.avatarUrl, user.providerAvatarUrl);
   // Feature 041: Show locationName if available, fallback to legacy location
@@ -148,6 +157,9 @@ export function ProfileView({ user, onEditClick, stats, favorites }: ProfileView
   const hasBio = Boolean(user.bio);
   const hasTrailName = Boolean(user.trailName);
   const hasFavorites = favorites && favorites.length > 0;
+  const hasForSale = forSale && forSale.length > 0;
+  const hasForRent = forRent && forRent.length > 0;
+  const hasForTrade = forTrade && forTrade.length > 0;
 
   // Social links
   const socialLinks = [
@@ -294,6 +306,57 @@ export function ProfileView({ user, onEditClick, stats, favorites }: ProfileView
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
               {favorites.map((item) => (
+                <MiniGearCard key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* For Sale Carousel */}
+        {hasForSale && (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <DollarSign className="h-4 w-4 text-green-600" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                For Sale
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+              {forSale.map((item) => (
+                <MiniGearCard key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* For Rent Carousel */}
+        {hasForRent && (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Handshake className="h-4 w-4 text-blue-600" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                For Rent
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+              {forRent.map((item) => (
+                <MiniGearCard key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* For Trade Carousel */}
+        {hasForTrade && (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Repeat2 className="h-4 w-4 text-purple-600" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                For Trade
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+              {forTrade.map((item) => (
                 <MiniGearCard key={item.id} item={item} />
               ))}
             </div>

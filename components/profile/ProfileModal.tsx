@@ -67,6 +67,42 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
       }));
   }, [gearItems]);
 
+  // Get items for sale
+  const forSale = useMemo(() => {
+    return gearItems
+      .filter(item => item.isForSale)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for rent/borrow
+  const forRent = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeBorrowed)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for trade
+  const forTrade = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeTraded)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
   // Handle save (T036: preserves isVIP and first_launch in firestore utility)
   const handleSave = useCallback(async (data: ProfileFormData) => {
     await updateProfile(data);
@@ -103,6 +139,9 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
             onEditClick={() => setMode('edit')}
             stats={stats}
             favorites={favorites}
+            forSale={forSale}
+            forRent={forRent}
+            forTrade={forTrade}
           />
         ) : (
           <div className="p-6">
