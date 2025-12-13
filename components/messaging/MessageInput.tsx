@@ -84,8 +84,8 @@ export function MessageInput({
           'image',
           uploadResult.secure_url,
           {
-            width: uploadResult.width,
-            height: uploadResult.height,
+            width: uploadResult.width ?? 0,
+            height: uploadResult.height ?? 0,
             thumbnail_url: uploadResult.secure_url
           }
         );
