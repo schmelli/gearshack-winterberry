@@ -18,6 +18,7 @@ import {
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useGearItems } from '@/hooks/useGearItems';
 import { useLoadouts } from '@/hooks/useLoadouts';
+import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { ProfileView } from '@/components/profile/ProfileView';
 import { ProfileEditForm } from '@/components/profile/ProfileEditForm';
 import type { ProfileFormData } from '@/lib/validations/profile-schema';
@@ -48,6 +49,9 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
   const { items: gearItems } = useGearItems(user?.uid ?? null);
   const { loadouts } = useLoadouts(user?.uid ?? null);
 
+  // Gear detail modal state
+  const { open: openGearDetail } = useGearDetailModal();
+
   // Compute stats
   const stats = useMemo(() => ({
     itemCount: gearItems.length,
@@ -60,6 +64,42 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
     return gearItems
       .filter(item => item.isFavourite)
       .slice(0, 10) // Limit to 10 favourites in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for sale
+  const forSale = useMemo(() => {
+    return gearItems
+      .filter(item => item.isForSale)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for rent/borrow
+  const forRent = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeBorrowed)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for trade
+  const forTrade = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeTraded)
+      .slice(0, 10) // Limit to 10 items in carousel
       .map(item => ({
         id: item.id,
         name: item.name,
@@ -101,8 +141,12 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
           <ProfileView
             user={mergedUser}
             onEditClick={() => setMode('edit')}
+            onItemClick={openGearDetail}
             stats={stats}
             favorites={favorites}
+            forSale={forSale}
+            forRent={forRent}
+            forTrade={forTrade}
           />
         ) : (
           <div className="p-6">
