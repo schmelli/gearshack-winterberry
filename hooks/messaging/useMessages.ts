@@ -158,10 +158,33 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           event: '*',
           schema: 'public',
           table: 'message_reactions',
+          // Note: Cannot filter by conversation_id since message_reactions table doesn't have it
+          // We filter client-side to only process reactions for messages in this conversation
         },
-        () => {
-          // Refresh messages to get updated reactions
-          loadMessages();
+        async (payload) => {
+          // Extract message_id from the reaction event
+          const reactionData = (payload.new || payload.old) as { message_id?: string };
+          const messageId = reactionData?.message_id;
+
+          if (!messageId) return;
+
+          // Fetch updated reactions for this specific message
+          const { data: updatedReactions } = await supabase
+            .from('message_reactions')
+            .select('id, user_id, emoji, created_at')
+            .eq('message_id', messageId);
+
+          // Update only the affected message's reactions (if it exists in current conversation)
+          setMessages((prev) => {
+            const messageExists = prev.some((m) => m.id === messageId);
+            if (!messageExists) return prev; // Not in this conversation, ignore
+
+            return prev.map((m) =>
+              m.id === messageId
+                ? { ...m, reactions: updatedReactions ?? [] }
+                : m
+            );
+          });
         }
       )
       .subscribe();

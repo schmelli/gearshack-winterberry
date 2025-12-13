@@ -45,6 +45,7 @@ function getMessagingClient(): any {
 
 /**
  * Fetches user's conversations with last message and participants.
+ * Optimized to avoid N+1 queries by fetching all data upfront.
  */
 export async function fetchConversations(
   userId: string,
@@ -85,13 +86,109 @@ export async function fetchConversations(
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
-  // Transform and fetch additional data
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Extract conversation IDs
+  const conversationIds = (data as QueryResult[]).map(
+    (row) => (row.conversations as Conversation).id
+  );
+
+  // Fetch all participants for all conversations in one query
+  const { data: allParticipants, error: participantsError } = await supabase
+    .from('conversation_participants')
+    .select(
+      `
+      conversation_id,
+      user_id,
+      role,
+      joined_at,
+      profiles!inner (
+        id,
+        display_name,
+        avatar_url
+      )
+    `
+    )
+    .in('conversation_id', conversationIds);
+
+  if (participantsError) {
+    throw new Error(`Failed to fetch participants: ${participantsError.message}`);
+  }
+
+  // Group participants by conversation_id
+  const participantsByConversation = new Map<string, ParticipantInfo[]>();
+  for (const row of (allParticipants ?? []) as QueryResult[]) {
+    const profile = row.profiles as {
+      id: string;
+      display_name: string;
+      avatar_url: string | null;
+    };
+    const participant: ParticipantInfo = {
+      id: profile.id,
+      display_name: profile.display_name ?? 'Unknown',
+      avatar_url: profile.avatar_url,
+      role: row.role as ParticipantRole,
+      joined_at: row.joined_at,
+    };
+
+    const existing = participantsByConversation.get(row.conversation_id) ?? [];
+    existing.push(participant);
+    participantsByConversation.set(row.conversation_id, existing);
+  }
+
+  // Fetch last messages for all conversations in one query using a lateral join approach
+  // Since Supabase doesn't support LATERAL directly, we'll fetch all recent messages
+  // and filter client-side (still better than N queries)
+  const { data: allMessages, error: messagesError } = await supabase
+    .from('messages')
+    .select(
+      `
+      id,
+      conversation_id,
+      content,
+      message_type,
+      sender_id,
+      created_at,
+      profiles!sender_id (
+        display_name
+      )
+    `
+    )
+    .in('conversation_id', conversationIds)
+    .eq('deletion_state', 'active')
+    .order('created_at', { ascending: false });
+
+  if (messagesError) {
+    throw new Error(`Failed to fetch messages: ${messagesError.message}`);
+  }
+
+  // Get the last message per conversation
+  const lastMessageByConversation = new Map<string, MessagePreview>();
+  for (const msg of (allMessages ?? []) as QueryResult[]) {
+    const convId = msg.conversation_id as string;
+    // Only keep the first (most recent) message per conversation
+    if (!lastMessageByConversation.has(convId)) {
+      const profile = msg.profiles as { display_name: string } | null;
+      lastMessageByConversation.set(convId, {
+        id: msg.id,
+        content: msg.content,
+        message_type: msg.message_type,
+        sender_id: msg.sender_id,
+        sender_name: profile?.display_name ?? null,
+        created_at: msg.created_at,
+      });
+    }
+  }
+
+  // Transform and combine all data
   const conversations: ConversationListItem[] = [];
 
   for (const row of (data ?? []) as QueryResult[]) {
     const conv = row.conversations as Conversation;
-    const participants = await fetchConversationParticipants(conv.id);
-    const lastMessage = await fetchLastMessage(conv.id);
+    const participants = participantsByConversation.get(conv.id) ?? [];
+    const lastMessage = lastMessageByConversation.get(conv.id);
 
     conversations.push({
       conversation: conv,
@@ -622,6 +719,7 @@ export async function isBlocked(user1: string, user2: string): Promise<boolean> 
 
 /**
  * Searches for discoverable users.
+ * Optimized to avoid N queries for block checking.
  */
 export async function searchUsers(
   query: string,
@@ -642,11 +740,33 @@ export async function searchUsers(
     throw new Error(`Failed to search users: ${error.message}`);
   }
 
-  // Check messaging ability for each user
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Fetch all blocks upfront (users we blocked or who blocked us)
+  const { data: blocks } = await supabase
+    .from('user_blocks')
+    .select('user_id, blocked_id')
+    .or(`user_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
+
+  // Build a set of blocked user IDs
+  const blockedIds = new Set<string>();
+  if (blocks) {
+    for (const block of blocks) {
+      if (block.user_id === currentUserId) {
+        blockedIds.add(block.blocked_id);
+      } else {
+        blockedIds.add(block.user_id);
+      }
+    }
+  }
+
+  // Check messaging ability for each user (no additional queries)
   const results: SearchableUser[] = [];
 
-  for (const user of data ?? []) {
-    const blocked = await isBlocked(currentUserId, user.id);
+  for (const user of data) {
+    const blocked = blockedIds.has(user.id);
     const canMessage = !blocked && user.messaging_privacy !== 'nobody';
 
     results.push({
