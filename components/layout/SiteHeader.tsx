@@ -28,7 +28,7 @@
 // T025: Replace next/link with locale-aware Link from i18n/navigation
 import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Bell } from 'lucide-react';
+import { Bell, Mail } from 'lucide-react';
 // T022: Import useTranslations hook
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,9 @@ import { SyncIndicator } from './SyncIndicator';
 // T021: Import LanguageSwitcher
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useState } from 'react';
+import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
+import { MessagingModal } from '@/components/messaging/MessagingModal';
 
 interface SiteHeaderProps {
   className?: string;
@@ -50,6 +53,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const pathname = usePathname();
   // T022: Use translations from Navigation namespace
   const t = useTranslations('Navigation');
+  // T012: Messaging modal state and unread count
+  const [messagingOpen, setMessagingOpen] = useState(false);
+  const { unreadCount } = useUnreadCount();
 
   return (
     <header
@@ -116,6 +122,24 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           {/* T021: Language switcher - toggle between EN/DE */}
           <LanguageSwitcher />
 
+          {/* T012: Messaging icon with unread badge - only show when authenticated */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-white hover:bg-white/10 hover:text-white"
+              onClick={() => setMessagingOpen(true)}
+            >
+              <Mail className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              <span className="sr-only">Messages</span>
+            </Button>
+          )}
+
           {/* Notification bell */}
           <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white">
             <Bell className="h-5 w-5" />
@@ -127,6 +151,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           <UserMenu />
         </div>
       </div>
+
+      {/* T012: Messaging modal */}
+      <MessagingModal open={messagingOpen} onOpenChange={setMessagingOpen} />
     </header>
   );
 }

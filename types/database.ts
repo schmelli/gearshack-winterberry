@@ -28,6 +28,15 @@ export type WeightUnitDb = 'g' | 'oz' | 'lb';
 export type ActivityTypeDb = 'hiking' | 'camping' | 'climbing' | 'skiing' | 'backpacking';
 export type SeasonDb = 'spring' | 'summer' | 'fall' | 'winter';
 
+// Feature 046: Messaging System Enums
+export type MessageTypeDb = 'text' | 'image' | 'voice' | 'location' | 'gear_reference' | 'gear_trade' | 'trip_invitation';
+export type MessageDeletionStateDb = 'active' | 'deleted_for_sender' | 'deleted_for_all';
+export type ConversationTypeDb = 'direct' | 'group';
+export type ParticipantRoleDb = 'member' | 'admin';
+export type ReportReasonDb = 'spam' | 'harassment' | 'inappropriate_content' | 'other';
+export type ReportStatusDb = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+export type MessagingPrivacyDb = 'everyone' | 'friends_only' | 'nobody';
+
 // =============================================================================
 // Database Schema
 // =============================================================================
@@ -59,6 +68,14 @@ export interface Database {
           youtube: string | null;
           /** Website URL - Feature 041 */
           website: string | null;
+          /** Messaging privacy setting - Feature 046 */
+          messaging_privacy: MessagingPrivacyDb;
+          /** Online status privacy - Feature 046 */
+          online_status_privacy: MessagingPrivacyDb;
+          /** Whether user is discoverable in search - Feature 046 */
+          discoverable: boolean;
+          /** Whether user has read receipts enabled - Feature 046 */
+          read_receipts_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -76,6 +93,10 @@ export interface Database {
           facebook?: string | null;
           youtube?: string | null;
           website?: string | null;
+          messaging_privacy?: MessagingPrivacyDb;
+          online_status_privacy?: MessagingPrivacyDb;
+          discoverable?: boolean;
+          read_receipts_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -93,6 +114,10 @@ export interface Database {
           facebook?: string | null;
           youtube?: string | null;
           website?: string | null;
+          messaging_privacy?: MessagingPrivacyDb;
+          online_status_privacy?: MessagingPrivacyDb;
+          discoverable?: boolean;
+          read_receipts_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -618,15 +643,369 @@ export interface Database {
           }
         ];
       };
+      /** Feature 046: Messaging System - Conversations table */
+      conversations: {
+        Row: {
+          id: string;
+          type: ConversationTypeDb;
+          name: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: ConversationTypeDb;
+          name?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: ConversationTypeDb;
+          name?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversations_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - Conversation participants table */
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          user_id: string;
+          role: ParticipantRoleDb;
+          joined_at: string;
+          is_muted: boolean;
+          is_archived: boolean;
+          unread_count: number;
+          last_read_at: string | null;
+        };
+        Insert: {
+          conversation_id: string;
+          user_id: string;
+          role?: ParticipantRoleDb;
+          joined_at?: string;
+          is_muted?: boolean;
+          is_archived?: boolean;
+          unread_count?: number;
+          last_read_at?: string | null;
+        };
+        Update: {
+          conversation_id?: string;
+          user_id?: string;
+          role?: ParticipantRoleDb;
+          joined_at?: string;
+          is_muted?: boolean;
+          is_archived?: boolean;
+          unread_count?: number;
+          last_read_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_participants_conversation_id_fkey';
+            columns: ['conversation_id'];
+            referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'conversation_participants_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - Messages table */
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string | null;
+          content: string | null;
+          message_type: MessageTypeDb;
+          media_url: string | null;
+          metadata: Json;
+          deletion_state: MessageDeletionStateDb;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id?: string | null;
+          content?: string | null;
+          message_type?: MessageTypeDb;
+          media_url?: string | null;
+          metadata?: Json;
+          deletion_state?: MessageDeletionStateDb;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string | null;
+          content?: string | null;
+          message_type?: MessageTypeDb;
+          media_url?: string | null;
+          metadata?: Json;
+          deletion_state?: MessageDeletionStateDb;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'messages_conversation_id_fkey';
+            columns: ['conversation_id'];
+            referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'messages_sender_id_fkey';
+            columns: ['sender_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - Message deletions table */
+      message_deletions: {
+        Row: {
+          message_id: string;
+          user_id: string;
+          deleted_at: string;
+        };
+        Insert: {
+          message_id: string;
+          user_id: string;
+          deleted_at?: string;
+        };
+        Update: {
+          message_id?: string;
+          user_id?: string;
+          deleted_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_deletions_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_deletions_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - Message reactions table */
+      message_reactions: {
+        Row: {
+          id: string;
+          message_id: string;
+          user_id: string;
+          emoji: '👍' | '❤️' | '😂' | '😮' | '😢';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          user_id: string;
+          emoji: '👍' | '❤️' | '😂' | '😮' | '😢';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          message_id?: string;
+          user_id?: string;
+          emoji?: '👍' | '❤️' | '😂' | '😮' | '😢';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'message_reactions_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'message_reactions_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - User friends table */
+      user_friends: {
+        Row: {
+          user_id: string;
+          friend_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          friend_id: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          friend_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_friends_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_friends_friend_id_fkey';
+            columns: ['friend_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - User blocks table */
+      user_blocks: {
+        Row: {
+          user_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          blocked_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_blocks_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_blocks_blocked_id_fkey';
+            columns: ['blocked_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      /** Feature 046: Messaging System - User reports table */
+      user_reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          reported_user_id: string;
+          message_id: string | null;
+          reason: ReportReasonDb;
+          details: string | null;
+          status: ReportStatusDb;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          reported_user_id: string;
+          message_id?: string | null;
+          reason: ReportReasonDb;
+          details?: string | null;
+          status?: ReportStatusDb;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          reporter_id?: string;
+          reported_user_id?: string;
+          message_id?: string | null;
+          reason?: ReportReasonDb;
+          details?: string | null;
+          status?: ReportStatusDb;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_reports_reporter_id_fkey';
+            columns: ['reporter_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_reports_reported_user_id_fkey';
+            columns: ['reported_user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_reports_message_id_fkey';
+            columns: ['message_id'];
+            referencedRelation: 'messages';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_or_create_direct_conversation: {
+        Args: {
+          p_user1: string;
+          p_user2: string;
+        };
+        Returns: string;
+      };
+      can_message_user: {
+        Args: {
+          p_sender_id: string;
+          p_recipient_id: string;
+        };
+        Returns: boolean;
+      };
+      reset_unread_count: {
+        Args: {
+          p_conversation_id: string;
+          p_user_id: string;
+        };
+        Returns: void;
+      };
+    };
     Enums: {
       gear_condition: GearConditionDb;
       gear_status: GearStatusDb;
       weight_unit: WeightUnitDb;
       activity_type: ActivityTypeDb;
       season: SeasonDb;
+      message_type: MessageTypeDb;
+      message_deletion_state: MessageDeletionStateDb;
+      conversation_type: ConversationTypeDb;
+      participant_role: ParticipantRoleDb;
+      report_reason: ReportReasonDb;
+      report_status: ReportStatusDb;
+      messaging_privacy: MessagingPrivacyDb;
     };
     CompositeTypes: Record<string, never>;
   };
