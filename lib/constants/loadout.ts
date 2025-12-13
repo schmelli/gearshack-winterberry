@@ -5,21 +5,19 @@
  * Single source of truth for loadout-related constants
  */
 
-import type { Season, ActivityType } from '@/types/loadout';
-
 // =============================================================================
 // Season Constants
 // =============================================================================
 
 /** All available seasons for loadout classification */
-export const SEASONS: readonly Season[] = ['spring', 'summer', 'fall', 'winter'] as const;
+export const SEASONS = ['spring', 'summer', 'fall', 'winter'] as const;
 
 // =============================================================================
 // Activity Type Constants
 // =============================================================================
 
 /** All available activity types for loadout classification */
-export const ACTIVITIES: readonly ActivityType[] = [
+export const ACTIVITIES = [
   'hiking',
   'camping',
   'climbing',
