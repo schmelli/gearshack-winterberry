@@ -39,9 +39,6 @@ interface UseFriendsReturn {
   refresh: () => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type QueryResult = any;
-
 /**
  * Hook for managing friend relationships.
  */
@@ -66,8 +63,7 @@ export function useFriends(): UseFriendsReturn {
       const supabase = createClient();
 
       // user_friends table is created by migration
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await supabase
         .from('user_friends')
         .select(`
           friend_id,
@@ -85,7 +81,7 @@ export function useFriends(): UseFriendsReturn {
         throw fetchError;
       }
 
-      const friendsList: FriendInfo[] = (data ?? []).map((row: QueryResult) => {
+      const friendsList: FriendInfo[] = (data ?? []).map((row) => {
         const profile = row.profiles;
         return {
           id: profile.id,
@@ -155,8 +151,7 @@ export function useFriends(): UseFriendsReturn {
       try {
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await (supabase as any)
+        const { error: insertError } = await supabase
           .from('user_friends')
           .insert({
             user_id: user.id,
@@ -191,8 +186,7 @@ export function useFriends(): UseFriendsReturn {
       try {
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: deleteError } = await (supabase as any)
+        const { error: deleteError } = await supabase
           .from('user_friends')
           .delete()
           .eq('user_id', user.id)

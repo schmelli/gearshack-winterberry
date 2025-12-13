@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import type { Database } from '@/types/database';
 import type {
   Conversation,
   ConversationListItem,
@@ -25,22 +26,6 @@ import type {
   ParticipantRole,
 } from '@/types/messaging';
 
-// Note: Database types for messaging tables are defined in supabase/migrations/20251213_user_messaging.sql
-// After applying the migration, regenerate types with: npx supabase gen types typescript
-// For now, we use explicit typing since the tables don't exist in Database types yet.
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type QueryResult = any;
-
-/**
- * Helper to get supabase client with any typing for messaging tables
- * Remove this after running migrations and regenerating types
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMessagingClient(): any {
-  return createClient();
-}
-
 // ----- Conversation Queries -----
 
 /**
@@ -51,7 +36,7 @@ export async function fetchConversations(
   userId: string,
   includeArchived = false
 ): Promise<ConversationListItem[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   let query = supabase
     .from('conversation_participants')
@@ -211,7 +196,7 @@ export async function fetchConversations(
 export async function fetchConversationParticipants(
   conversationId: string
 ): Promise<ParticipantInfo[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -255,7 +240,7 @@ export async function fetchConversationParticipants(
 export async function fetchLastMessage(
   conversationId: string
 ): Promise<MessagePreview | null> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -303,7 +288,7 @@ export async function getOrCreateDirectConversation(
   userId: string,
   recipientId: string
 ): Promise<string> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase.rpc('get_or_create_direct_conversation', {
     p_user1: userId,
@@ -325,7 +310,7 @@ export async function createGroupConversation(
   creatorId: string,
   participantIds: string[]
 ): Promise<string> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   // Create the conversation
   const { data: conv, error: convError } = await supabase
@@ -373,7 +358,7 @@ export async function fetchMessages(
   limit = 50,
   offset = 0
 ): Promise<MessageWithSender[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -434,7 +419,7 @@ export async function sendMessage(
   mediaUrl: string | null = null,
   metadata: Record<string, unknown> = {}
 ): Promise<Message> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -463,7 +448,7 @@ export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase.rpc('reset_unread_count', {
     p_conversation_id: conversationId,
@@ -483,7 +468,7 @@ export async function deleteMessage(
   userId: string,
   deleteForAll: boolean
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   if (deleteForAll) {
     // Update the message deletion_state
@@ -515,7 +500,7 @@ export async function deleteMessage(
  * Fetches user's friends list with profile info.
  */
 export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('user_friends')
@@ -555,7 +540,7 @@ export async function addFriend(
   userId: string,
   friendId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase.from('user_friends').insert({
     user_id: userId,
@@ -578,7 +563,7 @@ export async function removeFriend(
   userId: string,
   friendId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('user_friends')
@@ -598,7 +583,7 @@ export async function isFriend(
   userId: string,
   friendId: string
 ): Promise<boolean> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { count, error } = await supabase
     .from('user_friends')
@@ -621,7 +606,7 @@ export async function isFriend(
 export async function fetchBlockedUsers(
   userId: string
 ): Promise<BlockedUserInfo[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('user_blocks')
@@ -661,7 +646,7 @@ export async function blockUser(
   userId: string,
   blockedId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase.from('user_blocks').insert({
     user_id: userId,
@@ -684,7 +669,7 @@ export async function unblockUser(
   userId: string,
   blockedId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('user_blocks')
@@ -701,7 +686,7 @@ export async function unblockUser(
  * Checks if a user is blocked (in either direction).
  */
 export async function isBlocked(user1: string, user2: string): Promise<boolean> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { count, error } = await supabase
     .from('user_blocks')
@@ -726,7 +711,7 @@ export async function searchUsers(
   currentUserId: string,
   limit = 20
 ): Promise<SearchableUser[]> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('profiles')
@@ -788,7 +773,7 @@ export async function searchUsers(
 export async function fetchPrivacySettings(
   userId: string
 ): Promise<MessagingPrivacySettings> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('profiles')
@@ -817,7 +802,7 @@ export async function updatePrivacySettings(
   userId: string,
   settings: Partial<MessagingPrivacySettings>
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('profiles')
@@ -835,7 +820,7 @@ export async function updatePrivacySettings(
  * Fetches total unread message count across all conversations.
  */
 export async function fetchTotalUnreadCount(userId: string): Promise<number> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -860,7 +845,7 @@ export async function addReaction(
   userId: string,
   emoji: MessageReaction['emoji']
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase.from('message_reactions').insert({
     message_id: messageId,
@@ -885,7 +870,7 @@ export async function removeReaction(
   userId: string,
   emoji: MessageReaction['emoji']
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('message_reactions')
@@ -909,7 +894,7 @@ export async function toggleMute(
   userId: string,
   muted: boolean
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('conversation_participants')
@@ -930,7 +915,7 @@ export async function toggleArchive(
   userId: string,
   archived: boolean
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from('conversation_participants')
@@ -952,7 +937,7 @@ export async function canMessageUser(
   senderId: string,
   recipientId: string
 ): Promise<boolean> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase.rpc('can_message_user', {
     p_sender_id: senderId,
@@ -975,7 +960,7 @@ export async function getUserRole(
   conversationId: string,
   userId: string
 ): Promise<ParticipantRole | null> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -1000,7 +985,7 @@ export async function addGroupParticipant(
   adminId: string,
   newUserId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   // Verify admin role
   const adminRole = await getUserRole(conversationId, adminId);
@@ -1031,7 +1016,7 @@ export async function removeGroupParticipant(
   adminId: string,
   targetUserId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   // Verify admin role (unless removing self)
   if (adminId !== targetUserId) {
@@ -1060,7 +1045,7 @@ export async function leaveGroupConversation(
   conversationId: string,
   userId: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   // Get current user's role
   const userRole = await getUserRole(conversationId, userId);
@@ -1124,7 +1109,7 @@ export async function updateGroupName(
   adminId: string,
   newName: string
 ): Promise<void> {
-  const supabase = getMessagingClient();
+  const supabase = createClient();
 
   // Verify admin role
   const adminRole = await getUserRole(conversationId, adminId);

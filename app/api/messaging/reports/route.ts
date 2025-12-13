@@ -46,15 +46,14 @@ export async function POST(request: Request) {
     const { reportedUserId, messageId, reason, details } = validation.data;
 
     // Create the report
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: report, error: reportError } = await (supabase as any)
+    const { data: report, error: reportError } = await supabase
       .from('user_reports')
       .insert({
         reporter_id: user.id,
-        reported_user_id: reportedUserId, // Fixed: column name matches migration schema
+        reported_user_id: reportedUserId, // Column name matches migration schema
         message_id: messageId || null,
         reason,
-        details: details || null, // Fixed: column name is 'details' not 'description'
+        details: details || null, // Column name is 'details' not 'description'
         status: 'pending',
       })
       .select('id')

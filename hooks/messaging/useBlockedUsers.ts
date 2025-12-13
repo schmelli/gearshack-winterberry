@@ -38,9 +38,6 @@ interface UseBlockedUsersReturn {
   refresh: () => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type QueryResult = any;
-
 /**
  * Hook for managing blocked users.
  */
@@ -65,8 +62,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
       const supabase = createClient();
 
       // user_blocks table is created by migration
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await supabase
         .from('user_blocks')
         .select(`
           blocked_id,
@@ -84,7 +80,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
         throw fetchError;
       }
 
-      const blocked: BlockedUserInfo[] = (data ?? []).map((row: QueryResult) => {
+      const blocked: BlockedUserInfo[] = (data ?? []).map((row) => {
         const profile = row.profiles;
         return {
           id: profile?.id ?? row.blocked_id,
@@ -154,8 +150,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
       try {
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await (supabase as any)
+        const { error: insertError } = await supabase
           .from('user_blocks')
           .insert({
             user_id: user.id,
@@ -188,8 +183,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
       try {
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: deleteError } = await (supabase as any)
+        const { error: deleteError } = await supabase
           .from('user_blocks')
           .delete()
           .eq('user_id', user.id)
