@@ -59,8 +59,8 @@ interface LoadoutHeaderProps {
 // Activity Types and Seasons Lists
 // =============================================================================
 
-const ACTIVITY_OPTIONS: ActivityType[] = [...ACTIVITIES];
-const SEASON_OPTIONS: Season[] = [...SEASONS];
+const ACTIVITY_OPTIONS: ActivityType[] = ACTIVITIES;
+const SEASON_OPTIONS: Season[] = SEASONS;
 
 // =============================================================================
 // Weight Progress Bar Component (US4: Enhanced with Total/Base display)
