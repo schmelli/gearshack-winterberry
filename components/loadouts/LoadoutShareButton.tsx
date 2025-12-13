@@ -5,7 +5,8 @@ import { Share2, Clipboard, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocale } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import type { VariantProps } from 'class-variance-authority';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,9 @@ interface LoadoutShareButtonProps {
   itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+  size?: VariantProps<typeof buttonVariants>['size'];
+  showLabel?: boolean;
 }
 
 export function LoadoutShareButton({
@@ -37,6 +41,9 @@ export function LoadoutShareButton({
   itemStates,
   activityTypes,
   seasons,
+  variant = 'outline',
+  size = 'sm',
+  showLabel = true,
 }: LoadoutShareButtonProps) {
   const supabase = useMemo(() => createClient(), []);
   const locale = useLocale();
@@ -135,9 +142,14 @@ export function LoadoutShareButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-2">
+        <Button
+          variant={variant}
+          size={size}
+          className="flex items-center gap-2"
+          aria-label={showLabel ? undefined : "Share loadout"}
+        >
           <Share2 className="h-4 w-4" />
-          Share
+          {showLabel && 'Share'}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
