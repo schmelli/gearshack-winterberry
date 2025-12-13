@@ -54,7 +54,8 @@ export const loadoutCreationFormSchema = z.object({
     .string()
     .max(500, 'Description must be 500 characters or less')
     .optional()
-    .default(''),
+    .default('')
+    .transform((val) => val.trim()),
 
   seasons: z.array(z.enum(seasonValues)).optional().default([]),
 
