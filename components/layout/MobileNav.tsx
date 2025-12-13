@@ -3,15 +3,18 @@
  *
  * Feature: 027-i18n-next-intl
  * T026: Use locale-aware Link from i18n/navigation
+ *
+ * Feature: 015 (Issue #15)
+ * Add user profile and settings access to mobile menu
  */
 
 'use client';
 
 import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Menu } from 'lucide-react';
+import { Menu, User, Settings, LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,24 +26,57 @@ import {
 } from '@/components/ui/sheet';
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
+import { getDisplayAvatarUrl } from '@/lib/utils/avatar';
 import type { NavItem } from '@/types/navigation';
 
 interface MobileNavProps {
   items?: NavItem[];
   onNavigate?: () => void;
+  onProfileClick?: () => void;
 }
 
 export function MobileNav({
   items = MAIN_NAV_ITEMS,
   onNavigate,
+  onProfileClick,
 }: MobileNavProps) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const { user, signOut, profile } = useAuthContext();
+  const { mergedUser } = profile;
   const t = useTranslations('Navigation');
+  const tCommon = useTranslations('Common');
 
   const handleNavigate = () => {
     setOpen(false);
     onNavigate?.();
   };
+
+  const handleProfileClick = () => {
+    setOpen(false);
+    onProfileClick?.();
+  };
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    try {
+      await signOut();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+      // TODO: Consider showing a toast notification to the user
+    }
+  };
+
+  // Get user display info
+  const displayName = mergedUser?.displayName || user?.displayName || tCommon('genericUser');
+  const avatarUrl = user ? getDisplayAvatarUrl(
+    mergedUser?.avatarUrl,
+    mergedUser?.providerAvatarUrl ?? user.photoURL
+  ) : null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -65,7 +101,31 @@ export function MobileNav({
             </span>
           </SheetTitle>
         </SheetHeader>
-        <nav className="mt-8 flex flex-col gap-4">
+
+        {/* User info section (if authenticated) */}
+        {user && (
+          <>
+            <div className="mt-6 flex items-center gap-3 rounded-md bg-accent/10 p-3">
+              <AvatarWithFallback
+                src={avatarUrl}
+                name={displayName}
+                size="md"
+              />
+              <div className="flex flex-col space-y-0.5 overflow-hidden">
+                <p className="truncate text-sm font-medium leading-none">{displayName}</p>
+                {user.email && (
+                  <p className="truncate text-xs leading-none text-muted-foreground">
+                    {user.email}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Separator className="my-4" />
+          </>
+        )}
+
+        {/* Main navigation items */}
+        <nav className="flex flex-col gap-4">
           {items.map((item) => (
             <Link
               key={item.href}
@@ -85,6 +145,40 @@ export function MobileNav({
               {t(item.translationKey as keyof IntlMessages['Navigation'])}
             </Link>
           ))}
+
+          {/* User menu items (if authenticated) */}
+          {user && (
+            <>
+              <Separator className="my-2" />
+
+              <button
+                onClick={handleProfileClick}
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <User className="h-5 w-5" />
+                {t('profile')}
+              </button>
+
+              <Link
+                href="/settings"
+                onClick={handleNavigate}
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Settings className="h-5 w-5" />
+                {t('settings')}
+              </Link>
+
+              <Separator className="my-2" />
+
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <LogOut className="h-5 w-5" />
+                {t('signOut')}
+              </button>
+            </>
+          )}
         </nav>
       </SheetContent>
     </Sheet>

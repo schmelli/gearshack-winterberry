@@ -37,6 +37,7 @@ import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
+import { ProfileModal } from '@/components/profile/ProfileModal';
 // T021: Import LanguageSwitcher
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
@@ -56,6 +57,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   // T012: Messaging modal state and unread count
   const [messagingOpen, setMessagingOpen] = useState(false);
   const { unreadCount } = useUnreadCount();
+  // Issue #15: Profile modal state for mobile menu
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   return (
     <header
@@ -66,8 +69,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     >
       {/* FR-020: h-24 = 96px header height, items-center for FR-019 vertical centering */}
       <div className="container flex h-24 items-center">
-        {/* Mobile menu trigger */}
-        <MobileNav />
+        {/* Mobile menu trigger - Issue #15: Pass profile modal handler */}
+        <MobileNav onProfileClick={() => setProfileModalOpen(true)} />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
@@ -154,6 +157,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
       {/* T012: Messaging modal */}
       <MessagingModal open={messagingOpen} onOpenChange={setMessagingOpen} />
+
+      {/* Issue #15: Profile modal for mobile menu */}
+      <ProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} />
     </header>
   );
 }
