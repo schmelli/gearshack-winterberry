@@ -94,7 +94,6 @@ function MiniGearCard({ item }: MiniGearCardProps) {
             <Package className="h-6 w-6 text-muted-foreground/50" />
           </div>
         )}
-        <Heart className="absolute top-0.5 right-0.5 h-3 w-3 text-red-500 fill-red-500" />
       </div>
       <span className="text-[10px] text-muted-foreground text-center line-clamp-2 leading-tight">
         {item.name}
