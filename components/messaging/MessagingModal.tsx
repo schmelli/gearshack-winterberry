@@ -54,6 +54,9 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
 
   // Detect mobile for responsive layout with resize listener
   useEffect(() => {
+    // Check if window is available (client-side only)
+    if (typeof window === 'undefined') return;
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
