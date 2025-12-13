@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   fetchConversations,
@@ -59,6 +59,7 @@ export function useConversations(
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const conversationIdsRef = useRef<string[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -71,6 +72,8 @@ export function useConversations(
       setIsLoading(true);
       const data = await fetchConversations(user.id, includeArchived);
       setConversations(data);
+      // Update ref for real-time subscription filtering
+      conversationIdsRef.current = data.map((c) => c.conversation.id);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
@@ -89,46 +92,56 @@ export function useConversations(
 
     const supabase = createClient();
 
-    const channel = supabase
-      .channel('conversation-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          // Refresh on any conversation change
+    const channel = supabase.channel('conversation-updates');
+
+    // Subscribe to conversation changes
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+      },
+      () => {
+        // Refresh on any conversation change
+        refresh();
+      }
+    );
+
+    // Subscribe to participation changes for this user
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'conversation_participants',
+        filter: `user_id=eq.${user.id}`,
+      },
+      () => {
+        // Refresh when our participation changes
+        refresh();
+      }
+    );
+
+    // Subscribe to messages but filter client-side using the ref
+    // This avoids subscribing to all messages system-wide
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      },
+      (payload) => {
+        // Only refresh if the message is in one of our conversations
+        const message = payload.new as { conversation_id: string };
+        if (conversationIdsRef.current.includes(message.conversation_id)) {
           refresh();
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversation_participants',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refresh when our participation changes
-          refresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        },
-        () => {
-          // Refresh when new messages arrive (updates last_message)
-          refresh();
-        }
-      )
-      .subscribe();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
