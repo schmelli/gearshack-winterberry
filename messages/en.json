@@ -216,5 +216,35 @@
     "forSale": "For Sale",
     "forRent": "For Rent",
     "forTrade": "For Trade"
+  },
+  "Loadouts": {
+    "newLoadout": {
+      "title": "Create New Loadout",
+      "description": "Start planning your trip by giving it a name and details",
+      "backToLoadouts": "Back to Loadouts",
+      "nameLabel": "Loadout Name",
+      "namePlaceholder": "e.g., PCT Section A",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Add notes about this loadout...",
+      "tripDateLabel": "Trip Date (optional)",
+      "seasonsLabel": "Seasons",
+      "activityTypesLabel": "Activity Types",
+      "createButton": "Create Loadout",
+      "creatingButton": "Creating...",
+      "cancelButton": "Cancel"
+    },
+    "seasons": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "fall": "Fall",
+      "winter": "Winter"
+    },
+    "activityTypes": {
+      "hiking": "Hiking",
+      "camping": "Camping",
+      "climbing": "Climbing",
+      "skiing": "Skiing",
+      "backpacking": "Backpacking"
+    }
   }
 }

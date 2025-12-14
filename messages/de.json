@@ -216,5 +216,35 @@
     "forSale": "Zu verkaufen",
     "forRent": "Zu verleihen",
     "forTrade": "Zu tauschen"
+  },
+  "Loadouts": {
+    "newLoadout": {
+      "title": "Neue Packliste erstellen",
+      "description": "Beginne deine Trip-Planung mit Namen und Details",
+      "backToLoadouts": "Zurück zu Packlisten",
+      "nameLabel": "Name der Packliste",
+      "namePlaceholder": "z.B. Alpenüberquerung",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Notizen zu dieser Packliste hinzufügen...",
+      "tripDateLabel": "Trip-Datum (optional)",
+      "seasonsLabel": "Jahreszeiten",
+      "activityTypesLabel": "Aktivitätstypen",
+      "createButton": "Packliste erstellen",
+      "creatingButton": "Wird erstellt...",
+      "cancelButton": "Abbrechen"
+    },
+    "seasons": {
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "fall": "Herbst",
+      "winter": "Winter"
+    },
+    "activityTypes": {
+      "hiking": "Wandern",
+      "camping": "Camping",
+      "climbing": "Klettern",
+      "skiing": "Skifahren",
+      "backpacking": "Trekking"
+    }
   }
 }
