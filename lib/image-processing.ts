@@ -21,7 +21,9 @@ import { removeBackground as imglyRemoveBackground } from '@imgly/background-rem
  * @throws Error if processing fails
  */
 export async function removeBackground(imageFile: File): Promise<Blob> {
-  const blob = await imglyRemoveBackground(imageFile);
+  const blob = await imglyRemoveBackground(imageFile, {
+    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/',
+  });
   return blob;
 }
 
