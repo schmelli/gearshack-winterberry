@@ -1,6 +1,7 @@
 -- Migration: Create catalog tables for Global Gear Catalog & Sync API
 -- Feature: 042-catalog-sync-api
 -- Date: 2025-12-10
+-- Updated: 2025-12-14 - Updated to match actual database schema (catalog_products)
 
 -- ============================================================================
 -- EXTENSIONS
@@ -8,9 +9,6 @@
 
 -- Enable pg_trgm for trigram-based fuzzy text search
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
--- Enable pgvector for semantic vector search
-CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ============================================================================
 -- CATALOG_BRANDS TABLE
@@ -37,39 +35,39 @@ CREATE INDEX IF NOT EXISTS idx_catalog_brands_name_trgm
   ON catalog_brands USING GIN (name_normalized gin_trgm_ops);
 
 -- ============================================================================
--- CATALOG_ITEMS TABLE
+-- CATALOG_PRODUCTS TABLE (actual schema in production)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS catalog_items (
+CREATE TABLE IF NOT EXISTS catalog_products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   external_id TEXT NOT NULL UNIQUE,
   brand_id UUID REFERENCES catalog_brands(id) ON DELETE SET NULL,
+  brand_external_id TEXT,
   name TEXT NOT NULL,
-  name_normalized TEXT GENERATED ALWAYS AS (lower(trim(name))) STORED,
-  category TEXT,
+  category_main TEXT,
+  subcategory TEXT,
+  product_type TEXT,
   description TEXT,
-  specs_summary TEXT,
-  embedding vector(1536),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  price_usd NUMERIC,
+  weight_grams NUMERIC,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Comments
-COMMENT ON TABLE catalog_items IS 'Canonical product data with semantic embeddings for search';
-COMMENT ON COLUMN catalog_items.external_id IS 'ID from external source for sync deduplication';
-COMMENT ON COLUMN catalog_items.name_normalized IS 'Lowercase, trimmed name for search operations';
-COMMENT ON COLUMN catalog_items.embedding IS '1536-dimension semantic embedding for vector search';
+COMMENT ON TABLE catalog_products IS 'Canonical product data synced from external master database';
+COMMENT ON COLUMN catalog_products.external_id IS 'ID from external source for sync deduplication';
+COMMENT ON COLUMN catalog_products.brand_external_id IS 'External brand ID for reference before FK resolution';
 
--- Indexes for catalog_items
-CREATE INDEX IF NOT EXISTS idx_catalog_items_name_trgm
-  ON catalog_items USING GIN (name_normalized gin_trgm_ops);
+-- Indexes for catalog_products
+CREATE INDEX IF NOT EXISTS idx_catalog_products_name_trgm
+  ON catalog_products USING GIN (name gin_trgm_ops);
 
-CREATE INDEX IF NOT EXISTS idx_catalog_items_brand_id
-  ON catalog_items (brand_id);
+CREATE INDEX IF NOT EXISTS idx_catalog_products_brand_id
+  ON catalog_products (brand_id);
 
--- HNSW index for vector similarity search (better recall than IVFFlat)
-CREATE INDEX IF NOT EXISTS idx_catalog_items_embedding
-  ON catalog_items USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_catalog_products_category_main
+  ON catalog_products (category_main);
 
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
@@ -77,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_catalog_items_embedding
 
 -- Enable RLS on both tables
 ALTER TABLE catalog_brands ENABLE ROW LEVEL SECURITY;
-ALTER TABLE catalog_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE catalog_products ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated users to READ (SELECT)
 CREATE POLICY "Authenticated users can read brands"
@@ -85,8 +83,8 @@ CREATE POLICY "Authenticated users can read brands"
   TO authenticated
   USING (true);
 
-CREATE POLICY "Authenticated users can read items"
-  ON catalog_items FOR SELECT
+CREATE POLICY "Authenticated users can read products"
+  ON catalog_products FOR SELECT
   TO authenticated
   USING (true);
 
@@ -113,9 +111,9 @@ CREATE TRIGGER catalog_brands_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Trigger for catalog_items
-DROP TRIGGER IF EXISTS catalog_items_updated_at ON catalog_items;
-CREATE TRIGGER catalog_items_updated_at
-  BEFORE UPDATE ON catalog_items
+-- Trigger for catalog_products
+DROP TRIGGER IF EXISTS catalog_products_updated_at ON catalog_products;
+CREATE TRIGGER catalog_products_updated_at
+  BEFORE UPDATE ON catalog_products
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();

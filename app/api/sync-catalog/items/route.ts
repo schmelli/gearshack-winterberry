@@ -1,16 +1,21 @@
 /**
  * POST /api/sync-catalog/items
- * Upsert item records from external GearGraph system
+ * Upsert product records from external GearGraph system
  * Feature: 042-catalog-sync-api (US3)
  *
  * Authentication: Requires SUPABASE_SERVICE_ROLE_KEY in Authorization header
- * Supports single item or batch of up to 1000 items
+ * Supports single product or batch of up to 1000 products
  * Handles brand_external_id lookup to set brand_id FK
+ *
+ * Note: Uses catalog_products table (not catalog_items) per actual database schema
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { itemSyncRequestSchema, type ItemPayload } from '@/lib/validations/catalog-schema';
+import {
+  productSyncRequestSchema,
+  type ProductPayload,
+} from '@/lib/validations/catalog-schema';
 import type { Database } from '@/types/database';
 import type { SyncResponse } from '@/types/catalog';
 
@@ -42,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate payload
-    const parseResult = itemSyncRequestSchema.safeParse(body);
+    const parseResult = productSyncRequestSchema.safeParse(body);
     if (!parseResult.success) {
       const response: SyncResponse = {
         success: false,
@@ -55,9 +60,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // Normalize to array of items
+    // Normalize to array of products
     const data = parseResult.data;
-    const items: ItemPayload[] = 'items' in data ? data.items : [data];
+    const products: ProductPayload[] = 'items' in data ? data.items : [data];
 
     // Create Supabase client with service role
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -78,9 +83,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Build brand external_id to id mapping for items that have brand_external_id
-    const brandExternalIds = items
-      .map((item) => item.brand_external_id)
+    // Build brand external_id to id mapping for products that have brand_external_id
+    const brandExternalIds = products
+      .map((product) => product.brand_external_id)
       .filter((id): id is string => id !== null && id !== undefined);
 
     const brandIdMap = new Map<string, string>();
@@ -102,32 +107,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upsert items
+    // Upsert products
     const upsertedIds: string[] = [];
 
-    for (const item of items) {
+    for (const product of products) {
       // Resolve brand_id from brand_external_id
       let brandId: string | null = null;
-      if (item.brand_external_id) {
-        brandId = brandIdMap.get(item.brand_external_id) || null;
+      if (product.brand_external_id) {
+        brandId = brandIdMap.get(product.brand_external_id) || null;
         if (!brandId) {
           warnings.push(
-            `brand_external_id '${item.brand_external_id}' not found, brand_id set to null`
+            `brand_external_id '${product.brand_external_id}' not found, brand_id set to null`
           );
         }
       }
 
       const { data: upserted, error } = await supabase
-        .from('catalog_items')
+        .from('catalog_products')
         .upsert(
           {
-            external_id: item.external_id,
-            name: item.name,
+            external_id: product.external_id,
+            name: product.name,
             brand_id: brandId,
-            category: item.category ?? null,
-            description: item.description ?? null,
-            specs_summary: item.specs_summary ?? null,
-            embedding: item.embedding ?? null,
+            brand_external_id: product.brand_external_id ?? null,
+            category_main: product.category_main ?? null,
+            subcategory: product.subcategory ?? null,
+            product_type: product.product_type ?? null,
+            description: product.description ?? null,
+            price_usd: product.price_usd ?? null,
+            weight_grams: product.weight_grams ?? null,
           },
           { onConflict: 'external_id' }
         )
@@ -135,11 +143,11 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Item upsert error:', error);
+        console.error('Product upsert error:', error);
         const response: SyncResponse = {
           success: false,
           error: 'Database error',
-          details: [{ field: item.external_id, message: error.message }],
+          details: [{ field: product.external_id, message: error.message }],
         };
         return NextResponse.json(response, { status: 500 });
       }
@@ -158,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (err) {
-    console.error('Item sync error:', err);
+    console.error('Product sync error:', err);
     const response: SyncResponse = {
       success: false,
       error: 'Internal server error',

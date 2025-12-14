@@ -3,7 +3,7 @@
  *
  * Feature: 044-intelligence-integration
  *
- * Seeds the catalog_items table with sample outdoor gear products
+ * Seeds the catalog_products table with sample outdoor gear products
  * for testing product autocomplete functionality.
  *
  * Usage: npx tsx scripts/seed-products-sample.ts
@@ -202,7 +202,7 @@ async function seedProducts(): Promise<void> {
   }
 
   console.log(`Found ${brandMap.size} brands in database`);
-  console.log(`Seeding ${PRODUCTS.length} products to catalog_items...`);
+  console.log(`Seeding ${PRODUCTS.length} products to catalog_products...`);
 
   let successCount = 0;
   let skippedCount = 0;
@@ -220,13 +220,13 @@ async function seedProducts(): Promise<void> {
     const externalId = generateExternalId(product.name);
 
     const { error } = await supabase
-      .from('catalog_items')
+      .from('catalog_products')
       .upsert(
         {
           external_id: externalId,
           brand_id: brandId,
           name: product.name,
-          category: product.category,
+          category_main: product.category,
           description: product.description || null,
         },
         { onConflict: 'external_id' }

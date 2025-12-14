@@ -1,14 +1,16 @@
 /**
  * GET /api/catalog/items/search
- * Fuzzy, semantic, and hybrid search for catalog items
+ * Fuzzy search for catalog products
  * Feature: 042-catalog-sync-api (US1, US2)
+ *
+ * Note: Uses catalog_products table (not catalog_items) per actual database schema
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { itemSearchParamsSchema } from '@/lib/validations/catalog-schema';
+import { productSearchParamsSchema } from '@/lib/validations/catalog-schema';
 import type { Database } from '@/types/database';
-import type { ItemSearchResponse, ItemSearchResult } from '@/types/catalog';
+import type { ProductSearchResponse, ProductSearchResult } from '@/types/catalog';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,16 +18,14 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const rawParams = {
       q: searchParams.get('q') || undefined,
-      embedding: searchParams.get('embedding') || undefined,
       mode: searchParams.get('mode') || 'fuzzy',
-      weight_text: searchParams.get('weight_text') || '0.7',
       brand_id: searchParams.get('brand_id') || undefined,
-      category: searchParams.get('category') || undefined,
+      category_main: searchParams.get('category_main') || undefined,
       limit: searchParams.get('limit') || '5',
     };
 
     // Validate parameters
-    const parseResult = itemSearchParamsSchema.safeParse(rawParams);
+    const parseResult = productSearchParamsSchema.safeParse(rawParams);
     if (!parseResult.success) {
       const issues = parseResult.error.issues;
       return NextResponse.json(
@@ -34,19 +34,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { q, embedding, mode, weight_text, brand_id, category, limit } = parseResult.data;
+    const { q, mode, brand_id, category_main, limit } = parseResult.data;
 
     // Validate required parameters based on mode
-    if ((mode === 'fuzzy' || mode === 'hybrid') && !q) {
+    if (mode === 'fuzzy' && !q) {
       return NextResponse.json(
-        { error: "Query parameter 'q' is required for fuzzy and hybrid modes" },
-        { status: 400 }
-      );
-    }
-
-    if ((mode === 'semantic' || mode === 'hybrid') && !embedding) {
-      return NextResponse.json(
-        { error: "Query parameter 'embedding' is required for semantic and hybrid modes" },
+        { error: "Query parameter 'q' is required for fuzzy mode" },
         { status: 400 }
       );
     }
@@ -64,31 +57,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-    let results: ItemSearchResult[] = [];
+    let results: ProductSearchResult[] = [];
 
     if (mode === 'fuzzy' && q) {
-      results = await performFuzzySearch(supabase, q, { brand_id, category, limit });
-    } else if (mode === 'semantic' && embedding) {
-      const embeddingArray = decodeEmbedding(embedding);
-      if (!embeddingArray) {
-        return NextResponse.json(
-          { error: 'Invalid embedding format' },
-          { status: 400 }
-        );
-      }
-      results = await performSemanticSearch(supabase, embeddingArray, { brand_id, category, limit });
-    } else if (mode === 'hybrid' && q && embedding) {
-      const embeddingArray = decodeEmbedding(embedding);
-      if (!embeddingArray) {
-        return NextResponse.json(
-          { error: 'Invalid embedding format' },
-          { status: 400 }
-        );
-      }
-      results = await performHybridSearch(supabase, q, embeddingArray, { weight_text, brand_id, category, limit });
+      results = await performFuzzySearch(supabase, q, { brand_id, category_main, limit });
     }
 
-    const response: ItemSearchResponse = {
+    const response: ProductSearchResponse = {
       results,
       query: q || '',
       mode,
@@ -97,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (err) {
-    console.error('Item search error:', err);
+    console.error('Product search error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -106,55 +81,41 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Decode base64-encoded embedding to number array
- */
-function decodeEmbedding(base64: string): number[] | null {
-  try {
-    const decoded = Buffer.from(base64, 'base64').toString('utf-8');
-    const parsed = JSON.parse(decoded);
-    if (Array.isArray(parsed) && parsed.length === 1536 && parsed.every((n) => typeof n === 'number')) {
-      return parsed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Perform fuzzy text search using ILIKE
+ * Perform fuzzy text search using ILIKE on catalog_products
  */
 async function performFuzzySearch(
   supabase: ReturnType<typeof createClient<Database>>,
   query: string,
-  options: { brand_id?: string; category?: string; limit: number }
-): Promise<ItemSearchResult[]> {
+  options: { brand_id?: string; category_main?: string; limit: number }
+): Promise<ProductSearchResult[]> {
   const normalizedQuery = query.toLowerCase().trim();
 
   let queryBuilder = supabase
-    .from('catalog_items')
+    .from('catalog_products')
     .select(`
       id,
       name,
-      name_normalized,
-      category,
+      category_main,
+      subcategory,
+      product_type,
       description,
-      specs_summary,
+      price_usd,
+      weight_grams,
       brand_id,
-      catalog_brands!catalog_items_brand_id_fkey (
+      catalog_brands!catalog_products_brand_id_fkey (
         id,
         name
       )
     `)
-    .ilike('name_normalized', `%${normalizedQuery}%`)
+    .ilike('name', `%${normalizedQuery}%`)
     .limit(options.limit);
 
   if (options.brand_id) {
     queryBuilder = queryBuilder.eq('brand_id', options.brand_id);
   }
 
-  if (options.category) {
-    queryBuilder = queryBuilder.eq('category', options.category);
+  if (options.category_main) {
+    queryBuilder = queryBuilder.eq('category_main', options.category_main);
   }
 
   const { data, error } = await queryBuilder;
@@ -164,8 +125,8 @@ async function performFuzzySearch(
     return [];
   }
 
-  return (data || []).map((item) => {
-    const normalized = item.name_normalized || item.name.toLowerCase();
+  return (data || []).map((product) => {
+    const normalized = product.name.toLowerCase();
     const matchIndex = normalized.indexOf(normalizedQuery);
     const score = matchIndex === 0
       ? 0.9 + (0.1 * (normalizedQuery.length / normalized.length))
@@ -174,111 +135,18 @@ async function performFuzzySearch(
         : 0.3;
 
     return {
-      id: item.id,
-      name: item.name,
-      brand: item.catalog_brands
-        ? { id: item.catalog_brands.id, name: item.catalog_brands.name }
+      id: product.id,
+      name: product.name,
+      brand: product.catalog_brands
+        ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
         : null,
-      category: item.category,
-      description: item.description,
-      specsSummary: item.specs_summary,
+      categoryMain: product.category_main,
+      subcategory: product.subcategory,
+      productType: product.product_type,
+      description: product.description,
+      priceUsd: product.price_usd,
+      weightGrams: product.weight_grams,
       score: Math.round(score * 100) / 100,
     };
   }).sort((a, b) => b.score - a.score);
-}
-
-/**
- * Perform semantic search using vector embeddings
- * Note: Requires search_items_semantic RPC function in database
- * For MVP, returns empty results until RPC is created
- */
-async function performSemanticSearch(
-  _supabase: ReturnType<typeof createClient<Database>>,
-  _embedding: number[],
-  _options: { brand_id?: string; category?: string; limit: number }
-): Promise<ItemSearchResult[]> {
-  // MVP: Return empty results until semantic search RPC is implemented
-  // When RPC is ready, uncomment below and remove placeholder
-  console.warn('Semantic search RPC not yet implemented, returning empty results');
-  return [];
-
-  /*
-  // Future implementation when RPC is available:
-  try {
-    const { data, error } = await supabase.rpc('search_items_semantic', {
-      query_embedding: embedding,
-      brand_filter: options.brand_id || null,
-      category_filter: options.category || null,
-      result_limit: options.limit,
-    });
-
-    if (error) {
-      console.warn('Semantic search RPC error:', error.message);
-      return [];
-    }
-
-    return (data || []).map((item) => ({
-      id: item.id,
-      name: item.name,
-      brand: item.brand_id && item.brand_name
-        ? { id: item.brand_id, name: item.brand_name }
-        : null,
-      category: item.category,
-      description: item.description,
-      specsSummary: item.specs_summary,
-      score: item.similarity,
-    }));
-  } catch {
-    return [];
-  }
-  */
-}
-
-/**
- * Perform hybrid search combining fuzzy and semantic
- * Note: Requires search_items_hybrid RPC function in database
- * For MVP, falls back to fuzzy search
- */
-async function performHybridSearch(
-  supabase: ReturnType<typeof createClient<Database>>,
-  query: string,
-  _embedding: number[],
-  options: { weight_text: number; brand_id?: string; category?: string; limit: number }
-): Promise<ItemSearchResult[]> {
-  // MVP: Fall back to fuzzy search until hybrid RPC is implemented
-  console.warn('Hybrid search RPC not yet implemented, falling back to fuzzy search');
-  return performFuzzySearch(supabase, query, options);
-
-  /*
-  // Future implementation when RPC is available:
-  try {
-    const { data, error } = await supabase.rpc('search_items_hybrid', {
-      search_query: query.toLowerCase().trim(),
-      query_embedding: embedding,
-      text_weight: options.weight_text,
-      brand_filter: options.brand_id || null,
-      category_filter: options.category || null,
-      result_limit: options.limit,
-    });
-
-    if (error) {
-      console.warn('Hybrid search RPC error, falling back to fuzzy:', error.message);
-      return performFuzzySearch(supabase, query, options);
-    }
-
-    return (data || []).map((item) => ({
-      id: item.id,
-      name: item.name,
-      brand: item.brand_id && item.brand_name
-        ? { id: item.brand_id, name: item.brand_name }
-        : null,
-      category: item.category,
-      description: item.description,
-      specsSummary: item.specs_summary,
-      score: item.score,
-    }));
-  } catch {
-    return performFuzzySearch(supabase, query, options);
-  }
-  */
 }

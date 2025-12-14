@@ -29,11 +29,13 @@ export const USER_MENU_ITEMS: UserMenuItem[] = [
 
 /**
  * Footer legal links.
+ * Note: These pages are not yet implemented - using '#' as placeholder
+ * to prevent 404 errors during development.
  */
 export const FOOTER_LEGAL_LINKS = [
-  { label: 'Impressum', href: '/impressum' },
-  { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms', href: '/terms' },
+  { label: 'Impressum', href: '#' },
+  { label: 'Privacy', href: '#' },
+  { label: 'Terms', href: '#' },
 ] as const;
 
 /**

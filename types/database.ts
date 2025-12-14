@@ -280,6 +280,7 @@ export type Database = {
           purchase_date: string | null
           retailer: string | null
           retailer_url: string | null
+          source_share_token: string | null
           status: Database["public"]["Enums"]["gear_status"]
           subcategory_id: string | null
           updated_at: string
@@ -316,6 +317,7 @@ export type Database = {
           purchase_date?: string | null
           retailer?: string | null
           retailer_url?: string | null
+          source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
           subcategory_id?: string | null
           updated_at?: string
@@ -352,6 +354,7 @@ export type Database = {
           purchase_date?: string | null
           retailer?: string | null
           retailer_url?: string | null
+          source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
           subcategory_id?: string | null
           updated_at?: string
@@ -374,6 +377,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_items_source_share_token_fkey"
+            columns: ["source_share_token"]
+            isOneToOne: false
+            referencedRelation: "loadout_shares"
+            referencedColumns: ["share_token"]
           },
           {
             foreignKeyName: "gear_items_subcategory_id_fkey"
@@ -705,6 +715,47 @@ export type Database = {
           {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

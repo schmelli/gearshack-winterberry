@@ -1,6 +1,8 @@
 /**
  * Catalog types for Global Gear Catalog & Sync API
  * Feature: 042-catalog-sync-api
+ *
+ * Note: Uses catalog_products table schema (not catalog_items)
  */
 
 // ============================================================================
@@ -22,21 +24,26 @@ export interface CatalogBrand {
 }
 
 /**
- * Canonical product data from catalog_items table
+ * Canonical product data from catalog_products table
  */
-export interface CatalogItem {
+export interface CatalogProduct {
   id: string;
   externalId: string;
   brandId: string | null;
+  brandExternalId: string | null;
   name: string;
-  nameNormalized: string;
-  category: string | null;
+  categoryMain: string | null;
+  subcategory: string | null;
+  productType: string | null;
   description: string | null;
-  specsSummary: string | null;
-  embedding: number[] | null;
+  priceUsd: number | null;
+  weightGrams: number | null;
   createdAt: string;
   updatedAt: string;
 }
+
+// Legacy alias
+export type CatalogItem = CatalogProduct;
 
 // ============================================================================
 // API RESPONSE TYPES
@@ -54,20 +61,26 @@ export interface BrandSearchResult {
 }
 
 /**
- * Item search result with score and brand info
+ * Product search result with score and brand info
  */
-export interface ItemSearchResult {
+export interface ProductSearchResult {
   id: string;
   name: string;
   brand: {
     id: string;
     name: string;
   } | null;
-  category: string | null;
+  categoryMain: string | null;
+  subcategory: string | null;
+  productType: string | null;
   description: string | null;
-  specsSummary: string | null;
+  priceUsd: number | null;
+  weightGrams: number | null;
   score: number;
 }
+
+// Legacy alias
+export type ItemSearchResult = ProductSearchResult;
 
 /**
  * Brand search API response
@@ -79,14 +92,17 @@ export interface BrandSearchResponse {
 }
 
 /**
- * Item search API response
+ * Product search API response
  */
-export interface ItemSearchResponse {
-  results: ItemSearchResult[];
+export interface ProductSearchResponse {
+  results: ProductSearchResult[];
   query: string;
-  mode: 'fuzzy' | 'semantic' | 'hybrid';
+  mode: 'fuzzy';
   count: number;
 }
+
+// Legacy alias
+export type ItemSearchResponse = ProductSearchResponse;
 
 // ============================================================================
 // SYNC API TYPES
@@ -103,17 +119,22 @@ export interface BrandSyncPayload {
 }
 
 /**
- * Item payload for sync API
+ * Product payload for sync API
  */
-export interface ItemSyncPayload {
+export interface ProductSyncPayload {
   external_id: string;
   name: string;
   brand_external_id?: string | null;
-  category?: string | null;
+  category_main?: string | null;
+  subcategory?: string | null;
+  product_type?: string | null;
   description?: string | null;
-  specs_summary?: string | null;
-  embedding?: number[] | null;
+  price_usd?: number | null;
+  weight_grams?: number | null;
 }
+
+// Legacy alias
+export type ItemSyncPayload = ProductSyncPayload;
 
 /**
  * Sync API success response
@@ -171,9 +192,9 @@ export interface UseBrandAutocompleteReturn {
 }
 
 /**
- * Search mode for catalog items
+ * Search mode for catalog products
  */
-export type CatalogSearchMode = 'fuzzy' | 'semantic' | 'hybrid';
+export type CatalogSearchMode = 'fuzzy';
 
 /**
  * Options for useCatalogSearch hook
@@ -188,9 +209,9 @@ export interface UseCatalogSearchOptions {
  * Return type for useCatalogSearch hook
  */
 export interface UseCatalogSearchReturn {
-  results: ItemSearchResult[];
+  results: ProductSearchResult[];
   isLoading: boolean;
   error: string | null;
-  search: (query: string, embedding?: number[]) => void;
+  search: (query: string) => void;
   clear: () => void;
 }

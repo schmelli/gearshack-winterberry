@@ -1,14 +1,13 @@
 /**
- * Catalog query utilities for fuzzy and semantic search
+ * Catalog query utilities for fuzzy search
  * Feature: 042-catalog-sync-api
  *
- * MVP: Uses ILIKE for fuzzy search. Semantic/hybrid search RPCs
- * will be implemented in a future iteration.
+ * Note: Uses catalog_products table (not catalog_items) per actual database schema
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import type { BrandSearchResult, ItemSearchResult } from '@/types/catalog';
+import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
 
 // ============================================================================
 // CLIENT SETUP
@@ -83,61 +82,62 @@ export async function fuzzyBrandSearch(
 }
 
 // ============================================================================
-// ITEM SEARCH - FUZZY
+// PRODUCT SEARCH - FUZZY
 // ============================================================================
 
 /**
- * Performs fuzzy search on item names using ILIKE
- * Trigram index (GIN) improves performance for this query
+ * Performs fuzzy search on product names using ILIKE
  * @param supabase - Supabase client instance
  * @param query - Search query string
- * @param options - Search options (brandId, category, limit)
- * @returns Array of item search results with scores
+ * @param options - Search options (brandId, categoryMain, limit)
+ * @returns Array of product search results with scores
  */
-export async function fuzzyItemSearch(
+export async function fuzzyProductSearch(
   supabase: ReturnType<typeof createClient<Database>>,
   query: string,
-  options: { brandId?: string; category?: string; limit?: number } = {}
-): Promise<ItemSearchResult[]> {
-  const { brandId, category, limit = 5 } = options;
+  options: { brandId?: string; categoryMain?: string; limit?: number } = {}
+): Promise<ProductSearchResult[]> {
+  const { brandId, categoryMain, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
 
   // Build query with optional filters
   let queryBuilder = supabase
-    .from('catalog_items')
+    .from('catalog_products')
     .select(
       `
       id,
       name,
-      name_normalized,
-      category,
+      category_main,
+      subcategory,
+      product_type,
       description,
-      specs_summary,
+      price_usd,
+      weight_grams,
       brand_id,
-      catalog_brands!catalog_items_brand_id_fkey (
+      catalog_brands!catalog_products_brand_id_fkey (
         id,
         name
       )
     `
     )
-    .ilike('name_normalized', `%${normalizedQuery}%`)
+    .ilike('name', `%${normalizedQuery}%`)
     .limit(limit);
 
   if (brandId) {
     queryBuilder = queryBuilder.eq('brand_id', brandId);
   }
 
-  if (category) {
-    queryBuilder = queryBuilder.eq('category', category);
+  if (categoryMain) {
+    queryBuilder = queryBuilder.eq('category_main', categoryMain);
   }
 
   const { data, error } = await queryBuilder;
 
   if (error) throw error;
 
-  return (data || []).map((item) => {
+  return (data || []).map((product) => {
     // Calculate simple similarity score
-    const normalized = item.name_normalized || item.name.toLowerCase();
+    const normalized = product.name.toLowerCase();
     const matchIndex = normalized.indexOf(normalizedQuery);
     const score =
       matchIndex === 0
@@ -147,65 +147,20 @@ export async function fuzzyItemSearch(
           : 0.3;
 
     return {
-      id: item.id,
-      name: item.name,
-      brand: item.catalog_brands
-        ? { id: item.catalog_brands.id, name: item.catalog_brands.name }
+      id: product.id,
+      name: product.name,
+      brand: product.catalog_brands
+        ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
         : null,
-      category: item.category,
-      description: item.description,
-      specsSummary: item.specs_summary,
+      categoryMain: product.category_main,
+      subcategory: product.subcategory,
+      productType: product.product_type,
+      description: product.description,
+      priceUsd: product.price_usd,
+      weightGrams: product.weight_grams,
       score: Math.round(score * 100) / 100,
     };
   }).sort((a, b) => b.score - a.score);
-}
-
-// ============================================================================
-// ITEM SEARCH - SEMANTIC (MVP PLACEHOLDER)
-// ============================================================================
-
-/**
- * Placeholder for semantic search - returns empty results
- * Will be implemented when search_items_semantic RPC is created
- * @param _supabase - Supabase client instance (unused)
- * @param _embedding - Query embedding vector (unused)
- * @param _options - Search options (unused)
- * @returns Empty array for MVP
- */
-export async function semanticItemSearch(
-  _supabase: ReturnType<typeof createClient<Database>>,
-  _embedding: number[],
-  _options: { brandId?: string; category?: string; limit?: number } = {}
-): Promise<ItemSearchResult[]> {
-  console.warn('Semantic search not yet implemented');
-  return [];
-}
-
-// ============================================================================
-// ITEM SEARCH - HYBRID (MVP PLACEHOLDER)
-// ============================================================================
-
-/**
- * Placeholder for hybrid search - falls back to fuzzy search
- * Will be implemented when search_items_hybrid RPC is created
- * @param supabase - Supabase client instance
- * @param query - Text search query
- * @param _embedding - Query embedding vector (unused)
- * @param options - Search options
- * @returns Fuzzy search results for MVP
- */
-export async function hybridItemSearch(
-  supabase: ReturnType<typeof createClient<Database>>,
-  query: string,
-  _embedding: number[],
-  options: { weightText?: number; brandId?: string; category?: string; limit?: number } = {}
-): Promise<ItemSearchResult[]> {
-  console.warn('Hybrid search not yet implemented, falling back to fuzzy');
-  return fuzzyItemSearch(supabase, query, {
-    brandId: options.brandId,
-    category: options.category,
-    limit: options.limit,
-  });
 }
 
 // ============================================================================
@@ -265,34 +220,40 @@ export async function upsertBrand(
 }
 
 /**
- * Upserts an item record
+ * Upserts a product record
  * @param supabase - Supabase client instance (with service role)
- * @param item - Item data to upsert
- * @returns Upserted item ID
+ * @param product - Product data to upsert
+ * @returns Upserted product ID
  */
-export async function upsertItem(
+export async function upsertProduct(
   supabase: ReturnType<typeof createClient<Database>>,
-  item: {
+  product: {
     external_id: string;
     name: string;
     brand_id?: string | null;
-    category?: string | null;
+    brand_external_id?: string | null;
+    category_main?: string | null;
+    subcategory?: string | null;
+    product_type?: string | null;
     description?: string | null;
-    specs_summary?: string | null;
-    embedding?: number[] | null;
+    price_usd?: number | null;
+    weight_grams?: number | null;
   }
 ): Promise<string> {
   const { data, error } = await supabase
-    .from('catalog_items')
+    .from('catalog_products')
     .upsert(
       {
-        external_id: item.external_id,
-        name: item.name,
-        brand_id: item.brand_id ?? null,
-        category: item.category ?? null,
-        description: item.description ?? null,
-        specs_summary: item.specs_summary ?? null,
-        embedding: item.embedding ?? null,
+        external_id: product.external_id,
+        name: product.name,
+        brand_id: product.brand_id ?? null,
+        brand_external_id: product.brand_external_id ?? null,
+        category_main: product.category_main ?? null,
+        subcategory: product.subcategory ?? null,
+        product_type: product.product_type ?? null,
+        description: product.description ?? null,
+        price_usd: product.price_usd ?? null,
+        weight_grams: product.weight_grams ?? null,
       },
       { onConflict: 'external_id' }
     )

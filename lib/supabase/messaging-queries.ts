@@ -45,6 +45,7 @@ function getMessagingClient(): any {
 
 /**
  * Fetches user's conversations with last message and participants.
+ * Returns empty array if messaging tables don't exist yet.
  */
 export async function fetchConversations(
   userId: string,
@@ -82,6 +83,10 @@ export async function fetchConversations(
   const { data, error } = await query;
 
   if (error) {
+    // Check if error is due to missing table (42P01 is PostgreSQL "undefined_table" error)
+    if (error.code === '42P01' || error.message.includes('does not exist')) {
+      return [];
+    }
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
@@ -713,6 +718,7 @@ export async function updatePrivacySettings(
 
 /**
  * Fetches total unread message count across all conversations.
+ * Returns 0 if the messaging tables don't exist yet.
  */
 export async function fetchTotalUnreadCount(userId: string): Promise<number> {
   const supabase = getMessagingClient();
@@ -724,6 +730,10 @@ export async function fetchTotalUnreadCount(userId: string): Promise<number> {
     .eq('is_muted', false);
 
   if (error) {
+    // Check if error is due to missing table (42P01 is PostgreSQL "undefined_table" error)
+    if (error.code === '42P01' || error.message.includes('does not exist')) {
+      return 0;
+    }
     throw new Error(`Failed to fetch unread count: ${error.message}`);
   }
 

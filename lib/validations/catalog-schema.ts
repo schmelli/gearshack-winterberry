@@ -1,6 +1,8 @@
 /**
  * Zod validation schemas for Catalog Sync API
  * Feature: 042-catalog-sync-api
+ *
+ * Note: Uses catalog_products table schema (not catalog_items)
  */
 
 import { z } from 'zod';
@@ -30,33 +32,32 @@ export const brandSyncRequestSchema = z.union([
 ]);
 
 // ============================================================================
-// ITEM SCHEMAS
+// PRODUCT SCHEMAS (formerly ITEM SCHEMAS)
 // ============================================================================
 
 /**
- * Schema for a single item payload in sync requests
+ * Schema for a single product payload in sync requests
+ * Matches catalog_products table structure
  */
-export const itemPayloadSchema = z.object({
+export const productPayloadSchema = z.object({
   external_id: z.string().min(1, 'external_id is required'),
   name: z.string().min(1).max(500, 'name must be 1-500 characters'),
   brand_external_id: z.string().nullable().optional(),
-  category: z.string().max(100, 'category must be max 100 characters').nullable().optional(),
+  category_main: z.string().max(100, 'category_main must be max 100 characters').nullable().optional(),
+  subcategory: z.string().max(100, 'subcategory must be max 100 characters').nullable().optional(),
+  product_type: z.string().max(100, 'product_type must be max 100 characters').nullable().optional(),
   description: z.string().max(5000, 'description must be max 5000 characters').nullable().optional(),
-  specs_summary: z.string().max(1000, 'specs_summary must be max 1000 characters').nullable().optional(),
-  embedding: z
-    .array(z.number())
-    .length(1536, 'embedding must have exactly 1536 dimensions')
-    .nullable()
-    .optional(),
+  price_usd: z.number().min(0).nullable().optional(),
+  weight_grams: z.number().min(0).nullable().optional(),
 });
 
 /**
- * Schema for item sync request (single or batch)
+ * Schema for product sync request (single or batch)
  */
-export const itemSyncRequestSchema = z.union([
-  itemPayloadSchema,
+export const productSyncRequestSchema = z.union([
+  productPayloadSchema,
   z.object({
-    items: z.array(itemPayloadSchema).max(1000, 'Maximum 1000 items per request'),
+    items: z.array(productPayloadSchema).max(1000, 'Maximum 1000 products per request'),
   }),
 ]);
 
@@ -73,15 +74,13 @@ export const brandSearchParamsSchema = z.object({
 });
 
 /**
- * Schema for item search query parameters
+ * Schema for product search query parameters
  */
-export const itemSearchParamsSchema = z.object({
+export const productSearchParamsSchema = z.object({
   q: z.string().optional(),
-  embedding: z.string().optional(),
-  mode: z.enum(['fuzzy', 'semantic', 'hybrid']).default('fuzzy'),
-  weight_text: z.coerce.number().min(0).max(1).default(0.7),
+  mode: z.enum(['fuzzy']).default('fuzzy'),
   brand_id: z.string().uuid().optional(),
-  category: z.string().optional(),
+  category_main: z.string().optional(),
   limit: z.coerce.number().min(1).max(20).default(5),
 });
 
@@ -91,7 +90,15 @@ export const itemSearchParamsSchema = z.object({
 
 export type BrandPayload = z.infer<typeof brandPayloadSchema>;
 export type BrandSyncRequest = z.infer<typeof brandSyncRequestSchema>;
-export type ItemPayload = z.infer<typeof itemPayloadSchema>;
-export type ItemSyncRequest = z.infer<typeof itemSyncRequestSchema>;
+export type ProductPayload = z.infer<typeof productPayloadSchema>;
+export type ProductSyncRequest = z.infer<typeof productSyncRequestSchema>;
 export type BrandSearchParams = z.infer<typeof brandSearchParamsSchema>;
-export type ItemSearchParams = z.infer<typeof itemSearchParamsSchema>;
+export type ProductSearchParams = z.infer<typeof productSearchParamsSchema>;
+
+// Legacy aliases for backwards compatibility
+export type ItemPayload = ProductPayload;
+export type ItemSyncRequest = ProductSyncRequest;
+export type ItemSearchParams = ProductSearchParams;
+export const itemPayloadSchema = productPayloadSchema;
+export const itemSyncRequestSchema = productSyncRequestSchema;
+export const itemSearchParamsSchema = productSearchParamsSchema;

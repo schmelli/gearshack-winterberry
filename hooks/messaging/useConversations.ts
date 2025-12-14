@@ -71,7 +71,16 @@ export function useConversations(
       setConversations(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      // Silently handle errors when messaging tables don't exist yet
+      // This prevents console spam during development
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch conversations';
+      if (errorMessage.includes('does not exist') || errorMessage.includes('42P01')) {
+        // Table doesn't exist - messaging feature not yet deployed
+        setConversations([]);
+        setError(null);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +91,7 @@ export function useConversations(
   }, [refresh]);
 
   // Subscribe to real-time updates
+  // Note: This subscription will silently fail if messaging tables don't exist yet
   useEffect(() => {
     if (!user?.id) return;
 
@@ -126,7 +136,12 @@ export function useConversations(
           refresh();
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        // Silently handle subscription errors (e.g., tables don't exist)
+        if (status === 'CHANNEL_ERROR' && err) {
+          console.debug('[useConversations] Realtime subscription unavailable:', err.message);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
