@@ -346,8 +346,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               name,
               description: description || null,
               trip_date: tripDate?.toISOString().split('T')[0] ?? null,
-              activity_types: activityTypes as never[],
-              seasons: seasons as never[],
+              activity_types: activityTypes,
+              seasons: seasons,
             });
 
           if (error) throw error;

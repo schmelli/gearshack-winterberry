@@ -9,6 +9,16 @@
 import { z } from 'zod';
 
 // =============================================================================
+// Enum Validators (aligned with database enums and TypeScript types)
+// =============================================================================
+
+/** Activity type enum validator - matches database activity_type enum */
+export const activityTypeSchema = z.enum(['hiking', 'camping', 'climbing', 'skiing', 'backpacking']);
+
+/** Season enum validator - matches database season enum */
+export const seasonSchema = z.enum(['spring', 'summer', 'fall', 'winter']);
+
+// =============================================================================
 // Loadout Form Schema
 // =============================================================================
 
@@ -32,9 +42,9 @@ export const loadoutFormSchema = z.object({
       message: 'Invalid date',
     }),
 
-  activityTypes: z.array(z.string()).optional().default([]),
+  activityTypes: z.array(activityTypeSchema).optional().default([]),
 
-  seasons: z.array(z.string()).optional().default([]),
+  seasons: z.array(seasonSchema).optional().default([]),
 });
 
 // =============================================================================

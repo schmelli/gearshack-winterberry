@@ -79,8 +79,8 @@ export default function NewLoadoutPage() {
         result.data.name,
         result.data.tripDate,
         result.data.description,
-        result.data.activityTypes as ActivityType[],
-        result.data.seasons as Season[]
+        result.data.activityTypes,
+        result.data.seasons
       );
 
       // Redirect to editor
