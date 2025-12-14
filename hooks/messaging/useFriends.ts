@@ -68,7 +68,7 @@ export function useFriends(): UseFriendsReturn {
         .select(`
           friend_id,
           created_at,
-          profiles:friend_id (
+          profiles!friend_id (
             id,
             display_name,
             avatar_url
