@@ -93,7 +93,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setSettings({
           messaging_privacy: (data.messaging_privacy as MessagingPrivacy) ?? 'everyone',
           discoverable: data.discoverable ?? true,
-          show_online_status: data.show_online_status ?? true,
+          show_online_status: (data.online_status_privacy as MessagingPrivacy) === 'everyone',
           read_receipts_enabled: data.read_receipts_enabled ?? true,
         });
       }
@@ -127,9 +127,15 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setError(null);
         const supabase = createClient();
 
+        // Map show_online_status to online_status_privacy for database
+        const dbKey = key === 'show_online_status' ? 'online_status_privacy' : key;
+        const dbValue = key === 'show_online_status'
+          ? (value ? 'everyone' : 'nobody')
+          : value;
+
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ [key]: value, updated_at: new Date().toISOString() })
+          .update({ [dbKey]: dbValue, updated_at: new Date().toISOString() })
           .eq('id', user.id);
 
         if (updateError) {
@@ -164,9 +170,16 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setError(null);
         const supabase = createClient();
 
+        // Map show_online_status to online_status_privacy for database
+        const dbSettings: Record<string, unknown> = { ...newSettings };
+        if ('show_online_status' in newSettings) {
+          dbSettings.online_status_privacy = newSettings.show_online_status ? 'everyone' : 'nobody';
+          delete dbSettings.show_online_status;
+        }
+
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ ...newSettings, updated_at: new Date().toISOString() })
+          .update({ ...dbSettings, updated_at: new Date().toISOString() })
           .eq('id', user.id);
 
         if (updateError) {

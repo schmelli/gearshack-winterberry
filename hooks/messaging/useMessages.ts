@@ -186,7 +186,7 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           // Fetch updated reactions for this specific message
           const { data: updatedReactions, error } = await supabase
             .from('message_reactions')
-            .select('id, user_id, emoji, created_at')
+            .select('id, message_id, user_id, emoji, created_at')
             .eq('message_id', messageId);
 
           if (error) {

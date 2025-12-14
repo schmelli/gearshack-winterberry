@@ -93,7 +93,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
         // Transform results
         const searchResults: MessageSearchResult[] = (data || []).map((row: {
           id: string;
-          content: string;
+          content: string | null;
           created_at: string;
           conversations: {
             id: string;
@@ -120,7 +120,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
           return {
             message: {
               id: row.id,
-              content: row.content,
+              content: content,
               created_at: row.created_at,
             },
             conversation: {

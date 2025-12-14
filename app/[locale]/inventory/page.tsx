@@ -33,7 +33,8 @@ import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
-function InventoryContent() {
+// Component that uses useSearchParams - must be wrapped in Suspense
+function InventoryWithModal() {
   const t = useTranslations('Inventory');
   const { user } = useSupabaseAuth();
   const {
@@ -55,7 +56,7 @@ function InventoryContent() {
     isLoading,
   } = useInventory();
 
-  // Feature 045: Gear detail modal state
+  // Feature 045: Gear detail modal state (uses useSearchParams internally)
   const { isOpen, gearId, open, close, isMobile } = useGearDetailModal();
 
   // Find the selected item for the modal
@@ -88,6 +89,76 @@ function InventoryContent() {
     enabled: isOpen && !!selectedItem,
   });
 
+  return <InventoryContent
+    t={t}
+    user={user}
+    filteredItems={filteredItems}
+    items={items}
+    viewDensity={viewDensity}
+    setViewDensity={setViewDensity}
+    searchQuery={searchQuery}
+    setSearchQuery={setSearchQuery}
+    categoryFilter={categoryFilter}
+    setCategoryFilter={setCategoryFilter}
+    sortOption={sortOption}
+    setSortOption={setSortOption}
+    groupedItems={groupedItems}
+    hasActiveFilters={hasActiveFilters}
+    clearFilters={clearFilters}
+    itemCount={itemCount}
+    filteredCount={filteredCount}
+    isLoading={isLoading}
+    isOpen={isOpen}
+    gearId={gearId}
+    open={open}
+    close={close}
+    isMobile={isMobile}
+    selectedItem={selectedItem}
+    youtubeVideos={youtubeVideos}
+    youtubeLoading={youtubeLoading}
+    youtubeError={youtubeError}
+    retryYouTube={retryYouTube}
+    insights={insights}
+    insightsLoading={insightsLoading}
+    insightsError={insightsError}
+    dismissInsight={dismissInsight}
+  />;
+}
+
+function InventoryContent({
+  t,
+  user,
+  filteredItems,
+  items,
+  viewDensity,
+  setViewDensity,
+  searchQuery,
+  setSearchQuery,
+  categoryFilter,
+  setCategoryFilter,
+  sortOption,
+  setSortOption,
+  groupedItems,
+  hasActiveFilters,
+  clearFilters,
+  itemCount,
+  filteredCount,
+  isLoading,
+  isOpen,
+  gearId,
+  open,
+  close,
+  isMobile,
+  selectedItem,
+  youtubeVideos,
+  youtubeLoading,
+  youtubeError,
+  retryYouTube,
+  insights,
+  insightsLoading,
+  insightsError,
+  dismissInsight,
+}: any) {
   // Loading state
   if (isLoading) {
     return (
@@ -194,7 +265,7 @@ export default function InventoryPage() {
   return (
     <ProtectedRoute>
       <Suspense fallback={<div className="container mx-auto max-w-6xl px-4 py-8"><div className="flex items-center justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div></div>}>
-        <InventoryContent />
+        <InventoryWithModal />
       </Suspense>
     </ProtectedRoute>
   );

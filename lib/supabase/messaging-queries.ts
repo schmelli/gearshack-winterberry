@@ -118,12 +118,12 @@ export async function fetchConversations(
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
       role: row.role as ParticipantRole,
-      joined_at: row.joined_at,
+      joined_at: row.joined_at as string,
     };
 
-    const existing = participantsByConversation.get(row.conversation_id) ?? [];
+    const existing = participantsByConversation.get(row.conversation_id as string) ?? [];
     existing.push(participant);
-    participantsByConversation.set(row.conversation_id, existing);
+    participantsByConversation.set(row.conversation_id as string, existing);
   }
 
   // Fetch last messages for all conversations in one query using a lateral join approach
@@ -160,12 +160,12 @@ export async function fetchConversations(
     if (!lastMessageByConversation.has(convId)) {
       const profile = msg.profiles as { display_name: string } | null;
       lastMessageByConversation.set(convId, {
-        id: msg.id,
-        content: msg.content,
-        message_type: msg.message_type,
-        sender_id: msg.sender_id,
+        id: msg.id as string,
+        content: msg.content as string | null,
+        message_type: msg.message_type as MessagePreview['message_type'],
+        sender_id: msg.sender_id as string | null,
         sender_name: profile?.display_name ?? null,
-        created_at: msg.created_at,
+        created_at: msg.created_at as string,
       });
     }
   }
@@ -181,10 +181,10 @@ export async function fetchConversations(
     conversations.push({
       conversation: conv,
       role: row.role as ParticipantRole,
-      is_muted: row.is_muted,
-      is_archived: row.is_archived,
-      unread_count: row.unread_count,
-      last_read_at: row.last_read_at,
+      is_muted: row.is_muted as boolean,
+      is_archived: row.is_archived as boolean,
+      unread_count: row.unread_count as number,
+      last_read_at: row.last_read_at as string | null,
       last_message: lastMessage ?? undefined,
       participants,
     });
@@ -304,7 +304,7 @@ export async function fetchConversationById(
     lastMessage = {
       id: msg.id as string,
       content: msg.content as string | null,
-      message_type: msg.message_type as string,
+      message_type: msg.message_type as MessagePreview['message_type'],
       sender_id: msg.sender_id as string | null,
       sender_name: profile?.display_name ?? null,
       created_at: msg.created_at as string,
@@ -366,7 +366,7 @@ export async function fetchConversationParticipants(
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
       role: row.role as ParticipantRole,
-      joined_at: row.joined_at,
+      joined_at: row.joined_at as string,
     };
   });
 }
@@ -409,12 +409,12 @@ export async function fetchLastMessage(
   const profile = result.profiles as { display_name: string } | null;
 
   return {
-    id: result.id,
-    content: result.content,
-    message_type: result.message_type,
-    sender_id: result.sender_id,
+    id: result.id as string,
+    content: result.content as string | null,
+    message_type: result.message_type as MessagePreview['message_type'],
+    sender_id: result.sender_id as string | null,
     sender_name: profile?.display_name ?? null,
-    created_at: result.created_at,
+    created_at: result.created_at as string,
   };
 }
 
@@ -529,16 +529,16 @@ export async function fetchMessages(
     const reactions = (row.message_reactions ?? []) as MessageReaction[];
 
     return {
-      id: row.id,
-      conversation_id: row.conversation_id,
-      sender_id: row.sender_id,
-      content: row.content,
-      message_type: row.message_type,
-      media_url: row.media_url,
-      metadata: row.metadata,
-      deletion_state: row.deletion_state,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      id: row.id as string,
+      conversation_id: row.conversation_id as string,
+      sender_id: row.sender_id as string | null,
+      content: row.content as string | null,
+      message_type: row.message_type as MessageWithSender['message_type'],
+      media_url: row.media_url as string | null,
+      metadata: (row.metadata as MessageWithSender['metadata']) ?? {},
+      deletion_state: row.deletion_state as MessageWithSender['deletion_state'],
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
       sender: profile,
       reactions,
     };
@@ -566,7 +566,7 @@ export async function sendMessage(
       content,
       message_type: messageType,
       media_url: mediaUrl,
-      metadata,
+      metadata: metadata as any,
     })
     .select()
     .single();
@@ -665,7 +665,7 @@ export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
       id: profile.id,
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
-      created_at: row.created_at,
+      created_at: row.created_at as string,
     };
   });
 }
@@ -771,7 +771,7 @@ export async function fetchBlockedUsers(
       id: profile.id,
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
-      blocked_at: row.created_at,
+      blocked_at: row.created_at as string,
     };
   });
 }
@@ -969,7 +969,7 @@ export async function fetchTotalUnreadCount(userId: string): Promise<number> {
     throw new Error(`Failed to fetch unread count: ${error.message}`);
   }
 
-  return (data ?? []).reduce((sum: number, row: QueryResult) => sum + row.unread_count, 0);
+  return (data ?? []).reduce((sum: number, row: QueryResult) => sum + (row.unread_count as number), 0);
 }
 
 // ----- Reaction Queries -----
