@@ -17,8 +17,7 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
-    "edit": "Bearbeiten",
-    "genericUser": "Benutzer"
+    "edit": "Bearbeiten"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
@@ -211,29 +210,71 @@
     "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
     "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?"
   },
-  "Profile": {
-    "favorites": "Favoriten",
-    "forSale": "Zu verkaufen",
-    "forRent": "Zu verleihen",
-    "forTrade": "Zu tauschen"
-  },
-  "Loadouts": {
-    "newLoadout": {
-      "title": "Neue Packliste erstellen",
-      "description": "Beginne deine Trip-Planung mit Namen und Details",
-      "backToLoadouts": "Zurück zu Packlisten",
-      "nameLabel": "Name der Packliste",
-      "namePlaceholder": "z.B. Alpenüberquerung",
-      "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Notizen zu dieser Packliste hinzufügen...",
-      "tripDateLabel": "Trip-Datum (optional)",
-      "seasonsLabel": "Jahreszeiten",
-      "activityTypesLabel": "Aktivitätstypen",
-      "createButton": "Packliste erstellen",
-      "creatingButton": "Wird erstellt...",
-      "cancelButton": "Abbrechen"
-    },
+  "LoadoutCreation": {
+    "title": "Neue Packliste erstellen",
+    "subtitle": "Definiere die Grundlagen deiner Tour",
+    "nameLabel": "Name der Packliste",
+    "namePlaceholder": "z.B. Alpenüberquerung April",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Was für eine Tour ist das? Besondere Anforderungen?",
+    "tripDateLabel": "Reisedatum (optional)",
+    "seasonLabel": "Jahreszeit",
+    "activityLabel": "Aktivitätstyp",
+    "submitButton": "Weiter zur Packliste",
+    "cancelButton": "Abbrechen",
     "seasons": {
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "fall": "Herbst",
+      "winter": "Winter"
+    },
+    "activities": {
+      "hiking": "Wandern",
+      "camping": "Camping",
+      "climbing": "Klettern",
+      "skiing": "Skifahren",
+      "backpacking": "Trekking"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "nameTooLong": "Name darf maximal 100 Zeichen lang sein",
+      "descriptionTooLong": "Beschreibung darf maximal 500 Zeichen lang sein"
+    }
+  },
+  "SharedLoadout": {
+    "heroTitle": "Virtueller Ausrüstungs-Check",
+    "sharedBy": "Geteilt von {name}",
+    "tripDate": "Reisedatum",
+    "createdOn": "Erstellt",
+    "totalItems": "Gegenstände",
+    "totalWeight": "Gesamtgewicht",
+    "signupCta": "Füge diese Packliste zu deiner Sammlung hinzu",
+    "signupButton": "Kostenlos registrieren",
+    "loginButton": "Anmelden",
+    "ownedBadge": "Besitzt du",
+    "wishlistBadge": "Auf Wunschliste",
+    "addToWishlist": "Zur Wunschliste",
+    "addedToWishlist": "Zur Wunschliste hinzugefügt!",
+    "addToWishlistError": "Fehler beim Hinzufügen zur Wunschliste. Bitte versuche es erneut.",
+    "importSuccess": "Packliste importiert! {count} Artikel zur Wunschliste hinzugefügt.",
+    "ownerUnavailable": "Besitzer nicht mehr verfügbar",
+    "viewProfile": "Profil ansehen",
+    "sendMessage": "Nachricht senden",
+    "allItemsOwned": "Toller Geschmack! Du besitzt bereits alle Artikel",
+    "invalidShare": "Diese geteilte Packliste ist nicht mehr verfügbar",
+    "ownerProfile": "Besitzerprofil",
+    "socialLinks": "Soziale Netzwerke",
+    "messageOwner": "Nachricht senden",
+    "messagingDisabled": "Dieser Benutzer hat Nachrichten deaktiviert",
+    "notSet": "Nicht festgelegt",
+    "item": "Gegenstand",
+    "items": "Gegenstände",
+    "seasons": "Jahreszeiten",
+    "activities": "Aktivitäten",
+    "gearList": "Ausrüstungsliste",
+    "gearListDescription": "Alle Artikel in dieser geteilten Packliste",
+    "commentsDisabled": "Kommentare sind für diese Packliste deaktiviert",
+    "seasonTypes": {
       "spring": "Frühling",
       "summer": "Sommer",
       "fall": "Herbst",
@@ -245,6 +286,16 @@
       "climbing": "Klettern",
       "skiing": "Skifahren",
       "backpacking": "Trekking"
-    }
+    },
+    "comments": {
+      "title": "Kommentare",
+      "newNotification": "{author} hat deine Packliste kommentiert",
+      "viewComment": "Kommentar ansehen"
+    },
+    "notFoundTitle": "Packliste nicht gefunden",
+    "notFoundDescription": "Dieser geteilte Packlisten-Link ist möglicherweise abgelaufen oder wurde vom Besitzer entfernt.",
+    "notFoundHint": "Die gesuchte Packliste existiert nicht oder wird nicht mehr geteilt.",
+    "backToHome": "Zurück zur Startseite",
+    "retry": "Erneut versuchen"
   }
 }

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const { recipientId, initialMessage } = validation.data;
 
-    // Check if recipient exists - messaging_privacy column is added by migration 20251213_user_messaging.sql
+    // Check if recipient exists
     const { data: recipient, error: recipientError } = await supabase
       .from('profiles')
       .select('id, messaging_privacy')
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if blocked (in either direction) - user_blocks table created by migration
+    // Check if blocked (in either direction)
     const { count: blockCount } = await supabase
       .from('user_blocks')
       .select('*', { count: 'exact', head: true })

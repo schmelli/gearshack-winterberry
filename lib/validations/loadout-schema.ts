@@ -1,25 +1,14 @@
 /**
  * Loadout Form Validation Schema
  *
- * Feature: 005-loadout-management
- * Feature: 031-search-save-i18n-fix
+ * Feature: 005-loadout-management, 047-loadout-creation-form
  * Zod schema for loadout form validation
  */
 
 import { z } from 'zod';
 
 // =============================================================================
-// Enum Validators (aligned with database enums and TypeScript types)
-// =============================================================================
-
-/** Activity type enum validator - matches database activity_type enum */
-export const activityTypeSchema = z.enum(['hiking', 'camping', 'climbing', 'skiing', 'backpacking']);
-
-/** Season enum validator - matches database season enum */
-export const seasonSchema = z.enum(['spring', 'summer', 'fall', 'winter']);
-
-// =============================================================================
-// Loadout Form Schema
+// Loadout Form Schema (Legacy - for basic form)
 // =============================================================================
 
 export const loadoutFormSchema = z.object({
@@ -29,11 +18,6 @@ export const loadoutFormSchema = z.object({
     .max(100, 'Name must be 100 characters or less')
     .transform((val) => val.trim()),
 
-  description: z
-    .string()
-    .optional()
-    .transform((val) => (val && val.trim() !== '' ? val.trim() : '')),
-
   tripDate: z
     .string()
     .optional()
@@ -41,10 +25,33 @@ export const loadoutFormSchema = z.object({
     .refine((val) => val === null || !isNaN(val.getTime()), {
       message: 'Invalid date',
     }),
+});
 
-  activityTypes: z.array(activityTypeSchema).optional().default([]),
+// =============================================================================
+// Loadout Creation Form Schema (Feature: 047-loadout-creation-form)
+// Enhanced form with description, seasons, and activity types
+// =============================================================================
 
-  seasons: z.array(seasonSchema).optional().default([]),
+const seasonValues = ['spring', 'summer', 'fall', 'winter'] as const;
+const activityTypeValues = ['hiking', 'camping', 'climbing', 'skiing', 'backpacking'] as const;
+
+export const loadoutCreationFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be 100 characters or less'),
+
+  tripDate: z.string().optional(),
+
+  description: z
+    .string()
+    .max(500, 'Description must be 500 characters or less')
+    .optional()
+    .default(''),
+
+  seasons: z.array(z.enum(seasonValues)).optional().default([]),
+
+  activityTypes: z.array(z.enum(activityTypeValues)).optional().default([]),
 });
 
 // =============================================================================
@@ -53,3 +60,6 @@ export const loadoutFormSchema = z.object({
 
 export type LoadoutFormInput = z.input<typeof loadoutFormSchema>;
 export type LoadoutFormOutput = z.output<typeof loadoutFormSchema>;
+
+export type LoadoutCreationFormInput = z.input<typeof loadoutCreationFormSchema>;
+export type LoadoutCreationFormOutput = z.output<typeof loadoutCreationFormSchema>;

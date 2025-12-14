@@ -81,9 +81,11 @@ interface SupabaseStore {
   createLoadout: (
     name: string,
     tripDate?: Date | null,
-    description?: string,
-    activityTypes?: ActivityType[],
-    seasons?: Season[]
+    options?: {
+      description?: string;
+      seasons?: Season[];
+      activityTypes?: ActivityType[];
+    }
   ) => Promise<string>;
   updateLoadout: (id: string, updates: Partial<LoadoutLocal>) => Promise<void>;
   deleteLoadout: (id: string) => Promise<void>;
@@ -307,7 +309,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       },
 
       // Loadout Actions
-      createLoadout: async (name, tripDate = null, description = '', activityTypes = [], seasons = []) => {
+      createLoadout: async (name, tripDate = null, options = {}) => {
         const { userId } = get();
         if (!userId) {
           toast.error('Please sign in to create loadouts');
@@ -317,6 +319,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const supabase = createClient();
         const id = crypto.randomUUID();
         const now = new Date();
+
+        const { description = '', seasons = [], activityTypes = [] } = options;
 
         const newLoadout: LoadoutLocal = {
           id,
@@ -338,17 +342,36 @@ export const useSupabaseStore = create<SupabaseStore>()(
         }));
 
         try {
-          const { error } = await supabase
-            .from('loadouts')
-            .insert({
-              id,
-              user_id: userId,
-              name,
-              description: description || null,
-              trip_date: tripDate?.toISOString().split('T')[0] ?? null,
-              activity_types: activityTypes,
-              seasons: seasons,
-            });
+          // Build insert data object - only include optional fields if they have values
+          const insertData: {
+            id: string;
+            user_id: string;
+            name: string;
+            trip_date?: string | null;
+            description?: string | null;
+            seasons?: typeof seasons;
+            activity_types?: typeof activityTypes;
+          } = {
+            id,
+            user_id: userId,
+            name,
+          };
+
+          // Add optional fields only if they have values
+          if (tripDate) {
+            insertData.trip_date = tripDate.toISOString().split('T')[0];
+          }
+          if (description) {
+            insertData.description = description;
+          }
+          if (seasons.length > 0) {
+            insertData.seasons = seasons;
+          }
+          if (activityTypes.length > 0) {
+            insertData.activity_types = activityTypes;
+          }
+
+          const { error } = await supabase.from('loadouts').insert(insertData);
 
           if (error) throw error;
 

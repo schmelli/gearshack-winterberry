@@ -90,9 +90,6 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
   useEffect(() => {
     if (!conversationId || !user?.id) return;
 
-    // Track mounted state to prevent memory leaks
-    let isMounted = true;
-
     const supabase = createClient();
 
     const channel = supabase
@@ -109,43 +106,31 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           // Fetch the full message with sender info
           const newMessage = payload.new as Message;
           if (!newMessage.sender_id) {
-            if (isMounted) {
-              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
-            }
+            setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
             return;
           }
 
-          // Get sender profile with error handling
-          const { data: profile, error } = await supabase
+          // Get sender profile
+          supabase
             .from('profiles')
             .select('id, display_name, avatar_url')
             .eq('id', newMessage.sender_id)
-            .single();
+            .single()
+            .then(({ data: profile }) => {
+              const sender = profile ? {
+                id: profile.id,
+                display_name: profile.display_name ?? 'Unknown',
+                avatar_url: profile.avatar_url,
+              } : null;
 
-          if (error) {
-            console.error('Failed to fetch sender profile:', error);
-            // Still add the message but with null sender
-            if (isMounted) {
-              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
-            }
-            return;
-          }
+              const messageWithSender: MessageWithSender = {
+                ...newMessage,
+                sender,
+                reactions: [],
+              };
 
-          const sender = profile ? {
-            id: profile.id,
-            display_name: profile.display_name ?? 'Unknown',
-            avatar_url: profile.avatar_url,
-          } : null;
-
-          const messageWithSender: MessageWithSender = {
-            ...newMessage,
-            sender,
-            reactions: [],
-          };
-
-          if (isMounted) {
-            setMessages((prev) => [...prev, messageWithSender]);
-          }
+              setMessages((prev) => [...prev, messageWithSender]);
+            });
         }
       )
       .on(
@@ -173,46 +158,15 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           event: '*',
           schema: 'public',
           table: 'message_reactions',
-          // Note: Cannot filter by conversation_id since message_reactions table doesn't have it
-          // We filter client-side to only process reactions for messages in this conversation
         },
-        async (payload) => {
-          // Extract message_id from the reaction event
-          const reactionData = (payload.new || payload.old) as { message_id?: string };
-          const messageId = reactionData?.message_id;
-
-          if (!messageId) return;
-
-          // Fetch updated reactions for this specific message
-          const { data: updatedReactions, error } = await supabase
-            .from('message_reactions')
-            .select('id, message_id, user_id, emoji, created_at')
-            .eq('message_id', messageId);
-
-          if (error) {
-            console.error('Failed to fetch updated reactions:', error);
-            return; // Preserve existing reactions instead of clearing them
-          }
-
-          // Update only the affected message's reactions (if it exists in current conversation)
-          if (isMounted) {
-            setMessages((prev) => {
-              const messageExists = prev.some((m) => m.id === messageId);
-              if (!messageExists) return prev; // Not in this conversation, ignore
-
-              return prev.map((m) =>
-                m.id === messageId
-                  ? { ...m, reactions: updatedReactions ?? [] }
-                  : m
-              );
-            });
-          }
+        () => {
+          // Refresh messages to get updated reactions
+          loadMessages();
         }
       )
       .subscribe();
 
     return () => {
-      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [conversationId, user?.id, loadMessages]);

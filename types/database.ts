@@ -168,6 +168,89 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          is_archived: boolean
+          is_muted: boolean
+          joined_at: string
+          last_read_at: string | null
+          role: Database["public"]["Enums"]["participant_role"]
+          unread_count: number
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          is_archived?: boolean
+          is_muted?: boolean
+          joined_at?: string
+          last_read_at?: string | null
+          role?: Database["public"]["Enums"]["participant_role"]
+          unread_count?: number
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          is_archived?: boolean
+          is_muted?: boolean
+          joined_at?: string
+          last_read_at?: string | null
+          role?: Database["public"]["Enums"]["participant_role"]
+          unread_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string | null
+          type: Database["public"]["Enums"]["conversation_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          type: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          type?: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gear_items: {
         Row: {
           brand: string | null
@@ -499,11 +582,141 @@ export type Database = {
         }
         Relationships: []
       }
+      message_deletions: {
+        Row: {
+          deleted_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_deletions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_deletions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string | null
+          conversation_id: string
+          created_at: string
+          deletion_state: Database["public"]["Enums"]["message_deletion_state"]
+          id: string
+          media_url: string | null
+          message_type: Database["public"]["Enums"]["message_type"]
+          metadata: Json
+          search_vector: unknown
+          sender_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          deletion_state?: Database["public"]["Enums"]["message_deletion_state"]
+          id?: string
+          media_url?: string | null
+          message_type?: Database["public"]["Enums"]["message_type"]
+          metadata?: Json
+          search_vector?: unknown
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          deletion_state?: Database["public"]["Enums"]["message_deletion_state"]
+          id?: string
+          media_url?: string | null
+          message_type?: Database["public"]["Enums"]["message_type"]
+          metadata?: Json
+          search_vector?: unknown
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          discoverable: boolean | null
           display_name: string | null
           email: string
           facebook: string | null
@@ -512,6 +725,13 @@ export type Database = {
           latitude: number | null
           location_name: string | null
           longitude: number | null
+          messaging_privacy:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          online_status_privacy:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          read_receipts_enabled: boolean | null
           trail_name: string | null
           updated_at: string
           website: string | null
@@ -521,6 +741,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          discoverable?: boolean | null
           display_name?: string | null
           email: string
           facebook?: string | null
@@ -529,6 +750,13 @@ export type Database = {
           latitude?: number | null
           location_name?: string | null
           longitude?: number | null
+          messaging_privacy?:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          online_status_privacy?:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          read_receipts_enabled?: boolean | null
           trail_name?: string | null
           updated_at?: string
           website?: string | null
@@ -538,6 +766,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          discoverable?: boolean | null
           display_name?: string | null
           email?: string
           facebook?: string | null
@@ -546,6 +775,13 @@ export type Database = {
           latitude?: number | null
           location_name?: string | null
           longitude?: number | null
+          messaging_privacy?:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          online_status_privacy?:
+            | Database["public"]["Enums"]["messaging_privacy"]
+            | null
+          read_receipts_enabled?: boolean | null
           trail_name?: string | null
           updated_at?: string
           website?: string | null
@@ -553,11 +789,147 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          blocked_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          blocked_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          message_id: string | null
+          reason: Database["public"]["Enums"]["report_reason"]
+          reported_user_id: string
+          reporter_id: string
+          status: Database["public"]["Enums"]["report_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason: Database["public"]["Enums"]["report_reason"]
+          reported_user_id: string
+          reporter_id: string
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          message_id?: string | null
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reported_user_id?: string
+          reporter_id?: string
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_reports_reported_user_id_fkey"
+            columns: ["reported_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_message_user: {
+        Args: { p_recipient_id: string; p_sender_id: string }
+        Returns: boolean
+      }
+      get_or_create_direct_conversation: {
+        Args: { p_user1: string; p_user2: string }
+        Returns: string
+      }
+      reset_unread_count: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
       search_brands_fuzzy: {
         Args: {
           match_threshold?: number
@@ -582,8 +954,25 @@ export type Database = {
         | "climbing"
         | "skiing"
         | "backpacking"
+      conversation_type: "direct" | "group"
       gear_condition: "new" | "used" | "worn"
       gear_status: "own" | "wishlist" | "sold" | "lent" | "retired"
+      message_deletion_state:
+        | "active"
+        | "deleted_for_sender"
+        | "deleted_for_all"
+      message_type:
+        | "text"
+        | "image"
+        | "voice"
+        | "location"
+        | "gear_reference"
+        | "gear_trade"
+        | "trip_invitation"
+      messaging_privacy: "everyone" | "friends_only" | "nobody"
+      participant_role: "member" | "admin"
+      report_reason: "spam" | "harassment" | "inappropriate_content" | "other"
+      report_status: "pending" | "reviewed" | "resolved" | "dismissed"
       season: "spring" | "summer" | "fall" | "winter"
       weight_unit: "g" | "oz" | "lb"
     }
@@ -714,8 +1103,27 @@ export const Constants = {
   public: {
     Enums: {
       activity_type: ["hiking", "camping", "climbing", "skiing", "backpacking"],
+      conversation_type: ["direct", "group"],
       gear_condition: ["new", "used", "worn"],
       gear_status: ["own", "wishlist", "sold", "lent", "retired"],
+      message_deletion_state: [
+        "active",
+        "deleted_for_sender",
+        "deleted_for_all",
+      ],
+      message_type: [
+        "text",
+        "image",
+        "voice",
+        "location",
+        "gear_reference",
+        "gear_trade",
+        "trip_invitation",
+      ],
+      messaging_privacy: ["everyone", "friends_only", "nobody"],
+      participant_role: ["member", "admin"],
+      report_reason: ["spam", "harassment", "inappropriate_content", "other"],
+      report_status: ["pending", "reviewed", "resolved", "dismissed"],
       season: ["spring", "summer", "fall", "winter"],
       weight_unit: ["g", "oz", "lb"],
     },

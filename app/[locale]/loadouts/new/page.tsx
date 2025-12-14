@@ -1,95 +1,70 @@
 /**
- * New Loadout Page
+ * New Loadout Page - Enhanced Creation Form
  *
- * Feature: 005-loadout-management
- * Feature: 031-search-save-i18n-fix
- * FR-024: Allow users to set loadout name, description, trip date, seasons, and activity types
+ * Feature: 047-loadout-creation-form
+ * Tasks: T006-T021 (User Stories 1-5)
+ *
+ * Displays a 4-field form (Name, Description, Season, Activity Type)
+ * to help users think through their trip basics before item selection.
  */
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter, Link } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ToggleBadge } from '@/components/ui/toggle-badge';
-import { useSupabaseStore as useStore } from '@/hooks/useSupabaseStore';
-import { loadoutFormSchema } from '@/lib/validations/loadout-schema';
-import type { ActivityType, Season } from '@/types/loadout';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { useLoadoutCreationForm } from '@/hooks/useLoadoutCreationForm';
+import type { Season, ActivityType } from '@/types/loadout';
+
+// =============================================================================
+// Constants
+// =============================================================================
 
 const SEASONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
-const ACTIVITY_TYPES: ActivityType[] = ['hiking', 'camping', 'climbing', 'skiing', 'backpacking'];
+const ACTIVITIES: ActivityType[] = [
+  'hiking',
+  'camping',
+  'climbing',
+  'skiing',
+  'backpacking',
+];
+
+// =============================================================================
+// Component
+// =============================================================================
 
 export default function NewLoadoutPage() {
-  const router = useRouter();
-  const t = useTranslations('Loadouts');
-  const createLoadout = useStore((state) => state.createLoadout);
+  const t = useTranslations('LoadoutCreation');
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [tripDate, setTripDate] = useState('');
-  const [selectedSeasons, setSelectedSeasons] = useState<Season[]>([]);
-  const [selectedActivityTypes, setSelectedActivityTypes] = useState<ActivityType[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    form,
+    onSubmit,
+    onCancel,
+    isSubmitting,
+    toggleSeason,
+    toggleActivity,
+    selectedSeasons,
+    selectedActivities,
+  } = useLoadoutCreationForm();
 
-  const toggleSeason = (season: Season) => {
-    setSelectedSeasons((prev) =>
-      prev.includes(season) ? prev.filter((s) => s !== season) : [...prev, season]
-    );
-  };
-
-  const toggleActivityType = (activityType: ActivityType) => {
-    setSelectedActivityTypes((prev) =>
-      prev.includes(activityType) ? prev.filter((a) => a !== activityType) : [...prev, activityType]
-    );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-
-    try {
-      // Validate with Zod
-      const result = loadoutFormSchema.safeParse({
-        name,
-        description,
-        tripDate,
-        activityTypes: selectedActivityTypes,
-        seasons: selectedSeasons,
-      });
-
-      if (!result.success) {
-        // Zod 4 uses issues array
-        const firstIssue = result.error.issues[0];
-        setError(firstIssue?.message ?? 'Validation failed');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Create loadout in store (now async)
-      const loadoutId = await createLoadout(
-        result.data.name,
-        result.data.tripDate,
-        result.data.description,
-        result.data.activityTypes,
-        result.data.seasons
-      );
-
-      // Redirect to editor
-      router.push(`/loadouts/${loadoutId}`);
-    } catch {
-      setError('Failed to create loadout');
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = form;
 
   return (
     <div className="container max-w-2xl py-8">
@@ -99,91 +74,141 @@ export default function NewLoadoutPage() {
         className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        {t('newLoadout.backToLoadouts')}
+        {t('cancelButton')}
       </Link>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('newLoadout.title')}</CardTitle>
-          <CardDescription>{t('newLoadout.description')}</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Name Field (Required) - T007 */}
             <div className="space-y-2">
-              <Label htmlFor="name">{t('newLoadout.nameLabel')}</Label>
+              <Label htmlFor="name">
+                {t('nameLabel')} <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="name"
-                placeholder={t('newLoadout.namePlaceholder')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                placeholder={t('namePlaceholder')}
+                {...register('name')}
                 autoFocus
+                maxLength={100}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive">
+                  {t('validation.nameRequired')}
+                </p>
+              )}
             </div>
 
-            {/* Description Field */}
+            {/* Description Field (Optional) - T008 */}
             <div className="space-y-2">
-              <Label htmlFor="description">{t('newLoadout.descriptionLabel')}</Label>
+              <Label htmlFor="description">{t('descriptionLabel')}</Label>
               <Textarea
                 id="description"
-                placeholder={t('newLoadout.descriptionPlaceholder')}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('descriptionPlaceholder')}
+                {...register('description')}
+                maxLength={500}
                 rows={3}
+                className="resize-none"
               />
+              {errors.description && (
+                <p className="text-sm text-destructive">
+                  {t('validation.descriptionTooLong')}
+                </p>
+              )}
             </div>
 
-            {/* Trip Date Field */}
+            {/* Season Selection - T011-T013, T020 */}
             <div className="space-y-2">
-              <Label htmlFor="tripDate">{t('newLoadout.tripDateLabel')}</Label>
-              <Input
-                id="tripDate"
-                type="date"
-                value={tripDate}
-                onChange={(e) => setTripDate(e.target.value)}
-              />
-            </div>
-
-            {/* Seasons Selection */}
-            <div className="space-y-2">
-              <Label>{t('newLoadout.seasonsLabel')}</Label>
+              <Label>{t('seasonLabel')}</Label>
               <div className="flex flex-wrap gap-2">
                 {SEASONS.map((season) => (
-                  <ToggleBadge
+                  <Badge
                     key={season}
-                    label={t(`seasons.${season}`)}
-                    pressed={selectedSeasons.includes(season)}
-                    onPressedChange={() => toggleSeason(season)}
-                  />
+                    variant={
+                      selectedSeasons.includes(season) ? 'default' : 'outline'
+                    }
+                    className="cursor-pointer select-none px-3 py-1.5 text-sm transition-colors hover:bg-primary/80"
+                    onClick={() => toggleSeason(season)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleSeason(season);
+                      }
+                    }}
+                    role="checkbox"
+                    aria-checked={selectedSeasons.includes(season)}
+                    tabIndex={0}
+                  >
+                    {t(`seasons.${season}`)}
+                  </Badge>
                 ))}
               </div>
             </div>
 
-            {/* Activity Types Selection */}
+            {/* Activity Type Selection - T014-T016, T021 */}
             <div className="space-y-2">
-              <Label>{t('newLoadout.activityTypesLabel')}</Label>
+              <Label>{t('activityLabel')}</Label>
               <div className="flex flex-wrap gap-2">
-                {ACTIVITY_TYPES.map((activityType) => (
-                  <ToggleBadge
-                    key={activityType}
-                    label={t(`activityTypes.${activityType}`)}
-                    pressed={selectedActivityTypes.includes(activityType)}
-                    onPressedChange={() => toggleActivityType(activityType)}
-                  />
+                {ACTIVITIES.map((activity) => (
+                  <Badge
+                    key={activity}
+                    variant={
+                      selectedActivities.includes(activity)
+                        ? 'default'
+                        : 'outline'
+                    }
+                    className="cursor-pointer select-none px-3 py-1.5 text-sm transition-colors hover:bg-primary/80"
+                    onClick={() => toggleActivity(activity)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleActivity(activity);
+                      }
+                    }}
+                    role="checkbox"
+                    aria-checked={selectedActivities.includes(activity)}
+                    tabIndex={0}
+                  >
+                    {t(`activities.${activity}`)}
+                  </Badge>
                 ))}
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {/* Trip Date Field (Optional) */}
+            <div className="space-y-2">
+              <Label htmlFor="tripDate">{t('tripDateLabel')}</Label>
+              <Input id="tripDate" type="date" {...register('tripDate')} />
+            </div>
 
-            {/* Actions */}
-            <div className="flex gap-4">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? t('newLoadout.creatingButton') : t('newLoadout.createButton')}
+            {/* Actions - T009, T017-T018 */}
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full"
+                size="lg"
+              >
+                {isSubmitting ? (
+                  'Creating...'
+                ) : (
+                  <>
+                    {t('submitButton')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
-              <Button type="button" variant="outline" asChild>
-                <Link href="/loadouts">{t('newLoadout.cancelButton')}</Link>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onCancel}
+                className="w-full"
+              >
+                {t('cancelButton')}
               </Button>
             </div>
           </form>

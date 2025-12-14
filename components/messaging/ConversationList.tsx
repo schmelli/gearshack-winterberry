@@ -95,7 +95,7 @@ function ConversationListItemRow({
   const displayName =
     conv.type === 'group'
       ? conv.name
-      : firstParticipant?.display_name ?? 'Unknown User';
+      : participants.map((p) => p.display_name).join(', ');
 
   const avatar =
     conv.type === 'direct' && participants.length > 0

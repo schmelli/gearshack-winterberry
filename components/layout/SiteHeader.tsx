@@ -37,13 +37,16 @@ import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
-import { ProfileModal } from '@/components/profile/ProfileModal';
 // T021: Import LanguageSwitcher
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
 import { MessagingModal } from '@/components/messaging/MessagingModal';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useRouter } from '@/i18n/navigation';
+import { formatDistanceToNow } from 'date-fns';
 
 interface SiteHeaderProps {
   className?: string;
@@ -52,13 +55,15 @@ interface SiteHeaderProps {
 export function SiteHeader({ className }: SiteHeaderProps) {
   const { user } = useAuthContext();
   const pathname = usePathname();
+  const router = useRouter();
   // T022: Use translations from Navigation namespace
   const t = useTranslations('Navigation');
   // T012: Messaging modal state and unread count
   const [messagingOpen, setMessagingOpen] = useState(false);
   const { unreadCount } = useUnreadCount();
-  // Issue #15: Profile modal state for mobile menu
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  // T048: Notification state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { notifications, unreadCount: notificationUnreadCount, markAsRead } = useNotifications(user?.uid || null);
 
   return (
     <header
@@ -69,8 +74,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     >
       {/* FR-020: h-24 = 96px header height, items-center for FR-019 vertical centering */}
       <div className="container flex h-24 items-center">
-        {/* Mobile menu trigger - Issue #15: Pass profile modal handler */}
-        <MobileNav onProfileClick={() => setProfileModalOpen(true)} />
+        {/* Mobile menu trigger */}
+        <MobileNav />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
@@ -143,12 +148,86 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </Button>
           )}
 
-          {/* Notification bell */}
-          <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          {/* T048: Notification bell with popover */}
+          {user && (
+            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Bell className="h-5 w-5" />
+                  {notificationUnreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                    </span>
+                  )}
+                  <span className="sr-only">Notifications</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <h3 className="font-semibold">Notifications</h3>
+                  {notificationUnreadCount > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {notificationUnreadCount} unread
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        onClick={async () => {
+                          // T049: Mark as read and navigate to shared loadout
+                          await markAsRead(notification.id);
+
+                          if (notification.type === 'loadout_comment' && notification.referenceId) {
+                            // For loadout comments, referenceType should contain the share_token
+                            // Check that we have a valid share token (not just the type itself)
+                            const shareToken = notification.referenceType;
+                            // More explicit check: ensure shareToken is a non-empty string
+                            // and looks like a valid token (not a type name)
+                            if (
+                              shareToken &&
+                              typeof shareToken === 'string' &&
+                              shareToken.length > 0 &&
+                              !shareToken.includes('_') // Type names typically have underscores
+                            ) {
+                              setNotificationsOpen(false);
+                              router.push(`/shakedown/${shareToken}`);
+                            }
+                          }
+                        }}
+                        className={cn(
+                          'w-full border-b px-4 py-3 text-left transition-colors hover:bg-accent',
+                          !notification.isRead && 'bg-accent/50'
+                        )}
+                      >
+                        <div className="flex gap-3">
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm">{notification.message}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           {/* User menu */}
           <UserMenu />
@@ -157,9 +236,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
       {/* T012: Messaging modal */}
       <MessagingModal open={messagingOpen} onOpenChange={setMessagingOpen} />
-
-      {/* Issue #15: Profile modal for mobile menu */}
-      <ProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} />
     </header>
   );
 }

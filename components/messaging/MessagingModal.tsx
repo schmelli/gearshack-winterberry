@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -49,27 +49,10 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationListItem | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const { startDirectConversation, getConversationById } = useConversations();
+  const { startDirectConversation } = useConversations();
 
-  // Detect mobile for responsive layout with resize listener
-  useEffect(() => {
-    // Check if window is available (client-side only)
-    if (typeof window === 'undefined') return;
-
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    // Check on mount
-    checkMobile();
-
-    // Add resize listener
-    window.addEventListener('resize', checkMobile);
-
-    // Cleanup
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Detect mobile for responsive layout
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const handleSelectConversation = (conversation: ConversationListItem) => {
     setSelectedConversation(conversation);
@@ -223,14 +206,27 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
 
                 <div className="flex-1 overflow-hidden p-4">
                   <MessageSearch
-                    onSelectResult={async (conversationId) => {
-                      // Fetch the full conversation with all participant data
-                      const conversation = await getConversationById(conversationId);
-                      if (conversation) {
-                        setSelectedConversation(conversation);
-                        setViewState('conversation');
-                      }
+                    onSelectResult={(conversationId) => {
+                      // Navigate to conversation
                       // TODO: Scroll to specific message
+                      const tempConversation: ConversationListItem = {
+                        conversation: {
+                          id: conversationId,
+                          type: 'direct',
+                          name: null,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          created_by: null,
+                        },
+                        participants: [],
+                        role: 'member',
+                        unread_count: 0,
+                        is_muted: false,
+                        is_archived: false,
+                        last_read_at: null,
+                      };
+                      setSelectedConversation(tempConversation);
+                      setViewState('conversation');
                     }}
                   />
                 </div>

@@ -50,10 +50,10 @@ export async function POST(request: Request) {
       .from('user_reports')
       .insert({
         reporter_id: user.id,
-        reported_user_id: reportedUserId, // Column name matches migration schema
+        reported_id: reportedUserId,
         message_id: messageId || null,
         reason,
-        details: details || null, // Column name is 'details' not 'description'
+        description: details || null,
         status: 'pending',
       })
       .select('id')

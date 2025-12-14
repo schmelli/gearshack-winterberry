@@ -55,8 +55,7 @@ export async function GET(request: NextRequest) {
     // Don't filter out ourselves from blocks
     blockedIds.delete(user.id);
 
-    // Search users - profiles table has discoverable column from migration
-    // Using ilike for case-insensitive search
+    // Search users - Using ilike for case-insensitive search
     // Filter by discoverable=true (T043)
     const { data: users, error: searchError } = await supabase
       .from('profiles')

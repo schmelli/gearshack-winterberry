@@ -39,6 +39,9 @@ interface UseFriendsReturn {
   refresh: () => Promise<void>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryResult = any;
+
 /**
  * Hook for managing friend relationships.
  */
@@ -62,13 +65,12 @@ export function useFriends(): UseFriendsReturn {
       setError(null);
       const supabase = createClient();
 
-      // user_friends table is created by migration
       const { data, error: fetchError } = await supabase
         .from('user_friends')
         .select(`
           friend_id,
           created_at,
-          profiles!user_friends_friend_id_fkey (
+          profiles:friend_id (
             id,
             display_name,
             avatar_url
@@ -81,7 +83,7 @@ export function useFriends(): UseFriendsReturn {
         throw fetchError;
       }
 
-      const friendsList: FriendInfo[] = (data ?? []).map((row) => {
+      const friendsList: FriendInfo[] = (data ?? []).map((row: QueryResult) => {
         const profile = row.profiles;
         return {
           id: profile.id,

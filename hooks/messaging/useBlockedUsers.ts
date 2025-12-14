@@ -38,6 +38,9 @@ interface UseBlockedUsersReturn {
   refresh: () => Promise<void>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryResult = any;
+
 /**
  * Hook for managing blocked users.
  */
@@ -61,13 +64,12 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
       setError(null);
       const supabase = createClient();
 
-      // user_blocks table is created by migration
       const { data, error: fetchError } = await supabase
         .from('user_blocks')
         .select(`
           blocked_id,
           created_at,
-          profiles!user_blocks_blocked_id_fkey (
+          profiles:blocked_id (
             id,
             display_name,
             avatar_url
@@ -80,7 +82,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
         throw fetchError;
       }
 
-      const blocked: BlockedUserInfo[] = (data ?? []).map((row) => {
+      const blocked: BlockedUserInfo[] = (data ?? []).map((row: QueryResult) => {
         const profile = row.profiles;
         return {
           id: profile?.id ?? row.blocked_id,

@@ -17,8 +17,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit",
-    "genericUser": "User"
+    "edit": "Edit"
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
@@ -211,29 +210,71 @@
     "deleteConfirm": "Are you sure you want to delete this item?",
     "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
   },
-  "Profile": {
-    "favorites": "Favorites",
-    "forSale": "For Sale",
-    "forRent": "For Rent",
-    "forTrade": "For Trade"
-  },
-  "Loadouts": {
-    "newLoadout": {
-      "title": "Create New Loadout",
-      "description": "Start planning your trip by giving it a name and details",
-      "backToLoadouts": "Back to Loadouts",
-      "nameLabel": "Loadout Name",
-      "namePlaceholder": "e.g., PCT Section A",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Add notes about this loadout...",
-      "tripDateLabel": "Trip Date (optional)",
-      "seasonsLabel": "Seasons",
-      "activityTypesLabel": "Activity Types",
-      "createButton": "Create Loadout",
-      "creatingButton": "Creating...",
-      "cancelButton": "Cancel"
-    },
+  "LoadoutCreation": {
+    "title": "Create New Loadout",
+    "subtitle": "Start planning your trip by defining the basics",
+    "nameLabel": "Loadout Name",
+    "namePlaceholder": "e.g., Alpine Crossing April",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What kind of trip is this? Any special considerations?",
+    "tripDateLabel": "Trip Date (optional)",
+    "seasonLabel": "Season",
+    "activityLabel": "Activity Type",
+    "submitButton": "Continue to Packing List",
+    "cancelButton": "Cancel",
     "seasons": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "fall": "Fall",
+      "winter": "Winter"
+    },
+    "activities": {
+      "hiking": "Hiking",
+      "camping": "Camping",
+      "climbing": "Climbing",
+      "skiing": "Skiing",
+      "backpacking": "Backpacking"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be 100 characters or less",
+      "descriptionTooLong": "Description must be 500 characters or less"
+    }
+  },
+  "SharedLoadout": {
+    "heroTitle": "Virtual Gear Shakedown",
+    "sharedBy": "Shared by {name}",
+    "tripDate": "Trip date",
+    "createdOn": "Created",
+    "totalItems": "Total Items",
+    "totalWeight": "Total Weight",
+    "signupCta": "Add this loadout to your collection",
+    "signupButton": "Sign Up Free",
+    "loginButton": "Log In",
+    "ownedBadge": "Owned",
+    "wishlistBadge": "On Wishlist",
+    "addToWishlist": "Add to Wishlist",
+    "addedToWishlist": "Added to wishlist!",
+    "addToWishlistError": "Failed to add item to wishlist. Please try again.",
+    "importSuccess": "Loadout imported! {count} items added to wishlist.",
+    "ownerUnavailable": "Owner no longer available",
+    "viewProfile": "View Profile",
+    "sendMessage": "Send Message",
+    "allItemsOwned": "Great taste! You already own all these items",
+    "invalidShare": "This shared loadout is no longer available",
+    "ownerProfile": "Owner Profile",
+    "socialLinks": "Social Links",
+    "messageOwner": "Send Message",
+    "messagingDisabled": "This user has disabled messaging",
+    "notSet": "Not set",
+    "item": "item",
+    "items": "items",
+    "seasons": "Seasons",
+    "activities": "Activities",
+    "gearList": "Gear List",
+    "gearListDescription": "All items included in this shared loadout",
+    "commentsDisabled": "Comments are disabled for this loadout",
+    "seasonTypes": {
       "spring": "Spring",
       "summer": "Summer",
       "fall": "Fall",
@@ -242,9 +283,24 @@
     "activityTypes": {
       "hiking": "Hiking",
       "camping": "Camping",
+      "backpacking": "Backpacking",
       "climbing": "Climbing",
       "skiing": "Skiing",
-      "backpacking": "Backpacking"
-    }
+      "mountaineering": "Mountaineering",
+      "trail_running": "Trail Running",
+      "bikepacking": "Bikepacking",
+      "paddling": "Paddling",
+      "other": "Other"
+    },
+    "comments": {
+      "title": "Comments",
+      "newNotification": "{author} commented on your loadout",
+      "viewComment": "View comment"
+    },
+    "notFoundTitle": "Loadout Not Found",
+    "notFoundDescription": "This shared loadout link may have expired or been removed by the owner.",
+    "notFoundHint": "The loadout you're looking for doesn't exist or is no longer shared.",
+    "backToHome": "Back to Home",
+    "retry": "Retry"
   }
 }

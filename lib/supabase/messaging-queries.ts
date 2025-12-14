@@ -8,7 +8,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import type { Database } from '@/types/database';
 import type {
   Conversation,
   ConversationListItem,
@@ -26,20 +25,32 @@ import type {
   ParticipantRole,
 } from '@/types/messaging';
 
-// Helper type for Supabase query results
-type QueryResult = Record<string, unknown>;
+// Note: Database types for messaging tables are defined in supabase/migrations/20251213_user_messaging.sql
+// After applying the migration, regenerate types with: npx supabase gen types typescript
+// For now, we use explicit typing since the tables don't exist in Database types yet.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryResult = any;
+
+/**
+ * Helper to get supabase client with any typing for messaging tables
+ * Remove this after running migrations and regenerating types
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMessagingClient(): any {
+  return createClient();
+}
 
 // ----- Conversation Queries -----
 
 /**
  * Fetches user's conversations with last message and participants.
- * Optimized to avoid N+1 queries by fetching all data upfront.
  */
 export async function fetchConversations(
   userId: string,
   includeArchived = false
 ): Promise<ConversationListItem[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   let query = supabase
     .from('conversation_participants')
@@ -74,117 +85,21 @@ export async function fetchConversations(
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  // Extract conversation IDs
-  const conversationIds = (data as QueryResult[]).map(
-    (row) => (row.conversations as Conversation).id
-  );
-
-  // Fetch all participants for all conversations in one query
-  const { data: allParticipants, error: participantsError } = await supabase
-    .from('conversation_participants')
-    .select(
-      `
-      conversation_id,
-      user_id,
-      role,
-      joined_at,
-      profiles!inner (
-        id,
-        display_name,
-        avatar_url
-      )
-    `
-    )
-    .in('conversation_id', conversationIds);
-
-  if (participantsError) {
-    throw new Error(`Failed to fetch participants: ${participantsError.message}`);
-  }
-
-  // Group participants by conversation_id
-  const participantsByConversation = new Map<string, ParticipantInfo[]>();
-  for (const row of (allParticipants ?? []) as QueryResult[]) {
-    const profile = row.profiles as {
-      id: string;
-      display_name: string;
-      avatar_url: string | null;
-    };
-    const participant: ParticipantInfo = {
-      id: profile.id,
-      display_name: profile.display_name ?? 'Unknown',
-      avatar_url: profile.avatar_url,
-      role: row.role as ParticipantRole,
-      joined_at: row.joined_at as string,
-    };
-
-    const existing = participantsByConversation.get(row.conversation_id as string) ?? [];
-    existing.push(participant);
-    participantsByConversation.set(row.conversation_id as string, existing);
-  }
-
-  // Fetch last messages for all conversations in one query using a lateral join approach
-  // Since Supabase doesn't support LATERAL directly, we'll fetch all recent messages
-  // and filter client-side (still better than N queries)
-  const { data: allMessages, error: messagesError } = await supabase
-    .from('messages')
-    .select(
-      `
-      id,
-      conversation_id,
-      content,
-      message_type,
-      sender_id,
-      created_at,
-      profiles!sender_id (
-        display_name
-      )
-    `
-    )
-    .in('conversation_id', conversationIds)
-    .eq('deletion_state', 'active')
-    .order('created_at', { ascending: false });
-
-  if (messagesError) {
-    throw new Error(`Failed to fetch messages: ${messagesError.message}`);
-  }
-
-  // Get the last message per conversation
-  const lastMessageByConversation = new Map<string, MessagePreview>();
-  for (const msg of (allMessages ?? []) as QueryResult[]) {
-    const convId = msg.conversation_id as string;
-    // Only keep the first (most recent) message per conversation
-    if (!lastMessageByConversation.has(convId)) {
-      const profile = msg.profiles as { display_name: string } | null;
-      lastMessageByConversation.set(convId, {
-        id: msg.id as string,
-        content: msg.content as string | null,
-        message_type: msg.message_type as MessagePreview['message_type'],
-        sender_id: msg.sender_id as string | null,
-        sender_name: profile?.display_name ?? null,
-        created_at: msg.created_at as string,
-      });
-    }
-  }
-
-  // Transform and combine all data
+  // Transform and fetch additional data
   const conversations: ConversationListItem[] = [];
 
   for (const row of (data ?? []) as QueryResult[]) {
     const conv = row.conversations as Conversation;
-    const participants = participantsByConversation.get(conv.id) ?? [];
-    const lastMessage = lastMessageByConversation.get(conv.id);
+    const participants = await fetchConversationParticipants(conv.id);
+    const lastMessage = await fetchLastMessage(conv.id);
 
     conversations.push({
       conversation: conv,
       role: row.role as ParticipantRole,
-      is_muted: row.is_muted as boolean,
-      is_archived: row.is_archived as boolean,
-      unread_count: row.unread_count as number,
-      last_read_at: row.last_read_at as string | null,
+      is_muted: row.is_muted,
+      is_archived: row.is_archived,
+      unread_count: row.unread_count,
+      last_read_at: row.last_read_at,
       last_message: lastMessage ?? undefined,
       participants,
     });
@@ -194,146 +109,12 @@ export async function fetchConversations(
 }
 
 /**
- * Fetches a single conversation by ID with all participant and message data.
- * Used when navigating to a conversation from search results or deep links.
- */
-export async function fetchConversationById(
-  conversationId: string,
-  userId: string
-): Promise<ConversationListItem | null> {
-  const supabase = createClient();
-
-  // Fetch the user's participant record for this conversation
-  const { data: participantData, error: participantError } = await supabase
-    .from('conversation_participants')
-    .select(
-      `
-      conversation_id,
-      role,
-      is_muted,
-      is_archived,
-      unread_count,
-      last_read_at,
-      conversations!inner (
-        id,
-        type,
-        name,
-        created_by,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .eq('conversation_id', conversationId)
-    .eq('user_id', userId)
-    .single();
-
-  if (participantError || !participantData) {
-    return null;
-  }
-
-  // Fetch all participants for this conversation
-  const { data: allParticipants, error: participantsError } = await supabase
-    .from('conversation_participants')
-    .select(
-      `
-      conversation_id,
-      user_id,
-      role,
-      joined_at,
-      profiles!inner (
-        id,
-        display_name,
-        avatar_url
-      )
-    `
-    )
-    .eq('conversation_id', conversationId);
-
-  if (participantsError) {
-    throw new Error(`Failed to fetch participants: ${participantsError.message}`);
-  }
-
-  // Transform participants
-  const participants: ParticipantInfo[] = (allParticipants ?? []).map((row: QueryResult) => {
-    const profile = row.profiles as {
-      id: string;
-      display_name: string;
-      avatar_url: string | null;
-    };
-    return {
-      id: profile.id,
-      display_name: profile.display_name ?? 'Unknown',
-      avatar_url: profile.avatar_url,
-      role: row.role as ParticipantRole,
-      joined_at: row.joined_at as string,
-    };
-  });
-
-  // Fetch the last message for this conversation
-  const { data: lastMessageData, error: messageError } = await supabase
-    .from('messages')
-    .select(
-      `
-      id,
-      conversation_id,
-      content,
-      message_type,
-      sender_id,
-      created_at,
-      profiles!sender_id (
-        display_name
-      )
-    `
-    )
-    .eq('conversation_id', conversationId)
-    .eq('deletion_state', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (messageError) {
-    throw new Error(`Failed to fetch last message: ${messageError.message}`);
-  }
-
-  // Transform last message if it exists
-  let lastMessage: MessagePreview | undefined;
-  if (lastMessageData) {
-    const msg = lastMessageData as QueryResult;
-    const profile = msg.profiles as { display_name: string } | null;
-    lastMessage = {
-      id: msg.id as string,
-      content: msg.content as string | null,
-      message_type: msg.message_type as MessagePreview['message_type'],
-      sender_id: msg.sender_id as string | null,
-      sender_name: profile?.display_name ?? null,
-      created_at: msg.created_at as string,
-    };
-  }
-
-  // Construct the conversation list item
-  const row = participantData as QueryResult;
-  const conv = row.conversations as Conversation;
-
-  return {
-    conversation: conv,
-    role: row.role as ParticipantRole,
-    is_muted: row.is_muted as boolean,
-    is_archived: row.is_archived as boolean,
-    unread_count: row.unread_count as number,
-    last_read_at: row.last_read_at as string | null,
-    last_message: lastMessage,
-    participants,
-  };
-}
-
-/**
  * Fetches participants of a conversation with profile info.
  */
 export async function fetchConversationParticipants(
   conversationId: string
 ): Promise<ParticipantInfo[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -366,7 +147,7 @@ export async function fetchConversationParticipants(
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
       role: row.role as ParticipantRole,
-      joined_at: row.joined_at as string,
+      joined_at: row.joined_at,
     };
   });
 }
@@ -377,7 +158,7 @@ export async function fetchConversationParticipants(
 export async function fetchLastMessage(
   conversationId: string
 ): Promise<MessagePreview | null> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -409,12 +190,12 @@ export async function fetchLastMessage(
   const profile = result.profiles as { display_name: string } | null;
 
   return {
-    id: result.id as string,
-    content: result.content as string | null,
-    message_type: result.message_type as MessagePreview['message_type'],
-    sender_id: result.sender_id as string | null,
+    id: result.id,
+    content: result.content,
+    message_type: result.message_type,
+    sender_id: result.sender_id,
     sender_name: profile?.display_name ?? null,
-    created_at: result.created_at as string,
+    created_at: result.created_at,
   };
 }
 
@@ -425,7 +206,7 @@ export async function getOrCreateDirectConversation(
   userId: string,
   recipientId: string
 ): Promise<string> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase.rpc('get_or_create_direct_conversation', {
     p_user1: userId,
@@ -447,7 +228,7 @@ export async function createGroupConversation(
   creatorId: string,
   participantIds: string[]
 ): Promise<string> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   // Create the conversation
   const { data: conv, error: convError } = await supabase
@@ -495,7 +276,7 @@ export async function fetchMessages(
   limit = 50,
   offset = 0
 ): Promise<MessageWithSender[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -529,16 +310,16 @@ export async function fetchMessages(
     const reactions = (row.message_reactions ?? []) as MessageReaction[];
 
     return {
-      id: row.id as string,
-      conversation_id: row.conversation_id as string,
-      sender_id: row.sender_id as string | null,
-      content: row.content as string | null,
-      message_type: row.message_type as MessageWithSender['message_type'],
-      media_url: row.media_url as string | null,
-      metadata: (row.metadata as MessageWithSender['metadata']) ?? {},
-      deletion_state: row.deletion_state as MessageWithSender['deletion_state'],
-      created_at: row.created_at as string,
-      updated_at: row.updated_at as string,
+      id: row.id,
+      conversation_id: row.conversation_id,
+      sender_id: row.sender_id,
+      content: row.content,
+      message_type: row.message_type,
+      media_url: row.media_url,
+      metadata: row.metadata,
+      deletion_state: row.deletion_state,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
       sender: profile,
       reactions,
     };
@@ -556,7 +337,7 @@ export async function sendMessage(
   mediaUrl: string | null = null,
   metadata: Record<string, unknown> = {}
 ): Promise<Message> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('messages')
@@ -566,7 +347,7 @@ export async function sendMessage(
       content,
       message_type: messageType,
       media_url: mediaUrl,
-      metadata: metadata as any,
+      metadata,
     })
     .select()
     .single();
@@ -585,7 +366,7 @@ export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase.rpc('reset_unread_count', {
     p_conversation_id: conversationId,
@@ -605,7 +386,7 @@ export async function deleteMessage(
   userId: string,
   deleteForAll: boolean
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   if (deleteForAll) {
     // Update the message deletion_state
@@ -637,7 +418,7 @@ export async function deleteMessage(
  * Fetches user's friends list with profile info.
  */
 export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('user_friends')
@@ -665,7 +446,7 @@ export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
       id: profile.id,
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
-      created_at: row.created_at as string,
+      created_at: row.created_at,
     };
   });
 }
@@ -677,7 +458,7 @@ export async function addFriend(
   userId: string,
   friendId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase.from('user_friends').insert({
     user_id: userId,
@@ -700,7 +481,7 @@ export async function removeFriend(
   userId: string,
   friendId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('user_friends')
@@ -720,7 +501,7 @@ export async function isFriend(
   userId: string,
   friendId: string
 ): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { count, error } = await supabase
     .from('user_friends')
@@ -743,7 +524,7 @@ export async function isFriend(
 export async function fetchBlockedUsers(
   userId: string
 ): Promise<BlockedUserInfo[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('user_blocks')
@@ -771,7 +552,7 @@ export async function fetchBlockedUsers(
       id: profile.id,
       display_name: profile.display_name ?? 'Unknown',
       avatar_url: profile.avatar_url,
-      blocked_at: row.created_at as string,
+      blocked_at: row.created_at,
     };
   });
 }
@@ -783,7 +564,7 @@ export async function blockUser(
   userId: string,
   blockedId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase.from('user_blocks').insert({
     user_id: userId,
@@ -806,7 +587,7 @@ export async function unblockUser(
   userId: string,
   blockedId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('user_blocks')
@@ -823,7 +604,7 @@ export async function unblockUser(
  * Checks if a user is blocked (in either direction).
  */
 export async function isBlocked(user1: string, user2: string): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { count, error } = await supabase
     .from('user_blocks')
@@ -841,14 +622,13 @@ export async function isBlocked(user1: string, user2: string): Promise<boolean> 
 
 /**
  * Searches for discoverable users.
- * Optimized to avoid N queries for block checking.
  */
 export async function searchUsers(
   query: string,
   currentUserId: string,
   limit = 20
 ): Promise<SearchableUser[]> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('profiles')
@@ -862,33 +642,11 @@ export async function searchUsers(
     throw new Error(`Failed to search users: ${error.message}`);
   }
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  // Fetch all blocks upfront (users we blocked or who blocked us)
-  const { data: blocks } = await supabase
-    .from('user_blocks')
-    .select('user_id, blocked_id')
-    .or(`user_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
-
-  // Build a set of blocked user IDs
-  const blockedIds = new Set<string>();
-  if (blocks) {
-    for (const block of blocks) {
-      if (block.user_id === currentUserId) {
-        blockedIds.add(block.blocked_id);
-      } else {
-        blockedIds.add(block.user_id);
-      }
-    }
-  }
-
-  // Check messaging ability for each user (no additional queries)
+  // Check messaging ability for each user
   const results: SearchableUser[] = [];
 
-  for (const user of data) {
-    const blocked = blockedIds.has(user.id);
+  for (const user of data ?? []) {
+    const blocked = await isBlocked(currentUserId, user.id);
     const canMessage = !blocked && user.messaging_privacy !== 'nobody';
 
     results.push({
@@ -910,7 +668,7 @@ export async function searchUsers(
 export async function fetchPrivacySettings(
   userId: string
 ): Promise<MessagingPrivacySettings> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('profiles')
@@ -939,7 +697,7 @@ export async function updatePrivacySettings(
   userId: string,
   settings: Partial<MessagingPrivacySettings>
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('profiles')
@@ -957,7 +715,7 @@ export async function updatePrivacySettings(
  * Fetches total unread message count across all conversations.
  */
 export async function fetchTotalUnreadCount(userId: string): Promise<number> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -969,7 +727,7 @@ export async function fetchTotalUnreadCount(userId: string): Promise<number> {
     throw new Error(`Failed to fetch unread count: ${error.message}`);
   }
 
-  return (data ?? []).reduce((sum: number, row: QueryResult) => sum + (row.unread_count as number), 0);
+  return (data ?? []).reduce((sum: number, row: QueryResult) => sum + row.unread_count, 0);
 }
 
 // ----- Reaction Queries -----
@@ -982,7 +740,7 @@ export async function addReaction(
   userId: string,
   emoji: MessageReaction['emoji']
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase.from('message_reactions').insert({
     message_id: messageId,
@@ -1007,7 +765,7 @@ export async function removeReaction(
   userId: string,
   emoji: MessageReaction['emoji']
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('message_reactions')
@@ -1031,7 +789,7 @@ export async function toggleMute(
   userId: string,
   muted: boolean
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('conversation_participants')
@@ -1052,7 +810,7 @@ export async function toggleArchive(
   userId: string,
   archived: boolean
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { error } = await supabase
     .from('conversation_participants')
@@ -1074,7 +832,7 @@ export async function canMessageUser(
   senderId: string,
   recipientId: string
 ): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase.rpc('can_message_user', {
     p_sender_id: senderId,
@@ -1097,7 +855,7 @@ export async function getUserRole(
   conversationId: string,
   userId: string
 ): Promise<ParticipantRole | null> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   const { data, error } = await supabase
     .from('conversation_participants')
@@ -1122,7 +880,7 @@ export async function addGroupParticipant(
   adminId: string,
   newUserId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   // Verify admin role
   const adminRole = await getUserRole(conversationId, adminId);
@@ -1153,7 +911,7 @@ export async function removeGroupParticipant(
   adminId: string,
   targetUserId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   // Verify admin role (unless removing self)
   if (adminId !== targetUserId) {
@@ -1182,7 +940,7 @@ export async function leaveGroupConversation(
   conversationId: string,
   userId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   // Get current user's role
   const userRole = await getUserRole(conversationId, userId);
@@ -1246,7 +1004,7 @@ export async function updateGroupName(
   adminId: string,
   newName: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = getMessagingClient();
 
   // Verify admin role
   const adminRole = await getUserRole(conversationId, adminId);

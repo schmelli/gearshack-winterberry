@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -18,14 +18,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Send, Loader2, Paperclip, Image as ImageIcon, MapPin, Package, Mic } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ImageAttachmentPreview } from './ImageAttachmentPreview';
 import { GearPicker } from './GearPicker';
 import { LocationPicker } from './LocationPicker';
 import { VoiceRecorder } from './VoiceRecorder';
 import type { MessageType, MessageMetadata, GearReferenceMetadata, LocationMetadata, VoiceMetadata } from '@/types/messaging';
-import { uploadImageToCloudinary, uploadVoiceToCloudinary } from '@/lib/cloudinary-upload';
 
 interface MessageInputProps {
   onSend: (message: string) => Promise<void>;
@@ -76,24 +74,30 @@ export function MessageInput({
         setIsSending(true);
         setIsUploadingImage(true);
 
-        // Upload image to Cloudinary using utility function
-        const uploadResult = await uploadImageToCloudinary(imageAttachment.file);
+        // Upload image to Cloudinary
+        const formData = new FormData();
+        formData.append('file', imageAttachment.file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
+        formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '');
 
-        await onSendWithMedia(
-          trimmedMessage || null,
-          'image',
-          uploadResult.secure_url,
-          {
-            width: uploadResult.width ?? 0,
-            height: uploadResult.height ?? 0,
-            thumbnail_url: uploadResult.secure_url
-          }
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          { method: 'POST', body: formData }
         );
-        setMessage('');
-        setImageAttachment(null);
-      } catch (error) {
-        console.error('Image upload failed:', error);
-        toast.error('Failed to upload image. Please try again.');
+        const data = await response.json();
+
+        if (data.secure_url) {
+          await onSendWithMedia(
+            trimmedMessage || null,
+            'image',
+            data.secure_url,
+            { width: data.width, height: data.height, thumbnail_url: data.secure_url }
+          );
+          setMessage('');
+          setImageAttachment(null);
+        }
+      } catch {
+        // Error handled by parent
       } finally {
         setIsSending(false);
         setIsUploadingImage(false);
@@ -119,9 +123,8 @@ export function MessageInput({
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      toast.error('Failed to send message. Please try again.');
+    } catch {
+      // Error is handled by parent component
     } finally {
       setIsSending(false);
     }
@@ -210,40 +213,31 @@ export function MessageInput({
     async (audioBlob: Blob, durationSeconds: number) => {
       if (!onSendWithMedia) return;
 
-      try {
-        // Upload audio to Cloudinary using utility function
-        const uploadResult = await uploadVoiceToCloudinary(audioBlob);
+      // Upload audio to Cloudinary
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice-message.webm');
+      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
+      formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
 
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await response.json();
+
+      if (data.secure_url) {
         const metadata: VoiceMetadata = {
           duration_seconds: durationSeconds,
           waveform: [], // Could be populated with actual waveform data
         };
-        await onSendWithMedia(null, 'voice', uploadResult.secure_url, metadata);
-        setIsRecordingVoice(false);
-      } catch (error) {
-        console.error('Voice upload failed:', error);
-        toast.error('Failed to upload voice message. Please try again.');
-        // Keep recording UI open on failure so user can retry
+        await onSendWithMedia(null, 'voice', data.secure_url, metadata);
       }
+      setIsRecordingVoice(false);
     },
     [onSendWithMedia]
   );
 
   const canSend = (message.trim().length > 0 || imageAttachment) && !isSending && !disabled;
-
-  // Cleanup on unmount: revoke object URLs and clear typing timeout
-  useEffect(() => {
-    return () => {
-      // Clean up image attachment object URL
-      if (imageAttachment) {
-        URL.revokeObjectURL(imageAttachment.url);
-      }
-      // Clear typing indicator timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [imageAttachment]);
 
   return (
     <div className={cn('flex flex-col gap-2 border-t bg-background p-3', className)}>
