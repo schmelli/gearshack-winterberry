@@ -11,6 +11,15 @@
 import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
 
 /**
+ * Version of @imgly/background-removal package.
+ * 
+ * ⚠️ IMPORTANT: This must be kept in sync with the version in package.json.
+ * When updating the package, update this constant to match the new version.
+ * Mismatch between the library version and CDN assets will cause runtime errors.
+ */
+const IMGLY_BACKGROUND_REMOVAL_VERSION = '1.7.0';
+
+/**
  * Remove background from an image file
  *
  * Uses @imgly/background-removal WASM library for client-side processing.
@@ -22,7 +31,7 @@ import { removeBackground as imglyRemoveBackground } from '@imgly/background-rem
  */
 export async function removeBackground(imageFile: File): Promise<Blob> {
   const blob = await imglyRemoveBackground(imageFile, {
-    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/',
+    publicPath: `https://cdn.jsdelivr.net/npm/@imgly/background-removal@${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
   });
   return blob;
 }
