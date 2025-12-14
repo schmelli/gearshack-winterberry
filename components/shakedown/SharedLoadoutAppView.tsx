@@ -12,13 +12,15 @@
  * This is the authenticated alternative to SharedLoadoutHero (anonymous view).
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Calendar, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { OwnerProfilePreview } from './OwnerProfilePreview';
+import { OwnerProfileModal } from './OwnerProfileModal';
 import { SharedGearGrid } from './SharedGearGrid';
 import { useOwnedItemsCheck } from '@/hooks/useOwnedItemsCheck';
 import { useWishlistActions } from '@/hooks/useWishlistActions';
@@ -58,9 +60,16 @@ export function SharedLoadoutAppView({
   onItemClick,
 }: SharedLoadoutAppViewProps) {
   const t = useTranslations('SharedLoadout');
+  const router = useRouter();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // T039: Initialize wishlist actions hook
   const { isOnWishlist, addToWishlist, addingItems } = useWishlistActions(userId, shareToken);
+
+  // Handler for sending message to owner
+  const handleSendMessage = useCallback((ownerId: string) => {
+    router.push(`/messages?to=${ownerId}`);
+  }, [router]);
 
   // Initialize owned items check hook
   const { checkOwned } = useOwnedItemsCheck(userId);
@@ -137,8 +146,7 @@ export function SharedLoadoutAppView({
           {/* Owner Preview (Inline Variant) */}
           <OwnerProfilePreview
             owner={owner}
-            isAuthenticated={true}
-            currentUserId={userId}
+            onClick={() => setIsProfileModalOpen(true)}
             variant="inline"
           />
         </div>
@@ -229,6 +237,15 @@ export function SharedLoadoutAppView({
           </CardContent>
         </Card>
       )}
+
+      {/* Owner Profile Modal */}
+      <OwnerProfileModal
+        owner={owner}
+        open={isProfileModalOpen}
+        onOpenChange={setIsProfileModalOpen}
+        isAuthenticated={true}
+        onSendMessage={handleSendMessage}
+      />
     </div>
   );
 }

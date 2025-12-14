@@ -280,8 +280,7 @@ export function VirtualGearShakedown({
             ownerSection={
               <OwnerProfilePreview
                 owner={owner}
-                isAuthenticated={false}
-                currentUserId={null}
+                onClick={() => setIsProfileModalOpen(true)}
                 variant="hero"
               />
             }
