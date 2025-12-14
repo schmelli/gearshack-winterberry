@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   fetchConversations,
@@ -25,7 +25,7 @@ import {
   getUserRole,
 } from '@/lib/supabase/messaging-queries';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import type { ConversationListItem } from '@/types/messaging';
+import type { ConversationListItem, Message } from '@/types/messaging';
 
 interface UseConversationsReturn {
   conversations: ConversationListItem[];
@@ -59,6 +59,10 @@ export function useConversations(
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Use Set for O(1) lookups instead of Array O(n)
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  // Track if initial data has been loaded to prevent race conditions
+  const initialLoadCompleteRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -70,7 +74,11 @@ export function useConversations(
     try {
       setIsLoading(true);
       const data = await fetchConversations(user.id, includeArchived);
+      // Update ref BEFORE setting state to minimize race window
+      conversationIdsRef.current = new Set(data.map((c) => c.conversation.id));
       setConversations(data);
+      // Mark initial load as complete so subscriptions can start filtering
+      initialLoadCompleteRef.current = true;
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
@@ -83,52 +91,86 @@ export function useConversations(
     refresh();
   }, [refresh]);
 
+  // Type guard for message payloads
+  const isMessagePayload = (payload: unknown): payload is Partial<Message> => {
+    return (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'conversation_id' in payload &&
+      typeof (payload as { conversation_id: unknown }).conversation_id === 'string'
+    );
+  };
+
   // Subscribe to real-time updates
   useEffect(() => {
     if (!user?.id) return;
 
     const supabase = createClient();
 
-    const channel = supabase
-      .channel('conversation-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          // Refresh on any conversation change
+    const channel = supabase.channel('conversation-updates');
+
+    // Subscribe to conversation changes
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+      },
+      () => {
+        // Refresh on any conversation change
+        refresh();
+      }
+    );
+
+    // Subscribe to participation changes for this user
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'conversation_participants',
+        filter: `user_id=eq.${user.id}`,
+      },
+      () => {
+        // Refresh when our participation changes
+        refresh();
+      }
+    );
+
+    // Subscribe to messages but filter client-side using the ref
+    // This avoids subscribing to all messages system-wide
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      },
+      (payload) => {
+        // Type-safe payload validation
+        if (!isMessagePayload(payload.new)) {
+          return;
+        }
+
+        const conversationId = payload.new.conversation_id;
+        if (!conversationId) {
+          return;
+        }
+
+        // Only refresh if:
+        // 1. Initial load is complete (prevents race condition)
+        // 2. The message belongs to one of our conversations
+        if (
+          initialLoadCompleteRef.current &&
+          conversationIdsRef.current.has(conversationId)
+        ) {
           refresh();
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversation_participants',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refresh when our participation changes
-          refresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        },
-        () => {
-          // Refresh when new messages arrive (updates last_message)
-          refresh();
-        }
-      )
-      .subscribe();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
