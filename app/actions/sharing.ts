@@ -105,6 +105,39 @@ export async function addItemToWishlist(
 }
 
 /**
+ * Validates that a payload conforms to the SharedLoadoutPayload schema
+ * Handles older/stale data schemas gracefully
+ */
+function isValidSharedLoadoutPayload(
+  payload: unknown
+): payload is SharedLoadoutPayload {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+
+  const p = payload as Record<string, unknown>;
+
+  // Check loadout object exists
+  if (!p.loadout || typeof p.loadout !== 'object') {
+    return false;
+  }
+
+  const loadout = p.loadout as Record<string, unknown>;
+
+  // Check required loadout fields
+  if (typeof loadout.name !== 'string') {
+    return false;
+  }
+
+  // Check items array exists
+  if (!Array.isArray(p.items)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Import Full Loadout to Wishlist
  *
  * Auto-imports all items from a shared loadout after signup.
@@ -138,17 +171,27 @@ export async function importLoadoutToWishlist(
       return { success: false, error: 'Shared loadout not found' };
     }
 
-    const payload = share.payload as unknown as SharedLoadoutPayload;
+    // Validate payload structure before use
+    if (!isValidSharedLoadoutPayload(share.payload)) {
+      console.error('[importLoadoutToWishlist] Invalid payload structure:', share.payload);
+      return { success: false, error: 'Invalid shared loadout data' };
+    }
 
-    // 2. Create loadout copy for user
+    const payload = share.payload;
+
+    // 2. Create loadout copy for user with safe fallbacks
     const { data: newLoadout, error: loadoutError } = await supabase
       .from('loadouts')
       .insert({
         user_id: user.id,
         name: `${payload.loadout.name} (Imported)`,
-        description: payload.loadout.description,
-        activity_types: payload.loadout.activityTypes,
-        seasons: payload.loadout.seasons,
+        description: payload.loadout.description ?? null,
+        activity_types: Array.isArray(payload.loadout.activityTypes)
+          ? payload.loadout.activityTypes
+          : [],
+        seasons: Array.isArray(payload.loadout.seasons)
+          ? payload.loadout.seasons
+          : [],
       })
       .select('id')
       .single();

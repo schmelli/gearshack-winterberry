@@ -190,10 +190,16 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
                           if (notification.type === 'loadout_comment' && notification.referenceId) {
                             // For loadout comments, referenceType should contain the share_token
-                            // The trigger should be updated to store share_token in reference_type field
-                            // and comment_id in reference_id field
+                            // Check that we have a valid share token (not just the type itself)
                             const shareToken = notification.referenceType;
-                            if (shareToken && shareToken !== 'loadout_comment') {
+                            // More explicit check: ensure shareToken is a non-empty string
+                            // and looks like a valid token (not a type name)
+                            if (
+                              shareToken &&
+                              typeof shareToken === 'string' &&
+                              shareToken.length > 0 &&
+                              !shareToken.includes('_') // Type names typically have underscores
+                            ) {
                               setNotificationsOpen(false);
                               router.push(`/shakedown/${shareToken}`);
                             }

@@ -40,8 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get blocked user IDs (users we blocked or who blocked us)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: blocks } = await (supabase as any)
+    const { data: blocks } = await supabase
       .from('user_blocks')
       .select('user_id, blocked_id')
       .or(`user_id.eq.${user.id},blocked_id.eq.${user.id}`);
@@ -56,11 +55,9 @@ export async function GET(request: NextRequest) {
     // Don't filter out ourselves from blocks
     blockedIds.delete(user.id);
 
-    // Search users - profiles table should have discoverable column from migration
-    // Using ilike for case-insensitive search
+    // Search users - Using ilike for case-insensitive search
     // Filter by discoverable=true (T043)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: users, error: searchError } = await (supabase as any)
+    const { data: users, error: searchError } = await supabase
       .from('profiles')
       .select('id, display_name, avatar_url, trail_name, bio, discoverable')
       .neq('id', user.id) // Exclude self

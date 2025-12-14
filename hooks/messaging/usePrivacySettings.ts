@@ -75,9 +75,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
       setError(null);
       const supabase = createClient();
 
-      // Profile columns added by migration - use any to bypass types until migration applied
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('messaging_privacy, discoverable, show_online_status, read_receipts_enabled')
         .eq('id', user.id)
@@ -128,8 +126,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setError(null);
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ [key]: value, updated_at: new Date().toISOString() })
           .eq('id', user.id);
@@ -166,8 +163,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setError(null);
         const supabase = createClient();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ ...newSettings, updated_at: new Date().toISOString() })
           .eq('id', user.id);

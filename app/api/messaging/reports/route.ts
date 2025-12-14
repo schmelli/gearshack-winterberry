@@ -46,8 +46,7 @@ export async function POST(request: Request) {
     const { reportedUserId, messageId, reason, details } = validation.data;
 
     // Create the report
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: report, error: reportError } = await (supabase as any)
+    const { data: report, error: reportError } = await supabase
       .from('user_reports')
       .insert({
         reporter_id: user.id,

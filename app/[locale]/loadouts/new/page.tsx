@@ -133,6 +133,15 @@ export default function NewLoadoutPage() {
                     }
                     className="cursor-pointer select-none px-3 py-1.5 text-sm transition-colors hover:bg-primary/80"
                     onClick={() => toggleSeason(season)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleSeason(season);
+                      }
+                    }}
+                    role="checkbox"
+                    aria-checked={selectedSeasons.includes(season)}
+                    tabIndex={0}
                   >
                     {t(`seasons.${season}`)}
                   </Badge>
@@ -154,6 +163,15 @@ export default function NewLoadoutPage() {
                     }
                     className="cursor-pointer select-none px-3 py-1.5 text-sm transition-colors hover:bg-primary/80"
                     onClick={() => toggleActivity(activity)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleActivity(activity);
+                      }
+                    }}
+                    role="checkbox"
+                    aria-checked={selectedActivities.includes(activity)}
+                    tabIndex={0}
                   >
                     {t(`activities.${activity}`)}
                   </Badge>

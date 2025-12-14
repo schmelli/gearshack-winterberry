@@ -46,9 +46,8 @@ export async function POST(request: Request) {
 
     const { recipientId, initialMessage } = validation.data;
 
-    // Check if recipient exists - Note: messaging_privacy column is added by migration 20251213_user_messaging.sql
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: recipient, error: recipientError } = await (supabase as any)
+    // Check if recipient exists
+    const { data: recipient, error: recipientError } = await supabase
       .from('profiles')
       .select('id, messaging_privacy')
       .eq('id', recipientId)
@@ -61,9 +60,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if blocked (in either direction) - user_blocks table created by migration
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { count: blockCount } = await (supabase as any)
+    // Check if blocked (in either direction)
+    const { count: blockCount } = await supabase
       .from('user_blocks')
       .select('*', { count: 'exact', head: true })
       .or(
@@ -88,8 +86,7 @@ export async function POST(request: Request) {
 
     if (messagingPrivacy === 'friends_only') {
       // Check if we're in recipient's friends list
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: friendCount } = await (supabase as any)
+      const { count: friendCount } = await supabase
         .from('user_friends')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', recipientId)
@@ -104,8 +101,7 @@ export async function POST(request: Request) {
     }
 
     // Get or create direct conversation using the database function
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: conversationId, error: convError } = await (supabase as any).rpc(
+    const { data: conversationId, error: convError } = await supabase.rpc(
       'get_or_create_direct_conversation',
       {
         p_user1: user.id,
@@ -123,8 +119,7 @@ export async function POST(request: Request) {
 
     // Send initial message if provided
     if (initialMessage?.trim()) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: messageError } = await (supabase as any).from('messages').insert({
+      const { error: messageError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: user.id,
         content: initialMessage.trim(),
