@@ -67,7 +67,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
         .select(`
           blocked_id,
           created_at,
-          profiles:blocked_id (
+          profiles!user_blocks_blocked_id_fkey (
             id,
             display_name,
             avatar_url
