@@ -50,10 +50,10 @@ export async function POST(request: Request) {
       .from('user_reports')
       .insert({
         reporter_id: user.id,
-        reported_id: reportedUserId,
+        reported_user_id: reportedUserId,
         message_id: messageId || null,
         reason,
-        description: details || null,
+        details: details || null,
         status: 'pending',
       })
       .select('id')

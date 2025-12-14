@@ -270,7 +270,7 @@ export interface MessageSearchRequest {
 export interface MessageSearchResult {
   message: {
     id: string;
-    content: string;
+    content: string | null;
     created_at: string;
   };
   conversation: {

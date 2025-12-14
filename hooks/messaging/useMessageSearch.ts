@@ -93,8 +93,9 @@ export function useMessageSearch(): UseMessageSearchReturn {
         // Transform results
         const searchResults: MessageSearchResult[] = (data || []).map((row: {
           id: string;
-          content: string;
+          content: string | null;
           created_at: string;
+          conversation_id: string;
           conversations: {
             id: string;
             name: string | null;

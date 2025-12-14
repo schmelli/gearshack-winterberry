@@ -122,19 +122,32 @@ export function PrivacySettingsForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="show-online">Show Online Status</Label>
-              <p className="text-xs text-muted-foreground">
-                Others can see when you&apos;re online
-              </p>
-            </div>
-            <Switch
-              id="show-online"
-              checked={settings.show_online_status}
-              onCheckedChange={(checked) => updateSetting('show_online_status', checked)}
+          <div className="space-y-2">
+            <Label htmlFor="online-status-privacy">Who Can See Your Online Status</Label>
+            <Select
+              value={settings.online_status_privacy}
+              onValueChange={(value) =>
+                updateSetting('online_status_privacy', value as MessagingPrivacy)
+              }
               disabled={isSaving}
-            />
+            >
+              <SelectTrigger id="online-status-privacy" className="w-full">
+                <SelectValue placeholder="Select who can see your status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="everyone">Everyone</SelectItem>
+                <SelectItem value="friends_only">Friends Only</SelectItem>
+                <SelectItem value="nobody">Nobody</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {settings.online_status_privacy === 'everyone' &&
+                'Anyone on GearShack can see when you are online.'}
+              {settings.online_status_privacy === 'friends_only' &&
+                'Only your friends can see when you are online.'}
+              {settings.online_status_privacy === 'nobody' &&
+                'Your online status is hidden from everyone.'}
+            </p>
           </div>
 
           <div className="flex items-center justify-between">

@@ -19,8 +19,8 @@ export interface PrivacySettings {
   messaging_privacy: MessagingPrivacy;
   /** Whether user appears in search results */
   discoverable: boolean;
-  /** Whether to show online status */
-  show_online_status: boolean;
+  /** Who can see online status (enum matching database schema) */
+  online_status_privacy: MessagingPrivacy;
   /** Whether to send read receipts */
   read_receipts_enabled: boolean;
 }
@@ -28,7 +28,7 @@ export interface PrivacySettings {
 const DEFAULT_SETTINGS: PrivacySettings = {
   messaging_privacy: 'everyone',
   discoverable: true,
-  show_online_status: true,
+  online_status_privacy: 'everyone',
   read_receipts_enabled: true,
 };
 
@@ -77,7 +77,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('messaging_privacy, discoverable, show_online_status, read_receipts_enabled')
+        .select('messaging_privacy, discoverable, online_status_privacy, read_receipts_enabled')
         .eq('id', user.id)
         .single();
 
@@ -92,7 +92,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setSettings({
           messaging_privacy: (data.messaging_privacy as MessagingPrivacy) ?? 'everyone',
           discoverable: data.discoverable ?? true,
-          show_online_status: data.show_online_status ?? true,
+          online_status_privacy: (data.online_status_privacy as MessagingPrivacy) ?? 'everyone',
           read_receipts_enabled: data.read_receipts_enabled ?? true,
         });
       }
