@@ -1,9 +1,9 @@
 /**
- * Hook for catalog item search with fuzzy, semantic, and hybrid modes
+ * Hook for catalog item search with fuzzy text search
  * Feature: 042-catalog-sync-api (US1, US2)
  *
  * Provides debounced search with 300ms delay to handle fast typing.
- * Supports fuzzy text search, semantic vector search, and hybrid mode.
+ * Currently supports fuzzy text search mode only.
  */
 
 'use client';
@@ -21,7 +21,7 @@ const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_LIMIT = 5;
 
 /**
- * Hook for catalog item search with multiple search modes
+ * Hook for catalog item search with fuzzy text search
  * @param options - Configuration options (mode, debounceMs, limit)
  * @returns Search state and controls
  */
@@ -72,12 +72,8 @@ export function useCatalogSearch(
         params.set('mode', currentModeRef.current);
         params.set('limit', limit.toString());
 
-        if (query && (currentModeRef.current === 'fuzzy' || currentModeRef.current === 'hybrid')) {
+        if (query) {
           params.set('q', query);
-        }
-
-        if (embedding && (currentModeRef.current === 'semantic' || currentModeRef.current === 'hybrid')) {
-          params.set('embedding', encodeEmbedding(embedding));
         }
 
         const response = await fetch(`/api/catalog/items/search?${params.toString()}`, {
@@ -110,8 +106,7 @@ export function useCatalogSearch(
   /**
    * Initiates a debounced search
    * Handles fast typing by cancelling previous requests
-   * @param query - Text search query (required for fuzzy/hybrid)
-   * @param embedding - Vector embedding (required for semantic/hybrid)
+   * @param query - Text search query (required for fuzzy search)
    */
   const search = useCallback(
     (query: string, embedding?: number[]) => {
@@ -120,21 +115,11 @@ export function useCatalogSearch(
         clearTimeout(debounceTimerRef.current);
       }
 
-      // Validate inputs based on mode
-      const currentMode = currentModeRef.current;
-      if ((currentMode === 'fuzzy' || currentMode === 'hybrid') && !query) {
+      // Validate inputs - fuzzy mode requires query
+      if (!query) {
         setResults([]);
         setError(null);
         return;
-      }
-
-      if ((currentMode === 'semantic' || currentMode === 'hybrid') && !embedding) {
-        if (currentMode === 'semantic') {
-          setResults([]);
-          setError(null);
-          return;
-        }
-        // For hybrid without embedding, fall back to fuzzy
       }
 
       // Set debounced search
