@@ -25,7 +25,7 @@ import {
   getUserRole,
 } from '@/lib/supabase/messaging-queries';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import type { ConversationListItem } from '@/types/messaging';
+import type { ConversationListItem, Message } from '@/types/messaging';
 
 interface UseConversationsReturn {
   conversations: ConversationListItem[];
@@ -59,7 +59,10 @@ export function useConversations(
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const conversationIdsRef = useRef<string[]>([]);
+  // Use Set for O(1) lookups instead of Array O(n)
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  // Track if initial data has been loaded to prevent race conditions
+  const initialLoadCompleteRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -71,9 +74,11 @@ export function useConversations(
     try {
       setIsLoading(true);
       const data = await fetchConversations(user.id, includeArchived);
+      // Update ref BEFORE setting state to minimize race window
+      conversationIdsRef.current = new Set(data.map((c) => c.conversation.id));
       setConversations(data);
-      // Update ref for real-time subscription filtering
-      conversationIdsRef.current = data.map((c) => c.conversation.id);
+      // Mark initial load as complete so subscriptions can start filtering
+      initialLoadCompleteRef.current = true;
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
@@ -85,6 +90,16 @@ export function useConversations(
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Type guard for message payloads
+  const isMessagePayload = (payload: unknown): payload is Partial<Message> => {
+    return (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'conversation_id' in payload &&
+      typeof (payload as { conversation_id: unknown }).conversation_id === 'string'
+    );
+  };
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -133,9 +148,23 @@ export function useConversations(
         table: 'messages',
       },
       (payload) => {
-        // Only refresh if the message is in one of our conversations
-        const message = payload.new as { conversation_id: string };
-        if (conversationIdsRef.current.includes(message.conversation_id)) {
+        // Type-safe payload validation
+        if (!isMessagePayload(payload.new)) {
+          return;
+        }
+
+        const conversationId = payload.new.conversation_id;
+        if (!conversationId) {
+          return;
+        }
+
+        // Only refresh if:
+        // 1. Initial load is complete (prevents race condition)
+        // 2. The message belongs to one of our conversations
+        if (
+          initialLoadCompleteRef.current &&
+          conversationIdsRef.current.has(conversationId)
+        ) {
           refresh();
         }
       }
