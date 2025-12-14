@@ -240,5 +240,67 @@
       "nameTooLong": "Name must be 100 characters or less",
       "descriptionTooLong": "Description must be 500 characters or less"
     }
+  },
+  "SharedLoadout": {
+    "heroTitle": "Virtual Gear Shakedown",
+    "sharedBy": "Shared by {name}",
+    "tripDate": "Trip date",
+    "createdOn": "Created",
+    "totalItems": "Total Items",
+    "totalWeight": "Total Weight",
+    "signupCta": "Add this loadout to your collection",
+    "signupButton": "Sign Up Free",
+    "loginButton": "Log In",
+    "ownedBadge": "Owned",
+    "wishlistBadge": "On Wishlist",
+    "addToWishlist": "Add to Wishlist",
+    "addedToWishlist": "Added to wishlist!",
+    "addToWishlistError": "Failed to add item to wishlist. Please try again.",
+    "importSuccess": "Loadout imported! {count} items added to wishlist.",
+    "ownerUnavailable": "Owner no longer available",
+    "viewProfile": "View Profile",
+    "sendMessage": "Send Message",
+    "allItemsOwned": "Great taste! You already own all these items",
+    "invalidShare": "This shared loadout is no longer available",
+    "ownerProfile": "Owner Profile",
+    "socialLinks": "Social Links",
+    "messageOwner": "Send Message",
+    "messagingDisabled": "This user has disabled messaging",
+    "notSet": "Not set",
+    "item": "item",
+    "items": "items",
+    "seasons": "Seasons",
+    "activities": "Activities",
+    "gearList": "Gear List",
+    "gearListDescription": "All items included in this shared loadout",
+    "commentsDisabled": "Comments are disabled for this loadout",
+    "seasonTypes": {
+      "spring": "Spring",
+      "summer": "Summer",
+      "fall": "Fall",
+      "winter": "Winter"
+    },
+    "activityTypes": {
+      "hiking": "Hiking",
+      "camping": "Camping",
+      "backpacking": "Backpacking",
+      "climbing": "Climbing",
+      "skiing": "Skiing",
+      "mountaineering": "Mountaineering",
+      "trail_running": "Trail Running",
+      "bikepacking": "Bikepacking",
+      "paddling": "Paddling",
+      "other": "Other"
+    },
+    "comments": {
+      "title": "Comments",
+      "newNotification": "{author} commented on your loadout",
+      "viewComment": "View comment"
+    },
+    "notFoundTitle": "Loadout Not Found",
+    "notFoundDescription": "This shared loadout link may have expired or been removed by the owner.",
+    "notFoundHint": "The loadout you're looking for doesn't exist or is no longer shared.",
+    "backToHome": "Back to Home",
+    "retry": "Retry"
   }
 }

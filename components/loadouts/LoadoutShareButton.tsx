@@ -69,6 +69,8 @@ export function LoadoutShareButton({
           weightGrams: item.weightGrams,
           isWorn: state?.isWorn ?? false,
           isConsumable: state?.isConsumable ?? false,
+          description: item.description,
+          nobgImages: item.nobgImages ?? null,
         };
       }),
     };

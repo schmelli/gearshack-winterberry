@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import { gearItemFromDb } from '@/lib/supabase/transformers';
 import type { AuthUser, UserProfile, MergedUser } from '@/types/auth';
 import type { Tables } from '@/types/database';
+import { PendingImportHandler } from './PendingImportHandler';
 
 // =============================================================================
 // Types - Compatible with existing Firebase AuthProvider
@@ -279,7 +280,13 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
     profile,
   ]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {/* Feature 048: Check for pending loadout import after auth (T025, T026) */}
+      <PendingImportHandler isAuthenticated={!!user} />
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 // =============================================================================

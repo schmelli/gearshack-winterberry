@@ -454,6 +454,47 @@ export interface Database {
           }
         ];
       };
+      /** Feature 048: Shared Loadout Enhancement - Notifications table */
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          reference_type: string | null;
+          reference_id: string | null;
+          message: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          message: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          message?: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       /** Feature 042: Global Gear Catalog - Brands table */
       catalog_brands: {
         Row: {

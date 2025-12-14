@@ -43,6 +43,10 @@ import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
 import { MessagingModal } from '@/components/messaging/MessagingModal';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useRouter } from '@/i18n/navigation';
+import { formatDistanceToNow } from 'date-fns';
 
 interface SiteHeaderProps {
   className?: string;
@@ -51,11 +55,15 @@ interface SiteHeaderProps {
 export function SiteHeader({ className }: SiteHeaderProps) {
   const { user } = useAuthContext();
   const pathname = usePathname();
+  const router = useRouter();
   // T022: Use translations from Navigation namespace
   const t = useTranslations('Navigation');
   // T012: Messaging modal state and unread count
   const [messagingOpen, setMessagingOpen] = useState(false);
   const { unreadCount } = useUnreadCount();
+  // T048: Notification state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { notifications, unreadCount: notificationUnreadCount, markAsRead } = useNotifications(user?.uid || null);
 
   return (
     <header
@@ -140,12 +148,80 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </Button>
           )}
 
-          {/* Notification bell */}
-          <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          {/* T048: Notification bell with popover */}
+          {user && (
+            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Bell className="h-5 w-5" />
+                  {notificationUnreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                    </span>
+                  )}
+                  <span className="sr-only">Notifications</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <h3 className="font-semibold">Notifications</h3>
+                  {notificationUnreadCount > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {notificationUnreadCount} unread
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        onClick={async () => {
+                          // T049: Mark as read and navigate to shared loadout
+                          await markAsRead(notification.id);
+
+                          if (notification.type === 'loadout_comment' && notification.referenceId) {
+                            // For loadout comments, referenceType should contain the share_token
+                            // The trigger should be updated to store share_token in reference_type field
+                            // and comment_id in reference_id field
+                            const shareToken = notification.referenceType;
+                            if (shareToken && shareToken !== 'loadout_comment') {
+                              setNotificationsOpen(false);
+                              router.push(`/shakedown/${shareToken}`);
+                            }
+                          }
+                        }}
+                        className={cn(
+                          'w-full border-b px-4 py-3 text-left transition-colors hover:bg-accent',
+                          !notification.isRead && 'bg-accent/50'
+                        )}
+                      >
+                        <div className="flex gap-3">
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm">{notification.message}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           {/* User menu */}
           <UserMenu />
