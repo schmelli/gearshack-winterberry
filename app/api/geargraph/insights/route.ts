@@ -118,6 +118,30 @@ async function getInsightsForProduct(
 }
 
 /**
+ * Get insights for a specific brand
+ */
+async function getInsightsForBrand(
+  brand: string,
+  apiKey: string,
+  limit = 5
+): Promise<GearInsight[]> {
+  const query = `
+    MATCH (g:GearItem)-[:HAS_TIP]->(i:Insight)
+    WHERE toLower(g.brand) = toLower($brand)
+    RETURN DISTINCT i.summary, i.content
+    LIMIT $limit
+  `;
+
+  const results = await executeCypher(query, { brand, limit }, apiKey);
+
+  return results.map((r) => ({
+    type: 'tip' as InsightType,
+    content: r['i.content'] || r['i.summary'],
+    confidence: 0.8,
+  }));
+}
+
+/**
  * Get insights for a category (broader context)
  */
 async function getInsightsForCategory(
@@ -137,36 +161,13 @@ async function getInsightsForCategory(
   return results.map((r) => ({
     type: 'tip' as InsightType,
     content: r['i.content'] || r['i.summary'],
-    confidence: 0.75,
-  }));
-}
-
-/**
- * Get general insights (not tied to specific gear)
- */
-async function getGeneralInsights(
-  apiKey: string,
-  limit = 3
-): Promise<GearInsight[]> {
-  const query = `
-    MATCH (i:Insight)
-    WHERE NOT (i)<-[:HAS_TIP]-()
-    RETURN i.summary, i.content
-    LIMIT $limit
-  `;
-
-  const results = await executeCypher(query, { limit }, apiKey);
-
-  return results.map((r) => ({
-    type: 'tip' as InsightType,
-    content: r['i.content'] || r['i.summary'],
-    confidence: 0.6,
+    confidence: 0.7,
   }));
 }
 
 /**
  * Fetch insights from the GearGraph Cypher API
- * Searches for both specific product AND broader category context
+ * Searches with intelligent fallback: product → brand → category
  */
 async function fetchGearGraphInsights(params: {
   productTypeId?: string;
@@ -183,10 +184,10 @@ async function fetchGearGraphInsights(params: {
 
   const allInsights: GearInsight[] = [];
 
-  // 1. Search for specific product insights
+  // 1. Search for specific product insights (highest priority)
   const searchTerms = [params.brand, params.name].filter(Boolean);
   if (searchTerms.length > 0) {
-    // Try full search first
+    // Try full search first (brand + name)
     const fullSearch = searchTerms.join(' ');
     console.log('[GearGraph] Searching for product:', fullSearch);
     const productInsights = await getInsightsForProduct(fullSearch, apiKey, 5);
@@ -194,12 +195,20 @@ async function fetchGearGraphInsights(params: {
 
     // If no results, try just the name
     if (productInsights.length === 0 && params.name) {
+      console.log('[GearGraph] Trying product name only:', params.name);
       const nameInsights = await getInsightsForProduct(params.name, apiKey, 5);
       allInsights.push(...nameInsights);
     }
   }
 
-  // 2. Get category context if we don't have enough insights
+  // 2. Try brand-specific insights if we don't have enough
+  if (allInsights.length < 3 && params.brand) {
+    console.log('[GearGraph] Fetching brand insights:', params.brand);
+    const brandInsights = await getInsightsForBrand(params.brand, apiKey, 5);
+    allInsights.push(...brandInsights);
+  }
+
+  // 3. Try category insights as last resort
   if (allInsights.length < 3 && params.categoryId) {
     // Map our category IDs to GearGraph categories
     const categoryMap: Record<string, string> = {
@@ -220,13 +229,6 @@ async function fetchGearGraphInsights(params: {
     allInsights.push(...categoryInsights);
   }
 
-  // 3. If still no insights, get some general ones
-  if (allInsights.length === 0) {
-    console.log('[GearGraph] Fetching general insights');
-    const generalInsights = await getGeneralInsights(apiKey, 3);
-    allInsights.push(...generalInsights);
-  }
-
   // Deduplicate by content
   const seen = new Set<string>();
   const uniqueInsights = allInsights.filter((insight) => {
@@ -236,6 +238,7 @@ async function fetchGearGraphInsights(params: {
     return true;
   });
 
+  console.log(`[GearGraph] Returning ${uniqueInsights.length} unique insights`);
   return uniqueInsights.slice(0, 6);
 }
 
