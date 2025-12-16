@@ -130,7 +130,7 @@ interface GearCardProps {
   /** Optional click handler for card body */
   onClick?: () => void;
   /** Function to get category label by ID */
-  getCategoryLabel?: (categoryId: string | null) => string;
+  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
@@ -147,7 +147,7 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
   const isDetailed = viewDensity === 'detailed';
   const isStandard = viewDensity === 'standard';
 
-  const categoryLabel = getCategoryLabel ? getCategoryLabel(item.categoryId) : null;
+  const categoryLabel = getCategoryLabel(item.categoryId) || null;
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
   // =========================================================================

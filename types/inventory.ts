@@ -139,4 +139,7 @@ export interface UseInventoryReturn {
 
   // Category utilities
   getCategoryLabel: (categoryId: string | null) => string;
+
+  // Error state
+  categoriesError: string | null;
 }

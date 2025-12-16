@@ -41,7 +41,7 @@ interface GalleryGridProps {
   /** Function to get translated item count string (Feature 046) */
   getItemCountLabel?: (count: number) => string;
   /** Function to get category label by ID */
-  getCategoryLabel?: (categoryId: string | null) => string;
+  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================

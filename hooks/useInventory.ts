@@ -66,7 +66,7 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
-  const { getLabelById, isLoading: categoriesLoading } = useCategories();
+  const { getLabelById, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
@@ -127,8 +127,8 @@ export function useInventory(): UseInventoryReturn {
 
         case 'category':
           // Sort by category label, then by name within category
-          const catLabelA = getLabelById(a.categoryId) || 'zzz'; // Uncategorized at end
-          const catLabelB = getLabelById(b.categoryId) || 'zzz';
+          const catLabelA = getLabelById(a.categoryId);
+          const catLabelB = getLabelById(b.categoryId);
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -159,7 +159,7 @@ export function useInventory(): UseInventoryReturn {
       if (!groups.has(catId)) {
         groups.set(catId, {
           categoryId: catId,
-          categoryLabel: getLabelById(catId) || 'Uncategorized',
+          categoryLabel: getLabelById(catId),
           items: [],
         });
       }
@@ -219,5 +219,8 @@ export function useInventory(): UseInventoryReturn {
 
     // Category utilities
     getCategoryLabel: getLabelById,
+
+    // Error state
+    categoriesError,
   };
 }

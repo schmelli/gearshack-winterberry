@@ -86,9 +86,9 @@ export function useCategories(): UseCategoriesReturn {
   // Get localized label by ID
   const getLabelById = useCallback(
     (id: string | null | undefined): string => {
-      if (!id) return '';
+      if (!id) return 'Uncategorized';
       const category = categories.find((c) => c.id === id);
-      if (!category) return '';
+      if (!category) return 'Uncategorized';
       return getLocalizedLabel(category, locale);
     },
     [categories, locale]

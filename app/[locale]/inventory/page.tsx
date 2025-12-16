@@ -55,6 +55,7 @@ function InventoryWithModal() {
     filteredCount,
     isLoading,
     getCategoryLabel,
+    categoriesError,
   } = useInventory();
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
@@ -110,6 +111,7 @@ function InventoryWithModal() {
     filteredCount={filteredCount}
     isLoading={isLoading}
     getCategoryLabel={getCategoryLabel}
+    categoriesError={categoriesError}
     isOpen={isOpen}
     gearId={gearId}
     open={open}
@@ -183,6 +185,15 @@ function InventoryContent({
           </Link>
         </Button>
       </div>
+
+      {/* Categories Error Warning */}
+      {categoriesError && (
+        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Warning:</strong> Failed to load categories. Items may show as "Uncategorized". Error: {categoriesError}
+          </p>
+        </div>
+      )}
 
       {/* Empty State - No items at all */}
       {itemCount === 0 ? (
