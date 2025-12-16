@@ -64,6 +64,22 @@ const tokenUsageHistogram = meter.createHistogram('ai.tokens.used', {
   unit: 'tokens',
 });
 
+/**
+ * T067: Counter: AI tool calls (actions)
+ */
+const toolCallCounter = meter.createCounter('ai.tool.calls.total', {
+  description: 'Total number of AI tool/action calls',
+  unit: 'calls',
+});
+
+/**
+ * T067: Histogram: Tool execution duration
+ */
+const toolDurationHistogram = meter.createHistogram('ai.tool.duration', {
+  description: 'Tool execution time in milliseconds',
+  unit: 'ms',
+});
+
 // =====================================================
 // Tracing Functions
 // =====================================================
@@ -208,6 +224,28 @@ export function recordCacheHit(queryPattern: string): void {
  */
 export function recordCacheMiss(queryPattern: string): void {
   cacheMissCounter.add(1, { query_pattern: queryPattern });
+}
+
+/**
+ * T067: Record an AI tool/action call
+ *
+ * @param toolName - Name of the tool (e.g., 'add_to_wishlist', 'compare')
+ * @param status - Execution status
+ * @param durationMs - Execution time in milliseconds
+ */
+export function recordToolCall(
+  toolName: string,
+  status: 'success' | 'error',
+  durationMs: number
+): void {
+  toolCallCounter.add(1, {
+    tool_name: toolName,
+    status,
+  });
+
+  toolDurationHistogram.record(durationMs, {
+    tool_name: toolName,
+  });
 }
 
 // =====================================================

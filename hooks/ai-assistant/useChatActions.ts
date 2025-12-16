@@ -32,6 +32,10 @@ export function useChatActions(): UseChatActionsResult {
 
   const executeAction = useCallback(
     async (action: Action) => {
+      // T069: Check for destructive actions (would need UI confirmation)
+      // For now, all actions are considered safe - destructive actions would be
+      // implemented with a separate confirmation dialog in the UI layer
+
       setIsExecuting(true);
 
       try {
