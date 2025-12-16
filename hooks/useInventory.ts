@@ -20,7 +20,7 @@ import type {
 } from '@/types/inventory';
 import { DEFAULT_SORT_OPTION } from '@/types/inventory';
 import { useItems } from '@/hooks/useSupabaseStore';
-import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Session Storage Keys
@@ -66,14 +66,15 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
+  const { getLabelById, isLoading: categoriesLoading } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
   // ---------------------------------------------------------------------------
   const [viewDensity, setViewDensityState] = useState<ViewDensity>(getInitialViewDensity);
 
-  // Note: isLoading kept for future async data fetching
-  const isLoading = false;
+  // Note: isLoading includes categories loading state
+  const isLoading = categoriesLoading;
 
   // Persist view density to sessionStorage
   const setViewDensity = useCallback((density: ViewDensity) => {
@@ -126,8 +127,8 @@ export function useInventory(): UseInventoryReturn {
 
         case 'category':
           // Sort by category label, then by name within category
-          const catLabelA = getCategoryLabel(a.categoryId) ?? 'zzz'; // Uncategorized at end
-          const catLabelB = getCategoryLabel(b.categoryId) ?? 'zzz';
+          const catLabelA = getLabelById(a.categoryId) || 'zzz'; // Uncategorized at end
+          const catLabelB = getLabelById(b.categoryId) || 'zzz';
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -140,7 +141,7 @@ export function useInventory(): UseInventoryReturn {
     });
 
     return sorted;
-  }, [items, searchQuery, categoryFilter, sortOption]);
+  }, [items, searchQuery, categoryFilter, sortOption, getLabelById]);
 
   // ---------------------------------------------------------------------------
   // Derived: Grouped Items by Category (Feature 046)
@@ -158,7 +159,7 @@ export function useInventory(): UseInventoryReturn {
       if (!groups.has(catId)) {
         groups.set(catId, {
           categoryId: catId,
-          categoryLabel: getCategoryLabel(catId) ?? 'Uncategorized',
+          categoryLabel: getLabelById(catId) || 'Uncategorized',
           items: [],
         });
       }
@@ -172,7 +173,7 @@ export function useInventory(): UseInventoryReturn {
       if (b.categoryId === null) return -1;
       return a.categoryLabel.localeCompare(b.categoryLabel, undefined, { sensitivity: 'base' });
     });
-  }, [filteredItems, sortOption]);
+  }, [filteredItems, sortOption, getLabelById]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -215,5 +216,8 @@ export function useInventory(): UseInventoryReturn {
     hasActiveFilters,
     itemCount,
     filteredCount,
+
+    // Category utilities
+    getCategoryLabel: getLabelById,
   };
 }

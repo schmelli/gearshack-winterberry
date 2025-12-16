@@ -136,4 +136,7 @@ export interface UseInventoryReturn {
   hasActiveFilters: boolean;
   itemCount: number;
   filteredCount: number;
+
+  // Category utilities
+  getCategoryLabel: (categoryId: string | null) => string;
 }

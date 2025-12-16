@@ -54,6 +54,7 @@ function InventoryWithModal() {
     itemCount,
     filteredCount,
     isLoading,
+    getCategoryLabel,
   } = useInventory();
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
@@ -108,6 +109,7 @@ function InventoryWithModal() {
     itemCount={itemCount}
     filteredCount={filteredCount}
     isLoading={isLoading}
+    getCategoryLabel={getCategoryLabel}
     isOpen={isOpen}
     gearId={gearId}
     open={open}
@@ -237,6 +239,7 @@ function InventoryContent({
             onClearFilters={clearFilters}
             onItemClick={open}
             getItemCountLabel={(count) => t('itemCount', { count })}
+            getCategoryLabel={getCategoryLabel}
           />
         </>
       )}
