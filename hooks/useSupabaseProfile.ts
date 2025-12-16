@@ -14,8 +14,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Profile, ProfileUpdate } from '@/types/supabase';
-import type { Tables } from '@/types/database';
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/supabase';
+
+// Type aliases for profiles table
+type Profile = Tables<'profiles'>;
+type ProfileUpdate = TablesUpdate<'profiles'>;
 
 // =============================================================================
 // Types
@@ -38,28 +41,9 @@ export interface UseSupabaseProfileReturn {
 // Helper Functions
 // =============================================================================
 
-/** Convert database row to Profile type */
+/** Convert database row to Profile type - now just passes through since Profile = Tables<'profiles'> */
 function mapDbRowToProfile(row: Tables<'profiles'>): Profile {
-  return {
-    id: row.id,
-    email: row.email,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url,
-    // Feature 041: Bio and social fields
-    trailName: row.trail_name,
-    bio: row.bio,
-    // Feature 041: Location fields
-    locationName: row.location_name,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    // Feature 041: Social links
-    instagram: row.instagram,
-    facebook: row.facebook,
-    youtube: row.youtube,
-    website: row.website,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
-  };
+  return row;
 }
 
 // =============================================================================
@@ -133,22 +117,22 @@ export function useSupabaseProfile(userId: string | null): UseSupabaseProfileRet
       try {
         const updateData: Partial<Tables<'profiles'>> = {};
 
-        if (data.displayName !== undefined) {
-          updateData.display_name = data.displayName;
+        if (data.display_name !== undefined) {
+          updateData.display_name = data.display_name;
         }
-        if (data.avatarUrl !== undefined) {
-          updateData.avatar_url = data.avatarUrl;
+        if (data.avatar_url !== undefined) {
+          updateData.avatar_url = data.avatar_url;
         }
         // Feature 041: Bio and trail name
-        if (data.trailName !== undefined) {
-          updateData.trail_name = data.trailName;
+        if (data.trail_name !== undefined) {
+          updateData.trail_name = data.trail_name;
         }
         if (data.bio !== undefined) {
           updateData.bio = data.bio;
         }
         // Feature 041: Location fields
-        if (data.locationName !== undefined) {
-          updateData.location_name = data.locationName;
+        if (data.location_name !== undefined) {
+          updateData.location_name = data.location_name;
         }
         if (data.latitude !== undefined) {
           updateData.latitude = data.latitude;

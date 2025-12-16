@@ -47,6 +47,12 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRouter } from '@/i18n/navigation';
 import { formatDistanceToNow } from 'date-fns';
+// Feature 050: AI Assistant
+import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton';
+import { AIAssistantModal } from '@/components/ai-assistant/AIAssistantModal';
+import { UpgradeModal } from '@/components/ai-assistant/UpgradeModal';
+import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
+import { logAIEvent } from '@/lib/ai-assistant/observability';
 
 interface SiteHeaderProps {
   className?: string;
@@ -64,6 +70,36 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   // T048: Notification state
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { notifications, unreadCount: notificationUnreadCount, markAsRead } = useNotifications(user?.uid || null);
+  // Feature 050: AI Assistant state
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [aiChatModalOpen, setAiChatModalOpen] = useState(false);
+  const { isTrailblazer } = useSubscriptionCheck(user?.uid || null);
+
+  // Feature 050: Handle AI Assistant button click
+  const handleAIAssistantClick = () => {
+    if (isTrailblazer) {
+      // T031: Open AI chat modal
+      setAiChatModalOpen(true);
+      logAIEvent('info', 'AI chat modal opened', {
+        userId: user?.uid,
+        subscriptionTier: 'trailblazer',
+      });
+    } else {
+      // T030: Track upgrade modal opens (engagement metric)
+      setUpgradeModalOpen(true);
+      logAIEvent('info', 'Upgrade modal displayed', {
+        userId: user?.uid,
+        subscriptionTier: 'standard',
+        source: 'header_ai_button',
+      });
+    }
+  };
+
+  // Feature 050: Handle upgrade CTA
+  const handleUpgrade = () => {
+    setUpgradeModalOpen(false);
+    router.push('/settings'); // TODO: Create dedicated upgrade page
+  };
 
   return (
     <header
@@ -229,6 +265,15 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </Popover>
           )}
 
+          {/* Feature 050: AI Assistant button - T026, T027 */}
+          {user && (
+            <AIAssistantButton
+              onClick={handleAIAssistantClick}
+              isTrailblazer={isTrailblazer}
+              className="text-white hover:bg-white/10 hover:text-white"
+            />
+          )}
+
           {/* User menu */}
           <UserMenu />
         </div>
@@ -236,6 +281,19 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
       {/* T012: Messaging modal */}
       <MessagingModal open={messagingOpen} onOpenChange={setMessagingOpen} />
+
+      {/* Feature 050: AI Assistant upgrade modal - T027 */}
+      <UpgradeModal
+        open={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        onUpgrade={handleUpgrade}
+      />
+
+      {/* Feature 050: AI Assistant chat modal - T031 */}
+      <AIAssistantModal
+        open={aiChatModalOpen}
+        onClose={() => setAiChatModalOpen(false)}
+      />
     </header>
   );
 }

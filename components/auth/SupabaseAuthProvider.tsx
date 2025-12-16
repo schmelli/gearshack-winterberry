@@ -122,8 +122,8 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
   const userProfile: UserProfile | null = useMemo(() => {
     if (!supabaseProfile.profile) return null;
     return {
-      displayName: supabaseProfile.profile.displayName ?? 'User',
-      avatarUrl: supabaseProfile.profile.avatarUrl ?? undefined,
+      displayName: supabaseProfile.profile.display_name ?? 'User',
+      avatarUrl: supabaseProfile.profile.avatar_url ?? undefined,
     };
   }, [supabaseProfile.profile]);
 
@@ -137,14 +137,14 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
       email: user.email,
       displayName: userProfile?.displayName ?? user.displayName ?? 'User',
       // Feature 041: Custom avatar takes precedence, provider avatar as fallback
-      avatarUrl: profile?.avatarUrl ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
       providerAvatarUrl: user.photoURL ?? null,
       // Feature 041: Bio and trail name from profile
-      trailName: profile?.trailName ?? null,
+      trailName: profile?.trail_name ?? null,
       bio: profile?.bio ?? null,
       location: null,
       // Feature 041: Location with coordinates
-      locationName: profile?.locationName ?? null,
+      locationName: profile?.location_name ?? null,
       latitude: profile?.latitude ?? null,
       longitude: profile?.longitude ?? null,
       // Feature 041: Social links from profile
@@ -233,13 +233,13 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
     error: supabaseProfile.error,
     updateProfile: async (data: Partial<UserProfile>) => {
       const result = await supabaseProfile.updateProfile({
-        displayName: data.displayName,
-        avatarUrl: data.avatarUrl,
+        display_name: data.displayName,
+        avatar_url: data.avatarUrl,
         // Feature 041: Bio and trail name
-        trailName: data.trailName,
+        trail_name: data.trailName,
         bio: data.bio,
         // Feature 041: Location fields
-        locationName: data.locationName,
+        location_name: data.locationName,
         latitude: data.latitude,
         longitude: data.longitude,
         // Feature 041: Social links

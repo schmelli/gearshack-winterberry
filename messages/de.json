@@ -335,5 +335,53 @@
     "notFoundHint": "Die gesuchte Packliste existiert nicht oder wird nicht mehr geteilt.",
     "backToHome": "Zurück zur Startseite",
     "retry": "Erneut versuchen"
+  },
+  "aiAssistant": {
+    "upgradeModal": {
+      "headline": "Dein persönlicher Ausrüstungs-Experte wartet",
+      "features": {
+        "instantAnswers": {
+          "title": "Sofortige Antworten",
+          "description": "Erhalte schnelle Antworten zu Spezifikationen, Gewicht und Funktionen deiner Ausrüstung."
+        },
+        "weightOptimization": {
+          "title": "Gewichtsoptimierung",
+          "description": "KI-gestützte Vorschläge zur Reduzierung des Rucksackgewichts und Verbesserung deiner Packliste."
+        },
+        "smartRecommendations": {
+          "title": "Intelligente Empfehlungen",
+          "description": "Personalisierte Ausrüstungsalternativen basierend auf deinen Vorlieben und Tourbedingungen."
+        }
+      },
+      "exampleQuestionsHeadline": "Probiere zu fragen:",
+      "exampleQuestions": {
+        "baseWeight": "Was ist mein Basisgewicht?",
+        "lighterTent": "Kannst du ein leichteres Zelt empfehlen?",
+        "rValue": "Welchen R-Wert braucht meine Isomatte für den Winter?"
+      },
+      "ctaButton": "Auf Trailblazer upgraden",
+      "maybeLater": "Vielleicht später"
+    },
+    "chat": {
+      "title": "KI-Ausrüstungs-Assistent",
+      "subtitle": "Frag mich alles über deine Ausrüstung",
+      "placeholder": "Frag mich alles über deine Ausrüstung...",
+      "sendButton": "Nachricht senden",
+      "thinking": "KI denkt nach...",
+      "welcomeTitle": "Willkommen beim KI-Ausrüstungs-Assistenten!",
+      "welcomeDescription": "Ich kann dir helfen, deine Packlisten zu optimieren, leichtere Ausrüstungsalternativen zu finden und Fragen zu deinem Inventar zu beantworten.",
+      "tryAsking": "Probiere zu fragen:",
+      "suggestionBaseWeight": "Was ist mein Basisgewicht?",
+      "suggestionLighterTent": "Empfehle ein leichteres Zelt",
+      "suggestionSleepingBags": "Zeige mir meine Schlafsäcke",
+      "rateLimitWarning": "Ratenlimit erreicht. Versuche es in {seconds}s erneut.",
+      "characterCount": "{count}/{max}",
+      "enterToSend": "Enter zum Senden, Shift+Enter für neue Zeile",
+      "errors": {
+        "unauthorized": "Du musst angemeldet sein, um den KI-Assistenten zu nutzen",
+        "rateLimited": "Ratenlimit überschritten. Versuche es später erneut.",
+        "sendFailed": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
+      }
+    }
   }
 }
