@@ -72,10 +72,18 @@ export function meetsWCAGAA(luminance1: number, luminance2: number): boolean {
  * Analyze image brightness in the text overlay region (bottom 30%)
  * Returns average luminance of that region
  *
+ * Note: This function requires a browser environment (uses Canvas API)
+ *
  * @param imageElement - HTMLImageElement to analyze
  * @returns Average luminance (0-1)
  */
 export function analyzeImageBrightness(imageElement: HTMLImageElement): number {
+  // Safety check for SSR - this should only run client-side
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    console.warn('[ContrastAnalyzer] Canvas API not available (SSR context)');
+    return 0.5; // Return mid-value as fallback
+  }
+
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 

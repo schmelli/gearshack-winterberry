@@ -92,8 +92,15 @@ export async function POST(request: NextRequest) {
     // Extract public_id from Cloudinary URL for database storage
     // URL format: https://res.cloudinary.com/cloud/image/upload/v1/folder/file.jpg
     const urlParts = aiResult.url.split('/');
-    const publicIdWithExt = urlParts.slice(urlParts.indexOf('gearshack')).join('/');
-    const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ''); // Remove extension
+    const gearshackIndex = urlParts.indexOf('gearshack');
+
+    if (gearshackIndex === -1) {
+      console.error('[API] Invalid Cloudinary URL format:', aiResult.url);
+      throw new Error('Invalid Cloudinary URL format: missing gearshack folder');
+    }
+
+    const publicIdWithExt = urlParts.slice(gearshackIndex).join('/');
+    const publicId = publicIdWithExt.replace(/\.[^.]+$/, ''); // Remove last extension only
 
     // Generate alt-text from prompt
     const altText = `AI-generated outdoor scene: ${prompt.substring(0, 150)}`;

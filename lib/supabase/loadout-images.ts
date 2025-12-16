@@ -8,12 +8,32 @@ import { createClient } from '@supabase/supabase-js';
 import type { GeneratedLoadoutImage, StylePreferences } from '@/types/loadout-image';
 
 // =============================================================================
+// ⚠️ SECURITY WARNING - READ BEFORE USING
+// =============================================================================
+//
+// All functions in this file use Supabase SERVICE_ROLE_KEY which BYPASSES Row Level Security.
+// This is necessary for atomic operations across multiple tables (generated_images + loadouts).
+//
+// CALLERS ARE RESPONSIBLE FOR AUTHORIZATION:
+// - Verify the authenticated user owns the loadout before calling these functions
+// - All API routes must check user ownership via Supabase auth
+// - Never accept userId from client requests - always use authenticated session
+//
+// See API routes in app/api/loadout-images/* for proper authorization patterns.
+// =============================================================================
+
+// =============================================================================
 // Client Initialization
 // =============================================================================
 
 /**
  * Get Supabase client (server-side with service role for admin operations)
  * For client-side operations, use the client from lib/supabase/client.ts
+ *
+ * ⚠️ WARNING: This client uses SERVICE_ROLE_KEY which BYPASSES Row Level Security (RLS)
+ * Callers MUST verify user ownership and authorization before using these functions.
+ * All API routes calling these functions should validate that the authenticated user
+ * owns the resources being modified.
  */
 function getSupabaseClient() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -41,6 +61,8 @@ function getSupabaseClient() {
 
 /**
  * Insert a new generated image and set it as active for the loadout
+ *
+ * ⚠️ SECURITY: This function bypasses RLS. Callers MUST verify user ownership first.
  *
  * This function performs the following atomically:
  * 1. Deactivates all existing images for the loadout

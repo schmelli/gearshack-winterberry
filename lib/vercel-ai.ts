@@ -90,11 +90,17 @@ export async function generateAIImage(
   // Validate request
   const validatedRequest = AIGenerationRequestSchema.parse(request);
 
-  // Check if AI generation is enabled
-  if (!AI_ENABLED) {
+  // Validate AI configuration
+  if (!isAIConfigured()) {
+    const missingVars = [];
+    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) missingVars.push('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME');
+    if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
+    if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
+    if (process.env.AI_GENERATION_ENABLED !== 'true') missingVars.push('AI_GENERATION_ENABLED');
+
     throw new AIGenerationError(
-      'AI image generation is not enabled',
-      403,
+      `AI generation not properly configured. Missing or invalid: ${missingVars.join(', ')}`,
+      500,
       false
     );
   }
