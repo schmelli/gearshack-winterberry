@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
 import { User, Settings, LogOut, LogIn } from 'lucide-react';
@@ -132,11 +132,13 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Profile Modal (T029) */}
-      <ProfileModal
-        open={isProfileModalOpen}
-        onOpenChange={setIsProfileModalOpen}
-      />
+      {/* Profile Modal (T029) - Wrapped in Suspense for useSearchParams */}
+      <Suspense fallback={null}>
+        <ProfileModal
+          open={isProfileModalOpen}
+          onOpenChange={setIsProfileModalOpen}
+        />
+      </Suspense>
     </>
   );
 }
