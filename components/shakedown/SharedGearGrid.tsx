@@ -155,6 +155,7 @@ export function SharedGearGrid({
                   isAddingToWishlist={isAddingToWishlist?.(item.id)}
                   isAuthenticated={isAuthenticated}
                   viewDensity={viewDensity}
+                  getCategoryLabel={getCategoryLabel}
                 />
               ))}
             </div>

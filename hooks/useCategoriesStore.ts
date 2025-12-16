@@ -111,6 +111,7 @@ export const useCategoriesStore = create<CategoriesStore>()(
     }),
     {
       name: 'gearshack-categories-store',
+      version: 1, // Increment to invalidate stale cache on schema changes
       partialize: (state) => ({
         categories: state.categories,
         _initialized: state._initialized,

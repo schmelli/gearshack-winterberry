@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type {
   ViewDensity,
   UseInventoryReturn,
@@ -98,6 +98,36 @@ export function useInventory(): UseInventoryReturn {
   // ---------------------------------------------------------------------------
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // Auto-retry logic for category loading errors (exponential backoff)
+  // ---------------------------------------------------------------------------
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const MAX_RETRIES = 3;
+
+  useEffect(() => {
+    if (categoriesError && retryCountRef.current < MAX_RETRIES) {
+      // Calculate exponential backoff delay (1s, 2s, 4s)
+      const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
+
+      retryTimerRef.current = setTimeout(() => {
+        refreshCategories();
+        retryCountRef.current += 1;
+      }, delay);
+
+      return () => {
+        if (retryTimerRef.current) {
+          clearTimeout(retryTimerRef.current);
+        }
+      };
+    }
+
+    // Reset retry count on successful load
+    if (!categoriesError && !categoriesLoading) {
+      retryCountRef.current = 0;
+    }
+  }, [categoriesError, categoriesLoading, refreshCategories]);
 
   // ---------------------------------------------------------------------------
   // Derived: Filtered and Sorted Items (Feature 046)
