@@ -17,7 +17,6 @@ import {
 import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
-import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 
 // =============================================================================
@@ -130,13 +129,15 @@ interface GearCardProps {
   viewDensity: ViewDensity;
   /** Optional click handler for card body */
   onClick?: () => void;
+  /** Function to get category label by ID */
+  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
+export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
   // Feature 019: Use optimized image (nobgImages > primaryImageUrl)
@@ -146,7 +147,7 @@ export function GearCard({ item, viewDensity, onClick }: GearCardProps) {
   const isDetailed = viewDensity === 'detailed';
   const isStandard = viewDensity === 'standard';
 
-  const categoryLabel = getCategoryLabel(item.categoryId);
+  const categoryLabel = getCategoryLabel(item.categoryId) || null;
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
   // =========================================================================

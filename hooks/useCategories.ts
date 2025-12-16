@@ -3,6 +3,7 @@
  *
  * Feature: 043-ontology-i18n-import
  * Task: T022
+ * Updated: Performance optimization - now uses Zustand store for global caching
  *
  * Fetches and caches categories with i18n support.
  * Provides localized options for Select components.
@@ -10,9 +11,9 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useLocale } from 'next-intl';
-import { fetchCategories } from '@/lib/supabase/categories';
+import { useEffect, useMemo, useCallback } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import {
   getLocalizedLabel,
   getCategoryOptions,
@@ -56,29 +57,20 @@ interface UseCategoriesReturn {
  */
 export function useCategories(): UseCategoriesReturn {
   const locale = useLocale();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations('Common');
 
-  const loadCategories = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // Get categories from global Zustand store
+  const categories = useCategoriesStore((state) => state.categories);
+  const isLoading = useCategoriesStore((state) => state.isLoading);
+  const error = useCategoriesStore((state) => state.error);
+  const fetchCategories = useCategoriesStore((state) => state.fetchCategories);
+  const refresh = useCategoriesStore((state) => state.refresh);
 
-    try {
-      const data = await fetchCategories();
-      setCategories(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load categories';
-      setError(message);
-      console.error('useCategories error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Fetch categories on mount if not already initialized
+  // Also refetch when locale changes to ensure fresh data for new locale
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    fetchCategories();
+  }, [fetchCategories, locale]);
 
   // Build hierarchy from flat categories
   const hierarchy = useMemo(() => {
@@ -97,12 +89,12 @@ export function useCategories(): UseCategoriesReturn {
   // Get localized label by ID
   const getLabelById = useCallback(
     (id: string | null | undefined): string => {
-      if (!id) return '';
+      if (!id) return t('uncategorized');
       const category = categories.find((c) => c.id === id);
-      if (!category) return '';
+      if (!category) return t('uncategorized');
       return getLocalizedLabel(category, locale);
     },
-    [categories, locale]
+    [categories, locale, t]
   );
 
   return {
@@ -112,6 +104,6 @@ export function useCategories(): UseCategoriesReturn {
     hierarchy,
     getOptionsForLevel,
     getLabelById,
-    refresh: loadCategories,
+    refresh,
   };
 }
