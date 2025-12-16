@@ -32,6 +32,10 @@ import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import type { GearItem } from '@/types/gear';
+import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
+import type { User } from '@supabase/supabase-js';
+import type { YouTubeVideo, GearInsight } from '@/types/gear';
 
 // Component that uses useSearchParams - must be wrapped in Suspense
 function InventoryWithModal() {
@@ -129,6 +133,47 @@ function InventoryWithModal() {
   />;
 }
 
+/**
+ * Props for InventoryContent component
+ * Separated to avoid prop-drilling through Suspense boundary
+ */
+interface InventoryContentProps {
+  t: ReturnType<typeof useTranslations<'Inventory'>>;
+  user: User | null;
+  filteredItems: GearItem[];
+  items: GearItem[];
+  viewDensity: ViewDensity;
+  setViewDensity: (density: ViewDensity) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  categoryFilter: string | null;
+  setCategoryFilter: (categoryId: string | null) => void;
+  sortOption: SortOption;
+  setSortOption: (option: SortOption) => void;
+  groupedItems: CategoryGroup[];
+  hasActiveFilters: boolean;
+  clearFilters: () => void;
+  itemCount: number;
+  filteredCount: number;
+  isLoading: boolean;
+  getCategoryLabel: (categoryId: string | null) => string;
+  categoriesError: string | null;
+  isOpen: boolean;
+  gearId: string | null;
+  open: (id: string) => void;
+  close: () => void;
+  isMobile: boolean;
+  selectedItem: GearItem | null;
+  youtubeVideos: YouTubeVideo[];
+  youtubeLoading: boolean;
+  youtubeError: string | null;
+  retryYouTube: () => void;
+  insights: GearInsight[];
+  insightsLoading: boolean;
+  insightsError: string | null;
+  dismissInsight: (content: string) => void;
+}
+
 function InventoryContent({
   t,
   user,
@@ -148,6 +193,8 @@ function InventoryContent({
   itemCount,
   filteredCount,
   isLoading,
+  getCategoryLabel,
+  categoriesError,
   isOpen,
   gearId,
   open,
@@ -162,7 +209,7 @@ function InventoryContent({
   insightsLoading,
   insightsError,
   dismissInsight,
-}: any) {
+}: InventoryContentProps) {
   // Loading state
   if (isLoading) {
     return (
