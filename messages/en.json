@@ -411,6 +411,14 @@
         "navigationFailed": "Failed to navigate: {error}",
         "tryAgain": "Try again"
       }
+    },
+    "inventory": {
+      "categoryBreakdown": "Category Breakdown",
+      "item": "item",
+      "items": "items",
+      "heaviest": "Heaviest",
+      "avg": "Avg",
+      "showingTopN": "Showing top {count} categories"
     }
   }
 }

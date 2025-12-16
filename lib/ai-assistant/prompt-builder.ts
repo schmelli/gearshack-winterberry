@@ -1,12 +1,13 @@
 /**
  * Context-Aware System Prompt Builder
- * Feature 050: AI Assistant
+ * Feature 050: AI Assistant - T071
  *
  * Constructs dynamic system prompts based on user context
  * to provide personalized, relevant AI responses.
  */
 
 import type { UserContext } from '@/types/ai-assistant';
+import { calculateBaseWeight, formatWeight } from './inventory-analyzer';
 
 /**
  * Build a context-aware system prompt for the AI
@@ -14,13 +15,18 @@ import type { UserContext } from '@/types/ai-assistant';
  * The prompt includes:
  * - User's current screen/context
  * - Inventory size and available data
+ * - Base weight analysis and category breakdowns (T071)
  * - Locale for appropriate language responses
  * - Behavioral guidelines (tone, capabilities, limitations)
  *
  * @param context - User's current state and preferences
+ * @param userId - User UUID for inventory analysis
  * @returns Formatted system prompt string
  */
-export function buildSystemPrompt(context: UserContext): string {
+export async function buildSystemPrompt(
+  context: UserContext,
+  userId?: string
+): Promise<string> {
   const {
     screen,
     locale,
@@ -34,6 +40,16 @@ export function buildSystemPrompt(context: UserContext): string {
   const viewingLoadout = Boolean(currentLoadoutId);
 
   const sections: string[] = [];
+
+  // T071: Fetch inventory analysis if user has gear
+  let baseWeightAnalysis = null;
+  if (hasInventory && userId) {
+    try {
+      baseWeightAnalysis = await calculateBaseWeight(userId);
+    } catch (error) {
+      console.error('Failed to calculate base weight:', error);
+    }
+  }
 
   // 1. Core Identity and Role
   sections.push(
@@ -71,6 +87,26 @@ export function buildSystemPrompt(context: UserContext): string {
       isGerman
         ? `Der Nutzer hat noch keine Ausrüstung hinzugefügt. Ermutige ihn, mit dem Inventar zu beginnen.`
         : `The user hasn't added any gear yet. Encourage them to start building their inventory.`
+    );
+  }
+
+  // T071: Add inventory analysis to context
+  if (baseWeightAnalysis && baseWeightAnalysis.itemCount > 0) {
+    const baseWeightFormatted = formatWeight(baseWeightAnalysis.totalWeight, locale);
+    const heaviestCat = baseWeightAnalysis.heaviestCategory;
+
+    contextInfo.push(
+      isGerman
+        ? `Inventar-Analyse: ${baseWeightAnalysis.itemCount} Gegenstände, Basisgewicht ${baseWeightFormatted}${
+            heaviestCat
+              ? `, schwerste Kategorie: ${heaviestCat.categoryName} (${formatWeight(heaviestCat.totalWeight, locale)})`
+              : ''
+          }.`
+        : `Inventory Analysis: ${baseWeightAnalysis.itemCount} items, base weight ${baseWeightFormatted}${
+            heaviestCat
+              ? `, heaviest category: ${heaviestCat.categoryName} (${formatWeight(heaviestCat.totalWeight, locale)})`
+              : ''
+          }.`
     );
   }
 
@@ -144,13 +180,15 @@ export function buildSystemPrompt(context: UserContext): string {
  *
  * @param previousMessages - Array of previous message contents
  * @param context - Current user context
+ * @param userId - User UUID for inventory analysis
  * @returns Formatted system prompt with conversation history
  */
-export function buildFollowUpPrompt(
+export async function buildFollowUpPrompt(
   previousMessages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  context: UserContext
-): string {
-  const basePrompt = buildSystemPrompt(context);
+  context: UserContext,
+  userId?: string
+): Promise<string> {
+  const basePrompt = await buildSystemPrompt(context, userId);
 
   const conversationSummary = previousMessages
     .slice(-6) // Last 3 exchanges

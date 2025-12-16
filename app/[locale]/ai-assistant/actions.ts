@@ -189,8 +189,8 @@ export async function sendAIMessage(
         return { text: fallback, tokensUsed: 0, finishReason: 'stop' };
       }
 
-      // Build context-aware system prompt
-      const systemPrompt = buildSystemPrompt(context);
+      // Build context-aware system prompt (T071: includes inventory analysis)
+      const systemPrompt = await buildSystemPrompt(context, user.id);
 
       // Call Vercel AI SDK
       const result = await generateAIResponse(systemPrompt, trimmedMessage);

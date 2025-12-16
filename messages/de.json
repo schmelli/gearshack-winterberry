@@ -401,6 +401,14 @@
         "navigationFailed": "Fehler bei der Navigation: {error}",
         "tryAgain": "Erneut versuchen"
       }
+    },
+    "inventory": {
+      "categoryBreakdown": "Kategorie-Übersicht",
+      "item": "Gegenstand",
+      "items": "Gegenstände",
+      "heaviest": "Schwerstes",
+      "avg": "Durchschn.",
+      "showingTopN": "Top {count} Kategorien angezeigt"
     }
   }
 }
