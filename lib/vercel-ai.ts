@@ -218,15 +218,12 @@ export async function generateAIImage(
 /**
  * Upload generated image to Cloudinary for CDN hosting
  *
- * @param imageBlob - Image blob from AI generation
+ * @param imageFile - Generated image file from AI SDK
  * @returns Cloudinary URL
  */
-async function uploadImageToStorage(imageBlob: Blob): Promise<string> {
-  // Convert blob to base64 data URL
-  const arrayBuffer = await imageBlob.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const base64 = buffer.toString('base64');
-  const dataUrl = `data:${imageBlob.type};base64,${base64}`;
+async function uploadImageToStorage(imageFile: { base64: string; mediaType: string }): Promise<string> {
+  // Create data URL from base64 and media type
+  const dataUrl = `data:${imageFile.mediaType};base64,${imageFile.base64}`;
 
   // Upload to Cloudinary (keep using Cloudinary for storage/CDN)
   const cloudinary = await import('cloudinary');

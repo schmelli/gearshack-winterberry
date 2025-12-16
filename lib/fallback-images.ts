@@ -14,7 +14,7 @@ import type { FallbackImage } from '@/types/loadout-image';
  * Validate required Cloudinary environment variable
  * Without this, all 24 fallback image URLs will be broken
  */
-const CLOUDINARY_CLOUD_NAME = CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 if (!CLOUDINARY_CLOUD_NAME) {
   throw new Error(

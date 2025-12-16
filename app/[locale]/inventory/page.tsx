@@ -168,11 +168,11 @@ interface InventoryContentProps {
   close: () => void;
   isMobile: boolean;
   selectedItem: GearItem | null;
-  youtubeVideos: YouTubeVideo[];
+  youtubeVideos: YouTubeVideo[] | null;
   youtubeLoading: boolean;
   youtubeError: string | null;
   retryYouTube: () => void;
-  insights: GearInsight[];
+  insights: GearInsight[] | null;
   insightsLoading: boolean;
   insightsError: string | null;
   dismissInsight: (content: string) => void;
