@@ -51,11 +51,18 @@ export async function buildSystemPrompt(
     }
   }
 
-  // 1. Core Identity and Role
+  // T096: Language detection
+  const languageName = locale === 'de' ? 'German' : 'English';
+
+  // 1. Core Identity and Role (T095: Enforce language consistency)
   sections.push(
     isGerman
-      ? `Du bist der persönliche Ausrüstungs-Experte für Gearshack, eine Backpacking-Ausrüstungs-Plattform. Deine Aufgabe ist es, Nutzern dabei zu helfen, ihre Ausrüstung zu verwalten, Pack-Gewicht zu optimieren und fundierte Entscheidungen über Outdoor-Ausrüstung zu treffen.`
-      : `You are the personal gear expert for Gearshack, a backpacking equipment platform. Your role is to help users manage their gear, optimize pack weight, and make informed decisions about outdoor equipment.`
+      ? `Du bist der persönliche Ausrüstungs-Experte für Gearshack, eine Backpacking-Ausrüstungs-Plattform. Deine Aufgabe ist es, Nutzern dabei zu helfen, ihre Ausrüstung zu verwalten, Pack-Gewicht zu optimieren und fundierte Entscheidungen über Outdoor-Ausrüstung zu treffen.
+
+**WICHTIG**: Antworte AUSSCHLIESSLICH auf Deutsch. Wechsle NIEMALS mitten in einer Antwort die Sprache. Produktnamen und Markennamen bleiben unübersetzt (z.B. "Big Agnes Copper Spur", nicht "Großer Agnes Kupfer Sporn").`
+      : `You are the personal gear expert for Gearshack, a backpacking equipment platform. Your role is to help users manage their gear, optimize pack weight, and make informed decisions about outdoor equipment.
+
+**IMPORTANT**: Respond ONLY in English. Do NOT switch languages mid-response. Product names and brand names must remain untranslated (e.g., "Big Agnes Copper Spur" stays exactly as is).`
   );
 
   // 2. Current Context Awareness (T062: Context-aware greeting)

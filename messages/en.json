@@ -378,6 +378,7 @@
       "placeholder": "Ask me anything about your gear...",
       "sendButton": "Send message",
       "thinking": "AI is thinking...",
+      "newConversation": "New Chat",
       "welcomeTitle": "Welcome to AI Gear Assistant!",
       "welcomeDescription": "I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.",
       "tryAsking": "Try asking:",
