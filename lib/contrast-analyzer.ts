@@ -152,6 +152,12 @@ export function analyzeImageBrightness(imageElement: HTMLImageElement): number {
   } catch (error) {
     console.error('[ContrastAnalyzer] Image analysis failed:', error);
     return 0.5; // Return mid-value on error
+  } finally {
+    // Explicit cleanup to prevent memory leaks
+    // Clear the canvas and reset dimensions to free memory
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
   }
 }
 

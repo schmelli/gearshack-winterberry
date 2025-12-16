@@ -93,7 +93,25 @@ export async function insertGeneratedImage(params: {
     promptUsed,
     stylePreferences,
     altText,
+    userId,
   } = params;
+
+  // SAFETY CHECK: Verify user owns the loadout (defense-in-depth)
+  // Even though API routes should verify this, we check again to prevent
+  // potential security issues if this function is ever called incorrectly
+  const { data: loadout, error: ownershipError } = await supabase
+    .from('loadouts')
+    .select('user_id')
+    .eq('id', loadoutId)
+    .single();
+
+  if (ownershipError || !loadout) {
+    throw new Error(`Loadout not found: ${ownershipError?.message || 'Unknown error'}`);
+  }
+
+  if (loadout.user_id !== userId) {
+    throw new Error('Unauthorized: User does not own this loadout');
+  }
 
   // Step 1: Deactivate all existing images for this loadout
   const { error: deactivateError } = await supabase
@@ -240,18 +258,21 @@ export async function getImageById(
  *
  * Uses a more robust approach to minimize inconsistent state:
  * 1. Validate image exists and belongs to loadout (fail fast)
- * 2. Update loadout.hero_image_id first (most critical operation)
- * 3. Update is_active flags (cosmetic, can be eventually consistent)
+ * 2. Verify user owns the loadout (defense-in-depth security check)
+ * 3. Update loadout.hero_image_id first (most critical operation)
+ * 4. Update is_active flags (cosmetic, can be eventually consistent)
  *
- * If step 3 fails, the loadout still references the correct image,
+ * If step 4 fails, the loadout still references the correct image,
  * and the active flags can be fixed by a background job or next operation.
  *
  * @param imageId - UUID of the image to activate
  * @param loadoutId - UUID of the loadout
+ * @param userId - UUID of the authenticated user (for ownership verification)
  */
 export async function setActiveImage(
   imageId: string,
-  loadoutId: string
+  loadoutId: string,
+  userId: string
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
@@ -270,7 +291,22 @@ export async function setActiveImage(
     throw new Error('Image does not belong to specified loadout');
   }
 
-  // Step 2: Update loadout.hero_image_id FIRST (most critical)
+  // Step 2: SAFETY CHECK - Verify user owns the loadout (defense-in-depth)
+  const { data: loadout, error: ownershipError } = await supabase
+    .from('loadouts')
+    .select('user_id')
+    .eq('id', loadoutId)
+    .single();
+
+  if (ownershipError || !loadout) {
+    throw new Error(`Loadout not found: ${ownershipError?.message || 'Unknown error'}`);
+  }
+
+  if (loadout.user_id !== userId) {
+    throw new Error('Unauthorized: User does not own this loadout');
+  }
+
+  // Step 3: Update loadout.hero_image_id FIRST (most critical)
   // This ensures the loadout always points to a valid image
   const { error: updateLoadoutError } = await supabase
     .from('loadouts')
@@ -281,7 +317,7 @@ export async function setActiveImage(
     throw new Error(`Failed to update loadout hero_image_id: ${updateLoadoutError.message}`);
   }
 
-  // Step 3: Deactivate all other images for this loadout
+  // Step 4: Deactivate all other images for this loadout
   // If this fails, the loadout still points to the correct image
   const { error: deactivateError } = await supabase
     .from('generated_images')
@@ -293,7 +329,7 @@ export async function setActiveImage(
     // Don't throw - the loadout is already updated correctly
   }
 
-  // Step 4: Activate the selected image
+  // Step 5: Activate the selected image
   // If this fails, the loadout still points to the correct image
   const { error: activateError } = await supabase
     .from('generated_images')
@@ -316,10 +352,12 @@ export async function setActiveImage(
  *
  * @param imageId - UUID of the image to delete
  * @param loadoutId - UUID of the loadout (for safety check)
+ * @param userId - UUID of the authenticated user (for ownership verification)
  */
 export async function deleteGeneratedImage(
   imageId: string,
-  loadoutId: string
+  loadoutId: string,
+  userId: string
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
@@ -333,6 +371,21 @@ export async function deleteGeneratedImage(
   // Safety check: ensure image belongs to specified loadout
   if (image.loadoutId !== loadoutId) {
     throw new Error('Image does not belong to specified loadout');
+  }
+
+  // SAFETY CHECK: Verify user owns the loadout (defense-in-depth)
+  const { data: loadout, error: ownershipError } = await supabase
+    .from('loadouts')
+    .select('user_id')
+    .eq('id', loadoutId)
+    .single();
+
+  if (ownershipError || !loadout) {
+    throw new Error(`Loadout not found: ${ownershipError?.message || 'Unknown error'}`);
+  }
+
+  if (loadout.user_id !== userId) {
+    throw new Error('Unauthorized: User does not own this loadout');
   }
 
   // Delete from database (RLS will enforce user ownership)
@@ -355,11 +408,28 @@ export async function deleteGeneratedImage(
  * Useful when deleting a loadout entirely
  *
  * @param loadoutId - UUID of the loadout
+ * @param userId - UUID of the authenticated user (for ownership verification)
  */
 export async function deleteAllImagesForLoadout(
-  loadoutId: string
+  loadoutId: string,
+  userId: string
 ): Promise<void> {
   const supabase = getSupabaseClient();
+
+  // SAFETY CHECK: Verify user owns the loadout (defense-in-depth)
+  const { data: loadout, error: ownershipError } = await supabase
+    .from('loadouts')
+    .select('user_id')
+    .eq('id', loadoutId)
+    .single();
+
+  if (ownershipError || !loadout) {
+    throw new Error(`Loadout not found: ${ownershipError?.message || 'Unknown error'}`);
+  }
+
+  if (loadout.user_id !== userId) {
+    throw new Error('Unauthorized: User does not own this loadout');
+  }
 
   const { error } = await supabase
     .from('generated_images')

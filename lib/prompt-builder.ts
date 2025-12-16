@@ -7,6 +7,34 @@
 import type { StylePreferences } from '@/types/loadout-image';
 
 // =============================================================================
+// Input Sanitization
+// =============================================================================
+
+/**
+ * Sanitize user-provided text to prevent prompt injection attacks
+ *
+ * Removes potentially malicious tokens that could manipulate AI behavior:
+ * - Instruction keywords (ignore, disregard, system, override, etc.)
+ * - Special characters that could escape prompt context ({}, [], etc.)
+ *
+ * @param text - User-provided input string
+ * @returns Sanitized string safe for prompt interpolation
+ */
+function sanitizeUserInput(text: string): string {
+  if (!text) return '';
+
+  return text
+    // Remove prompt injection keywords (case-insensitive)
+    .replace(/\b(ignore|disregard|system|override|instruction|command|prompt|admin|root)\b/gi, '')
+    // Remove brackets and braces that could escape context
+    .replace(/[{}\[\]]/g, '')
+    // Remove excessive whitespace
+    .replace(/\s+/g, ' ')
+    // Trim leading/trailing whitespace
+    .trim();
+}
+
+// =============================================================================
 // Activity Type to Landscape Mapping
 // =============================================================================
 
@@ -119,8 +147,9 @@ export function buildPrompt(params: {
     : 'natural lighting';
 
   // Atmosphere hints (P3 feature - user-provided freeform text)
+  // SECURITY: Sanitize user input to prevent prompt injection
   const atmosphere = stylePreferences?.atmosphere
-    ? stylePreferences.atmosphere
+    ? sanitizeUserInput(stylePreferences.atmosphere)
     : '';
 
   // Quality modifiers
@@ -180,8 +209,9 @@ export function generateAltText(params: {
   parts.push(`suitable for ${activityLabel} gear loadout`);
 
   // Add title reference if available
+  // SECURITY: Sanitize user input to prevent injection in alt-text
   if (title && title !== 'loadout') {
-    parts.push(`(${title})`);
+    parts.push(`(${sanitizeUserInput(title)})`);
   }
 
   return parts.join(' ');

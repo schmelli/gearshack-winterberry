@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest) {
     console.log('[API] Deleting image:', imageId, 'from loadout:', loadoutId);
 
     // Get image details before deleting
-    const image = await getImageById(supabase, imageId);
+    const image = await getImageById(imageId);
 
     if (image) {
       // Delete from Cloudinary (if not a fallback image)
@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from database
-    await deleteGeneratedImage(supabase, imageId, loadoutId);
+    await deleteGeneratedImage(imageId, loadoutId, user.id);
 
     return NextResponse.json(
       {

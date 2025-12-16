@@ -6,7 +6,10 @@
 
 import { experimental_generateImage as generateImage } from 'ai';
 import { z } from 'zod';
-import { AI_GENERATION_TIMEOUT_MS } from '@/lib/config/image-generation';
+import {
+  AI_GENERATION_TIMEOUT_MS,
+  CLOUDINARY_GENERATED_IMAGES_FOLDER,
+} from '@/lib/config/image-generation';
 
 // =============================================================================
 // Configuration
@@ -219,7 +222,7 @@ async function uploadImageToStorage(imageBlob: Blob): Promise<string> {
   });
 
   const result = await cloudinary.v2.uploader.upload(dataUrl, {
-    folder: 'gearshack/loadouts/generated',
+    folder: CLOUDINARY_GENERATED_IMAGES_FOLDER,
     resource_type: 'image',
     format: 'jpg',
   });

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[API] Setting active image:', imageId, 'for loadout:', loadoutId);
 
-    await setActiveImage(supabase, imageId, loadoutId);
+    await setActiveImage(imageId, loadoutId, user.id);
 
     return NextResponse.json(
       {

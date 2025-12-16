@@ -77,3 +77,14 @@ export const MAX_AI_GENERATION_RETRIES = 1;
  * Whether to use fallback images when AI generation fails
  */
 export const ENABLE_FALLBACK_IMAGES = true;
+
+// =============================================================================
+// Cloudinary Storage Configuration
+// =============================================================================
+
+/**
+ * Cloudinary folder path for generated loadout images
+ * Can be overridden via environment variable: CLOUDINARY_GENERATED_IMAGES_FOLDER
+ */
+export const CLOUDINARY_GENERATED_IMAGES_FOLDER =
+  process.env.CLOUDINARY_GENERATED_IMAGES_FOLDER || 'gearshack/loadouts/generated';
