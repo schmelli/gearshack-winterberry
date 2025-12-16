@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
 import { useLoadout, useStore, useItems } from '@/hooks/useSupabaseStore';
+import { formatWeightForDisplay } from '@/lib/gear-utils';
 import { useLoadoutEditor } from '@/hooks/useLoadoutEditor';
 import { useLoadoutMetadata } from '@/hooks/useLoadoutMetadata';
 import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';
@@ -43,6 +44,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import type { Season } from '@/types/loadout';
+import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
 
 // =============================================================================
 // Types
@@ -60,6 +62,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
   const loadout = useLoadout(id);
   const allItems = useItems();
+  const userId = useStore((state) => state.userId);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
   const updateLoadout = useStore((state) => state.updateLoadout);
@@ -150,6 +153,18 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+      {/* Hero Image Section (Feature 048) */}
+      {userId && (
+        <div className="container max-w-4xl px-4 pt-6 sm:px-6">
+          <LoadoutHeroImageSection
+            loadout={loadout}
+            userId={userId}
+            totalWeight={formatWeightForDisplay(totalWeight)}
+            itemCount={loadoutItems.length}
+          />
+        </div>
+      )}
+
       {/* Enhanced Header with sans-serif title, badges, weight progress (FR-012) */}
       <LoadoutHeader
         loadout={loadout}

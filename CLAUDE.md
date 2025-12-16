@@ -142,6 +142,8 @@ Before writing code:
 - PostgreSQL (Supabase) for messages/conversations/relationships, Cloudinary for images/voice messages (046-user-messaging-system)
 - TypeScript 5.x (strict mode) + react-hook-form 7.x, Zod 4.x, shadcn/ui, next-intl, zustand (047-loadout-creation-form)
 - PostgreSQL (Supabase) - existing `loadouts` table with `seasons`, `activity_types`, `description` columns (047-loadout-creation-form)
+- TypeScript 5.x (strict mode) + Next.js 16.0.7 (App Router), React 19.2.0, next-cloudinary 6.17.5, @supabase/supabase-js 2.87.1, @supabase/ssr 0.8.0, zod 4.1.13, react-hook-form 7.68.0, sonner 2.0.7, shadcn/ui (048-ai-loadout-image-gen)
+- PostgreSQL (Supabase) for loadout metadata and image generation history; Cloudinary CDN for image assets (048-ai-loadout-image-gen)
 
 ## Recent Changes
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui
