@@ -3,6 +3,7 @@
  *
  * Feature: 043-ontology-i18n-import
  * Task: T022
+ * Updated: Performance optimization - now uses Zustand store for global caching
  *
  * Fetches and caches categories with i18n support.
  * Provides localized options for Select components.
@@ -10,9 +11,9 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useLocale } from 'next-intl';
-import { fetchCategories } from '@/lib/supabase/categories';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import {
   getLocalizedLabel,
   getCategoryOptions,
@@ -56,29 +57,17 @@ interface UseCategoriesReturn {
  */
 export function useCategories(): UseCategoriesReturn {
   const locale = useLocale();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadCategories = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // Get categories from global Zustand store
+  const categories = useCategoriesStore((state) => state.categories);
+  const isLoading = useCategoriesStore((state) => state.isLoading);
+  const error = useCategoriesStore((state) => state.error);
+  const fetchCategories = useCategoriesStore((state) => state.fetchCategories);
 
-    try {
-      const data = await fetchCategories();
-      setCategories(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load categories';
-      setError(message);
-      console.error('useCategories error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Fetch categories on mount if not already initialized
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    fetchCategories();
+  }, [fetchCategories]);
 
   // Build hierarchy from flat categories
   const hierarchy = useMemo(() => {
@@ -112,6 +101,6 @@ export function useCategories(): UseCategoriesReturn {
     hierarchy,
     getOptionsForLevel,
     getLabelById,
-    refresh: loadCategories,
+    refresh: fetchCategories,
   };
 }
