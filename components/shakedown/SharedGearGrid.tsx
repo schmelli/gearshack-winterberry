@@ -3,7 +3,6 @@
 import type { SharedGearItem } from '@/types/sharing';
 import type { ViewDensity } from '@/types/inventory';
 import { SharedGearCard } from './SharedGearCard';
-import { getCategoryLabel, getCategories } from '@/lib/taxonomy/taxonomy-utils';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -29,6 +28,8 @@ interface SharedGearGridProps {
   viewDensity?: ViewDensity;
   /** Optional className for the grid container */
   className?: string;
+  /** Function to get category label from categoryId (Supabase categories) */
+  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
@@ -53,37 +54,22 @@ function groupItemsByCategory(items: SharedGearItem[]): Map<string | null, Share
 }
 
 /**
- * Sorts categories using predefined taxonomy order
+ * Sorts categories alphabetically by label
  * Feature: 048-shared-loadout-enhancement (T030)
+ * Updated: Uses Supabase categories instead of static taxonomy
  */
-function sortCategoriesByTaxonomy(categoryIds: (string | null)[]): (string | null)[] {
-  // Get the predefined category order from taxonomy
-  const taxonomyCategories = getCategories();
-  const categoryOrderMap = new Map(
-    taxonomyCategories.map((cat, index) => [cat.id, index])
-  );
-
+function sortCategoriesByLabel(
+  categoryIds: (string | null)[],
+  getCategoryLabel: (categoryId: string | null) => string
+): (string | null)[] {
   return categoryIds.sort((a, b) => {
     // null (uncategorized) always goes last
     if (a === null) return 1;
     if (b === null) return -1;
 
-    // Get order from taxonomy
-    const orderA = categoryOrderMap.get(a);
-    const orderB = categoryOrderMap.get(b);
-
-    // If both are in taxonomy, use taxonomy order
-    if (orderA !== undefined && orderB !== undefined) {
-      return orderA - orderB;
-    }
-
-    // If only one is in taxonomy, it comes first
-    if (orderA !== undefined) return -1;
-    if (orderB !== undefined) return 1;
-
-    // If neither is in taxonomy (shouldn't happen), use alphabetical
-    const labelA = getCategoryLabel(a) ?? a;
-    const labelB = getCategoryLabel(b) ?? b;
+    // Sort alphabetically by label
+    const labelA = getCategoryLabel(a);
+    const labelB = getCategoryLabel(b);
     return labelA.localeCompare(labelB);
   });
 }
@@ -110,13 +96,15 @@ export function SharedGearGrid({
   isAuthenticated = false,
   viewDensity = 'standard',
   className,
+  getCategoryLabel,
 }: SharedGearGridProps) {
   // Group items by category
   const groupedItems = groupItemsByCategory(items);
 
-  // Sort categories using predefined taxonomy order (T030)
-  const sortedCategories = sortCategoriesByTaxonomy(
-    Array.from(groupedItems.keys())
+  // Sort categories alphabetically by label (T030)
+  const sortedCategories = sortCategoriesByLabel(
+    Array.from(groupedItems.keys()),
+    getCategoryLabel
   );
 
   // Grid column configuration based on view density
@@ -139,9 +127,7 @@ export function SharedGearGrid({
     <div className={cn('space-y-8', className)}>
       {sortedCategories.map((categoryId) => {
         const categoryItems = groupedItems.get(categoryId)!;
-        const categoryLabel = categoryId
-          ? getCategoryLabel(categoryId)
-          : 'Uncategorized';
+        const categoryLabel = getCategoryLabel(categoryId);
 
         return (
           <section key={categoryId ?? 'uncategorized'} className="space-y-4">
