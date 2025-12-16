@@ -1,9 +1,9 @@
 /**
  * Message Bubble Component
- * Feature 050: AI Assistant - T034
+ * Feature 050: AI Assistant - T034, T060
  *
  * Renders individual chat messages with role-based styling.
- * Supports markdown formatting and inline gear cards.
+ * Supports markdown formatting, inline gear cards, and action buttons.
  */
 
 'use client';
@@ -11,7 +11,10 @@
 import { cn } from '@/lib/utils';
 import { User, Sparkles } from 'lucide-react';
 import { InlineGearCard } from './InlineGearCard';
+import { ActionButtons } from './ActionButtons';
+import { useChatActions } from '@/hooks/ai-assistant/useChatActions';
 import { formatDistanceToNow } from 'date-fns';
+import type { Action } from '@/types/ai-assistant';
 
 interface Message {
   id: string;
@@ -19,6 +22,7 @@ interface Message {
   content: string;
   created_at: string;
   inline_cards?: any[];
+  actions?: Action[];
 }
 
 interface MessageBubbleProps {
@@ -27,6 +31,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const { executeAction, isExecuting } = useChatActions();
 
   return (
     <div
@@ -76,6 +81,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               <InlineGearCard key={card.id || index} gearId={card.id} />
             ))}
           </div>
+        )}
+
+        {/* T060: Action Buttons */}
+        {!isUser && message.actions && message.actions.length > 0 && (
+          <ActionButtons
+            actions={message.actions}
+            onActionClick={executeAction}
+            disabled={isExecuting}
+          />
         )}
 
         {/* Timestamp */}

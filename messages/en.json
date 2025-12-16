@@ -392,6 +392,25 @@
         "rateLimited": "Rate limit exceeded. Try again later.",
         "sendFailed": "Failed to send message. Please try again."
       }
+    },
+    "actions": {
+      "addToWishlist": "Add to Wishlist",
+      "compare": "Compare",
+      "sendMessage": "Send Message",
+      "viewDetails": "View Details",
+      "confirmations": {
+        "addedToWishlist": "✓ Done! {itemName} is now on your wishlist",
+        "comparisonReady": "✓ Opening comparison...",
+        "messageSent": "✓ Message sent to {recipientName}",
+        "navigating": "✓ Opening {destination}..."
+      },
+      "errors": {
+        "addToWishlistFailed": "Failed to add to wishlist: {error}",
+        "compareFailed": "Failed to prepare comparison: {error}",
+        "messageFailed": "Failed to send message: {error}",
+        "navigationFailed": "Failed to navigate: {error}",
+        "tryAgain": "Try again"
+      }
     }
   }
 }

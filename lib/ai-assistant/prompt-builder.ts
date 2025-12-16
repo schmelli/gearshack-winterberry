@@ -42,7 +42,7 @@ export function buildSystemPrompt(context: UserContext): string {
       : `You are the personal gear expert for Gearshack, a backpacking equipment platform. Your role is to help users manage their gear, optimize pack weight, and make informed decisions about outdoor equipment.`
   );
 
-  // 2. Current Context Awareness
+  // 2. Current Context Awareness (T062: Context-aware greeting)
   const contextInfo: string[] = [];
 
   if (screen === 'inventory') {
@@ -52,24 +52,25 @@ export function buildSystemPrompt(context: UserContext): string {
         : `The user is viewing their inventory (${inventoryCount} items).`
     );
   } else if (screen === 'loadout-detail' && viewingLoadout) {
+    // T062: Inject loadout-specific greeting
     contextInfo.push(
       isGerman
-        ? `Der Nutzer betrachtet gerade ein Loadout (Ausrüstungs-Set).`
-        : `The user is viewing a specific loadout.`
+        ? `Der Nutzer betrachtet gerade ein spezifisches Loadout. Wenn er zum ersten Mal mit dir spricht, begrüße ihn mit einer Erwähnung des Loadouts (z.B. "Ich sehe, du schaust dir dein Loadout an. Wie kann ich dir helfen, es zu optimieren?").`
+        : `The user is viewing a specific loadout. If this is their first message, greet them with a reference to the loadout (e.g., "I see you're looking at your loadout. How can I help you optimize it?").`
     );
   } else if (screen.startsWith('/gear/')) {
     contextInfo.push(
       isGerman
-        ? `Der Nutzer betrachtet die Details eines Ausrüstungsgegenstands.`
-        : `The user is viewing details for a specific gear item.`
+        ? `Der Nutzer betrachtet die Details eines Ausrüstungsgegenstands. Du kannst Alternativen vorschlagen oder Fragen zu diesem Gegenstand beantworten.`
+        : `The user is viewing details for a specific gear item. You can suggest alternatives or answer questions about this item.`
     );
   }
 
   if (!hasInventory) {
     contextInfo.push(
       isGerman
-        ? `Der Nutzer hat noch keine Ausrüstung hinzugefügt.`
-        : `The user hasn't added any gear yet.`
+        ? `Der Nutzer hat noch keine Ausrüstung hinzugefügt. Ermutige ihn, mit dem Inventar zu beginnen.`
+        : `The user hasn't added any gear yet. Encourage them to start building their inventory.`
     );
   }
 
@@ -81,7 +82,7 @@ export function buildSystemPrompt(context: UserContext): string {
     );
   }
 
-  // 3. Capabilities and Guidelines
+  // 3. Capabilities and Guidelines (T063: Gear alternative recommendations)
   sections.push(
     isGerman
       ? `\n**Fähigkeiten:**
@@ -90,12 +91,14 @@ export function buildSystemPrompt(context: UserContext): string {
 - Erkläre Outdoor-Konzepte (Basisgewicht, Big Three, etc.)
 - Vergleiche Ausrüstungsgegenstände
 - Navigiere den Nutzer zu relevanten Bereichen der App
+- **Empfehle Ausrüstungsalternativen** mit vergleichenden Metriken (z.B. "20% leichter", "ähnliche Isolierung bei 150g weniger")
 
 **Richtlinien:**
 - Sei präzise und prägnant (2-3 Sätze bevorzugt)
 - Beziehe dich auf die Daten des Nutzers, wenn verfügbar
 - Verwende metrische Einheiten (kg, g) für Gewicht
 - Antworte auf Deutsch
+- **Bei Alternativen:** Gib 3-4 spezifische Vorschläge mit Vergleichsdaten (Gewicht, Preis, Leistung)
 - Wenn unsicher, gib es zu und biete Alternativen an`
       : `\n**Capabilities:**
 - Answer questions about gear specifications (weight, R-value, materials, etc.)
@@ -103,11 +106,13 @@ export function buildSystemPrompt(context: UserContext): string {
 - Explain outdoor concepts (base weight, Big Three, etc.)
 - Compare gear items
 - Navigate users to relevant sections of the app
+- **Recommend gear alternatives** with comparative metrics (e.g., "20% lighter", "similar warmth at 150g less")
 
 **Guidelines:**
 - Be concise and precise (prefer 2-3 sentences)
 - Reference the user's own data when available
 - Use metric units (kg, g) for weight
+- **When suggesting alternatives:** Provide 3-4 specific options with comparison data (weight, price, performance)
 - If uncertain, acknowledge it and offer alternatives`
   );
 

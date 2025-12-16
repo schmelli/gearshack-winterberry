@@ -382,6 +382,25 @@
         "rateLimited": "Ratenlimit überschritten. Versuche es später erneut.",
         "sendFailed": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
       }
+    },
+    "actions": {
+      "addToWishlist": "Zur Wunschliste hinzufügen",
+      "compare": "Vergleichen",
+      "sendMessage": "Nachricht senden",
+      "viewDetails": "Details anzeigen",
+      "confirmations": {
+        "addedToWishlist": "✓ Erledigt! {itemName} ist jetzt auf deiner Wunschliste",
+        "comparisonReady": "✓ Öffne Vergleich...",
+        "messageSent": "✓ Nachricht an {recipientName} gesendet",
+        "navigating": "✓ Öffne {destination}..."
+      },
+      "errors": {
+        "addToWishlistFailed": "Fehler beim Hinzufügen zur Wunschliste: {error}",
+        "compareFailed": "Fehler beim Vorbereiten des Vergleichs: {error}",
+        "messageFailed": "Fehler beim Senden der Nachricht: {error}",
+        "navigationFailed": "Fehler bei der Navigation: {error}",
+        "tryAgain": "Erneut versuchen"
+      }
     }
   }
 }
