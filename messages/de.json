@@ -410,6 +410,15 @@
       "heaviest": "Schwerstes",
       "avg": "Durchschn.",
       "showingTopN": "Top {count} Kategorien angezeigt"
+    },
+    "community": {
+      "forSale": "Zu verkaufen",
+      "tradeable": "Tauschbar",
+      "lendable": "Verleihbar",
+      "match": "Übereinstimmung",
+      "viewProfile": "Profil ansehen",
+      "sendMessage": "Nachricht senden",
+      "noMatches": "Keine Community-Angebote gefunden, die deinen Kriterien entsprechen."
     }
   }
 }

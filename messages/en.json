@@ -420,6 +420,15 @@
       "heaviest": "Heaviest",
       "avg": "Avg",
       "showingTopN": "Showing top {count} categories"
+    },
+    "community": {
+      "forSale": "For Sale",
+      "tradeable": "Tradeable",
+      "lendable": "Lendable",
+      "match": "match",
+      "viewProfile": "View Profile",
+      "sendMessage": "Send Message",
+      "noMatches": "No community offers found matching your criteria."
     }
   }
 }
