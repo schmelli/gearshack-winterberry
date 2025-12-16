@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { deleteGeneratedImage, getImageById } from '@/lib/supabase/loadout-images';
-import { deleteAIImage } from '@/lib/cloudinary-ai';
+import { deleteAIImage } from '@/lib/vercel-ai';
 
 const DeleteRequestSchema = z.object({
   imageId: z.string().uuid(),

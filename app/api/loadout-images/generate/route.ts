@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { generateAIImage, CloudinaryAIError } from '@/lib/cloudinary-ai';
+import { generateAIImage, AIGenerationError } from '@/lib/vercel-ai';
 import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 import type { StylePreferences } from '@/types/loadout-image';
 
@@ -81,13 +81,19 @@ export async function POST(request: NextRequest) {
 
     console.log('[API] Generating AI image for loadout:', loadoutId, { isRetry, userId: user.id });
 
-    // Generate AI image via Cloudinary
-    const cloudinaryResult = await generateAIImage({
+    // Generate AI image via Vercel AI SDK
+    const aiResult = await generateAIImage({
       prompt,
       negativePrompt,
       aspectRatio: '16:9',
       qualityMode: 'hd',
     });
+
+    // Extract public_id from Cloudinary URL for database storage
+    // URL format: https://res.cloudinary.com/cloud/image/upload/v1/folder/file.jpg
+    const urlParts = aiResult.url.split('/');
+    const publicIdWithExt = urlParts.slice(urlParts.indexOf('gearshack')).join('/');
+    const publicId = publicIdWithExt.replace(/\.[^/.]+$/, ''); // Remove extension
 
     // Generate alt-text from prompt
     const altText = `AI-generated outdoor scene: ${prompt.substring(0, 150)}`;
@@ -95,8 +101,8 @@ export async function POST(request: NextRequest) {
     // Save to database
     const savedImage = await insertGeneratedImage(supabase, {
       loadoutId,
-      cloudinaryPublicId: cloudinaryResult.public_id,
-      cloudinaryUrl: cloudinaryResult.secure_url,
+      cloudinaryPublicId: publicId,
+      cloudinaryUrl: aiResult.url,
       promptUsed: prompt,
       stylePreferences: stylePreferences as StylePreferences || null,
       altText,
@@ -116,8 +122,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[API] Image generation failed:', error);
 
-    // Handle Cloudinary AI specific errors
-    if (error instanceof CloudinaryAIError) {
+    // Handle AI generation specific errors
+    if (error instanceof AIGenerationError) {
       return NextResponse.json(
         {
           error: error.message,
