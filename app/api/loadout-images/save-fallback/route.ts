@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 
 const SaveFallbackRequestSchema = z.object({
@@ -13,29 +14,59 @@ const SaveFallbackRequestSchema = z.object({
   fallbackImageUrl: z.string().url(),
   fallbackImageId: z.string(),
   altText: z.string(),
-  userId: z.string().uuid(),
 });
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = SaveFallbackRequestSchema.parse(body);
 
-    const { loadoutId, fallbackImageUrl, fallbackImageId, altText, userId } =
-      validatedData;
+    const { loadoutId, fallbackImageUrl, fallbackImageId, altText } = validatedData;
+
+    // Verify loadout ownership
+    const { data: loadout, error: loadoutError } = await supabase
+      .from('loadouts')
+      .select('user_id')
+      .eq('id', loadoutId)
+      .single();
+
+    if (loadoutError || !loadout) {
+      return NextResponse.json(
+        { error: 'Loadout not found' },
+        { status: 404 }
+      );
+    }
+
+    if (loadout.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
 
     console.log('[API] Saving fallback image for loadout:', loadoutId);
 
     // Save fallback image to database
     // Use fallbackImageId as cloudinary_public_id for tracking
-    const savedImage = await insertGeneratedImage({
+    const savedImage = await insertGeneratedImage(supabase, {
       loadoutId,
       cloudinaryPublicId: `fallback/${fallbackImageId}`,
       cloudinaryUrl: fallbackImageUrl,
       promptUsed: `[FALLBACK] ${altText}`,
       stylePreferences: null,
       altText,
-      userId,
+      userId: user.id,
     });
 
     return NextResponse.json(

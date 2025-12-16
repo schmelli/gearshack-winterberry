@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 import { generateAIImage, CloudinaryAIError } from '@/lib/cloudinary-ai';
 import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 import type { StylePreferences } from '@/types/loadout-image';
@@ -25,7 +26,6 @@ const GenerateImageRequestSchema = z.object({
       atmosphere: z.string().max(50).optional(),
     })
     .optional(),
-  userId: z.string().uuid(),
   isRetry: z.boolean().optional(),
 });
 
@@ -35,6 +35,17 @@ const GenerateImageRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const validatedData = GenerateImageRequestSchema.parse(body);
@@ -44,11 +55,31 @@ export async function POST(request: NextRequest) {
       prompt,
       negativePrompt,
       stylePreferences,
-      userId,
       isRetry = false,
     } = validatedData;
 
-    console.log('[API] Generating AI image for loadout:', loadoutId, { isRetry });
+    // Verify loadout ownership
+    const { data: loadout, error: loadoutError } = await supabase
+      .from('loadouts')
+      .select('user_id')
+      .eq('id', loadoutId)
+      .single();
+
+    if (loadoutError || !loadout) {
+      return NextResponse.json(
+        { error: 'Loadout not found' },
+        { status: 404 }
+      );
+    }
+
+    if (loadout.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    console.log('[API] Generating AI image for loadout:', loadoutId, { isRetry, userId: user.id });
 
     // Generate AI image via Cloudinary
     const cloudinaryResult = await generateAIImage({
@@ -62,14 +93,14 @@ export async function POST(request: NextRequest) {
     const altText = `AI-generated outdoor scene: ${prompt.substring(0, 150)}`;
 
     // Save to database
-    const savedImage = await insertGeneratedImage({
+    const savedImage = await insertGeneratedImage(supabase, {
       loadoutId,
       cloudinaryPublicId: cloudinaryResult.public_id,
       cloudinaryUrl: cloudinaryResult.secure_url,
       promptUsed: prompt,
       stylePreferences: stylePreferences as StylePreferences || null,
       altText,
-      userId,
+      userId: user.id,
     });
 
     console.log('[API] Image generated and saved:', savedImage.id);

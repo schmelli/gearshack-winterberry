@@ -46,7 +46,7 @@ export function ImageHistorySelector({
       </h3>
 
       <div className="grid grid-cols-3 gap-2">
-        {images.map((image) => {
+        {images.map((image, index) => {
           const isActive = image.id === activeImageId;
 
           return (
@@ -57,9 +57,9 @@ export function ImageHistorySelector({
                 'group relative aspect-video overflow-hidden rounded-md border-2 transition-all',
                 isActive
                   ? 'border-primary ring-2 ring-primary ring-offset-2'
-                  : 'border-transparent hover:border-primary/50'
+                  : 'border-transparent hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary'
               )}
-              aria-label={`Select image ${images.indexOf(image) + 1}`}
+              aria-label={`Select image ${index + 1}`}
               aria-pressed={isActive}
             >
               {/* Image thumbnail */}
@@ -87,7 +87,7 @@ export function ImageHistorySelector({
 
               {/* Generation timestamp tooltip */}
               <div className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                #{images.indexOf(image) + 1}
+                #{index + 1}
               </div>
             </button>
           );

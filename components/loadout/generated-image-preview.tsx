@@ -38,6 +38,9 @@ export interface GeneratedImagePreviewProps {
 
   /** Click handler for image */
   onClick?: () => void;
+
+  /** Whether this image should be loaded with priority (only for active/visible images) */
+  isPriority?: boolean;
 }
 
 /**
@@ -54,6 +57,7 @@ export function GeneratedImagePreview({
   textColorClass = 'text-white',
   className,
   onClick,
+  isPriority = false,
 }: GeneratedImagePreviewProps) {
   return (
     <div className={cn('w-full', className)}>
@@ -68,6 +72,7 @@ export function GeneratedImagePreview({
             onClick={onClick}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick ? 0 : undefined}
+            aria-label={onClick ? `View loadout image: ${altText}` : undefined}
             onKeyDown={(e) => {
               if (onClick && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
@@ -82,7 +87,7 @@ export function GeneratedImagePreview({
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority
+              priority={isPriority}
             />
 
             {/* Adaptive gradient overlay for text contrast */}

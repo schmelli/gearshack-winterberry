@@ -6,26 +6,58 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
 import { deleteGeneratedImage, getImageById } from '@/lib/supabase/loadout-images';
 import { deleteAIImage } from '@/lib/cloudinary-ai';
 
 const DeleteRequestSchema = z.object({
   imageId: z.string().uuid(),
   loadoutId: z.string().uuid(),
-  userId: z.string().uuid(),
 });
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = DeleteRequestSchema.parse(body);
 
     const { imageId, loadoutId } = validatedData;
 
+    // Verify loadout ownership
+    const { data: loadout, error: loadoutError } = await supabase
+      .from('loadouts')
+      .select('user_id')
+      .eq('id', loadoutId)
+      .single();
+
+    if (loadoutError || !loadout) {
+      return NextResponse.json(
+        { error: 'Loadout not found' },
+        { status: 404 }
+      );
+    }
+
+    if (loadout.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
     console.log('[API] Deleting image:', imageId, 'from loadout:', loadoutId);
 
     // Get image details before deleting
-    const image = await getImageById(imageId);
+    const image = await getImageById(supabase, imageId);
 
     if (image) {
       // Delete from Cloudinary (if not a fallback image)
@@ -35,7 +67,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from database
-    await deleteGeneratedImage(imageId, loadoutId);
+    await deleteGeneratedImage(supabase, imageId, loadoutId);
 
     return NextResponse.json(
       {

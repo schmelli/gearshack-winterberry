@@ -149,8 +149,8 @@ export function getTextColor(imageElement: HTMLImageElement): 'white' | 'black' 
   // We need to account for this when determining text color
 
   // Apply gradient effect to luminance (approximate 60% black overlay at bottom)
-  const overlayDarkening = 0.4; // 60% opacity black overlay reduces luminance
-  const adjustedLuminance = imageLuminance * overlayDarkening;
+  const OVERLAY_OPACITY = 0.6; // 60% black overlay at the bottom
+  const adjustedLuminance = imageLuminance * (1 - OVERLAY_OPACITY); // Retain 40% of original brightness
 
   // Threshold for text color decision
   // Lower threshold (0.4) because gradient already darkens background
