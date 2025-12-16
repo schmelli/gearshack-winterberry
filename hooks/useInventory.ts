@@ -66,7 +66,7 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
-  const { getLabelById, isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  const { getLabelById, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
@@ -219,6 +219,7 @@ export function useInventory(): UseInventoryReturn {
 
     // Category utilities
     getCategoryLabel: getLabelById,
+    refreshCategories,
 
     // Error state
     categoriesError,

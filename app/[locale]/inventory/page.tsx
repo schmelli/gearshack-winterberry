@@ -35,7 +35,8 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import type { User } from '@supabase/supabase-js';
-import type { YouTubeVideo, GearInsight } from '@/types/gear';
+import type { YouTubeVideo } from '@/types/youtube';
+import type { GearInsight } from '@/types/geargraph';
 
 // Component that uses useSearchParams - must be wrapped in Suspense
 function InventoryWithModal() {
@@ -60,6 +61,7 @@ function InventoryWithModal() {
     isLoading,
     getCategoryLabel,
     categoriesError,
+    refreshCategories,
   } = useInventory();
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
@@ -116,6 +118,7 @@ function InventoryWithModal() {
     isLoading={isLoading}
     getCategoryLabel={getCategoryLabel}
     categoriesError={categoriesError}
+    refreshCategories={refreshCategories}
     isOpen={isOpen}
     gearId={gearId}
     open={open}
@@ -158,6 +161,7 @@ interface InventoryContentProps {
   isLoading: boolean;
   getCategoryLabel: (categoryId: string | null) => string;
   categoriesError: string | null;
+  refreshCategories: () => Promise<void>;
   isOpen: boolean;
   gearId: string | null;
   open: (id: string) => void;
@@ -195,6 +199,7 @@ function InventoryContent({
   isLoading,
   getCategoryLabel,
   categoriesError,
+  refreshCategories,
   isOpen,
   gearId,
   open,
@@ -236,9 +241,17 @@ function InventoryContent({
       {/* Categories Error Warning */}
       {categoriesError && (
         <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Warning:</strong> Failed to load categories. Items may show as "Uncategorized". Error: {categoriesError}
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+              <strong>Warning:</strong> Failed to load categories. Items may show as "Uncategorized". Error: {categoriesError}
+            </p>
+            <button
+              onClick={() => refreshCategories()}
+              className="text-sm font-medium text-amber-900 hover:text-amber-700 dark:text-amber-100 dark:hover:text-amber-300 underline underline-offset-2 whitespace-nowrap"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
 

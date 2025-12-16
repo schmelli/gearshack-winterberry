@@ -139,6 +139,7 @@ export interface UseInventoryReturn {
 
   // Category utilities
   getCategoryLabel: (categoryId: string | null) => string;
+  refreshCategories: () => Promise<void>;
 
   // Error state
   categoriesError: string | null;

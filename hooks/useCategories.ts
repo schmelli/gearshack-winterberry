@@ -63,6 +63,7 @@ export function useCategories(): UseCategoriesReturn {
   const isLoading = useCategoriesStore((state) => state.isLoading);
   const error = useCategoriesStore((state) => state.error);
   const fetchCategories = useCategoriesStore((state) => state.fetchCategories);
+  const refresh = useCategoriesStore((state) => state.refresh);
 
   // Fetch categories on mount if not already initialized
   useEffect(() => {
@@ -101,6 +102,6 @@ export function useCategories(): UseCategoriesReturn {
     hierarchy,
     getOptionsForLevel,
     getLabelById,
-    refresh: fetchCategories,
+    refresh,
   };
 }

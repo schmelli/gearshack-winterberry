@@ -26,12 +26,23 @@ interface CategoriesStore {
   error: string | null;
   /** Indicates if categories have been fetched at least once */
   _initialized: boolean;
+  /** Timestamp when categories were last fetched (for TTL) */
+  _lastFetchedAt: number | null;
 
   /** Fetch categories from Supabase */
   fetchCategories: () => Promise<void>;
+  /** Force refresh categories (bypasses cache) */
+  refresh: () => Promise<void>;
   /** Clear error state */
   clearError: () => void;
 }
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** Cache TTL in milliseconds (24 hours) */
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // =============================================================================
 // Store Implementation
@@ -43,16 +54,23 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
   isLoading: false,
   error: null,
   _initialized: false,
+  _lastFetchedAt: null,
 
   // Actions
   fetchCategories: async () => {
-    const { _initialized, isLoading } = get();
+    const { _initialized, _lastFetchedAt, isLoading } = get();
 
     // Prevent redundant fetches if already loading
     if (isLoading) return;
 
-    // Skip fetch if already initialized (cache hit)
-    if (_initialized) return;
+    // Check if cache is still valid (within TTL)
+    if (_initialized && _lastFetchedAt) {
+      const cacheAge = Date.now() - _lastFetchedAt;
+      if (cacheAge < CACHE_TTL_MS) {
+        // Cache hit - skip fetch
+        return;
+      }
+    }
 
     set({ isLoading: true, error: null });
 
@@ -62,6 +80,7 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
         categories: data,
         isLoading: false,
         _initialized: true,
+        _lastFetchedAt: Date.now(),
         error: null,
       });
     } catch (err) {
@@ -72,6 +91,19 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
       });
       console.error('[useCategoriesStore] fetchCategories error:', err);
     }
+  },
+
+  refresh: async () => {
+    const { isLoading } = get();
+
+    // Prevent redundant fetches if already loading
+    if (isLoading) return;
+
+    // Force refresh by clearing cache flags
+    set({ _initialized: false, _lastFetchedAt: null });
+
+    // Then fetch
+    await get().fetchCategories();
   },
 
   clearError: () => {
