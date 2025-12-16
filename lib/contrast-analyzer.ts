@@ -5,6 +5,21 @@
  */
 
 // =============================================================================
+// UI Constants
+// =============================================================================
+
+/**
+ * Gradient overlay opacity applied to loadout hero images
+ * This should match the CSS gradient in the UI components
+ *
+ * Value: 0.6 = 60% black overlay at the bottom of the gradient
+ * Remaining brightness: 1 - 0.6 = 0.4 (40% of original brightness)
+ *
+ * If the UI gradient changes, update this constant accordingly
+ */
+export const HERO_IMAGE_GRADIENT_OVERLAY_OPACITY = 0.6;
+
+// =============================================================================
 // Luminance Calculation
 // =============================================================================
 
@@ -156,9 +171,8 @@ export function getTextColor(imageElement: HTMLImageElement): 'white' | 'black' 
   // - Bottom: 60% black overlay
   // We need to account for this when determining text color
 
-  // Apply gradient effect to luminance (approximate 60% black overlay at bottom)
-  const OVERLAY_OPACITY = 0.6; // 60% black overlay at the bottom
-  const adjustedLuminance = imageLuminance * (1 - OVERLAY_OPACITY); // Retain 40% of original brightness
+  // Apply gradient effect to luminance
+  const adjustedLuminance = imageLuminance * (1 - HERO_IMAGE_GRADIENT_OVERLAY_OPACITY); // Retain 40% of original brightness
 
   // Threshold for text color decision
   // Lower threshold (0.4) because gradient already darkens background
@@ -200,7 +214,7 @@ export function validateTextOverlay(
   const backgroundLuminance = analyzeImageBrightness(imageElement);
 
   // Apply gradient overlay effect
-  const adjustedLuminance = backgroundLuminance * 0.4;
+  const adjustedLuminance = backgroundLuminance * (1 - HERO_IMAGE_GRADIENT_OVERLAY_OPACITY);
 
   const contrastRatio = calculateTextContrast(textColor, adjustedLuminance);
   const isValid = contrastRatio >= 4.5;

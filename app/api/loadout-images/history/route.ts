@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[API] Fetching image history for loadout:', loadoutId);
 
-    const images = await getImageHistory(supabase, loadoutId);
+    const images = await getImageHistory(loadoutId);
 
     return NextResponse.json(
       {

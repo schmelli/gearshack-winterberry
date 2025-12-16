@@ -15,6 +15,7 @@ import type {
 } from '@/types/loadout-image';
 import { buildPrompt, generateAltText } from '@/lib/prompt-builder';
 import { selectFallbackImage } from '@/lib/fallback-images';
+import { AI_GENERATION_RETRY_DELAY_MS } from '@/lib/config/image-generation';
 
 // =============================================================================
 // Hook Interface
@@ -105,7 +106,7 @@ export function useLoadoutImageGeneration(
   const refreshHistory = useCallback(async (): Promise<void> => {
     try {
       const response = await fetch(
-        `/api/loadout-images/history?loadoutId=${loadoutId}&userId=${userId}`
+        `/api/loadout-images/history?loadoutId=${loadoutId}`
       );
 
       if (response.ok) {
@@ -118,7 +119,7 @@ export function useLoadoutImageGeneration(
     } catch (error) {
       console.error('[ImageGen] Failed to refresh history:', error);
     }
-  }, [loadoutId, userId]);
+  }, [loadoutId]);
 
   // =============================================================================
   // Core Generation Function (T015)
@@ -240,8 +241,8 @@ export function useLoadoutImageGeneration(
         });
 
         try {
-          // Wait 1 second before retry
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          // Wait before retry
+          await new Promise((resolve) => setTimeout(resolve, AI_GENERATION_RETRY_DELAY_MS));
 
           // Retry the generation
           await executeRetry(stylePreferences, startTime);

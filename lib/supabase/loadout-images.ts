@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { GeneratedLoadoutImage, StylePreferences } from '@/types/loadout-image';
+import { MAX_IMAGES_PER_LOADOUT } from '@/lib/config/image-generation';
 
 // =============================================================================
 // ⚠️ SECURITY WARNING - READ BEFORE USING
@@ -150,10 +151,10 @@ export async function insertGeneratedImage(params: {
 // =============================================================================
 
 /**
- * Get image generation history for a loadout (up to 3 most recent)
+ * Get image generation history for a loadout (up to MAX_IMAGES_PER_LOADOUT most recent)
  *
  * @param loadoutId - UUID of the loadout
- * @returns Array of up to 3 generated images, ordered by generation_timestamp DESC
+ * @returns Array of up to MAX_IMAGES_PER_LOADOUT generated images, ordered by generation_timestamp DESC
  */
 export async function getImageHistory(
   loadoutId: string
@@ -165,7 +166,7 @@ export async function getImageHistory(
     .select('*')
     .eq('loadout_id', loadoutId)
     .order('generation_timestamp', { ascending: false })
-    .limit(3);
+    .limit(MAX_IMAGES_PER_LOADOUT);
 
   if (error) {
     throw new Error(`Failed to fetch image history: ${error.message}`);
@@ -237,6 +238,14 @@ export async function getImageById(
 /**
  * Set a specific image as the active image for a loadout
  *
+ * Uses a more robust approach to minimize inconsistent state:
+ * 1. Validate image exists and belongs to loadout (fail fast)
+ * 2. Update loadout.hero_image_id first (most critical operation)
+ * 3. Update is_active flags (cosmetic, can be eventually consistent)
+ *
+ * If step 3 fails, the loadout still references the correct image,
+ * and the active flags can be fixed by a background job or next operation.
+ *
  * @param imageId - UUID of the image to activate
  * @param loadoutId - UUID of the loadout
  */
@@ -246,35 +255,55 @@ export async function setActiveImage(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
-  // Step 1: Deactivate all images for this loadout
+  // Step 1: Validate image exists and belongs to this loadout
+  const { data: image, error: fetchError } = await supabase
+    .from('generated_images')
+    .select('id, loadout_id')
+    .eq('id', imageId)
+    .single();
+
+  if (fetchError || !image) {
+    throw new Error(`Image not found: ${fetchError?.message || 'Unknown error'}`);
+  }
+
+  if (image.loadout_id !== loadoutId) {
+    throw new Error('Image does not belong to specified loadout');
+  }
+
+  // Step 2: Update loadout.hero_image_id FIRST (most critical)
+  // This ensures the loadout always points to a valid image
+  const { error: updateLoadoutError } = await supabase
+    .from('loadouts')
+    .update({ hero_image_id: imageId })
+    .eq('id', loadoutId);
+
+  if (updateLoadoutError) {
+    throw new Error(`Failed to update loadout hero_image_id: ${updateLoadoutError.message}`);
+  }
+
+  // Step 3: Deactivate all other images for this loadout
+  // If this fails, the loadout still points to the correct image
   const { error: deactivateError } = await supabase
     .from('generated_images')
     .update({ is_active: false })
     .eq('loadout_id', loadoutId);
 
   if (deactivateError) {
-    throw new Error(`Failed to deactivate images: ${deactivateError.message}`);
+    console.error('[LoadoutImages] Failed to deactivate images (non-critical):', deactivateError);
+    // Don't throw - the loadout is already updated correctly
   }
 
-  // Step 2: Activate the selected image
+  // Step 4: Activate the selected image
+  // If this fails, the loadout still points to the correct image
   const { error: activateError } = await supabase
     .from('generated_images')
     .update({ is_active: true })
     .eq('id', imageId)
-    .eq('loadout_id', loadoutId); // Extra safety check
+    .eq('loadout_id', loadoutId);
 
   if (activateError) {
-    throw new Error(`Failed to activate image: ${activateError.message}`);
-  }
-
-  // Step 3: Update loadout hero_image_id
-  const { error: updateError } = await supabase
-    .from('loadouts')
-    .update({ hero_image_id: imageId })
-    .eq('id', loadoutId);
-
-  if (updateError) {
-    console.error('[LoadoutImages] Failed to update loadout hero_image_id:', updateError);
+    console.error('[LoadoutImages] Failed to activate image (non-critical):', activateError);
+    // Don't throw - the loadout is already updated correctly
   }
 }
 
@@ -347,8 +376,8 @@ export async function deleteAllImagesForLoadout(
 // =============================================================================
 
 /**
- * Delete oldest images when count exceeds 3 per loadout
- * Keeps only the 3 most recent images
+ * Delete oldest images when count exceeds MAX_IMAGES_PER_LOADOUT
+ * Keeps only the most recent images
  *
  * @param loadoutId - UUID of the loadout
  */
@@ -367,9 +396,9 @@ async function cleanupOldImages(loadoutId: string): Promise<void> {
     return;
   }
 
-  // If more than 3 images, delete the oldest ones
-  if (allImages && allImages.length > 3) {
-    const imagesToDelete = allImages.slice(3); // Keep first 3, delete rest
+  // If more than MAX_IMAGES_PER_LOADOUT, delete the oldest ones
+  if (allImages && allImages.length > MAX_IMAGES_PER_LOADOUT) {
+    const imagesToDelete = allImages.slice(MAX_IMAGES_PER_LOADOUT); // Keep first MAX_IMAGES_PER_LOADOUT, delete rest
     const idsToDelete = imagesToDelete.map((img) => img.id);
 
     const { error: deleteError } = await supabase

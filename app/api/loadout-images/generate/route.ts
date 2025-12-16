@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { generateAIImage, AIGenerationError } from '@/lib/vercel-ai';
 import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
+import { extractPublicId } from '@/lib/cloudinary-utils';
 import type { StylePreferences } from '@/types/loadout-image';
 
 // =============================================================================
@@ -90,23 +91,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Extract public_id from Cloudinary URL for database storage
-    // URL format: https://res.cloudinary.com/cloud/image/upload/v1/folder/file.jpg
-    const urlParts = aiResult.url.split('/');
-    const gearshackIndex = urlParts.indexOf('gearshack');
-
-    if (gearshackIndex === -1) {
-      console.error('[API] Invalid Cloudinary URL format:', aiResult.url);
-      throw new Error('Invalid Cloudinary URL format: missing gearshack folder');
-    }
-
-    const publicIdWithExt = urlParts.slice(gearshackIndex).join('/');
-    const publicId = publicIdWithExt.replace(/\.[^.]+$/, ''); // Remove last extension only
+    const publicId = extractPublicId(aiResult.url, 'gearshack');
 
     // Generate alt-text from prompt
     const altText = `AI-generated outdoor scene: ${prompt.substring(0, 150)}`;
 
     // Save to database
-    const savedImage = await insertGeneratedImage(supabase, {
+    const savedImage = await insertGeneratedImage({
       loadoutId,
       cloudinaryPublicId: publicId,
       cloudinaryUrl: aiResult.url,

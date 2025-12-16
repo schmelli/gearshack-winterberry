@@ -6,6 +6,7 @@
 
 import { experimental_generateImage as generateImage } from 'ai';
 import { z } from 'zod';
+import { AI_GENERATION_TIMEOUT_MS } from '@/lib/config/image-generation';
 
 // =============================================================================
 // Configuration
@@ -57,7 +58,6 @@ export class AIGenerationError extends Error {
 
 const RATE_LIMIT_ERRORS = [420, 429];
 const TRANSIENT_ERRORS = [500, 502, 503, 504];
-const TIMEOUT_MS = 30000; // 30 second timeout for AI generation
 
 /**
  * Check if error is transient and should be retried
@@ -119,7 +119,7 @@ export async function generateAIImage(
       // Quality and aspect ratio settings
       size: validatedRequest.aspectRatio === '16:9' ? '1024x576' : '1024x1024',
       // Add timeout
-      abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+      abortSignal: AbortSignal.timeout(AI_GENERATION_TIMEOUT_MS),
     });
 
     // Convert image blob to URL (upload to storage or use data URL)
