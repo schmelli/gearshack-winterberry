@@ -14,6 +14,7 @@
 import { Search, X, ArrowUpDown } from 'lucide-react';
 import type { ViewDensity, SortOption } from '@/types/inventory';
 import { SORT_OPTIONS } from '@/types/inventory';
+import type { CategoryOption } from '@/types/category';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -24,7 +25,6 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ViewDensityToggle } from './ViewDensityToggle';
-import { getCategories } from '@/lib/taxonomy/taxonomy-utils';
 
 // =============================================================================
 // Types
@@ -68,6 +68,7 @@ interface GalleryToolbarProps {
   // Category Filter
   categoryFilter: string | null;
   onCategoryChange: (categoryId: string | null) => void;
+  categoryOptions: CategoryOption[];
 
   // Sorting (Feature 046)
   sortOption: SortOption;
@@ -98,6 +99,7 @@ export function GalleryToolbar({
   onSearchChange,
   categoryFilter,
   onCategoryChange,
+  categoryOptions,
   sortOption,
   onSortChange,
   viewDensity,
@@ -108,7 +110,6 @@ export function GalleryToolbar({
   filteredCount,
   translations: translationsProp,
 }: GalleryToolbarProps) {
-  const categories = getCategories();
   const showingFiltered = hasActiveFilters && filteredCount !== itemCount;
   const t = {
     ...DEFAULT_TRANSLATIONS,
@@ -150,8 +151,8 @@ export function GalleryToolbar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t.filterAll}</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
+              {categoryOptions.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
                   {category.label}
                 </SelectItem>
               ))}

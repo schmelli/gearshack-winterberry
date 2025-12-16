@@ -24,6 +24,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { useInventory } from '@/hooks/useInventory';
+import { useCategories } from '@/hooks/useCategories';
 import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -34,6 +35,7 @@ import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
+import type { CategoryOption } from '@/types/category';
 import type { User } from '@supabase/supabase-js';
 import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
@@ -63,6 +65,10 @@ function InventoryWithModal() {
     categoriesError,
     refreshCategories,
   } = useInventory();
+
+  // Get category options for filter dropdown
+  const { getOptionsForLevel } = useCategories();
+  const categoryOptions = getOptionsForLevel(1); // Level 1 = top-level categories
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
   const { isOpen, gearId, open, close, isMobile } = useGearDetailModal();
@@ -108,6 +114,7 @@ function InventoryWithModal() {
     setSearchQuery={setSearchQuery}
     categoryFilter={categoryFilter}
     setCategoryFilter={setCategoryFilter}
+    categoryOptions={categoryOptions}
     sortOption={sortOption}
     setSortOption={setSortOption}
     groupedItems={groupedItems}
@@ -151,6 +158,7 @@ interface InventoryContentProps {
   setSearchQuery: (query: string) => void;
   categoryFilter: string | null;
   setCategoryFilter: (categoryId: string | null) => void;
+  categoryOptions: CategoryOption[];
   sortOption: SortOption;
   setSortOption: (option: SortOption) => void;
   groupedItems: CategoryGroup[];
@@ -189,6 +197,7 @@ function InventoryContent({
   setSearchQuery,
   categoryFilter,
   setCategoryFilter,
+  categoryOptions,
   sortOption,
   setSortOption,
   groupedItems,
@@ -277,6 +286,7 @@ function InventoryContent({
             onSearchChange={setSearchQuery}
             categoryFilter={categoryFilter}
             onCategoryChange={setCategoryFilter}
+            categoryOptions={categoryOptions}
             sortOption={sortOption}
             onSortChange={setSortOption}
             viewDensity={viewDensity}
