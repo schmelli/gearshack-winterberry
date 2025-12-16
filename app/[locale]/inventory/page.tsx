@@ -243,13 +243,13 @@ function InventoryContent({
         <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
           <div className="flex items-start justify-between gap-4">
             <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
-              <strong>Warning:</strong> Failed to load categories. Items may show as "Uncategorized". Error: {categoriesError}
+              <strong>{t('categoriesError.warning')}:</strong> {t('categoriesError.message')}
             </p>
             <button
               onClick={() => refreshCategories()}
               className="text-sm font-medium text-amber-900 hover:text-amber-700 dark:text-amber-100 dark:hover:text-amber-300 underline underline-offset-2 whitespace-nowrap"
             >
-              Retry
+              {t('categoriesError.retry')}
             </button>
           </div>
         </div>

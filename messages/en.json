@@ -17,7 +17,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "uncategorized": "Uncategorized"
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
@@ -180,7 +181,12 @@
     "showingItems": "Showing {filtered} of {total} items",
     "clearFilters": "Clear filters",
     "totalWeight": "Total Weight",
-    "totalValue": "Total Value"
+    "totalValue": "Total Value",
+    "categoriesError": {
+      "warning": "Warning",
+      "message": "Failed to load categories. Items may show as \"Uncategorized\".",
+      "retry": "Retry"
+    }
   },
   "GearEditor": {
     "addTitle": "Add New Gear",

@@ -103,6 +103,12 @@ export function useInventory(): UseInventoryReturn {
   // Derived: Filtered and Sorted Items (Feature 046)
   // ---------------------------------------------------------------------------
   const filteredItems = useMemo(() => {
+    // If categories are still loading, return unsorted items to avoid race condition
+    // (getLabelById may return 'Uncategorized' for valid IDs during load)
+    if (categoriesLoading) {
+      return items;
+    }
+
     // Step 1: Filter items
     const filtered = items.filter((item) => {
       // Search filter (case-insensitive, matches name or brand)
@@ -141,7 +147,7 @@ export function useInventory(): UseInventoryReturn {
     });
 
     return sorted;
-  }, [items, searchQuery, categoryFilter, sortOption, getLabelById]);
+  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading]);
 
   // ---------------------------------------------------------------------------
   // Derived: Grouped Items by Category (Feature 046)

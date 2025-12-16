@@ -12,7 +12,7 @@
 'use client';
 
 import { useEffect, useMemo, useCallback } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import {
   getLocalizedLabel,
@@ -57,6 +57,7 @@ interface UseCategoriesReturn {
  */
 export function useCategories(): UseCategoriesReturn {
   const locale = useLocale();
+  const t = useTranslations('Common');
 
   // Get categories from global Zustand store
   const categories = useCategoriesStore((state) => state.categories);
@@ -87,12 +88,12 @@ export function useCategories(): UseCategoriesReturn {
   // Get localized label by ID
   const getLabelById = useCallback(
     (id: string | null | undefined): string => {
-      if (!id) return 'Uncategorized';
+      if (!id) return t('uncategorized');
       const category = categories.find((c) => c.id === id);
-      if (!category) return 'Uncategorized';
+      if (!category) return t('uncategorized');
       return getLocalizedLabel(category, locale);
     },
-    [categories, locale]
+    [categories, locale, t]
   );
 
   return {

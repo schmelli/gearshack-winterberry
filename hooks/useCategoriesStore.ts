@@ -33,8 +33,6 @@ interface CategoriesStore {
   fetchCategories: () => Promise<void>;
   /** Force refresh categories (bypasses cache) */
   refresh: () => Promise<void>;
-  /** Clear error state */
-  clearError: () => void;
 }
 
 // =============================================================================
@@ -85,9 +83,11 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load categories';
+      // Keep existing categories on error (preserve stale data)
       set({
         error: message,
         isLoading: false,
+        // Don't clear categories - keep stale data visible
       });
       console.error('[useCategoriesStore] fetchCategories error:', err);
     }
@@ -104,9 +104,5 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
 
     // Then fetch
     await get().fetchCategories();
-  },
-
-  clearError: () => {
-    set({ error: null });
   },
 }));
