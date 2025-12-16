@@ -32,6 +32,7 @@ import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
+import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 
 // =============================================================================
 // Types
@@ -62,6 +63,12 @@ interface GearDetailContentProps {
   onInsightDismissed?: (insight: GearInsight) => void;
   /** Optional class name */
   className?: string;
+  /** Feature 049 US3: Whether item is from wishlist (shows Move button) */
+  isWishlistItem?: boolean;
+  /** Feature 049 US3: Callback to move wishlist item to inventory */
+  onMoveToInventory?: (itemId: string) => Promise<void>;
+  /** Feature 049 US3: Callback after successful move */
+  onMoveComplete?: () => void;
 }
 
 // =============================================================================
@@ -178,6 +185,9 @@ export function GearDetailContent({
   onEditClick,
   onInsightDismissed,
   className,
+  isWishlistItem = false,
+  onMoveToInventory,
+  onMoveComplete,
 }: GearDetailContentProps) {
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
@@ -203,19 +213,34 @@ export function GearDetailContent({
                 )}
               </Tooltip>
             </TooltipProvider>
-            {/* Edit button snug to name */}
-            <Button
-              asChild
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 shrink-0 -mt-0.5"
-              onClick={onEditClick}
-            >
-              <Link href={`/inventory/${item.id}/edit`}>
-                <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit {item.name}</span>
-              </Link>
-            </Button>
+            {/* Action buttons */}
+            <div className="flex items-center gap-1 shrink-0 -mt-0.5">
+              {/* Feature 049 US3: Move to Inventory button for wishlist items */}
+              {isWishlistItem && onMoveToInventory && (
+                <MoveToInventoryButton
+                  itemId={item.id}
+                  itemName={item.name}
+                  onMove={onMoveToInventory}
+                  onMoveComplete={onMoveComplete}
+                  variant="ghost"
+                  iconOnly
+                  className="h-7 w-7"
+                />
+              )}
+              {/* Edit button snug to name */}
+              <Button
+                asChild
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={onEditClick}
+              >
+                <Link href={`/inventory/${item.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Edit {item.name}</span>
+                </Link>
+              </Button>
+            </div>
           </div>
           {/* Brand with optional link */}
           {item.brand && (

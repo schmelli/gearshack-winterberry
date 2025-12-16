@@ -97,6 +97,7 @@ function InventoryWithModal() {
     clearFilters: wishlistClearFilters,
     itemCount: wishlistItemCount,
     filteredCount: wishlistFilteredCount,
+    moveToInventory,
   } = useWishlist();
 
   // Feature 049: Determine active hook based on view mode
@@ -117,8 +118,17 @@ function InventoryWithModal() {
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
   const { isOpen, gearId, open, close, isMobile } = useGearDetailModal();
 
-  // Find the selected item for the modal
-  const selectedItem = gearId ? items.find((item) => item.id === gearId) ?? null : null;
+  // Find the selected item for the modal - search both inventory and wishlist
+  const selectedItem = gearId
+    ? items.find((item) => item.id === gearId) ??
+      wishlistItems.find((item) => item.id === gearId) ??
+      null
+    : null;
+
+  // Feature 049 US3: Determine if selected item is from wishlist
+  const isSelectedItemFromWishlist = gearId
+    ? wishlistItems.some((item) => item.id === gearId)
+    : false;
 
   // Feature 045: YouTube reviews for selected item
   const {
@@ -187,6 +197,8 @@ function InventoryWithModal() {
     insightsLoading={insightsLoading}
     insightsError={insightsError}
     dismissInsight={dismissInsight}
+    moveToInventory={moveToInventory}
+    isSelectedItemFromWishlist={isSelectedItemFromWishlist}
   />;
 }
 
@@ -234,6 +246,10 @@ interface InventoryContentProps {
   insightsLoading: boolean;
   insightsError: string | null;
   dismissInsight: (content: string) => void;
+  /** Feature 049 US3: Move wishlist item to inventory */
+  moveToInventory: (itemId: string) => Promise<void>;
+  /** Feature 049 US3: Whether the selected item in the modal is from wishlist */
+  isSelectedItemFromWishlist: boolean;
 }
 
 function InventoryContent({
@@ -276,6 +292,8 @@ function InventoryContent({
   insightsLoading,
   insightsError,
   dismissInsight,
+  moveToInventory,
+  isSelectedItemFromWishlist,
 }: InventoryContentProps) {
   // Loading state
   if (isLoading) {
@@ -380,6 +398,8 @@ function InventoryContent({
             getItemCountLabel={(count) => t('itemCount', { count })}
             getCategoryLabel={getCategoryLabel}
             context={viewMode}
+            onMoveToInventory={viewMode === 'wishlist' ? moveToInventory : undefined}
+            onMoveComplete={viewMode === 'wishlist' ? () => setViewMode('inventory') : undefined}
           />
         </>
       )}
@@ -399,6 +419,9 @@ function InventoryContent({
         insightsError={insightsError}
         userId={user?.id}
         onInsightDismissed={(insight) => dismissInsight(insight.content)}
+        isWishlistItem={isSelectedItemFromWishlist}
+        onMoveToInventory={isSelectedItemFromWishlist ? moveToInventory : undefined}
+        onMoveComplete={isSelectedItemFromWishlist ? () => setViewMode('inventory') : undefined}
       />
     </main>
   );

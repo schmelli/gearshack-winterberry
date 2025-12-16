@@ -44,6 +44,10 @@ interface GalleryGridProps {
   getCategoryLabel: (categoryId: string | null) => string;
   /** Context for card rendering - Feature 049: wishlist hides availability markers */
   context?: 'inventory' | 'wishlist';
+  /** Feature 049 US3: Callback to move wishlist item to inventory */
+  onMoveToInventory?: (itemId: string) => Promise<void>;
+  /** Feature 049 US3: Callback after successful move (for navigation) */
+  onMoveComplete?: () => void;
 }
 
 // =============================================================================
@@ -74,6 +78,8 @@ export function GalleryGrid({
   getItemCountLabel,
   getCategoryLabel,
   context = 'inventory',
+  onMoveToInventory,
+  onMoveComplete,
 }: GalleryGridProps) {
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -125,6 +131,8 @@ export function GalleryGrid({
                   onClick={onItemClick ? () => onItemClick(item.id) : undefined}
                   getCategoryLabel={getCategoryLabel}
                   context={context}
+                  onMoveToInventory={onMoveToInventory}
+                  onMoveComplete={onMoveComplete}
                 />
               ))}
             </div>
@@ -145,6 +153,8 @@ export function GalleryGrid({
           onClick={onItemClick ? () => onItemClick(item.id) : undefined}
           getCategoryLabel={getCategoryLabel}
           context={context}
+          onMoveToInventory={onMoveToInventory}
+          onMoveComplete={onMoveComplete}
         />
       ))}
     </div>

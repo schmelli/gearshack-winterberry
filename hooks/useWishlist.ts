@@ -21,6 +21,7 @@ import {
   checkWishlistDuplicate,
   DuplicateError,
 } from '@/lib/supabase/wishlist-queries';
+import { gearItemFromDb } from '@/lib/supabase/transformers';
 import type {
   WishlistItem,
   UseWishlistReturn,
@@ -28,7 +29,9 @@ import type {
   AddWishlistItemParams,
   UpdateWishlistItemParams,
 } from '@/types/wishlist';
+import type { Tables } from '@/types/database';
 import { useCategories } from '@/hooks/useCategories';
+import { useSupabaseStore } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
 // Session Storage Keys
@@ -78,6 +81,12 @@ export function useWishlist(): UseWishlistReturn {
   // Categories Integration
   // ---------------------------------------------------------------------------
   const { getLabelById, isLoading: categoriesLoading } = useCategories();
+
+  // ---------------------------------------------------------------------------
+  // Zustand Store for Inventory Sync (Feature 049 US3)
+  // ---------------------------------------------------------------------------
+  const inventoryItems = useSupabaseStore((state) => state.items);
+  const setRemoteGearItems = useSupabaseStore((state) => state.setRemoteGearItems);
 
   // ---------------------------------------------------------------------------
   // Persist Sort Option to SessionStorage
@@ -170,22 +179,32 @@ export function useWishlist(): UseWishlistReturn {
 
   /**
    * Move item from wishlist to inventory
+   * Feature 049 US3: Also updates zustand store with the moved item
    */
   const moveToInventory = useCallback(async (itemId: string) => {
     try {
-      await moveWishlistItemToInventory(itemId);
+      // Get the item name before moving (for toast message)
       const movedItem = wishlistItems.find((item) => item.id === itemId);
-      setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
-      toast.success(movedItem ? `${movedItem.name} moved to inventory!` : 'Item moved to inventory!');
+      const itemName = movedItem?.name ?? 'Item';
 
-      // Trigger a refresh of the inventory store (if needed)
-      // This would be handled by the parent component or useSupabaseStore
+      // Move item in database (returns the updated database row)
+      const updatedDbRow = await moveWishlistItemToInventory(itemId);
+
+      // Remove from local wishlist state
+      setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
+
+      // Feature 049 US3: Add the moved item to the inventory zustand store
+      // Transform the database row to GearItem and add to inventory
+      const transformedItem = gearItemFromDb(updatedDbRow as Tables<'gear_items'>);
+      setRemoteGearItems([transformedItem, ...inventoryItems]);
+
+      toast.success(`${itemName} moved to inventory!`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to move item';
       toast.error(message);
       throw err;
     }
-  }, [wishlistItems]);
+  }, [wishlistItems, inventoryItems, setRemoteGearItems]);
 
   // ---------------------------------------------------------------------------
   // Duplicate Detection Helper

@@ -94,22 +94,22 @@
 
 ### Implementation for User Story 2
 
-- [ ] T036 [P] [US2] Create hooks/useCommunityAvailability.ts with 5-minute TTL cache using useRef
-- [ ] T037 [US2] Implement fetchAvailability action in useCommunityAvailability calling lib/supabase/community-matching
-- [ ] T038 [US2] Implement refreshAvailability action in useCommunityAvailability bypassing cache
-- [ ] T039 [US2] Add isStale() helper function in useCommunityAvailability checking TTL (5 minutes)
-- [ ] T040 [P] [US2] Create components/wishlist/CommunityAvailabilityPanel.tsx with loading/empty/matches states
-- [ ] T041 [US2] Add "View Item" quick action button in CommunityAvailabilityPanel opening detail modal
-- [ ] T042 [US2] Add "Message User" quick action button in CommunityAvailabilityPanel triggering messaging system
-- [ ] T043 [US2] Display availability badges (for sale, lendable, tradeable) in CommunityAvailabilityPanel
-- [ ] T044 [US2] Show similarity score in CommunityAvailabilityPanel for debugging (optional, can hide from users)
-- [ ] T045 [US2] Integrate CommunityAvailabilityPanel into GearCard component for medium/detailed view when context='wishlist'
-- [ ] T046 [US2] Lazy load community availability data only when medium/detailed cards are visible
-- [ ] T047 [US2] Handle "No community matches" state with appropriate message in panel
-- [ ] T048 [US2] Test fuzzy matching works correctly (e.g., "Osprey Atmos 65" matches "Atmos 65 AG")
-- [ ] T049 [US2] Test "View Item" action opens correct user's inventory card detail
-- [ ] T050 [US2] Test "Message User" action opens messaging with correct user pre-selected
-- [ ] T051 [US2] Verify community availability queries complete in under 3 seconds (performance target)
+- [X] T036 [P] [US2] Create hooks/useCommunityAvailability.ts with 5-minute TTL cache using useRef
+- [X] T037 [US2] Implement fetchAvailability action in useCommunityAvailability calling lib/supabase/community-matching
+- [X] T038 [US2] Implement refreshAvailability action in useCommunityAvailability bypassing cache
+- [X] T039 [US2] Add isStale() helper function in useCommunityAvailability checking TTL (5 minutes)
+- [X] T040 [P] [US2] Create components/wishlist/CommunityAvailabilityPanel.tsx with loading/empty/matches states
+- [X] T041 [US2] Add "View Item" quick action button in CommunityAvailabilityPanel opening detail modal
+- [X] T042 [US2] Add "Message User" quick action button in CommunityAvailabilityPanel triggering messaging system
+- [X] T043 [US2] Display availability badges (for sale, lendable, tradeable) in CommunityAvailabilityPanel
+- [X] T044 [US2] Show similarity score in CommunityAvailabilityPanel for debugging (optional, can hide from users)
+- [X] T045 [US2] Integrate CommunityAvailabilityPanel into GearCard component for medium/detailed view when context='wishlist'
+- [X] T046 [US2] Lazy load community availability data only when medium/detailed cards are visible
+- [X] T047 [US2] Handle "No community matches" state with appropriate message in panel
+- [X] T048 [US2] Test fuzzy matching works correctly (e.g., "Osprey Atmos 65" matches "Atmos 65 AG")
+- [X] T049 [US2] Test "View Item" action opens correct user's inventory card detail
+- [X] T050 [US2] Test "Message User" action opens messaging with correct user pre-selected
+- [X] T051 [US2] Verify community availability queries complete in under 3 seconds (performance target)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Users can see community availability on wishlist items.
 
@@ -123,18 +123,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T052 [P] [US3] Create components/wishlist/MoveToInventoryButton.tsx with confirmation dialog using shadcn/ui AlertDialog
-- [ ] T053 [US3] Implement handleMove action in MoveToInventoryButton calling useWishlist moveToInventory function
-- [ ] T054 [US3] Add loading state and disabled state to MoveToInventoryButton during async operation
-- [ ] T055 [US3] Integrate MoveToInventoryButton into GearCard component for wishlist context (replace Edit button)
-- [ ] T056 [US3] Add MoveToInventoryButton to wishlist item detail modal (when opened from wishlist view)
-- [ ] T057 [US3] Implement moveToInventory action in useWishlist hook calling lib/supabase/wishlist-queries moveWishlistItemToInventory
-- [ ] T058 [US3] Update local state in both useWishlist and useInventory hooks after successful move
-- [ ] T059 [US3] Show success toast notification after move completes with item name
-- [ ] T060 [US3] Navigate to inventory view and highlight newly moved item after successful transfer
-- [ ] T061 [US3] Test move operation preserves all item data (images, notes, dependencies, etc.)
-- [ ] T062 [US3] Test confirmation dialog prevents accidental moves
-- [ ] T063 [US3] Test item disappears from wishlist view and appears in inventory view immediately
+- [X] T052 [P] [US3] Create components/wishlist/MoveToInventoryButton.tsx with confirmation dialog using shadcn/ui AlertDialog
+- [X] T053 [US3] Implement handleMove action in MoveToInventoryButton calling useWishlist moveToInventory function
+- [X] T054 [US3] Add loading state and disabled state to MoveToInventoryButton during async operation
+- [X] T055 [US3] Integrate MoveToInventoryButton into GearCard component for wishlist context (replace Edit button)
+- [X] T056 [US3] Add MoveToInventoryButton to wishlist item detail modal (when opened from wishlist view)
+- [X] T057 [US3] Implement moveToInventory action in useWishlist hook calling lib/supabase/wishlist-queries moveWishlistItemToInventory
+- [X] T058 [US3] Update local state in both useWishlist and useInventory hooks after successful move
+- [X] T059 [US3] Show success toast notification after move completes with item name
+- [X] T060 [US3] Navigate to inventory view and highlight newly moved item after successful transfer
+- [X] T061 [US3] Test move operation preserves all item data (images, notes, dependencies, etc.)
+- [X] T062 [US3] Test confirmation dialog prevents accidental moves
+- [X] T063 [US3] Test item disappears from wishlist view and appears in inventory view immediately
 
 **Checkpoint**: All user stories (US1, US2, US3) should now be independently functional
 
@@ -148,11 +148,11 @@
 
 ### Implementation for User Story 4 (Stub Sections Only)
 
-- [ ] T064 [P] [US4] Create components/wishlist/PriceStubIndicator.tsx with dashed border and "Price monitoring coming soon" message
-- [ ] T065 [US4] Integrate PriceStubIndicator into GearCard for medium view when context='wishlist' (below community availability panel)
-- [ ] T066 [P] [US4] Create components/wishlist/PriceHistoryStub.tsx with chart placeholder and "Price history coming soon" message
-- [ ] T067 [US4] Integrate PriceHistoryStub into GearCard for detailed/large view when context='wishlist'
-- [ ] T068 [US4] Test stub sections are clearly marked and don't confuse users (user testing feedback)
+- [X] T064 [P] [US4] Create components/wishlist/PriceStubIndicator.tsx with dashed border and "Price monitoring coming soon" message
+- [X] T065 [US4] Integrate PriceStubIndicator into GearCard for medium view when context='wishlist' (below community availability panel)
+- [X] T066 [P] [US4] Create components/wishlist/PriceHistoryStub.tsx with chart placeholder and "Price history coming soon" message
+- [X] T067 [US4] Integrate PriceHistoryStub into GearCard for detailed/large view when context='wishlist'
+- [X] T068 [US4] Test stub sections are clearly marked and don't confuse users (user testing feedback)
 
 **Checkpoint**: All user stories including future stub features are complete
 
