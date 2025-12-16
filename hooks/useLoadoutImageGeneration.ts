@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import type {
   ImageGenerationState,
@@ -84,6 +84,21 @@ export function useLoadoutImageGeneration(
     useState<GeneratedLoadoutImage | null>(null);
   const [imageHistory, setImageHistory] = useState<GeneratedLoadoutImage[]>([]);
 
+  // Retry guard ref to prevent race conditions from rapid clicks
+  // Using ref instead of state to avoid stale closure issues
+  const retryAttemptRef = useRef(0);
+
+  // AbortController ref to cleanup fetch operations on unmount
+  // Prevents memory leaks when component unmounts during image generation
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   // Metrics tracking
   const logMetric = useCallback(
     (event: string, data?: Record<string, unknown>) => {
@@ -129,6 +144,12 @@ export function useLoadoutImageGeneration(
     async (stylePreferences?: StylePreferences): Promise<void> => {
       const startTime = performance.now();
 
+      // Reset retry counter for new generation attempt
+      retryAttemptRef.current = 0;
+
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
       try {
         // Update state to generating
         setState({
@@ -158,6 +179,7 @@ export function useLoadoutImageGeneration(
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: abortControllerRef.current.signal,
           body: JSON.stringify({
             loadoutId,
             prompt,
@@ -228,11 +250,12 @@ export function useLoadoutImageGeneration(
 
       logMetric('generation_error', {
         error: errorMessage,
-        retryable: state.status !== 'retrying', // Only retry once
+        retryable: retryAttemptRef.current === 0, // Only retry once
       });
 
-      // If this is the first failure, try retry
-      if (state.status !== 'retrying') {
+      // If this is the first failure, try retry (guard against race conditions)
+      if (retryAttemptRef.current === 0) {
+        retryAttemptRef.current = 1;
         console.log('[ImageGen] First attempt failed, retrying once...');
 
         setState({
@@ -255,8 +278,9 @@ export function useLoadoutImageGeneration(
         await applyFallback(error, startTime);
       }
     },
+    // Removed state.status from deps to avoid stale closure
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.status, logMetric]
+    [logMetric]
   );
 
   const executeRetry = useCallback(

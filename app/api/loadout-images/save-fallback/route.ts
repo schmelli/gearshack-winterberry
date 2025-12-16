@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     // Save fallback image to database
     // Use fallbackImageId as cloudinary_public_id for tracking
-    const savedImage = await insertGeneratedImage(supabase, {
+    const savedImage = await insertGeneratedImage({
       loadoutId,
       cloudinaryPublicId: `fallback/${fallbackImageId}`,
       cloudinaryUrl: fallbackImageUrl,

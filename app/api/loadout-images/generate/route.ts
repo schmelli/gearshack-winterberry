@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateAIImage, AIGenerationError } from '@/lib/vercel-ai';
 import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 import { extractPublicId } from '@/lib/cloudinary-utils';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { StylePreferences } from '@/types/loadout-image';
 
 // =============================================================================
@@ -44,6 +45,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Check rate limit (5 generations per hour per user)
+    const rateLimitResult = checkRateLimit(user.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        {
+          status: 429,
+          headers: rateLimitResult.headers,
+        }
       );
     }
 
@@ -115,7 +128,10 @@ export async function POST(request: NextRequest) {
         imageId: savedImage.id,
         image: savedImage,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: rateLimitResult.headers,
+      }
     );
   } catch (error) {
     console.error('[API] Image generation failed:', error);
