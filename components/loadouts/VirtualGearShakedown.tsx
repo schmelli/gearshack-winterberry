@@ -31,6 +31,7 @@ import { SharedGearGrid } from '@/components/shakedown/SharedGearGrid';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useOwnedItemsCheck } from '@/hooks/useOwnedItemsCheck';
 import { useConversations } from '@/hooks/messaging/useConversations';
+import { useCategories } from '@/hooks/useCategories';
 
 interface VirtualGearShakedownProps {
   shareToken: string;
@@ -73,6 +74,9 @@ export function VirtualGearShakedown({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { startDirectConversation } = useConversations();
   const { checkOwned } = useOwnedItemsCheck(isAuthenticated ? userId : null);
+
+  // Use Supabase categories for correct category display
+  const { getLabelById } = useCategories();
 
   // Detect mobile viewport
   useEffect(() => {
@@ -324,6 +328,7 @@ export function VirtualGearShakedown({
               items={payload.items}
               onItemClick={handleGearCardClick}
               viewDensity="standard"
+              getCategoryLabel={getLabelById}
             />
           </div>
 
@@ -534,6 +539,7 @@ export function VirtualGearShakedown({
                   return item ? checkOwned(item.brand, item.name) : false;
                 } : undefined}
                 viewDensity="compact"
+                getCategoryLabel={getLabelById}
               />
             </div>
           </div>

@@ -32,6 +32,11 @@ import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import type { GearItem } from '@/types/gear';
+import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
+import type { User } from '@supabase/supabase-js';
+import type { YouTubeVideo } from '@/types/youtube';
+import type { GearInsight } from '@/types/geargraph';
 
 // Component that uses useSearchParams - must be wrapped in Suspense
 function InventoryWithModal() {
@@ -54,6 +59,9 @@ function InventoryWithModal() {
     itemCount,
     filteredCount,
     isLoading,
+    getCategoryLabel,
+    categoriesError,
+    refreshCategories,
   } = useInventory();
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
@@ -108,6 +116,9 @@ function InventoryWithModal() {
     itemCount={itemCount}
     filteredCount={filteredCount}
     isLoading={isLoading}
+    getCategoryLabel={getCategoryLabel}
+    categoriesError={categoriesError}
+    refreshCategories={refreshCategories}
     isOpen={isOpen}
     gearId={gearId}
     open={open}
@@ -123,6 +134,48 @@ function InventoryWithModal() {
     insightsError={insightsError}
     dismissInsight={dismissInsight}
   />;
+}
+
+/**
+ * Props for InventoryContent component
+ * Separated to avoid prop-drilling through Suspense boundary
+ */
+interface InventoryContentProps {
+  t: ReturnType<typeof useTranslations<'Inventory'>>;
+  user: User | null;
+  filteredItems: GearItem[];
+  items: GearItem[];
+  viewDensity: ViewDensity;
+  setViewDensity: (density: ViewDensity) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  categoryFilter: string | null;
+  setCategoryFilter: (categoryId: string | null) => void;
+  sortOption: SortOption;
+  setSortOption: (option: SortOption) => void;
+  groupedItems: CategoryGroup[];
+  hasActiveFilters: boolean;
+  clearFilters: () => void;
+  itemCount: number;
+  filteredCount: number;
+  isLoading: boolean;
+  getCategoryLabel: (categoryId: string | null) => string;
+  categoriesError: string | null;
+  refreshCategories: () => Promise<void>;
+  isOpen: boolean;
+  gearId: string | null;
+  open: (id: string) => void;
+  close: () => void;
+  isMobile: boolean;
+  selectedItem: GearItem | null;
+  youtubeVideos: YouTubeVideo[];
+  youtubeLoading: boolean;
+  youtubeError: string | null;
+  retryYouTube: () => void;
+  insights: GearInsight[];
+  insightsLoading: boolean;
+  insightsError: string | null;
+  dismissInsight: (content: string) => void;
 }
 
 function InventoryContent({
@@ -144,6 +197,9 @@ function InventoryContent({
   itemCount,
   filteredCount,
   isLoading,
+  getCategoryLabel,
+  categoriesError,
+  refreshCategories,
   isOpen,
   gearId,
   open,
@@ -158,7 +214,7 @@ function InventoryContent({
   insightsLoading,
   insightsError,
   dismissInsight,
-}: any) {
+}: InventoryContentProps) {
   // Loading state
   if (isLoading) {
     return (
@@ -181,6 +237,23 @@ function InventoryContent({
           </Link>
         </Button>
       </div>
+
+      {/* Categories Error Warning */}
+      {categoriesError && (
+        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+              <strong>{t('categoriesError.warning')}:</strong> {t('categoriesError.message')}
+            </p>
+            <button
+              onClick={() => refreshCategories()}
+              className="text-sm font-medium text-amber-900 hover:text-amber-700 dark:text-amber-100 dark:hover:text-amber-300 underline underline-offset-2 whitespace-nowrap"
+            >
+              {t('categoriesError.retry')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Empty State - No items at all */}
       {itemCount === 0 ? (
@@ -237,6 +310,7 @@ function InventoryContent({
             onClearFilters={clearFilters}
             onItemClick={open}
             getItemCountLabel={(count) => t('itemCount', { count })}
+            getCategoryLabel={getCategoryLabel}
           />
         </>
       )}

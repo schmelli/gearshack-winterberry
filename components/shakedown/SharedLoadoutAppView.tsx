@@ -24,6 +24,7 @@ import { OwnerProfileModal } from './OwnerProfileModal';
 import { SharedGearGrid } from './SharedGearGrid';
 import { useOwnedItemsCheck } from '@/hooks/useOwnedItemsCheck';
 import { useWishlistActions } from '@/hooks/useWishlistActions';
+import { useCategories } from '@/hooks/useCategories';
 import { normalizeForMatch } from '@/lib/utils/matching';
 import type { SharedLoadoutPayload, SharedLoadoutOwner, SharedGearItem } from '@/types/sharing';
 import { formatTripDate } from '@/lib/loadout-utils';
@@ -65,6 +66,9 @@ export function SharedLoadoutAppView({
 
   // T039: Initialize wishlist actions hook
   const { isOnWishlist, addToWishlist, addingItems } = useWishlistActions(userId, shareToken);
+
+  // Use Supabase categories for correct category display
+  const { getLabelById } = useCategories();
 
   // Handler for sending message to owner
   const handleSendMessage = useCallback((ownerId: string) => {
@@ -223,6 +227,7 @@ export function SharedLoadoutAppView({
             isAddingToWishlist={checkIsAdding}
             isAuthenticated={true}
             viewDensity="standard"
+            getCategoryLabel={getLabelById}
           />
         </CardContent>
       </Card>

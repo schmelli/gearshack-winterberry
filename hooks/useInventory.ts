@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type {
   ViewDensity,
   UseInventoryReturn,
@@ -20,7 +20,7 @@ import type {
 } from '@/types/inventory';
 import { DEFAULT_SORT_OPTION } from '@/types/inventory';
 import { useItems } from '@/hooks/useSupabaseStore';
-import { getCategoryLabel } from '@/lib/taxonomy/taxonomy-utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Session Storage Keys
@@ -66,14 +66,15 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
+  const { getLabelById, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
   // ---------------------------------------------------------------------------
   const [viewDensity, setViewDensityState] = useState<ViewDensity>(getInitialViewDensity);
 
-  // Note: isLoading kept for future async data fetching
-  const isLoading = false;
+  // Note: isLoading includes categories loading state
+  const isLoading = categoriesLoading;
 
   // Persist view density to sessionStorage
   const setViewDensity = useCallback((density: ViewDensity) => {
@@ -99,9 +100,45 @@ export function useInventory(): UseInventoryReturn {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
+  // Auto-retry logic for category loading errors (exponential backoff)
+  // ---------------------------------------------------------------------------
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const MAX_RETRIES = 3;
+
+  useEffect(() => {
+    if (categoriesError && retryCountRef.current < MAX_RETRIES) {
+      // Calculate exponential backoff delay (1s, 2s, 4s)
+      const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
+
+      retryTimerRef.current = setTimeout(() => {
+        refreshCategories();
+        retryCountRef.current += 1;
+      }, delay);
+
+      return () => {
+        if (retryTimerRef.current) {
+          clearTimeout(retryTimerRef.current);
+        }
+      };
+    }
+
+    // Reset retry count on successful load
+    if (!categoriesError && !categoriesLoading) {
+      retryCountRef.current = 0;
+    }
+  }, [categoriesError, categoriesLoading, refreshCategories]);
+
+  // ---------------------------------------------------------------------------
   // Derived: Filtered and Sorted Items (Feature 046)
   // ---------------------------------------------------------------------------
   const filteredItems = useMemo(() => {
+    // If categories are still loading or failed to load, return unsorted items
+    // to avoid race condition (getLabelById may return 'Uncategorized' for valid IDs)
+    if (categoriesLoading || categoriesError) {
+      return items;
+    }
+
     // Step 1: Filter items
     const filtered = items.filter((item) => {
       // Search filter (case-insensitive, matches name or brand)
@@ -126,8 +163,8 @@ export function useInventory(): UseInventoryReturn {
 
         case 'category':
           // Sort by category label, then by name within category
-          const catLabelA = getCategoryLabel(a.categoryId) ?? 'zzz'; // Uncategorized at end
-          const catLabelB = getCategoryLabel(b.categoryId) ?? 'zzz';
+          const catLabelA = getLabelById(a.categoryId);
+          const catLabelB = getLabelById(b.categoryId);
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -140,7 +177,7 @@ export function useInventory(): UseInventoryReturn {
     });
 
     return sorted;
-  }, [items, searchQuery, categoryFilter, sortOption]);
+  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categoriesError]);
 
   // ---------------------------------------------------------------------------
   // Derived: Grouped Items by Category (Feature 046)
@@ -158,7 +195,7 @@ export function useInventory(): UseInventoryReturn {
       if (!groups.has(catId)) {
         groups.set(catId, {
           categoryId: catId,
-          categoryLabel: getCategoryLabel(catId) ?? 'Uncategorized',
+          categoryLabel: getLabelById(catId),
           items: [],
         });
       }
@@ -172,7 +209,7 @@ export function useInventory(): UseInventoryReturn {
       if (b.categoryId === null) return -1;
       return a.categoryLabel.localeCompare(b.categoryLabel, undefined, { sensitivity: 'base' });
     });
-  }, [filteredItems, sortOption]);
+  }, [filteredItems, sortOption, getLabelById]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -215,5 +252,12 @@ export function useInventory(): UseInventoryReturn {
     hasActiveFilters,
     itemCount,
     filteredCount,
+
+    // Category utilities
+    getCategoryLabel: getLabelById,
+    refreshCategories,
+
+    // Error state
+    categoriesError,
   };
 }

@@ -17,7 +17,8 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "uncategorized": "Unkategorisiert"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
@@ -180,7 +181,12 @@
     "showingItems": "Zeige {filtered} von {total} Gegenständen",
     "clearFilters": "Filter löschen",
     "totalWeight": "Gesamtgewicht",
-    "totalValue": "Gesamtwert"
+    "totalValue": "Gesamtwert",
+    "categoriesError": {
+      "warning": "Warnung",
+      "message": "Kategorien konnten nicht geladen werden. Gegenstände werden möglicherweise als \"Unkategorisiert\" angezeigt.",
+      "retry": "Erneut versuchen"
+    }
   },
   "GearEditor": {
     "addTitle": "Neue Ausrüstung hinzufügen",

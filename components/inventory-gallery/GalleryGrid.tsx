@@ -40,6 +40,8 @@ interface GalleryGridProps {
   onItemClick?: (itemId: string) => void;
   /** Function to get translated item count string (Feature 046) */
   getItemCountLabel?: (count: number) => string;
+  /** Function to get category label by ID */
+  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
@@ -68,6 +70,7 @@ export function GalleryGrid({
   onClearFilters,
   onItemClick,
   getItemCountLabel,
+  getCategoryLabel,
 }: GalleryGridProps) {
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -117,6 +120,7 @@ export function GalleryGrid({
                   item={item}
                   viewDensity={viewDensity}
                   onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                  getCategoryLabel={getCategoryLabel}
                 />
               ))}
             </div>
@@ -135,6 +139,7 @@ export function GalleryGrid({
           item={item}
           viewDensity={viewDensity}
           onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+          getCategoryLabel={getCategoryLabel}
         />
       ))}
     </div>
