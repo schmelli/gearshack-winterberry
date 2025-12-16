@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { InventoryViewMode } from '@/types/wishlist';
 
@@ -57,18 +57,20 @@ export function useInventoryView(): UseInventoryViewReturn {
   }, [searchParams]);
 
   // ---------------------------------------------------------------------------
-  // State: View Mode
+  // Derive View Mode from URL (avoids cascading renders from useEffect)
   // ---------------------------------------------------------------------------
-  const [viewMode, setViewModeState] = useState<InventoryViewMode>(getInitialViewMode);
+  // Get current view from URL, fallback to initial value
+  const viewParam = searchParams.get('view');
+  const viewMode: InventoryViewMode =
+    (viewParam === 'wishlist' || viewParam === 'inventory')
+      ? viewParam
+      : getInitialViewMode();
 
   // ---------------------------------------------------------------------------
   // Sync View Mode with URL and SessionStorage
   // ---------------------------------------------------------------------------
   const setViewMode = useCallback(
     (mode: InventoryViewMode) => {
-      // Update state
-      setViewModeState(mode);
-
       // Update URL search params
       const params = new URLSearchParams(searchParams.toString());
       params.set('view', mode);
@@ -81,16 +83,6 @@ export function useInventoryView(): UseInventoryViewReturn {
     },
     [searchParams, router, pathname]
   );
-
-  // ---------------------------------------------------------------------------
-  // Sync State with URL Changes (Back/Forward Navigation)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const viewParam = searchParams.get('view');
-    if (viewParam === 'wishlist' || viewParam === 'inventory') {
-      setViewModeState(viewParam);
-    }
-  }, [searchParams]);
 
   // ---------------------------------------------------------------------------
   // Return Hook Interface

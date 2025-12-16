@@ -162,22 +162,22 @@
 
 **Purpose**: Improvements that affect multiple user stories, i18n, performance optimization, edge case handling
 
-- [ ] T069 [P] Add i18n translations for "Wishlist", "My Gear", "Move to Inventory", "Add to Wishlist" in messages/ directory
-- [ ] T070 [P] Add i18n translations for community availability messages ("Not available in community", etc.)
-- [ ] T071 [P] Add i18n translations for duplicate warning and error messages
-- [ ] T072 Add empty state component for empty wishlist with "Add your first wishlist item" message
-- [ ] T073 Add empty state component for zero search results in wishlist view
+- [X] T069 [P] Add i18n translations for "Wishlist", "My Gear", "Move to Inventory", "Add to Wishlist" in messages/ directory
+- [X] T070 [P] Add i18n translations for community availability messages ("Not available in community", etc.)
+- [X] T071 [P] Add i18n translations for duplicate warning and error messages
+- [X] T072 Add empty state component for empty wishlist with "Add your first wishlist item" message
+- [X] T073 Add empty state component for zero search results in wishlist view
 - [ ] T074 Test view switching completes in under 2 seconds (performance target from success criteria)
 - [ ] T075 Test search/filter operations complete in under 2 seconds for 500 items (performance target)
-- [ ] T076 Add error boundary handling for wishlist components to prevent full page crashes
-- [ ] T077 Add retry logic for failed community availability queries with exponential backoff
+- [X] T076 Add error boundary handling for wishlist components to prevent full page crashes
+- [X] T077 Add retry logic for failed community availability queries with exponential backoff
 - [ ] T078 Test edge case: User tries to move item to inventory when already exists in inventory
 - [ ] T079 Test edge case: Community member deletes item that appeared in availability panel (stale data)
 - [ ] T080 Test edge case: Very long item names and descriptions display correctly in all card sizes
 - [ ] T081 Test edge case: Image load failures show fallback placeholders
-- [ ] T082 Add ARIA labels and semantic HTML for accessibility (tabs, buttons, loading states)
-- [ ] T083 Test keyboard navigation works for WishlistToggle (Tab, Arrow keys)
-- [ ] T084 Add screen reader announcements for loading states and view changes (aria-live="polite")
+- [X] T082 Add ARIA labels and semantic HTML for accessibility (tabs, buttons, loading states)
+- [X] T083 Test keyboard navigation works for WishlistToggle (Tab, Arrow keys)
+- [X] T084 Add screen reader announcements for loading states and view changes (aria-live="polite")
 - [ ] T085 Run npm run build and verify TypeScript compilation succeeds with no errors
 - [ ] T086 Run npm run lint and fix any ESLint warnings/errors
 - [ ] T087 Verify all constitution principles are followed (Feature-Sliced Light, no 'any' types, absolute imports)

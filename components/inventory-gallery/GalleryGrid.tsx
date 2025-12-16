@@ -23,6 +23,16 @@ import { cn } from '@/lib/utils';
 // Types
 // =============================================================================
 
+/**
+ * Translations for empty state messages
+ * T073: Wishlist-specific empty state messages
+ */
+interface EmptyStateTranslations {
+  noResults: string;
+  noResultsSubtext: string;
+  clearFilters: string;
+}
+
 interface GalleryGridProps {
   /** Items to display in the grid */
   items: GearItem[];
@@ -48,6 +58,8 @@ interface GalleryGridProps {
   onMoveToInventory?: (itemId: string) => Promise<void>;
   /** Feature 049 US3: Callback after successful move (for navigation) */
   onMoveComplete?: () => void;
+  /** T073: Optional translations for empty state, allows wishlist-specific messages */
+  emptyStateTranslations?: EmptyStateTranslations;
 }
 
 // =============================================================================
@@ -67,6 +79,16 @@ const GRID_CLASSES = {
 // Component
 // =============================================================================
 
+/**
+ * Default empty state translations
+ * T073: Separated to allow wishlist-specific overrides
+ */
+const DEFAULT_EMPTY_STATE_TRANSLATIONS: EmptyStateTranslations = {
+  noResults: 'No gear matches your filters',
+  noResultsSubtext: 'Try adjusting your search or category filter',
+  clearFilters: 'Clear all filters',
+};
+
 export function GalleryGrid({
   items,
   groupedItems = [],
@@ -80,23 +102,27 @@ export function GalleryGrid({
   context = 'inventory',
   onMoveToInventory,
   onMoveComplete,
+  emptyStateTranslations,
 }: GalleryGridProps) {
+  // T073: Use provided translations or fall back to defaults
+  const emptyMessages = emptyStateTranslations ?? DEFAULT_EMPTY_STATE_TRANSLATIONS;
+
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <p className="text-lg font-medium text-muted-foreground">
-          No gear matches your filters
+          {emptyMessages.noResults}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Try adjusting your search or category filter
+          {emptyMessages.noResultsSubtext}
         </p>
         {onClearFilters && (
           <button
             onClick={onClearFilters}
             className="mt-4 text-sm font-medium text-primary hover:underline"
           >
-            Clear all filters
+            {emptyMessages.clearFilters}
           </button>
         )}
       </div>

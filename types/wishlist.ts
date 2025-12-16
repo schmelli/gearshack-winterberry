@@ -132,6 +132,11 @@ export interface UseWishlistReturn {
 }
 
 /**
+ * T077: Retry status for community availability
+ */
+export type CommunityAvailabilityRetryStatus = 'idle' | 'retrying' | 'failed';
+
+/**
  * Hook return type for useCommunityAvailability
  * Manages community availability data with caching
  */
@@ -141,9 +146,16 @@ export interface UseCommunityAvailabilityReturn {
   isLoading: boolean;
   error: string | null;
 
+  // T077: Retry state
+  retryStatus: CommunityAvailabilityRetryStatus;
+  retryCount: number;
+
   // Actions
   fetchAvailability: (wishlistItemIds: string[]) => Promise<void>;
   refreshAvailability: (wishlistItemId: string) => Promise<void>;
+
+  // T077: Manual retry action after max retries exhausted
+  manualRetry: (wishlistItemIds: string[]) => Promise<void>;
 
   // Helpers
   getAvailability: (wishlistItemId: string) => WishlistItemAvailability | null;

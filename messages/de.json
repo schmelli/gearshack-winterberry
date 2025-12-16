@@ -186,6 +186,38 @@
       "warning": "Warnung",
       "message": "Kategorien konnten nicht geladen werden. Gegenstände werden möglicherweise als \"Unkategorisiert\" angezeigt.",
       "retry": "Erneut versuchen"
+    },
+    "wishlist": {
+      "title": "Wunschliste",
+      "myGear": "Meine Ausrüstung",
+      "moveToInventory": "Zum Inventar verschieben",
+      "addToWishlist": "Zur Wunschliste hinzufügen",
+      "communityAvailability": {
+        "title": "Community Verfügbarkeit",
+        "loading": "Suche in der Community...",
+        "emptyTitle": "Keine Community-Treffer gefunden",
+        "emptySubtext": "Niemand in deiner Community hat diesen Artikel",
+        "forSale": "Zu verkaufen",
+        "lendable": "Verleihbar",
+        "tradeable": "Tauschbar",
+        "viewItem": "Artikel ansehen",
+        "messageUser": "Nachricht senden",
+        "matchScore": "Übereinstimmung: {score}%"
+      },
+      "errors": {
+        "duplicateTitle": "Artikel bereits auf der Wunschliste",
+        "duplicateMessage": "Ein Artikel mit derselben Marke und Modell befindet sich bereits auf deiner Wunschliste",
+        "addFailed": "Artikel konnte nicht zur Wunschliste hinzugefügt werden. Bitte versuche es erneut.",
+        "loadCommunityFailed": "Community-Verfügbarkeit konnte nicht geladen werden",
+        "moveFailed": "Artikel konnte nicht zum Inventar verschoben werden"
+      },
+      "success": {
+        "movedToInventory": "Artikel zum Inventar verschoben!"
+      },
+      "confirmMove": {
+        "title": "Bist du sicher, dass du diesen Artikel zum Inventar verschieben möchtest?",
+        "description": "Er wird von deiner Wunschliste entfernt"
+      }
     }
   },
   "GearEditor": {

@@ -14,12 +14,15 @@
  *
  * Feature: 045-gear-detail-modal
  * T019-T020: Add gear detail modal with URL deep linking
+ *
+ * Feature: 049-wishlist-view
+ * T082-T084: Accessibility improvements - ARIA labels, keyboard nav, screen reader announcements
  */
 
 'use client';
 
-import { Suspense } from 'react';
-import { Plus } from 'lucide-react';
+import { Suspense, useState, useCallback } from 'react';
+import { Plus, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
@@ -35,6 +38,7 @@ import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Announcement } from '@/components/ui/visually-hidden';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import type { User } from '@supabase/supabase-js';
@@ -57,6 +61,25 @@ function InventoryWithModal() {
   const { user } = useSupabaseAuth();
   // Feature 049: View mode state (inventory vs wishlist)
   const { viewMode, setViewMode } = useInventoryView();
+
+  // Feature 049 T084: Screen reader announcement state
+  const [announcement, setAnnouncement] = useState<{
+    message: string;
+    politeness: 'polite' | 'assertive';
+  }>({ message: '', politeness: 'polite' });
+
+  // Feature 049 T084: Announcement callback for components to trigger screen reader announcements
+  const handleAnnouncement = useCallback(
+    (message: string, politeness: 'polite' | 'assertive' = 'polite') => {
+      // Clear first to ensure screen readers announce even if same message
+      setAnnouncement({ message: '', politeness });
+      // Small delay to ensure the clearing is processed
+      requestAnimationFrame(() => {
+        setAnnouncement({ message, politeness });
+      });
+    },
+    []
+  );
 
   // Inventory hook
   const {
@@ -86,7 +109,7 @@ function InventoryWithModal() {
     filteredItems: wishlistFilteredItems,
     wishlistItems,
     isLoading: wishlistLoading,
-    error: wishlistError,
+    error: _wishlistError,
     searchQuery: wishlistSearchQuery,
     setSearchQuery: setWishlistSearchQuery,
     categoryFilter: wishlistCategoryFilter,
@@ -199,6 +222,8 @@ function InventoryWithModal() {
     dismissInsight={dismissInsight}
     moveToInventory={moveToInventory}
     isSelectedItemFromWishlist={isSelectedItemFromWishlist}
+    onAnnouncement={handleAnnouncement}
+    announcement={announcement}
   />;
 }
 
@@ -250,6 +275,10 @@ interface InventoryContentProps {
   moveToInventory: (itemId: string) => Promise<void>;
   /** Feature 049 US3: Whether the selected item in the modal is from wishlist */
   isSelectedItemFromWishlist: boolean;
+  /** Feature 049 T084: Screen reader announcement callback */
+  onAnnouncement: (message: string, politeness?: 'polite' | 'assertive') => void;
+  /** Feature 049 T084: Current announcement message for aria-live region */
+  announcement: { message: string; politeness: 'polite' | 'assertive' };
 }
 
 function InventoryContent({
@@ -260,7 +289,7 @@ function InventoryContent({
   inventoryCount,
   wishlistCount,
   filteredItems,
-  items,
+  items: _items,
   viewDensity,
   setViewDensity,
   searchQuery,
@@ -279,7 +308,7 @@ function InventoryContent({
   categoriesError,
   refreshCategories,
   isOpen,
-  gearId,
+  gearId: _gearId,
   open,
   close,
   isMobile,
@@ -294,7 +323,20 @@ function InventoryContent({
   dismissInsight,
   moveToInventory,
   isSelectedItemFromWishlist,
+  onAnnouncement,
+  announcement,
 }: InventoryContentProps) {
+  // Feature 049 T084: Handler for view change announcements
+  const handleViewChangeAnnouncement = useCallback(
+    (message: string) => {
+      onAnnouncement(message, 'polite');
+    },
+    [onAnnouncement]
+  );
+
+  // Note: Move-to-inventory announcements are handled by Sonner toasts,
+  // which are already accessible and announced by screen readers.
+
   // Loading state
   if (isLoading) {
     return (
@@ -308,6 +350,12 @@ function InventoryContent({
 
   return (
     <main className="container mx-auto max-w-6xl px-4 py-8">
+      {/* Feature 049 T084: Screen reader live regions for announcements */}
+      <Announcement
+        message={announcement.message}
+        politeness={announcement.politeness}
+      />
+
       {/* Feature 049: View Toggle and Add Button */}
       <div className="mb-8 flex items-center justify-between gap-4">
         <WishlistToggle
@@ -315,6 +363,7 @@ function InventoryContent({
           onModeChange={setViewMode}
           inventoryCount={inventoryCount}
           wishlistCount={wishlistCount}
+          onViewChangeAnnouncement={handleViewChangeAnnouncement}
         />
         <Button asChild>
           <Link href={viewMode === 'wishlist' ? '/inventory/new?mode=wishlist' : '/inventory/new'}>
@@ -343,18 +392,38 @@ function InventoryContent({
 
       {/* Empty State - No items at all */}
       {itemCount === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-lg font-medium">{t('emptyTitle')}</p>
-          <p className="mt-1 text-muted-foreground">
-            {t('emptyDescription')}
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/inventory/new">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('addFirstItem')}
-            </Link>
-          </Button>
-        </div>
+        viewMode === 'wishlist' ? (
+          /* T072: Empty Wishlist State */
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 rounded-full bg-muted p-4">
+              <Heart className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-lg font-medium">{t('wishlist.emptyTitle')}</p>
+            <p className="mt-1 text-muted-foreground">
+              {t('wishlist.emptySubtext')}
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/inventory/new?mode=wishlist">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('addToWishlist')}
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          /* Existing inventory empty state */
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-lg font-medium">{t('emptyTitle')}</p>
+            <p className="mt-1 text-muted-foreground">
+              {t('emptyDescription')}
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/inventory/new">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('addFirstItem')}
+              </Link>
+            </Button>
+          </div>
+        )
       ) : (
         <>
           {/* Toolbar with Search, Filter, Sort, and View Density */}
@@ -400,6 +469,12 @@ function InventoryContent({
             context={viewMode}
             onMoveToInventory={viewMode === 'wishlist' ? moveToInventory : undefined}
             onMoveComplete={viewMode === 'wishlist' ? () => setViewMode('inventory') : undefined}
+            /* T073: Wishlist-specific empty state translations */
+            emptyStateTranslations={viewMode === 'wishlist' ? {
+              noResults: t('wishlist.noResultsTitle'),
+              noResultsSubtext: t('wishlist.noResultsSubtext'),
+              clearFilters: t('clearFilters'),
+            } : undefined}
           />
         </>
       )}

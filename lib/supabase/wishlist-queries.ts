@@ -11,6 +11,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { WishlistItem, AddWishlistItemParams, UpdateWishlistItemParams } from '@/types/wishlist';
 import type { Database } from '@/types/database';
+import type { NobgImages } from '@/types/gear';
 
 type GearItemRow = Database['public']['Tables']['gear_items']['Row'];
 type GearItemInsert = Database['public']['Tables']['gear_items']['Insert'];
@@ -94,7 +95,7 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
     // Section 5: Media
     primaryImageUrl: row.primary_image_url,
     galleryImageUrls: row.gallery_image_urls ?? [],
-    nobgImages: row.nobg_images as any, // Type assertion for JSONB
+    nobgImages: (row.nobg_images as Record<string, unknown> | null) as NobgImages | undefined, // Type assertion for JSONB object
 
     // Section 6: Status & Condition
     condition: row.condition as 'new' | 'used' | 'worn',
@@ -345,7 +346,7 @@ export async function deleteWishlistItem(itemId: string): Promise<void> {
  * @throws NotFoundError if item not found
  * @throws Error if not authenticated or update fails
  */
-export async function moveWishlistItemToInventory(itemId: string): Promise<any> {
+export async function moveWishlistItemToInventory(itemId: string): Promise<GearItemRow> {
   const supabase = createClient();
 
   // Get authenticated user
