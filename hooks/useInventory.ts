@@ -103,9 +103,9 @@ export function useInventory(): UseInventoryReturn {
   // Derived: Filtered and Sorted Items (Feature 046)
   // ---------------------------------------------------------------------------
   const filteredItems = useMemo(() => {
-    // If categories are still loading, return unsorted items to avoid race condition
-    // (getLabelById may return 'Uncategorized' for valid IDs during load)
-    if (categoriesLoading) {
+    // If categories are still loading or failed to load, return unsorted items
+    // to avoid race condition (getLabelById may return 'Uncategorized' for valid IDs)
+    if (categoriesLoading || categoriesError) {
       return items;
     }
 
@@ -147,7 +147,7 @@ export function useInventory(): UseInventoryReturn {
     });
 
     return sorted;
-  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading]);
+  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categoriesError]);
 
   // ---------------------------------------------------------------------------
   // Derived: Grouped Items by Category (Feature 046)

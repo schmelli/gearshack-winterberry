@@ -67,9 +67,10 @@ export function useCategories(): UseCategoriesReturn {
   const refresh = useCategoriesStore((state) => state.refresh);
 
   // Fetch categories on mount if not already initialized
+  // Also refetch when locale changes to ensure fresh data for new locale
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+  }, [fetchCategories, locale]);
 
   // Build hierarchy from flat categories
   const hierarchy = useMemo(() => {

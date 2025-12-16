@@ -10,6 +10,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { fetchCategories } from '@/lib/supabase/categories';
 import type { Category } from '@/types/category';
 
@@ -46,13 +47,15 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 // Store Implementation
 // =============================================================================
 
-export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
-  // State
-  categories: [],
-  isLoading: false,
-  error: null,
-  _initialized: false,
-  _lastFetchedAt: null,
+export const useCategoriesStore = create<CategoriesStore>()(
+  persist(
+    (set, get) => ({
+      // State
+      categories: [],
+      isLoading: false,
+      error: null,
+      _initialized: false,
+      _lastFetchedAt: null,
 
   // Actions
   fetchCategories: async () => {
@@ -105,4 +108,14 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
     // Then fetch
     await get().fetchCategories();
   },
-}));
+    }),
+    {
+      name: 'gearshack-categories-store',
+      partialize: (state) => ({
+        categories: state.categories,
+        _initialized: state._initialized,
+        _lastFetchedAt: state._lastFetchedAt,
+      }),
+    }
+  )
+);
