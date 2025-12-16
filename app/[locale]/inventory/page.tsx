@@ -24,8 +24,11 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { useInventory } from '@/hooks/useInventory';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useInventoryView } from '@/hooks/useInventoryView';
 import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
+import { WishlistToggle } from '@/components/wishlist/WishlistToggle';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useGearDetailModal } from '@/hooks/useGearDetailModal';
@@ -37,11 +40,25 @@ import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import type { User } from '@supabase/supabase-js';
 import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
+import type { WishlistSortOption } from '@/types/wishlist';
+
+// Helper: Convert wishlist sort option to inventory sort option
+function toInventorySortOption(option: WishlistSortOption): SortOption {
+  if (option === 'name' || option === 'category' || option === 'dateAdded') {
+    return option;
+  }
+  // Default to 'dateAdded' for incompatible options
+  return 'dateAdded';
+}
 
 // Component that uses useSearchParams - must be wrapped in Suspense
 function InventoryWithModal() {
   const t = useTranslations('Inventory');
   const { user } = useSupabaseAuth();
+  // Feature 049: View mode state (inventory vs wishlist)
+  const { viewMode, setViewMode } = useInventoryView();
+
+  // Inventory hook
   const {
     filteredItems,
     items,
@@ -63,6 +80,39 @@ function InventoryWithModal() {
     categoriesError,
     refreshCategories,
   } = useInventory();
+
+  // Feature 049: Wishlist hook
+  const {
+    filteredItems: wishlistFilteredItems,
+    wishlistItems,
+    isLoading: wishlistLoading,
+    error: wishlistError,
+    searchQuery: wishlistSearchQuery,
+    setSearchQuery: setWishlistSearchQuery,
+    categoryFilter: wishlistCategoryFilter,
+    setCategoryFilter: setWishlistCategoryFilter,
+    sortOption: wishlistSortOption,
+    setSortOption: setWishlistSortOption,
+    hasActiveFilters: wishlistHasActiveFilters,
+    clearFilters: wishlistClearFilters,
+    itemCount: wishlistItemCount,
+    filteredCount: wishlistFilteredCount,
+  } = useWishlist();
+
+  // Feature 049: Determine active hook based on view mode
+  const activeFilteredItems = viewMode === 'wishlist' ? wishlistFilteredItems : filteredItems;
+  const activeItems = viewMode === 'wishlist' ? wishlistItems : items;
+  const activeIsLoading = viewMode === 'wishlist' ? wishlistLoading : isLoading;
+  const activeSearchQuery = viewMode === 'wishlist' ? wishlistSearchQuery : searchQuery;
+  const activeSetSearchQuery = viewMode === 'wishlist' ? setWishlistSearchQuery : setSearchQuery;
+  const activeCategoryFilter = viewMode === 'wishlist' ? wishlistCategoryFilter : categoryFilter;
+  const activeSetCategoryFilter = viewMode === 'wishlist' ? setWishlistCategoryFilter : setCategoryFilter;
+  const activeSortOption = viewMode === 'wishlist' ? wishlistSortOption : sortOption;
+  const activeSetSortOption = viewMode === 'wishlist' ? setWishlistSortOption : setSortOption;
+  const activeHasActiveFilters = viewMode === 'wishlist' ? wishlistHasActiveFilters : hasActiveFilters;
+  const activeClearFilters = viewMode === 'wishlist' ? wishlistClearFilters : clearFilters;
+  const activeItemCount = viewMode === 'wishlist' ? wishlistItemCount : itemCount;
+  const activeFilteredCount = viewMode === 'wishlist' ? wishlistFilteredCount : filteredCount;
 
   // Feature 045: Gear detail modal state (uses useSearchParams internally)
   const { isOpen, gearId, open, close, isMobile } = useGearDetailModal();
@@ -100,22 +150,26 @@ function InventoryWithModal() {
   return <InventoryContent
     t={t}
     user={user}
-    filteredItems={filteredItems}
-    items={items}
+    viewMode={viewMode}
+    setViewMode={setViewMode}
+    inventoryCount={itemCount}
+    wishlistCount={wishlistItemCount}
+    filteredItems={activeFilteredItems}
+    items={activeItems}
     viewDensity={viewDensity}
     setViewDensity={setViewDensity}
-    searchQuery={searchQuery}
-    setSearchQuery={setSearchQuery}
-    categoryFilter={categoryFilter}
-    setCategoryFilter={setCategoryFilter}
-    sortOption={sortOption}
-    setSortOption={setSortOption}
+    searchQuery={activeSearchQuery}
+    setSearchQuery={activeSetSearchQuery}
+    categoryFilter={activeCategoryFilter}
+    setCategoryFilter={activeSetCategoryFilter}
+    sortOption={viewMode === 'wishlist' ? toInventorySortOption(activeSortOption as WishlistSortOption) : activeSortOption as SortOption}
+    setSortOption={activeSetSortOption}
     groupedItems={groupedItems}
-    hasActiveFilters={hasActiveFilters}
-    clearFilters={clearFilters}
-    itemCount={itemCount}
-    filteredCount={filteredCount}
-    isLoading={isLoading}
+    hasActiveFilters={activeHasActiveFilters}
+    clearFilters={activeClearFilters}
+    itemCount={activeItemCount}
+    filteredCount={activeFilteredCount}
+    isLoading={activeIsLoading}
     getCategoryLabel={getCategoryLabel}
     categoriesError={categoriesError}
     refreshCategories={refreshCategories}
@@ -143,6 +197,10 @@ function InventoryWithModal() {
 interface InventoryContentProps {
   t: ReturnType<typeof useTranslations<'Inventory'>>;
   user: User | null;
+  viewMode: 'inventory' | 'wishlist';
+  setViewMode: (mode: 'inventory' | 'wishlist') => void;
+  inventoryCount: number;
+  wishlistCount: number;
   filteredItems: GearItem[];
   items: GearItem[];
   viewDensity: ViewDensity;
@@ -181,6 +239,10 @@ interface InventoryContentProps {
 function InventoryContent({
   t,
   user,
+  viewMode,
+  setViewMode,
+  inventoryCount,
+  wishlistCount,
   filteredItems,
   items,
   viewDensity,
@@ -228,12 +290,18 @@ function InventoryContent({
 
   return (
     <main className="container mx-auto max-w-6xl px-4 py-8">
-      {/* Add Gear Button */}
-      <div className="mb-8 flex justify-end">
+      {/* Feature 049: View Toggle and Add Button */}
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <WishlistToggle
+          mode={viewMode}
+          onModeChange={setViewMode}
+          inventoryCount={inventoryCount}
+          wishlistCount={wishlistCount}
+        />
         <Button asChild>
-          <Link href="/inventory/new">
+          <Link href={viewMode === 'wishlist' ? '/inventory/new?mode=wishlist' : '/inventory/new'}>
             <Plus className="mr-2 h-4 w-4" />
-            {t('addItem')}
+            {viewMode === 'wishlist' ? t('addToWishlist') : t('addItem')}
           </Link>
         </Button>
       </div>
@@ -311,6 +379,7 @@ function InventoryContent({
             onItemClick={open}
             getItemCountLabel={(count) => t('itemCount', { count })}
             getCategoryLabel={getCategoryLabel}
+            context={viewMode}
           />
         </>
       )}

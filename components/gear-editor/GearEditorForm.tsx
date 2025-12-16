@@ -56,6 +56,8 @@ import { useItems } from '@/hooks/useSupabaseStore';
 export interface GearEditorFormProps extends UseGearEditorOptions {
   /** Title to display in the form header */
   title?: string;
+  /** Mode for the form - inventory or wishlist (Feature 049) */
+  mode?: 'inventory' | 'wishlist';
 }
 
 // =============================================================================
@@ -80,6 +82,7 @@ export function GearEditorForm({
   onSaveSuccess,
   onSaveError,
   redirectPath,
+  mode = 'inventory',
 }: GearEditorFormProps) {
   const { form, isEditing, isDirty, isSubmitting, isDeleting, handleSubmit, handleCancel, handleDelete } =
     useGearEditor({
@@ -87,6 +90,7 @@ export function GearEditorForm({
       onSaveSuccess,
       onSaveError,
       redirectPath,
+      mode,
     });
 
   // Get all items for dependency picker (Feature: 037-gear-dependencies)

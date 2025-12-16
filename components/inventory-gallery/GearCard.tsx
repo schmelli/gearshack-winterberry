@@ -131,13 +131,15 @@ interface GearCardProps {
   onClick?: () => void;
   /** Function to get category label by ID */
   getCategoryLabel: (categoryId: string | null) => string;
+  /** Context determines which features are shown (Feature 049: wishlist hides availability markers) */
+  context?: 'inventory' | 'wishlist';
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearCardProps) {
+export function GearCard({ item, viewDensity, onClick, getCategoryLabel, context = 'inventory' }: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
   // Feature 019: Use optimized image (nobgImages > primaryImageUrl)
@@ -146,6 +148,9 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
   const isCompact = viewDensity === 'compact';
   const isDetailed = viewDensity === 'detailed';
   const isStandard = viewDensity === 'standard';
+
+  // Feature 049: Hide availability markers in wishlist context
+  const showAvailabilityMarkers = context === 'inventory';
 
   const categoryLabel = getCategoryLabel(item.categoryId) || null;
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
@@ -183,8 +188,8 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
               className="h-10 w-10"
             />
           )}
-          {/* Status Icons (Overlay top-left) - Feature 041 */}
-          <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />
+          {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
+          {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />}
         </div>
 
         {/* Content Section */}
@@ -278,8 +283,8 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
           />
         )}
 
-        {/* Status Icons (Overlay top-left) - Feature 041 */}
-        <StatusIcons item={item} className="absolute top-2 left-2" />
+        {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
+        {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-2 left-2" />}
 
         {/* Edit Button (Overlay top-right) */}
         <div className="absolute right-2 top-2 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">

@@ -42,6 +42,8 @@ interface GalleryGridProps {
   getItemCountLabel?: (count: number) => string;
   /** Function to get category label by ID */
   getCategoryLabel: (categoryId: string | null) => string;
+  /** Context for card rendering - Feature 049: wishlist hides availability markers */
+  context?: 'inventory' | 'wishlist';
 }
 
 // =============================================================================
@@ -71,6 +73,7 @@ export function GalleryGrid({
   onItemClick,
   getItemCountLabel,
   getCategoryLabel,
+  context = 'inventory',
 }: GalleryGridProps) {
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -121,6 +124,7 @@ export function GalleryGrid({
                   viewDensity={viewDensity}
                   onClick={onItemClick ? () => onItemClick(item.id) : undefined}
                   getCategoryLabel={getCategoryLabel}
+                  context={context}
                 />
               ))}
             </div>
@@ -140,6 +144,7 @@ export function GalleryGrid({
           viewDensity={viewDensity}
           onClick={onItemClick ? () => onItemClick(item.id) : undefined}
           getCategoryLabel={getCategoryLabel}
+          context={context}
         />
       ))}
     </div>

@@ -28,6 +28,7 @@ import {
 import { useStore } from '@/hooks/useSupabaseStore';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
+import { useWishlist } from '@/hooks/useWishlist';
 
 // =============================================================================
 // Image Import Helpers
@@ -58,6 +59,8 @@ export interface UseGearEditorOptions {
   onSaveError?: (error: Error) => void;
   /** Custom redirect path after save (default: /inventory) */
   redirectPath?: string;
+  /** Mode for saving - inventory or wishlist (Feature 049) */
+  mode?: 'inventory' | 'wishlist';
 }
 
 export interface UseGearEditorReturn {
@@ -95,17 +98,22 @@ export function useGearEditor(
     onSaveSuccess,
     onSaveError,
     redirectPath = '/inventory',
+    mode = 'inventory',
   } = options;
 
   const router = useRouter();
   const { user } = useAuthContext();
   const { uploadUrl: uploadToCloudinary } = useCloudinaryUpload();
   const isEditing = Boolean(initialItem);
+  const isWishlistMode = mode === 'wishlist';
 
-  // Store actions
+  // Store actions - inventory
   const addItem = useStore((state) => state.addItem);
   const updateItemInStore = useStore((state) => state.updateItem);
   const deleteItemFromStore = useStore((state) => state.deleteItem);
+
+  // Wishlist actions (Feature 049)
+  const { addToWishlist } = useWishlist();
 
   // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
@@ -219,6 +227,18 @@ export function useGearEditor(
           };
           onSaveSuccess?.(savedItem);
           toast.success('Item updated successfully!');
+        } else if (isWishlistMode) {
+          // Feature 049: Add new item to wishlist instead of inventory
+          await addToWishlist(itemData);
+          // Reconstruct saved item for callback
+          const savedItem: GearItem = {
+            id: `wishlist-${Date.now()}`, // Temporary ID for callback
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...itemData,
+          };
+          onSaveSuccess?.(savedItem);
+          toast.success('Item added to wishlist!');
         } else {
           // Add new item to store (now async with optimistic update)
           const newId = await addItem(itemData);
