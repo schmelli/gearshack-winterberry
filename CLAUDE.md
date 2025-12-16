@@ -68,6 +68,23 @@ Before writing code:
   - `Dialog` for modals
   - `Sheet` for mobile drawers
 
+## Key Patterns & Utilities
+
+### AI Image Generation (Feature 048)
+- **Cloudinary AI Integration**: Server-side signed uploads via `lib/cloudinary-ai.ts` using Cloudinary v2 SDK
+- **Prompt Engineering**: `lib/prompt-builder.ts` - constructs AI prompts from structured metadata (activity types, seasons, style preferences)
+- **Retry/Fallback Pattern**: State machine in custom hooks with automatic retry (1 attempt) → silent fallback to curated images
+- **Contrast Compliance**: `lib/contrast-analyzer.ts` - WCAG AA compliance (4.5:1 ratio), luminance calculation, dynamic text color
+- **Image History Management**: Max 3 images per loadout with auto-deletion of oldest, stored in `generated_images` table
+- **Fallback Images**: 24 curated images (6 activities × 4 seasons) in `public/fallback-images/`, seeded via `scripts/seed-fallback-images.ts`
+- **API Routes**: 5 dedicated routes in `/api/loadout-images/` - generate, save-fallback, history, set-active, delete
+- **Environment Variables**: Cloudinary credentials in `.env.local` (CLOUDINARY_CLOUD_NAME, API_KEY, API_SECRET, AI_ENABLED)
+
+### State Management Patterns
+- **Complex Async Flows**: State machines with status tracking (idle → generating → retrying → success/error/fallback)
+- **Optimistic Updates**: Zustand with rollback on errors
+- **Feature-Sliced Light**: Business logic in custom hooks, stateless UI components
+
 ## Active Technologies
 - TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui (001-gear-item-editor)
 - Local state for MVP (no backend persistence in this feature scope) (001-gear-item-editor)
@@ -142,10 +159,11 @@ Before writing code:
 - PostgreSQL (Supabase) for messages/conversations/relationships, Cloudinary for images/voice messages (046-user-messaging-system)
 - TypeScript 5.x (strict mode) + react-hook-form 7.x, Zod 4.x, shadcn/ui, next-intl, zustand (047-loadout-creation-form)
 - PostgreSQL (Supabase) - existing `loadouts` table with `seasons`, `activity_types`, `description` columns (047-loadout-creation-form)
-- TypeScript 5.x (strict mode) + Next.js 16.0.7 (App Router), React 19.2.0, next-cloudinary 6.17.5, @supabase/supabase-js 2.87.1, @supabase/ssr 0.8.0, zod 4.1.13, react-hook-form 7.68.0, sonner 2.0.7, shadcn/ui (048-ai-loadout-image-gen)
-- PostgreSQL (Supabase) for loadout metadata and image generation history; Cloudinary CDN for image assets (048-ai-loadout-image-gen)
+- TypeScript 5.x (strict mode) + Next.js 16.0.7 (App Router), React 19.2.0, Cloudinary AI v2 SDK (cloudinary npm package), @supabase/supabase-js 2.87.1, @supabase/ssr 0.8.0, zod 4.1.13, react-hook-form 7.68.0, sonner 2.0.7, shadcn/ui, dotenv 17.2.3 (048-ai-loadout-image-gen)
+- PostgreSQL (Supabase) - `generated_images` table for AI image history, extended `loadouts` table with `hero_image_id`; Cloudinary AI for image generation and CDN hosting (048-ai-loadout-image-gen)
 
 ## Recent Changes
+- 048-ai-loadout-image-gen: Implemented AI-powered hero image generation for loadouts using Cloudinary AI v2 SDK. New patterns: state machine for async operations with retry/fallback logic, prompt engineering from structured metadata, WCAG AA contrast compliance (4.5:1 ratio), client-side image brightness analysis with canvas API, signed Cloudinary uploads with server-side API routes. Architecture: Feature-Sliced Light with `useLoadoutImageGeneration` hook containing all business logic, stateless UI components (LoadoutHeroImageSection, ImageGenerationButton, etc.), 5 dedicated API routes (/api/loadout-images/*). Database: new `generated_images` table with image history (max 3 per loadout), JSONB columns for style preferences. Environment: requires CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_AI_ENABLED in .env.local.
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui
 - Always try tp try run multiple subagents in parallel to speed up development. In this (Next.js) project, always ONLY use the nextjs-gearshack-architect type subagent.
 
