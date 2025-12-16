@@ -133,7 +133,13 @@ export function UserMenu() {
       </DropdownMenu>
 
       {/* Profile Modal (T029) - Wrapped in Suspense for useSearchParams */}
-      <Suspense fallback={null}>
+      <Suspense fallback={
+        <div className="container mx-auto max-w-6xl px-4 py-8">
+          <div className="flex items-center justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          </div>
+        </div>
+      }>
         <ProfileModal
           open={isProfileModalOpen}
           onOpenChange={setIsProfileModalOpen}
