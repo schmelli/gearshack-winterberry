@@ -15,7 +15,21 @@ import {
 // Configuration
 // =============================================================================
 
-const AI_MODEL = process.env.AI_IMAGE_MODEL || 'nano-banana-pro';
+/**
+ * AI Model Configuration
+ *
+ * Supported models via Vercel AI Gateway:
+ * - google/gemini-2.5-flash-image (recommended - fast, cost-effective)
+ * - openai/dall-e-3
+ * - stability-ai/stable-diffusion-xl
+ *
+ * Requires:
+ * - AI_IMAGE_MODEL environment variable
+ * - AI_GATEWAY_API_KEY environment variable (for Vercel AI Gateway)
+ * - AI_GENERATION_ENABLED=true
+ */
+const AI_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
+const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_ENABLED = process.env.AI_GENERATION_ENABLED === 'true';
 
 // =============================================================================
@@ -99,6 +113,8 @@ export async function generateAIImage(
     if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) missingVars.push('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME');
     if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
     if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
+    if (!process.env.AI_GATEWAY_API_KEY) missingVars.push('AI_GATEWAY_API_KEY');
+    if (!process.env.AI_IMAGE_MODEL) missingVars.push('AI_IMAGE_MODEL');
     if (process.env.AI_GENERATION_ENABLED !== 'true') missingVars.push('AI_GENERATION_ENABLED');
 
     throw new AIGenerationError(
@@ -290,6 +306,14 @@ export async function getOptimizedImageUrl(
 /**
  * Check AI generation configuration status
  *
+ * Required environment variables:
+ * - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: Cloudinary cloud name
+ * - CLOUDINARY_API_KEY: Cloudinary API key
+ * - CLOUDINARY_API_SECRET: Cloudinary API secret
+ * - AI_GATEWAY_API_KEY: Vercel AI Gateway API key
+ * - AI_IMAGE_MODEL: Model identifier (e.g., google/gemini-2.5-flash-image)
+ * - AI_GENERATION_ENABLED: Must be 'true'
+ *
  * @returns true if AI generation is properly configured
  */
 export function isAIConfigured(): boolean {
@@ -297,6 +321,8 @@ export function isAIConfigured(): boolean {
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET &&
+    process.env.AI_GATEWAY_API_KEY &&
+    process.env.AI_IMAGE_MODEL &&
     process.env.AI_GENERATION_ENABLED === 'true'
   );
 }
