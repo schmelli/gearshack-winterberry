@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { RATE_LIMITING, SEARCH_CONFIG } from '@/lib/constants/price-tracking';
 import type { FuzzySearchResult } from '@/types/database-helpers';
 
 interface PartnerOfferRequest {
@@ -20,21 +21,19 @@ interface PartnerOfferRequest {
   terms?: string;
 }
 
-// Rate limiting tracking (in-memory for MVP)
+// Rate limiting tracking (in-memory for MVP - Review #4: Should migrate to Redis)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 100; // requests per hour
-const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in ms
 
-function checkRateLimit(partnerId: string): boolean {
+function checkRateLimit(partnerId: string, maxRequests: number = RATE_LIMITING.DEFAULT_PARTNER_RATE_LIMIT): boolean {
   const now = Date.now();
   const limit = rateLimits.get(partnerId);
 
   if (!limit || now > limit.resetAt) {
-    rateLimits.set(partnerId, { count: 1, resetAt: now + RATE_WINDOW });
+    rateLimits.set(partnerId, { count: 1, resetAt: now + RATE_LIMITING.RATE_WINDOW_MS });
     return true;
   }
 
-  if (limit.count >= RATE_LIMIT) {
+  if (limit.count >= maxRequests) {
     return false;
   }
 
@@ -88,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limit using authenticated partner
-    if (!checkRateLimit(partner.id)) {
+    if (!checkRateLimit(partner.id, partner.rate_limit_per_hour)) {
       return NextResponse.json(
         { error: `Rate limit exceeded. Maximum ${partner.rate_limit_per_hour} requests per hour.` },
         { status: 429 }
@@ -98,8 +97,8 @@ export async function POST(request: NextRequest) {
     // Find matching gear items using fuzzy search (Review fix #7)
     const { data: fuzzyMatches } = await supabase.rpc('fuzzy_search_products', {
       search_query: body.product_name,
-      similarity_threshold: 0.3,
-      max_results: 50,
+      similarity_threshold: SEARCH_CONFIG.FUZZY_SIMILARITY_THRESHOLD,
+      max_results: SEARCH_CONFIG.FUZZY_MAX_RESULTS,
     });
 
     if (!fuzzyMatches || fuzzyMatches.length === 0) {

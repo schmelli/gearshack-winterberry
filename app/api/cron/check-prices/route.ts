@@ -10,11 +10,12 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
 import { sendPriceAlert, sendPersonalOfferAlert } from '@/lib/services/alert-service';
+import { RATE_LIMITING } from '@/lib/constants/price-tracking';
 import type { PriceTrackingWithGearItem, PersonalOfferWithPartner } from '@/types/database-helpers';
 import PQueue from 'p-queue';
 
-// Rate limit: 5 concurrent searches
-const queue = new PQueue({ concurrency: 5 });
+// Rate limit concurrent searches
+const queue = new PQueue({ concurrency: RATE_LIMITING.MAX_CONCURRENT_SEARCHES });
 
 export async function GET(request: NextRequest) {
   try {

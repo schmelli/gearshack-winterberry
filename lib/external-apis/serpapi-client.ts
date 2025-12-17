@@ -4,15 +4,16 @@
  * Date: 2025-12-17
  */
 
+import { RETRY_CONFIG, CACHE_CONFIG } from '@/lib/constants/price-tracking';
 import type { PriceResult } from '@/types/price-tracking';
 
 /**
- * Retry helper with exponential backoff (Polish T074)
+ * Retry helper with exponential backoff (Review fix #14)
  */
 async function fetchWithRetry(
   url: string,
   options: RequestInit = {},
-  maxRetries: number = 3
+  maxRetries: number = RETRY_CONFIG.MAX_RETRIES
 ): Promise<Response> {
   let lastError: Error | null = null;
 
@@ -32,7 +33,10 @@ async function fetchWithRetry(
 
     // Don't wait after the last attempt
     if (attempt < maxRetries - 1) {
-      const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10 seconds
+      const backoffMs = Math.min(
+        RETRY_CONFIG.INITIAL_BACKOFF_MS * Math.pow(2, attempt),
+        RETRY_CONFIG.MAX_BACKOFF_MS
+      );
       await new Promise(resolve => setTimeout(resolve, backoffMs));
     }
   }
@@ -59,6 +63,31 @@ interface SerpApiEbayResult {
   };
   thumbnail: string;
   condition?: string;
+}
+
+/**
+ * Valid product condition values (Review fix #18)
+ */
+const VALID_CONDITIONS = ['new', 'used', 'refurbished', 'open_box'] as const;
+type ProductCondition = typeof VALID_CONDITIONS[number];
+
+/**
+ * Type guard to safely validate product condition (Review fix #18)
+ */
+function isValidCondition(condition: string | undefined): condition is ProductCondition {
+  if (!condition) return false;
+  return VALID_CONDITIONS.includes(condition as ProductCondition);
+}
+
+/**
+ * Normalize product condition with fallback (Review fix #18)
+ */
+function normalizeCondition(condition: string | undefined): ProductCondition {
+  if (isValidCondition(condition)) {
+    return condition;
+  }
+  // Default to 'new' if invalid or missing
+  return 'new';
 }
 
 /**
@@ -108,13 +137,13 @@ export async function searchGoogleShopping(
       total_price: result.extracted_price + (result.delivery ? parseShippingCost(result.delivery) : 0),
       product_name: result.title,
       product_image_url: result.thumbnail || null,
-      product_condition: 'new',
+      product_condition: normalizeCondition('new'),
       is_local: false,
       shop_latitude: null,
       shop_longitude: null,
       distance_km: null,
       fetched_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours
+      expires_at: new Date(Date.now() + CACHE_CONFIG.TTL_MS).toISOString(),
     }));
   } catch (error) {
     console.error('Google Shopping search error:', error);
@@ -165,13 +194,13 @@ export async function searchEbay(query: string): Promise<PriceResult[]> {
       total_price: result.price.extracted,
       product_name: result.title,
       product_image_url: result.thumbnail || null,
-      product_condition: (result.condition?.toLowerCase() as 'new' | 'used' | 'refurbished') || null,
+      product_condition: normalizeCondition(result.condition?.toLowerCase()),
       is_local: false,
       shop_latitude: null,
       shop_longitude: null,
       distance_km: null,
       fetched_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours
+      expires_at: new Date(Date.now() + CACHE_CONFIG.TTL_MS).toISOString(),
     }));
   } catch (error) {
     console.error('eBay search error:', error);
