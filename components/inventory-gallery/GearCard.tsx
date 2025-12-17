@@ -18,6 +18,11 @@ import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
+import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
+import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
+import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
+import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
+import type { WishlistItemAvailability } from '@/types/wishlist';
 
 // =============================================================================
 // Status Icons Component - Feature 041
@@ -131,13 +136,36 @@ interface GearCardProps {
   onClick?: () => void;
   /** Function to get category label by ID */
   getCategoryLabel: (categoryId: string | null) => string;
+  /** Context determines which features are shown (Feature 049: wishlist hides availability markers) */
+  context?: 'inventory' | 'wishlist';
+  /** Feature 049 US3: Callback to move wishlist item to inventory */
+  onMoveToInventory?: (itemId: string) => Promise<void>;
+  /** Feature 049 US3: Callback after successful move (for navigation) */
+  onMoveComplete?: () => void;
+  /** Feature 049 US2: Community availability data for wishlist items (T045) */
+  communityAvailability?: WishlistItemAvailability | null;
+  /** Feature 049 US2: Whether community availability is loading (T045) */
+  communityAvailabilityLoading?: boolean;
+  /** Feature 049 US2: Callback to view a community item in detail modal (T041) */
+  onViewCommunityItem?: (itemId: string, ownerId: string) => void;
 }
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearCardProps) {
+export function GearCard({
+  item,
+  viewDensity,
+  onClick,
+  getCategoryLabel,
+  context = 'inventory',
+  onMoveToInventory,
+  onMoveComplete,
+  communityAvailability,
+  communityAvailabilityLoading = false,
+  onViewCommunityItem,
+}: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
   // Feature 019: Use optimized image (nobgImages > primaryImageUrl)
@@ -146,6 +174,13 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
   const isCompact = viewDensity === 'compact';
   const isDetailed = viewDensity === 'detailed';
   const isStandard = viewDensity === 'standard';
+
+  // Feature 049: Hide availability markers in wishlist context
+  const showAvailabilityMarkers = context === 'inventory';
+  // Feature 049: Show price stubs in wishlist context
+  const isWishlistContext = context === 'wishlist';
+  // Feature 049 US2 T045: Show community availability panel in wishlist context (medium/detailed views only)
+  const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
 
   const categoryLabel = getCategoryLabel(item.categoryId) || null;
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
@@ -183,8 +218,8 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
               className="h-10 w-10"
             />
           )}
-          {/* Status Icons (Overlay top-left) - Feature 041 */}
-          <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />
+          {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
+          {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />}
         </div>
 
         {/* Content Section */}
@@ -218,20 +253,32 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
           </div>
         </div>
 
-        {/* Edit Button Overlay */}
+        {/* Action Button Overlay - Feature 049 US3: Show Move button in wishlist context */}
         <div className="absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            asChild
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-muted-foreground hover:text-primary"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Link href={`/inventory/${item.id}/edit`}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Edit</span>
-            </Link>
-          </Button>
+          {isWishlistContext && onMoveToInventory ? (
+            <MoveToInventoryButton
+              itemId={item.id}
+              itemName={item.name}
+              onMove={onMoveToInventory}
+              onMoveComplete={onMoveComplete}
+              variant="ghost"
+              iconOnly
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+            />
+          ) : (
+            <Button
+              asChild
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link href={`/inventory/${item.id}/edit`}>
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </Card>
     );
@@ -278,23 +325,35 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
           />
         )}
 
-        {/* Status Icons (Overlay top-left) - Feature 041 */}
-        <StatusIcons item={item} className="absolute top-2 left-2" />
+        {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
+        {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-2 left-2" />}
 
-        {/* Edit Button (Overlay top-right) */}
+        {/* Action Button (Overlay top-right) - Feature 049 US3: Show Move button in wishlist context */}
         <div className="absolute right-2 top-2 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-          <Button
-            asChild
-            size="icon"
-            variant="secondary"
-            className="h-8 w-8 shadow-sm bg-background/90 hover:bg-background"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Link href={`/inventory/${item.id}/edit`}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Edit</span>
-            </Link>
-          </Button>
+          {isWishlistContext && onMoveToInventory ? (
+            <MoveToInventoryButton
+              itemId={item.id}
+              itemName={item.name}
+              onMove={onMoveToInventory}
+              onMoveComplete={onMoveComplete}
+              variant="secondary"
+              iconOnly
+              className="h-8 w-8 shadow-sm bg-background/90 hover:bg-background"
+            />
+          ) : (
+            <Button
+              asChild
+              size="icon"
+              variant="secondary"
+              className="h-8 w-8 shadow-sm bg-background/90 hover:bg-background"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link href={`/inventory/${item.id}/edit`}>
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -362,6 +421,11 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
           )}
         </div>
 
+        {/* Feature 049 T065: Price Stub Indicator for standard (medium) wishlist view */}
+        {isStandard && isWishlistContext && (
+          <PriceStubIndicator className="mt-auto" />
+        )}
+
         {/* DETAILED VIEW: Description & Notes */}
         {isDetailed && (
           <div className="mt-4 pt-4 border-t border-border space-y-4 flex-1">
@@ -392,9 +456,24 @@ export function GearCard({ item, viewDensity, onClick, getCategoryLabel }: GearC
                 </div>
               </div>
             )}
+
+            {/* Feature 049 T067: Price History Stub for detailed (large) wishlist view */}
+            {isWishlistContext && (
+              <PriceHistoryStub className="mt-auto" />
+            )}
           </div>
         )}
       </CardContent>
+
+      {/* Feature 049 US2 T045: Community Availability Panel for wishlist items (standard/detailed views) */}
+      {showCommunityAvailability && (
+        <CommunityAvailabilityPanel
+          availability={communityAvailability ?? null}
+          isLoading={communityAvailabilityLoading}
+          onViewItem={onViewCommunityItem}
+          variant={isDetailed ? 'full' : 'compact'}
+        />
+      )}
     </Card>
   );
 }

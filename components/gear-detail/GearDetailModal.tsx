@@ -60,6 +60,12 @@ interface GearDetailModalProps {
   userId?: string;
   /** Callback when insight is dismissed */
   onInsightDismissed?: (insight: GearInsight) => void;
+  /** Feature 049 US3: Whether item is from wishlist (shows Move button) */
+  isWishlistItem?: boolean;
+  /** Feature 049 US3: Callback to move wishlist item to inventory */
+  onMoveToInventory?: (itemId: string) => Promise<void>;
+  /** Feature 049 US3: Callback after successful move */
+  onMoveComplete?: () => void;
 }
 
 // =============================================================================
@@ -80,6 +86,9 @@ export function GearDetailModal({
   insightsError = null,
   userId,
   onInsightDismissed,
+  isWishlistItem = false,
+  onMoveToInventory,
+  onMoveComplete,
 }: GearDetailModalProps) {
   // Don't render if no item
   if (!item) {
@@ -100,6 +109,12 @@ export function GearDetailModal({
       userId={userId}
       onEditClick={() => onOpenChange(false)}
       onInsightDismissed={onInsightDismissed}
+      isWishlistItem={isWishlistItem}
+      onMoveToInventory={onMoveToInventory}
+      onMoveComplete={() => {
+        onOpenChange(false); // Close modal first
+        onMoveComplete?.(); // Then switch to inventory view
+      }}
     />
   );
 

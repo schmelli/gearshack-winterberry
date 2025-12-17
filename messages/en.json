@@ -186,6 +186,43 @@
       "warning": "Warning",
       "message": "Failed to load categories. Items may show as \"Uncategorized\".",
       "retry": "Retry"
+    },
+    "addToWishlist": "Add to Wishlist",
+    "wishlist": {
+      "title": "Wishlist",
+      "myGear": "My Gear",
+      "moveToInventory": "Move to Inventory",
+      "addToWishlist": "Add to Wishlist",
+      "emptyTitle": "Your wishlist is empty",
+      "emptySubtext": "Add items you want to acquire to track them here",
+      "noResultsTitle": "No wishlist items match your filters",
+      "noResultsSubtext": "Try adjusting your search or category filter",
+      "communityAvailability": {
+        "title": "Community Availability",
+        "loading": "Checking community...",
+        "emptyTitle": "No community matches found",
+        "emptySubtext": "No one in your community has this item yet",
+        "forSale": "For Sale",
+        "lendable": "Lendable",
+        "tradeable": "Tradeable",
+        "viewItem": "View Item",
+        "messageUser": "Message User",
+        "matchScore": "Match Score: {score}%"
+      },
+      "errors": {
+        "duplicateTitle": "Item already in wishlist",
+        "duplicateMessage": "An item with the same brand and model is already in your wishlist",
+        "addFailed": "Failed to add item to wishlist. Please try again.",
+        "loadCommunityFailed": "Failed to load community availability",
+        "moveFailed": "Failed to move item to inventory"
+      },
+      "success": {
+        "movedToInventory": "Item moved to inventory!"
+      },
+      "confirmMove": {
+        "title": "Are you sure you want to move this item to your inventory?",
+        "description": "This will remove it from your wishlist"
+      }
     }
   },
   "GearEditor": {

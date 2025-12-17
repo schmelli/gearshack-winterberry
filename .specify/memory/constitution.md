@@ -1,18 +1,19 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 0.0.0 → 1.0.0
-Bump type: MAJOR (Initial constitution creation)
+Version change: 1.0.0 → 1.1.0
+Bump type: MINOR (Technology constraints updated to reflect Supabase migration, new patterns added)
 
-Modified principles: N/A (new document)
+Modified principles:
+- Technology Constraints: Updated database from Firebase to Supabase (PostgreSQL)
+- Technology Constraints: Added Vercel AI SDK, next-intl, Cloudinary as core dependencies
+- Core Principles: Expanded Section IV to include state management patterns (Zustand, state machines)
 
 Added sections:
-- Core Principles (5 principles derived from PROJECT_RULES.md)
-- Technology Constraints
-- Development Workflow
-- Governance
+- State Management Patterns subsection under Technology Constraints
+- Internationalization (i18n) requirement in Technology Constraints
 
-Removed sections: N/A
+Removed sections: None
 
 Templates requiring updates:
 - .specify/templates/plan-template.md - ✅ Compatible (Constitution Check section present)
@@ -72,7 +73,12 @@ Before writing implementation code:
 
 New features SHOULD have a specification document before implementation begins. Specifications MUST include user scenarios and acceptance criteria.
 
-Rationale: Ensures alignment on requirements before coding, reduces rework, and maintains documentation.
+**State Management Patterns**:
+- Complex async flows MUST use state machines with status tracking (idle → loading → success/error)
+- Zustand SHOULD be used for global state with persist middleware for localStorage
+- Optimistic updates SHOULD implement rollback on errors
+
+Rationale: Ensures alignment on requirements before coding, reduces rework, maintains documentation, and provides predictable state transitions.
 
 ### V. Import and File Organization
 
@@ -87,14 +93,42 @@ Rationale: Improves code navigation, reduces merge conflicts, and scales better 
 | Constraint | Requirement |
 |------------|-------------|
 | Framework | Next.js 16+ with App Router |
-| Language | TypeScript (strict mode) |
+| Language | TypeScript 5.x (strict mode) |
+| Runtime | React 19+ |
 | Styling | Tailwind CSS 4 only |
 | Components | shadcn/ui (new-york style, zinc base) |
 | Icons | lucide-react |
 | Forms | react-hook-form + zod |
-| React Version | React 19+ |
+| Database | Supabase (PostgreSQL) |
+| Authentication | Supabase Auth (email/password, Google OAuth) |
+| Image Storage | Cloudinary (CDN hosting and optimization) |
+| AI Generation | Vercel AI SDK (via AI Gateway) |
+| Internationalization | next-intl |
+| State Management | Zustand (with persist middleware) |
+| Toasts | Sonner |
+| Charts | recharts |
 
 Adding new dependencies MUST be justified and approved. Prefer built-in Next.js features over third-party alternatives.
+
+### State Management Patterns
+
+- **Complex Async Flows**: Implement state machines with explicit status tracking
+- **Database Queries**: Use Supabase client with proper error handling
+- **Optimistic Updates**: Use Zustand with rollback patterns
+- **Form State**: react-hook-form with Zod validation
+
+### Image Management
+
+- **Storage**: Cloudinary for CDN hosting and optimization
+- **Background Removal**: Client-side using @imgly/background-removal (WASM)
+- **AI Generation**: Vercel AI SDK with fallback to curated images
+- **Contrast Compliance**: WCAG AA (4.5:1 ratio) for text overlays
+
+### Internationalization
+
+- **Library**: next-intl for multi-language support
+- **Locales**: English (en) and German (de) as primary languages
+- **URL Structure**: Locale-based routing (`/[locale]/...`)
 
 ## Development Workflow
 
@@ -133,4 +167,4 @@ This constitution supersedes all other development practices in the repository. 
 - Violations require explicit justification and approval.
 - Use CLAUDE.md for day-to-day development reference.
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-04 | **Last Amended**: 2025-12-04
+**Version**: 1.1.0 | **Ratified**: 2025-12-04 | **Last Amended**: 2025-12-16
