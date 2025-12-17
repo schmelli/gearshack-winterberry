@@ -76,6 +76,7 @@ export type Database = {
       }
       ai_messages: {
         Row: {
+          action_results: Json | null
           actions: Json | null
           content: string
           context: Json | null
@@ -87,6 +88,7 @@ export type Database = {
           tokens_used: number | null
         }
         Insert: {
+          action_results?: Json | null
           actions?: Json | null
           content: string
           context?: Json | null
@@ -98,6 +100,7 @@ export type Database = {
           tokens_used?: number | null
         }
         Update: {
+          action_results?: Json | null
           actions?: Json | null
           content?: string
           context?: Json | null

@@ -1,15 +1,17 @@
 /**
  * useChatActions Hook
  * Feature 050: AI Assistant - T053, T061
+ * Issue #60: Action execution results persistence
  *
  * Handles execution of AI-suggested actions (Add to Wishlist, Compare, Send Message, Navigate)
  * Provides action execution functions with optimistic updates and error handling.
  * T061: Implements action status tracking with pending → completed/failed transitions.
+ * Issue #60: Persists action results to database to prevent data loss on reload.
  */
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -19,12 +21,14 @@ import {
   executeCompareGear,
   executeSendMessage,
   executeNavigate,
+  updateActionResult,
 } from '@/app/[locale]/ai-assistant/actions';
 
 interface UseChatActionsResult {
   executeAction: (action: Action, messageId?: string) => Promise<void>;
   isExecuting: boolean;
   actionStatuses: Map<string, 'pending' | 'completed' | 'failed'>;
+  loadActionResults: (messages: Array<{ id: string; action_results?: unknown }>) => void;
 }
 
 export function useChatActions(): UseChatActionsResult {
@@ -35,6 +39,22 @@ export function useChatActions(): UseChatActionsResult {
   );
   const router = useRouter();
   const t = useTranslations('aiAssistant.actions');
+
+  // Issue #60: Load action results from database when messages are loaded
+  const loadActionResults = useCallback((messages: Array<{ id: string; action_results?: unknown }>) => {
+    const newStatuses = new Map<string, 'pending' | 'completed' | 'failed'>();
+
+    messages.forEach((message) => {
+      if (message.action_results) {
+        const results = message.action_results as Record<string, { status: 'completed' | 'failed' }>;
+        Object.entries(results).forEach(([actionId, result]) => {
+          newStatuses.set(actionId, result.status);
+        });
+      }
+    });
+
+    setActionStatuses(newStatuses);
+  }, []);
 
   const executeAction = useCallback(
     async (action: Action, messageId?: string) => {
@@ -50,31 +70,43 @@ export function useChatActions(): UseChatActionsResult {
       setIsExecuting(true);
 
       try {
+        let actionResult: Record<string, unknown> = {};
+
         switch (action.type) {
           case 'add_to_wishlist':
-            await handleAddToWishlist(action, t);
+            actionResult = await handleAddToWishlist(action, t);
             break;
 
           case 'compare':
-            await handleCompareGear(action, t, router);
+            actionResult = await handleCompareGear(action, t, router);
             break;
 
           case 'send_message':
-            await handleSendMessage(action, t);
+            actionResult = await handleSendMessage(action, t);
             break;
 
           case 'navigate':
-            await handleNavigate(action, t, router);
+            actionResult = await handleNavigate(action, t, router);
             break;
         }
 
         // T061: Mark as completed on success
         setActionStatuses((prev) => new Map(prev).set(actionId, 'completed'));
+
+        // Issue #60: Persist success result to database
+        if (messageId) {
+          await updateActionResult(messageId, actionId, 'completed', actionResult);
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Action failed';
 
         // T061: Mark as failed with error (rollback)
         setActionStatuses((prev) => new Map(prev).set(actionId, 'failed'));
+
+        // Issue #60: Persist failure result to database
+        if (messageId) {
+          await updateActionResult(messageId, actionId, 'failed', undefined, errorMessage);
+        }
 
         toast.error(errorMessage);
         throw error;
@@ -89,13 +121,14 @@ export function useChatActions(): UseChatActionsResult {
     executeAction,
     isExecuting,
     actionStatuses,
+    loadActionResults,
   };
 }
 
 // Action handlers (T064: Inline confirmations, T065: Inline errors)
 
-async function handleAddToWishlist(action: Action, t: any) {
-  if (action.type !== 'add_to_wishlist') return;
+async function handleAddToWishlist(action: Action, t: any): Promise<Record<string, unknown>> {
+  if (action.type !== 'add_to_wishlist') return {};
 
   const result = await executeAddToWishlist(action.gearItemId);
 
@@ -105,10 +138,13 @@ async function handleAddToWishlist(action: Action, t: any) {
 
   // T064: Confirmation toast
   toast.success(t('confirmations.addedToWishlist', { itemName: 'Item' }));
+
+  // Issue #60: Return result data for persistence
+  return { gearItemId: action.gearItemId };
 }
 
-async function handleCompareGear(action: Action, t: any, router: ReturnType<typeof useRouter>) {
-  if (action.type !== 'compare') return;
+async function handleCompareGear(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+  if (action.type !== 'compare') return {};
 
   const result = await executeCompareGear(action.gearItemIds);
 
@@ -121,10 +157,13 @@ async function handleCompareGear(action: Action, t: any, router: ReturnType<type
     toast.success(t('confirmations.comparisonReady'));
     router.push(result.compareUrl);
   }
+
+  // Issue #60: Return result data for persistence
+  return { gearItemIds: action.gearItemIds, compareUrl: result.compareUrl };
 }
 
-async function handleSendMessage(action: Action, t: any) {
-  if (action.type !== 'send_message') return;
+async function handleSendMessage(action: Action, t: any): Promise<Record<string, unknown>> {
+  if (action.type !== 'send_message') return {};
 
   const result = await executeSendMessage(action.recipientUserId, action.messagePreview);
 
@@ -134,10 +173,13 @@ async function handleSendMessage(action: Action, t: any) {
 
   // T064: Confirmation toast
   toast.success(t('confirmations.messageSent', { recipientName: 'User' }));
+
+  // Issue #60: Return result data for persistence
+  return { recipientUserId: action.recipientUserId, conversationId: result.conversationId };
 }
 
-async function handleNavigate(action: Action, t: any, router: ReturnType<typeof useRouter>) {
-  if (action.type !== 'navigate') return;
+async function handleNavigate(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+  if (action.type !== 'navigate') return {};
 
   const result = await executeNavigate(action.destination);
 
@@ -150,4 +192,7 @@ async function handleNavigate(action: Action, t: any, router: ReturnType<typeof 
     toast.success(t('confirmations.navigating', { destination: action.destination }));
     router.push(result.path);
   }
+
+  // Issue #60: Return result data for persistence
+  return { destination: action.destination, path: result.path };
 }
