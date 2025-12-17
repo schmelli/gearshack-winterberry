@@ -168,8 +168,10 @@ export function GearCard({
 }: GearCardProps) {
   const [imageError, setImageError] = useState(false);
 
-  // Feature 019: Use optimized image (nobgImages > primaryImageUrl)
-  const optimizedImageUrl = getOptimizedImageUrl(item);
+  // Feature 019: Use optimized image with Cloudinary transformations
+  // Different widths for different view densities
+  const imageWidth = viewDensity === 'compact' ? 160 : viewDensity === 'detailed' ? 1200 : 800;
+  const optimizedImageUrl = getOptimizedImageUrl(item, imageWidth);
   const showImage = optimizedImageUrl && !imageError;
   const isCompact = viewDensity === 'compact';
   const isDetailed = viewDensity === 'detailed';
@@ -206,7 +208,7 @@ export function GearCard({
               src={optimizedImageUrl}
               alt={item.name}
               fill
-              unoptimized // Fix 412 Errors
+              loading="lazy"
               className="object-contain p-1.5"
               sizes="80px"
               onError={() => setImageError(true)}
@@ -312,7 +314,7 @@ export function GearCard({
             src={optimizedImageUrl}
             alt={item.name}
             fill
-            unoptimized // Fix 412 Errors
+            loading="lazy"
             className="object-contain p-4 transition-transform group-hover:scale-105 duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             onError={() => setImageError(true)}

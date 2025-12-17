@@ -26,6 +26,7 @@ import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
 import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary-utils';
 
 // =============================================================================
 // Types
@@ -158,10 +159,10 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
       <div className="relative aspect-square h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
         {item.primaryImageUrl ? (
           <Image
-            src={item.primaryImageUrl}
+            src={optimizeCloudinaryUrl(item.primaryImageUrl, { width: 112, quality: 'auto:good' })}
             alt={item.name}
             fill
-            unoptimized
+            loading="lazy"
             className="object-cover"
             sizes="56px"
           />

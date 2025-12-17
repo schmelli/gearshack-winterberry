@@ -30,6 +30,7 @@ import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import type { CommunityAvailabilityMatch, WishlistItemAvailability, CommunityAvailabilityRetryStatus } from '@/types/wishlist';
 import { useConversations } from '@/hooks/messaging';
 import { toast } from 'sonner';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary-utils';
 
 // =============================================================================
 // Types
@@ -156,10 +157,10 @@ function MatchCard({
       {variant === 'full' && match.primaryImageUrl && (
         <div className="relative h-12 w-12 flex-shrink-0 rounded overflow-hidden bg-white dark:bg-stone-900">
           <Image
-            src={match.primaryImageUrl}
+            src={optimizeCloudinaryUrl(match.primaryImageUrl, { width: 96, quality: 'auto:good' })}
             alt={match.itemName}
             fill
-            unoptimized
+            loading="lazy"
             className="object-contain p-0.5"
             sizes="48px"
           />

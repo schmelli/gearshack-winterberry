@@ -10,6 +10,7 @@ import type {
   GearItemFormData,
   WeightUnit,
 } from '@/types/gear';
+import { optimizeCloudinaryUrl } from './cloudinary-utils';
 
 // =============================================================================
 // Weight Conversion Constants
@@ -212,25 +213,46 @@ export function updateGearItem(
 // =============================================================================
 
 /**
- * Returns the best available image URL for a gear item
+ * Returns the best available image URL for a gear item with Cloudinary optimizations
  *
  * Priority order:
  * 1. nobgImages (first available PNG from Cloud Functions)
  * 2. primaryImageUrl (original uploaded image)
  * 3. null (no image available)
  *
+ * Applies Cloudinary transformations for optimal web delivery:
+ * - Automatic format selection (WebP for Chrome, JPEG for Safari)
+ * - Quality optimization based on content
+ * - Responsive sizing based on viewport
+ *
  * @param item - GearItem to get image URL for
- * @returns Best available image URL or null
+ * @param width - Max width for responsive sizing (default: 800px for standard cards)
+ * @returns Optimized image URL or null
  */
-export function getOptimizedImageUrl(item: GearItem): string | null {
+export function getOptimizedImageUrl(item: GearItem, width: number = 800): string | null {
+  let imageUrl: string | null = null;
+
   // Check for processed background-removed images first
   if (item.nobgImages) {
     const sizes = Object.values(item.nobgImages);
     if (sizes.length > 0 && sizes[0]?.png) {
-      return sizes[0].png;
+      imageUrl = sizes[0].png;
     }
   }
 
   // Fall back to primary image
-  return item.primaryImageUrl;
+  if (!imageUrl) {
+    imageUrl = item.primaryImageUrl;
+  }
+
+  // Apply Cloudinary optimizations if we have a Cloudinary URL
+  if (imageUrl && imageUrl.includes('res.cloudinary.com')) {
+    return optimizeCloudinaryUrl(imageUrl, {
+      width,
+      quality: 'auto:good',
+      format: 'auto',
+    });
+  }
+
+  return imageUrl;
 }

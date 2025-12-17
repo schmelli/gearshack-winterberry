@@ -72,3 +72,49 @@ export function isValidCloudinaryUrl(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Apply Cloudinary transformations to optimize image delivery
+ *
+ * Adds performance optimizations:
+ * - f_auto: Automatic format selection (WebP for supported browsers, JPEG for Safari)
+ * - q_auto: Automatic quality adjustment based on content
+ * - c_limit: Limit dimensions while maintaining aspect ratio
+ * - w_{width}: Max width for responsive sizing
+ *
+ * @param cloudinaryUrl - Original Cloudinary URL
+ * @param options - Transformation options
+ * @returns Optimized Cloudinary URL with transformations
+ */
+export function optimizeCloudinaryUrl(
+  cloudinaryUrl: string,
+  options: {
+    width?: number;
+    quality?: 'auto' | 'auto:low' | 'auto:good' | 'auto:best';
+    format?: 'auto' | 'webp' | 'jpg' | 'png';
+  } = {}
+): string {
+  if (!cloudinaryUrl || !isValidCloudinaryUrl(cloudinaryUrl)) {
+    return cloudinaryUrl;
+  }
+
+  const { width = 800, quality = 'auto:good', format = 'auto' } = options;
+
+  // Find the upload path segment to inject transformations
+  const uploadIndex = cloudinaryUrl.indexOf('/upload/');
+  if (uploadIndex === -1) return cloudinaryUrl;
+
+  // Build transformation string
+  const transformations = [
+    `f_${format}`, // Auto format selection
+    `q_${quality}`, // Quality optimization
+    'c_limit', // Limit dimensions (maintain aspect ratio)
+    `w_${width}`, // Max width
+  ].join(',');
+
+  // Inject transformations after /upload/
+  const beforeUpload = cloudinaryUrl.substring(0, uploadIndex + 8);
+  const afterUpload = cloudinaryUrl.substring(uploadIndex + 8);
+
+  return `${beforeUpload}${transformations}/${afterUpload}`;
+}
