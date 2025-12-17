@@ -18,6 +18,7 @@ import { parseAIResponse, sanitizeResponse } from '@/lib/ai-assistant/response-p
 import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/ai-assistant/cache-strategy';
 import { traceAIQuery, recordTokenUsage, recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
 import type { UserContext } from '@/types/ai-assistant';
+import type { Json } from '@/types/supabase';
 
 // =====================================================
 // Types
@@ -26,6 +27,40 @@ import type { UserContext } from '@/types/ai-assistant';
 export type AIMessageResult =
   | { success: true; messageId: string; response: string }
   | { success: false; error: string; errorCode: 'RATE_LIMITED' | 'UNAUTHORIZED' | 'AI_UNAVAILABLE' | 'INVALID_INPUT' };
+
+/**
+ * Supabase Profile with subscription_tier field
+ * Matches profiles table schema
+ */
+interface ProfileWithSubscription {
+  subscription_tier: 'standard' | 'trailblazer' | null;
+  [key: string]: unknown; // Allow other profile fields
+}
+
+/**
+ * Response from check_ai_rate_limit RPC function
+ * Matches database function return type
+ */
+interface RateLimitCheckResult {
+  exceeded: boolean;
+  count: number;
+  limit: number;
+  resets_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * AI message insert payload with JSONB columns
+ * Matches ai_messages table schema
+ */
+interface AIMessageInsert {
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  inline_cards?: Json | null;
+  actions?: Json | null;
+  context?: Json;
+  tokens_used?: number | null;
+}
 
 // =====================================================
 // Main Server Action
@@ -86,8 +121,9 @@ export async function sendAIMessage(
     };
   }
 
-  // Type assertion needed due to Supabase type generation timing
-  const subscriptionTier = ((profile as any).subscription_tier as 'standard' | 'trailblazer' | null) || 'standard';
+  // Type-safe access to subscription_tier field
+  const profileWithSub = profile as ProfileWithSubscription;
+  const subscriptionTier = profileWithSub.subscription_tier || 'standard';
 
   if (subscriptionTier !== 'trailblazer') {
     return {
@@ -105,8 +141,8 @@ export async function sendAIMessage(
     p_window_hours: 1,
   });
 
-  // Type assertion for RPC JSON response
-  const rateLimitData = rateLimitDataRaw as any;
+  // Type-safe access to RPC response
+  const rateLimitData = rateLimitDataRaw as RateLimitCheckResult | null;
 
   if (rateLimitData?.exceeded) {
     recordRateLimitExceeded(user.id, '/api/chat');
@@ -204,16 +240,18 @@ export async function sendAIMessage(
     const { cleanText, inlineCards, actions } = parseAIResponse(sanitized, aiResponse.toolCalls);
 
     // 9. Save AI message
+    const aiMessagePayload: AIMessageInsert = {
+      conversation_id: activeConversationId,
+      role: 'assistant',
+      content: cleanText,
+      inline_cards: inlineCards.length > 0 ? (inlineCards as unknown as Json) : null,
+      actions: actions.length > 0 ? (actions as unknown as Json) : null,
+      tokens_used: aiResponse.tokensUsed,
+    };
+
     const { data: aiMessage, error: messageError } = await supabase
       .from('ai_messages')
-      .insert({
-        conversation_id: activeConversationId,
-        role: 'assistant',
-        content: cleanText,
-        inline_cards: inlineCards.length > 0 ? inlineCards : null,
-        actions: actions.length > 0 ? actions : null,
-        tokens_used: aiResponse.tokensUsed,
-      } as any)
+      .insert(aiMessagePayload)
       .select('id')
       .single();
 
