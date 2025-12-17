@@ -120,15 +120,13 @@ export async function POST(request: NextRequest) {
         partner_retailer_id: partner.id,
         user_id: record.user_id,
         tracking_id: record.id,
-        product_id: body.product_id,
         product_name: body.product_name,
         product_url: body.product_url,
+        product_image_url: null, // Optional field, not provided in request
         offer_price: body.offer_price,
-        original_price: body.original_price,
-        currency: body.currency,
-        valid_until: body.valid_until,
-        description: body.description,
-        terms: body.terms,
+        original_price: body.original_price || body.offer_price,
+        offer_currency: body.currency,
+        expires_at: body.valid_until,
       }));
 
     if (offers.length === 0) {

@@ -207,7 +207,7 @@ async function checkPersonalOffers(
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
-  // Get unnotified personal offers for this tracking item
+  // Get active personal offers for this tracking item
   const { data: offers } = await supabase
     .from('personal_offers')
     .select(`
@@ -218,15 +218,13 @@ async function checkPersonalOffers(
     `)
     .eq('tracking_id', trackingId)
     .eq('user_id', userId)
-    .eq('dismissed', false)
-    .gt('valid_until', new Date().toISOString())
-    .is('notified_at', null);
+    .eq('is_active', true);
 
   if (!offers || offers.length === 0) {
     return;
   }
 
-  // Send notification for each new offer
+  // Send notification for each offer (notification tracking handled in price_alerts table)
   for (const offer of offers as any[]) {
     try {
       const partnerName = offer.partner_retailers.name;
@@ -240,12 +238,6 @@ async function checkPersonalOffers(
         offer.original_price,
         offer.product_url
       );
-
-      // Mark offer as notified
-      await supabase
-        .from('personal_offers')
-        .update({ notified_at: new Date().toISOString() })
-        .eq('id', offer.id);
 
       log.info('Personal offer alert sent', {
         tracking_id: trackingId,

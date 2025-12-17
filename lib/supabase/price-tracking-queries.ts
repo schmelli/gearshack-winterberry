@@ -150,9 +150,14 @@ export async function savePriceResults(
 ): Promise<void> {
   const supabase = createClient();
 
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(); // 6 hours from now
+
   const priceResults = results.map((result) => ({
     ...result,
     tracking_id: trackingId,
+    fetched_at: now,
+    expires_at: expiresAt,
   }));
 
   const { error } = await supabase.from('price_results').insert(priceResults);

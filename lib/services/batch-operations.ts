@@ -201,7 +201,7 @@ export async function batchCheckConversions(
     .from('gear_items')
     .select('id, user_id, status')
     .in('id', gearItemIds)
-    .eq('status', 'inventory');
+    .eq('status', 'own');
 
   if (!gearItems || gearItems.length === 0) {
     return [];

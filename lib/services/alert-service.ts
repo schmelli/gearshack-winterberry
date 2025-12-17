@@ -59,12 +59,12 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
   // Create alert record using transaction function (Review fix #9)
   const { data: alertId, error: alertError } = await supabase.rpc('create_price_alert', {
     p_user_id: params.user_id,
-    p_tracking_id: params.tracking_id || null,
-    p_offer_id: params.offer_id || null,
+    p_tracking_id: params.tracking_id || undefined,
+    p_offer_id: params.offer_id || undefined,
     p_alert_type: params.alert_type,
     p_title: params.title,
     p_message: params.message,
-    p_link_url: params.link_url || null,
+    p_link_url: params.link_url || undefined,
     p_send_push: prefs?.push_enabled ?? true,
     p_send_email: prefs?.email_enabled ?? false,
   });
@@ -76,17 +76,25 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
 
   // Enqueue notifications for delivery (Review fix #10: Queue with retry)
   if (prefs?.push_enabled) {
-    await supabase.rpc('enqueue_alert_delivery', {
-      p_alert_id: alertId as string,
-      p_delivery_channel: 'push',
-    }).catch(err => console.error('Failed to enqueue push notification:', err));
+    try {
+      await supabase.rpc('enqueue_alert_delivery', {
+        p_alert_id: alertId as string,
+        p_delivery_channel: 'push',
+      });
+    } catch (err) {
+      console.error('Failed to enqueue push notification:', err);
+    }
   }
 
   if (prefs?.email_enabled) {
-    await supabase.rpc('enqueue_alert_delivery', {
-      p_alert_id: alertId as string,
-      p_delivery_channel: 'email',
-    }).catch(err => console.error('Failed to enqueue email alert:', err));
+    try {
+      await supabase.rpc('enqueue_alert_delivery', {
+        p_alert_id: alertId as string,
+        p_delivery_channel: 'email',
+      });
+    } catch (err) {
+      console.error('Failed to enqueue email alert:', err);
+    }
   }
 }
 

@@ -108,7 +108,8 @@ export async function validateRequestBody<T>(
     return { data, error: null };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const zodError = error as z.ZodError;
+      const errors = zodError.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
       return { data: null, error: `Validation error: ${errors}` };
     }
     return { data: null, error: 'Invalid request body' };
@@ -128,7 +129,8 @@ export function validateQueryParams<T>(
     return { data, error: null };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const zodError = error as z.ZodError;
+      const errors = zodError.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
       return { data: null, error: `Validation error: ${errors}` };
     }
     return { data: null, error: 'Invalid query parameters' };

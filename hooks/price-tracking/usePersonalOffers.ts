@@ -50,8 +50,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
         `
         )
         .eq('user_id', user.id)
-        .eq('dismissed', false)
-        .gt('valid_until', new Date().toISOString())
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       // Filter by gear item if provided
@@ -83,9 +82,10 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
     try {
       const supabase = createClient();
 
+      // Mark offer as expired by setting expires_at to past
       const { error: dismissError } = await supabase
         .from('personal_offers')
-        .update({ dismissed: true })
+        .update({ expires_at: new Date(0).toISOString() })
         .eq('id', offerId);
 
       if (dismissError) throw dismissError;

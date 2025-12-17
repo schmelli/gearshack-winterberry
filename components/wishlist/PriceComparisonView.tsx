@@ -14,10 +14,17 @@ import { PriceResultItem } from './PriceResultItem';
 import { PersonalOfferBadge } from './PersonalOfferBadge';
 import type { PriceSearchResults, PersonalOffer } from '@/types/price-tracking';
 
+// Extended type for PersonalOffer with joined partner_retailers data
+type PersonalOfferWithPartner = PersonalOffer & {
+  partner_retailers: {
+    name: string;
+  };
+};
+
 interface PriceComparisonViewProps {
   searchResults: PriceSearchResults | null;
   isLoading: boolean;
-  personalOffers?: PersonalOffer[];
+  personalOffers?: PersonalOfferWithPartner[];
   onDismissOffer?: (offerId: string) => void;
 }
 
@@ -61,8 +68,7 @@ export function PriceComparisonView({
           </CardHeader>
           <CardContent className="space-y-3">
             {personalOffers.map((offer) => {
-              const partner = offer.partner_retailers as any;
-              const partnerName = partner?.name || 'Partner';
+              const partnerName = offer.partner_retailers.name;
 
               return (
                 <div
@@ -70,7 +76,7 @@ export function PriceComparisonView({
                   className="flex items-start justify-between gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-900"
                 >
                   <div className="flex-1 space-y-2">
-                    <PersonalOfferBadge validUntil={offer.valid_until} />
+                    <PersonalOfferBadge validUntil={offer.expires_at} />
 
                     <div>
                       <p className="font-medium">{offer.product_name}</p>
@@ -81,12 +87,12 @@ export function PriceComparisonView({
 
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {formatPrice(offer.offer_price, offer.currency)}
+                        {formatPrice(offer.offer_price, offer.offer_currency)}
                       </span>
                       {offer.original_price && (
                         <>
                           <span className="text-sm text-muted-foreground line-through">
-                            {formatPrice(offer.original_price, offer.currency)}
+                            {formatPrice(offer.original_price, offer.offer_currency)}
                           </span>
                           <span className="text-sm font-medium text-green-600 dark:text-green-400">
                             Save{' '}
@@ -100,14 +106,6 @@ export function PriceComparisonView({
                         </>
                       )}
                     </div>
-
-                    {offer.description && (
-                      <p className="text-sm text-muted-foreground">{offer.description}</p>
-                    )}
-
-                    {offer.terms && (
-                      <p className="text-xs text-muted-foreground italic">{offer.terms}</p>
-                    )}
 
                     <Button
                       asChild

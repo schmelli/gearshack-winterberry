@@ -17,8 +17,8 @@ export async function findFuzzyMatches(
   const supabase = createClient();
 
   const { data, error } = await supabase.rpc('fuzzy_search_products', {
-    search_term: itemName,
-    threshold,
+    search_query: itemName,
+    similarity_threshold: threshold,
   });
 
   if (error) {
@@ -30,18 +30,27 @@ export async function findFuzzyMatches(
     return { type: 'requires_confirmation', matches: [] };
   }
 
+  // Map to FuzzyMatch type and use correct field name
+  const matches: FuzzyMatch[] = data.map(item => ({
+    product_name: item.name,
+    similarity: item.similarity_score,
+    source_name: 'Catalog',
+    source_url: `/gear/${item.gear_item_id}`,
+    price_amount: 0, // Not available from catalog search
+  }));
+
   // High confidence: similarity > 0.7
-  if (data[0].similarity > 0.7) {
+  if (matches[0].similarity > 0.7) {
     return {
       type: 'auto_match',
-      matches: [data[0]],
+      matches: [matches[0]],
     };
   }
 
   // Ambiguous: 0.3 < similarity < 0.7
   return {
     type: 'requires_confirmation',
-    matches: data.slice(0, 5), // Return top 5 matches
+    matches: matches.slice(0, 5), // Return top 5 matches
   };
 }
 

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { searchAllSources, sortPriceResults } from '@/lib/external-apis/price-search';
 import { findFuzzyMatches } from '@/lib/external-apis/fuzzy-matcher';
-import type { SearchPricesRequest, PriceSearchResults } from '@/types/price-tracking';
+import type { SearchPricesRequest, PriceSearchResults, FuzzyMatch } from '@/types/price-tracking';
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,13 +90,16 @@ export async function POST(request: NextRequest) {
     if (cachedResults && cachedResults.length > 0) {
       const sortedResults = sortPriceResults(cachedResults as any, body.user_location);
 
-      return NextResponse.json({
+      const response: PriceSearchResults = {
+        tracking_id: tracking.id,
+        status: 'success',
         results: sortedResults,
         failed_sources: [],
-        status: 'success',
         fuzzy_matches: [],
-        cached: true,
-      } as PriceSearchResults, {
+        searched_at: cachedResults[0]?.fetched_at || new Date().toISOString(),
+      };
+
+      return NextResponse.json(response, {
         status: 200,
       });
     }
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
     const sortedResults = sortPriceResults(searchResults.results, body.user_location);
 
     // Check for fuzzy matches if needed
-    let fuzzyMatches = [];
+    let fuzzyMatches: FuzzyMatch[] = [];
     if (sortedResults.length === 0 || searchResults.status === 'error') {
       try {
         const matchResult = await findFuzzyMatches(itemName);

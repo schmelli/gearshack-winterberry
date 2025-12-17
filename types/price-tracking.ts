@@ -33,7 +33,7 @@ export interface PriceResult {
   total_price: number;
   product_name: string;
   product_image_url: string | null;
-  product_condition: 'new' | 'used' | 'refurbished' | null;
+  product_condition: 'new' | 'used' | 'refurbished' | 'open_box' | null;
   is_local: boolean;
   shop_latitude: number | null;
   shop_longitude: number | null;
@@ -98,7 +98,7 @@ export interface PersonalOffer {
   id: string;
   partner_retailer_id: string;
   user_id: string;
-  gear_item_id: string;
+  tracking_id: string;
   original_price: number;
   offer_price: number;
   offer_currency: string;
@@ -117,7 +117,7 @@ export interface PersonalOffer {
 
 export interface CreatePersonalOfferRequest {
   user_id: string;
-  gear_item_id: string;
+  tracking_id: string;
   original_price: number;
   offer_price: number;
   product_name: string;

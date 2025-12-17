@@ -1149,6 +1149,7 @@ export type Database = {
           alerts_enabled: boolean
           confirmed_product_id: string | null
           match_confidence: number | null
+          manual_product_url: string | null
           last_checked_at: string | null
           created_at: string
           updated_at: string
@@ -1161,6 +1162,7 @@ export type Database = {
           alerts_enabled?: boolean
           confirmed_product_id?: string | null
           match_confidence?: number | null
+          manual_product_url?: string | null
           last_checked_at?: string | null
           created_at?: string
           updated_at?: string
@@ -1173,6 +1175,7 @@ export type Database = {
           alerts_enabled?: boolean
           confirmed_product_id?: string | null
           match_confidence?: number | null
+          manual_product_url?: string | null
           last_checked_at?: string | null
           created_at?: string
           updated_at?: string
@@ -1193,7 +1196,7 @@ export type Database = {
           total_price: number
           product_name: string
           product_image_url: string | null
-          product_condition: string
+          product_condition: "new" | "used" | "refurbished" | "open_box" | null
           is_local: boolean
           shop_latitude: number | null
           shop_longitude: number | null
@@ -1214,7 +1217,7 @@ export type Database = {
           total_price: number
           product_name: string
           product_image_url?: string | null
-          product_condition: string
+          product_condition: "new" | "used" | "refurbished" | "open_box" | null
           is_local?: boolean
           shop_latitude?: number | null
           shop_longitude?: number | null
@@ -1281,7 +1284,7 @@ export type Database = {
           user_id: string
           tracking_id: string | null
           offer_id: string | null
-          alert_type: string
+          alert_type: 'price_drop' | 'local_shop_available' | 'community_member_available' | 'personal_offer'
           title: string
           message: string
           link_url: string | null
@@ -1289,8 +1292,8 @@ export type Database = {
           sent_via_email: boolean
           push_sent_at: string | null
           email_sent_at: string | null
-          read_at: string | null
-          dismissed_at: string | null
+          opened_at: string | null
+          clicked_at: string | null
           created_at: string
         }
         Insert: {
@@ -1298,7 +1301,7 @@ export type Database = {
           user_id: string
           tracking_id?: string | null
           offer_id?: string | null
-          alert_type: string
+          alert_type: 'price_drop' | 'local_shop_available' | 'community_member_available' | 'personal_offer'
           title: string
           message: string
           link_url?: string | null
@@ -1306,8 +1309,8 @@ export type Database = {
           sent_via_email?: boolean
           push_sent_at?: string | null
           email_sent_at?: string | null
-          read_at?: string | null
-          dismissed_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
           created_at?: string
         }
         Update: {
@@ -1315,7 +1318,7 @@ export type Database = {
           user_id?: string
           tracking_id?: string | null
           offer_id?: string | null
-          alert_type?: string
+          alert_type?: 'price_drop' | 'local_shop_available' | 'community_member_available' | 'personal_offer'
           title?: string
           message?: string
           link_url?: string | null
@@ -1323,8 +1326,8 @@ export type Database = {
           sent_via_email?: boolean
           push_sent_at?: string | null
           email_sent_at?: string | null
-          read_at?: string | null
-          dismissed_at?: string | null
+          opened_at?: string | null
+          clicked_at?: string | null
           created_at?: string
         }
         Relationships: []
@@ -1371,54 +1374,54 @@ export type Database = {
           partner_retailer_id: string
           user_id: string
           tracking_id: string
-          product_id: string
+          original_price: number
+          offer_price: number
+          offer_currency: string
+          savings_amount: number
+          savings_percent: number
           product_name: string
           product_url: string
-          offer_price: number
-          original_price: number | null
-          currency: string
-          valid_until: string
-          description: string | null
-          terms: string | null
-          dismissed: boolean
-          notified_at: string | null
+          product_image_url: string | null
+          expires_at: string
+          is_active: boolean
           created_at: string
+          viewed_at: string | null
+          clicked_at: string | null
+          converted_at: string | null
         }
         Insert: {
           id?: string
           partner_retailer_id: string
           user_id: string
           tracking_id: string
-          product_id: string
+          original_price: number
+          offer_price: number
+          offer_currency?: string
           product_name: string
           product_url: string
-          offer_price: number
-          original_price?: number | null
-          currency?: string
-          valid_until: string
-          description?: string | null
-          terms?: string | null
-          dismissed?: boolean
-          notified_at?: string | null
+          product_image_url?: string | null
+          expires_at: string
           created_at?: string
+          viewed_at?: string | null
+          clicked_at?: string | null
+          converted_at?: string | null
         }
         Update: {
           id?: string
           partner_retailer_id?: string
           user_id?: string
           tracking_id?: string
-          product_id?: string
+          original_price?: number
+          offer_price?: number
+          offer_currency?: string
           product_name?: string
           product_url?: string
-          offer_price?: number
-          original_price?: number | null
-          currency?: string
-          valid_until?: string
-          description?: string | null
-          terms?: string | null
-          dismissed?: boolean
-          notified_at?: string | null
+          product_image_url?: string | null
+          expires_at?: string
           created_at?: string
+          viewed_at?: string | null
+          clicked_at?: string | null
+          converted_at?: string | null
         }
         Relationships: []
       }
@@ -1466,7 +1469,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      community_availability: {
+        Row: {
+          gear_item_id: string
+          item_name: string
+          user_count: number
+          min_price: number | null
+          max_price: number | null
+          avg_price: number | null
+        }
+        Insert: {
+          gear_item_id?: never
+          item_name?: never
+          user_count?: never
+          min_price?: never
+          max_price?: never
+          avg_price?: never
+        }
+        Update: {
+          gear_item_id?: never
+          item_name?: never
+          user_count?: never
+          min_price?: never
+          max_price?: never
+          avg_price?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_message_user: {

@@ -57,7 +57,7 @@ export async function recordPriceSnapshot(
   // Use database function for atomic insert of history + results
   const { error } = await supabase.rpc('record_price_snapshot', {
     p_tracking_id: trackingId,
-    p_results: results,
+    p_results: results as any,
     p_lowest_price: Math.min(...prices),
     p_highest_price: Math.max(...prices),
     p_average_price: prices.reduce((a, b) => a + b, 0) / prices.length,
