@@ -46,8 +46,11 @@ export function useAIChat(): UseAIChatResult {
 
   const sendMessage = useCallback(
     async (content: string, conversationId: string | null): Promise<string | null> => {
+      console.log('sendMessage called:', { content, conversationId, userId: user?.uid });
+
       if (!user) {
         setError('You must be logged in to use AI Assistant');
+        toast.error('You must be logged in to use AI Assistant');
         return null;
       }
 
@@ -88,6 +91,8 @@ export function useAIChat(): UseAIChatResult {
           subscriptionTier: 'trailblazer', // TODO: Get actual subscription tier
         };
 
+        console.log('Sending message to API:', { context, message: content });
+
         // Create abort controller for this request
         abortControllerRef.current = new AbortController();
 
@@ -105,9 +110,13 @@ export function useAIChat(): UseAIChatResult {
           signal: abortControllerRef.current.signal,
         });
 
+        console.log('API response received:', { status: response.status, ok: response.ok });
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+          console.error('AI API error:', { status: response.status, error: errorMessage });
+          throw new Error(errorMessage);
         }
 
         // Check if response body exists
@@ -116,20 +125,28 @@ export function useAIChat(): UseAIChatResult {
         }
 
         // Read streaming response
+        console.log('Starting to read stream...');
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let accumulatedText = '';
+        let chunkCount = 0;
 
         while (true) {
           const { done, value } = await reader.read();
 
           if (done) {
+            console.log('Stream complete. Total chunks:', chunkCount, 'Total length:', accumulatedText.length);
             break;
           }
 
+          chunkCount++;
           // Decode chunk and accumulate
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;
+
+          if (chunkCount === 1) {
+            console.log('First chunk received:', chunk.substring(0, 50));
+          }
 
           // Update the AI message with accumulated text
           setMessages((prev) =>
@@ -140,6 +157,8 @@ export function useAIChat(): UseAIChatResult {
         }
 
         const latency = Date.now() - startTime;
+
+        console.log('Stream finished successfully:', { latency, messageLength: accumulatedText.length });
 
         logAIEvent('info', 'AI message streamed successfully', {
           userId: user.uid,
