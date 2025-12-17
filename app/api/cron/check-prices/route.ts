@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
 import { sendPriceAlert, sendPersonalOfferAlert } from '@/lib/services/alert-service';
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
 
     // Get all active tracking items
     const { data: trackingItems, error: trackingError } = await supabase

@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 interface PartnerOfferRequest {
-  partner_retailer_id: string;
   product_id: string;
   product_name: string;
   product_url: string;
@@ -53,46 +52,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify API key matches environment variable
-    if (apiKey !== process.env.PARTNER_API_SECRET) {
+    const supabase = await createClient();
+
+    // Verify API key belongs to an active partner (Review fix #2)
+    const { data: partner, error: authError } = await supabase
+      .from('partner_retailers')
+      .select('id, name, is_active, rate_limit_per_hour')
+      .eq('api_key', apiKey)
+      .maybeSingle();
+
+    if (authError || !partner) {
       return NextResponse.json(
         { error: 'Invalid API key' },
         { status: 403 }
-      );
-    }
-
-    // Parse request body
-    const body: PartnerOfferRequest = await request.json();
-
-    // Validate required fields
-    if (!body.partner_retailer_id || !body.product_id || !body.offer_price) {
-      return NextResponse.json(
-        { error: 'Missing required fields: partner_retailer_id, product_id, offer_price' },
-        { status: 400 }
-      );
-    }
-
-    // Check rate limit
-    if (!checkRateLimit(body.partner_retailer_id)) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Maximum 100 requests per hour.' },
-        { status: 429 }
-      );
-    }
-
-    const supabase = await createClient();
-
-    // Verify partner retailer exists and is active
-    const { data: partner, error: partnerError } = await supabase
-      .from('partner_retailers')
-      .select('id, name, is_active')
-      .eq('id', body.partner_retailer_id)
-      .maybeSingle();
-
-    if (partnerError || !partner) {
-      return NextResponse.json(
-        { error: 'Partner retailer not found' },
-        { status: 404 }
       );
     }
 
@@ -103,38 +75,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find users tracking similar products
+    // Parse request body
+    const body: PartnerOfferRequest = await request.json();
+
+    // Validate required fields
+    if (!body.product_id || !body.offer_price) {
+      return NextResponse.json(
+        { error: 'Missing required fields: product_id, offer_price' },
+        { status: 400 }
+      );
+    }
+
+    // Check rate limit using authenticated partner
+    if (!checkRateLimit(partner.id)) {
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Maximum ${partner.rate_limit_per_hour} requests per hour.` },
+        { status: 429 }
+      );
+    }
+
+    // Find matching gear items using fuzzy search (Review fix #7)
+    const { data: fuzzyMatches } = await supabase.rpc('fuzzy_search_products', {
+      search_query: body.product_name,
+      similarity_threshold: 0.3,
+      max_results: 50,
+    });
+
+    if (!fuzzyMatches || fuzzyMatches.length === 0) {
+      return NextResponse.json(
+        { message: 'No matching products found', offers_created: 0 },
+        { status: 200 }
+      );
+    }
+
+    // Get tracking records for matched gear items
+    const gearItemIds = fuzzyMatches.map((match: any) => match.gear_item_id);
     const { data: trackingRecords } = await supabase
       .from('price_tracking')
-      .select(`
-        id,
-        user_id,
-        gear_item_id,
-        gear_items (name)
-      `)
-      .eq('alerts_enabled', true)
-      .limit(100);
+      .select('id, user_id, gear_item_id')
+      .in('gear_item_id', gearItemIds)
+      .eq('alerts_enabled', true);
 
     if (!trackingRecords || trackingRecords.length === 0) {
       return NextResponse.json(
-        { message: 'No users currently tracking products', offers_created: 0 },
+        { message: 'No users currently tracking matching products', offers_created: 0 },
         { status: 200 }
       );
     }
 
     // Create personal offers for matching users
-    const offers = trackingRecords
-      .filter((record) => {
-        const gearItem = record.gear_items as any;
-        const gearName = gearItem?.name?.toLowerCase() || '';
-        const productName = body.product_name.toLowerCase();
-
-        // Simple fuzzy matching - check if product name contains major keywords
-        const keywords = productName.split(' ').filter((word) => word.length > 3);
-        return keywords.some((keyword) => gearName.includes(keyword));
-      })
-      .map((record) => ({
-        partner_retailer_id: body.partner_retailer_id,
+    const offers = trackingRecords.map((record) => ({
+        partner_retailer_id: partner.id,
         user_id: record.user_id,
         tracking_id: record.id,
         product_id: body.product_id,
