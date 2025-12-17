@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
 import { User, Settings, LogOut, LogIn } from 'lucide-react';
@@ -132,11 +132,20 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Profile Modal (T029) */}
-      <ProfileModal
-        open={isProfileModalOpen}
-        onOpenChange={setIsProfileModalOpen}
-      />
+      {/* Profile Modal (T029) - Wrapped in Suspense for useSearchParams
+          ProfileModal uses useGearDetailModal hook which calls useSearchParams internally.
+          Next.js requires Suspense boundaries for components using useSearchParams.
+          fallback={null} is appropriate here because:
+          1. The modal is hidden by default (open={false})
+          2. The fallback only shows during initial streaming/hydration
+          3. Users never see this state since the modal starts closed
+          4. ProfileModal handles its own internal loading states when open */}
+      <Suspense fallback={null}>
+        <ProfileModal
+          open={isProfileModalOpen}
+          onOpenChange={setIsProfileModalOpen}
+        />
+      </Suspense>
     </>
   );
 }

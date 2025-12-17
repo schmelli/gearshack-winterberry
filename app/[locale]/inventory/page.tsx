@@ -41,6 +41,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Announcement } from '@/components/ui/visually-hidden';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
+import type { CategoryOption } from '@/types/category';
 import type { User } from '@supabase/supabase-js';
 import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
@@ -246,6 +247,7 @@ interface InventoryContentProps {
   setSearchQuery: (query: string) => void;
   categoryFilter: string | null;
   setCategoryFilter: (categoryId: string | null) => void;
+  categoryOptions: CategoryOption[];
   sortOption: SortOption;
   setSortOption: (option: SortOption) => void;
   groupedItems: CategoryGroup[];
@@ -296,6 +298,7 @@ function InventoryContent({
   setSearchQuery,
   categoryFilter,
   setCategoryFilter,
+  categoryOptions,
   sortOption,
   setSortOption,
   groupedItems,
@@ -432,6 +435,7 @@ function InventoryContent({
             onSearchChange={setSearchQuery}
             categoryFilter={categoryFilter}
             onCategoryChange={setCategoryFilter}
+            categoryOptions={categoryOptions}
             sortOption={sortOption}
             onSortChange={setSortOption}
             viewDensity={viewDensity}
