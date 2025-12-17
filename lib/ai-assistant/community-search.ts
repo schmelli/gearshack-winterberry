@@ -33,6 +33,32 @@ export interface CommunitySearchResult {
 }
 
 // =====================================================
+// Security Utilities
+// =====================================================
+
+/**
+ * Sanitize search query to prevent SQL injection
+ * Escapes special characters used in PostgreSQL pattern matching
+ *
+ * @param query - Raw search query from user
+ * @returns Sanitized query safe for ILIKE operations
+ */
+function sanitizeSearchQuery(query: string): string {
+  if (!query || typeof query !== 'string') {
+    return '';
+  }
+
+  // Escape PostgreSQL LIKE special characters: % _ \
+  // Also limit length to prevent DoS
+  return query
+    .slice(0, 100) // Max 100 chars
+    .replace(/\\/g, '\\\\') // Escape backslash first
+    .replace(/%/g, '\\%')   // Escape percent
+    .replace(/_/g, '\\_')   // Escape underscore
+    .trim();
+}
+
+// =====================================================
 // Search Functions
 // =====================================================
 
@@ -60,6 +86,9 @@ export async function searchCommunityOffers(
   }
 ): Promise<CommunitySearchResult> {
   const supabase = await createClient();
+
+  // Sanitize search query to prevent SQL injection
+  const sanitizedQuery = sanitizeSearchQuery(searchQuery);
 
   // Build query for gear_items with marketplace flags
   let query = supabase
@@ -95,9 +124,9 @@ export async function searchCommunityOffers(
     query = query.eq('category_id', filters.categoryId);
   }
 
-  // Text search using ilike (case-insensitive)
-  if (searchQuery) {
-    query = query.or(`name.ilike.%${searchQuery}%,brand.ilike.%${searchQuery}%`);
+  // Text search using ilike (case-insensitive) with sanitized input
+  if (sanitizedQuery) {
+    query = query.or(`name.ilike.%${sanitizedQuery}%,brand.ilike.%${sanitizedQuery}%`);
   }
 
   query = query.limit(20);
@@ -151,7 +180,7 @@ export async function searchCommunityOffers(
   return {
     matches,
     totalCount: matches.length,
-    searchQuery,
+    searchQuery: sanitizedQuery, // Return sanitized query
   };
 }
 

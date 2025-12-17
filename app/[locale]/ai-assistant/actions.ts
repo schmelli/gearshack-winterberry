@@ -19,6 +19,7 @@ import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/
 import { traceAIQuery, recordTokenUsage, recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Json } from '@/types/supabase';
+import { z } from 'zod';
 
 // =====================================================
 // Types
@@ -61,6 +62,44 @@ interface AIMessageInsert {
   context?: Json;
   tokens_used?: number | null;
 }
+
+// =====================================================
+// Security Utilities
+// =====================================================
+
+/**
+ * Sanitize error messages before returning to client
+ * Prevents leaking sensitive information (database errors, stack traces, etc.)
+ *
+ * @param error - The error object or message
+ * @param fallbackMessage - Generic message to return
+ * @returns Sanitized error message safe for client
+ */
+function sanitizeError(error: unknown, fallbackMessage: string): string {
+  // Log the full error server-side for debugging
+  console.error('Error details:', error);
+
+  // Return generic message to client
+  return fallbackMessage;
+}
+
+/**
+ * Validate and sanitize message content
+ * Prevents XSS attacks and enforces length limits
+ */
+const messageContentSchema = z
+  .string()
+  .trim()
+  .min(1, 'Message cannot be empty')
+  .max(5000, 'Message is too long (max 5000 characters)')
+  .transform((str) => {
+    // Remove any potentially dangerous HTML/script tags
+    // Note: This is defense-in-depth; client should also sanitize
+    return str
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, ''); // Remove inline event handlers
+  });
 
 // =====================================================
 // Main Server Action
@@ -113,10 +152,9 @@ export async function sendAIMessage(
     .single();
 
   if (profileError || !profile) {
-    console.error('Error fetching profile:', profileError);
     return {
       success: false,
-      error: 'Failed to verify subscription status',
+      error: sanitizeError(profileError, 'Unable to verify account status'),
       errorCode: 'UNAUTHORIZED',
     };
   }
@@ -133,13 +171,23 @@ export async function sendAIMessage(
     };
   }
 
-  // 3. Check rate limit (30 messages per hour)
-  const { data: rateLimitDataRaw } = await supabase.rpc('check_ai_rate_limit', {
+  // 3. Check and increment rate limit atomically (30 messages per hour)
+  // @ts-expect-error - RPC function exists but types not regenerated
+  const { data: rateLimitDataRaw, error: rateLimitError } = await supabase.rpc('check_and_increment_rate_limit', {
     p_user_id: user.id,
     p_endpoint: '/api/chat',
     p_limit: 30,
     p_window_hours: 1,
   });
+
+  if (rateLimitError) {
+    console.error('Rate limit check failed:', rateLimitError);
+    return {
+      success: false,
+      error: 'Unable to process request. Please try again.',
+      errorCode: 'AI_UNAVAILABLE',
+    };
+  }
 
   // Type-safe access to RPC response
   const rateLimitData = rateLimitDataRaw as RateLimitCheckResult | null;
@@ -155,17 +203,8 @@ export async function sendAIMessage(
     };
   }
 
-  // 3.1. Increment rate limit counter (atomic operation)
-  // This must happen AFTER the check passes but BEFORE processing to prevent race conditions
-  const { error: incrementError } = await supabase.rpc('increment_ai_rate_limit', {
-    p_user_id: user.id,
-    p_endpoint: '/api/chat',
-  });
-
-  if (incrementError) {
-    console.error('Failed to increment rate limit:', incrementError);
-    // Don't fail the request if increment fails, but log it for monitoring
-  }
+  // Note: Rate limit is already incremented atomically by check_and_increment_rate_limit above
+  // No separate increment call needed - this prevents race conditions
 
   // 4. Validate input
   const trimmedMessage = message.trim();
@@ -291,11 +330,9 @@ export async function sendAIMessage(
       response: cleanText,
     };
   } catch (error) {
-    console.error('Error in sendAIMessage:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      error: sanitizeError(error, 'Unable to process your message. Please try again.'),
       errorCode: 'AI_UNAVAILABLE',
     };
   }
@@ -325,7 +362,7 @@ export async function deleteConversation(conversationId: string): Promise<{ succ
     .eq('user_id', user.id); // Ensure user owns the conversation
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: sanitizeError(error, 'Failed to delete conversation') };
   }
 
   return { success: true };
@@ -372,7 +409,7 @@ export async function executeAddToWishlist(gearItemId: string): Promise<{ succes
     .eq('user_id', user.id);
 
   if (updateError) {
-    return { success: false, error: updateError.message };
+    return { success: false, error: sanitizeError(updateError, 'Failed to add item to wishlist') };
   }
 
   return { success: true };
@@ -443,6 +480,16 @@ export async function executeSendMessage(
   if (!user) {
     return { success: false, error: 'Unauthorized' };
   }
+
+  // Validate and sanitize message content
+  const validationResult = messageContentSchema.safeParse(message);
+  if (!validationResult.success) {
+    return {
+      success: false,
+      error: validationResult.error.issues[0]?.message || 'Invalid message content',
+    };
+  }
+  const sanitizedMessage = validationResult.data;
 
   // Validate recipient exists
   const { data: recipient, error: recipientError } = await supabase
@@ -526,15 +573,15 @@ export async function executeSendMessage(
     }
   }
 
-  // Insert message
+  // Insert message (using sanitized content)
   const { error: messageError } = await supabase.from('messages').insert({
     conversation_id: conversationId,
     sender_id: user.id,
-    content: message,
+    content: sanitizedMessage,
   });
 
   if (messageError) {
-    return { success: false, error: messageError.message };
+    return { success: false, error: sanitizeError(messageError, 'Failed to send message') };
   }
 
   return { success: true, conversationId };
