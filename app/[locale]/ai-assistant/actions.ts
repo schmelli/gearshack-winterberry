@@ -155,6 +155,18 @@ export async function sendAIMessage(
     };
   }
 
+  // 3.1. Increment rate limit counter (atomic operation)
+  // This must happen AFTER the check passes but BEFORE processing to prevent race conditions
+  const { error: incrementError } = await supabase.rpc('increment_ai_rate_limit', {
+    p_user_id: user.id,
+    p_endpoint: '/api/chat',
+  });
+
+  if (incrementError) {
+    console.error('Failed to increment rate limit:', incrementError);
+    // Don't fail the request if increment fails, but log it for monitoring
+  }
+
   // 4. Validate input
   const trimmedMessage = message.trim();
   if (!trimmedMessage || trimmedMessage.length > 1000) {
