@@ -9,6 +9,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText, streamText } from 'ai';
 import { z } from 'zod';
+import { withRetry } from './retry';
 
 // Environment configuration
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
@@ -17,6 +18,10 @@ const AI_CHAT_ENABLED = process.env.AI_CHAT_ENABLED === 'true';
 
 // Timeout configuration (in milliseconds)
 const AI_REQUEST_TIMEOUT = parseInt(process.env.AI_REQUEST_TIMEOUT || '30000', 10); // 30 seconds default
+
+// Retry configuration
+const AI_RETRY_ENABLED = process.env.AI_RETRY_ENABLED !== 'false'; // Default: true
+const AI_MAX_RETRIES = parseInt(process.env.AI_MAX_RETRIES || '2', 10); // Default: 2 retries (3 total attempts)
 
 if (!AI_GATEWAY_API_KEY && AI_CHAT_ENABLED) {
   console.warn('⚠️ AI_GATEWAY_API_KEY not configured - AI features will be disabled');
@@ -89,19 +94,14 @@ export function getAITools() {
 }
 
 /**
- * Generate a complete AI response (non-streaming) with tool support
- *
- * @param systemPrompt - The system instructions for the AI
- * @param userMessage - The user's query
- * @param enableTools - Whether to enable tool calling (default: true)
- * @param timeout - Request timeout in milliseconds (default: from env or 30s)
- * @returns Generated text response, metadata, and tool calls
+ * Internal function to generate AI response (without retry)
+ * Used by the public generateAIResponse which wraps this with retry logic
  */
-export async function generateAIResponse(
+async function generateAIResponseInternal(
   systemPrompt: string,
   userMessage: string,
-  enableTools: boolean = true,
-  timeout: number = AI_REQUEST_TIMEOUT
+  enableTools: boolean,
+  timeout: number
 ): Promise<{
   text: string;
   tokensUsed: number;
@@ -149,6 +149,44 @@ export async function generateAIResponse(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * Generate a complete AI response (non-streaming) with tool support
+ * Includes automatic retry logic with exponential backoff for transient failures
+ *
+ * @param systemPrompt - The system instructions for the AI
+ * @param userMessage - The user's query
+ * @param enableTools - Whether to enable tool calling (default: true)
+ * @param timeout - Request timeout in milliseconds (default: from env or 30s)
+ * @returns Generated text response, metadata, and tool calls
+ */
+export async function generateAIResponse(
+  systemPrompt: string,
+  userMessage: string,
+  enableTools: boolean = true,
+  timeout: number = AI_REQUEST_TIMEOUT
+): Promise<{
+  text: string;
+  tokensUsed: number;
+  finishReason: string;
+  toolCalls: any[];
+}> {
+  // Wrap with retry logic if enabled
+  if (AI_RETRY_ENABLED) {
+    return withRetry(
+      () => generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout),
+      {
+        maxAttempts: AI_MAX_RETRIES + 1, // +1 because maxAttempts includes the initial attempt
+        initialDelayMs: 1000, // 1 second
+        maxDelayMs: 10000, // 10 seconds
+        backoffMultiplier: 2,
+      }
+    );
+  }
+
+  // No retry - call directly
+  return generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout);
 }
 
 /**

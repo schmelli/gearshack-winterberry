@@ -263,15 +263,15 @@ export async function sendAIMessage(
       if (!isAIAvailable()) {
         // Attempt cache lookup for common queries
         if (isCacheableQuery(trimmedMessage)) {
-          const cachedResponse = await getCachedResponse(trimmedMessage, context.locale as 'en' | 'de');
+          const cachedResponse = await getCachedResponse(trimmedMessage, context.locale);
           if (cachedResponse) {
             logAIQuery(user.id, activeConversationId!, trimmedMessage, 'cached');
             return { text: cachedResponse, tokensUsed: 0, finishReason: 'stop', toolCalls: [] };
           }
         }
 
-        // Fallback response
-        const fallback = getFallbackResponse(context.locale as 'en' | 'de');
+        // Fallback response (supports any locale with fallback to English)
+        const fallback = getFallbackResponse(context.locale);
         logAIQuery(user.id, activeConversationId!, trimmedMessage, 'error');
         return { text: fallback, tokensUsed: 0, finishReason: 'stop', toolCalls: [] };
       }

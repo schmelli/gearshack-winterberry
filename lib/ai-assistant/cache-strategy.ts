@@ -9,6 +9,32 @@
 import { createClient } from '@/lib/supabase/client';
 import type { CachedResponse } from '@/types/ai-assistant';
 
+// =====================================================
+// Supported Locales
+// =====================================================
+
+/**
+ * Currently supported locales for cached responses
+ * Add new locales here as response_XX columns are added to database
+ */
+const SUPPORTED_LOCALES = ['en', 'de'] as const;
+type SupportedLocale = typeof SUPPORTED_LOCALES[number];
+
+/**
+ * Get the appropriate locale column name for database query
+ * Falls back to 'en' if locale is not supported
+ */
+function getLocaleColumn(locale: string): string {
+  const normalizedLocale = locale.toLowerCase().split('-')[0]; // 'en-US' -> 'en'
+
+  if (SUPPORTED_LOCALES.includes(normalizedLocale as SupportedLocale)) {
+    return `response_${normalizedLocale}`;
+  }
+
+  // Fallback to English for unsupported locales
+  return 'response_en';
+}
+
 /**
  * Get a cached response for a user query
  *
@@ -16,14 +42,15 @@ import type { CachedResponse } from '@/types/ai-assistant';
  * - Normalizes query (lowercase, trim)
  * - Searches cached_responses table using pg_trgm similarity
  * - Returns best match if similarity > 0.3 threshold
+ * - Supports any locale, falls back to English if not supported
  *
  * @param query - User's question
- * @param locale - User's language preference ('en' or 'de')
+ * @param locale - User's language preference (e.g., 'en', 'de', 'fr', 'es')
  * @returns Cached response text if found, null otherwise
  */
 export async function getCachedResponse(
   query: string,
-  locale: 'en' | 'de' = 'en'
+  locale: string = 'en'
 ): Promise<string | null> {
   const supabase = createClient();
 
@@ -47,8 +74,13 @@ export async function getCachedResponse(
     // Update usage statistics
     await incrementCacheUsage(data.id);
 
-    // Return response in user's language
-    return locale === 'de' ? data.response_de : data.response_en;
+    // Return response in user's language (with fallback)
+    const normalizedLocale = locale.toLowerCase().split('-')[0];
+    if (normalizedLocale === 'de' && data.response_de) {
+      return data.response_de;
+    }
+    // Default to English for all other locales
+    return data.response_en;
   } catch (err) {
     console.error('Error fetching cached response:', err);
     return null;
@@ -177,14 +209,21 @@ export async function getCacheStatistics(): Promise<
 
 /**
  * Fallback response when no cache hit and AI unavailable
+ * Supports multiple locales with fallback to English
  *
- * @param locale - User's language
+ * @param locale - User's language (e.g., 'en', 'de', 'fr', 'es')
  * @returns Generic fallback message
  */
-export function getFallbackResponse(locale: 'en' | 'de' = 'en'): string {
-  if (locale === 'de') {
-    return 'Entschuldigung, der AI-Assistent ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut oder stellen Sie Ihre Frage in der Community.';
-  }
+export function getFallbackResponse(locale: string = 'en'): string {
+  const normalizedLocale = locale.toLowerCase().split('-')[0];
 
-  return "I'm sorry, the AI assistant is currently unavailable. Please try again later or ask your question in the community.";
+  const messages: Record<string, string> = {
+    de: 'Entschuldigung, der AI-Assistent ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut oder stellen Sie Ihre Frage in der Community.',
+    en: "I'm sorry, the AI assistant is currently unavailable. Please try again later or ask your question in the community.",
+    // Add more locales here as needed
+    // fr: "Désolé, l'assistant IA n'est actuellement pas disponible. Veuillez réessayer plus tard ou poser votre question dans la communauté.",
+    // es: "Lo siento, el asistente de IA no está disponible actualmente. Por favor, inténtelo de nuevo más tarde o haga su pregunta en la comunidad.",
+  };
+
+  return messages[normalizedLocale] || messages.en;
 }
