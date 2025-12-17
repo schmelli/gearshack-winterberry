@@ -429,6 +429,60 @@
       "viewProfile": "View Profile",
       "sendMessage": "Send Message",
       "noMatches": "No community offers found matching your criteria."
+    },
+    "priceTracking": {
+      "title": "Price Tracking",
+      "enableTracking": "Enable Price Tracking",
+      "disableTracking": "Disable Tracking",
+      "alertsEnabled": "Price Alerts Enabled",
+      "alertsDisabled": "Price Alerts Disabled",
+      "searchPrices": "Search Prices",
+      "refreshPrices": "Refresh Prices",
+      "lastChecked": "Last checked: {time}",
+      "neverChecked": "Never checked",
+      "lowestPrice": "Lowest Price",
+      "highestPrice": "Highest Price",
+      "averagePrice": "Average Price",
+      "sources": "{count} sources",
+      "noResults": "No prices found",
+      "searching": "Searching for prices...",
+      "priceDrop": "Price Drop!",
+      "priceDropMessage": "Now €{newPrice} (was €{oldPrice}) - Save {percent}%!",
+      "personalOffer": "Personal Offer",
+      "personalOfferMessage": "{partner} has a special offer for you",
+      "viewOffer": "View Offer",
+      "dismissOffer": "Dismiss",
+      "offerExpires": "Expires: {date}",
+      "alerts": {
+        "title": "Alert Preferences",
+        "priceDropEnabled": "Price Drop Alerts",
+        "localShopEnabled": "Local Shop Alerts",
+        "communityEnabled": "Community Alerts",
+        "personalOfferEnabled": "Personal Offer Alerts",
+        "pushEnabled": "Push Notifications",
+        "emailEnabled": "Email Notifications",
+        "quietHours": "Quiet Hours",
+        "quietHoursStart": "Start Time",
+        "quietHoursEnd": "End Time",
+        "saved": "Alert preferences saved"
+      },
+      "history": {
+        "title": "Price History",
+        "days": "{count} days",
+        "trend": "Trend",
+        "rising": "Rising",
+        "falling": "Falling",
+        "stable": "Stable",
+        "noData": "No price history yet"
+      },
+      "errors": {
+        "trackingFailed": "Failed to enable price tracking",
+        "searchFailed": "Failed to search for prices",
+        "alreadyTracking": "Price tracking already enabled",
+        "unauthorized": "You must be logged in to track prices",
+        "notFound": "Item not found",
+        "rateLimited": "Rate limit exceeded. Try again later."
+      }
     }
   }
 }
