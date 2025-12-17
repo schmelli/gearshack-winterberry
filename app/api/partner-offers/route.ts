@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { FuzzySearchResult } from '@/types/database-helpers';
 
 interface PartnerOfferRequest {
   product_id: string;
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get tracking records for matched gear items
-    const gearItemIds = fuzzyMatches.map((match: any) => match.gear_item_id);
+    const gearItemIds = (fuzzyMatches as FuzzySearchResult[]).map((match) => match.gear_item_id);
     const { data: trackingRecords } = await supabase
       .from('price_tracking')
       .select('id, user_id, gear_item_id')

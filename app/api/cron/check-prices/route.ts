@@ -10,6 +10,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
 import { sendPriceAlert, sendPersonalOfferAlert } from '@/lib/services/alert-service';
+import type { PriceTrackingWithGearItem, PersonalOfferWithPartner } from '@/types/database-helpers';
 import PQueue from 'p-queue';
 
 // Rate limit: 5 concurrent searches
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Process each item
     const results = await Promise.allSettled(
-      trackingItems.map((item: any) =>
+      (trackingItems as PriceTrackingWithGearItem[]).map((item) =>
         queue.add(() => processTrackingItem(item))
       )
     );
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     await supabase
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
-      .in('id', trackingItems.map((item: any) => item.id));
+      .in('id', trackingItems.map((item) => item.id));
 
     return NextResponse.json({
       success: true,
@@ -90,9 +91,9 @@ export async function GET(request: NextRequest) {
 /**
  * Process a single tracking item
  */
-async function processTrackingItem(item: any): Promise<void> {
+async function processTrackingItem(item: PriceTrackingWithGearItem): Promise<void> {
   try {
-    const itemName = item.gear_items?.name;
+    const itemName = item.gear_items.name;
     if (!itemName) {
       console.error(`No name found for gear item ${item.gear_item_id}`);
       return;
@@ -148,7 +149,7 @@ async function checkConversion(
   userId: string,
   trackingId: string
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const { data: gearItem } = await supabase
     .from('gear_items')
@@ -190,7 +191,7 @@ async function checkPersonalOffers(
   userId: string,
   itemName: string
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   // Get unnotified personal offers for this tracking item
   const { data: offers } = await supabase
@@ -212,9 +213,9 @@ async function checkPersonalOffers(
   }
 
   // Send notification for each new offer
-  for (const offer of offers) {
+  for (const offer of (offers as PersonalOfferWithPartner[])) {
     try {
-      const partnerName = (offer.partner_retailers as any)?.name || 'Partner';
+      const partnerName = offer.partner_retailers.name;
 
       await sendPersonalOfferAlert(
         userId,
