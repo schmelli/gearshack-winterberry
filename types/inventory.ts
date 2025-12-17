@@ -9,6 +9,7 @@
  */
 
 import type { GearItem } from './gear';
+import type { CategoryOption } from './category';
 
 // =============================================================================
 // Sort Options
@@ -139,6 +140,7 @@ export interface UseInventoryReturn {
 
   // Category utilities
   getCategoryLabel: (categoryId: string | null) => string;
+  categoryOptions: CategoryOption[];
   refreshCategories: () => Promise<void>;
 
   // Error state

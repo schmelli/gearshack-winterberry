@@ -66,7 +66,7 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
-  const { getLabelById, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories } = useCategories();
+  const { getLabelById, getOptionsForLevel, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
@@ -226,6 +226,9 @@ export function useInventory(): UseInventoryReturn {
   const itemCount = items.length;
   const filteredCount = filteredItems.length;
 
+  // Get category options for filtering
+  const categoryOptions = useMemo(() => getOptionsForLevel(1), [getOptionsForLevel]);
+
   return {
     // Data
     items,
@@ -255,6 +258,7 @@ export function useInventory(): UseInventoryReturn {
 
     // Category utilities
     getCategoryLabel: getLabelById,
+    categoryOptions,
     refreshCategories,
 
     // Error state

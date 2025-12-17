@@ -92,6 +92,7 @@ function InventoryWithModal() {
     setSearchQuery,
     categoryFilter,
     setCategoryFilter,
+    categoryOptions,
     sortOption,
     setSortOption,
     groupedItems,
@@ -196,6 +197,7 @@ function InventoryWithModal() {
     setSearchQuery={activeSetSearchQuery}
     categoryFilter={activeCategoryFilter}
     setCategoryFilter={activeSetCategoryFilter}
+    categoryOptions={categoryOptions}
     sortOption={viewMode === 'wishlist' ? toInventorySortOption(activeSortOption as WishlistSortOption) : activeSortOption as SortOption}
     setSortOption={activeSetSortOption}
     groupedItems={groupedItems}
