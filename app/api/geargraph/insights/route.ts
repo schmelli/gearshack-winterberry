@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getFromCache, setCache, generateCacheKey } from '@/lib/supabase/cache';
+import { getFromCache, setCache, generateGearGraphCacheKey } from '@/lib/supabase/cache';
 import type { GearInsightsResponse, GearInsight, InsightType } from '@/types/geargraph';
 
 // =============================================================================
@@ -272,10 +272,13 @@ export async function GET(request: NextRequest) {
 
     const { productTypeId, categoryId, brand, name } = parseResult.data;
 
-    // T045: Generate cache key and check cache
-    const cacheKey = await generateCacheKey(
-      `${productTypeId ?? ''}|${categoryId ?? ''}|${brand ?? ''}|${name ?? ''}`
-    );
+    // T045: Generate cache key using dedicated function (prevents collisions)
+    const cacheKey = await generateGearGraphCacheKey({
+      productTypeId,
+      categoryId,
+      brand,
+      name,
+    });
     const cached = await getFromCache<GearInsightsResponse>('geargraph', cacheKey);
 
     if (cached) {

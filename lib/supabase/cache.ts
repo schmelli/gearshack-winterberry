@@ -76,6 +76,11 @@ export async function generateYouTubeCacheKey(
 /**
  * Creates a cache key for GearGraph API requests.
  *
+ * Ensures unique cache keys by:
+ * - Using explicit nullability markers for missing values
+ * - Combining all available identifiers
+ * - Preventing cache collisions between items with different missing fields
+ *
  * @param params - Query parameters
  * @returns SHA-256 hash of the parameters
  */
@@ -85,7 +90,14 @@ export async function generateGearGraphCacheKey(params: {
   brand?: string;
   name?: string;
 }): Promise<string> {
-  const input = `${params.productTypeId ?? ''}|${params.categoryId ?? ''}|${params.brand ?? ''}|${params.name ?? ''}`;
+  // Use explicit markers for null/undefined to prevent cache collisions
+  // e.g., "||Helinox|Chair" vs "NULL|NULL|Helinox|Chair" are now distinct
+  const productType = params.productTypeId ?? 'NULL';
+  const category = params.categoryId ?? 'NULL';
+  const brand = params.brand ?? 'NULL';
+  const name = params.name ?? 'NULL';
+
+  const input = `${productType}|${category}|${brand}|${name}`;
   return generateCacheKey(input);
 }
 
