@@ -13,17 +13,53 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
-import type {
-  UseSupabaseAuthReturn,
-  AuthResult,
-  SignOutResult,
-  SignUpOptions,
-  EmailPasswordCredentials,
-  MagicLinkOptions,
-} from '@/types/supabase';
 
-// Re-export types for convenience
-export type { UseSupabaseAuthReturn };
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface AuthResult {
+  user?: User | null;
+  session?: Session | null;
+  error: AuthError | null;
+}
+
+export interface SignOutResult {
+  error: AuthError | null;
+}
+
+export interface SignUpOptions {
+  email: string;
+  password: string;
+  options?: {
+    data?: Record<string, any>;
+    emailRedirectTo?: string;
+  };
+}
+
+export interface EmailPasswordCredentials {
+  email: string;
+  password: string;
+}
+
+export interface MagicLinkOptions {
+  email: string;
+  options?: {
+    emailRedirectTo?: string;
+  };
+}
+
+export interface UseSupabaseAuthReturn {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  error: AuthError | null;
+  signUp: (options: SignUpOptions) => Promise<AuthResult>;
+  signIn: (credentials: EmailPasswordCredentials) => Promise<AuthResult>;
+  signInWithOtp: (options: MagicLinkOptions) => Promise<AuthResult>;
+  signOut: () => Promise<SignOutResult>;
+  clearError: () => void;
+}
 
 // =============================================================================
 // Constants
@@ -157,9 +193,9 @@ export function useSupabaseAuth(): UseSupabaseAuthReturn {
       try {
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: options.email,
-          options: {
+          options: options.options ? {
             emailRedirectTo: options.options.emailRedirectTo,
-          },
+          } : undefined,
         });
 
         if (otpError) {

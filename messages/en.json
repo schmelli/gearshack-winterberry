@@ -345,5 +345,90 @@
     "notFoundHint": "The loadout you're looking for doesn't exist or is no longer shared.",
     "backToHome": "Back to Home",
     "retry": "Retry"
+  },
+  "aiAssistant": {
+    "upgradeModal": {
+      "headline": "Your Personal Gear Expert Awaits",
+      "features": {
+        "instantAnswers": {
+          "title": "Instant Answers",
+          "description": "Get quick answers about gear specs, weight, and features from your inventory."
+        },
+        "weightOptimization": {
+          "title": "Weight Optimization",
+          "description": "AI-powered suggestions to reduce pack weight and improve your loadout."
+        },
+        "smartRecommendations": {
+          "title": "Smart Recommendations",
+          "description": "Personalized gear alternatives based on your preferences and trip conditions."
+        }
+      },
+      "exampleQuestionsHeadline": "Try asking:",
+      "exampleQuestions": {
+        "baseWeight": "What's my base weight?",
+        "lighterTent": "Can you recommend a lighter tent?",
+        "rValue": "What R-value sleeping pad do I need for winter?"
+      },
+      "ctaButton": "Upgrade to Trailblazer",
+      "maybeLater": "Maybe later"
+    },
+    "chat": {
+      "title": "AI Gear Assistant",
+      "subtitle": "Ask me anything about your gear",
+      "placeholder": "Ask me anything about your gear...",
+      "sendButton": "Send message",
+      "thinking": "AI is thinking...",
+      "newConversation": "New Chat",
+      "welcomeTitle": "Welcome to AI Gear Assistant!",
+      "welcomeDescription": "I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.",
+      "tryAsking": "Try asking:",
+      "suggestionBaseWeight": "What's my base weight?",
+      "suggestionLighterTent": "Recommend a lighter tent",
+      "suggestionSleepingBags": "Show me my sleeping bags",
+      "rateLimitWarning": "Rate limit reached. Try again in {seconds}s.",
+      "characterCount": "{count}/{max}",
+      "enterToSend": "Press Enter to send, Shift+Enter for new line",
+      "errors": {
+        "unauthorized": "You must be logged in to use AI Assistant",
+        "rateLimited": "Rate limit exceeded. Try again later.",
+        "sendFailed": "Failed to send message. Please try again."
+      }
+    },
+    "actions": {
+      "addToWishlist": "Add to Wishlist",
+      "compare": "Compare",
+      "sendMessage": "Send Message",
+      "viewDetails": "View Details",
+      "confirmations": {
+        "addedToWishlist": "✓ Done! {itemName} is now on your wishlist",
+        "comparisonReady": "✓ Opening comparison...",
+        "messageSent": "✓ Message sent to {recipientName}",
+        "navigating": "✓ Opening {destination}..."
+      },
+      "errors": {
+        "addToWishlistFailed": "Failed to add to wishlist: {error}",
+        "compareFailed": "Failed to prepare comparison: {error}",
+        "messageFailed": "Failed to send message: {error}",
+        "navigationFailed": "Failed to navigate: {error}",
+        "tryAgain": "Try again"
+      }
+    },
+    "inventory": {
+      "categoryBreakdown": "Category Breakdown",
+      "item": "item",
+      "items": "items",
+      "heaviest": "Heaviest",
+      "avg": "Avg",
+      "showingTopN": "Showing top {count} categories"
+    },
+    "community": {
+      "forSale": "For Sale",
+      "tradeable": "Tradeable",
+      "lendable": "Lendable",
+      "match": "match",
+      "viewProfile": "View Profile",
+      "sendMessage": "Send Message",
+      "noMatches": "No community offers found matching your criteria."
+    }
   }
 }

@@ -30,8 +30,6 @@ interface GearInsightsSectionProps {
   error: string | null;
   /** Optional class name */
   className?: string;
-  /** User ID for feedback submission */
-  userId?: string;
   /** Gear context for feedback */
   gearContext?: {
     gearItemId?: string;
@@ -93,7 +91,6 @@ export function GearInsightsSection({
   isLoading,
   error,
   className,
-  userId,
   gearContext,
   onInsightDismissed,
 }: GearInsightsSectionProps) {
@@ -137,7 +134,6 @@ export function GearInsightsSection({
         <InsightCard
           key={`${insight.type}-${index}`}
           insight={insight}
-          userId={userId}
           gearContext={gearContext}
           onDismiss={onInsightDismissed}
         />
@@ -152,7 +148,6 @@ export function GearInsightsSection({
 
 interface InsightCardProps {
   insight: GearInsight;
-  userId?: string;
   gearContext?: {
     gearItemId?: string;
     brand?: string;
@@ -162,7 +157,7 @@ interface InsightCardProps {
   onDismiss?: (insight: GearInsight) => void;
 }
 
-function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardProps) {
+function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
   const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -170,7 +165,7 @@ function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardPro
   const Icon = config.icon;
 
   const submitFeedback = useCallback(async (isPositive: boolean) => {
-    if (!userId || isSubmitting) return;
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     try {
@@ -178,7 +173,6 @@ function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardPro
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
           insightContent: insight.content,
           isPositive,
           gearItemId: gearContext?.gearItemId,
@@ -200,7 +194,7 @@ function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardPro
     } finally {
       setIsSubmitting(false);
     }
-  }, [userId, insight, gearContext, onDismiss, isSubmitting]);
+  }, [insight, gearContext, onDismiss, isSubmitting]);
 
   return (
     <div
@@ -219,34 +213,32 @@ function InsightCard({ insight, userId, gearContext, onDismiss }: InsightCardPro
               {config.label}
             </p>
             {/* Feedback buttons */}
-            {userId && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    'h-6 w-6',
-                    feedbackState === 'positive' && 'text-green-600 bg-green-100'
-                  )}
-                  onClick={() => submitFeedback(true)}
-                  disabled={isSubmitting || feedbackState !== 'none'}
-                >
-                  <ThumbsUp className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    'h-6 w-6',
-                    feedbackState === 'negative' && 'text-red-600 bg-red-100'
-                  )}
-                  onClick={() => submitFeedback(false)}
-                  disabled={isSubmitting || feedbackState !== 'none'}
-                >
-                  <ThumbsDown className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6',
+                  feedbackState === 'positive' && 'text-green-600 bg-green-100'
+                )}
+                onClick={() => submitFeedback(true)}
+                disabled={isSubmitting || feedbackState !== 'none'}
+              >
+                <ThumbsUp className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6',
+                  feedbackState === 'negative' && 'text-red-600 bg-red-100'
+                )}
+                onClick={() => submitFeedback(false)}
+                disabled={isSubmitting || feedbackState !== 'none'}
+              >
+                <ThumbsDown className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-foreground">{insight.content}</p>
           {insight.sourceUrl && (

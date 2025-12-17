@@ -335,5 +335,90 @@
     "notFoundHint": "Die gesuchte Packliste existiert nicht oder wird nicht mehr geteilt.",
     "backToHome": "Zurück zur Startseite",
     "retry": "Erneut versuchen"
+  },
+  "aiAssistant": {
+    "upgradeModal": {
+      "headline": "Dein persönlicher Ausrüstungs-Experte wartet",
+      "features": {
+        "instantAnswers": {
+          "title": "Sofortige Antworten",
+          "description": "Erhalte schnelle Antworten zu Spezifikationen, Gewicht und Funktionen deiner Ausrüstung."
+        },
+        "weightOptimization": {
+          "title": "Gewichtsoptimierung",
+          "description": "KI-gestützte Vorschläge zur Reduzierung des Rucksackgewichts und Verbesserung deiner Packliste."
+        },
+        "smartRecommendations": {
+          "title": "Intelligente Empfehlungen",
+          "description": "Personalisierte Ausrüstungsalternativen basierend auf deinen Vorlieben und Tourbedingungen."
+        }
+      },
+      "exampleQuestionsHeadline": "Probiere zu fragen:",
+      "exampleQuestions": {
+        "baseWeight": "Was ist mein Basisgewicht?",
+        "lighterTent": "Kannst du ein leichteres Zelt empfehlen?",
+        "rValue": "Welchen R-Wert braucht meine Isomatte für den Winter?"
+      },
+      "ctaButton": "Auf Trailblazer upgraden",
+      "maybeLater": "Vielleicht später"
+    },
+    "chat": {
+      "title": "KI-Ausrüstungs-Assistent",
+      "subtitle": "Frag mich alles über deine Ausrüstung",
+      "placeholder": "Frag mich alles über deine Ausrüstung...",
+      "sendButton": "Nachricht senden",
+      "thinking": "KI denkt nach...",
+      "newConversation": "Neuer Chat",
+      "welcomeTitle": "Willkommen beim KI-Ausrüstungs-Assistenten!",
+      "welcomeDescription": "Ich kann dir helfen, deine Packlisten zu optimieren, leichtere Ausrüstungsalternativen zu finden und Fragen zu deinem Inventar zu beantworten.",
+      "tryAsking": "Probiere zu fragen:",
+      "suggestionBaseWeight": "Was ist mein Basisgewicht?",
+      "suggestionLighterTent": "Empfehle ein leichteres Zelt",
+      "suggestionSleepingBags": "Zeige mir meine Schlafsäcke",
+      "rateLimitWarning": "Ratenlimit erreicht. Versuche es in {seconds}s erneut.",
+      "characterCount": "{count}/{max}",
+      "enterToSend": "Enter zum Senden, Shift+Enter für neue Zeile",
+      "errors": {
+        "unauthorized": "Du musst angemeldet sein, um den KI-Assistenten zu nutzen",
+        "rateLimited": "Ratenlimit überschritten. Versuche es später erneut.",
+        "sendFailed": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
+      }
+    },
+    "actions": {
+      "addToWishlist": "Zur Wunschliste hinzufügen",
+      "compare": "Vergleichen",
+      "sendMessage": "Nachricht senden",
+      "viewDetails": "Details anzeigen",
+      "confirmations": {
+        "addedToWishlist": "✓ Erledigt! {itemName} ist jetzt auf deiner Wunschliste",
+        "comparisonReady": "✓ Öffne Vergleich...",
+        "messageSent": "✓ Nachricht an {recipientName} gesendet",
+        "navigating": "✓ Öffne {destination}..."
+      },
+      "errors": {
+        "addToWishlistFailed": "Fehler beim Hinzufügen zur Wunschliste: {error}",
+        "compareFailed": "Fehler beim Vorbereiten des Vergleichs: {error}",
+        "messageFailed": "Fehler beim Senden der Nachricht: {error}",
+        "navigationFailed": "Fehler bei der Navigation: {error}",
+        "tryAgain": "Erneut versuchen"
+      }
+    },
+    "inventory": {
+      "categoryBreakdown": "Kategorie-Übersicht",
+      "item": "Gegenstand",
+      "items": "Gegenstände",
+      "heaviest": "Schwerstes",
+      "avg": "Durchschn.",
+      "showingTopN": "Top {count} Kategorien angezeigt"
+    },
+    "community": {
+      "forSale": "Zu verkaufen",
+      "tradeable": "Tauschbar",
+      "lendable": "Verleihbar",
+      "match": "Übereinstimmung",
+      "viewProfile": "Profil ansehen",
+      "sendMessage": "Nachricht senden",
+      "noMatches": "Keine Community-Angebote gefunden, die deinen Kriterien entsprechen."
+    }
   }
 }

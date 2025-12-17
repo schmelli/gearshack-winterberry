@@ -6,6 +6,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
+  // Note: instrumentationHook is no longer needed in Next.js 16 (Feature 050: OpenTelemetry)
   images: {
     // Feature 025: Allow all HTTPS domains for external product images
     // Users need to paste image URLs from any retailer (fjellsport.no, REI, etc.)

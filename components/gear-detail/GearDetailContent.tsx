@@ -408,7 +408,6 @@ export function GearDetailContent({
             insights={insights}
             isLoading={insightsLoading}
             error={insightsError}
-            userId={userId}
             gearContext={{
               gearItemId: item.id,
               brand: item.brand ?? undefined,
