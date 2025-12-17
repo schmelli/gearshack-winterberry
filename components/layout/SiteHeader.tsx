@@ -28,7 +28,7 @@
 // T025: Replace next/link with locale-aware Link from i18n/navigation
 import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Bell, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 // T022: Import useTranslations hook
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -43,10 +43,8 @@ import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
 import { MessagingModal } from '@/components/messaging/MessagingModal';
-import { useNotifications } from '@/hooks/useNotifications';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRouter } from '@/i18n/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 // Feature 050: AI Assistant
 import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton';
 import { AIAssistantModal } from '@/components/ai-assistant/AIAssistantModal';
@@ -67,9 +65,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   // T012: Messaging modal state and unread count
   const [messagingOpen, setMessagingOpen] = useState(false);
   const { unreadCount } = useUnreadCount();
-  // T048: Notification state
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { notifications, unreadCount: notificationUnreadCount, markAsRead } = useNotifications(user?.uid || null);
   // Feature 050: AI Assistant state
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [aiChatModalOpen, setAiChatModalOpen] = useState(false);
@@ -184,86 +179,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </Button>
           )}
 
-          {/* T048: Notification bell with popover */}
-          {user && (
-            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-white hover:bg-white/10 hover:text-white"
-                >
-                  <Bell className="h-5 w-5" />
-                  {notificationUnreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
-                    </span>
-                  )}
-                  <span className="sr-only">Notifications</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                  <h3 className="font-semibold">Notifications</h3>
-                  {notificationUnreadCount > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {notificationUnreadCount} unread
-                    </span>
-                  )}
-                </div>
-                <div className="max-h-[400px] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="p-8 text-center text-sm text-muted-foreground">
-                      No notifications yet
-                    </div>
-                  ) : (
-                    notifications.map((notification) => (
-                      <button
-                        key={notification.id}
-                        onClick={async () => {
-                          // T049: Mark as read and navigate to shared loadout
-                          await markAsRead(notification.id);
-
-                          if (notification.type === 'loadout_comment' && notification.referenceId) {
-                            // For loadout comments, referenceType should contain the share_token
-                            // Check that we have a valid share token (not just the type itself)
-                            const shareToken = notification.referenceType;
-                            // More explicit check: ensure shareToken is a non-empty string
-                            // and looks like a valid token (not a type name)
-                            if (
-                              shareToken &&
-                              typeof shareToken === 'string' &&
-                              shareToken.length > 0 &&
-                              !shareToken.includes('_') // Type names typically have underscores
-                            ) {
-                              setNotificationsOpen(false);
-                              router.push(`/shakedown/${shareToken}`);
-                            }
-                          }
-                        }}
-                        className={cn(
-                          'w-full border-b px-4 py-3 text-left transition-colors hover:bg-accent',
-                          !notification.isRead && 'bg-accent/50'
-                        )}
-                      >
-                        <div className="flex gap-3">
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
-                            </p>
-                          </div>
-                          {!notification.isRead && (
-                            <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
-                          )}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
+          {/* T048: Notification bell - extracted to NotificationMenu component */}
+          <NotificationMenu userId={user?.uid || null} />
 
           {/* Feature 050: AI Assistant button - T026, T027 */}
           {user && (
