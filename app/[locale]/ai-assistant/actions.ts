@@ -179,14 +179,14 @@ export async function sendAIMessage(
           const cachedResponse = await getCachedResponse(trimmedMessage, context.locale as 'en' | 'de');
           if (cachedResponse) {
             logAIQuery(user.id, activeConversationId!, trimmedMessage, 'cached');
-            return { text: cachedResponse, tokensUsed: 0, finishReason: 'stop' };
+            return { text: cachedResponse, tokensUsed: 0, finishReason: 'stop', toolCalls: [] };
           }
         }
 
         // Fallback response
         const fallback = getFallbackResponse(context.locale as 'en' | 'de');
         logAIQuery(user.id, activeConversationId!, trimmedMessage, 'error');
-        return { text: fallback, tokensUsed: 0, finishReason: 'stop' };
+        return { text: fallback, tokensUsed: 0, finishReason: 'stop', toolCalls: [] };
       }
 
       // Build context-aware system prompt (T071: includes inventory analysis)
@@ -199,9 +199,9 @@ export async function sendAIMessage(
       return result;
     });
 
-    // 8. Parse and sanitize AI response
+    // 8. Parse and sanitize AI response (T059: pass tool calls)
     const sanitized = sanitizeResponse(aiResponse.text);
-    const { cleanText, inlineCards, actions } = parseAIResponse(sanitized);
+    const { cleanText, inlineCards, actions } = parseAIResponse(sanitized, aiResponse.toolCalls);
 
     // 9. Save AI message
     const { data: aiMessage, error: messageError } = await supabase

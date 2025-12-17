@@ -1,9 +1,10 @@
 /**
  * useChatActions Hook
- * Feature 050: AI Assistant - T053
+ * Feature 050: AI Assistant - T053, T061
  *
  * Handles execution of AI-suggested actions (Add to Wishlist, Compare, Send Message, Navigate)
- * Provides action execution functions with optimistic updates and error handling
+ * Provides action execution functions with optimistic updates and error handling.
+ * T061: Implements action status tracking with pending → completed/failed transitions.
  */
 
 'use client';
@@ -21,21 +22,31 @@ import {
 } from '@/app/[locale]/ai-assistant/actions';
 
 interface UseChatActionsResult {
-  executeAction: (action: Action) => Promise<void>;
+  executeAction: (action: Action, messageId?: string) => Promise<void>;
   isExecuting: boolean;
+  actionStatuses: Map<string, 'pending' | 'completed' | 'failed'>;
 }
 
 export function useChatActions(): UseChatActionsResult {
   const [isExecuting, setIsExecuting] = useState(false);
+  // T061: Track action statuses for optimistic UI updates
+  const [actionStatuses, setActionStatuses] = useState<Map<string, 'pending' | 'completed' | 'failed'>>(
+    new Map()
+  );
   const router = useRouter();
   const t = useTranslations('aiAssistant.actions');
 
   const executeAction = useCallback(
-    async (action: Action) => {
+    async (action: Action, messageId?: string) => {
       // T069: Check for destructive actions (would need UI confirmation)
       // For now, all actions are considered safe - destructive actions would be
       // implemented with a separate confirmation dialog in the UI layer
 
+      // T061: Generate action ID for status tracking
+      const actionId = messageId ? `${messageId}-${action.type}` : `${action.type}-${Date.now()}`;
+
+      // T061: Set initial status to pending (optimistic update)
+      setActionStatuses((prev) => new Map(prev).set(actionId, 'pending'));
       setIsExecuting(true);
 
       try {
@@ -56,8 +67,15 @@ export function useChatActions(): UseChatActionsResult {
             await handleNavigate(action, t, router);
             break;
         }
+
+        // T061: Mark as completed on success
+        setActionStatuses((prev) => new Map(prev).set(actionId, 'completed'));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Action failed';
+
+        // T061: Mark as failed with error (rollback)
+        setActionStatuses((prev) => new Map(prev).set(actionId, 'failed'));
+
         toast.error(errorMessage);
         throw error;
       } finally {
@@ -70,6 +88,7 @@ export function useChatActions(): UseChatActionsResult {
   return {
     executeAction,
     isExecuting,
+    actionStatuses,
   };
 }
 

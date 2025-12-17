@@ -1,39 +1,106 @@
 /**
  * AI Response Parser
- * Feature 050: AI Assistant
+ * Feature 050: AI Assistant - T059
  *
- * Extracts structured data (inline cards, actions) from AI text responses.
- * Currently a stub for future implementation when AI responses include
- * structured markup for gear recommendations and system actions.
+ * Extracts structured data (inline cards, actions) from AI text responses
+ * and AI SDK tool calls.
  */
 
 import type { InlineCard, Action } from '@/types/ai-assistant';
 
 /**
- * Parse AI response text to extract inline cards and actions
- *
- * Future Implementation Notes:
- * - Look for structured markers in AI responses (e.g., JSON blocks, special tags)
- * - Extract gear_alternative cards when AI recommends specific items
- * - Extract community_offer cards when AI suggests marketplace items
- * - Identify action requests (add_to_wishlist, navigate, compare)
- *
- * For MVP, returns empty arrays - AI responses are plain text only.
+ * T059: Parse AI response text and tool calls to extract inline cards and actions
  *
  * @param responseText - Raw text from AI model
+ * @param toolCalls - Tool calls from Vercel AI SDK (optional)
  * @returns Parsed response with extracted cards and actions
  */
-export function parseAIResponse(responseText: string): {
+export function parseAIResponse(
+  responseText: string,
+  toolCalls?: any[]
+): {
   cleanText: string;
   inlineCards: InlineCard[];
   actions: Action[];
 } {
-  // MVP: Return plain text without structured data extraction
+  const inlineCards: InlineCard[] = [];
+  const actions: Action[] = [];
+
+  // T059: Extract actions from AI SDK tool calls
+  if (toolCalls && toolCalls.length > 0) {
+    for (const toolCall of toolCalls) {
+      const action = extractActionFromToolCall(toolCall);
+      if (action) {
+        actions.push(action);
+      }
+    }
+  }
+
   return {
     cleanText: responseText,
-    inlineCards: [],
-    actions: [],
+    inlineCards,
+    actions,
   };
+}
+
+/**
+ * T059: Extract Action object from Vercel AI SDK tool call
+ *
+ * Maps tool calls to Action type format for database storage and UI rendering.
+ *
+ * @param toolCall - Tool call object from AI SDK
+ * @returns Action object or null if invalid
+ */
+function extractActionFromToolCall(toolCall: any): Action | null {
+  if (!toolCall || !toolCall.toolName || !toolCall.args) {
+    return null;
+  }
+
+  const { toolName, args } = toolCall;
+
+  switch (toolName) {
+    case 'addToWishlist':
+      return {
+        type: 'add_to_wishlist',
+        gearItemId: args.gearItemId,
+        status: 'pending',
+        error: null,
+      };
+
+    case 'compareGear':
+      return {
+        type: 'compare',
+        gearItemIds: args.gearItemIds || [],
+        status: 'pending',
+        error: null,
+      };
+
+    case 'sendMessage':
+      return {
+        type: 'send_message',
+        recipientUserId: args.recipientUserId,
+        messagePreview: args.messagePreview || '',
+        status: 'pending',
+        error: null,
+      };
+
+    case 'navigate':
+      return {
+        type: 'navigate',
+        destination: args.destination,
+        status: 'pending',
+        error: null,
+      };
+
+    // searchCommunity tool doesn't map to an Action - it returns inline cards instead
+    case 'searchCommunity':
+      // TODO: Could extract inline cards here in future
+      return null;
+
+    default:
+      console.warn(`Unknown tool call: ${toolName}`);
+      return null;
+  }
 }
 
 /**
