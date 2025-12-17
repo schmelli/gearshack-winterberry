@@ -30,10 +30,33 @@ const IMGLY_BACKGROUND_REMOVAL_VERSION = '1.7.0';
  * @throws Error if processing fails
  */
 export async function removeBackground(imageFile: File): Promise<Blob> {
-  const blob = await imglyRemoveBackground(imageFile, {
-    publicPath: `https://unpkg.com/@imgly/background-removal@${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
-  });
-  return blob;
+  try {
+    const blob = await imglyRemoveBackground(imageFile, {
+      publicPath: `https://unpkg.com/@imgly/background-removal@${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
+      debug: process.env.NODE_ENV === 'development',
+      model: 'isnet_fp16', // Use fp16 model for better balance of speed and quality
+      output: {
+        format: 'image/png',
+        quality: 0.8,
+      },
+    });
+    return blob;
+  } catch (error) {
+    console.error('Background removal error:', error);
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+        throw new Error('Unable to load background removal assets. Please check your internet connection.');
+      } else if (error.message.includes('WebAssembly') || error.message.includes('WASM')) {
+        throw new Error('Your browser does not support background removal. Please use a modern browser.');
+      } else {
+        throw new Error(`Background removal failed: ${error.message}`);
+      }
+    }
+
+    throw new Error('Background removal failed. Please try again or upload without background removal.');
+  }
 }
 
 /**
