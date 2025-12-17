@@ -10,13 +10,13 @@ SELECT
   gi.id AS gear_item_id,
   gi.name AS item_name,
   COUNT(DISTINCT gi2.user_id) AS user_count,
-  MIN(gi2.purchase_price) AS min_price,
-  MAX(gi2.purchase_price) AS max_price,
-  AVG(gi2.purchase_price) AS avg_price
+  MIN(gi2.price_paid) AS min_price,
+  MAX(gi2.price_paid) AS max_price,
+  AVG(gi2.price_paid) AS avg_price
 FROM gear_items gi
 LEFT JOIN gear_items gi2 ON
   gi2.name = gi.name AND
-  gi2.status = 'inventory' AND
+  gi2.status = 'own' AND
   gi2.user_id != gi.user_id
 WHERE gi.status = 'wishlist'
 GROUP BY gi.id, gi.name;
