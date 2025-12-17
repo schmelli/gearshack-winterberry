@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Return cached results if available and fresh
     if (cachedResults && cachedResults.length > 0) {
-      const sortedResults = sortPriceResults(cachedResults, body.user_location);
+      const sortedResults = sortPriceResults(cachedResults as any, body.user_location);
 
       return NextResponse.json({
         results: sortedResults,

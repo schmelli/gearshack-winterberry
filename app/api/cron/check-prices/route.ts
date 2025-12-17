@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     const results = await Promise.allSettled(
-      (trackingItems as PriceTrackingWithGearItem[]).map((item) =>
+      trackingItems.map((item: any) =>
         queue.add(() => processTrackingItem(item, priceDropAlerts))
       )
     );
@@ -227,7 +227,7 @@ async function checkPersonalOffers(
   }
 
   // Send notification for each new offer
-  for (const offer of (offers as PersonalOfferWithPartner[])) {
+  for (const offer of offers as any[]) {
     try {
       const partnerName = offer.partner_retailers.name;
 

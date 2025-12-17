@@ -1095,6 +1095,375 @@ export type Database = {
           },
         ]
       }
+      alert_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          price_drop_enabled: boolean
+          local_shop_enabled: boolean
+          community_enabled: boolean
+          personal_offer_enabled: boolean
+          push_enabled: boolean
+          email_enabled: boolean
+          quiet_hours_start: string | null
+          quiet_hours_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          price_drop_enabled?: boolean
+          local_shop_enabled?: boolean
+          community_enabled?: boolean
+          personal_offer_enabled?: boolean
+          push_enabled?: boolean
+          email_enabled?: boolean
+          quiet_hours_start?: string | null
+          quiet_hours_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          price_drop_enabled?: boolean
+          local_shop_enabled?: boolean
+          community_enabled?: boolean
+          personal_offer_enabled?: boolean
+          push_enabled?: boolean
+          email_enabled?: boolean
+          quiet_hours_start?: string | null
+          quiet_hours_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      price_tracking: {
+        Row: {
+          id: string
+          user_id: string
+          gear_item_id: string
+          enabled: boolean
+          alerts_enabled: boolean
+          confirmed_product_id: string | null
+          match_confidence: number | null
+          last_checked_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          gear_item_id: string
+          enabled?: boolean
+          alerts_enabled?: boolean
+          confirmed_product_id?: string | null
+          match_confidence?: number | null
+          last_checked_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          gear_item_id?: string
+          enabled?: boolean
+          alerts_enabled?: boolean
+          confirmed_product_id?: string | null
+          match_confidence?: number | null
+          last_checked_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      price_results: {
+        Row: {
+          id: string
+          tracking_id: string
+          source_type: "retailer" | "google_shopping" | "ebay" | "local_shop"
+          source_name: string
+          source_url: string
+          price_amount: number
+          price_currency: string
+          shipping_cost: number | null
+          shipping_currency: string
+          total_price: number
+          product_name: string
+          product_image_url: string | null
+          product_condition: string
+          is_local: boolean
+          shop_latitude: number | null
+          shop_longitude: number | null
+          distance_km: number | null
+          fetched_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          tracking_id: string
+          source_type: "retailer" | "google_shopping" | "ebay" | "local_shop"
+          source_name: string
+          source_url: string
+          price_amount: number
+          price_currency: string
+          shipping_cost?: number | null
+          shipping_currency?: string
+          total_price: number
+          product_name: string
+          product_image_url?: string | null
+          product_condition: string
+          is_local?: boolean
+          shop_latitude?: number | null
+          shop_longitude?: number | null
+          distance_km?: number | null
+          fetched_at: string
+          expires_at: string
+        }
+        Update: {
+          id?: string
+          tracking_id?: string
+          source_type?: "retailer" | "google_shopping" | "ebay" | "local_shop"
+          source_name?: string
+          source_url?: string
+          price_amount?: number
+          price_currency?: string
+          shipping_cost?: number | null
+          shipping_currency?: string
+          total_price?: number
+          product_name?: string
+          product_image_url?: string | null
+          product_condition?: string
+          is_local?: boolean
+          shop_latitude?: number | null
+          shop_longitude?: number | null
+          distance_km?: number | null
+          fetched_at?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
+      price_history: {
+        Row: {
+          id: string
+          tracking_id: string
+          lowest_price: number
+          highest_price: number
+          average_price: number
+          num_sources: number
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          tracking_id: string
+          lowest_price: number
+          highest_price: number
+          average_price: number
+          num_sources: number
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          tracking_id?: string
+          lowest_price?: number
+          highest_price?: number
+          average_price?: number
+          num_sources?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
+      price_alerts: {
+        Row: {
+          id: string
+          user_id: string
+          tracking_id: string | null
+          offer_id: string | null
+          alert_type: string
+          title: string
+          message: string
+          link_url: string | null
+          sent_via_push: boolean
+          sent_via_email: boolean
+          push_sent_at: string | null
+          email_sent_at: string | null
+          read_at: string | null
+          dismissed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tracking_id?: string | null
+          offer_id?: string | null
+          alert_type: string
+          title: string
+          message: string
+          link_url?: string | null
+          sent_via_push?: boolean
+          sent_via_email?: boolean
+          push_sent_at?: string | null
+          email_sent_at?: string | null
+          read_at?: string | null
+          dismissed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tracking_id?: string | null
+          offer_id?: string | null
+          alert_type?: string
+          title?: string
+          message?: string
+          link_url?: string | null
+          sent_via_push?: boolean
+          sent_via_email?: boolean
+          push_sent_at?: string | null
+          email_sent_at?: string | null
+          read_at?: string | null
+          dismissed_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      partner_retailers: {
+        Row: {
+          id: string
+          name: string
+          logo_url: string | null
+          website_url: string | null
+          api_key: string
+          is_active: boolean
+          rate_limit_per_hour: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          logo_url?: string | null
+          website_url?: string | null
+          api_key: string
+          is_active?: boolean
+          rate_limit_per_hour?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          logo_url?: string | null
+          website_url?: string | null
+          api_key?: string
+          is_active?: boolean
+          rate_limit_per_hour?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal_offers: {
+        Row: {
+          id: string
+          partner_retailer_id: string
+          user_id: string
+          tracking_id: string
+          product_id: string
+          product_name: string
+          product_url: string
+          offer_price: number
+          original_price: number | null
+          currency: string
+          valid_until: string
+          description: string | null
+          terms: string | null
+          dismissed: boolean
+          notified_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          partner_retailer_id: string
+          user_id: string
+          tracking_id: string
+          product_id: string
+          product_name: string
+          product_url: string
+          offer_price: number
+          original_price?: number | null
+          currency?: string
+          valid_until: string
+          description?: string | null
+          terms?: string | null
+          dismissed?: boolean
+          notified_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          partner_retailer_id?: string
+          user_id?: string
+          tracking_id?: string
+          product_id?: string
+          product_name?: string
+          product_url?: string
+          offer_price?: number
+          original_price?: number | null
+          currency?: string
+          valid_until?: string
+          description?: string | null
+          terms?: string | null
+          dismissed?: boolean
+          notified_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      alert_delivery_queue: {
+        Row: {
+          id: string
+          alert_id: string
+          delivery_channel: string
+          attempt_count: number
+          max_attempts: number
+          next_retry_at: string | null
+          last_error: string | null
+          status: string
+          created_at: string
+          delivered_at: string | null
+          failed_at: string | null
+        }
+        Insert: {
+          id?: string
+          alert_id: string
+          delivery_channel: string
+          attempt_count?: number
+          max_attempts?: number
+          next_retry_at?: string | null
+          last_error?: string | null
+          status?: string
+          created_at?: string
+          delivered_at?: string | null
+          failed_at?: string | null
+        }
+        Update: {
+          id?: string
+          alert_id?: string
+          delivery_channel?: string
+          attempt_count?: number
+          max_attempts?: number
+          next_retry_at?: string | null
+          last_error?: string | null
+          status?: string
+          created_at?: string
+          delivered_at?: string | null
+          failed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1137,6 +1506,90 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      record_price_snapshot: {
+        Args: {
+          p_tracking_id: string
+          p_results: Json[]
+          p_lowest_price: number
+          p_highest_price: number
+          p_average_price: number
+        }
+        Returns: string
+      }
+      create_price_alert: {
+        Args: {
+          p_user_id: string
+          p_tracking_id?: string
+          p_offer_id?: string
+          p_alert_type: string
+          p_title: string
+          p_message: string
+          p_link_url?: string
+          p_send_push?: boolean
+          p_send_email?: boolean
+        }
+        Returns: string
+      }
+      create_personal_offers_batch: {
+        Args: {
+          p_partner_id: string
+          p_offers: Json[]
+        }
+        Returns: {
+          created_count: number
+          offer_ids: string[]
+        }[]
+      }
+      enqueue_alert_delivery: {
+        Args: {
+          p_alert_id: string
+          p_delivery_channel: string
+        }
+        Returns: string
+      }
+      get_next_delivery_batch: {
+        Args: {
+          p_batch_size?: number
+        }
+        Returns: {
+          queue_id: string
+          alert_id: string
+          delivery_channel: string
+          attempt_count: number
+          alert_user_id: string
+          alert_title: string
+          alert_message: string
+        }[]
+      }
+      mark_delivery_success: {
+        Args: {
+          p_queue_id: string
+        }
+        Returns: undefined
+      }
+      mark_delivery_failed: {
+        Args: {
+          p_queue_id: string
+          p_error_message: string
+        }
+        Returns: undefined
+      }
+      cleanup_delivery_queue: {
+        Args: never
+        Returns: number
+      }
+      fuzzy_search_products: {
+        Args: {
+          search_query: string
+          similarity_threshold?: number
+          max_results?: number
+        }
+        Returns: {
+          gear_item_id: string
+          name: string
+          similarity_score: number
+        }[]
+      }
     }
     Enums: {
       activity_type:
