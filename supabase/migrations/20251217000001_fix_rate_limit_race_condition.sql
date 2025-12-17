@@ -24,9 +24,7 @@ BEGIN
   -- Get or create rate limit record
   INSERT INTO ai_rate_limits (user_id, endpoint, count, window_start)
   VALUES (p_user_id, p_endpoint, 0, now())
-  ON CONFLICT (user_id)
-  DO UPDATE SET endpoint = EXCLUDED.endpoint
-  WHERE ai_rate_limits.user_id = p_user_id;
+  ON CONFLICT (user_id, endpoint) DO NOTHING;
 
   -- Get current state
   SELECT count, window_start INTO v_count, v_window_start
@@ -35,7 +33,7 @@ BEGIN
   FOR UPDATE; -- Lock row for update
 
   -- Reset window if expired
-  IF v_window_start + (p_window_hours || ' hours')::interval < now() THEN
+  IF v_window_start + (p_window_hours * interval '1 hour') < now() THEN
     v_count := 0;
     v_window_start := now();
 
@@ -46,7 +44,7 @@ BEGIN
 
   -- Check if rate limit would be exceeded
   v_exceeded := v_count >= p_limit;
-  v_resets_at := v_window_start + (p_window_hours || ' hours')::interval;
+  v_resets_at := v_window_start + (p_window_hours * interval '1 hour');
 
   -- If NOT exceeded, increment the counter atomically
   IF NOT v_exceeded THEN

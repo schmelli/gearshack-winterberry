@@ -17,6 +17,7 @@ import { buildSystemPrompt } from '@/lib/ai-assistant/prompt-builder';
 import { parseAIResponse, sanitizeResponse } from '@/lib/ai-assistant/response-parser';
 import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/ai-assistant/cache-strategy';
 import { traceAIQuery, recordTokenUsage, recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
+import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from '@/lib/ai-assistant/constants';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Json } from '@/types/supabase';
 import { z } from 'zod';
@@ -90,8 +91,8 @@ function sanitizeError(error: unknown, fallbackMessage: string): string {
 const messageContentSchema = z
   .string()
   .trim()
-  .min(1, 'Message cannot be empty')
-  .max(5000, 'Message is too long (max 5000 characters)')
+  .min(MIN_MESSAGE_LENGTH, 'Message cannot be empty')
+  .max(MAX_MESSAGE_LENGTH, `Message is too long (max ${MAX_MESSAGE_LENGTH} characters)`)
   .transform((str) => {
     // Remove any potentially dangerous HTML/script tags
     // Note: This is defense-in-depth; client should also sanitize

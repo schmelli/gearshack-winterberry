@@ -4,6 +4,21 @@
  *
  * Provides real-time streaming of AI responses using Vercel AI SDK.
  * Returns Server-Sent Events (SSE) for word-by-word display.
+ *
+ * LIMITATION: This endpoint does NOT support tool calling (actions).
+ * Tool execution (addToWishlist, compareGear, sendMessage, etc.) is only
+ * available via the non-streaming Server Action in actions.ts.
+ *
+ * Use this endpoint for:
+ * - Pure conversational responses
+ * - Inventory analysis
+ * - General questions
+ *
+ * Use the Server Action (sendAIMessage) for:
+ * - Tool calling and action execution
+ * - Adding items to wishlist
+ * - Sending messages to other users
+ * - Any operation requiring structured responses
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -11,6 +26,7 @@ import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/a
 import { buildSystemPrompt } from '@/lib/ai-assistant/prompt-builder';
 import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/ai-assistant/cache-strategy';
 import { recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
+import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from '@/lib/ai-assistant/constants';
 import type { UserContext } from '@/types/ai-assistant';
 
 export const runtime = 'edge'; // Use Edge runtime for streaming
@@ -97,9 +113,9 @@ export async function POST(request: Request) {
 
     // 4. Validate input
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || trimmedMessage.length > 1000) {
+    if (trimmedMessage.length < MIN_MESSAGE_LENGTH || trimmedMessage.length > MAX_MESSAGE_LENGTH) {
       return new Response(
-        JSON.stringify({ error: 'Message must be between 1 and 1000 characters' }),
+        JSON.stringify({ error: `Message must be between ${MIN_MESSAGE_LENGTH} and ${MAX_MESSAGE_LENGTH} characters` }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }

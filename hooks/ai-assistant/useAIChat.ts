@@ -4,6 +4,10 @@
  *
  * Manages AI conversation state, message sending, and streaming responses.
  * Implements optimistic updates and error handling.
+ *
+ * IMPORTANT: This hook uses the streaming API endpoint which does NOT support
+ * tool calling (actions). For features requiring tool execution like adding
+ * items to wishlist or sending messages, use the Server Action instead.
  */
 
 'use client';
