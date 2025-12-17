@@ -54,3 +54,12 @@ firebase-service-account.json
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Additional build outputs
+/dist
+*.tmp
+*.swp
+
+# IDE
+.vscode/
+.idea/

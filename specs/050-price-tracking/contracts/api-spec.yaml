@@ -1,0 +1,672 @@
+openapi: 3.0.3
+info:
+  title: Price Discovery & Monitoring API
+  description: API for tracking prices of wishlist items across retailers, eBay, and local shops
+  version: 1.0.0
+  contact:
+    name: Gearshack Support
+    url: https://gearshack.com
+
+servers:
+  - url: https://gearshack.com/api
+    description: Production API
+  - url: http://localhost:3000/api
+    description: Development API
+
+tags:
+  - name: Price Tracking
+    description: Enable/disable price tracking for wishlist items
+  - name: Price Search
+    description: Search and fetch current prices from external sources
+  - name: Price History
+    description: Historical price data and trends
+  - name: Personal Offers
+    description: Partner retailer exclusive offers (Partner API)
+  - name: Alerts
+    description: Alert preferences and delivery
+
+paths:
+  # ==================== Price Tracking Endpoints ====================
+
+  /price-tracking/track:
+    post:
+      tags: [Price Tracking]
+      summary: Enable price tracking for a wishlist item
+      operationId: enablePriceTracking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gearItemId]
+              properties:
+                gearItemId:
+                  type: string
+                  format: uuid
+                  description: ID of the gear item to track
+                alertsEnabled:
+                  type: boolean
+                  default: true
+                  description: Enable price drop alerts
+      responses:
+        '201':
+          description: Price tracking enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceTrackingStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Tracking already enabled for this item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /price-tracking/untrack:
+    delete:
+      tags: [Price Tracking]
+      summary: Disable price tracking for a wishlist item
+      operationId: disablePriceTracking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gearItemId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the gear item to stop tracking
+      responses:
+        '204':
+          description: Price tracking disabled successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /price-tracking/status/{gearItemId}:
+    get:
+      tags: [Price Tracking]
+      summary: Get price tracking status for a wishlist item
+      operationId: getPriceTrackingStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gearItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tracking status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceTrackingStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No tracking found for this item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==================== Price Search Endpoints ====================
+
+  /price-tracking/search:
+    post:
+      tags: [Price Search]
+      summary: Search prices for a wishlist item across all sources
+      operationId: searchPrices
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gearItemId]
+              properties:
+                gearItemId:
+                  type: string
+                  format: uuid
+                itemName:
+                  type: string
+                  description: Optional override for search query
+                userLocation:
+                  $ref: '#/components/schemas/Coordinates'
+                  description: User location for local shop prioritization
+      responses:
+        '200':
+          description: Price search completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceSearchResults'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '408':
+          description: Search timeout (some sources failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceSearchResults'
+
+  /price-tracking/search/confirm-match:
+    post:
+      tags: [Price Search]
+      summary: Confirm fuzzy match selection after ambiguous results
+      operationId: confirmFuzzyMatch
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trackingId, selectedProductId]
+              properties:
+                trackingId:
+                  type: string
+                  format: uuid
+                selectedProductId:
+                  type: string
+                  description: External product ID user confirmed
+                confidence:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Match confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceTrackingStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================== Price History Endpoints ====================
+
+  /price-tracking/history/{trackingId}:
+    get:
+      tags: [Price History]
+      summary: Get historical price data for a tracked item
+      operationId: getPriceHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trackingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+          description: Number of days of history to return
+      responses:
+        '200':
+          description: Price history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trackingId:
+                    type: string
+                    format: uuid
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PriceHistoryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== Personal Offers (Partner API) ====================
+
+  /partner-offers:
+    post:
+      tags: [Personal Offers]
+      summary: Submit a personal price offer (Partner API only)
+      operationId: createPersonalOffer
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonalOfferRequest'
+      responses:
+        '201':
+          description: Personal offer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalOffer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid API key or unauthorized partner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /partner-offers/{userId}:
+    get:
+      tags: [Personal Offers]
+      summary: Get active personal offers for a user
+      operationId: getPersonalOffers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Personal offers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PersonalOffer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================== Alert Preferences ====================
+
+  /alerts/preferences:
+    get:
+      tags: [Alerts]
+      summary: Get user alert preferences
+      operationId: getAlertPreferences
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Alert preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Alerts]
+      summary: Update user alert preferences
+      operationId: updateAlertPreferences
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertPreferences'
+      responses:
+        '200':
+          description: Alert preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ==================== Components ====================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Partner retailer API key
+
+  schemas:
+    PriceTrackingStatus:
+      type: object
+      properties:
+        trackingId:
+          type: string
+          format: uuid
+        gearItemId:
+          type: string
+          format: uuid
+        enabled:
+          type: boolean
+        alertsEnabled:
+          type: boolean
+        confirmedProductId:
+          type: string
+          nullable: true
+        matchConfidence:
+          type: number
+          format: float
+          nullable: true
+        lastCheckedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PriceSearchResults:
+      type: object
+      properties:
+        trackingId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [success, partial, error]
+          description: |
+            - success: All sources returned results
+            - partial: Some sources failed but others succeeded
+            - error: All sources failed
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceResult'
+        failedSources:
+          type: array
+          items:
+            type: object
+            properties:
+              sourceName:
+                type: string
+              error:
+                type: string
+        fuzzyMatches:
+          type: array
+          items:
+            $ref: '#/components/schemas/FuzzyMatch'
+          description: If ambiguous matches found, requires user confirmation
+        searchedAt:
+          type: string
+          format: date-time
+
+    PriceResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [google_shopping, ebay, retailer, local_shop]
+        sourceName:
+          type: string
+          example: Bergfreunde.de
+        sourceUrl:
+          type: string
+          format: uri
+        priceAmount:
+          type: number
+          format: decimal
+        priceCurrency:
+          type: string
+          default: EUR
+        shippingCost:
+          type: number
+          format: decimal
+          nullable: true
+        totalPrice:
+          type: number
+          format: decimal
+        productName:
+          type: string
+        productImageUrl:
+          type: string
+          format: uri
+          nullable: true
+        productCondition:
+          type: string
+          enum: [new, used, refurbished]
+          nullable: true
+        isLocal:
+          type: boolean
+        distanceKm:
+          type: number
+          format: float
+          nullable: true
+        fetchedAt:
+          type: string
+          format: date-time
+
+    FuzzyMatch:
+      type: object
+      properties:
+        productName:
+          type: string
+        similarity:
+          type: number
+          format: float
+          description: Confidence score 0-1
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        priceAmount:
+          type: number
+          format: decimal
+
+    PriceHistoryEntry:
+      type: object
+      properties:
+        lowestPrice:
+          type: number
+          format: decimal
+        highestPrice:
+          type: number
+          format: decimal
+        averagePrice:
+          type: number
+          format: decimal
+        numSources:
+          type: integer
+        recordedAt:
+          type: string
+          format: date-time
+
+    PersonalOffer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partnerRetailerId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        gearItemId:
+          type: string
+          format: uuid
+        originalPrice:
+          type: number
+          format: decimal
+        offerPrice:
+          type: number
+          format: decimal
+        offerCurrency:
+          type: string
+          default: EUR
+        savingsAmount:
+          type: number
+          format: decimal
+        savingsPercent:
+          type: number
+          format: decimal
+        productName:
+          type: string
+        productUrl:
+          type: string
+          format: uri
+        productImageUrl:
+          type: string
+          format: uri
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CreatePersonalOfferRequest:
+      type: object
+      required: [userId, gearItemId, originalPrice, offerPrice, productName, productUrl, expiresAt]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        gearItemId:
+          type: string
+          format: uuid
+        originalPrice:
+          type: number
+          format: decimal
+        offerPrice:
+          type: number
+          format: decimal
+        productName:
+          type: string
+        productUrl:
+          type: string
+          format: uri
+        productImageUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    AlertPreferences:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        pushEnabled:
+          type: boolean
+        emailEnabled:
+          type: boolean
+        priceDropEnabled:
+          type: boolean
+        localShopEnabled:
+          type: boolean
+        communityEnabled:
+          type: boolean
+        personalOfferEnabled:
+          type: boolean
+        quietHoursStart:
+          type: string
+          format: time
+          nullable: true
+        quietHoursEnd:
+          type: string
+          format: time
+          nullable: true
+
+    Coordinates:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
