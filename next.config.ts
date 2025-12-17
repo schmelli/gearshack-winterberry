@@ -22,6 +22,29 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Feature 026: Enable WASM support for @imgly/background-removal
+  webpack: (config) => {
+    // WASM support
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
+    // Allow WASM files to be imported
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'webassembly/async',
+    });
+
+    // Ensure WASM files are not processed by the default file loader
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+    };
+
+    return config;
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {
