@@ -18,6 +18,7 @@ import { parseAIResponse, sanitizeResponse } from '@/lib/ai-assistant/response-p
 import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/ai-assistant/cache-strategy';
 import { traceAIQuery, recordTokenUsage, recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
 import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from '@/lib/ai-assistant/constants';
+import { searchCommunityOffers, type CommunitySearchResult } from '@/lib/ai-assistant/community-search';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Json } from '@/types/supabase';
 import { z } from 'zod';
@@ -287,11 +288,36 @@ export async function sendAIMessage(
       return result;
     });
 
-    // 8. Parse and sanitize AI response (T059: pass tool calls)
-    const sanitized = sanitizeResponse(aiResponse.text);
-    const { cleanText, inlineCards, actions } = parseAIResponse(sanitized, aiResponse.toolCalls);
+    // 8. Execute any tool calls (e.g., searchCommunity)
+    // Store execution results for each tool call by toolCallId
+    const toolResults = new Map<string, CommunitySearchResult | unknown>();
 
-    // 9. Save AI message
+    if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
+      for (const toolCall of aiResponse.toolCalls) {
+        if (toolCall.toolName === 'searchCommunity' && toolCall.args) {
+          try {
+            const searchResult = await searchCommunityOffers(
+              user.id,
+              toolCall.args.query || '',
+              {
+                maxPrice: toolCall.args.maxPrice,
+                maxWeight: toolCall.args.maxWeight,
+              }
+            );
+            toolResults.set(toolCall.toolCallId, searchResult);
+          } catch (error) {
+            console.error('Error executing searchCommunity tool:', error);
+            // Continue without results - won't show inline cards
+          }
+        }
+      }
+    }
+
+    // 9. Parse and sanitize AI response (T059: pass tool calls and results)
+    const sanitized = sanitizeResponse(aiResponse.text);
+    const { cleanText, inlineCards, actions } = parseAIResponse(sanitized, aiResponse.toolCalls, toolResults);
+
+    // 10. Save AI message
     const aiMessagePayload: AIMessageInsert = {
       conversation_id: activeConversationId,
       role: 'assistant',
@@ -311,12 +337,12 @@ export async function sendAIMessage(
       throw new Error('Failed to save AI response');
     }
 
-    // 10. Record metrics
+    // 11. Record metrics
     if (aiResponse.tokensUsed > 0) {
       recordTokenUsage(aiResponse.tokensUsed);
     }
 
-    // 11. Update conversation metadata
+    // 12. Update conversation metadata
     // Note: message_count increment happens via database trigger or separate update
     await supabase
       .from('ai_conversations')

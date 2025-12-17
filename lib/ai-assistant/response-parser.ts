@@ -6,18 +6,21 @@
  * and AI SDK tool calls.
  */
 
-import type { InlineCard, Action } from '@/types/ai-assistant';
+import type { InlineCard, Action, CommunityOfferCard } from '@/types/ai-assistant';
+import type { CommunityMatch } from './community-search';
 
 /**
  * T059: Parse AI response text and tool calls to extract inline cards and actions
  *
  * @param responseText - Raw text from AI model
  * @param toolCalls - Tool calls from Vercel AI SDK (optional)
+ * @param toolResults - Execution results for tool calls (optional)
  * @returns Parsed response with extracted cards and actions
  */
 export function parseAIResponse(
   responseText: string,
-  toolCalls?: any[]
+  toolCalls?: any[],
+  toolResults?: Map<string, any>
 ): {
   cleanText: string;
   inlineCards: InlineCard[];
@@ -26,9 +29,20 @@ export function parseAIResponse(
   const inlineCards: InlineCard[] = [];
   const actions: Action[] = [];
 
-  // T059: Extract actions from AI SDK tool calls
+  // T059: Extract actions and inline cards from AI SDK tool calls
   if (toolCalls && toolCalls.length > 0) {
     for (const toolCall of toolCalls) {
+      // Check if this tool call has execution results (for inline cards)
+      const result = toolResults?.get(toolCall.toolCallId);
+
+      if (result) {
+        const cards = extractInlineCardsFromToolCall(toolCall, result);
+        if (cards && cards.length > 0) {
+          inlineCards.push(...cards);
+        }
+      }
+
+      // Extract action (for non-inline-card tools)
       const action = extractActionFromToolCall(toolCall);
       if (action) {
         actions.push(action);
@@ -41,6 +55,46 @@ export function parseAIResponse(
     inlineCards,
     actions,
   };
+}
+
+/**
+ * Extract inline cards from tool call execution results
+ *
+ * Transforms tool execution results into InlineCard objects for UI display.
+ * Currently supports: searchCommunity -> CommunityOfferCard[]
+ *
+ * @param toolCall - Tool call object from AI SDK
+ * @param result - Execution result for the tool call
+ * @returns Array of inline cards or null
+ */
+function extractInlineCardsFromToolCall(toolCall: any, result: any): InlineCard[] | null {
+  if (!toolCall || !toolCall.toolName || !result) {
+    return null;
+  }
+
+  const { toolName } = toolCall;
+
+  switch (toolName) {
+    case 'searchCommunity':
+      // Transform CommunityMatch[] to CommunityOfferCard[]
+      if (result.matches && Array.isArray(result.matches)) {
+        return result.matches.map((match: CommunityMatch): CommunityOfferCard => ({
+          type: 'community_offer',
+          offerId: match.matchedItemId,
+          userName: match.ownerDisplayName,
+          userAvatarUrl: match.ownerAvatarUrl,
+          itemName: match.itemName,
+          price: null, // CommunityMatch doesn't include price_paid, could be enhanced
+          location: 'Community', // Could be enhanced with user location
+          imageUrl: match.primaryImageUrl,
+          distance: null, // Requires user location feature
+        }));
+      }
+      return null;
+
+    default:
+      return null;
+  }
 }
 
 /**
@@ -93,8 +147,8 @@ function extractActionFromToolCall(toolCall: any): Action | null {
       };
 
     // searchCommunity tool doesn't map to an Action - it returns inline cards instead
+    // Cards are extracted via extractInlineCardsFromToolCall() above
     case 'searchCommunity':
-      // TODO: Could extract inline cards here in future
       return null;
 
     default:
