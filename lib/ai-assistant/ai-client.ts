@@ -15,6 +15,9 @@ const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4.5';
 const AI_CHAT_ENABLED = process.env.AI_CHAT_ENABLED === 'true';
 
+// Timeout configuration (in milliseconds)
+const AI_REQUEST_TIMEOUT = parseInt(process.env.AI_REQUEST_TIMEOUT || '30000', 10); // 30 seconds default
+
 if (!AI_GATEWAY_API_KEY && AI_CHAT_ENABLED) {
   console.warn('⚠️ AI_GATEWAY_API_KEY not configured - AI features will be disabled');
 }
@@ -91,12 +94,14 @@ export function getAITools() {
  * @param systemPrompt - The system instructions for the AI
  * @param userMessage - The user's query
  * @param enableTools - Whether to enable tool calling (default: true)
+ * @param timeout - Request timeout in milliseconds (default: from env or 30s)
  * @returns Generated text response, metadata, and tool calls
  */
 export async function generateAIResponse(
   systemPrompt: string,
   userMessage: string,
-  enableTools: boolean = true
+  enableTools: boolean = true,
+  timeout: number = AI_REQUEST_TIMEOUT
 ): Promise<{
   text: string;
   tokensUsed: number;
@@ -105,30 +110,45 @@ export async function generateAIResponse(
 }> {
   const model = getAIModel();
 
-  const config: any = {
-    model,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: userMessage,
-      },
-    ],
-  };
+  // Create abort controller for timeout
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
-  // T058: Add tools if enabled
-  if (enableTools) {
-    config.tools = getAITools();
+  try {
+    const config: any = {
+      model,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ],
+      abortSignal: abortController.signal,
+    };
+
+    // T058: Add tools if enabled
+    if (enableTools) {
+      config.tools = getAITools();
+    }
+
+    const result = await generateText(config);
+
+    return {
+      text: result.text,
+      tokensUsed: result.usage?.totalTokens || 0,
+      finishReason: result.finishReason,
+      toolCalls: result.toolCalls || [], // T058: Return tool calls for action extraction
+    };
+  } catch (error) {
+    // Check if error is due to timeout
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`AI request timed out after ${timeout}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const result = await generateText(config);
-
-  return {
-    text: result.text,
-    tokensUsed: result.usage?.totalTokens || 0,
-    finishReason: result.finishReason,
-    toolCalls: result.toolCalls || [], // T058: Return tool calls for action extraction
-  };
 }
 
 /**
@@ -136,23 +156,42 @@ export async function generateAIResponse(
  *
  * @param systemPrompt - The system instructions for the AI
  * @param userMessage - The user's query
+ * @param timeout - Request timeout in milliseconds (default: from env or 30s)
  * @returns Streaming text response
  */
-export async function generateStreamingAIResponse(systemPrompt: string, userMessage: string) {
+export async function generateStreamingAIResponse(
+  systemPrompt: string,
+  userMessage: string,
+  timeout: number = AI_REQUEST_TIMEOUT
+) {
   const model = getAIModel();
 
-  const result = await streamText({
-    model,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: userMessage,
-      },
-    ],
-  });
+  // Create abort controller for timeout
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
-  return result.textStream;
+  try {
+    const result = await streamText({
+      model,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ],
+      abortSignal: abortController.signal,
+    });
+
+    return result.textStream;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    // Check if error is due to timeout
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`AI request timed out after ${timeout}ms`);
+    }
+    throw error;
+  }
 }
 
 /**

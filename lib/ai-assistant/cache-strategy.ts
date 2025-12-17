@@ -89,33 +89,25 @@ export function isCacheableQuery(query: string): boolean {
 }
 
 /**
- * Increment usage count for a cached response
+ * Increment usage count for a cached response (atomic operation)
+ *
+ * Uses PostgreSQL's atomic increment to prevent race conditions
+ * when multiple requests hit the same cached response simultaneously.
  *
  * @param cacheId - Cached response UUID
  */
 async function incrementCacheUsage(cacheId: string): Promise<void> {
   const supabase = createClient();
 
-  // First, get the current usage count
-  const { data, error: fetchError } = await supabase
-    .from('ai_cached_responses')
-    .select('usage_count')
-    .eq('id', cacheId)
-    .single();
+  // Atomic increment using RPC function
+  // @ts-expect-error - RPC function exists but types not regenerated
+  const { error } = await supabase.rpc('increment_cache_usage', {
+    p_cache_id: cacheId,
+  });
 
-  if (fetchError || !data) {
-    console.error('Error fetching cache usage:', fetchError);
-    return;
+  if (error) {
+    console.error('Error incrementing cache usage:', error);
   }
-
-  // Increment and update
-  await supabase
-    .from('ai_cached_responses')
-    .update({
-      usage_count: (data.usage_count || 0) + 1,
-      last_used_at: new Date().toISOString(),
-    })
-    .eq('id', cacheId);
 }
 
 /**

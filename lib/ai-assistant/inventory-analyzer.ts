@@ -40,6 +40,7 @@ export interface BaseWeightAnalysis {
  * T070: Calculate base weight from user's gear inventory
  *
  * Base weight = total weight of gear excluding consumables (food, water, fuel)
+ * Optimized to use a single query with join instead of N+1 queries
  *
  * @param userId - User UUID
  * @returns Base weight analysis with category breakdowns
@@ -47,10 +48,10 @@ export interface BaseWeightAnalysis {
 export async function calculateBaseWeight(userId: string): Promise<BaseWeightAnalysis> {
   const supabase = await createClient();
 
-  // Fetch all gear items for the user
+  // Fetch gear items WITH category data in single query (join optimization)
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, weight_grams, category_id, status')
+    .select('id, name, weight_grams, category_id, status, categories(id, label, i18n)')
     .eq('user_id', userId)
     .eq('status', 'own'); // Only count owned items, not wishlist
 
@@ -73,21 +74,17 @@ export async function calculateBaseWeight(userId: string): Promise<BaseWeightAna
     };
   }
 
-  // Fetch category names
-  const categoryIds = [...new Set(gearItems.map((item) => item.category_id).filter((id): id is string => id !== null))];
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('id, label, i18n')
-    .in('id', categoryIds);
+  // Build category map from joined data (no additional query needed)
+  const categoryMap = new Map<string, string>();
 
-  // Extract English name from i18n JSONB or fallback to label
-  const categoryMap = new Map(
-    categories?.map((cat) => {
-      const i18n = cat.i18n as Record<string, string> | null;
-      const name = i18n?.en ?? cat.label;
-      return [cat.id, name];
-    }) || []
-  );
+  for (const item of gearItems) {
+    const category = (item as any).categories;
+    if (category && item.category_id && !categoryMap.has(item.category_id)) {
+      const i18n = category.i18n as Record<string, string> | null;
+      const name = i18n?.en ?? category.label;
+      categoryMap.set(item.category_id, name);
+    }
+  }
 
   // Group by category and calculate breakdowns
   const categoryGroups = new Map<string, typeof gearItems>();
