@@ -24,9 +24,10 @@ interface MessageListProps {
   conversationId: string | null;
   messages: Message[];
   isLoading: boolean;
+  isStreaming?: boolean;
 }
 
-export function MessageList({ conversationId, messages, isLoading }: MessageListProps) {
+export function MessageList({ conversationId, messages, isLoading, isStreaming = false }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -74,9 +75,20 @@ export function MessageList({ conversationId, messages, isLoading }: MessageList
       className="flex-1 overflow-y-auto scroll-smooth px-6 py-4"
     >
       <div className="mx-auto max-w-3xl space-y-4">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+        {messages.map((message, index) => {
+          // Show streaming indicator on the last assistant message
+          const isLastMessage = index === messages.length - 1;
+          const isAssistantMessage = message.role === 'assistant';
+          const showStreamingIndicator = isLastMessage && isAssistantMessage && isStreaming;
+
+          return (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isStreaming={showStreamingIndicator}
+            />
+          );
+        })}
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />

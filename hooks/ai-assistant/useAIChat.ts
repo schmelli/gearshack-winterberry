@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { sendAIMessage } from '@/app/[locale]/ai-assistant/actions';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
@@ -38,6 +38,7 @@ export function useAIChat(): UseAIChatResult {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuthContext();
   const locale = useLocale();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
     async (content: string, conversationId: string | null): Promise<string | null> => {
@@ -51,13 +52,24 @@ export function useAIChat(): UseAIChatResult {
 
       // Optimistic update: Add user message immediately
       const optimisticUserMessage: Message = {
-        id: `temp-${Date.now()}`,
+        id: `user-${Date.now()}`,
         role: 'user',
         content,
         created_at: new Date().toISOString(),
       };
 
       setMessages((prev) => [...prev, optimisticUserMessage]);
+
+      // Create a placeholder for the AI response
+      const aiMessageId = `assistant-${Date.now()}`;
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
 
       try {
         const startTime = Date.now();
@@ -72,66 +84,87 @@ export function useAIChat(): UseAIChatResult {
           subscriptionTier: 'trailblazer', // TODO: Get actual subscription tier
         };
 
-        // Call Server Action
-        const result = await sendAIMessage(conversationId, content, context);
+        // Create abort controller for this request
+        abortControllerRef.current = new AbortController();
 
-        if (!result.success) {
-          // Remove optimistic message on error
+        // Call streaming API endpoint
+        const response = await fetch('/api/ai-assistant/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId,
+            message: content,
+            context,
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        // Check if response body exists
+        if (!response.body) {
+          throw new Error('No response body');
+        }
+
+        // Read streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          // Decode chunk and accumulate
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedText += chunk;
+
+          // Update the AI message with accumulated text
           setMessages((prev) =>
-            prev.filter((msg) => msg.id !== optimisticUserMessage.id)
+            prev.map((msg) =>
+              msg.id === aiMessageId ? { ...msg, content: accumulatedText } : msg
+            )
           );
-          setError(result.error);
-          toast.error(result.error);
-          logAIEvent('error', 'AI message send failed', {
-            userId: user.uid,
-            error: result.error,
-            errorCode: result.errorCode,
-          });
-          return null;
         }
 
         const latency = Date.now() - startTime;
 
-        // Replace optimistic message with real message from server
-        // Note: We'll need to fetch the actual messages to get IDs
-        setMessages((prev) => [
-          ...prev.filter((msg) => msg.id !== optimisticUserMessage.id),
-          {
-            id: `user-${Date.now()}`,
-            role: 'user',
-            content,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: result.messageId,
-            role: 'assistant',
-            content: result.response,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
-        logAIEvent('info', 'AI message sent successfully', {
+        logAIEvent('info', 'AI message streamed successfully', {
           userId: user.uid,
           conversationId: conversationId || 'new',
           latency,
+          messageLength: accumulatedText.length,
         });
 
-        return conversationId; // Return existing or new conversation ID
+        return conversationId;
       } catch (err) {
-        // Remove optimistic message on error
-        setMessages((prev) =>
-          prev.filter((msg) => msg.id !== optimisticUserMessage.id)
-        );
+        // Remove AI message placeholder on error
+        setMessages((prev) => prev.filter((msg) => msg.id !== aiMessageId));
+
         const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-        setError(errorMessage);
-        toast.error(errorMessage);
-        logAIEvent('error', 'AI message send exception', {
-          userId: user.uid,
-          error: errorMessage,
-        });
+
+        // Don't show error if it was aborted intentionally
+        if (errorMessage !== 'The user aborted a request.') {
+          setError(errorMessage);
+          toast.error(errorMessage);
+          logAIEvent('error', 'AI streaming error', {
+            userId: user.uid,
+            error: errorMessage,
+          });
+        }
+
         return null;
       } finally {
         setIsStreaming(false);
+        abortControllerRef.current = null;
       }
     },
     [user, locale]

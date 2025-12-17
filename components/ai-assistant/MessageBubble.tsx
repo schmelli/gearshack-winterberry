@@ -27,9 +27,10 @@ interface Message {
 
 interface MessageBubbleProps {
   message: Message;
+  isStreaming?: boolean;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const { executeAction, isExecuting } = useChatActions();
 
@@ -71,7 +72,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               : 'bg-muted text-foreground'
           )}
         >
-          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+          <p className="whitespace-pre-wrap text-sm">
+            {message.content}
+            {!isUser && isStreaming && (
+              <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
+            )}
+          </p>
         </div>
 
         {/* Inline Cards (Gear References) */}

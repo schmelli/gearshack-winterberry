@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useAIChat } from '@/hooks/ai-assistant/useAIChat';
-import { useConversationHistory } from '@/hooks/ai-assistant/useConversationHistory';
 import { useTranslations } from 'next-intl';
 
 interface ChatInterfaceProps {
@@ -24,8 +23,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const { sendMessage, isStreaming } = useAIChat();
-  const { messages, isLoading } = useConversationHistory(conversationId);
+  const { messages, sendMessage, isStreaming } = useAIChat();
 
   const handleSendMessage = async (content: string) => {
     const newConversationId = await sendMessage(content, conversationId);
@@ -83,7 +81,8 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       <MessageList
         conversationId={conversationId}
         messages={messages}
-        isLoading={isLoading || isStreaming}
+        isLoading={false}
+        isStreaming={isStreaming}
       />
 
       {/* Chat Input */}

@@ -295,7 +295,7 @@ export function logAIQuery(
   userId: string,
   conversationId: string,
   queryPreview: string,
-  status: 'success' | 'error' | 'rate_limited' | 'cached'
+  status: 'success' | 'error' | 'rate_limited' | 'cached' | 'streaming'
 ): void {
   logAIEvent('info', 'AI query processed', {
     userId,
