@@ -6,7 +6,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { EnableTrackingRequest, PriceTracking } from '@/types/price-tracking';
+import {
+  enableTrackingSchema,
+  validateRequestBody,
+  type EnableTrackingRequest,
+} from '@/lib/validation/price-tracking';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,14 +25,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body: EnableTrackingRequest = await request.json();
+    // Validate request body (Review fix #11)
+    const { data: body, error: validationError } = await validateRequestBody(
+      request,
+      enableTrackingSchema
+    );
 
-    if (!body.gear_item_id) {
-      return NextResponse.json(
-        { error: 'gear_item_id is required' },
-        { status: 400 }
-      );
+    if (validationError || !body) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     // Check if already tracking

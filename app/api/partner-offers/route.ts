@@ -7,19 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { RATE_LIMITING, SEARCH_CONFIG } from '@/lib/constants/price-tracking';
+import {
+  partnerOfferSchema,
+  validateRequestBody,
+  type PartnerOfferRequest,
+} from '@/lib/validation/price-tracking';
 import type { FuzzySearchResult } from '@/types/database-helpers';
-
-interface PartnerOfferRequest {
-  product_id: string;
-  product_name: string;
-  product_url: string;
-  offer_price: number;
-  original_price?: number;
-  currency: string;
-  valid_until: string; // ISO timestamp
-  description?: string;
-  terms?: string;
-}
 
 // Rate limiting tracking (in-memory for MVP - Review #4: Should migrate to Redis)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -75,15 +68,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body: PartnerOfferRequest = await request.json();
+    // Validate request body (Review fix #11)
+    const { data: body, error: validationError } = await validateRequestBody(
+      request,
+      partnerOfferSchema
+    );
 
-    // Validate required fields
-    if (!body.product_id || !body.offer_price) {
-      return NextResponse.json(
-        { error: 'Missing required fields: product_id, offer_price' },
-        { status: 400 }
-      );
+    if (validationError || !body) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     // Check rate limit using authenticated partner

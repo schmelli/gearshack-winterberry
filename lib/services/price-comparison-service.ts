@@ -42,7 +42,7 @@ export async function compareWithHistory(
 }
 
 /**
- * Record price snapshot in history
+ * Record price snapshot in history (Review fix #9: Uses transaction function)
  */
 export async function recordPriceSnapshot(
   trackingId: string,
@@ -53,18 +53,19 @@ export async function recordPriceSnapshot(
   const supabase = await createClient();
 
   const prices = results.map(r => r.total_price);
-  const snapshot = {
-    tracking_id: trackingId,
-    lowest_price: Math.min(...prices),
-    highest_price: Math.max(...prices),
-    average_price: prices.reduce((a, b) => a + b, 0) / prices.length,
-    num_sources: results.length,
-  };
 
-  const { error } = await supabase.from('price_history').insert(snapshot);
+  // Use database function for atomic insert of history + results
+  const { error } = await supabase.rpc('record_price_snapshot', {
+    p_tracking_id: trackingId,
+    p_results: results,
+    p_lowest_price: Math.min(...prices),
+    p_highest_price: Math.max(...prices),
+    p_average_price: prices.reduce((a, b) => a + b, 0) / prices.length,
+  });
 
   if (error) {
     console.error('Failed to record price snapshot:', error);
+    throw error;
   }
 }
 

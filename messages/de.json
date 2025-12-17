@@ -424,6 +424,60 @@
       "viewProfile": "Profil ansehen",
       "sendMessage": "Nachricht senden",
       "noMatches": "Keine Community-Angebote gefunden, die deinen Kriterien entsprechen."
+    },
+    "priceTracking": {
+      "title": "Preisverfolgung",
+      "enableTracking": "Preisverfolgung Aktivieren",
+      "disableTracking": "Verfolgung Deaktivieren",
+      "alertsEnabled": "Preisalarme Aktiviert",
+      "alertsDisabled": "Preisalarme Deaktiviert",
+      "searchPrices": "Preise Suchen",
+      "refreshPrices": "Preise Aktualisieren",
+      "lastChecked": "Zuletzt geprüft: {time}",
+      "neverChecked": "Noch nie geprüft",
+      "lowestPrice": "Niedrigster Preis",
+      "highestPrice": "Höchster Preis",
+      "averagePrice": "Durchschnittspreis",
+      "sources": "{count} Quellen",
+      "noResults": "Keine Preise gefunden",
+      "searching": "Suche nach Preisen...",
+      "priceDrop": "Preissenkung!",
+      "priceDropMessage": "Jetzt €{newPrice} (war €{oldPrice}) - Spare {percent}%!",
+      "personalOffer": "Persönliches Angebot",
+      "personalOfferMessage": "{partner} hat ein besonderes Angebot für dich",
+      "viewOffer": "Angebot Ansehen",
+      "dismissOffer": "Ablehnen",
+      "offerExpires": "Läuft ab: {date}",
+      "alerts": {
+        "title": "Alarm-Einstellungen",
+        "priceDropEnabled": "Preissenkungsalarme",
+        "localShopEnabled": "Lokale Shop-Alarme",
+        "communityEnabled": "Community-Alarme",
+        "personalOfferEnabled": "Persönliche Angebots-Alarme",
+        "pushEnabled": "Push-Benachrichtigungen",
+        "emailEnabled": "E-Mail-Benachrichtigungen",
+        "quietHours": "Ruhezeiten",
+        "quietHoursStart": "Startzeit",
+        "quietHoursEnd": "Endzeit",
+        "saved": "Alarm-Einstellungen gespeichert"
+      },
+      "history": {
+        "title": "Preisverlauf",
+        "days": "{count} Tage",
+        "trend": "Trend",
+        "rising": "Steigend",
+        "falling": "Fallend",
+        "stable": "Stabil",
+        "noData": "Noch kein Preisverlauf"
+      },
+      "errors": {
+        "trackingFailed": "Preisverfolgung konnte nicht aktiviert werden",
+        "searchFailed": "Preissuche fehlgeschlagen",
+        "alreadyTracking": "Preisverfolgung bereits aktiviert",
+        "unauthorized": "Du musst angemeldet sein, um Preise zu verfolgen",
+        "notFound": "Artikel nicht gefunden",
+        "rateLimited": "Ratenlimit überschritten. Bitte später erneut versuchen."
+      }
     }
   }
 }

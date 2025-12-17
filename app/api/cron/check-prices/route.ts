@@ -9,10 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
-import { sendPriceAlert, sendPersonalOfferAlert } from '@/lib/services/alert-service';
+import { sendPersonalOfferAlert } from '@/lib/services/alert-service';
+import { batchCreatePriceAlerts, batchCheckConversions } from '@/lib/services/batch-operations';
 import { RATE_LIMITING } from '@/lib/constants/price-tracking';
+import { createModuleLogger } from '@/lib/utils/logger';
 import type { PriceTrackingWithGearItem, PersonalOfferWithPartner } from '@/types/database-helpers';
 import PQueue from 'p-queue';
+
+const log = createModuleLogger('cron:check-prices');
 
 // Rate limit concurrent searches
 const queue = new PQueue({ concurrency: RATE_LIMITING.MAX_CONCURRENT_SEARCHES });
@@ -42,11 +46,12 @@ export async function GET(request: NextRequest) {
       .eq('enabled', true);
 
     if (trackingError) {
-      console.error('Failed to fetch tracking items:', trackingError);
+      log.error('Failed to fetch tracking items', {}, trackingError);
       return NextResponse.json({ error: 'Failed to fetch tracking items' }, { status: 500 });
     }
 
     if (!trackingItems || trackingItems.length === 0) {
+      log.info('No tracking items to process');
       return NextResponse.json({
         success: true,
         message: 'No items to track',
@@ -54,12 +59,21 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`Processing ${trackingItems.length} tracked items...`);
+    log.info('Starting price check job', { item_count: trackingItems.length });
 
-    // Process each item
+    // Process each item and collect price drop alerts (Review fix #12: Batch alerts)
+    const priceDropAlerts: Array<{
+      user_id: string;
+      tracking_id: string;
+      alert_type: 'price_drop';
+      title: string;
+      message: string;
+      link_url: string;
+    }> = [];
+
     const results = await Promise.allSettled(
       (trackingItems as PriceTrackingWithGearItem[]).map((item) =>
-        queue.add(() => processTrackingItem(item))
+        queue.add(() => processTrackingItem(item, priceDropAlerts))
       )
     );
 
@@ -67,11 +81,31 @@ export async function GET(request: NextRequest) {
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
 
+    // Batch create all price drop alerts (Review fix #12)
+    if (priceDropAlerts.length > 0) {
+      log.info('Creating price drop alerts', { alert_count: priceDropAlerts.length });
+      await batchCreatePriceAlerts(priceDropAlerts);
+    }
+
+    // Batch check conversions (Review fix #12)
+    const conversionData = trackingItems.map((item) => ({
+      tracking_id: item.id,
+      gear_item_id: item.gear_item_id,
+      user_id: item.user_id,
+    }));
+    await batchCheckConversions(conversionData);
+
     // Update last_checked_at for all items
     await supabase
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
       .in('id', trackingItems.map((item) => item.id));
+
+    log.info('Price check job completed', {
+      processed: trackingItems.length,
+      successful,
+      failed,
+    });
 
     return NextResponse.json({
       success: true,
@@ -81,7 +115,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Cron job error:', error);
+    log.error('Cron job error', {}, error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -90,13 +124,26 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Process a single tracking item
+ * Process a single tracking item (Review fix #12: Collects alerts for batching)
  */
-async function processTrackingItem(item: PriceTrackingWithGearItem): Promise<void> {
+async function processTrackingItem(
+  item: PriceTrackingWithGearItem,
+  priceDropAlerts: Array<{
+    user_id: string;
+    tracking_id: string;
+    alert_type: 'price_drop';
+    title: string;
+    message: string;
+    link_url: string;
+  }>
+): Promise<void> {
   try {
     const itemName = item.gear_items.name;
     if (!itemName) {
-      console.error(`No name found for gear item ${item.gear_item_id}`);
+      log.warn('No name found for gear item', {
+        tracking_id: item.id,
+        gear_item_id: item.gear_item_id,
+      });
       return;
     }
 
@@ -104,7 +151,10 @@ async function processTrackingItem(item: PriceTrackingWithGearItem): Promise<voi
     const searchResults = await searchAllSources(itemName, item.id);
 
     if (searchResults.results.length === 0) {
-      console.log(`No results found for "${itemName}"`);
+      log.debug('No price results found', {
+        tracking_id: item.id,
+        item_name: itemName,
+      });
       return;
     }
 
@@ -114,12 +164,12 @@ async function processTrackingItem(item: PriceTrackingWithGearItem): Promise<voi
     // Record new price snapshot
     await recordPriceSnapshot(item.id, searchResults.results);
 
-    // Send alert if price dropped and alerts are enabled
+    // Collect alert if price dropped (will be batch created later)
     if (comparison.hasPriceDrop && item.alerts_enabled) {
       const savingsAmount = comparison.previousLowest - comparison.newLowest;
       const savingsPercent = ((savingsAmount / comparison.previousLowest) * 100).toFixed(0);
 
-      await sendPriceAlert({
+      priceDropAlerts.push({
         user_id: item.user_id,
         tracking_id: item.id,
         alert_type: 'price_drop',
@@ -128,61 +178,24 @@ async function processTrackingItem(item: PriceTrackingWithGearItem): Promise<voi
         link_url: `/wishlist/${item.gear_item_id}`,
       });
 
-      console.log(`Price drop alert sent for "${itemName}": €${comparison.previousLowest} → €${comparison.newLowest}`);
+      log.info('Price drop detected', {
+        tracking_id: item.id,
+        item_name: itemName,
+        previous_price: comparison.previousLowest,
+        new_price: comparison.newLowest,
+        savings_percent: savingsPercent,
+      });
     }
-
-    // Check for conversion (item moved from wishlist to inventory)
-    await checkConversion(item.gear_item_id, item.user_id, item.id);
 
     // Check for new personal offers (US5)
     await checkPersonalOffers(item.id, item.user_id, itemName);
   } catch (error) {
-    console.error(`Failed to process tracking item ${item.id}:`, error);
+    log.error('Failed to process tracking item', { tracking_id: item.id }, error as Error);
     throw error;
   }
 }
 
-/**
- * Check if tracked item was purchased (wishlist → inventory)
- */
-async function checkConversion(
-  gearItemId: string,
-  userId: string,
-  trackingId: string
-): Promise<void> {
-  const supabase = createServiceRoleClient();
-
-  const { data: gearItem } = await supabase
-    .from('gear_items')
-    .select('status')
-    .eq('id', gearItemId)
-    .eq('user_id', userId)
-    .single();
-
-  if (gearItem && gearItem.status === 'inventory') {
-    // Item was purchased! Record conversion
-    await supabase
-      .from('price_alerts')
-      .insert({
-        user_id: userId,
-        tracking_id: trackingId,
-        alert_type: 'price_drop',
-        title: 'Purchase tracked',
-        message: 'Item moved from wishlist to inventory',
-        link_url: `/inventory/${gearItemId}`,
-        sent_via_push: false,
-        sent_via_email: false,
-      });
-
-    // Disable tracking since item was purchased
-    await supabase
-      .from('price_tracking')
-      .update({ enabled: false })
-      .eq('id', trackingId);
-
-    console.log(`Conversion tracked for gear item ${gearItemId}`);
-  }
-}
+// Conversion checking moved to batch operation in batch-operations.ts (Review fix #12)
 
 /**
  * Check for new personal offers and send notifications (US5)
@@ -234,9 +247,14 @@ async function checkPersonalOffers(
         .update({ notified_at: new Date().toISOString() })
         .eq('id', offer.id);
 
-      console.log(`Personal offer alert sent for "${itemName}" from ${partnerName}`);
+      log.info('Personal offer alert sent', {
+        tracking_id: trackingId,
+        offer_id: offer.id,
+        partner_name: partnerName,
+        item_name: itemName,
+      });
     } catch (error) {
-      console.error(`Failed to send personal offer alert for offer ${offer.id}:`, error);
+      log.error('Failed to send personal offer alert', { offer_id: offer.id }, error as Error);
     }
   }
 }
