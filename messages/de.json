@@ -187,11 +187,16 @@
       "message": "Kategorien konnten nicht geladen werden. Gegenstände werden möglicherweise als \"Unkategorisiert\" angezeigt.",
       "retry": "Erneut versuchen"
     },
+    "addToWishlist": "Zur Wunschliste hinzufügen",
     "wishlist": {
       "title": "Wunschliste",
       "myGear": "Meine Ausrüstung",
       "moveToInventory": "Zum Inventar verschieben",
       "addToWishlist": "Zur Wunschliste hinzufügen",
+      "emptyTitle": "Deine Wunschliste ist leer",
+      "emptySubtext": "Füge Artikel hinzu, die du erwerben möchtest, um sie hier zu verfolgen",
+      "noResultsTitle": "Keine Wunschlistenartikel entsprechen deinen Filtern",
+      "noResultsSubtext": "Versuche, deine Such- oder Kategoriefilter anzupassen",
       "communityAvailability": {
         "title": "Community Verfügbarkeit",
         "loading": "Suche in der Community...",
