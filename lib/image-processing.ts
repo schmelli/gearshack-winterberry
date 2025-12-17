@@ -23,7 +23,7 @@ const IMGLY_BACKGROUND_REMOVAL_VERSION = '1.7.0';
  * Remove background from an image file
  *
  * Uses @imgly/background-removal WASM library for client-side processing.
- * Assets are lazy-loaded from CDN on first use (FR-008).
+ * Model files are lazy-loaded from IMG.LY's staticimgly.com CDN on first use.
  *
  * @param imageFile - The image file to process
  * @returns PNG blob with transparent background
@@ -32,7 +32,7 @@ const IMGLY_BACKGROUND_REMOVAL_VERSION = '1.7.0';
 export async function removeBackground(imageFile: File): Promise<Blob> {
   try {
     const blob = await imglyRemoveBackground(imageFile, {
-      publicPath: `https://unpkg.com/@imgly/background-removal@${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
+      publicPath: `https://staticimgly.com/@imgly/background-removal-data/${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
       debug: process.env.NODE_ENV === 'development',
       model: 'isnet_fp16', // Use fp16 model for better balance of speed and quality
       output: {
