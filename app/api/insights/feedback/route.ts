@@ -9,31 +9,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import crypto from 'crypto';
-
-// =============================================================================
-// Supabase Client
-// =============================================================================
-
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !serviceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-
-  return createClient(url, serviceKey);
-}
 
 // =============================================================================
 // Zod Schemas
 // =============================================================================
 
 const feedbackSchema = z.object({
-  userId: z.string().uuid(),
   insightContent: z.string().min(1).max(2000),
   isPositive: z.boolean(),
   gearItemId: z.string().uuid().optional(),
@@ -56,6 +40,17 @@ function hashContent(content: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const parseResult = feedbackSchema.safeParse(body);
 
@@ -66,18 +61,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userId, insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId } =
+    const { insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId } =
       parseResult.data;
 
     const contentHash = hashContent(insightContent);
-    const supabase = getSupabaseClient();
 
     // Upsert the feedback (update if exists, insert if not)
     const { data, error } = await supabase
       .from('insight_feedback')
       .upsert(
         {
-          user_id: userId,
+          user_id: user.id,
           insight_content_hash: contentHash,
           insight_content: insightContent.slice(0, 2000),
           is_positive: isPositive,
@@ -124,24 +118,25 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    const contentHash = searchParams.get('hash');
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!userId) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'userId is required' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    const supabase = getSupabaseClient();
+    const searchParams = request.nextUrl.searchParams;
+    const contentHash = searchParams.get('hash');
 
     // Build query
     let query = supabase
       .from('insight_feedback')
       .select('insight_content_hash, is_positive')
-      .eq('user_id', userId);
+      .eq('user_id', user.id);
 
     // If specific hash provided, filter by it
     if (contentHash) {
@@ -180,23 +175,31 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Authenticate user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const contentHash = searchParams.get('hash');
 
-    if (!userId || !contentHash) {
+    if (!contentHash) {
       return NextResponse.json(
-        { error: 'userId and hash are required' },
+        { error: 'hash is required' },
         { status: 400 }
       );
     }
 
-    const supabase = getSupabaseClient();
-
     const { error } = await supabase
       .from('insight_feedback')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .eq('insight_content_hash', contentHash);
 
     if (error) {
