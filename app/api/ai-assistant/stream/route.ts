@@ -81,7 +81,6 @@ export async function POST(request: Request) {
     }
 
     // 3. Check and increment rate limit atomically
-    // @ts-expect-error - RPC function exists but types not regenerated
     const { data: rateLimitDataRaw, error: rateLimitError } = await supabase.rpc('check_and_increment_rate_limit', {
       p_user_id: user.id,
       p_endpoint: '/api/ai-assistant/stream',

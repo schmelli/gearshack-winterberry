@@ -6,8 +6,7 @@
  * for conversational AI interactions with tool/function calling support.
  */
 
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGateway } from '@ai-sdk/gateway';
 import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
@@ -16,6 +15,7 @@ import { withRetry } from './retry';
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4.5';
 const AI_CHAT_ENABLED = process.env.AI_CHAT_ENABLED === 'true';
+const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1/ai';
 
 // Timeout configuration (in milliseconds)
 const AI_REQUEST_TIMEOUT = parseInt(process.env.AI_REQUEST_TIMEOUT || '30000', 10); // 30 seconds default
@@ -29,6 +29,15 @@ if (!AI_GATEWAY_API_KEY && AI_CHAT_ENABLED) {
 }
 
 /**
+ * Create the Vercel AI Gateway instance
+ * This provides a unified interface to multiple AI providers
+ */
+const gateway = createGateway({
+  apiKey: AI_GATEWAY_API_KEY,
+  baseURL: AI_GATEWAY_BASE_URL,
+});
+
+/**
  * Get the configured AI model instance
  * Uses Vercel AI Gateway for routing and rate limiting
  * Supports multiple providers: Anthropic, Google, etc.
@@ -38,27 +47,8 @@ export function getAIModel() {
     throw new Error('AI features are not enabled. Please check environment configuration.');
   }
 
-  // Extract provider and model name (e.g., "google/gemini-2.5-flash" -> ["google", "gemini-2.5-flash"])
-  const [provider, ...modelParts] = AI_CHAT_MODEL.split('/');
-  const modelName = modelParts.join('/') || AI_CHAT_MODEL;
-
-  const gatewayConfig = {
-    apiKey: AI_GATEWAY_API_KEY,
-    baseURL: process.env.AI_GATEWAY_BASE_URL,
-  };
-
-  // Choose provider based on model prefix
-  if (provider === 'google' || AI_CHAT_MODEL.includes('gemini')) {
-    const google = createGoogleGenerativeAI(gatewayConfig);
-    return google(modelName);
-  } else if (provider === 'anthropic' || AI_CHAT_MODEL.includes('claude')) {
-    const anthropic = createAnthropic(gatewayConfig);
-    return anthropic(modelName);
-  } else {
-    // Default to Anthropic for backwards compatibility
-    const anthropic = createAnthropic(gatewayConfig);
-    return anthropic(modelName);
-  }
+  // Use the gateway with the full model ID (e.g., "google/gemini-2.5-flash" or "anthropic/claude-sonnet-4.5")
+  return gateway(AI_CHAT_MODEL);
 }
 
 // =====================================================

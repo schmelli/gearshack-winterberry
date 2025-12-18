@@ -132,7 +132,6 @@ async function incrementCacheUsage(cacheId: string): Promise<void> {
   const supabase = createClient();
 
   // Atomic increment using RPC function
-  // @ts-expect-error - RPC function exists but types not regenerated
   const { error } = await supabase.rpc('increment_cache_usage', {
     p_cache_id: cacheId,
   });

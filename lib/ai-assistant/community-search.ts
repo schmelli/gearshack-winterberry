@@ -199,7 +199,6 @@ export async function searchCommunityForWishlistItem(
 ): Promise<CommunityMatch[]> {
   const supabase = await createClient();
 
-  // @ts-expect-error - find_community_availability RPC exists in migration but types not regenerated
   const { data, error } = await supabase.rpc('find_community_availability', {
     p_user_id: userId,
     p_wishlist_item_id: wishlistItemId,

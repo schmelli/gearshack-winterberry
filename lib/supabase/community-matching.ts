@@ -98,7 +98,6 @@ export async function fetchCommunityAvailability(
   // Note: We loop instead of batch RPC because PostgreSQL function is designed for single item
   for (const itemId of wishlistItemIds) {
     try {
-      // @ts-expect-error - RPC function not in types yet (migration not applied)
       const { data, error } = await supabase.rpc('find_community_availability', {
         p_user_id: user.id,
         p_wishlist_item_id: itemId,
@@ -149,7 +148,6 @@ export async function refreshCommunityAvailability(
   }
 
   // Call RPC function
-  // @ts-expect-error - RPC function not in types yet (migration not applied)
   const { data, error } = await supabase.rpc('find_community_availability', {
     p_user_id: user.id,
     p_wishlist_item_id: wishlistItemId,
