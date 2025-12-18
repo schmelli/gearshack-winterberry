@@ -36,14 +36,17 @@ export function getAIModel() {
     throw new Error('AI features are not enabled. Please check environment configuration.');
   }
 
-  // Extract model name from gateway format (e.g., "anthropic/claude-sonnet-4.5" -> "claude-sonnet-4.5")
-  const modelName = AI_CHAT_MODEL.split('/').pop() || 'claude-sonnet-4.5';
+  // For Vercel AI Gateway, extract just the model name (e.g., "anthropic/claude-sonnet-4.5" -> "claude-sonnet-4.5")
+  // For direct Anthropic API, use the full model name
+  const modelName = AI_CHAT_MODEL.includes('/')
+    ? AI_CHAT_MODEL.split('/').pop() || 'claude-sonnet-4.5'
+    : AI_CHAT_MODEL;
 
   // Create Anthropic provider with custom API key (for AI Gateway)
   const anthropic = createAnthropic({
     apiKey: AI_GATEWAY_API_KEY,
-    // If using Vercel AI Gateway, set the base URL
-    baseURL: process.env.AI_GATEWAY_BASE_URL || 'https://gateway.ai.cloudflare.com/v1',
+    // Vercel AI Gateway base URL (defaults to standard Anthropic API if not set)
+    baseURL: process.env.AI_GATEWAY_BASE_URL,
   });
 
   return anthropic(modelName);
