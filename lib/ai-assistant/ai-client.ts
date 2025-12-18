@@ -7,7 +7,7 @@
  */
 
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogle } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
@@ -49,7 +49,7 @@ export function getAIModel() {
 
   // Choose provider based on model prefix
   if (provider === 'google' || AI_CHAT_MODEL.includes('gemini')) {
-    const google = createGoogle(gatewayConfig);
+    const google = createGoogleGenerativeAI(gatewayConfig);
     return google(modelName);
   } else if (provider === 'anthropic' || AI_CHAT_MODEL.includes('claude')) {
     const anthropic = createAnthropic(gatewayConfig);
