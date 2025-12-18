@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/check-prices",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/enrich-gear-items",
+      "schedule": "0 3 * * *"
     }
   ]
 }
