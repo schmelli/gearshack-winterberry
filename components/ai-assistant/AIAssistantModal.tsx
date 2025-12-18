@@ -8,10 +8,11 @@
 
 'use client';
 
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ChatInterface } from './ChatInterface';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface AIAssistantModalProps {
   open: boolean;
@@ -30,6 +31,12 @@ export function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="h-[90vh] max-h-[900px] w-[95vw] max-w-5xl p-0">
+        <VisuallyHidden>
+          <DialogTitle>AI Gear Assistant</DialogTitle>
+          <DialogDescription>
+            Ask questions about your gear, get recommendations, and optimize your loadouts
+          </DialogDescription>
+        </VisuallyHidden>
         <ChatInterface onClose={onClose} />
       </DialogContent>
     </Dialog>
