@@ -1,22 +1,24 @@
 /**
  * NotificationMenu Component
  *
- * Feature: 048-shared-loadout-enhancement
+ * Feature: 048-shared-loadout-enhancement, Gear enrichment system
  * Extracted from SiteHeader.tsx for better separation of concerns
  *
  * Handles notification display, marking as read, and navigation logic.
+ * Supports gear enrichment notifications with Accept/Dismiss actions.
  */
 
 'use client';
 
 import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Check, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface NotificationMenuProps {
   userId: string | null;
@@ -25,10 +27,16 @@ interface NotificationMenuProps {
 
 export function NotificationMenu({ userId, className }: NotificationMenuProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead } = useNotifications(userId);
+  const [processingEnrichment, setProcessingEnrichment] = useState<string | null>(null);
+  const { notifications, unreadCount, markAsRead, refetch } = useNotifications(userId);
   const router = useRouter();
 
   const handleNotificationClick = async (notificationId: string, type: string, referenceId: string | null, referenceType: string | null) => {
+    // Don't handle click for gear enrichment (uses buttons instead)
+    if (type === 'gear_enrichment') {
+      return;
+    }
+
     // Mark notification as read
     await markAsRead(notificationId);
 
@@ -48,6 +56,44 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
         setNotificationsOpen(false);
         router.push(`/shakedown/${shareToken}`);
       }
+    }
+  };
+
+  const handleEnrichmentAction = async (
+    notificationId: string,
+    suggestionId: string,
+    action: 'accept' | 'dismiss'
+  ) => {
+    setProcessingEnrichment(suggestionId);
+
+    try {
+      const response = await fetch('/api/gear-items/apply-enrichment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestion_id: suggestionId, action }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process enrichment');
+      }
+
+      // Mark notification as read
+      await markAsRead(notificationId);
+
+      // Refresh notifications list
+      await refetch();
+
+      // Show success message
+      toast.success(
+        action === 'accept'
+          ? 'Gear item updated with GearGraph data'
+          : 'Suggestion dismissed'
+      );
+    } catch (error) {
+      console.error('Enrichment action error:', error);
+      toast.error('Failed to process suggestion');
+    } finally {
+      setProcessingEnrichment(null);
     }
   };
 
@@ -91,33 +137,81 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
               No notifications yet
             </div>
           ) : (
-            notifications.map((notification) => (
-              <button
-                key={notification.id}
-                onClick={() => handleNotificationClick(
-                  notification.id,
-                  notification.type,
-                  notification.referenceId,
-                  notification.referenceType
-                )}
-                className={cn(
-                  'w-full border-b px-4 py-3 text-left transition-colors hover:bg-accent',
-                  !notification.isRead && 'bg-accent/50'
-                )}
-              >
-                <div className="flex gap-3">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
-                    </p>
-                  </div>
-                  {!notification.isRead && (
-                    <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+            notifications.map((notification) => {
+              const isEnrichment = notification.type === 'gear_enrichment';
+              const isProcessing = processingEnrichment === notification.referenceId;
+
+              return (
+                <div
+                  key={notification.id}
+                  className={cn(
+                    'w-full border-b px-4 py-3 transition-colors',
+                    !notification.isRead && 'bg-accent/50',
+                    !isEnrichment && 'cursor-pointer hover:bg-accent'
                   )}
+                  onClick={
+                    isEnrichment
+                      ? undefined
+                      : () =>
+                          handleNotificationClick(
+                            notification.id,
+                            notification.type,
+                            notification.referenceId,
+                            notification.referenceType
+                          )
+                  }
+                >
+                  <div className="flex gap-3">
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm">{notification.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                      </p>
+
+                      {/* Enrichment action buttons */}
+                      {isEnrichment && notification.referenceId && (
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              handleEnrichmentAction(
+                                notification.id,
+                                notification.referenceId!,
+                                'accept'
+                              )
+                            }
+                            disabled={isProcessing}
+                            className="h-7 text-xs"
+                          >
+                            <Check className="mr-1 h-3 w-3" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleEnrichmentAction(
+                                notification.id,
+                                notification.referenceId!,
+                                'dismiss'
+                              )
+                            }
+                            disabled={isProcessing}
+                            className="h-7 text-xs"
+                          >
+                            <X className="mr-1 h-3 w-3" />
+                            Dismiss
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    {!notification.isRead && !isEnrichment && (
+                      <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                    )}
+                  </div>
                 </div>
-              </button>
-            ))
+              );
+            })
           )}
         </div>
       </PopoverContent>

@@ -3,7 +3,8 @@ export type NotificationType =
   | 'message_received'
   | 'friend_request'
   | 'gear_trade'
-  | 'system';
+  | 'system'
+  | 'gear_enrichment';
 
 export interface Notification {
   id: string;
