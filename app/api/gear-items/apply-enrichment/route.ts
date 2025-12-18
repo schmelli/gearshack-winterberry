@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     // Fetch the enrichment suggestion
     const { data: suggestion, error: fetchError } = await supabase
-      // @ts-expect-error - gear_enrichment_suggestions table added in migration, types will be regenerated
       .from('gear_enrichment_suggestions')
       .select('*')
       .eq('id', suggestion_id)
@@ -62,7 +61,6 @@ export async function POST(request: NextRequest) {
     if (action === 'dismiss') {
       // Simply mark as dismissed
       const { error: updateError } = await supabase
-        // @ts-expect-error - gear_enrichment_suggestions table added in migration, types will be regenerated
         .from('gear_enrichment_suggestions')
         .update({ status: 'dismissed' })
         .eq('id', suggestion_id);
@@ -81,7 +79,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Action is 'accept' - apply the enrichment to the gear item
-    const suggestionData = suggestion as any; // Cast due to bypassed type checking
     const updateData: {
       weight_grams?: number;
       description?: string;
@@ -89,16 +86,16 @@ export async function POST(request: NextRequest) {
       currency?: string;
     } = {};
 
-    if (suggestionData.suggested_weight_grams !== null) {
-      updateData.weight_grams = suggestionData.suggested_weight_grams;
+    if (suggestion.suggested_weight_grams !== null) {
+      updateData.weight_grams = suggestion.suggested_weight_grams;
     }
 
-    if (suggestionData.suggested_description !== null) {
-      updateData.description = suggestionData.suggested_description;
+    if (suggestion.suggested_description !== null) {
+      updateData.description = suggestion.suggested_description;
     }
 
-    if (suggestionData.suggested_price_usd !== null) {
-      updateData.price_paid = suggestionData.suggested_price_usd;
+    if (suggestion.suggested_price_usd !== null) {
+      updateData.price_paid = suggestion.suggested_price_usd;
       updateData.currency = 'USD';
     }
 
@@ -106,7 +103,7 @@ export async function POST(request: NextRequest) {
     const { error: updateGearError } = await supabase
       .from('gear_items')
       .update(updateData)
-      .eq('id', suggestionData.gear_item_id)
+      .eq('id', suggestion.gear_item_id)
       .eq('user_id', user.id); // Security: ensure user owns this item
 
     if (updateGearError) {
@@ -118,7 +115,6 @@ export async function POST(request: NextRequest) {
 
     // Mark suggestion as accepted
     const { error: updateSuggestionError } = await supabase
-      // @ts-expect-error - gear_enrichment_suggestions table added in migration, types will be regenerated
       .from('gear_enrichment_suggestions')
       .update({ status: 'accepted' })
       .eq('id', suggestion_id);

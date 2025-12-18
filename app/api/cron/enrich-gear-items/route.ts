@@ -88,7 +88,6 @@ export async function GET(request: NextRequest) {
 
         // Check if we already have a pending suggestion for this item
         const { data: existingSuggestion } = await supabase
-          // @ts-expect-error - gear_enrichment_suggestions table added in migration, types will be regenerated
           .from('gear_enrichment_suggestions')
           .select('id')
           .eq('gear_item_id', item.id)
@@ -130,7 +129,6 @@ export async function GET(request: NextRequest) {
 
         // Create enrichment suggestion
         const { data: suggestion, error: suggestionError } = await supabase
-          // @ts-expect-error - gear_enrichment_suggestions table added in migration, types will be regenerated
           .from('gear_enrichment_suggestions')
           .insert({
             user_id: item.user_id,
@@ -163,7 +161,7 @@ export async function GET(request: NextRequest) {
             user_id: item.user_id,
             type: 'gear_enrichment',
             reference_type: 'gear_enrichment_suggestion',
-            reference_id: (suggestion as any).id,
+            reference_id: suggestion.id,
             message,
           });
 
