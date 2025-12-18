@@ -37,6 +37,8 @@ export interface Category {
   slug: string;
   /** Localized labels */
   i18n: CategoryI18n;
+  /** Display order within parent category (for admin sorting) */
+  sortOrder: number;
   /** Creation timestamp */
   createdAt: string;
 }

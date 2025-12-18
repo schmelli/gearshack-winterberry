@@ -133,6 +133,9 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
   const mergedUser: MergedUser | null = useMemo(() => {
     if (!user) return null;
     const profile = supabaseProfile.profile;
+
+    // Debug: Log profile role for admin access troubleshooting
+    console.log('[SupabaseAuthProvider] Profile role:', profile?.role);
     return {
       uid: user.uid,
       email: user.email,
@@ -154,6 +157,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
       youtube: profile?.youtube ?? null,
       website: profile?.website ?? null,
       isVIP: false,
+      isAdmin: profile?.role === 'admin',
     };
   }, [user, userProfile, supabaseProfile.profile]);
 

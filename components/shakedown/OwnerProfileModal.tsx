@@ -67,6 +67,7 @@ function mapOwnerToMergedUser(owner: SharedLoadoutOwner): MergedUser {
     youtube: owner.youtube,
     website: owner.website,
     isVIP: false, // VIP status not exposed in shared context
+    isAdmin: false, // Admin status not exposed in shared context
   };
 }
 

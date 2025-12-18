@@ -39,6 +39,7 @@ export interface UserProfile {
 
   // System fields (read-only, preserved during updates)
   isVIP?: boolean;
+  isAdmin?: boolean;
   first_launch?: Date;
 }
 
@@ -69,6 +70,7 @@ export interface MergedUser {
   youtube: string | null;
   website: string | null;
   isVIP: boolean;
+  isAdmin: boolean;
 }
 
 /**

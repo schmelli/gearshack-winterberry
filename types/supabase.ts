@@ -377,6 +377,7 @@ export type Database = {
           level: number
           parent_id: string | null
           slug: string
+          sort_order: number
         }
         Insert: {
           created_at?: string
@@ -386,6 +387,7 @@ export type Database = {
           level: number
           parent_id?: string | null
           slug: string
+          sort_order?: number
         }
         Update: {
           created_at?: string
@@ -395,6 +397,7 @@ export type Database = {
           level?: number
           parent_id?: string | null
           slug?: string
+          sort_order?: number
         }
         Relationships: [
           {
@@ -1544,6 +1547,7 @@ export type Database = {
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
           read_receipts_enabled: boolean | null
+          role: Database["public"]["Enums"]["user_role"]
           subscription_tier: string | null
           trail_name: string | null
           updated_at: string
@@ -1570,6 +1574,7 @@ export type Database = {
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
           read_receipts_enabled?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           subscription_tier?: string | null
           trail_name?: string | null
           updated_at?: string
@@ -1596,6 +1601,7 @@ export type Database = {
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
           read_receipts_enabled?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           subscription_tier?: string | null
           trail_name?: string | null
           updated_at?: string
@@ -1834,6 +1840,7 @@ export type Database = {
         Args: { p_cache_id: string }
         Returns: undefined
       }
+      is_admin: { Args: never; Returns: boolean }
       record_price_snapshot: {
         Args: {
           p_average_price: number
@@ -1892,6 +1899,7 @@ export type Database = {
       report_reason: "spam" | "harassment" | "inappropriate_content" | "other"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
       season: "spring" | "summer" | "fall" | "winter"
+      user_role: "user" | "admin"
       weight_unit: "g" | "oz" | "lb"
     }
     CompositeTypes: {
@@ -2043,6 +2051,7 @@ export const Constants = {
       report_reason: ["spam", "harassment", "inappropriate_content", "other"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
       season: ["spring", "summer", "fall", "winter"],
+      user_role: ["user", "admin"],
       weight_unit: ["g", "oz", "lb"],
     },
   },
