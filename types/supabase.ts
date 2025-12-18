@@ -489,6 +489,87 @@ export type Database = {
           },
         ]
       }
+      gear_enrichment_suggestions: {
+        Row: {
+          catalog_product_id: string
+          created_at: string | null
+          gear_item_id: string
+          id: string
+          match_confidence: number
+          notification_id: string | null
+          status: string
+          suggested_description: string | null
+          suggested_price_usd: number | null
+          suggested_weight_grams: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          catalog_product_id: string
+          created_at?: string | null
+          gear_item_id: string
+          id?: string
+          match_confidence: number
+          notification_id?: string | null
+          status?: string
+          suggested_description?: string | null
+          suggested_price_usd?: number | null
+          suggested_weight_grams?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          catalog_product_id?: string
+          created_at?: string | null
+          gear_item_id?: string
+          id?: string
+          match_confidence?: number
+          notification_id?: string | null
+          status?: string
+          suggested_description?: string | null
+          suggested_price_usd?: number | null
+          suggested_weight_grams?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gear_enrichment_suggestions_catalog_product_id_fkey"
+            columns: ["catalog_product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_enrichment_suggestions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "community_availability"
+            referencedColumns: ["gear_item_id"]
+          },
+          {
+            foreignKeyName: "gear_enrichment_suggestions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_enrichment_suggestions_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_enrichment_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gear_items: {
         Row: {
           brand: string | null
