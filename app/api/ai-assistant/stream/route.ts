@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     const { data: rateLimitDataRaw, error: rateLimitError } = await supabase.rpc('check_and_increment_rate_limit', {
       p_user_id: user.id,
       p_endpoint: '/api/ai-assistant/stream',
-      p_limit: 30,
+      p_limit: 100, // Increased for testing (was 30)
       p_window_hours: 1,
     });
 
