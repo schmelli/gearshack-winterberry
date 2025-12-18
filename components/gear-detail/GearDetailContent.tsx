@@ -33,6 +33,8 @@ import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSectio
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Types
@@ -189,6 +191,10 @@ export function GearDetailContent({
   onMoveToInventory,
   onMoveComplete,
 }: GearDetailContentProps) {
+  // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
+  const categories = useCategoriesStore((state) => state.categories);
+  const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
       <div className="space-y-6 p-6">
@@ -412,7 +418,7 @@ export function GearDetailContent({
               gearItemId: item.id,
               brand: item.brand ?? undefined,
               name: item.name,
-              categoryId: item.categoryId ?? undefined,
+              categoryId: categoryId ?? undefined,
             }}
             onInsightDismissed={onInsightDismissed}
           />

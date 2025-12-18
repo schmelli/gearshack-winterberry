@@ -140,3 +140,81 @@ export function getCategoryPath(
 
   return path;
 }
+
+/**
+ * Derives parent category IDs from a product type ID.
+ * Used for filtering and backward compatibility.
+ *
+ * Feature: Cascading Category Refactor (Phase 2)
+ *
+ * @param productTypeId - The product type (level 3) category ID
+ * @param categories - All categories
+ * @returns Object with categoryId (level 1) and subcategoryId (level 2), or nulls if not found
+ */
+export function getParentCategoryIds(
+  productTypeId: string | null,
+  categories: Category[]
+): { categoryId: string | null; subcategoryId: string | null } {
+  if (!productTypeId) {
+    return { categoryId: null, subcategoryId: null };
+  }
+
+  const productType = categories.find((c) => c.id === productTypeId);
+  if (!productType || productType.level !== 3) {
+    return { categoryId: null, subcategoryId: null };
+  }
+
+  const subcategory = categories.find((c) => c.id === productType.parentId);
+  if (!subcategory || subcategory.level !== 2) {
+    return { categoryId: null, subcategoryId: null };
+  }
+
+  const category = categories.find((c) => c.id === subcategory.parentId);
+
+  return {
+    categoryId: category?.id || null,
+    subcategoryId: subcategory.id,
+  };
+}
+
+/**
+ * Finds a product type ID by fuzzy matching category labels.
+ * Used for GearGraph auto-fill integration.
+ *
+ * Feature: Cascading Category Refactor (Phase 6)
+ *
+ * @param labels - Object with category, subcategory, and productType labels
+ * @param categories - All categories
+ * @param locale - Locale for label matching (defaults to 'en')
+ * @returns The product type (level 3) category ID, or null if not found
+ */
+export function findProductTypeId(
+  labels: {
+    category: string;
+    subcategory: string;
+    productType: string;
+  },
+  categories: Category[],
+  locale: string = 'en'
+): string | null {
+  // Step 1: Find category (level 1)
+  const category = categories
+    .filter((c) => c.level === 1)
+    .find((c) => getLocalizedLabel(c, locale).toLowerCase() === labels.category.toLowerCase());
+
+  if (!category) return null;
+
+  // Step 2: Find subcategory (level 2)
+  const subcategory = categories
+    .filter((c) => c.level === 2 && c.parentId === category.id)
+    .find((c) => getLocalizedLabel(c, locale).toLowerCase() === labels.subcategory.toLowerCase());
+
+  if (!subcategory) return null;
+
+  // Step 3: Find product type (level 3)
+  const productType = categories
+    .filter((c) => c.level === 3 && c.parentId === subcategory.id)
+    .find((c) => getLocalizedLabel(c, locale).toLowerCase() === labels.productType.toLowerCase());
+
+  return productType?.id || null;
+}

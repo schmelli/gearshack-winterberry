@@ -328,7 +328,6 @@ export function VirtualGearShakedown({
               items={payload.items}
               onItemClick={handleGearCardClick}
               viewDensity="standard"
-              getCategoryLabel={getLabelById}
             />
           </div>
 
@@ -539,7 +538,6 @@ export function VirtualGearShakedown({
                   return item ? checkOwned(item.brand, item.name) : false;
                 } : undefined}
                 viewDensity="compact"
-                getCategoryLabel={getLabelById}
               />
             </div>
           </div>

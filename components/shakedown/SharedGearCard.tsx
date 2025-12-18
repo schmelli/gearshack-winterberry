@@ -30,8 +30,6 @@ interface SharedGearCardProps {
   isAuthenticated?: boolean;
   /** View density mode (defaults to 'standard') */
   viewDensity?: ViewDensity;
-  /** Function to get category label by ID (required by GearCard) */
-  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
@@ -48,7 +46,6 @@ export function sharedGearItemToGearItem(item: SharedGearItem): GearItem {
     name: item.name,
     brand: item.brand,
     primaryImageUrl: item.primaryImageUrl,
-    categoryId: item.categoryId,
     weightGrams: item.weightGrams,
     description: item.description,
     nobgImages: item.nobgImages ?? undefined,
@@ -59,7 +56,6 @@ export function sharedGearItemToGearItem(item: SharedGearItem): GearItem {
     brandUrl: null,
     modelNumber: null,
     productUrl: null,
-    subcategoryId: null,
     productTypeId: null,
     weightDisplayUnit: 'g',
     lengthCm: null,
@@ -104,7 +100,6 @@ export function SharedGearCard({
   isAddingToWishlist = false,
   isAuthenticated = false,
   viewDensity = 'standard',
-  getCategoryLabel,
 }: SharedGearCardProps) {
   // Map SharedGearItem to GearItem interface for GearCard compatibility
   const gearItem = sharedGearItemToGearItem(item);
@@ -136,7 +131,6 @@ export function SharedGearCard({
         item={gearItem}
         viewDensity={viewDensity}
         onClick={handleClick}
-        getCategoryLabel={getCategoryLabel}
       />
 
       {/* Wishlist button (T041) - top-left for easy access */}

@@ -50,8 +50,6 @@ interface GalleryGridProps {
   onItemClick?: (itemId: string) => void;
   /** Function to get translated item count string (Feature 046) */
   getItemCountLabel?: (count: number) => string;
-  /** Function to get category label by ID */
-  getCategoryLabel: (categoryId: string | null) => string;
   /** Context for card rendering - Feature 049: wishlist hides availability markers */
   context?: 'inventory' | 'wishlist';
   /** Feature 049 US3: Callback to move wishlist item to inventory */
@@ -98,7 +96,6 @@ export function GalleryGrid({
   onClearFilters,
   onItemClick,
   getItemCountLabel,
-  getCategoryLabel,
   context = 'inventory',
   onMoveToInventory,
   onMoveComplete,
@@ -155,7 +152,6 @@ export function GalleryGrid({
                   item={item}
                   viewDensity={viewDensity}
                   onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                  getCategoryLabel={getCategoryLabel}
                   context={context}
                   onMoveToInventory={onMoveToInventory}
                   onMoveComplete={onMoveComplete}
@@ -177,7 +173,6 @@ export function GalleryGrid({
           item={item}
           viewDensity={viewDensity}
           onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-          getCategoryLabel={getCategoryLabel}
           context={context}
           onMoveToInventory={onMoveToInventory}
           onMoveComplete={onMoveComplete}

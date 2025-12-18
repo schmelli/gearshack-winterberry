@@ -101,7 +101,6 @@ function InventoryWithModal() {
     itemCount,
     filteredCount,
     isLoading,
-    getCategoryLabel,
     categoriesError,
     refreshCategories,
   } = useInventory();
@@ -176,7 +175,6 @@ function InventoryWithModal() {
     dismissInsight,
   } = useGearInsights({
     productTypeId: selectedItem?.productTypeId,
-    categoryId: selectedItem?.categoryId,
     brand: selectedItem?.brand,
     name: selectedItem?.name,
     enabled: isOpen && !!selectedItem,
@@ -206,7 +204,6 @@ function InventoryWithModal() {
     itemCount={activeItemCount}
     filteredCount={activeFilteredCount}
     isLoading={activeIsLoading}
-    getCategoryLabel={getCategoryLabel}
     categoriesError={categoriesError}
     refreshCategories={refreshCategories}
     isOpen={isOpen}
@@ -258,7 +255,6 @@ interface InventoryContentProps {
   itemCount: number;
   filteredCount: number;
   isLoading: boolean;
-  getCategoryLabel: (categoryId: string | null) => string;
   categoriesError: string | null;
   refreshCategories: () => Promise<void>;
   isOpen: boolean;
@@ -309,7 +305,6 @@ function InventoryContent({
   itemCount,
   filteredCount,
   isLoading,
-  getCategoryLabel,
   categoriesError,
   refreshCategories,
   isOpen,
@@ -471,7 +466,6 @@ function InventoryContent({
             onClearFilters={clearFilters}
             onItemClick={open}
             getItemCountLabel={(count) => t('itemCount', { count })}
-            getCategoryLabel={getCategoryLabel}
             context={viewMode}
             onMoveToInventory={viewMode === 'wishlist' ? moveToInventory : undefined}
             onMoveComplete={viewMode === 'wishlist' ? () => setViewMode('inventory') : undefined}

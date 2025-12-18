@@ -74,10 +74,8 @@ export const gearItemFormSchema = z.object({
   modelNumber: z.string().max(100, 'Model number must be 100 characters or less'),
   productUrl: optionalUrlSchema,
 
-  // Section 2: Classification
-  categoryId: z.string(),
-  subcategoryId: z.string(),
-  productTypeId: z.string(),
+  // Section 2: Classification (Cascading Category Refactor: only productTypeId)
+  productTypeId: z.string().min(1, 'Product type is required'),
 
   // Section 3: Weight & Specifications
   weightValue: optionalPositiveNumberSchema,

@@ -32,6 +32,7 @@ import type {
 import type { Tables } from '@/types/database';
 import { useCategories } from '@/hooks/useCategories';
 import { useSupabaseStore } from '@/hooks/useSupabaseStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Session Storage Keys
@@ -80,7 +81,7 @@ export function useWishlist(): UseWishlistReturn {
   // ---------------------------------------------------------------------------
   // Categories Integration
   // ---------------------------------------------------------------------------
-  const { getLabelById, isLoading: categoriesLoading } = useCategories();
+  const { getLabelById, isLoading: categoriesLoading, categories } = useCategories();
 
   // ---------------------------------------------------------------------------
   // Zustand Store for Inventory Sync (Feature 049 US3)
@@ -238,8 +239,11 @@ export function useWishlist(): UseWishlistReturn {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.brand?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Category filter
-      const matchesCategory = !categoryFilter || item.categoryId === categoryFilter;
+      // Category filter (Cascading Category Refactor: derive categoryId from productTypeId)
+      const matchesCategory = !categoryFilter || (() => {
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+        return categoryId === categoryFilter;
+      })();
 
       return matchesSearch && matchesCategory;
     });
@@ -256,9 +260,11 @@ export function useWishlist(): UseWishlistReturn {
           return b.name.localeCompare(a.name, undefined, { sensitivity: 'base' });
 
         case 'category':
-          // Sort by category label, then by name within category
-          const catLabelA = getLabelById(a.categoryId);
-          const catLabelB = getLabelById(b.categoryId);
+          // Sort by category label, then by name within category (Cascading Category Refactor)
+          const catIdA = getParentCategoryIds(a.productTypeId, categories).categoryId;
+          const catIdB = getParentCategoryIds(b.productTypeId, categories).categoryId;
+          const catLabelA = getLabelById(catIdA);
+          const catLabelB = getLabelById(catIdB);
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -282,7 +288,7 @@ export function useWishlist(): UseWishlistReturn {
     });
 
     return sorted;
-  }, [wishlistItems, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading]);
+  }, [wishlistItems, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categories]);
 
   // ---------------------------------------------------------------------------
   // Derived State

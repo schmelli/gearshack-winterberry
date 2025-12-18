@@ -78,8 +78,7 @@ export interface GearItem {
   productUrl: string | null;
 
   // Section 2: Classification (from GearGraph Ontology)
-  categoryId: string | null;
-  subcategoryId: string | null;
+  // Cascading Category Refactor: Store only productTypeId (level 3), derive parents client-side
   productTypeId: string | null;
 
   // Section 3: Weight & Specifications
@@ -134,9 +133,7 @@ export interface GearItemFormData {
   modelNumber: string;
   productUrl: string;
 
-  // Section 2: Classification
-  categoryId: string;
-  subcategoryId: string;
+  // Section 2: Classification (Cascading Category Refactor: only productTypeId)
   productTypeId: string;
 
   // Section 3: Weight & Specifications
@@ -186,8 +183,6 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   brandUrl: '',
   modelNumber: '',
   productUrl: '',
-  categoryId: '',
-  subcategoryId: '',
   productTypeId: '',
   weightValue: '',
   weightDisplayUnit: 'g',

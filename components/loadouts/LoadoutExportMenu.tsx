@@ -18,6 +18,8 @@ import type {
   Season,
 } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 /**
  * Export dropdown for the loadout page.
@@ -303,6 +305,9 @@ export function LoadoutExportMenu({
   totalWeight,
   baseWeight,
 }: LoadoutExportMenuProps) {
+  // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
+  const categories = useCategoriesStore((state) => state.categories);
+
   const buildFileName = (suffix: string) => {
     const date = new Date().toISOString().slice(0, 10);
     return `${sanitizeFileName(loadout.name)}-${suffix}-${date}`;
@@ -312,10 +317,11 @@ export function LoadoutExportMenu({
     const headers = ['Item', 'Brand', 'Category', 'Weight (g)', 'Worn', 'Consumable'];
     const rows = items.map((item) => {
       const state = itemStates.find((s) => s.itemId === item.id);
+      const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
       return [
         item.name,
         item.brand ?? '',
-        buildCategoryLabel(item.categoryId),
+        buildCategoryLabel(categoryId),
         item.weightGrams ?? '',
         formatBoolean(state?.isWorn),
         formatBoolean(state?.isConsumable),
@@ -372,6 +378,7 @@ export function LoadoutExportMenu({
     const rows = items
       .map((item) => {
         const state = itemStates.find((s) => s.itemId === item.id);
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
         const checklistCell = includeChecklist ? '<td class="checkbox-cell"><div class="checkbox"></div></td>' : '';
         const statusParts = [];
         if (state?.isWorn) statusParts.push('Worn');
@@ -384,7 +391,7 @@ export function LoadoutExportMenu({
               <div class="item-name">${escape(item.name)}</div>
               ${item.brand ? `<div class="muted">${escape(item.brand)}</div>` : ''}
             </td>
-            <td>${escape(buildCategoryLabel(item.categoryId))}</td>
+            <td>${escape(buildCategoryLabel(categoryId))}</td>
             <td class="right">${formatWeight(item.weightGrams)}</td>
             <td>${statusParts.length > 0 ? statusParts.map(escape).join(' • ') : '—'}</td>
           </tr>

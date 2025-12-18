@@ -16,6 +16,7 @@ import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
 import { calculateTotalWeight, calculateCategoryWeights, calculateWeightSummary, formatWeight, ACTIVITY_PRIORITY_MATRIX } from '@/lib/loadout-utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Activity Priority Computation (Feature: 009-grand-visual-polish)
@@ -93,6 +94,9 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
   const removeItemFromLoadout = useStore((state) => state.removeItemFromLoadout);
 
+  // Cascading Category Refactor: Get categories for weight calculations
+  const { categories } = useCategories();
+
   // Local state for search
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -120,7 +124,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
 
   // Compute weight metrics
   const totalWeight = useMemo(() => calculateTotalWeight(loadoutItems), [loadoutItems]);
-  const categoryWeights = useMemo(() => calculateCategoryWeights(loadoutItems), [loadoutItems]);
+  const categoryWeights = useMemo(() => calculateCategoryWeights(loadoutItems, categories), [loadoutItems, categories]);
 
   // Compute base weight using itemStates (Feature: 007)
   const baseWeight = useMemo(() => {

@@ -8,6 +8,8 @@
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, WeightCategory, LoadoutItemState, WeightSummary, ActivityPriorityMatrix } from '@/types/loadout';
 import { WEIGHT_THRESHOLDS } from '@/types/loadout';
+import type { Category } from '@/types/category';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Activity Priority Matrix Configuration (Feature: 009-grand-visual-polish)
@@ -191,19 +193,21 @@ export function calculateWeightSummary(
 
 /**
  * Calculate weight breakdown by category
+ * Cascading Category Refactor: Requires categories parameter to derive categoryId from productTypeId
  */
-export function calculateCategoryWeights(items: GearItem[]): CategoryWeight[] {
+export function calculateCategoryWeights(items: GearItem[], categories: Category[]): CategoryWeight[] {
   const totalWeight = calculateTotalWeight(items);
 
   // Group items by category
   const categoryMap = new Map<string, { items: GearItem[]; weight: number }>();
 
   for (const item of items) {
-    const categoryId = item.categoryId ?? 'miscellaneous';
-    const existing = categoryMap.get(categoryId) ?? { items: [], weight: 0 };
+    const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+    const catId = categoryId ?? 'miscellaneous';
+    const existing = categoryMap.get(catId) ?? { items: [], weight: 0 };
     existing.items.push(item);
     existing.weight += item.weightGrams ?? 0;
-    categoryMap.set(categoryId, existing);
+    categoryMap.set(catId, existing);
   }
 
   // Convert to CategoryWeight array
@@ -229,17 +233,20 @@ export function calculateCategoryWeights(items: GearItem[]): CategoryWeight[] {
 
 /**
  * Group items by category for display in loadout list
+ * Cascading Category Refactor: Requires categories parameter to derive categoryId from productTypeId
  */
 export function groupItemsByCategory(
-  items: GearItem[]
+  items: GearItem[],
+  categories: Category[]
 ): Map<string, GearItem[]> {
   const groups = new Map<string, GearItem[]>();
 
   for (const item of items) {
-    const categoryId = item.categoryId ?? 'miscellaneous';
-    const existing = groups.get(categoryId) ?? [];
+    const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+    const catId = categoryId ?? 'miscellaneous';
+    const existing = groups.get(catId) ?? [];
     existing.push(item);
-    groups.set(categoryId, existing);
+    groups.set(catId, existing);
   }
 
   return groups;
@@ -248,11 +255,13 @@ export function groupItemsByCategory(
 /**
  * Get sorted category entries for rendering
  * Returns array of [categoryId, items] sorted by category weight
+ * Cascading Category Refactor: Requires categories parameter
  */
 export function getSortedCategoryGroups(
-  items: GearItem[]
+  items: GearItem[],
+  categories: Category[]
 ): Array<[string, GearItem[]]> {
-  const groups = groupItemsByCategory(items);
+  const groups = groupItemsByCategory(items, categories);
 
   // Calculate total weight per category for sorting
   const withWeight = Array.from(groups.entries()).map(([categoryId, categoryItems]) => ({

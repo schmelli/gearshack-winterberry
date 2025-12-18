@@ -257,7 +257,6 @@ export type Database = {
           brand_url: string | null
           can_be_borrowed: boolean
           can_be_traded: boolean
-          category_id: string | null
           condition: Database["public"]["Enums"]["gear_condition"]
           created_at: string
           currency: string | null
@@ -282,7 +281,6 @@ export type Database = {
           retailer_url: string | null
           source_share_token: string | null
           status: Database["public"]["Enums"]["gear_status"]
-          subcategory_id: string | null
           updated_at: string
           user_id: string
           weight_display_unit: Database["public"]["Enums"]["weight_unit"]
@@ -294,7 +292,6 @@ export type Database = {
           brand_url?: string | null
           can_be_borrowed?: boolean
           can_be_traded?: boolean
-          category_id?: string | null
           condition?: Database["public"]["Enums"]["gear_condition"]
           created_at?: string
           currency?: string | null
@@ -319,7 +316,6 @@ export type Database = {
           retailer_url?: string | null
           source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
-          subcategory_id?: string | null
           updated_at?: string
           user_id: string
           weight_display_unit?: Database["public"]["Enums"]["weight_unit"]
@@ -331,7 +327,6 @@ export type Database = {
           brand_url?: string | null
           can_be_borrowed?: boolean
           can_be_traded?: boolean
-          category_id?: string | null
           condition?: Database["public"]["Enums"]["gear_condition"]
           created_at?: string
           currency?: string | null
@@ -356,7 +351,6 @@ export type Database = {
           retailer_url?: string | null
           source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
-          subcategory_id?: string | null
           updated_at?: string
           user_id?: string
           weight_display_unit?: Database["public"]["Enums"]["weight_unit"]
@@ -364,13 +358,6 @@ export type Database = {
           width_cm?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "gear_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "gear_items_product_type_id_fkey"
             columns: ["product_type_id"]
@@ -384,13 +371,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "loadout_shares"
             referencedColumns: ["share_token"]
-          },
-          {
-            foreignKeyName: "gear_items_subcategory_id_fkey"
-            columns: ["subcategory_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
           },
         ]
       }

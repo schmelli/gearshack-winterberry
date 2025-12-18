@@ -21,6 +21,7 @@ import type {
 import { DEFAULT_SORT_OPTION } from '@/types/inventory';
 import { useItems } from '@/hooks/useSupabaseStore';
 import { useCategories } from '@/hooks/useCategories';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Session Storage Keys
@@ -66,7 +67,7 @@ export function useInventory(): UseInventoryReturn {
   // Store Integration
   // ---------------------------------------------------------------------------
   const items = useItems();
-  const { getLabelById, getOptionsForLevel, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories } = useCategories();
+  const { getLabelById, getOptionsForLevel, isLoading: categoriesLoading, error: categoriesError, refresh: refreshCategories, categories } = useCategories();
 
   // ---------------------------------------------------------------------------
   // State: View Density with sessionStorage persistence
@@ -147,9 +148,14 @@ export function useInventory(): UseInventoryReturn {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.brand?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Category filter
-      const matchesCategory =
-        !categoryFilter || item.categoryId === categoryFilter;
+      // Category filter (Cascading Category Refactor: now works with productTypeId)
+      const matchesCategory = !categoryFilter || (() => {
+        if (!item.productTypeId) return false;
+
+        // Get the parent categoryId (level 1) for this item's productTypeId (level 3)
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+        return categoryId === categoryFilter;
+      })();
 
       return matchesSearch && matchesCategory;
     });
@@ -162,9 +168,11 @@ export function useInventory(): UseInventoryReturn {
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
         case 'category':
-          // Sort by category label, then by name within category
-          const catLabelA = getLabelById(a.categoryId);
-          const catLabelB = getLabelById(b.categoryId);
+          // Sort by category label, then by name within category (Cascading Category Refactor: uses productTypeId)
+          const catIdA = a.productTypeId ? getParentCategoryIds(a.productTypeId, categories).categoryId : null;
+          const catIdB = b.productTypeId ? getParentCategoryIds(b.productTypeId, categories).categoryId : null;
+          const catLabelA = getLabelById(catIdA);
+          const catLabelB = getLabelById(catIdB);
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -177,7 +185,7 @@ export function useInventory(): UseInventoryReturn {
     });
 
     return sorted;
-  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categoriesError]);
+  }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categoriesError, categories]);
 
   // ---------------------------------------------------------------------------
   // Derived: Grouped Items by Category (Feature 046)
@@ -187,11 +195,15 @@ export function useInventory(): UseInventoryReturn {
       return [];
     }
 
-    // Group items by categoryId
+    // Group items by categoryId (Cascading Category Refactor: derived from productTypeId)
     const groups = new Map<string | null, CategoryGroup>();
 
     for (const item of filteredItems) {
-      const catId = item.categoryId;
+      // Derive category (level 1) from productTypeId (level 3)
+      const catId = item.productTypeId
+        ? getParentCategoryIds(item.productTypeId, categories).categoryId
+        : null;
+
       if (!groups.has(catId)) {
         groups.set(catId, {
           categoryId: catId,
@@ -209,7 +221,7 @@ export function useInventory(): UseInventoryReturn {
       if (b.categoryId === null) return -1;
       return a.categoryLabel.localeCompare(b.categoryLabel, undefined, { sensitivity: 'base' });
     });
-  }, [filteredItems, sortOption, getLabelById]);
+  }, [filteredItems, sortOption, getLabelById, categories]);
 
   // ---------------------------------------------------------------------------
   // Actions

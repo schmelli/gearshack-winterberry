@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TaxonomySelect } from '@/components/gear-editor/TaxonomySelect';
+import { ProgressiveCategorySelect } from '@/components/gear-editor/ProgressiveCategorySelect';
 import type { GearItemFormData, WeightUnit } from '@/types/gear';
 import { WEIGHT_UNIT_LABELS } from '@/types/gear';
 
@@ -51,7 +51,22 @@ export function CategorySpecsSection() {
           Classify your gear to help organize your inventory and enable better
           filtering and search.
         </p>
-        <TaxonomySelect />
+
+        {/* Progressive category selection - now ONE dropdown instead of three */}
+        <FormField
+          control={form.control}
+          name="productTypeId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product Type *</FormLabel>
+              <ProgressiveCategorySelect
+                initialProductTypeId={field.value || undefined}
+                onComplete={(id) => field.onChange(id)}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
 
       {/* Divider */}

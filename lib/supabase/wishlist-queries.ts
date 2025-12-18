@@ -74,8 +74,6 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
     productUrl: row.product_url,
 
     // Section 2: Classification
-    categoryId: row.category_id,
-    subcategoryId: row.subcategory_id,
     productTypeId: row.product_type_id,
 
     // Section 3: Weight & Specifications
@@ -187,8 +185,6 @@ export async function addWishlistItem(item: AddWishlistItemParams): Promise<Wish
     model_number: item.modelNumber,
     product_url: item.productUrl,
 
-    category_id: item.categoryId,
-    subcategory_id: item.subcategoryId,
     product_type_id: item.productTypeId,
 
     weight_grams: item.weightGrams,
@@ -261,8 +257,6 @@ export async function updateWishlistItem(
     ...(updates.brandUrl !== undefined && { brand_url: updates.brandUrl }),
     ...(updates.modelNumber !== undefined && { model_number: updates.modelNumber }),
     ...(updates.productUrl !== undefined && { product_url: updates.productUrl }),
-    ...(updates.categoryId !== undefined && { category_id: updates.categoryId }),
-    ...(updates.subcategoryId !== undefined && { subcategory_id: updates.subcategoryId }),
     ...(updates.productTypeId !== undefined && { product_type_id: updates.productTypeId }),
     ...(updates.weightGrams !== undefined && { weight_grams: updates.weightGrams }),
     ...(updates.weightDisplayUnit !== undefined && { weight_display_unit: updates.weightDisplayUnit }),

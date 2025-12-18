@@ -55,9 +55,7 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     modelNumber: row.model_number,
     productUrl: row.product_url,
 
-    // Section 2: Classification
-    categoryId: row.category_id,
-    subcategoryId: row.subcategory_id,
+    // Section 2: Classification (Cascading Category Refactor: only productTypeId)
     productTypeId: row.product_type_id,
 
     // Section 3: Weight & Specifications
@@ -106,8 +104,6 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     model_number: item.modelNumber,
     product_url: item.productUrl,
 
-    category_id: item.categoryId,
-    subcategory_id: item.subcategoryId,
     product_type_id: item.productTypeId,
 
     weight_grams: item.weightGrams,
@@ -151,8 +147,6 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.modelNumber !== undefined) update.model_number = item.modelNumber;
   if (item.productUrl !== undefined) update.product_url = item.productUrl;
 
-  if (item.categoryId !== undefined) update.category_id = item.categoryId;
-  if (item.subcategoryId !== undefined) update.subcategory_id = item.subcategoryId;
   if (item.productTypeId !== undefined) update.product_type_id = item.productTypeId;
 
   if (item.weightGrams !== undefined) update.weight_grams = item.weightGrams;

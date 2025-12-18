@@ -23,6 +23,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { Loadout, LoadoutItemState, ActivityType, Season } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import type { SharedLoadoutPayload } from '@/types/sharing';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 interface LoadoutShareButtonProps {
   loadout: Loadout;
@@ -53,6 +55,9 @@ export function LoadoutShareButton({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
+  const categories = useCategoriesStore((state) => state.categories);
+
   const payload: SharedLoadoutPayload = useMemo(() => {
     const stateById = new Map(itemStates.map((state) => [state.itemId, state]));
 
@@ -67,12 +72,13 @@ export function LoadoutShareButton({
       },
       items: items.map((item) => {
         const state = stateById.get(item.id);
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
         return {
           id: item.id,
           name: item.name,
           brand: item.brand,
           primaryImageUrl: item.primaryImageUrl,
-          categoryId: item.categoryId,
+          categoryId,
           weightGrams: item.weightGrams,
           isWorn: state?.isWorn ?? false,
           isConsumable: state?.isConsumable ?? false,
@@ -81,7 +87,7 @@ export function LoadoutShareButton({
         };
       }),
     };
-  }, [activityTypes, itemStates, items, loadout.description, loadout.id, loadout.name, loadout.tripDate, seasons]);
+  }, [activityTypes, itemStates, items, loadout.description, loadout.id, loadout.name, loadout.tripDate, seasons, categories]);
 
   const generateLink = async () => {
     setIsGenerating(true);

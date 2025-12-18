@@ -28,6 +28,8 @@ import {
   type ProductSuggestion,
 } from '@/hooks/useProductAutocomplete';
 import type { GearItemFormData } from '@/types/gear';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { findProductTypeId } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Types
@@ -52,6 +54,9 @@ export function ProductAutocompleteInput({
   const { suggestions, isLoading, search, clear } = useProductAutocomplete({
     brandId,
   });
+
+  // Cascading Category Refactor (Phase 6): Get categories for auto-fill
+  const categories = useCategoriesStore((state) => state.categories);
 
   // Local state for showing suggestions dropdown
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -103,6 +108,23 @@ export function ProductAutocompleteInput({
         form.setValue('currency', 'USD', { shouldDirty: true });
       }
 
+      // Cascading Category Refactor (Phase 6): Auto-fill productTypeId from GearGraph classification
+      if (suggestion.productType && suggestion.subcategory && suggestion.categoryMain && categories.length > 0) {
+        const productTypeId = findProductTypeId(
+          {
+            category: suggestion.categoryMain,
+            subcategory: suggestion.subcategory,
+            productType: suggestion.productType,
+          },
+          categories,
+          'en'
+        );
+
+        if (productTypeId) {
+          form.setValue('productTypeId', productTypeId, { shouldDirty: true });
+        }
+      }
+
       // Notify parent to handle brand auto-fill
       if (onProductSelect) {
         onProductSelect(suggestion);
@@ -112,7 +134,7 @@ export function ProductAutocompleteInput({
       setShowSuggestions(false);
       setHighlightedIndex(-1);
     },
-    [form, clear, onProductSelect]
+    [form, clear, onProductSelect, categories]
   );
 
   // Handle keyboard navigation

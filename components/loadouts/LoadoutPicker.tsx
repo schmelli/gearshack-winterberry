@@ -27,6 +27,8 @@ import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
 import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary-utils';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Types
@@ -57,6 +59,9 @@ export function LoadoutPicker({
 
   // Feature 045: Responsive detection for modal
   const isMobile = useMediaQuery('(max-width: 767px)');
+
+  // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
+  const categories = useCategoriesStore((state) => state.categories);
 
   const handleOpenDetail = (item: GearItem) => {
     setSelectedItem(item);
@@ -126,6 +131,10 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
   // Micro-interaction state for Add button (US9)
   const [justAdded, setJustAdded] = useState(false);
 
+  // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
+  const categories = useCategoriesStore((state) => state.categories);
+  const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+
   // Handle add button click without triggering detail modal (FR-018)
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -185,9 +194,9 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
         <p className="text-sm text-muted-foreground">
           {item.brand && <span>{item.brand} · </span>}
           <span>{formatWeight(item.weightGrams)}</span>
-          {item.categoryId && (
+          {categoryId && (
             <span className="ml-2 text-xs">
-              ({CATEGORY_LABELS[item.categoryId] ?? item.categoryId})
+              ({CATEGORY_LABELS[categoryId] ?? categoryId})
             </span>
           )}
         </p>

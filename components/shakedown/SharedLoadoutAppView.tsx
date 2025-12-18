@@ -227,7 +227,6 @@ export function SharedLoadoutAppView({
             isAddingToWishlist={checkIsAdding}
             isAuthenticated={true}
             viewDensity="standard"
-            getCategoryLabel={getLabelById}
           />
         </CardContent>
       </Card>

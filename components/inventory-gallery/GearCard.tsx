@@ -2,13 +2,13 @@
 
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
-import { useState } from 'react';
-import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag, DollarSign, HandHeart, ArrowLeftRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag, DollarSign, HandHeart, ArrowLeftRight, ChevronRight } from 'lucide-react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area'; // Stelle sicher, dass du diese Komponente hast
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   HoverCard,
   HoverCardContent,
@@ -23,6 +23,9 @@ import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
 import type { WishlistItemAvailability } from '@/types/wishlist';
+import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Status Icons Component - Feature 041
@@ -134,8 +137,6 @@ interface GearCardProps {
   viewDensity: ViewDensity;
   /** Optional click handler for card body */
   onClick?: () => void;
-  /** Function to get category label by ID */
-  getCategoryLabel: (categoryId: string | null) => string;
   /** Context determines which features are shown (Feature 049: wishlist hides availability markers) */
   context?: 'inventory' | 'wishlist';
   /** Feature 049 US3: Callback to move wishlist item to inventory */
@@ -158,7 +159,6 @@ export function GearCard({
   item,
   viewDensity,
   onClick,
-  getCategoryLabel,
   context = 'inventory',
   onMoveToInventory,
   onMoveComplete,
@@ -184,7 +184,13 @@ export function GearCard({
   // Feature 049 US2 T045: Show community availability panel in wishlist context (medium/detailed views only)
   const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
 
-  const categoryLabel = getCategoryLabel(item.categoryId) || null;
+  // Cascading Category Refactor (Phase 4): Use breadcrumb hook instead of prop
+  const { breadcrumb, productTypeLabel } = useCategoryBreadcrumb(item.productTypeId);
+
+  // Derive categoryId (level 1) from productTypeId (level 3) for CategoryPlaceholder
+  const categories = useCategoriesStore((state) => state.categories);
+  const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
   // =========================================================================
@@ -215,7 +221,7 @@ export function GearCard({
             />
           ) : (
             <CategoryPlaceholder
-              categoryId={item.categoryId}
+              categoryId={categoryId}
               size="sm"
               className="h-10 w-10"
             />
@@ -244,11 +250,11 @@ export function GearCard({
                 {item.brand}
               </p>
             )}
-            {categoryLabel && (
+            {productTypeLabel && (
               <>
                 <span className="text-[10px] text-stone-300 dark:text-stone-700">•</span>
                 <span className="text-xs text-muted-foreground truncate">
-                  {categoryLabel}
+                  {productTypeLabel}
                 </span>
               </>
             )}
@@ -321,7 +327,7 @@ export function GearCard({
           />
         ) : (
           <CategoryPlaceholder
-            categoryId={item.categoryId}
+            categoryId={categoryId}
             size={isDetailed ? 'lg' : 'md'}
             className="h-full w-full rounded-none opacity-50"
           />
@@ -414,12 +420,28 @@ export function GearCard({
           {item.name}
         </h3>
 
-        {/* Category & Details Line */}
+        {/* Category & Details Line - Cascading Category Refactor (Phase 4): Breadcrumb on hover */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          {categoryLabel && (
-             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary text-secondary-foreground">
-               {categoryLabel}
-             </span>
+          {productTypeLabel && (
+            <HoverCard openDelay={200}>
+              <HoverCardTrigger asChild>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary text-secondary-foreground cursor-pointer hover:bg-secondary/80 transition-colors">
+                  {productTypeLabel}
+                </span>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-auto" align="start">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {breadcrumb.map((label, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <ChevronRight className="h-3 w-3 opacity-50" aria-hidden="true" />}
+                      <span className={idx === breadcrumb.length - 1 ? "font-semibold text-foreground" : ""}>
+                        {label}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           )}
         </div>
 

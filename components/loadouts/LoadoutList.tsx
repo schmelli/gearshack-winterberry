@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
 import type { GearItem } from '@/types/gear';
 import { getSortedCategoryGroups, CATEGORY_LABELS, formatWeight } from '@/lib/loadout-utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Types
@@ -58,7 +59,8 @@ export function LoadoutList({
   onToggleConsumable,
   onItemClick,
 }: LoadoutListProps) {
-  const categoryGroups = getSortedCategoryGroups(items);
+  const { categories } = useCategories();
+  const categoryGroups = getSortedCategoryGroups(items, categories);
   const isEmpty = items.length === 0;
 
   // Filter groups if a category is selected (FR-012: chart segment filter)

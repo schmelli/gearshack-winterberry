@@ -4,6 +4,7 @@ import type { SharedGearItem } from '@/types/sharing';
 import type { ViewDensity } from '@/types/inventory';
 import { SharedGearCard } from './SharedGearCard';
 import { cn } from '@/lib/utils';
+import { useCategories } from '@/hooks/useCategories';
 
 // =============================================================================
 // Types
@@ -28,8 +29,6 @@ interface SharedGearGridProps {
   viewDensity?: ViewDensity;
   /** Optional className for the grid container */
   className?: string;
-  /** Function to get category label from categoryId (Supabase categories) */
-  getCategoryLabel: (categoryId: string | null) => string;
 }
 
 // =============================================================================
@@ -96,15 +95,17 @@ export function SharedGearGrid({
   isAuthenticated = false,
   viewDensity = 'standard',
   className,
-  getCategoryLabel,
 }: SharedGearGridProps) {
+  // Cascading Category Refactor: Use useCategories to get label function
+  const { getLabelById } = useCategories();
+
   // Group items by category
   const groupedItems = groupItemsByCategory(items);
 
   // Sort categories alphabetically by label (T030)
   const sortedCategories = sortCategoriesByLabel(
     Array.from(groupedItems.keys()),
-    getCategoryLabel
+    getLabelById
   );
 
   // Grid column configuration based on view density
@@ -127,7 +128,7 @@ export function SharedGearGrid({
     <div className={cn('space-y-8', className)}>
       {sortedCategories.map((categoryId) => {
         const categoryItems = groupedItems.get(categoryId)!;
-        const categoryLabel = getCategoryLabel(categoryId);
+        const categoryLabel = getLabelById(categoryId);
 
         return (
           <section key={categoryId ?? 'uncategorized'} className="space-y-4">
@@ -155,7 +156,6 @@ export function SharedGearGrid({
                   isAddingToWishlist={isAddingToWishlist?.(item.id)}
                   isAuthenticated={isAuthenticated}
                   viewDensity={viewDensity}
-                  getCategoryLabel={getCategoryLabel}
                 />
               ))}
             </div>
