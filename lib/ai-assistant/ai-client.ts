@@ -7,6 +7,7 @@
  */
 
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogle } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
@@ -30,26 +31,34 @@ if (!AI_GATEWAY_API_KEY && AI_CHAT_ENABLED) {
 /**
  * Get the configured AI model instance
  * Uses Vercel AI Gateway for routing and rate limiting
+ * Supports multiple providers: Anthropic, Google, etc.
  */
 export function getAIModel() {
   if (!AI_CHAT_ENABLED || !AI_GATEWAY_API_KEY) {
     throw new Error('AI features are not enabled. Please check environment configuration.');
   }
 
-  // For Vercel AI Gateway, extract just the model name (e.g., "anthropic/claude-sonnet-4.5" -> "claude-sonnet-4.5")
-  // For direct Anthropic API, use the full model name
-  const modelName = AI_CHAT_MODEL.includes('/')
-    ? AI_CHAT_MODEL.split('/').pop() || 'claude-sonnet-4.5'
-    : AI_CHAT_MODEL;
+  // Extract provider and model name (e.g., "google/gemini-2.5-flash" -> ["google", "gemini-2.5-flash"])
+  const [provider, ...modelParts] = AI_CHAT_MODEL.split('/');
+  const modelName = modelParts.join('/') || AI_CHAT_MODEL;
 
-  // Create Anthropic provider with custom API key (for AI Gateway)
-  const anthropic = createAnthropic({
+  const gatewayConfig = {
     apiKey: AI_GATEWAY_API_KEY,
-    // Vercel AI Gateway base URL (defaults to standard Anthropic API if not set)
     baseURL: process.env.AI_GATEWAY_BASE_URL,
-  });
+  };
 
-  return anthropic(modelName);
+  // Choose provider based on model prefix
+  if (provider === 'google' || AI_CHAT_MODEL.includes('gemini')) {
+    const google = createGoogle(gatewayConfig);
+    return google(modelName);
+  } else if (provider === 'anthropic' || AI_CHAT_MODEL.includes('claude')) {
+    const anthropic = createAnthropic(gatewayConfig);
+    return anthropic(modelName);
+  } else {
+    // Default to Anthropic for backwards compatibility
+    const anthropic = createAnthropic(gatewayConfig);
+    return anthropic(modelName);
+  }
 }
 
 // =====================================================
