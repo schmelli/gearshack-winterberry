@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
 /**
  * Cron job: Daily price checks for all tracked items
  * Feature: 050-price-tracking (US2)

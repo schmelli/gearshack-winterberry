@@ -1,4 +1,4 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
+// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * API route: Partner retailers submit personal offers
  * Feature: 050-price-tracking (US5)

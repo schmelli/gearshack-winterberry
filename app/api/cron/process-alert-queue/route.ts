@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
 /**
  * Cron job: Process alert delivery queue
  * Feature: 050-price-tracking (Review fix #10)

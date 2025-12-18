@@ -1,4 +1,4 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
+// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Supabase query functions for price tracking
  * Feature: 050-price-tracking

@@ -76,6 +76,7 @@ export type Database = {
       }
       ai_messages: {
         Row: {
+          action_results: Json | null
           actions: Json | null
           content: string
           context: Json | null
@@ -87,6 +88,7 @@ export type Database = {
           tokens_used: number | null
         }
         Insert: {
+          action_results?: Json | null
           actions?: Json | null
           content: string
           context?: Json | null
@@ -98,6 +100,7 @@ export type Database = {
           tokens_used?: number | null
         }
         Update: {
+          action_results?: Json | null
           actions?: Json | null
           content?: string
           context?: Json | null
@@ -142,15 +145,69 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_delivery_queue: {
+        Row: {
+          alert_id: string | null
+          alert_type: string
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          delivery_method: string | null
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          alert_type: string
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          delivery_method?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          alert_type?: string
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          delivery_method?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_delivery_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "price_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_preferences: {
         Row: {
           community_enabled: boolean | null
           created_at: string | null
           email_enabled: boolean | null
+          enable_email_alerts: boolean | null
+          enable_push_alerts: boolean | null
           id: string
           local_shop_enabled: boolean | null
+          max_alerts_per_day: number | null
           personal_offer_enabled: boolean | null
           price_drop_enabled: boolean | null
+          price_drop_threshold: number | null
           push_enabled: boolean | null
           quiet_hours_end: string | null
           quiet_hours_start: string | null
@@ -161,10 +218,14 @@ export type Database = {
           community_enabled?: boolean | null
           created_at?: string | null
           email_enabled?: boolean | null
+          enable_email_alerts?: boolean | null
+          enable_push_alerts?: boolean | null
           id?: string
           local_shop_enabled?: boolean | null
+          max_alerts_per_day?: number | null
           personal_offer_enabled?: boolean | null
           price_drop_enabled?: boolean | null
+          price_drop_threshold?: number | null
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
@@ -175,10 +236,14 @@ export type Database = {
           community_enabled?: boolean | null
           created_at?: string | null
           email_enabled?: boolean | null
+          enable_email_alerts?: boolean | null
+          enable_push_alerts?: boolean | null
           id?: string
           local_shop_enabled?: boolean | null
+          max_alerts_per_day?: number | null
           personal_offer_enabled?: boolean | null
           price_drop_enabled?: boolean | null
+          price_drop_threshold?: number | null
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
@@ -1012,33 +1077,45 @@ export type Database = {
       }
       partner_retailers: {
         Row: {
+          api_key: string | null
           api_key_hash: string | null
+          contact_email: string | null
           created_at: string | null
           id: string
           is_active: boolean | null
           logo_url: string | null
           name: string
+          rate_limit_per_hour: number | null
           updated_at: string | null
+          webhook_url: string | null
           website_url: string | null
         }
         Insert: {
+          api_key?: string | null
           api_key_hash?: string | null
+          contact_email?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           name: string
+          rate_limit_per_hour?: number | null
           updated_at?: string | null
+          webhook_url?: string | null
           website_url?: string | null
         }
         Update: {
+          api_key?: string | null
           api_key_hash?: string | null
+          contact_email?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           name?: string
+          rate_limit_per_hour?: number | null
           updated_at?: string | null
+          webhook_url?: string | null
           website_url?: string | null
         }
         Relationships: []
@@ -1055,6 +1132,7 @@ export type Database = {
           original_price: number | null
           partner_retailer_id: string
           product_id: string
+          product_image_url: string | null
           product_name: string
           product_url: string
           terms: string | null
@@ -1073,6 +1151,7 @@ export type Database = {
           original_price?: number | null
           partner_retailer_id: string
           product_id: string
+          product_image_url?: string | null
           product_name: string
           product_url: string
           terms?: string | null
@@ -1091,6 +1170,7 @@ export type Database = {
           original_price?: number | null
           partner_retailer_id?: string
           product_id?: string
+          product_image_url?: string | null
           product_name?: string
           product_url?: string
           terms?: string | null
@@ -1119,11 +1199,13 @@ export type Database = {
         Row: {
           alert_type: string
           created_at: string | null
+          dismissed: boolean | null
           email_sent_at: string | null
           id: string
           link_url: string | null
           message: string
           offer_id: string | null
+          price_data: Json | null
           push_sent_at: string | null
           read_at: string | null
           sent_via_email: boolean | null
@@ -1131,15 +1213,18 @@ export type Database = {
           title: string
           tracking_id: string | null
           user_id: string
+          valid_until: string | null
         }
         Insert: {
           alert_type: string
           created_at?: string | null
+          dismissed?: boolean | null
           email_sent_at?: string | null
           id?: string
           link_url?: string | null
           message: string
           offer_id?: string | null
+          price_data?: Json | null
           push_sent_at?: string | null
           read_at?: string | null
           sent_via_email?: boolean | null
@@ -1147,15 +1232,18 @@ export type Database = {
           title: string
           tracking_id?: string | null
           user_id: string
+          valid_until?: string | null
         }
         Update: {
           alert_type?: string
           created_at?: string | null
+          dismissed?: boolean | null
           email_sent_at?: string | null
           id?: string
           link_url?: string | null
           message?: string
           offer_id?: string | null
+          price_data?: Json | null
           push_sent_at?: string | null
           read_at?: string | null
           sent_via_email?: boolean | null
@@ -1163,6 +1251,7 @@ export type Database = {
           title?: string
           tracking_id?: string | null
           user_id?: string
+          valid_until?: string | null
         }
         Relationships: [
           {
@@ -1305,6 +1394,7 @@ export type Database = {
           gear_item_id: string
           id: string
           last_checked_at: string | null
+          manual_product_url: string | null
           match_confidence: number | null
           updated_at: string | null
           user_id: string
@@ -1317,6 +1407,7 @@ export type Database = {
           gear_item_id: string
           id?: string
           last_checked_at?: string | null
+          manual_product_url?: string | null
           match_confidence?: number | null
           updated_at?: string | null
           user_id: string
@@ -1329,6 +1420,7 @@ export type Database = {
           gear_item_id?: string
           id?: string
           last_checked_at?: string | null
+          manual_product_url?: string | null
           match_confidence?: number | null
           updated_at?: string | null
           user_id?: string
@@ -1583,7 +1675,29 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_delivery_queue: { Args: never; Returns: number }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      create_price_alert: {
+        Args: {
+          p_alert_type: string
+          p_message: string
+          p_price_data?: Json
+          p_title: string
+          p_tracking_id: string
+          p_user_id: string
+          p_valid_until?: string
+        }
+        Returns: string
+      }
+      enqueue_alert_delivery: {
+        Args: {
+          p_alert_id: string
+          p_alert_type: string
+          p_delivery_method?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       find_community_availability: {
         Args: { p_user_id: string; p_wishlist_item_id: string }
         Returns: {
@@ -1621,6 +1735,16 @@ export type Database = {
           similarity_score: number
         }[]
       }
+      get_next_delivery_batch: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          alert_id: string
+          alert_type: string
+          delivery_method: string
+          id: string
+          user_id: string
+        }[]
+      }
       get_or_create_direct_conversation: {
         Args: { p_user1: string; p_user2: string }
         Returns: string
@@ -1628,6 +1752,16 @@ export type Database = {
       increment_cache_usage: {
         Args: { p_cache_id: string }
         Returns: undefined
+      }
+      record_price_snapshot: {
+        Args: {
+          p_average_price: number
+          p_highest_price: number
+          p_lowest_price: number
+          p_num_sources: number
+          p_tracking_id: string
+        }
+        Returns: string
       }
       reset_unread_count: {
         Args: { p_conversation_id: string; p_user_id: string }

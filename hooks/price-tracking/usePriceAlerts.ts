@@ -1,4 +1,4 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
+// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Custom hook for price alerts
  * Feature: 050-price-tracking (US2)

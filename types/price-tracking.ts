@@ -169,9 +169,9 @@ export interface AlertPreferences {
 // ==================== Community ====================
 
 export interface CommunityAvailability {
-  gear_item_id: string;
-  item_name: string;
-  user_count: number;
+  gear_item_id: string | null;
+  item_name: string | null;
+  user_count: number | null;
   min_price: number | null;
   max_price: number | null;
   avg_price: number | null;

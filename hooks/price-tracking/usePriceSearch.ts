@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires migrations to be applied
 /**
  * Custom hook for price search with state machine
  * Feature: 050-price-tracking
