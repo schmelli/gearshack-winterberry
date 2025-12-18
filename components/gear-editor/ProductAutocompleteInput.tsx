@@ -80,10 +80,28 @@ export function ProductAutocompleteInput({
     [form, search, clear]
   );
 
-  // Handle suggestion selection
+  // Handle suggestion selection - auto-fill all available GearGraph data
   const handleSelectSuggestion = useCallback(
     (suggestion: ProductSuggestion) => {
-      form.setValue('name', suggestion.name);
+      // Set name
+      form.setValue('name', suggestion.name, { shouldDirty: true });
+
+      // Auto-fill weight if available
+      if (suggestion.weightGrams) {
+        form.setValue('weightValue', suggestion.weightGrams.toString(), { shouldDirty: true });
+        form.setValue('weightDisplayUnit', 'g', { shouldDirty: true });
+      }
+
+      // Auto-fill description if available and current description is empty
+      if (suggestion.description && !form.getValues('description')) {
+        form.setValue('description', suggestion.description, { shouldDirty: true });
+      }
+
+      // Auto-fill price if available and current price is empty
+      if (suggestion.priceUsd && !form.getValues('pricePaid')) {
+        form.setValue('pricePaid', suggestion.priceUsd.toString(), { shouldDirty: true });
+        form.setValue('currency', 'USD', { shouldDirty: true });
+      }
 
       // Notify parent to handle brand auto-fill
       if (onProductSelect) {
@@ -208,28 +226,50 @@ export function ProductAutocompleteInput({
                 onMouseDown={() => handleSelectSuggestion(suggestion)}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                   <span className="font-medium">{suggestion.name}</span>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {suggestion.brand && (
                       <span>{suggestion.brand.name}</span>
                     )}
-                    {suggestion.productType && (
+                    {suggestion.categoryMain && (
                       <>
                         {suggestion.brand && <span>•</span>}
+                        <span>{suggestion.categoryMain}</span>
+                      </>
+                    )}
+                    {suggestion.subcategory && (
+                      <>
+                        <span>›</span>
+                        <span>{suggestion.subcategory}</span>
+                      </>
+                    )}
+                    {suggestion.productType && (
+                      <>
+                        <span>›</span>
                         <span>{suggestion.productType}</span>
                       </>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {suggestion.weightGrams && (
+                      <span className="font-medium text-foreground">{suggestion.weightGrams}g</span>
+                    )}
+                    {suggestion.priceUsd && (
                       <>
-                        <span>•</span>
-                        <span>{suggestion.weightGrams}g</span>
+                        {suggestion.weightGrams && <span>•</span>}
+                        <span className="font-medium text-foreground">${suggestion.priceUsd}</span>
                       </>
                     )}
                     <span className="ml-auto">
                       {Math.round(suggestion.score * 100)}% match
                     </span>
                   </div>
+                  {suggestion.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {suggestion.description}
+                    </p>
+                  )}
                 </div>
               </li>
             ))}

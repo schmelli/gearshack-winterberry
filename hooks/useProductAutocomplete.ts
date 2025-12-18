@@ -16,8 +16,11 @@ export interface ProductSuggestion {
   name: string;
   brand: { id: string; name: string } | null;
   categoryMain: string | null;
+  subcategory: string | null;
   productType: string | null;
   weightGrams: number | null;
+  priceUsd: number | null;
+  description: string | null;
   score: number;
 }
 
@@ -120,8 +123,11 @@ export function useProductAutocomplete(
             name: result.name,
             brand: result.brand,
             categoryMain: result.categoryMain,
+            subcategory: result.subcategory,
             productType: result.productType,
             weightGrams: result.weightGrams,
+            priceUsd: result.priceUsd,
+            description: result.description,
             score: result.score,
           }))
         );
