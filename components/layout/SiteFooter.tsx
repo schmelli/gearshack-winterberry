@@ -82,9 +82,9 @@ export function SiteFooter({ className }: SiteFooterProps) {
             Resources
           </h3>
           <nav className="flex flex-col gap-2">
-            {FOOTER_LEGAL_LINKS.map((link) => (
+            {FOOTER_LEGAL_LINKS.map((link, index) => (
               <Link
-                key={link.href}
+                key={`${link.label}-${index}`}
                 href={link.href}
                 className="text-sm text-white/90 transition-colors hover:text-white"
               >

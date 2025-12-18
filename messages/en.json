@@ -18,7 +18,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "genericUser": "User"
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",

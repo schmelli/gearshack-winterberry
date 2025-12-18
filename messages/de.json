@@ -18,7 +18,8 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "edit": "Bearbeiten",
-    "uncategorized": "Unkategorisiert"
+    "uncategorized": "Unkategorisiert",
+    "genericUser": "Benutzer"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",

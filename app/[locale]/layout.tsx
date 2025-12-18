@@ -59,6 +59,7 @@ export default async function RootLayout({ children, params }: Props) {
     <html lang={locale} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${rockSalt.variable} antialiased`}
+        suppressHydrationWarning
       >
         {/* Feature 027: NextIntlClientProvider wraps all providers */}
         <NextIntlClientProvider messages={messages} locale={locale}>
