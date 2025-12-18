@@ -91,6 +91,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
         .from('gear_items')
         .select('*')
         .eq('user_id', userId)
+        .eq('status', 'own') // Only load owned items, not wishlist items
         .order('created_at', { ascending: false });
 
       if (error) {
