@@ -64,7 +64,7 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
     if (!userId) return;
 
     try {
-      const { data, error } = await supabase.rpc('check_ai_rate_limit', {
+      const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
         p_user_id: userId,
         p_endpoint: '/api/chat',
         p_limit: 30,

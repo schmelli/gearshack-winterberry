@@ -42,6 +42,8 @@ export function getAIModel() {
   // Create Anthropic provider with custom API key (for AI Gateway)
   const anthropic = createAnthropic({
     apiKey: AI_GATEWAY_API_KEY,
+    // If using Vercel AI Gateway, set the base URL
+    baseURL: process.env.AI_GATEWAY_BASE_URL || 'https://gateway.ai.cloudflare.com/v1',
   });
 
   return anthropic(modelName);
