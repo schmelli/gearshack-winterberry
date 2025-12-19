@@ -11,15 +11,10 @@ import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
 
-// Import tool definitions (Phase 4: Flexible database access)
+// Import tool definitions - Lean & powerful set
 import {
   queryUserDataTool,
   searchCatalogTool,
-  analyzeInventoryTool,
-  compareItemsTool,
-  getCommunityOffersTool,
-  getInsightsTool,
-  executeCalculationTool,
   searchWebTool,
 } from './tools';
 
@@ -69,82 +64,56 @@ export function getAIModel() {
 
 /**
  * Get all available tools for AI
- * Tools are defined as objects with description and Zod schema parameters
  *
- * Phase 4: Flexible database access - replaced 6 limited tools with 2 flexible ones:
- * - queryUserData: Replaces analyzeInventory, compareItems, getCommunityOffers, getInsights, executeCalculation
- * - searchCatalog: Enhanced for flexible catalog search
+ * Lean set of 6 powerful tools:
+ * - 3 Data Access tools (query, search catalog, search web)
+ * - 3 Action tools (wishlist, message, navigate)
+ *
+ * Philosophy: Flexible tools > Fixed schemas
  */
 export function getAITools() {
   return {
     // =========================================================================
-    // Core Data Access Tools (Phase 4: Flexible Database Access)
+    // Data Access Tools
     // =========================================================================
 
-    // NEW: Flexible user data queries - answers ANY question about user's gear/loadouts
+    // Query user's database (gear, loadouts, categories, etc.)
     queryUserData: queryUserDataTool,
 
-    // ENHANCED: Flexible catalog search - find any outdoor gear products
+    // Search product catalog
     searchCatalog: searchCatalogTool,
 
+    // Search the web for real-time information
+    searchWeb: searchWebTool,
+
     // =========================================================================
-    // Action Tools (Phase 1-2)
+    // Action Tools
     // =========================================================================
+
+    // Add item to wishlist
     addToWishlist: {
       description: 'Add a gear item to the user\'s wishlist for future purchase consideration',
       parameters: z.object({
-        gearItemId: z.string().describe('The UUID of the gear item to add to wishlist'),
+        gearItemId: z.string().uuid().describe('The UUID of the gear item to add to wishlist'),
       }),
     },
-    compareGear: {
-      description: 'Compare 2-4 gear items side-by-side to help user make decisions',
-      parameters: z.object({
-        gearItemIds: z.array(z.string()).min(2).max(4).describe('Array of 2-4 gear item UUIDs to compare'),
-      }),
-    },
+
+    // Send message to user
     sendMessage: {
       description: 'Send a message to another user in the community (for buying, borrowing, trading gear)',
       parameters: z.object({
-        recipientUserId: z.string().describe('The UUID of the user to send a message to'),
+        recipientUserId: z.string().uuid().describe('The UUID of the user to send a message to'),
         messagePreview: z.string().max(100).describe('Preview of the message content (first 50-100 chars)'),
       }),
     },
+
+    // Navigate to page
     navigate: {
       description: 'Navigate the user to a specific page in the app',
       parameters: z.object({
         destination: z.string().describe('The destination page (e.g., "inventory", "loadouts", "wishlist")'),
       }),
     },
-    searchCommunity: {
-      description: 'Search for gear available from other users (for sale, borrow, or trade)',
-      parameters: z.object({
-        query: z.string().describe('Search query (gear name, brand, model)'),
-        maxPrice: z.number().optional().describe('Maximum price filter (optional)'),
-        maxWeight: z.number().optional().describe('Maximum weight in grams (optional)'),
-      }),
-    },
-
-    // =========================================================================
-    // Additional Tools (Phase 3 - kept for backwards compatibility)
-    // =========================================================================
-
-    // Tool 7: Deep inventory analysis (DEPRECATED - use queryUserData instead)
-    analyzeInventory: analyzeInventoryTool,
-
-    // Tool 8: Detailed side-by-side item comparison (DEPRECATED - use queryUserData instead)
-    compareItems: compareItemsTool,
-
-    // Tool 9: Enhanced community offers search (DEPRECATED - use queryUserData instead)
-    getCommunityOffers: getCommunityOffersTool,
-
-    // Tool 10: GearGraph intelligence (DEPRECATED - use searchCatalog instead)
-    getInsights: getInsightsTool,
-
-    // Tool 11: Safe mathematical calculations (DEPRECATED - use queryUserData instead)
-    executeCalculation: executeCalculationTool,
-
-    // Tool 12: Web search for current information (Phase 2B)
-    searchWeb: searchWebTool,
   };
 }
 
