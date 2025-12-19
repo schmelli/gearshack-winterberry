@@ -1,13 +1,16 @@
 /**
  * useAIChat Hook
- * Feature 050: AI Assistant - T037
+ * Feature 050: AI Assistant - Agentic Features Enabled
  *
  * Manages AI conversation state, message sending, and streaming responses.
- * Implements optimistic updates and error handling.
+ * Implements optimistic updates, tool calling, and error handling.
  *
- * IMPORTANT: This hook uses the streaming API endpoint which does NOT support
- * tool calling (actions). For features requiring tool execution like adding
- * items to wishlist or sending messages, use the Server Action instead.
+ * Phase 1-4 Features:
+ * - Streaming responses with word-by-word display
+ * - Tool calling (all 11 tools available)
+ * - Multi-step orchestration for complex queries
+ * - Web search grounding (when enabled)
+ * - Autonomous reasoning and self-correction
  */
 
 'use client';
@@ -98,7 +101,7 @@ export function useAIChat(): UseAIChatResult {
         // Create abort controller for this request
         abortControllerRef.current = new AbortController();
 
-        // Call streaming API endpoint
+        // Call streaming API endpoint with tools enabled (Phase 1-4)
         const response = await fetch('/api/ai-assistant/stream', {
           method: 'POST',
           headers: {
@@ -108,6 +111,7 @@ export function useAIChat(): UseAIChatResult {
             conversationId,
             message: content,
             context,
+            enableTools: true, // Enable agentic features (all 11 tools + orchestration)
           }),
           signal: abortControllerRef.current.signal,
         });
