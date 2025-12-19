@@ -16,8 +16,9 @@ import { z } from 'zod';
  * AI Assistant environment variables
  */
 const aiEnvSchema = z.object({
-  // Anthropic/Vercel AI SDK
-  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required'),
+  // Anthropic API (optional - currently using Vercel AI Gateway)
+  // Future: Direct Anthropic API usage for advanced features
+  ANTHROPIC_API_KEY: z.string().optional(),
 
   // Web Search (optional - feature can be disabled)
   SERPER_API_KEY: z.string().optional(),
@@ -139,7 +140,7 @@ export function validateWebSearchConfig(): {
  * Validate AI configuration
  */
 export function validateAIConfig(): {
-  apiKey: string;
+  apiKey: string | undefined;
   timeout: number;
   generationEnabled: boolean;
   imageModel: string;

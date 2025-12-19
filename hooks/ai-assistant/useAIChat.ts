@@ -1,13 +1,16 @@
 /**
  * useAIChat Hook
- * Feature 050: AI Assistant - T037
+ * Feature 050: AI Assistant - Agentic Features Enabled
  *
  * Manages AI conversation state, message sending, and streaming responses.
- * Implements optimistic updates and error handling.
+ * Implements optimistic updates, tool calling, and error handling.
  *
- * IMPORTANT: This hook uses the streaming API endpoint which does NOT support
- * tool calling (actions). For features requiring tool execution like adding
- * items to wishlist or sending messages, use the Server Action instead.
+ * Phase 1-4 Features:
+ * - Streaming responses with word-by-word display
+ * - Tool calling (all 11 tools available)
+ * - Multi-step orchestration for complex queries
+ * - Web search grounding (when enabled)
+ * - Autonomous reasoning and self-correction
  */
 
 'use client';
@@ -20,6 +23,7 @@ import { toast } from 'sonner';
 import { useLocale } from 'next-intl';
 import { useItems } from '@/hooks/useSupabaseStore';
 import type { UserContext } from '@/types/ai-assistant';
+import { processSSEStream, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
 
 interface Message {
   id: string;
@@ -98,7 +102,7 @@ export function useAIChat(): UseAIChatResult {
         // Create abort controller for this request
         abortControllerRef.current = new AbortController();
 
-        // Call streaming API endpoint
+        // Call streaming API endpoint with tools enabled (Phase 1-4)
         const response = await fetch('/api/ai-assistant/stream', {
           method: 'POST',
           headers: {
@@ -108,6 +112,7 @@ export function useAIChat(): UseAIChatResult {
             conversationId,
             message: content,
             context,
+            enableTools: true, // Enable agentic features (all 11 tools + orchestration)
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -126,47 +131,55 @@ export function useAIChat(): UseAIChatResult {
           throw new Error('No response body');
         }
 
-        // Read streaming response
-        console.log('Starting to read stream...');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedText = '';
-        let chunkCount = 0;
+        // Process SSE stream with tool support
+        console.log('Starting to process SSE stream...');
+        const toolCalls: ToolCallData[] = [];
 
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            console.log('Stream complete. Total chunks:', chunkCount, 'Total length:', accumulatedText.length);
-            break;
+        const result = await processSSEStream(
+          response.body,
+          // onTextChunk: Update message content in real-time
+          (text: string) => {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === aiMessageId
+                  ? { ...msg, content: msg.content + text }
+                  : msg
+              )
+            );
+          },
+          // onToolCall: Capture tool calls for potential inline cards
+          (toolCall: ToolCallData) => {
+            toolCalls.push(toolCall);
+            console.log('Tool called:', toolCall.toolName, toolCall.args);
           }
-
-          chunkCount++;
-          // Decode chunk and accumulate
-          const chunk = decoder.decode(value, { stream: true });
-          accumulatedText += chunk;
-
-          if (chunkCount === 1) {
-            console.log('First chunk received:', chunk.substring(0, 50));
-          }
-
-          // Update the AI message with accumulated text
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === aiMessageId ? { ...msg, content: accumulatedText } : msg
-            )
-          );
-        }
+        );
 
         const latency = Date.now() - startTime;
 
-        console.log('Stream finished successfully:', { latency, messageLength: accumulatedText.length });
+        console.log('Stream finished successfully:', {
+          latency,
+          messageLength: result.content.length,
+          toolCalls: result.toolCalls.length,
+          finishReason: result.metadata.finishReason,
+        });
+
+        // Update final message with tool calls if any
+        if (result.toolCalls.length > 0) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === aiMessageId
+                ? { ...msg, inline_cards: result.toolCalls }
+                : msg
+            )
+          );
+        }
 
         logAIEvent('info', 'AI message streamed successfully', {
           userId: user.uid,
           conversationId: conversationId || 'new',
           latency,
-          messageLength: accumulatedText.length,
+          messageLength: result.content.length,
+          toolCallsExecuted: result.toolCalls.length,
         });
 
         return conversationId;
