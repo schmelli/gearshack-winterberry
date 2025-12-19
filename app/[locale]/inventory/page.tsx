@@ -357,7 +357,7 @@ function InventoryContent({
       />
 
       {/* Feature 049: View Toggle and Add Button */}
-      <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <WishlistToggle
           mode={viewMode}
           onModeChange={setViewMode}
@@ -365,10 +365,12 @@ function InventoryContent({
           wishlistCount={wishlistCount}
           onViewChangeAnnouncement={handleViewChangeAnnouncement}
         />
-        <Button asChild>
+        <Button asChild size="sm" className="shrink-0">
           <Link href={viewMode === 'wishlist' ? '/inventory/new?mode=wishlist' : '/inventory/new'}>
-            <Plus className="mr-2 h-4 w-4" />
-            {viewMode === 'wishlist' ? t('addToWishlist') : t('addItem')}
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">
+              {viewMode === 'wishlist' ? t('addToWishlist') : t('addItem')}
+            </span>
           </Link>
         </Button>
       </div>
