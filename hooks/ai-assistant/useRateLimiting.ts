@@ -31,9 +31,12 @@ interface UseRateLimitingResult extends RateLimitState {
  * @returns Rate limit state and check function
  */
 export function useRateLimiting(userId: string | null): UseRateLimitingResult {
+  // Check if rate limiting is disabled (for testing)
+  const rateLimitingDisabled = process.env.NEXT_PUBLIC_AI_RATE_LIMITING_DISABLED === 'true';
+
   const [state, setState] = useState<RateLimitState>({
-    remaining: 30,
-    total: 30,
+    remaining: rateLimitingDisabled ? 999 : 30,
+    total: rateLimitingDisabled ? 999 : 30,
     resetsAt: null,
     isLimited: false,
     timeUntilReset: '',
@@ -62,6 +65,12 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
   // Fetch current rate limit status
   const refreshRateLimit = useCallback(async () => {
     if (!userId) return;
+
+    // Skip rate limit check if disabled
+    if (rateLimitingDisabled) {
+      console.log('[Rate Limiting] Disabled for testing');
+      return;
+    }
 
     try {
       const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
@@ -93,7 +102,7 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
     } catch (err) {
       console.error('Failed to check rate limit:', err);
     }
-  }, [userId, supabase, calculateTimeUntilReset]);
+  }, [userId, supabase, calculateTimeUntilReset, rateLimitingDisabled]);
 
   // Check if user can send a message
   const checkRateLimit = useCallback(async (): Promise<boolean> => {
