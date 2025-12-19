@@ -34,6 +34,7 @@ import {
   encodeErrorEvent,
 } from '@/lib/ai-assistant/stream-parser';
 import type { UserContext } from '@/types/ai-assistant';
+import { validateAIConfig } from '@/lib/env';
 
 export const runtime = 'edge'; // Use Edge runtime for streaming
 
@@ -65,57 +66,65 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check subscription tier (Trailblazer only for MVP)
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    // 2. Check if rate limiting is disabled (for testing)
+    const aiConfig = validateAIConfig();
+    const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
 
-    if (profileError || !profile) {
-      return new Response(
-        JSON.stringify({ error: 'Unable to verify account status' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    if (!rateLimitingDisabled) {
+      // 2a. Check subscription tier (Trailblazer only for MVP)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single();
 
-    const subscriptionTier = (profile as any).subscription_tier || 'standard';
+      if (profileError || !profile) {
+        return new Response(
+          JSON.stringify({ error: 'Unable to verify account status' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    if (subscriptionTier !== 'trailblazer') {
-      return new Response(
-        JSON.stringify({ error: 'AI assistant is only available for Trailblazer subscribers' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+      const subscriptionTier = (profile as any).subscription_tier || 'standard';
 
-    // 3. Check and increment rate limit atomically
-    const { data: rateLimitDataRaw, error: rateLimitError } = await supabase.rpc('check_and_increment_rate_limit', {
-      p_user_id: user.id,
-      p_endpoint: '/api/ai-assistant/stream',
-      p_limit: 100, // Increased for testing (was 30)
-      p_window_hours: 1,
-    });
+      if (subscriptionTier !== 'trailblazer') {
+        return new Response(
+          JSON.stringify({ error: 'AI assistant is only available for Trailblazer subscribers' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    if (rateLimitError) {
-      console.error('Rate limit check failed:', rateLimitError);
-      return new Response(
-        JSON.stringify({ error: 'Unable to process request. Please try again.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+      // 2b. Check and increment rate limit atomically
+      const { data: rateLimitDataRaw, error: rateLimitError } = await supabase.rpc('check_and_increment_rate_limit', {
+        p_user_id: user.id,
+        p_endpoint: '/api/ai-assistant/stream',
+        p_limit: 100, // Increased for testing (was 30)
+        p_window_hours: 1,
+      });
 
-    const rateLimitData = rateLimitDataRaw as any;
+      if (rateLimitError) {
+        console.error('Rate limit check failed:', rateLimitError);
+        return new Response(
+          JSON.stringify({ error: 'Unable to process request. Please try again.' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    if (rateLimitData?.exceeded) {
-      recordRateLimitExceeded(user.id, '/api/ai-assistant/stream');
-      logAIQuery(user.id, conversationId || 'new', message, 'rate_limited');
+      const rateLimitData = rateLimitDataRaw as any;
 
-      return new Response(
-        JSON.stringify({
-          error: `Rate limit exceeded. You can send ${rateLimitData.limit} messages per hour. Resets at ${new Date(rateLimitData.resets_at).toLocaleTimeString()}.`,
-        }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } }
-      );
+      if (rateLimitData?.exceeded) {
+        recordRateLimitExceeded(user.id, '/api/ai-assistant/stream');
+        logAIQuery(user.id, conversationId || 'new', message, 'rate_limited');
+
+        return new Response(
+          JSON.stringify({
+            error: `Rate limit exceeded. You can send ${rateLimitData.limit} messages per hour. Resets at ${new Date(rateLimitData.resets_at).toLocaleTimeString()}.`,
+          }),
+          { status: 429, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      console.log('[AI Assistant] Rate limiting disabled for testing');
     }
 
     // 4. Validate input

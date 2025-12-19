@@ -173,6 +173,23 @@ export async function checkWebSearchLimit(
   userId: string,
   conversationId?: string | null
 ): Promise<RateLimitResult> {
+  // Check if rate limiting is disabled (for testing)
+  const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
+
+  if (rateLimitingDisabled) {
+    const limits = getRateLimitsFromEnv();
+    return {
+      allowed: true,
+      remaining: {
+        conversation: limits.perConversation,
+        daily: limits.perDay,
+        monthly: limits.perMonth,
+      },
+      resetAt: { daily: getTodayEnd(), monthly: getMonthEnd() },
+      reason: 'Rate limiting disabled for testing',
+    };
+  }
+
   // Check if web search is enabled and get limits
   const config = validateWebSearchConfig();
   if (!config || !config.enabled) {
