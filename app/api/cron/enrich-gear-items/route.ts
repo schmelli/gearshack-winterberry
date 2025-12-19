@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createModuleLogger } from '@/lib/utils/logger';
+import { fuzzyProductSearch, fuzzyBrandSearch } from '@/lib/supabase/catalog';
 
 const log = createModuleLogger('cron:enrich-gear-items');
 
@@ -33,7 +34,7 @@ interface CatalogMatch {
   score: number;
 }
 
-const MIN_MATCH_CONFIDENCE = 0.85; // Only suggest high-confidence matches
+const MIN_MATCH_CONFIDENCE = 0.70; // Match threshold - allows "contains" matches from fuzzyProductSearch
 
 export async function GET(request: NextRequest) {
   try {
@@ -205,60 +206,64 @@ export async function GET(request: NextRequest) {
 
 /**
  * Find matching catalog products for a gear item
+ * Uses the fuzzyProductSearch utility which has proper ILIKE queries and scoring
  */
 async function findCatalogMatches(
-  supabase: any,
+  supabase: ReturnType<typeof createServiceRoleClient>,
   item: GearItem
 ): Promise<CatalogMatch[]> {
-  // Build search query - match by name and optionally brand
-  let query = supabase
-    .from('catalog_products')
-    .select('id, name, weight_grams, description, price_usd')
-    .ilike('name', `%${item.name}%`)
-    .limit(5);
-
-  // Filter by brand if available
-  if (item.brand) {
-    query = query.or(
-      `brand_id.in.(select id from catalog_brands where name ilike '%${item.brand}%'),brand_external_id.ilike.%${item.brand}%`
-    );
-  }
-
-  const { data, error } = await query;
-
-  if (error || !data) {
-    return [];
-  }
-
-  // Calculate similarity scores
-  const matches: CatalogMatch[] = data.map((product: any) => {
-    const nameLower = product.name.toLowerCase();
-    const itemNameLower = item.name.toLowerCase();
-
-    // Simple similarity: exact match > starts with > contains
-    let score = 0;
-    if (nameLower === itemNameLower) {
-      score = 1.0;
-    } else if (nameLower.startsWith(itemNameLower) || itemNameLower.startsWith(nameLower)) {
-      score = 0.9;
-    } else if (nameLower.includes(itemNameLower) || itemNameLower.includes(nameLower)) {
-      score = 0.8;
-    } else {
-      score = 0.5; // Partial match from ILIKE
+  try {
+    // If brand is provided, first look up the brand ID
+    let brandId: string | undefined;
+    if (item.brand) {
+      try {
+        const brandResults = await fuzzyBrandSearch(supabase, item.brand, 1);
+        if (brandResults.length > 0 && brandResults[0].similarity >= 0.7) {
+          brandId = brandResults[0].id;
+          log.debug('Found brand match', {
+            brand: item.brand,
+            matchedBrand: brandResults[0].name,
+            similarity: brandResults[0].similarity
+          });
+        }
+      } catch (brandError) {
+        log.warn('Brand lookup failed, continuing without brand filter', { brand: item.brand }, brandError as Error);
+      }
     }
 
-    return {
-      id: product.id,
-      name: product.name,
-      weight_grams: product.weight_grams,
-      description: product.description,
-      price_usd: product.price_usd,
-      score,
-    };
-  });
+    // Search for matching products using the proven fuzzyProductSearch
+    const products = await fuzzyProductSearch(supabase, item.name, {
+      brandId,
+      limit: 5,
+    });
 
-  // Filter by minimum confidence and sort by score
-  return matches
-    .filter((m) => m.score >= MIN_MATCH_CONFIDENCE)
-    .sort((a, b) => b.score - a.score);
+    if (products.length === 0) {
+      log.debug('No catalog matches found', { gear_item_id: item.id, name: item.name });
+      return [];
+    }
+
+    // Map to CatalogMatch format and filter by confidence threshold
+    const matches: CatalogMatch[] = products
+      .filter((p) => p.score >= MIN_MATCH_CONFIDENCE)
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        weight_grams: product.weightGrams,
+        description: product.description,
+        price_usd: product.priceUsd,
+        score: product.score,
+      }));
+
+    log.debug('Catalog matches found', {
+      gear_item_id: item.id,
+      name: item.name,
+      matchCount: matches.length,
+      topScore: matches[0]?.score
+    });
+
+    return matches;
+  } catch (error) {
+    log.error('Failed to find catalog matches', { gear_item_id: item.id, name: item.name }, error as Error);
+    return [];
+  }
 }
