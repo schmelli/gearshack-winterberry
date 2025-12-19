@@ -1,11 +1,24 @@
 /**
  * AI Assistant Tools Index
- * Feature 050: AI Assistant - Phase 3
+ * Feature 050: AI Assistant - Flexible Database Access
  *
  * Exports all tool definitions and execute functions for the AI assistant.
+ *
+ * Phase 4: Replaced 6 fixed-schema tools with 2 flexible tools:
+ * - queryUserData: Flexible Supabase queries (replaces analyzeInventory, compareItems, etc.)
+ * - searchCatalog: Flexible catalog search (enhanced existing tool)
  */
 
-// Search Catalog Tool
+// Query User Data Tool (NEW - Phase 4)
+export {
+  queryUserDataTool,
+  queryUserDataParametersSchema,
+  executeQueryUserData,
+  type QueryUserDataParameters,
+  type QueryUserDataResponse,
+} from './query-user-data';
+
+// Search Catalog Tool (Enhanced - Phase 4)
 export {
   searchCatalogTool,
   searchCatalogParametersSchema,

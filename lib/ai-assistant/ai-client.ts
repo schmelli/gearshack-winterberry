@@ -11,8 +11,9 @@ import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
 
-// Import new tool definitions from Phase 3
+// Import tool definitions (Phase 4: Flexible database access)
 import {
+  queryUserDataTool,
   searchCatalogTool,
   analyzeInventoryTool,
   compareItemsTool,
@@ -70,12 +71,24 @@ export function getAIModel() {
  * Get all available tools for AI
  * Tools are defined as objects with description and Zod schema parameters
  *
- * Phase 3: Expanded from 5 to 11 tools
+ * Phase 4: Flexible database access - replaced 6 limited tools with 2 flexible ones:
+ * - queryUserData: Replaces analyzeInventory, compareItems, getCommunityOffers, getInsights, executeCalculation
+ * - searchCatalog: Enhanced for flexible catalog search
  */
 export function getAITools() {
   return {
     // =========================================================================
-    // Original 5 Tools (Phase 1-2)
+    // Core Data Access Tools (Phase 4: Flexible Database Access)
+    // =========================================================================
+
+    // NEW: Flexible user data queries - answers ANY question about user's gear/loadouts
+    queryUserData: queryUserDataTool,
+
+    // ENHANCED: Flexible catalog search - find any outdoor gear products
+    searchCatalog: searchCatalogTool,
+
+    // =========================================================================
+    // Action Tools (Phase 1-2)
     // =========================================================================
     addToWishlist: {
       description: 'Add a gear item to the user\'s wishlist for future purchase consideration',
@@ -112,25 +125,22 @@ export function getAITools() {
     },
 
     // =========================================================================
-    // New 6 Tools (Phase 3)
+    // Additional Tools (Phase 3 - kept for backwards compatibility)
     // =========================================================================
 
-    // Tool 6: Advanced GearGraph catalog search with filters
-    searchCatalog: searchCatalogTool,
-
-    // Tool 7: Deep inventory analysis (base weight, categories, prices)
+    // Tool 7: Deep inventory analysis (DEPRECATED - use queryUserData instead)
     analyzeInventory: analyzeInventoryTool,
 
-    // Tool 8: Detailed side-by-side item comparison
+    // Tool 8: Detailed side-by-side item comparison (DEPRECATED - use queryUserData instead)
     compareItems: compareItemsTool,
 
-    // Tool 9: Enhanced community offers search
+    // Tool 9: Enhanced community offers search (DEPRECATED - use queryUserData instead)
     getCommunityOffers: getCommunityOffersTool,
 
-    // Tool 10: GearGraph intelligence (reviews, sustainability, durability)
+    // Tool 10: GearGraph intelligence (DEPRECATED - use searchCatalog instead)
     getInsights: getInsightsTool,
 
-    // Tool 11: Safe mathematical calculations
+    // Tool 11: Safe mathematical calculations (DEPRECATED - use queryUserData instead)
     executeCalculation: executeCalculationTool,
 
     // Tool 12: Web search for current information (Phase 2B)
