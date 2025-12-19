@@ -157,7 +157,12 @@ export async function indentCategory(id: string): Promise<{ error: string | null
   }
 
   const { data: siblings } = await siblingsQuery;
-  const currentIndex = siblings?.findIndex((s) => s.id === id) ?? -1;
+
+  if (!siblings || siblings.length === 0) {
+    return { error: 'No siblings found' };
+  }
+
+  const currentIndex = siblings.findIndex((s) => s.id === id);
 
   if (currentIndex <= 0) {
     return { error: 'No previous sibling to indent under' };
@@ -195,6 +200,7 @@ export async function outdentCategory(id: string): Promise<{ error: string | nul
 
   if (!current) return { error: 'Category not found' };
   if (current.level === 1) return { error: 'Level 1 categories cannot be outdented' };
+  if (!current.parent_id) return { error: 'Category has no parent' };
 
   // Get parent to find grandparent
   const { data: parent } = await supabase
@@ -250,11 +256,15 @@ export async function moveCategory(
 
   const { data: siblings } = await siblingsQuery;
 
-  const currentIndex = siblings?.findIndex((s) => s.id === id) ?? -1;
+  if (!siblings || siblings.length === 0) {
+    return { error: 'No siblings found' };
+  }
+
+  const currentIndex = siblings.findIndex((s) => s.id === id);
   if (currentIndex === -1) return { error: 'Category not found in siblings' };
 
   const adjacentIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-  const adjacent = siblings?.[adjacentIndex];
+  const adjacent = siblings[adjacentIndex];
 
   if (!adjacent) return { error: 'No adjacent sibling to swap with' };
 
