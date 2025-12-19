@@ -31,6 +31,7 @@ export const analyzeInventoryParametersSchema = z.object({
         .enum(['own', 'wishlist'])
         .optional()
         .describe('Filter by item status'),
+      brand: z.string().optional().describe('Filter by brand name (case-insensitive)'),
     })
     .optional()
     .describe('Optional filters to narrow analysis scope'),
@@ -166,7 +167,7 @@ async function analyzeBaseWeight(
   userId: string,
   filters?: AnalyzeInventoryParameters['filters']
 ): Promise<AnalyzeInventoryResponse> {
-  const analysis = await calculateBaseWeight(userId);
+  const analysis = await calculateBaseWeight(userId, filters);
 
   // Apply category filter if specified
   let filteredBreakdowns = analysis.categoryBreakdowns;
@@ -217,7 +218,7 @@ async function analyzeCategoryBreakdown(
   userId: string,
   filters?: AnalyzeInventoryParameters['filters']
 ): Promise<AnalyzeInventoryResponse> {
-  const analysis = await calculateBaseWeight(userId);
+  const analysis = await calculateBaseWeight(userId, filters);
 
   // Apply category filter if specified
   let filteredBreakdowns = analysis.categoryBreakdowns;
@@ -274,6 +275,9 @@ async function analyzePrices(
   }
   if (filters?.categoryId) {
     query = query.eq('category_id', filters.categoryId);
+  }
+  if (filters?.brand) {
+    query = query.ilike('brand', filters.brand);
   }
 
   const { data: gearItems, error } = await query;

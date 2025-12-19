@@ -43,17 +43,39 @@ export interface BaseWeightAnalysis {
  * Optimized to use a single query with join instead of N+1 queries
  *
  * @param userId - User UUID
+ * @param filters - Optional filters (brand, status, categoryId)
  * @returns Base weight analysis with category breakdowns
  */
-export async function calculateBaseWeight(userId: string): Promise<BaseWeightAnalysis> {
+export async function calculateBaseWeight(
+  userId: string,
+  filters?: { brand?: string; status?: string; categoryId?: string }
+): Promise<BaseWeightAnalysis> {
   const supabase = await createClient();
 
   // Fetch gear items WITH category data in single query (join optimization)
-  const { data: gearItems, error } = await supabase
+  let query = supabase
     .from('gear_items')
-    .select('id, name, weight_grams, category_id, status, categories(id, label, i18n)')
-    .eq('user_id', userId)
-    .eq('status', 'own'); // Only count owned items, not wishlist
+    .select('id, name, brand, weight_grams, category_id, status, categories(id, label, i18n)')
+    .eq('user_id', userId);
+
+  // Apply status filter (default to 'own')
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  } else {
+    query = query.eq('status', 'own'); // Only count owned items, not wishlist
+  }
+
+  // Apply brand filter (case-insensitive)
+  if (filters?.brand) {
+    query = query.ilike('brand', filters.brand);
+  }
+
+  // Apply category filter
+  if (filters?.categoryId) {
+    query = query.eq('category_id', filters.categoryId);
+  }
+
+  const { data: gearItems, error } = await query;
 
   if (error) {
     console.error('Error fetching gear items:', error);
