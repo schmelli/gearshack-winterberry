@@ -238,6 +238,14 @@
     "brandPlaceholder": "Markenname eingeben",
     "categoryLabel": "Kategorie",
     "categoryPlaceholder": "Kategorie auswählen",
+    "selectCategory": "Kategorie auswählen...",
+    "selectSubcategory": "Unterkategorie auswählen...",
+    "selectProductType": "Produkttyp auswählen...",
+    "categoryDescription": "Wähle die Hauptkategorie der Ausrüstung",
+    "subcategoryDescription": "Wähle einen spezifischeren Typ",
+    "productTypeDescription": "Wähle den genauen Produkttyp",
+    "loading": "Lädt...",
+    "noOptions": "Keine Optionen verfügbar",
     "weightLabel": "Gewicht",
     "weightPlaceholder": "Gewicht eingeben",
     "priceLabel": "Preis",
@@ -480,5 +488,11 @@
         "rateLimited": "Ratenlimit überschritten. Bitte später erneut versuchen."
       }
     }
+  },
+  "Profile": {
+    "favorites": "Favoriten",
+    "forSale": "Zu verkaufen",
+    "forRent": "Zu verleihen",
+    "forTrade": "Zum Tauschen"
   }
 }

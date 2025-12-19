@@ -238,6 +238,14 @@
     "brandPlaceholder": "Enter brand name",
     "categoryLabel": "Category",
     "categoryPlaceholder": "Select category",
+    "selectCategory": "Select a category...",
+    "selectSubcategory": "Select a subcategory...",
+    "selectProductType": "Select a product type...",
+    "categoryDescription": "Select the main gear category",
+    "subcategoryDescription": "Select a more specific type",
+    "productTypeDescription": "Select the exact product type",
+    "loading": "Loading...",
+    "noOptions": "No options available",
     "weightLabel": "Weight",
     "weightPlaceholder": "Enter weight",
     "priceLabel": "Price",
@@ -485,5 +493,11 @@
         "rateLimited": "Rate limit exceeded. Try again later."
       }
     }
+  },
+  "Profile": {
+    "favorites": "Favorites",
+    "forSale": "For Sale",
+    "forRent": "For Rent",
+    "forTrade": "For Trade"
   }
 }
