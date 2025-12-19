@@ -1,24 +1,25 @@
 /**
  * AI Assistant Streaming API Route
  * Feature 050: AI Assistant - Streaming Support
+ * Phase 1: Tool Support in Streaming
  *
  * Provides real-time streaming of AI responses using Vercel AI SDK.
  * Returns Server-Sent Events (SSE) for word-by-word display.
  *
- * LIMITATION: This endpoint does NOT support tool calling (actions).
- * Tool execution (addToWishlist, compareGear, sendMessage, etc.) is only
- * available via the non-streaming Server Action in actions.ts.
+ * Phase 1 Enhancement: Now supports tool calling during streaming.
+ * Tool metadata is emitted via SSE events for client-side orchestration.
  *
- * Use this endpoint for:
- * - Pure conversational responses
- * - Inventory analysis
- * - General questions
+ * SSE Event Types:
+ * - text: Text content chunk
+ * - tool_call: Tool invocation metadata
+ * - done: Stream complete with final metadata
+ * - error: Error occurred during streaming
  *
- * Use the Server Action (sendAIMessage) for:
- * - Tool calling and action execution
- * - Adding items to wishlist
- * - Sending messages to other users
- * - Any operation requiring structured responses
+ * Request Body:
+ * - conversationId: string | null - Existing conversation or null for new
+ * - message: string - User's message
+ * - context: UserContext - Current app context
+ * - enableTools?: boolean - Enable tool calling (default: false for backwards compat)
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -27,6 +28,11 @@ import { buildSystemPrompt } from '@/lib/ai-assistant/prompt-builder';
 import { getCachedResponse, isCacheableQuery, getFallbackResponse } from '@/lib/ai-assistant/cache-strategy';
 import { recordRateLimitExceeded, logAIQuery } from '@/lib/ai-assistant/observability';
 import { MAX_MESSAGE_LENGTH, MIN_MESSAGE_LENGTH } from '@/lib/ai-assistant/constants';
+import {
+  encodeTextChunk,
+  encodeDoneEvent,
+  encodeErrorEvent,
+} from '@/lib/ai-assistant/stream-parser';
 import type { UserContext } from '@/types/ai-assistant';
 
 export const runtime = 'edge'; // Use Edge runtime for streaming
@@ -35,6 +41,8 @@ interface StreamRequest {
   conversationId: string | null;
   message: string;
   context: UserContext;
+  /** Phase 1: Enable tool calling in streaming (default: false) */
+  enableTools?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -42,7 +50,7 @@ export async function POST(request: Request) {
 
   try {
     const body: StreamRequest = await request.json();
-    const { conversationId, message, context } = body;
+    const { conversationId, message, context, enableTools = false } = body;
 
     // 1. Authenticate user
     const {
@@ -166,17 +174,68 @@ export async function POST(request: Request) {
     // 6. Build context-aware system prompt (with catalog search)
     const systemPrompt = await buildSystemPrompt(context, user.id, trimmedMessage);
 
-    // 7. Generate streaming AI response
-    const textStream = await generateStreamingAIResponse(systemPrompt, trimmedMessage);
+    // 7. Generate streaming AI response (Phase 1: with optional tools)
+    const streamingResult = await generateStreamingAIResponse(
+      systemPrompt,
+      trimmedMessage,
+      enableTools
+    );
 
     logAIQuery(user.id, conversationId || 'new', trimmedMessage, 'streaming');
 
-    // 8. Return streaming response
-    return new Response(textStream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-    });
+    // 8. Create SSE stream with text and tool metadata
+    // Phase 1: When enableTools is true, use SSE format for tool support
+    // When enableTools is false, maintain backwards compatibility with plain text
+    if (enableTools) {
+      // SSE format with tool support
+      const encoder = new TextEncoder();
+
+      const sseStream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Stream text chunks as SSE events
+            for await (const chunk of streamingResult.textStream) {
+              controller.enqueue(encoder.encode(encodeTextChunk(chunk)));
+            }
+
+            // Wait for tool calls and finish reason
+            const [toolCalls, finishReason] = await Promise.all([
+              streamingResult.toolCalls,
+              streamingResult.finishReason,
+            ]);
+
+            // Send done event with tool calls
+            controller.enqueue(
+              encoder.encode(encodeDoneEvent(finishReason, toolCalls))
+            );
+
+            controller.close();
+          } catch (err) {
+            const errorMessage =
+              err instanceof Error ? err.message : 'Streaming error';
+            controller.enqueue(
+              encoder.encode(encodeErrorEvent(errorMessage, 'STREAM_ERROR'))
+            );
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(sseStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    } else {
+      // Backwards compatible plain text stream (no SSE formatting)
+      return new Response(streamingResult.textStream as unknown as BodyInit, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    }
   } catch (error) {
     console.error('Error in streaming endpoint:', error);
     return new Response(

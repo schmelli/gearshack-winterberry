@@ -97,6 +97,53 @@ function extractActionFromToolCall(toolCall: any): Action | null {
       // TODO: Could extract inline cards here in future
       return null;
 
+    // =========================================================================
+    // Phase 3: New tools - these return data, not UI actions
+    // =========================================================================
+
+    // searchCatalog returns catalog search results (data tool)
+    case 'searchCatalog':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
+    // analyzeInventory returns inventory analysis (data tool)
+    case 'analyzeInventory':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
+    // compareItems returns comparison data (could trigger compare UI in future)
+    case 'compareItems':
+      // If we have item IDs, we could map this to a compare action
+      if (args.itemIds && Array.isArray(args.itemIds) && args.itemIds.length >= 2) {
+        return {
+          type: 'compare',
+          gearItemIds: args.itemIds,
+          status: 'pending',
+          error: null,
+        };
+      }
+      return null;
+
+    // getCommunityOffers returns community availability (data tool)
+    case 'getCommunityOffers':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
+    // getInsights returns GearGraph insights (data tool)
+    case 'getInsights':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
+    // executeCalculation performs math operations (data tool)
+    case 'executeCalculation':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
+    // searchWeb performs web search (data tool - Phase 2B)
+    case 'searchWeb':
+      // Data tool - results are used by AI to formulate response
+      return null;
+
     default:
       console.warn(`Unknown tool call: ${toolName}`);
       return null;
