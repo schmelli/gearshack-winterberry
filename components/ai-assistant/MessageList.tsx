@@ -38,7 +38,7 @@ export function MessageList({ conversationId, messages, isLoading, isStreaming =
   }, [messages]);
 
   // Empty state
-  if (!conversationId || messages.length === 0) {
+  if (messages.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">

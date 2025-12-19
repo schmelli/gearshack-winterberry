@@ -18,6 +18,7 @@ import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useLocale } from 'next-intl';
+import { useItems } from '@/hooks/useSupabaseStore';
 import type { UserContext } from '@/types/ai-assistant';
 
 interface Message {
@@ -42,6 +43,7 @@ export function useAIChat(): UseAIChatResult {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuthContext();
   const locale = useLocale();
+  const items = useItems();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
@@ -85,7 +87,7 @@ export function useAIChat(): UseAIChatResult {
         const context: UserContext = {
           screen: 'chat',
           locale,
-          inventoryCount: 0, // TODO: Get actual count
+          inventoryCount: items.length,
           currentLoadoutId: undefined,
           userId: user.uid,
           subscriptionTier: 'trailblazer', // TODO: Get actual subscription tier
@@ -190,7 +192,7 @@ export function useAIChat(): UseAIChatResult {
         abortControllerRef.current = null;
       }
     },
-    [user, locale]
+    [user, locale, items]
   );
 
   const clearError = useCallback(() => {

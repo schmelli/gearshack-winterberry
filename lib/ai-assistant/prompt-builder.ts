@@ -7,7 +7,7 @@
  */
 
 import type { UserContext } from '@/types/ai-assistant';
-import { calculateBaseWeight, formatWeight } from './inventory-analyzer';
+import { calculateBaseWeight, formatWeight, getUserGearList, searchCatalogForQuery } from './inventory-analyzer';
 
 /**
  * Build a context-aware system prompt for the AI
@@ -16,16 +16,19 @@ import { calculateBaseWeight, formatWeight } from './inventory-analyzer';
  * - User's current screen/context
  * - Inventory size and available data
  * - Base weight analysis and category breakdowns (T071)
+ * - Catalog search results for products mentioned in query
  * - Locale for appropriate language responses
  * - Behavioral guidelines (tone, capabilities, limitations)
  *
  * @param context - User's current state and preferences
  * @param userId - User UUID for inventory analysis
+ * @param userMessage - User's message (for catalog search)
  * @returns Formatted system prompt string
  */
 export async function buildSystemPrompt(
   context: UserContext,
-  userId?: string
+  userId?: string,
+  userMessage?: string
 ): Promise<string> {
   const {
     screen,
@@ -43,11 +46,23 @@ export async function buildSystemPrompt(
 
   // T071: Fetch inventory analysis if user has gear
   let baseWeightAnalysis = null;
+  let gearList = '';
   if (hasInventory && userId) {
     try {
       baseWeightAnalysis = await calculateBaseWeight(userId);
+      gearList = await getUserGearList(userId);
     } catch (error) {
       console.error('Failed to calculate base weight:', error);
+    }
+  }
+
+  // Search catalog for products mentioned in user's message
+  let catalogResults = '';
+  if (userMessage) {
+    try {
+      catalogResults = await searchCatalogForQuery(userMessage);
+    } catch (error) {
+      console.error('Failed to search catalog:', error);
     }
   }
 
@@ -125,6 +140,24 @@ export async function buildSystemPrompt(
     );
   }
 
+  // Add user's actual gear list to prevent hallucination
+  if (gearList) {
+    sections.push(
+      isGerman
+        ? `\n**Inventar des Nutzers (Ausrüstung):**\n${gearList}\n\n**WICHTIG:** Dies ist die vollständige Liste der Ausrüstung des Nutzers. Erfinde NIEMALS Gegenstände, die nicht in dieser Liste stehen. Wenn du nach einem Gegenstand gefragt wirst, beziehe dich NUR auf diese Liste.`
+        : `\n**User's Inventory (Gear Items):**\n${gearList}\n\n**IMPORTANT:** This is the user's complete gear list. NEVER make up items that are not in this list. When asked about specific gear, refer ONLY to this list.`
+    );
+  }
+
+  // Add catalog search results (GearGraph knowledge base)
+  if (catalogResults) {
+    sections.push(
+      isGerman
+        ? `\n**GearGraph Katalog (Produkte aus der Datenbank):**\n${catalogResults}\n\n**HINWEIS:** Diese Produkte stammen aus dem GearGraph-Katalog und sind NICHT im Inventar des Nutzers. Verwende diese Informationen, um Fragen zu spezifischen Produkten zu beantworten oder Empfehlungen zu geben. Mache klar, dass diese Gegenstände aus dem Katalog stammen, nicht aus dem Inventar des Nutzers.`
+        : `\n**GearGraph Catalog (Products from database):**\n${catalogResults}\n\n**NOTE:** These products are from the GearGraph catalog and are NOT in the user's inventory. Use this information to answer questions about specific products or make recommendations. Make it clear that these items are from the catalog, not the user's inventory.`
+    );
+  }
+
   // 3. Capabilities and Guidelines (T063: Gear alternative recommendations, T079: Community search)
   sections.push(
     isGerman
@@ -192,14 +225,16 @@ export async function buildSystemPrompt(
  * @param previousMessages - Array of previous message contents
  * @param context - Current user context
  * @param userId - User UUID for inventory analysis
+ * @param userMessage - User's current message (for catalog search)
  * @returns Formatted system prompt with conversation history
  */
 export async function buildFollowUpPrompt(
   previousMessages: Array<{ role: 'user' | 'assistant'; content: string }>,
   context: UserContext,
-  userId?: string
+  userId?: string,
+  userMessage?: string
 ): Promise<string> {
-  const basePrompt = await buildSystemPrompt(context, userId);
+  const basePrompt = await buildSystemPrompt(context, userId, userMessage);
 
   const conversationSummary = previousMessages
     .slice(-6) // Last 3 exchanges

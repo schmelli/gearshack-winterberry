@@ -163,8 +163,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Build context-aware system prompt
-    const systemPrompt = await buildSystemPrompt(context, user.id);
+    // 6. Build context-aware system prompt (with catalog search)
+    const systemPrompt = await buildSystemPrompt(context, user.id, trimmedMessage);
 
     // 7. Generate streaming AI response
     const textStream = await generateStreamingAIResponse(systemPrompt, trimmedMessage);

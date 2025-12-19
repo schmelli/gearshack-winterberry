@@ -284,3 +284,101 @@ export function convertWeight(
       return grams;
   }
 }
+
+/**
+ * Fetch user's gear items for AI context
+ *
+ * Returns a formatted list of gear items to prevent AI hallucination.
+ * Limits to 50 items to stay within token limits.
+ *
+ * @param userId - User UUID
+ * @returns Formatted string of gear items
+ */
+export async function getUserGearList(userId: string): Promise<string> {
+  const supabase = await createClient();
+
+  const { data: gearItems, error } = await supabase
+    .from('gear_items')
+    .select('id, name, brand, weight_grams, status, product_type_id, categories!inner(label, i18n)')
+    .eq('user_id', userId)
+    .eq('status', 'own')
+    .order('name', { ascending: true })
+    .limit(50);
+
+  if (error || !gearItems || gearItems.length === 0) {
+    return '';
+  }
+
+  // Format items as a bulleted list
+  const formattedItems = gearItems.map((item) => {
+    const category = (item as any).categories;
+    const categoryLabel = category?.label || 'Uncategorized';
+    const brand = item.brand ? `${item.brand} ` : '';
+    const weight = item.weight_grams ? ` - ${item.weight_grams}g` : '';
+
+    return `  * ${brand}${item.name}${weight} (${categoryLabel})`;
+  });
+
+  return formattedItems.join('\n');
+}
+
+/**
+ * Search GearGraph catalog for products mentioned in user query
+ *
+ * Extracts potential product/brand names from the query and searches the catalog.
+ * Returns formatted results to provide AI with accurate product information.
+ *
+ * @param query - User's message
+ * @returns Formatted string of catalog search results
+ */
+export async function searchCatalogForQuery(query: string): Promise<string> {
+  const supabase = await createClient();
+
+  // Extract potential search terms (words with 3+ chars, excluding common words)
+  const stopWords = new Set(['the', 'and', 'for', 'with', 'what', 'how', 'about', 'tell', 'show', 'find', 'get', 'recommend', 'suggest', 'best', 'good', 'better', 'lighter', 'heavier', 'cheaper']);
+  const words = query.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !stopWords.has(w));
+
+  if (words.length === 0) return '';
+
+  // Search for products matching any of the extracted terms
+  const searchTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+
+  const { data: products, error } = await supabase
+    .from('catalog_products')
+    .select(`
+      id,
+      name,
+      category_main,
+      subcategory,
+      product_type,
+      description,
+      price_usd,
+      weight_grams,
+      catalog_brands!catalog_products_brand_id_fkey (
+        id,
+        name
+      )
+    `)
+    .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+    .limit(5);
+
+  if (error || !products || products.length === 0) {
+    return '';
+  }
+
+  // Format catalog results
+  const formattedProducts = products.map((product) => {
+    const brand = product.catalog_brands ? `${product.catalog_brands.name} ` : '';
+    const weight = product.weight_grams ? ` - ${product.weight_grams}g` : '';
+    const price = product.price_usd ? ` - $${product.price_usd}` : '';
+    const category = product.category_main || 'Uncategorized';
+    const description = product.description ? `\n    ${product.description.substring(0, 150)}${product.description.length > 150 ? '...' : ''}` : '';
+
+    return `  * ${brand}${product.name}${weight}${price} (${category})${description}`;
+  });
+
+  return formattedProducts.join('\n\n');
+}
