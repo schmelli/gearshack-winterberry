@@ -96,7 +96,6 @@ export interface CatalogSearchResult {
   description: string | null;
   priceUsd: number | null;
   weightGrams: number | null;
-  imageUrl: string | null;
 }
 
 export interface SearchCatalogResponse {
@@ -140,8 +139,6 @@ export async function executeSearchCatalog(
         description,
         price_usd,
         weight_grams,
-        image_url,
-        source_url,
         catalog_brands!catalog_products_brand_id_fkey (
           id,
           name
@@ -259,7 +256,6 @@ export async function executeSearchCatalog(
       description: product.description,
       priceUsd: product.price_usd,
       weightGrams: product.weight_grams,
-      imageUrl: product.image_url,
     }));
 
     // Apply brand filter (post-query, case-insensitive)

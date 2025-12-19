@@ -37,7 +37,7 @@ export const queryUserDataParametersSchema = z.object({
     .describe('Columns to select (comma-separated, e.g., "id,name,brand,weight_grams")'),
 
   filters: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
     .describe('Filters to apply (e.g., {"brand": "Osprey", "status": "own"})'),
 
