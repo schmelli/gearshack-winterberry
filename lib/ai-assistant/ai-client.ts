@@ -11,6 +11,17 @@ import { generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { withRetry } from './retry';
 
+// Import new tool definitions from Phase 3
+import {
+  searchCatalogTool,
+  analyzeInventoryTool,
+  compareItemsTool,
+  getCommunityOffersTool,
+  getInsightsTool,
+  executeCalculationTool,
+  searchWebTool,
+} from './tools';
+
 // Environment configuration
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4.5';
@@ -58,9 +69,14 @@ export function getAIModel() {
 /**
  * Get all available tools for AI
  * Tools are defined as objects with description and Zod schema parameters
+ *
+ * Phase 3: Expanded from 5 to 11 tools
  */
 export function getAITools() {
   return {
+    // =========================================================================
+    // Original 5 Tools (Phase 1-2)
+    // =========================================================================
     addToWishlist: {
       description: 'Add a gear item to the user\'s wishlist for future purchase consideration',
       parameters: z.object({
@@ -94,6 +110,31 @@ export function getAITools() {
         maxWeight: z.number().optional().describe('Maximum weight in grams (optional)'),
       }),
     },
+
+    // =========================================================================
+    // New 6 Tools (Phase 3)
+    // =========================================================================
+
+    // Tool 6: Advanced GearGraph catalog search with filters
+    searchCatalog: searchCatalogTool,
+
+    // Tool 7: Deep inventory analysis (base weight, categories, prices)
+    analyzeInventory: analyzeInventoryTool,
+
+    // Tool 8: Detailed side-by-side item comparison
+    compareItems: compareItemsTool,
+
+    // Tool 9: Enhanced community offers search
+    getCommunityOffers: getCommunityOffersTool,
+
+    // Tool 10: GearGraph intelligence (reviews, sustainability, durability)
+    getInsights: getInsightsTool,
+
+    // Tool 11: Safe mathematical calculations
+    executeCalculation: executeCalculationTool,
+
+    // Tool 12: Web search for current information (Phase 2B)
+    searchWeb: searchWebTool,
   };
 }
 
@@ -194,18 +235,45 @@ export async function generateAIResponse(
 }
 
 /**
+ * Result type for streaming AI responses with tool support
+ * Phase 1: Enable tools in streaming endpoint
+ */
+export interface StreamingAIResult {
+  /** Async iterator for text chunks */
+  textStream: AsyncIterable<string>;
+  /** Promise that resolves to tool calls when complete */
+  toolCalls: Promise<ToolCallResult[]>;
+  /** Promise that resolves to full text when complete */
+  fullText: Promise<string>;
+  /** Promise that resolves to finish reason */
+  finishReason: Promise<string>;
+}
+
+/**
+ * Tool call result structure from Vercel AI SDK
+ */
+export interface ToolCallResult {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+/**
  * Generate a streaming AI response (for real-time UI updates)
+ * Phase 1: Added enableTools parameter for tool calling during streaming
  *
  * @param systemPrompt - The system instructions for the AI
  * @param userMessage - The user's query
+ * @param enableTools - Whether to enable tool calling (default: false for backwards compatibility)
  * @param timeout - Request timeout in milliseconds (default: from env or 30s)
- * @returns Streaming text response
+ * @returns Streaming result with text stream and tool calls promise
  */
 export async function generateStreamingAIResponse(
   systemPrompt: string,
   userMessage: string,
+  enableTools: boolean = false,
   timeout: number = AI_REQUEST_TIMEOUT
-) {
+): Promise<StreamingAIResult> {
   const model = getAIModel();
 
   // Create abort controller for timeout
@@ -213,7 +281,10 @@ export async function generateStreamingAIResponse(
   const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
   try {
-    const result = await streamText({
+    // Build config with optional tools
+    // Note: Using `any` for config to work around Vercel AI SDK type complexities
+    // This matches the pattern used in generateAIResponseInternal
+    const config: any = {
       model,
       system: systemPrompt,
       messages: [
@@ -223,9 +294,30 @@ export async function generateStreamingAIResponse(
         },
       ],
       abortSignal: abortController.signal,
-    });
+    };
 
-    return result.textStream;
+    // Phase 1: Add tools if enabled
+    if (enableTools) {
+      config.tools = getAITools();
+    }
+
+    const result = streamText(config);
+
+    // Clear timeout when stream completes
+    result.text.finally(() => clearTimeout(timeoutId));
+
+    return {
+      textStream: result.textStream,
+      toolCalls: result.toolCalls.then((calls: any[]) =>
+        (calls || []).map((call: any) => ({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          args: (call.args || call.input || {}) as Record<string, unknown>,
+        }))
+      ),
+      fullText: result.text,
+      finishReason: result.finishReason,
+    };
   } catch (error) {
     clearTimeout(timeoutId);
     // Check if error is due to timeout

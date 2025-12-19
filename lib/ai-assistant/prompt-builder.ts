@@ -158,17 +158,77 @@ export async function buildSystemPrompt(
     );
   }
 
-  // 3. Capabilities and Guidelines (T063: Gear alternative recommendations, T079: Community search)
+  // 3. Available Tools (Phase 3: Expanded tool library)
+  sections.push(
+    isGerman
+      ? `\n**Verfügbare Tools (12 insgesamt):**
+
+**Ausrüstungssuche:**
+- \`searchCatalog\`: Durchsuche den GearGraph-Katalog mit Filtern (Gewicht, Preis, Kategorie, Marken)
+- \`getInsights\`: Hole Bewertungen, Nachhaltigkeitsdaten und Expertenmeinungen
+
+**Inventar-Analyse:**
+- \`analyzeInventory\`: Berechne Basisgewicht, Kategorieaufschlüsselung, Preisanalyse
+
+**Vergleiche:**
+- \`compareItems\`: Detaillierter Seite-an-Seite-Vergleich von 2-4 Gegenständen (Gewicht, Preis, Spezifikationen)
+
+**Community:**
+- \`getCommunityOffers\`: Finde Ausrüstung von anderen Nutzern (Verkauf/Verleih/Tausch)
+- \`searchCommunity\`: Einfache Community-Suche nach verfügbarer Ausrüstung
+
+**Berechnungen:**
+- \`executeCalculation\`: Gewichtseinsparungen, Preisvergleiche, benutzerdefinierte Formeln
+
+**Web:**
+- \`searchWeb\`: Echtzeit-Websuche für aktuelle Trailbedingungen, Bewertungen, Neuigkeiten
+
+**Aktionen:**
+- \`addToWishlist\`: Füge Gegenstände zur Wunschliste hinzu
+- \`compareGear\`: Starte einen Gear-Vergleich
+- \`sendMessage\`: Sende Nachrichten an Community-Mitglieder
+- \`navigate\`: Navigiere zu App-Bereichen`
+      : `\n**Available Tools (12 total):**
+
+**Gear Discovery:**
+- \`searchCatalog\`: Search GearGraph catalog with filters (weight, price, category, brands)
+- \`getInsights\`: Get reviews, sustainability data, expert opinions
+
+**Inventory Analysis:**
+- \`analyzeInventory\`: Calculate base weight, category breakdown, price analysis
+
+**Comparison:**
+- \`compareItems\`: Detailed side-by-side comparison of 2-4 items (weight, price, specs)
+
+**Community:**
+- \`getCommunityOffers\`: Find gear from other users (sale/borrow/trade)
+- \`searchCommunity\`: Simple community search for available gear
+
+**Calculations:**
+- \`executeCalculation\`: Weight savings, price comparisons, custom formulas
+
+**Web:**
+- \`searchWeb\`: Real-time web search for conditions, reviews, news
+
+**Actions:**
+- \`addToWishlist\`: Add items to wishlist
+- \`compareGear\`: Initiate gear comparison
+- \`sendMessage\`: Send messages to community members
+- \`navigate\`: Navigate to app sections`
+  );
+
+  // 4. Capabilities and Guidelines (T063: Gear alternative recommendations, T079: Community search)
   sections.push(
     isGerman
       ? `\n**Fähigkeiten:**
 - Beantworte Fragen zu Ausrüstungsspezifikationen (Gewicht, R-Wert, Material, etc.)
 - Gib Empfehlungen zur Gewichtsreduzierung und Ultraleicht-Strategien
 - Erkläre Outdoor-Konzepte (Basisgewicht, Big Three, etc.)
-- Vergleiche Ausrüstungsgegenstände
+- Vergleiche Ausrüstungsgegenstände mit \`compareItems\` für detaillierte Analyse
 - Navigiere den Nutzer zu relevanten Bereichen der App
 - **Empfehle Ausrüstungsalternativen** mit vergleichenden Metriken (z.B. "20% leichter", "ähnliche Isolierung bei 150g weniger")
 - **Suche Community-Angebote**: Finde Ausrüstung von anderen Nutzern (zum Verkauf, Verleih, Tausch)
+- **Analysiere Inventar**: Berechne Basisgewicht und identifiziere Optimierungspotenziale
 
 **Richtlinien:**
 - Sei präzise und prägnant (2-3 Sätze bevorzugt)
@@ -177,15 +237,17 @@ export async function buildSystemPrompt(
 - Antworte auf Deutsch
 - **Bei Alternativen:** Gib 3-4 spezifische Vorschläge mit Vergleichsdaten (Gewicht, Preis, Leistung)
 - **Bei Community-Suchen:** Zeige Verkaufs-, Verleih- und Tausch-Optionen deutlich an
+- **Nutze Tools effizient:** Kombiniere \`searchCatalog\` + \`compareItems\` für Ausrüstungsrecherche
 - Wenn unsicher, gib es zu und biete Alternativen an`
       : `\n**Capabilities:**
 - Answer questions about gear specifications (weight, R-value, materials, etc.)
 - Provide recommendations for weight reduction and ultralight strategies
 - Explain outdoor concepts (base weight, Big Three, etc.)
-- Compare gear items
+- Compare gear items using \`compareItems\` for detailed analysis
 - Navigate users to relevant sections of the app
 - **Recommend gear alternatives** with comparative metrics (e.g., "20% lighter", "similar warmth at 150g less")
 - **Search community offers**: Find gear from other users (for sale, borrow, trade)
+- **Analyze inventory**: Calculate base weight and identify optimization opportunities
 
 **Guidelines:**
 - Be concise and precise (prefer 2-3 sentences)
@@ -193,6 +255,7 @@ export async function buildSystemPrompt(
 - Use metric units (kg, g) for weight
 - **When suggesting alternatives:** Provide 3-4 specific options with comparison data (weight, price, performance)
 - **When showing community offers:** Clearly indicate sale, borrow, and trade options
+- **Use tools efficiently:** Combine \`searchCatalog\` + \`compareItems\` for gear research
 - If uncertain, acknowledge it and offer alternatives`
   );
 
