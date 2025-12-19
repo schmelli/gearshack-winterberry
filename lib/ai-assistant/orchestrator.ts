@@ -9,6 +9,22 @@
 import { executeToolWithRetry, ToolExecutionResult } from './tool-executor';
 
 // =====================================================
+// Constants
+// =====================================================
+
+/**
+ * Maximum number of steps allowed in an orchestration plan
+ * Prevents memory leaks from unbounded completedResults Map
+ */
+const MAX_PLAN_STEPS = 50;
+
+/**
+ * Maximum size of step arguments (in JSON string length)
+ * Prevents memory exhaustion from large data structures
+ */
+const MAX_STEP_ARGS_SIZE = 100000; // 100KB
+
+// =====================================================
 // Types
 // =====================================================
 
@@ -302,7 +318,7 @@ export async function executeOrchestrationPlan(
   const completedResults = new Map<string, StepResult>();
   const failedSteps: string[] = [];
 
-  // Validate plan
+  // Validate plan first
   if (!plan.steps || plan.steps.length === 0) {
     return {
       success: true,
@@ -310,6 +326,19 @@ export async function executeOrchestrationPlan(
       totalDurationMs: Date.now() - startTime,
       parallelGroups: 0,
       failedSteps: [],
+    };
+  }
+
+  // Validate plan structure and size limits
+  const validation = validateOrchestrationPlan(plan);
+  if (!validation.valid) {
+    console.error('[Orchestrator] Invalid plan:', validation.errors);
+    return {
+      success: false,
+      stepResults: [],
+      totalDurationMs: Date.now() - startTime,
+      parallelGroups: 0,
+      failedSteps: plan.steps.map((s) => s.id),
     };
   }
 
@@ -413,6 +442,14 @@ export function validateOrchestrationPlan(plan: OrchestrationPlan): {
     return { valid: false, errors };
   }
 
+  // Validate plan size to prevent memory leaks
+  if (plan.steps.length > MAX_PLAN_STEPS) {
+    errors.push(
+      `Plan exceeds maximum steps limit (${plan.steps.length} > ${MAX_PLAN_STEPS})`
+    );
+    return { valid: false, errors };
+  }
+
   const stepIds = new Set<string>();
 
   for (const step of plan.steps) {
@@ -425,6 +462,18 @@ export function validateOrchestrationPlan(plan: OrchestrationPlan): {
     }
     if (!step.args || typeof step.args !== 'object') {
       errors.push(`Step ${step.id || 'unknown'} must have args object`);
+    }
+
+    // Validate args size to prevent memory exhaustion
+    try {
+      const argsSize = JSON.stringify(step.args).length;
+      if (argsSize > MAX_STEP_ARGS_SIZE) {
+        errors.push(
+          `Step ${step.id} args exceed maximum size (${argsSize} > ${MAX_STEP_ARGS_SIZE} bytes)`
+        );
+      }
+    } catch (error) {
+      errors.push(`Step ${step.id} has non-serializable args`);
     }
 
     // Check for duplicate IDs

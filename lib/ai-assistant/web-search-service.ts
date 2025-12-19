@@ -19,6 +19,7 @@ import {
   recordWebSearchUsage,
   type RateLimitResult,
 } from './rate-limiter';
+import { validateWebSearchConfig, isWebSearchAvailable } from '@/lib/env';
 
 // =============================================================================
 // Types
@@ -91,9 +92,7 @@ interface SerperSearchResponse {
 // Configuration
 // =============================================================================
 
-const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const SERPER_API_URL = 'https://google.serper.dev/search';
-const WEB_SEARCH_ENABLED = process.env.WEB_SEARCH_ENABLED === 'true';
 
 /**
  * Cache TTL configuration (in days)
@@ -227,6 +226,74 @@ function enhanceQuery(query: string, searchType: WebSearchType): string {
 }
 
 /**
+ * Error classification for better error handling
+ */
+enum WebSearchErrorType {
+  TRANSIENT = 'transient', // Network errors, rate limits, temporary API issues
+  CONFIGURATION = 'configuration', // Missing API key, invalid config
+  VALIDATION = 'validation', // Invalid input, malformed query
+}
+
+/**
+ * Classify error type to determine fallback behavior
+ */
+function classifyError(error: unknown): WebSearchErrorType {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+
+    // Configuration errors - don't retry or use stale cache
+    if (
+      message.includes('api key not configured') ||
+      message.includes('not enabled') ||
+      message.includes('configuration')
+    ) {
+      return WebSearchErrorType.CONFIGURATION;
+    }
+
+    // Validation errors - don't retry
+    if (
+      message.includes('invalid') ||
+      message.includes('sanitization') ||
+      message.includes('empty query')
+    ) {
+      return WebSearchErrorType.VALIDATION;
+    }
+
+    // Everything else is transient (network, API errors, etc.)
+    return WebSearchErrorType.TRANSIENT;
+  }
+
+  // Unknown errors default to transient
+  return WebSearchErrorType.TRANSIENT;
+}
+
+/**
+ * Sanitize user input before sending to Serper API
+ * Removes potentially dangerous characters and limits length
+ */
+function sanitizeSearchQuery(query: string): string {
+  // Limit query length to prevent abuse
+  const maxLength = 500;
+  let sanitized = query.trim().slice(0, maxLength);
+
+  // Remove control characters and null bytes
+  sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
+
+  // Remove potentially dangerous characters for API injection
+  sanitized = sanitized.replace(/[<>{}[\]\\]/g, '');
+
+  // Normalize whitespace
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+
+  // Ensure query is not empty after sanitization
+  if (!sanitized || sanitized.length === 0) {
+    throw new Error('Search query is empty after sanitization');
+  }
+
+  return sanitized;
+}
+
+/**
  * Extract query terms for relevance scoring
  */
 function extractQueryTerms(query: string): string[] {
@@ -288,8 +355,9 @@ export async function searchWeb(
     conversationId,
   } = options;
 
-  // Check if feature is enabled
-  if (!WEB_SEARCH_ENABLED) {
+  // Check if feature is enabled and configured
+  const webSearchConfig = validateWebSearchConfig();
+  if (!webSearchConfig) {
     return {
       summary: 'Web search is not enabled.',
       sources: [],
@@ -299,15 +367,17 @@ export async function searchWeb(
     };
   }
 
-  // Validate API key
-  if (!SERPER_API_KEY) {
-    console.error('[Web Search] SERPER_API_KEY not configured');
+  // Sanitize user query before processing
+  let sanitizedQuery: string;
+  try {
+    sanitizedQuery = sanitizeSearchQuery(query);
+  } catch (error) {
     return {
-      summary: 'Web search is temporarily unavailable.',
+      summary: 'Invalid search query provided.',
       sources: [],
       totalResults: 0,
       cacheHit: false,
-      error: 'API key not configured',
+      error: error instanceof Error ? error.message : 'Query sanitization failed',
     };
   }
 
@@ -327,13 +397,13 @@ export async function searchWeb(
     }
   }
 
-  // Generate cache key
-  const cacheKey = await generateSearchCacheKey(query, searchType, freshness);
+  // Generate cache key (use sanitized query)
+  const cacheKey = await generateSearchCacheKey(sanitizedQuery, searchType, freshness);
 
   // Check cache first
   const cached = await getCachedResult(cacheKey);
   if (cached) {
-    console.log('[Web Search] Cache hit for query:', query);
+    console.log('[Web Search] Cache hit for query:', sanitizedQuery);
     return {
       ...cached.data,
       cacheHit: true,
@@ -341,9 +411,9 @@ export async function searchWeb(
     };
   }
 
-  // Enhance query with context
-  const enhancedQuery = enhanceQuery(query, searchType);
-  const queryTerms = extractQueryTerms(query);
+  // Enhance query with context (use sanitized query)
+  const enhancedQuery = enhanceQuery(sanitizedQuery, searchType);
+  const queryTerms = extractQueryTerms(sanitizedQuery);
 
   try {
     // Build request body
@@ -366,7 +436,7 @@ export async function searchWeb(
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'X-API-KEY': SERPER_API_KEY,
+        'X-API-KEY': webSearchConfig.apiKey!,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -422,7 +492,7 @@ export async function searchWeb(
       await recordWebSearchUsage({
         userId,
         conversationId: conversationId || null,
-        query,
+        query: sanitizedQuery,
         searchType,
         resultCount: topResults.length,
         cacheHit: false,
@@ -431,27 +501,47 @@ export async function searchWeb(
     }
 
     console.log(
-      `[Web Search] Query: "${query}" | Type: ${searchType} | Results: ${topResults.length}`
+      `[Web Search] Query: "${sanitizedQuery}" | Type: ${searchType} | Results: ${topResults.length}`
     );
 
     return result;
   } catch (error) {
     console.error('[Web Search] Error:', error);
 
-    // Try to return cached result even if expired
-    const expiredCache = await getCachedResult(cacheKey);
-    if (expiredCache) {
-      console.log('[Web Search] Returning expired cache due to API error');
-      return {
-        ...expiredCache.data,
-        cacheHit: true,
-        rateLimitStatus,
-        error: 'API error, returning cached result',
-      };
+    // Classify error to determine fallback behavior
+    const errorType = classifyError(error);
+
+    // Only use expired cache for transient errors
+    // Configuration and validation errors should fail immediately
+    if (errorType === WebSearchErrorType.TRANSIENT) {
+      const expiredCache = await getCachedResult(cacheKey);
+      if (expiredCache) {
+        console.log('[Web Search] Returning expired cache due to transient API error');
+        return {
+          ...expiredCache.data,
+          cacheHit: true,
+          rateLimitStatus,
+          error: 'API error, returning cached result',
+        };
+      }
+    }
+
+    // Determine appropriate error message based on error type
+    let summary: string;
+    switch (errorType) {
+      case WebSearchErrorType.CONFIGURATION:
+        summary = 'Web search is not properly configured.';
+        break;
+      case WebSearchErrorType.VALIDATION:
+        summary = 'Invalid search query provided.';
+        break;
+      case WebSearchErrorType.TRANSIENT:
+      default:
+        summary = 'Web search is temporarily unavailable. Please try again later.';
     }
 
     return {
-      summary: 'Web search is temporarily unavailable. Please try again later.',
+      summary,
       sources: [],
       totalResults: 0,
       cacheHit: false,
@@ -464,7 +554,6 @@ export async function searchWeb(
 /**
  * Check if web search is available.
  * Convenience function for UI conditional rendering.
+ * Re-exported from lib/env for consistency.
  */
-export function isWebSearchAvailable(): boolean {
-  return WEB_SEARCH_ENABLED && Boolean(SERPER_API_KEY);
-}
+export { isWebSearchAvailable } from '@/lib/env';

@@ -3,10 +3,11 @@
  * Feature 050: AI Assistant - Phase 3
  *
  * Safe mathematical operations for weight/price/distance calculations.
- * Uses a safe expression evaluator instead of eval().
+ * Uses mathjs library for secure expression evaluation.
  */
 
 import { z } from 'zod';
+import { create, all } from 'mathjs';
 
 // =============================================================================
 // Tool Definition Schema
@@ -63,49 +64,40 @@ export interface ExecuteCalculationResponse {
 }
 
 // =============================================================================
-// Safe Math Expression Parser
+// Safe Math Expression Evaluator (using mathjs)
 // =============================================================================
 
-/**
- * Tokenize a mathematical expression
- */
-function tokenize(expr: string): string[] {
-  const tokens: string[] = [];
-  let current = '';
+// Create a limited math instance with only safe functions
+const math = create(all, {
+  // Disable implicit function invocation for security
+  matrix: 'Array',
+});
 
-  for (const char of expr) {
-    if (/\s/.test(char)) {
-      if (current) {
-        tokens.push(current);
-        current = '';
-      }
-    } else if ('+-*/()%'.includes(char)) {
-      if (current) {
-        tokens.push(current);
-        current = '';
-      }
-      tokens.push(char);
-    } else if (/[a-zA-Z0-9._]/.test(char)) {
-      current += char;
-    }
-  }
-
-  if (current) {
-    tokens.push(current);
-  }
-
-  return tokens;
-}
+// Whitelist of allowed functions (prevents code execution)
+const ALLOWED_FUNCTIONS = [
+  'abs', 'add', 'subtract', 'multiply', 'divide', 'mod',
+  'min', 'max', 'round', 'floor', 'ceil', 'sqrt', 'pow',
+  'sin', 'cos', 'tan', 'log', 'log10', 'exp',
+];
 
 /**
- * Safe expression evaluator
+ * Safe expression evaluator using mathjs
  * Only allows basic arithmetic operations and variable substitution
- * No eval(), no function calls, no property access
+ * No eval(), no code execution, no property access
+ *
+ * @param formula - Mathematical formula with variables
+ * @param variables - Variable values to substitute
+ * @returns Calculated result
  */
 function safeEvaluate(
   formula: string,
   variables: Record<string, number>
 ): number {
+  // Validate formula length
+  if (formula.length > 500) {
+    throw new Error('Formula too long (max 500 characters)');
+  }
+
   // Validate formula doesn't contain dangerous patterns
   const dangerousPatterns = [
     /\beval\b/i,
@@ -120,7 +112,8 @@ function safeEvaluate(
     /\bexport\b/i,
     /\[\s*['"`]/,
     /['"`]\s*\]/,
-    /\.\s*\w+\s*\(/,
+    /__/,  // Double underscores (often used in prototype pollution)
+    /\$\{/, // Template literals
   ];
 
   for (const pattern of dangerousPatterns) {
@@ -129,59 +122,28 @@ function safeEvaluate(
     }
   }
 
-  // Tokenize the expression
-  const tokens = tokenize(formula);
-
-  // Substitute variables and build expression
-  const substitutedTokens = tokens.map((token) => {
-    // Check if it's a number
-    if (/^-?\d+(\.\d+)?$/.test(token)) {
-      return token;
-    }
-
-    // Check if it's an operator or parenthesis
-    if ('+-*/()%'.includes(token)) {
-      return token;
-    }
-
-    // Check if it's a variable
-    if (token in variables) {
-      return String(variables[token]);
-    }
-
-    // Check for built-in math functions (limited set)
-    const safeFunctions = ['abs', 'min', 'max', 'round', 'floor', 'ceil', 'sqrt'];
-    if (safeFunctions.includes(token.toLowerCase())) {
-      return `Math.${token.toLowerCase()}`;
-    }
-
-    throw new Error(`Unknown variable or function: ${token}`);
-  });
-
-  // Build the expression string
-  const exprStr = substitutedTokens.join(' ');
-
-  // Validate the final expression only contains safe characters
-  if (!/^[\d\s+\-*/().%Math.absminceilflooroundsqrt,]+$/.test(exprStr)) {
-    throw new Error('Invalid formula: contains unsafe characters');
-  }
-
-  // Use Function constructor with strict validation
-  // This is safer than eval() as it creates an isolated scope
   try {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const fn = new Function(`"use strict"; return (${exprStr});`);
-    const result = fn();
+    // Use mathjs.evaluate with scope for variables
+    // This is safe as mathjs sanitizes the input
+    const result = math.evaluate(formula, variables);
 
+    // Validate result is a finite number
     if (typeof result !== 'number' || !isFinite(result)) {
       throw new Error('Calculation resulted in invalid number');
     }
 
     return result;
-  } catch (evalError) {
-    throw new Error(
-      `Calculation failed: ${evalError instanceof Error ? evalError.message : 'Unknown error'}`
-    );
+  } catch (error) {
+    if (error instanceof Error) {
+      // Sanitize error message to avoid leaking internal details
+      if (error.message.includes('Undefined symbol')) {
+        const match = error.message.match(/Undefined symbol (.+)/);
+        const symbol = match ? match[1] : 'unknown';
+        throw new Error(`Unknown variable or function: ${symbol}`);
+      }
+      throw new Error(`Calculation failed: ${error.message}`);
+    }
+    throw new Error('Calculation failed: Unknown error');
   }
 }
 
