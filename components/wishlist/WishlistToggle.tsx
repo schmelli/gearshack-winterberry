@@ -89,7 +89,7 @@ export function WishlistToggle({
         - aria-orientation="horizontal" (default)
       */}
       <TabsList
-        className="grid w-full grid-cols-2"
+        className="grid grid-cols-2"
         aria-label="Switch between inventory and wishlist views"
       >
         <TabsTrigger
