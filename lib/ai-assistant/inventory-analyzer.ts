@@ -48,7 +48,11 @@ export interface BaseWeightAnalysis {
  */
 export async function calculateBaseWeight(
   userId: string,
-  filters?: { brand?: string; status?: string; categoryId?: string }
+  filters?: {
+    brand?: string;
+    status?: 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
+    categoryId?: string;
+  }
 ): Promise<BaseWeightAnalysis> {
   const supabase = await createClient();
 
