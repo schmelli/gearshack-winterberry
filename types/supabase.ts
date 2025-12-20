@@ -47,6 +47,7 @@ export type Database = {
       ai_conversations: {
         Row: {
           context_snapshot: Json | null
+          conversation_state: Json | null
           created_at: string
           id: string
           message_count: number
@@ -56,6 +57,7 @@ export type Database = {
         }
         Insert: {
           context_snapshot?: Json | null
+          conversation_state?: Json | null
           created_at?: string
           id?: string
           message_count?: number
@@ -65,6 +67,7 @@ export type Database = {
         }
         Update: {
           context_snapshot?: Json | null
+          conversation_state?: Json | null
           created_at?: string
           id?: string
           message_count?: number
@@ -84,8 +87,11 @@ export type Database = {
           created_at: string
           id: string
           inline_cards: Json | null
+          orchestration_metadata: Json | null
+          reasoning_trace: Json | null
           role: string
           tokens_used: number | null
+          tool_calls: Json | null
         }
         Insert: {
           action_results?: Json | null
@@ -96,8 +102,11 @@ export type Database = {
           created_at?: string
           id?: string
           inline_cards?: Json | null
+          orchestration_metadata?: Json | null
+          reasoning_trace?: Json | null
           role: string
           tokens_used?: number | null
+          tool_calls?: Json | null
         }
         Update: {
           action_results?: Json | null
@@ -108,8 +117,11 @@ export type Database = {
           created_at?: string
           id?: string
           inline_cards?: Json | null
+          orchestration_metadata?: Json | null
+          reasoning_trace?: Json | null
           role?: string
           tokens_used?: number | null
+          tool_calls?: Json | null
         }
         Relationships: [
           {
@@ -144,6 +156,56 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      ai_tool_execution_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          message_id: string | null
+          retry_count: number
+          success: boolean
+          tool_args: Json | null
+          tool_name: string
+          tool_result: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          message_id?: string | null
+          retry_count?: number
+          success?: boolean
+          tool_args?: Json | null
+          tool_name: string
+          tool_result?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          message_id?: string | null
+          retry_count?: number
+          success?: boolean
+          tool_args?: Json | null
+          tool_name?: string
+          tool_result?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tool_execution_logs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       alert_delivery_queue: {
         Row: {
@@ -259,7 +321,10 @@ export type Database = {
           expires_at: string
           id: string
           response_data: Json
+          search_query: string | null
+          search_type: string | null
           service: string
+          ttl_hours: number | null
         }
         Insert: {
           cache_key: string
@@ -267,7 +332,10 @@ export type Database = {
           expires_at: string
           id?: string
           response_data: Json
+          search_query?: string | null
+          search_type?: string | null
           service: string
+          ttl_hours?: number | null
         }
         Update: {
           cache_key?: string
@@ -275,7 +343,10 @@ export type Database = {
           expires_at?: string
           id?: string
           response_data?: Json
+          search_query?: string | null
+          search_type?: string | null
           service?: string
+          ttl_hours?: number | null
         }
         Relationships: []
       }
@@ -580,6 +651,7 @@ export type Database = {
           can_be_borrowed: boolean
           can_be_traded: boolean
           category_id: string | null
+          color: string | null
           condition: Database["public"]["Enums"]["gear_condition"]
           created_at: string
           currency: string | null
@@ -591,6 +663,7 @@ export type Database = {
           is_favourite: boolean
           is_for_sale: boolean
           length_cm: number | null
+          materials: string | null
           model_number: string | null
           name: string
           nobg_images: Json | null
@@ -602,11 +675,14 @@ export type Database = {
           purchase_date: string | null
           retailer: string | null
           retailer_url: string | null
+          size: string | null
           source_share_token: string | null
           status: Database["public"]["Enums"]["gear_status"]
           subcategory_id: string | null
+          tent_construction: string | null
           updated_at: string
           user_id: string
+          volume_liters: number | null
           weight_display_unit: Database["public"]["Enums"]["weight_unit"]
           weight_grams: number | null
           width_cm: number | null
@@ -617,6 +693,7 @@ export type Database = {
           can_be_borrowed?: boolean
           can_be_traded?: boolean
           category_id?: string | null
+          color?: string | null
           condition?: Database["public"]["Enums"]["gear_condition"]
           created_at?: string
           currency?: string | null
@@ -628,6 +705,7 @@ export type Database = {
           is_favourite?: boolean
           is_for_sale?: boolean
           length_cm?: number | null
+          materials?: string | null
           model_number?: string | null
           name: string
           nobg_images?: Json | null
@@ -639,11 +717,14 @@ export type Database = {
           purchase_date?: string | null
           retailer?: string | null
           retailer_url?: string | null
+          size?: string | null
           source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
           subcategory_id?: string | null
+          tent_construction?: string | null
           updated_at?: string
           user_id: string
+          volume_liters?: number | null
           weight_display_unit?: Database["public"]["Enums"]["weight_unit"]
           weight_grams?: number | null
           width_cm?: number | null
@@ -654,6 +735,7 @@ export type Database = {
           can_be_borrowed?: boolean
           can_be_traded?: boolean
           category_id?: string | null
+          color?: string | null
           condition?: Database["public"]["Enums"]["gear_condition"]
           created_at?: string
           currency?: string | null
@@ -665,6 +747,7 @@ export type Database = {
           is_favourite?: boolean
           is_for_sale?: boolean
           length_cm?: number | null
+          materials?: string | null
           model_number?: string | null
           name?: string
           nobg_images?: Json | null
@@ -676,11 +759,14 @@ export type Database = {
           purchase_date?: string | null
           retailer?: string | null
           retailer_url?: string | null
+          size?: string | null
           source_share_token?: string | null
           status?: Database["public"]["Enums"]["gear_status"]
           subcategory_id?: string | null
+          tent_construction?: string | null
           updated_at?: string
           user_id?: string
+          volume_liters?: number | null
           weight_display_unit?: Database["public"]["Enums"]["weight_unit"]
           weight_grams?: number | null
           width_cm?: number | null
@@ -1734,6 +1820,53 @@ export type Database = {
           },
         ]
       }
+      web_search_usage: {
+        Row: {
+          cached: boolean
+          conversation_id: string | null
+          cost_usd: number
+          created_at: string
+          id: string
+          latency_ms: number | null
+          results_count: number | null
+          search_query: string
+          search_type: string
+          user_id: string
+        }
+        Insert: {
+          cached?: boolean
+          conversation_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          results_count?: number | null
+          search_query: string
+          search_type: string
+          user_id: string
+        }
+        Update: {
+          cached?: boolean
+          conversation_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          results_count?: number | null
+          search_query?: string
+          search_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_search_usage_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       community_availability: {
@@ -1747,8 +1880,51 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_execution_stats: {
+        Row: {
+          avg_execution_ms: number | null
+          date: string | null
+          failed: number | null
+          max_execution_ms: number | null
+          success_rate_pct: number | null
+          successful: number | null
+          tool_name: string | null
+          total_executions: number | null
+          total_retries: number | null
+        }
+        Relationships: []
+      }
+      web_search_usage_stats: {
+        Row: {
+          avg_latency_ms: number | null
+          cache_hit_rate_pct: number | null
+          cached_hits: number | null
+          date: string | null
+          total_cost_usd: number | null
+          total_searches: number | null
+          unique_users: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      add_conversation_entity: {
+        Args: {
+          p_conversation_id: string
+          p_entity_id: string
+          p_entity_name: string
+          p_entity_type: string
+        }
+        Returns: Json
+      }
+      add_pending_action: {
+        Args: {
+          p_action_data: Json
+          p_action_type: string
+          p_conversation_id: string
+        }
+        Returns: string
+      }
       can_message_user: {
         Args: { p_recipient_id: string; p_sender_id: string }
         Returns: boolean
@@ -1762,8 +1938,16 @@ export type Database = {
         }
         Returns: Json
       }
+      check_web_search_quota: {
+        Args: { p_daily_limit?: number; p_user_id: string }
+        Returns: Json
+      }
       cleanup_delivery_queue: { Args: never; Returns: number }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      clear_conversation_state: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       create_price_alert: {
         Args: {
           p_alert_type: string
@@ -1822,6 +2006,10 @@ export type Database = {
           similarity_score: number
         }[]
       }
+      get_conversation_state: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
       get_next_delivery_batch: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -1836,11 +2024,65 @@ export type Database = {
         Args: { p_user1: string; p_user2: string }
         Returns: string
       }
+      get_or_create_web_search_cache: {
+        Args: {
+          p_cache_key: string
+          p_search_query: string
+          p_search_type: string
+          p_ttl_hours?: number
+        }
+        Returns: {
+          cache_id: string
+          cached_data: Json
+          is_expired: boolean
+        }[]
+      }
+      get_user_daily_search_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          cached_count: number
+          search_count: number
+          total_cost_usd: number
+        }[]
+      }
+      get_user_tool_stats: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: {
+          avg_execution_time_ms: number
+          failure_count: number
+          success_count: number
+          tool_name: string
+          total_calls: number
+          total_retries: number
+        }[]
+      }
       increment_cache_usage: {
         Args: { p_cache_id: string }
         Returns: undefined
       }
+      increment_conversation_turn: {
+        Args: { p_conversation_id: string }
+        Returns: number
+      }
       is_admin: { Args: never; Returns: boolean }
+      log_tool_execution: {
+        Args: {
+          p_error_message?: string
+          p_execution_time_ms?: number
+          p_message_id: string
+          p_retry_count?: number
+          p_success: boolean
+          p_tool_args: Json
+          p_tool_name: string
+          p_tool_result: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
+      purge_old_tool_logs: {
+        Args: { p_retention_days?: number }
+        Returns: number
+      }
       record_price_snapshot: {
         Args: {
           p_average_price: number
@@ -1871,6 +2113,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_conversation_state: {
+        Args: { p_conversation_id: string; p_state_update: Json }
+        Returns: Json
+      }
     }
     Enums: {
       activity_type:

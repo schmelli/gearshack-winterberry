@@ -82,6 +82,11 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
     lengthCm: row.length_cm,
     widthCm: row.width_cm,
     heightCm: row.height_cm,
+    size: row.size,
+    color: row.color,
+    volumeLiters: row.volume_liters,
+    materials: row.materials,
+    tentConstruction: row.tent_construction,
 
     // Section 4: Purchase Details
     pricePaid: row.price_paid,
