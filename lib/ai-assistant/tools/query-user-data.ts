@@ -231,13 +231,20 @@ export async function executeQueryUserData(
     ]);
 
     if (error) {
+      console.error('[queryUserData] Database error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        params,
+      });
       return {
         success: false,
         operation,
         table,
         rowCount: 0,
         data: null,
-        error: `Database query failed: ${error.message}`,
+        error: `Database query failed: ${error.message}${error.hint ? ` (${error.hint})` : ''}`,
       };
     }
 
