@@ -248,13 +248,31 @@ export async function buildSystemPrompt(
   sections.push(
     isGerman
       ? `\n**Tool-Nutzung Best Practices:**
-- Verwende \`queryUserData\` mit \`search\` für unscharfe/Textsuchen (z.B. "gas stove", "tent")
-- Verwende \`queryUserData\` mit \`filters\` nur für exakte Werte (z.B. status: "own", brand: "Osprey")
-- Verwende \`searchCatalog\` um neue Produkte zu entdecken oder Katalog-Informationen abzurufen
-- Kombiniere Tools für komplexe Abfragen (z.B. erst Nutzerinventar durchsuchen, dann Katalog-Alternativen vorschlagen)`
+
+**WICHTIG - Kategoriebasierte Suche:**
+Wenn ein Nutzer nach einem Produkttyp fragt (z.B. "Habe ich ein Zelt?", "Besitze ich einen Schlafsack?"):
+1. ZUERST: Suche in \`categories\` Tabelle nach dem Produkttyp (z.B. "tent", "sleeping bag", "packraft")
+2. Finde die category_id oder product_type_id
+3. DANN: Suche in \`gear_items\` mit \`filters: {product_type_id: "<uuid>"}\`
+4. NIEMALS nur nach Name suchen - ein "Nano RTC" Packraft hat "packraft" nicht im Namen!
+
+**Andere Suchen:**
+- Verwende \`queryUserData\` mit \`search\` für Marken/Modelle (z.B. "Osprey", "MSR Reactor")
+- Verwende \`queryUserData\` mit \`filters\` für exakte Werte (z.B. status: "own", brand: "Osprey")
+- Verwende \`searchCatalog\` um neue Produkte zu entdecken
+- Kombiniere Tools für komplexe Abfragen`
       : `\n**Tool Usage Best Practices:**
-- Use \`queryUserData\` with \`search\` for fuzzy/text searches (e.g., "gas stove", "tent")
-- Use \`queryUserData\` with \`filters\` only for exact values (e.g., status: "own", brand: "Osprey")
+
+**CRITICAL - Category-Based Search:**
+When user asks about a product type (e.g., "Do I own a tent?", "Do I have a sleeping bag?"):
+1. FIRST: Search \`categories\` table for the product type (e.g., "tent", "sleeping bag", "packraft")
+2. Get the category_id or product_type_id
+3. THEN: Search \`gear_items\` with \`filters: {product_type_id: "<uuid>"}\`
+4. NEVER just search by name - a "Nano RTC" packraft doesn't have "packraft" in its name!
+
+**Other Searches:**
+- Use \`queryUserData\` with \`search\` for brands/models (e.g., "Osprey", "MSR Reactor")
+- Use \`queryUserData\` with \`filters\` for exact values (e.g., status: "own", brand: "Osprey")
 - Use \`searchCatalog\` to discover new products or retrieve catalog information
 - Combine tools for complex queries (e.g., search user inventory first, then suggest catalog alternatives)`
   );
