@@ -17,6 +17,7 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,18 +62,6 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
 }
 
 // =============================================================================
-// Tab Configuration - Reduced from 7 to 5 tabs for better readability
-// =============================================================================
-
-const TABS = [
-  { id: 'general', label: 'General' },
-  { id: 'category', label: 'Category' },
-  { id: 'purchase', label: 'Purchase' },
-  { id: 'media', label: 'Media' },
-  { id: 'status', label: 'Status' },
-] as const;
-
-// =============================================================================
 // Component
 // =============================================================================
 
@@ -84,6 +73,8 @@ export function GearEditorForm({
   redirectPath,
   mode = 'inventory',
 }: GearEditorFormProps) {
+  const t = useTranslations('GearEditor');
+
   const { form, isEditing, isDirty, isSubmitting, isDeleting, handleSubmit, handleCancel, handleDelete } =
     useGearEditor({
       initialItem,
@@ -97,7 +88,16 @@ export function GearEditorForm({
   const allItems = useItems();
 
   const formTitle =
-    title ?? (isEditing ? 'Edit Gear Item' : 'Add New Gear Item');
+    title ?? (isEditing ? t('editTitle') : t('addTitle'));
+
+  // Tab Configuration - Uses i18n translations
+  const TABS = [
+    { id: 'general', label: t('tabs.general') },
+    { id: 'category', label: t('tabs.specifications') },
+    { id: 'purchase', label: t('tabs.purchase') },
+    { id: 'media', label: t('tabs.media') },
+    { id: 'status', label: t('tabs.status') },
+  ] as const;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

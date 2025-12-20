@@ -229,6 +229,13 @@
   "GearEditor": {
     "addTitle": "Add New Gear",
     "editTitle": "Edit Gear",
+    "tabs": {
+      "general": "General",
+      "specifications": "Specifications",
+      "purchase": "Purchase",
+      "media": "Media",
+      "status": "Status"
+    },
     "generalInfo": "General Information",
     "specifications": "Specifications",
     "images": "Images",

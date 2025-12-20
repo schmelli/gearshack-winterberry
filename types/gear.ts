@@ -87,6 +87,12 @@ export interface GearItem {
   lengthCm: number | null;
   widthCm: number | null;
   heightCm: number | null;
+  // Category-specific specs
+  size: string | null; // For clothing, footwear
+  color: string | null; // For clothing, tents, etc.
+  volumeLiters: number | null; // For packs, bags
+  materials: string | null; // For tents, packs, sleeping bags
+  tentConstruction: string | null; // For tents: freestanding, tunnel, dome, tarp, etc.
 
   // Section 4: Purchase Details
   pricePaid: number | null;
@@ -142,6 +148,12 @@ export interface GearItemFormData {
   lengthCm: string;
   widthCm: string;
   heightCm: string;
+  // Category-specific specs
+  size: string; // For clothing, footwear
+  color: string; // For clothing, tents, etc.
+  volumeLiters: string; // For packs, bags
+  materials: string; // For tents, packs, sleeping bags
+  tentConstruction: string; // For tents: freestanding, tunnel, dome, tarp, etc.
 
   // Section 4: Purchase Details
   pricePaid: string;
@@ -189,6 +201,11 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   lengthCm: '',
   widthCm: '',
   heightCm: '',
+  size: '',
+  color: '',
+  volumeLiters: '',
+  materials: '',
+  tentConstruction: '',
   pricePaid: '',
   currency: 'USD',
   purchaseDate: '',

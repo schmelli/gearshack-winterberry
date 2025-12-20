@@ -6,13 +6,14 @@
  *
  * Combined section for Classification and Weight/Specifications.
  * - Taxonomy classification (Category → Subcategory → Product Type)
+ * - Category-specific specifications (size, color, volume, materials, etc.)
  * - Weight with unit selector
- * - Dimensions (length, width, height)
+ * - Dimensions (conditionally shown based on category)
  */
 
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import {
   FormField,
   FormItem,
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { ProgressiveCategorySelect } from '@/components/gear-editor/ProgressiveCategorySelect';
 import type { GearItemFormData, WeightUnit } from '@/types/gear';
 import { WEIGHT_UNIT_LABELS } from '@/types/gear';
@@ -39,8 +41,13 @@ import { WEIGHT_UNIT_LABELS } from '@/types/gear';
 
 export function CategorySpecsSection() {
   const form = useFormContext<GearItemFormData>();
+  const productTypeId = useWatch({ control: form.control, name: 'productTypeId' });
 
   const weightUnits: WeightUnit[] = ['g', 'oz', 'lb'];
+
+  // For now, show all fields - will add conditional logic based on category in future iteration
+  // TODO: Add useCategoryInfo hook to get category/subcategory from productTypeId
+  const showAllFields = true;
 
   return (
     <div className="space-y-6">
@@ -124,9 +131,119 @@ export function CategorySpecsSection() {
           />
         </div>
 
-        <FormDescription className="mb-4">
+        <FormDescription className="mb-6">
           Weight is stored in grams internally for consistency.
         </FormDescription>
+
+        {/* Category-Specific Specifications */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Size (for clothing, footwear) */}
+          <FormField
+            control={form.control}
+            name="size"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Size</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., M, L, 42, 10.5" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Color */}
+          <FormField
+            control={form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Color</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Blue, Red/Black" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Volume (for packs, bags) */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <FormField
+            control={form.control}
+            name="volumeLiters"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Volume (Liters)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="e.g., 65"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>For packs and bags</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Tent Construction (for tents) */}
+          <FormField
+            control={form.control}
+            name="tentConstruction"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tent Construction</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="freestanding">Freestanding</SelectItem>
+                    <SelectItem value="semi-freestanding">Semi-freestanding</SelectItem>
+                    <SelectItem value="non-freestanding">Non-freestanding</SelectItem>
+                    <SelectItem value="tunnel">Tunnel</SelectItem>
+                    <SelectItem value="dome">Dome</SelectItem>
+                    <SelectItem value="pyramid">Pyramid</SelectItem>
+                    <SelectItem value="tarp">Tarp</SelectItem>
+                    <SelectItem value="a-frame">A-Frame</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>For tents and shelters</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Materials */}
+        <FormField
+          control={form.control}
+          name="materials"
+          render={({ field }) => (
+            <FormItem className="mb-6">
+              <FormLabel>Materials</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="e.g., Dyneema, Silnylon, Cuben Fiber, etc."
+                  className="resize-none"
+                  rows={2}
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Materials and fabrics used (for tents, packs, clothing)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Dimensions */}
         <div className="space-y-2">

@@ -83,6 +83,12 @@ export const gearItemFormSchema = z.object({
   lengthCm: optionalStrictPositiveNumberSchema,
   widthCm: optionalStrictPositiveNumberSchema,
   heightCm: optionalStrictPositiveNumberSchema,
+  // Category-specific specifications
+  size: z.string().max(50, 'Size must be 50 characters or less'),
+  color: z.string().max(100, 'Color must be 100 characters or less'),
+  volumeLiters: optionalStrictPositiveNumberSchema,
+  materials: z.string().max(500, 'Materials must be 500 characters or less'),
+  tentConstruction: z.string().max(50, 'Tent construction must be 50 characters or less'),
 
   // Section 4: Purchase Details
   pricePaid: optionalPositiveNumberSchema,

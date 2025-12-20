@@ -64,6 +64,11 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     lengthCm: row.length_cm ? Number(row.length_cm) : null,
     widthCm: row.width_cm ? Number(row.width_cm) : null,
     heightCm: row.height_cm ? Number(row.height_cm) : null,
+    size: row.size,
+    color: row.color,
+    volumeLiters: row.volume_liters ? Number(row.volume_liters) : null,
+    materials: row.materials,
+    tentConstruction: row.tent_construction,
 
     // Section 4: Purchase Details
     pricePaid: row.price_paid ? Number(row.price_paid) : null,
@@ -111,6 +116,11 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     length_cm: item.lengthCm,
     width_cm: item.widthCm,
     height_cm: item.heightCm,
+    size: item.size,
+    color: item.color,
+    volume_liters: item.volumeLiters,
+    materials: item.materials,
+    tent_construction: item.tentConstruction,
 
     price_paid: item.pricePaid,
     currency: item.currency,
@@ -154,6 +164,11 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.lengthCm !== undefined) update.length_cm = item.lengthCm;
   if (item.widthCm !== undefined) update.width_cm = item.widthCm;
   if (item.heightCm !== undefined) update.height_cm = item.heightCm;
+  if (item.size !== undefined) update.size = item.size;
+  if (item.color !== undefined) update.color = item.color;
+  if (item.volumeLiters !== undefined) update.volume_liters = item.volumeLiters;
+  if (item.materials !== undefined) update.materials = item.materials;
+  if (item.tentConstruction !== undefined) update.tent_construction = item.tentConstruction;
 
   if (item.pricePaid !== undefined) update.price_paid = item.pricePaid;
   if (item.currency !== undefined) update.currency = item.currency;

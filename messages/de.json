@@ -229,8 +229,15 @@
   "GearEditor": {
     "addTitle": "Neue Ausrüstung hinzufügen",
     "editTitle": "Ausrüstung bearbeiten",
+    "tabs": {
+      "general": "Allgemein",
+      "specifications": "Details",
+      "purchase": "Kauf",
+      "media": "Medien",
+      "status": "Status"
+    },
     "generalInfo": "Allgemeine Informationen",
-    "specifications": "Spezifikationen",
+    "specifications": "Details",
     "images": "Bilder",
     "nameLabel": "Name",
     "namePlaceholder": "Name eingeben",
