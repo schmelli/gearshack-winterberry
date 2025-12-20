@@ -187,7 +187,9 @@ export async function POST(request: Request) {
     const streamingResult = await generateStreamingAIResponse(
       systemPrompt,
       trimmedMessage,
-      enableTools
+      enableTools,
+      undefined, // Use default timeout
+      user.id // Pass userId for tool execution
     );
 
     logAIQuery(user.id, conversationId || 'new', trimmedMessage, 'streaming');

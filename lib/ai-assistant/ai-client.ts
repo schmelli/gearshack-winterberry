@@ -14,8 +14,12 @@ import { withRetry } from './retry';
 // Import tool definitions - Lean & powerful set
 import {
   queryUserDataTool,
+  executeQueryUserData,
   searchCatalogTool,
+  executeSearchCatalog,
   searchWebTool,
+  executeSearchWeb,
+  type QueryUserDataParameters,
 } from './tools';
 
 // Environment configuration
@@ -63,28 +67,49 @@ export function getAIModel() {
 // =====================================================
 
 /**
- * Get all available tools for AI
+ * Get all available tools for AI with execution functions
  *
  * Lean set of 6 powerful tools:
  * - 3 Data Access tools (query, search catalog, search web)
  * - 3 Action tools (wishlist, message, navigate)
  *
  * Philosophy: Flexible tools > Fixed schemas
+ *
+ * @param userId - Current user ID for tool execution
+ * @returns Tool definitions with execute functions
  */
-export function getAITools() {
+export function getAITools(userId: string) {
   return {
     // =========================================================================
     // Data Access Tools
     // =========================================================================
 
     // Query user's database (gear, loadouts, categories, etc.)
-    queryUserData: queryUserDataTool,
+    queryUserData: {
+      description: queryUserDataTool.description,
+      parameters: queryUserDataTool.parameters,
+      execute: async (args: QueryUserDataParameters) => {
+        return await executeQueryUserData(args, userId);
+      },
+    },
 
     // Search product catalog
-    searchCatalog: searchCatalogTool,
+    searchCatalog: {
+      description: searchCatalogTool.description,
+      parameters: searchCatalogTool.parameters,
+      execute: async (args: any) => {
+        return await executeSearchCatalog(args);
+      },
+    },
 
     // Search the web for real-time information
-    searchWeb: searchWebTool,
+    searchWeb: {
+      description: searchWebTool.description,
+      parameters: searchWebTool.parameters,
+      execute: async (args: any) => {
+        return await executeSearchWeb(args);
+      },
+    },
 
     // =========================================================================
     // Action Tools
@@ -96,6 +121,10 @@ export function getAITools() {
       parameters: z.object({
         gearItemId: z.string().uuid().describe('The UUID of the gear item to add to wishlist'),
       }),
+      execute: async (args: { gearItemId: string }) => {
+        // Return tool result - client will handle actual wishlist addition via action
+        return { action: 'add_to_wishlist', gearItemId: args.gearItemId };
+      },
     },
 
     // Send message to user
@@ -105,6 +134,10 @@ export function getAITools() {
         recipientUserId: z.string().uuid().describe('The UUID of the user to send a message to'),
         messagePreview: z.string().max(100).describe('Preview of the message content (first 50-100 chars)'),
       }),
+      execute: async (args: { recipientUserId: string; messagePreview: string }) => {
+        // Return tool result - client will handle actual message sending via action
+        return { action: 'send_message', ...args };
+      },
     },
 
     // Navigate to page
@@ -113,6 +146,10 @@ export function getAITools() {
       parameters: z.object({
         destination: z.string().describe('The destination page (e.g., "inventory", "loadouts", "wishlist")'),
       }),
+      execute: async (args: { destination: string }) => {
+        // Return tool result - client will handle actual navigation via action
+        return { action: 'navigate', destination: args.destination };
+      },
     },
   };
 }
@@ -125,7 +162,8 @@ async function generateAIResponseInternal(
   systemPrompt: string,
   userMessage: string,
   enableTools: boolean,
-  timeout: number
+  timeout: number,
+  userId?: string
 ): Promise<{
   text: string;
   tokensUsed: number;
@@ -152,8 +190,8 @@ async function generateAIResponseInternal(
     };
 
     // T058: Add tools if enabled
-    if (enableTools) {
-      config.tools = getAITools();
+    if (enableTools && userId) {
+      config.tools = getAITools(userId);
     }
 
     const result = await generateText(config);
@@ -183,13 +221,15 @@ async function generateAIResponseInternal(
  * @param userMessage - The user's query
  * @param enableTools - Whether to enable tool calling (default: true)
  * @param timeout - Request timeout in milliseconds (default: from env or 30s)
+ * @param userId - Current user ID for tool execution (required if enableTools is true)
  * @returns Generated text response, metadata, and tool calls
  */
 export async function generateAIResponse(
   systemPrompt: string,
   userMessage: string,
   enableTools: boolean = true,
-  timeout: number = AI_REQUEST_TIMEOUT
+  timeout: number = AI_REQUEST_TIMEOUT,
+  userId?: string
 ): Promise<{
   text: string;
   tokensUsed: number;
@@ -199,7 +239,7 @@ export async function generateAIResponse(
   // Wrap with retry logic if enabled
   if (AI_RETRY_ENABLED) {
     return withRetry(
-      () => generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout),
+      () => generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout, userId),
       {
         maxAttempts: AI_MAX_RETRIES + 1, // +1 because maxAttempts includes the initial attempt
         initialDelayMs: 1000, // 1 second
@@ -210,7 +250,7 @@ export async function generateAIResponse(
   }
 
   // No retry - call directly
-  return generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout);
+  return generateAIResponseInternal(systemPrompt, userMessage, enableTools, timeout, userId);
 }
 
 /**
@@ -245,13 +285,15 @@ export interface ToolCallResult {
  * @param userMessage - The user's query
  * @param enableTools - Whether to enable tool calling (default: false for backwards compatibility)
  * @param timeout - Request timeout in milliseconds (default: from env or 30s)
+ * @param userId - Current user ID for tool execution (required if enableTools is true)
  * @returns Streaming result with text stream and tool calls promise
  */
 export async function generateStreamingAIResponse(
   systemPrompt: string,
   userMessage: string,
   enableTools: boolean = false,
-  timeout: number = AI_REQUEST_TIMEOUT
+  timeout: number = AI_REQUEST_TIMEOUT,
+  userId?: string
 ): Promise<StreamingAIResult> {
   const model = getAIModel();
 
@@ -276,8 +318,8 @@ export async function generateStreamingAIResponse(
     };
 
     // Phase 1: Add tools if enabled
-    if (enableTools) {
-      config.tools = getAITools();
+    if (enableTools && userId) {
+      config.tools = getAITools(userId);
     }
 
     const result = streamText(config);
