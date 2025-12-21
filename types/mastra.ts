@@ -176,7 +176,8 @@ export interface MemoryCorrectionEvent {
  * POST /api/mastra/chat
  */
 export interface MastraChatRequest {
-  conversationId: string;
+  /** Conversation ID - null for new conversations (will be generated server-side) */
+  conversationId: string | null;
   message: string;
   context?: Record<string, unknown>;
   enableTools?: boolean;

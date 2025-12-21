@@ -108,8 +108,12 @@ function validateRequest(body: unknown): {
 
   const request = body as Record<string, unknown>;
 
-  if (typeof request.conversationId !== 'string' || request.conversationId.trim() === '') {
-    return { valid: false, error: 'conversationId is required and must be a non-empty string' };
+  // conversationId can be null/undefined for new conversations (will be generated)
+  // or a non-empty string for existing conversations
+  if (request.conversationId !== null && request.conversationId !== undefined) {
+    if (typeof request.conversationId !== 'string' || request.conversationId.trim() === '') {
+      return { valid: false, error: 'conversationId must be a non-empty string if provided' };
+    }
   }
 
   if (typeof request.message !== 'string' || request.message.trim() === '') {
@@ -139,7 +143,7 @@ function validateRequest(body: unknown): {
   return {
     valid: true,
     data: {
-      conversationId: request.conversationId,
+      conversationId: (request.conversationId as string | null | undefined) ?? null,
       message: trimmedMessage,
       context: request.context as Record<string, unknown> | undefined,
       enableTools: request.enableTools as boolean | undefined,
