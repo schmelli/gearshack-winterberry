@@ -1,9 +1,10 @@
 /**
  * Message Bubble Component
  * Feature 050: AI Assistant - T034, T060
+ * Feature 001: Mastra Voice - TTS Play Button
  *
  * Renders individual chat messages with role-based styling.
- * Supports markdown formatting, inline gear cards, and action buttons.
+ * Supports markdown formatting, inline gear cards, action buttons, and TTS playback.
  */
 
 'use client';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { User, Sparkles } from 'lucide-react';
 import { InlineGearCard } from './InlineGearCard';
 import { ActionButtons } from './ActionButtons';
+import { InlinePlayButton } from './AudioPlaybackControls';
 import { useChatActions } from '@/hooks/ai-assistant/useChatActions';
 import { formatDistanceToNow } from 'date-fns';
 import type { Action } from '@/types/ai-assistant';
@@ -28,9 +30,18 @@ interface Message {
 interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
+  /** Callback to speak this message via TTS */
+  onSpeak?: () => void;
+  /** Whether audio is currently playing */
+  isPlayingAudio?: boolean;
 }
 
-export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isStreaming = false,
+  onSpeak,
+  isPlayingAudio = false,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const { executeAction, isExecuting } = useChatActions();
 
@@ -72,12 +83,22 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
               : 'bg-muted text-foreground'
           )}
         >
-          <p className="whitespace-pre-wrap text-sm">
-            {message.content}
-            {!isUser && isStreaming && (
-              <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
+          <div className="flex items-start gap-2">
+            <p className="flex-1 whitespace-pre-wrap text-sm">
+              {message.content}
+              {!isUser && isStreaming && (
+                <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
+              )}
+            </p>
+            {/* TTS Play Button for assistant messages */}
+            {!isUser && onSpeak && message.content && !isStreaming && (
+              <InlinePlayButton
+                isPlaying={isPlayingAudio}
+                onClick={onSpeak}
+                className="shrink-0 mt-0.5"
+              />
             )}
-          </p>
+          </div>
         </div>
 
         {/* Inline Cards (Gear References) */}

@@ -7,6 +7,17 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   // Note: instrumentationHook is no longer needed in Next.js 16 (Feature 050: OpenTelemetry)
+
+  // Externalize packages that have Node.js-only deps or WASM that webpack can't handle
+  serverExternalPackages: [
+    '@imgly/background-removal',
+    'onnxruntime-web',
+    'pino',
+    'pino-pretty',
+    'thread-stream',
+    'prom-client',
+  ],
+
   images: {
     // Feature 025: Allow all HTTPS domains for external product images
     // Users need to paste image URLs from any retailer (fjellsport.no, REI, etc.)
@@ -23,17 +34,32 @@ const nextConfig: NextConfig = {
     ],
   },
   // Feature 026: Enable WASM support for @imgly/background-removal
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // WASM support
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
     };
 
-    // Allow WASM files to be imported
+    // Ignore test files in node_modules (fixes thread-stream/tap issue)
     config.module.rules.push({
-      test: /\.wasm$/,
-      type: 'webassembly/async',
+      test: /node_modules[\\/].*\.test\.(js|ts)$/,
+      loader: 'ignore-loader',
+    });
+
+    // Externalize @imgly/background-removal and onnxruntime-web on server
+    // These packages use WASM which causes bundling issues
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@imgly/background-removal');
+      config.externals.push('onnxruntime-web');
+    }
+
+    // For client builds, exclude WASM files from onnxruntime-web
+    // to prevent webpack from trying to parse them as JavaScript
+    config.module.rules.push({
+      test: /onnxruntime-web.*\.wasm$/,
+      type: 'asset/resource',
     });
 
     // Ensure WASM files are not processed by the default file loader

@@ -22,6 +22,24 @@ import {
   type QueryUserDataParameters,
 } from './tools';
 
+// Import MCP GearGraph tools (T059 - Register MCP tools with agent)
+import {
+  findAlternativesTool,
+  searchGearTool,
+  queryGearGraphTool,
+  executeFindAlternatives,
+  executeSearchGear,
+  executeQueryGearGraph,
+  type FindAlternativesInput,
+  type SearchGearInput,
+  type QueryGearGraphInput,
+} from '@/lib/mastra/tools/mcp-graph';
+import {
+  recordMcpToolCall,
+  recordMcpToolLatency,
+  recordMcpToolError,
+} from '@/lib/mastra/metrics';
+
 // Environment configuration
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4.5';
@@ -149,6 +167,76 @@ export function getAITools(userId: string) {
       execute: async (args: { destination: string }) => {
         // Return tool result - client will handle actual navigation via action
         return { action: 'navigate', destination: args.destination };
+      },
+    },
+
+    // =========================================================================
+    // MCP GearGraph Tools (T059 - US3: MCP Client Integration)
+    // =========================================================================
+
+    // Find gear alternatives via GearGraph MCP
+    findAlternatives: {
+      description: findAlternativesTool.description,
+      parameters: findAlternativesTool.parameters,
+      execute: async (args: FindAlternativesInput) => {
+        const startTime = Date.now();
+        try {
+          const result = await executeFindAlternatives(args);
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('findAlternatives', result.success ? 'success' : 'error');
+          recordMcpToolLatency('findAlternatives', latencyMs);
+          return result;
+        } catch (error) {
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('findAlternatives', 'error');
+          recordMcpToolLatency('findAlternatives', latencyMs);
+          recordMcpToolError('findAlternatives', error instanceof Error ? error.message : 'unknown');
+          throw error;
+        }
+      },
+    },
+
+    // Search gear catalog via GearGraph MCP
+    searchGear: {
+      description: searchGearTool.description,
+      parameters: searchGearTool.parameters,
+      execute: async (args: SearchGearInput) => {
+        const startTime = Date.now();
+        try {
+          const result = await executeSearchGear(args);
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('searchGear', result.success ? 'success' : 'error');
+          recordMcpToolLatency('searchGear', latencyMs);
+          return result;
+        } catch (error) {
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('searchGear', 'error');
+          recordMcpToolLatency('searchGear', latencyMs);
+          recordMcpToolError('searchGear', error instanceof Error ? error.message : 'unknown');
+          throw error;
+        }
+      },
+    },
+
+    // Direct Cypher query on GearGraph via MCP
+    queryGearGraph: {
+      description: queryGearGraphTool.description,
+      parameters: queryGearGraphTool.parameters,
+      execute: async (args: QueryGearGraphInput) => {
+        const startTime = Date.now();
+        try {
+          const result = await executeQueryGearGraph(args);
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('queryGearGraph', result.success ? 'success' : 'error');
+          recordMcpToolLatency('queryGearGraph', latencyMs);
+          return result;
+        } catch (error) {
+          const latencyMs = Date.now() - startTime;
+          recordMcpToolCall('queryGearGraph', 'error');
+          recordMcpToolLatency('queryGearGraph', latencyMs);
+          recordMcpToolError('queryGearGraph', error instanceof Error ? error.message : 'unknown');
+          throw error;
+        }
       },
     },
   };

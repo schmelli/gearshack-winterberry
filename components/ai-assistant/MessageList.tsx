@@ -1,9 +1,11 @@
 /**
  * Message List Component
  * Feature 050: AI Assistant - T033
+ * Feature 001: Mastra Voice - Voice Output Integration
  *
  * Scrollable container for AI chat messages.
  * Auto-scrolls to bottom on new messages.
+ * Supports TTS playback for assistant messages.
  */
 
 'use client';
@@ -21,13 +23,23 @@ interface Message {
 }
 
 interface MessageListProps {
-  conversationId: string | null;
+  conversationId?: string | null;
   messages: Message[];
   isLoading: boolean;
   isStreaming?: boolean;
+  /** Callback to speak a message via TTS */
+  onSpeakMessage?: (text: string) => void;
+  /** Whether audio is currently playing */
+  isPlayingAudio?: boolean;
 }
 
-export function MessageList({ conversationId, messages, isLoading, isStreaming = false }: MessageListProps) {
+export function MessageList({
+  messages,
+  isLoading,
+  isStreaming = false,
+  onSpeakMessage,
+  isPlayingAudio = false,
+}: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -86,6 +98,8 @@ export function MessageList({ conversationId, messages, isLoading, isStreaming =
               key={message.id}
               message={message}
               isStreaming={showStreamingIndicator}
+              onSpeak={isAssistantMessage && onSpeakMessage ? () => onSpeakMessage(message.content) : undefined}
+              isPlayingAudio={isPlayingAudio}
             />
           );
         })}
