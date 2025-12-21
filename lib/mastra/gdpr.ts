@@ -16,6 +16,35 @@ import type { Database } from '@/types/supabase';
 import { logInfo, logError, logDebug } from './logging';
 import { recordGdprDeletion, recordGdprDeletionDuration } from './metrics';
 
+// Type assertion helper for tables not yet in generated Supabase types
+// These tables exist in the database but types need regeneration after migrations
+interface UntypedQueryBuilder {
+  select: (columns?: string) => UntypedQueryBuilder;
+  insert: (data: Record<string, unknown>) => UntypedQueryBuilder;
+  update: (data: Record<string, unknown>) => UntypedQueryBuilder;
+  delete: () => UntypedQueryBuilder;
+  eq: (column: string, value: unknown) => UntypedQueryBuilder;
+  order: (column: string, options?: { ascending?: boolean }) => UntypedQueryBuilder;
+  single: () => Promise<{ data: unknown; error: { code: string; message: string } | null }>;
+  then: Promise<{ data: unknown[] | null; error: Error | null; count: number | null }>['then'];
+}
+
+type AnySupabaseClient = SupabaseClient<Database> & {
+  from: (table: string) => UntypedQueryBuilder;
+  rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+};
+
+// Row type for gdpr_deletion_records table (not yet in generated types)
+interface GdprDeletionRow {
+  id: string;
+  user_id: string;
+  status: string;
+  requested_at: string;
+  completed_at: string | null;
+  records_deleted: number | null;
+  error_message: string | null;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -92,15 +121,16 @@ export async function requestGdprDeletion(
 
   try {
     // Call the database function to create deletion request
-    const { data, error } = await supabase
-      .rpc('request_gdpr_deletion', { p_user_id: userId });
+    // Using type assertion as RPC function isn't in generated types yet
+    const client = supabase as unknown as AnySupabaseClient;
+    const { data, error } = await client.rpc('request_gdpr_deletion', { p_user_id: userId });
 
     if (error) {
-      logError('Failed to create GDPR deletion request', error, { userId });
+      logError('Failed to create GDPR deletion request', error as Error, { userId });
       return {
         success: false,
         deletionId: null,
-        error: error.message,
+        error: (error as Error).message,
       };
     }
 
@@ -158,18 +188,21 @@ export async function executeGdprDeletion(
     rateLimitTracking: 0,
   };
 
+  // Using type assertion as some tables aren't in generated types yet
+  const client = supabase as unknown as AnySupabaseClient;
+
   try {
     // Update status to processing if deletionId provided
     if (deletionId) {
-      await supabase
+      await client
         .from('gdpr_deletion_records')
         .update({ status: 'processing' })
         .eq('id', deletionId);
     }
 
-    // Delete conversation memory
+    // Delete conversation memory (ai_messages table)
     const memoryResult = await supabase
-      .from('conversation_memory')
+      .from('ai_messages')
       .delete()
       .eq('user_id', userId);
 
@@ -180,11 +213,11 @@ export async function executeGdprDeletion(
       logError('Failed to delete conversation memory', memoryResult.error, { userId });
     }
 
-    // Delete workflow executions
-    const workflowResult = await supabase
+    // Delete workflow executions (using client for non-typed table)
+    const workflowResult = await client
       .from('workflow_executions')
       .delete()
-      .eq('user_id', userId);
+      .eq('user_id', userId) as { error: Error | null; count: number | null };
 
     if (!workflowResult.error) {
       counts.workflowExecutions = workflowResult.count ?? 0;
@@ -210,7 +243,7 @@ export async function executeGdprDeletion(
 
     // Update deletion record if provided
     if (deletionId) {
-      await supabase
+      await client
         .from('gdpr_deletion_records')
         .update({
           status: 'completed',
@@ -244,7 +277,7 @@ export async function executeGdprDeletion(
 
     // Update deletion record with failure
     if (deletionId) {
-      await supabase
+      await client
         .from('gdpr_deletion_records')
         .update({
           status: 'failed',
@@ -286,13 +319,16 @@ export async function getGdprDeletionStatus(
     metadata: { deletionId, userId },
   });
 
+  // Using type assertion as table isn't in generated types yet
+  const client = supabase as unknown as AnySupabaseClient;
+
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('gdpr_deletion_records')
       .select('*')
       .eq('id', deletionId)
       .eq('user_id', userId)
-      .single();
+      .single() as { data: GdprDeletionRow | null; error: { code: string; message: string } | null };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -303,7 +339,7 @@ export async function getGdprDeletionStatus(
         };
       }
 
-      logError('Failed to get deletion status', error, {
+      logError('Failed to get deletion status', new Error(error.message), {
         metadata: { deletionId, userId },
       });
 
@@ -311,6 +347,13 @@ export async function getGdprDeletionStatus(
         found: false,
         record: null,
         error: error.message,
+      };
+    }
+
+    if (!data) {
+      return {
+        found: false,
+        record: null,
       };
     }
 
@@ -354,12 +397,15 @@ export async function listGdprDeletionRequests(
   supabase: SupabaseClient<Database>,
   userId: string
 ): Promise<DeletionRecord[]> {
+  // Using type assertion as table isn't in generated types yet
+  const client = supabase as unknown as AnySupabaseClient;
+
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('gdpr_deletion_records')
       .select('*')
       .eq('user_id', userId)
-      .order('requested_at', { ascending: false });
+      .order('requested_at', { ascending: false }) as { data: GdprDeletionRow[] | null; error: Error | null };
 
     if (error) {
       logError('Failed to list deletion requests', error, { userId });

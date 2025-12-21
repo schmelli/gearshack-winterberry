@@ -87,8 +87,8 @@ const DEFAULT_TOOL_CALL_TIMEOUT_MS = parseInt(
  * Using minimal capabilities required for tool discovery and execution.
  */
 interface MCPClientCapabilities {
-  experimental?: Record<string, unknown>;
-  sampling?: Record<string, unknown>;
+  experimental?: Record<string, object>;
+  sampling?: Record<string, object>;
 }
 
 // ============================================================================

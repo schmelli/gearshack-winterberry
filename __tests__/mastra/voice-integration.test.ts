@@ -405,7 +405,7 @@ describe('US4: Voice Interaction', () => {
 
       const result = await response.json();
 
-      expect(result.retryMessage).not.toBeEmpty();
+      expect(result.retryMessage).toBeTruthy();
       expect(result.retryMessage).toMatch(/couldn't understand|try again|quieter/i);
     });
 

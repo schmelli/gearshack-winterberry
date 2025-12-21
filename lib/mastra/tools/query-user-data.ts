@@ -91,7 +91,7 @@ const queryUserDataOutputSchema = z.object({
   operation: z.string(),
   table: z.string(),
   rowCount: z.number(),
-  data: z.union([z.array(z.record(z.unknown())), z.number(), z.null()]),
+  data: z.union([z.array(z.record(z.string(), z.unknown())), z.number(), z.null()]),
   error: z.string().optional(),
   metadata: z
     .object({
@@ -201,8 +201,8 @@ Examples:
         for (const [key, value] of Object.entries(filters)) {
           if (value === null) {
             query = query.is(key, null);
-          } else {
-            query = query.eq(key, value);
+          } else if (value !== undefined) {
+            query = query.eq(key, value as string | number | boolean);
           }
           appliedFilters.push(key);
         }
@@ -291,7 +291,7 @@ Examples:
         operation: effectiveOperation,
         table,
         rowCount: data?.length ?? 0,
-        data: data ?? [],
+        data: (data ?? []) as unknown as Record<string, unknown>[],
         metadata: {
           executionTimeMs: executionTime,
           limitApplied: effectiveLimit,

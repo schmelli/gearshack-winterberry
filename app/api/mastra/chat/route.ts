@@ -295,7 +295,9 @@ async function saveToMemory(
 function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   history: Array<{ role: string; content: string }>,
-  memoryWarning?: string
+  memoryWarning?: string,
+  userId?: string,
+  subscriptionTier?: 'standard' | 'trailblazer'
 ): PromptContext {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
@@ -308,6 +310,8 @@ function buildPromptContext(
     locale,
     inventoryCount,
     currentLoadoutId,
+    userId: userId || 'anonymous',
+    subscriptionTier: subscriptionTier || 'standard',
   };
 
   const promptContext: PromptContext = {
@@ -477,7 +481,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 9. Build system prompt with memory context
-    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning);
+    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning, user.id);
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
     // 10. Check AI availability
@@ -531,7 +535,7 @@ export async function POST(request: Request): Promise<Response> {
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
             for (const tc of toolCalls) {
-              recordToolCall(tc.toolName || 'unknown', true);
+              recordToolCall(tc.toolName || 'unknown');
             }
           }
 
@@ -554,9 +558,9 @@ export async function POST(request: Request): Promise<Response> {
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
-          // Send completion event
+          // Send completion event (tokensUsed not available from streaming, pass undefined)
           controller.enqueue(
-            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', toolCalls, totalLatencyMs))
+            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
           );
 
           logInfo('Mastra chat request completed', {

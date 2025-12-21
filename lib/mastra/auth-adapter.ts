@@ -388,6 +388,30 @@ export async function getUserIdForMemory(): Promise<string | null> {
  */
 export const supabaseAuthProvider = new SupabaseAuthProvider();
 
+// ==================== Factory Function ====================
+
+/**
+ * Create a new SupabaseAuthProvider instance
+ *
+ * Factory function for creating auth providers when you need a fresh instance
+ * rather than using the singleton.
+ *
+ * @param _supabaseClient - Supabase client (reserved for future use)
+ * @param options - Optional provider configuration
+ * @returns New SupabaseAuthProvider instance
+ *
+ * @example
+ * ```typescript
+ * const authProvider = createAuthProvider(supabase);
+ * ```
+ */
+export function createAuthProvider(
+  _supabaseClient?: unknown,
+  options?: MastraAuthProviderOptions<SupabaseAuthUser>
+): SupabaseAuthProvider {
+  return new SupabaseAuthProvider(options);
+}
+
 // ==================== Named Export Object ====================
 
 /**
@@ -396,6 +420,7 @@ export const supabaseAuthProvider = new SupabaseAuthProvider();
 export const authAdapter = {
   SupabaseAuthProvider,
   supabaseAuthProvider,
+  createAuthProvider,
   extractBearerToken,
   getMemoryIsolationContext,
   generateThreadId,

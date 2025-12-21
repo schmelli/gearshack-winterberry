@@ -497,6 +497,9 @@ export type ErrorType =
   | 'memory_unavailable'
   | 'mcp_timeout'
   | 'validation'
+  | 'ai_unavailable'
+  | 'stream_error'
+  | 'server_error'
   | 'unknown';
 
 /**

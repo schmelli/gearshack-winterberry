@@ -164,7 +164,7 @@ export function AudioPlaybackControls({
               </p>
               <Slider
                 value={[volume * 100]}
-                onValueChange={([value]) => onVolumeChange(value / 100)}
+                onValueChange={([value]: number[]) => onVolumeChange(value / 100)}
                 max={100}
                 step={5}
                 className="w-full"

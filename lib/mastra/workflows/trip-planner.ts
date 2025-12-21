@@ -27,6 +27,16 @@ import { traceWorkflowStep } from '@/lib/mastra/tracing';
 import type { WorkflowDefinition, WorkflowStep, WorkflowContext } from '@/types/mastra';
 import type { Database } from '@/types/supabase';
 
+// Type assertion helper for tables not yet in generated Supabase types
+interface UntypedQueryBuilder {
+  insert: (data: Record<string, unknown>) => UntypedQueryBuilder;
+  then: Promise<{ data: unknown; error: Error | null }>['then'];
+}
+
+type AnySupabaseClient = SupabaseClient<Database> & {
+  from: (table: string) => UntypedQueryBuilder;
+};
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -304,7 +314,7 @@ async function fetchUserInventory(
 ): Promise<InventoryAnalysis> {
   const { data: items, error } = await supabase
     .from('gear_items')
-    .select('id, name, weight, brand, category_id, status')
+    .select('id, name, weight_grams, brand, category_id, status')
     .eq('user_id', userId)
     .eq('status', 'own');
 
@@ -324,10 +334,10 @@ async function fetchUserInventory(
     byCategory[categoryId].push({
       id: item.id,
       name: item.name,
-      weight: item.weight || 0,
+      weight: item.weight_grams || 0,
       brand: item.brand || undefined,
     });
-    baseWeight += item.weight || 0;
+    baseWeight += item.weight_grams || 0;
   }
 
   return {
@@ -456,9 +466,9 @@ async function queryRecommendations(
   for (const gap of gaps.gaps.slice(0, 5)) { // Limit to top 5 gaps
     const { data: catalogItems } = await supabase
       .from('catalog_products')
-      .select('id, name, brand, weight, price, category')
+      .select('id, name, brand_external_id, weight_grams, price_usd, category_main')
       .textSearch('name', gap.category.replace('_', ' '), { type: 'websearch' })
-      .order('weight', { ascending: true })
+      .order('weight_grams', { ascending: true })
       .limit(2);
 
     if (catalogItems && catalogItems.length > 0) {
@@ -466,14 +476,14 @@ async function queryRecommendations(
         products.push({
           id: item.id,
           name: item.name,
-          brand: item.brand || 'Unknown',
-          weight: item.weight || 0,
-          price: item.price || 0,
-          category: item.category || gap.category,
+          brand: item.brand_external_id || 'Unknown',
+          weight: item.weight_grams || 0,
+          price: item.price_usd || 0,
+          category: item.category_main || gap.category,
           matchedGap: gap.requirement,
         });
-        totalCost += item.price || 0;
-        weightImpact += item.weight || 0;
+        totalCost += item.price_usd || 0;
+        weightImpact += item.weight_grams || 0;
       }
     }
   }
@@ -787,12 +797,14 @@ async function trackWorkflowExecution(
   errorMessage?: string
 ): Promise<void> {
   try {
-    await supabase.from('workflow_executions').insert({
+    // Use type assertion for untyped table
+    const client = supabase as unknown as AnySupabaseClient;
+    await client.from('workflow_executions').insert({
       id: executionId,
       user_id: userId,
       workflow_name: 'trip_planner',
       status,
-      step_results: stepResults as unknown as Record<string, unknown>,
+      step_results: stepResults,
       error_message: errorMessage ?? null,
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
