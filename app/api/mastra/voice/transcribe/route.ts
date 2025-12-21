@@ -132,7 +132,38 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!audioFile) {
       return new Response(
-        JSON.stringify({ error: 'No audio file provided' }),
+        JSON.stringify({
+          error: 'Missing audio file',
+          message: 'Please provide an audio file to transcribe.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate audio file type (prevent processing of non-audio files)
+    const ALLOWED_AUDIO_TYPES = [
+      'audio/webm',
+      'audio/wav',
+      'audio/wave',
+      'audio/x-wav',
+      'audio/mp3',
+      'audio/mpeg',
+      'audio/mp4',
+      'audio/m4a',
+      'audio/x-m4a',
+      'audio/ogg',
+      'audio/flac',
+    ];
+    if (audioFile.type && !ALLOWED_AUDIO_TYPES.includes(audioFile.type)) {
+      logWarn('Invalid audio file type', {
+        userId: user.id,
+        metadata: { mimeType: audioFile.type, fileName: audioFile.name },
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid audio format',
+          message: 'Supported formats: WebM, WAV, MP3, M4A, OGG, FLAC',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }

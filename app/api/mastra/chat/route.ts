@@ -358,7 +358,9 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const { conversationId, message, context, enableTools = true, enableVoice } = validation.data;
+    const { message, context, enableTools = true, enableVoice } = validation.data;
+    // Generate conversation ID if not provided (ensures memory persistence works)
+    const conversationId = validation.data.conversationId || crypto.randomUUID();
 
     // 3. Authenticate user via Supabase
     const supabase = await createClient();

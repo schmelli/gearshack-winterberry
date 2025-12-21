@@ -100,7 +100,8 @@ export interface UseMastraChatResult {
 // Constants
 // =====================================================
 
-const API_ENDPOINT = '/api/mastra/chat';
+/** Chat API endpoint - configurable via NEXT_PUBLIC_MASTRA_API_URL */
+const API_ENDPOINT = process.env.NEXT_PUBLIC_MASTRA_API_URL || '/api/mastra/chat';
 const DEFAULT_MAX_TOKENS = 2000;
 
 // =====================================================

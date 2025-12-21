@@ -28,6 +28,11 @@ CREATE TABLE IF NOT EXISTS ai_rate_limits (
 CREATE INDEX IF NOT EXISTS idx_ai_rate_limits_user_endpoint
   ON ai_rate_limits(user_id, endpoint, window_start DESC);
 
+-- Index for cleanup function (expired window lookup)
+CREATE INDEX IF NOT EXISTS idx_ai_rate_limits_cleanup
+  ON ai_rate_limits(window_start)
+  WHERE window_start < now() - INTERVAL '24 hours';
+
 -- ==================== ROW LEVEL SECURITY ====================
 
 -- Enable RLS to ensure multi-tenancy

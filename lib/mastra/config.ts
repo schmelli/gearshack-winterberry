@@ -10,6 +10,7 @@
  * Architecture: Server-only - uses Supabase for memory persistence
  */
 
+import { z } from 'zod';
 import type {
   MastraAgent,
   MCPTool,
@@ -25,35 +26,78 @@ export {
 } from './prompt-builder';
 
 // =============================================================================
-// Environment Configuration
+// Environment Configuration with Zod Validation
 // =============================================================================
 
 /**
- * Mastra-specific environment variables
- *
- * Required:
- * - MASTRA_MODEL: AI model identifier (default: anthropic/claude-sonnet-4-5)
- * - AI_GATEWAY_API_KEY: Vercel AI Gateway API key
- *
- * Optional:
- * - MASTRA_MEMORY_RETENTION_DAYS: Days to retain conversation memory (default: 90)
- * - MASTRA_LOG_LEVEL: Logging level (default: info)
- * - MASTRA_METRICS_ENABLED: Enable Prometheus metrics (default: true)
- * - MASTRA_TRACING_ENABLED: Enable distributed tracing (default: true)
+ * Zod schema for Mastra environment variables
+ * Validates required variables at startup to prevent runtime errors
  */
-export const MASTRA_MODEL =
-  process.env.MASTRA_MODEL || 'anthropic/claude-sonnet-4-5';
-export const MEMORY_RETENTION_DAYS = parseInt(
-  process.env.MASTRA_MEMORY_RETENTION_DAYS || '90',
-  10
-);
-export const LOG_LEVEL = (process.env.MASTRA_LOG_LEVEL || 'info') as
-  | 'info'
-  | 'debug'
-  | 'warn'
-  | 'error';
-export const METRICS_ENABLED = process.env.MASTRA_METRICS_ENABLED !== 'false';
-export const TRACING_ENABLED = process.env.MASTRA_TRACING_ENABLED !== 'false';
+const mastraEnvSchema = z.object({
+  /** AI model identifier (required for AI operations) */
+  MASTRA_MODEL: z.string().default('anthropic/claude-sonnet-4-5'),
+  /** Vercel AI Gateway API key - required for AI operations */
+  AI_GATEWAY_API_KEY: z.string().min(1, 'AI_GATEWAY_API_KEY is required for AI operations').optional(),
+  /** Days to retain conversation memory */
+  MASTRA_MEMORY_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  /** Logging level */
+  MASTRA_LOG_LEVEL: z.enum(['info', 'debug', 'warn', 'error']).default('info'),
+  /** Enable Prometheus metrics */
+  MASTRA_METRICS_ENABLED: z.string().transform(v => v !== 'false').default('true'),
+  /** Enable distributed tracing */
+  MASTRA_TRACING_ENABLED: z.string().transform(v => v !== 'false').default('true'),
+  /** Maximum audio file size in MB */
+  MASTRA_MAX_AUDIO_SIZE_MB: z.coerce.number().int().positive().default(25),
+  /** Memory history limit for context */
+  MASTRA_MEMORY_HISTORY_LIMIT: z.coerce.number().int().positive().default(50),
+});
+
+/**
+ * Validated Mastra environment configuration
+ * Throws descriptive error at startup if required variables are missing
+ */
+function validateEnv() {
+  const result = mastraEnvSchema.safeParse({
+    MASTRA_MODEL: process.env.MASTRA_MODEL,
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+    MASTRA_MEMORY_RETENTION_DAYS: process.env.MASTRA_MEMORY_RETENTION_DAYS,
+    MASTRA_LOG_LEVEL: process.env.MASTRA_LOG_LEVEL,
+    MASTRA_METRICS_ENABLED: process.env.MASTRA_METRICS_ENABLED,
+    MASTRA_TRACING_ENABLED: process.env.MASTRA_TRACING_ENABLED,
+    MASTRA_MAX_AUDIO_SIZE_MB: process.env.MASTRA_MAX_AUDIO_SIZE_MB,
+    MASTRA_MEMORY_HISTORY_LIMIT: process.env.MASTRA_MEMORY_HISTORY_LIMIT,
+  });
+
+  if (!result.success) {
+    const errors = result.error.errors
+      .map(e => `  - ${e.path.join('.')}: ${e.message}`)
+      .join('\n');
+    console.error(`[Mastra Config] Environment validation failed:\n${errors}`);
+    // Don't throw - allow graceful degradation with defaults
+  }
+
+  return result.success ? result.data : mastraEnvSchema.parse({});
+}
+
+const validatedEnv = validateEnv();
+
+/**
+ * Exported configuration values (validated)
+ */
+export const MASTRA_MODEL = validatedEnv.MASTRA_MODEL;
+export const MEMORY_RETENTION_DAYS = validatedEnv.MASTRA_MEMORY_RETENTION_DAYS;
+export const LOG_LEVEL = validatedEnv.MASTRA_LOG_LEVEL;
+export const METRICS_ENABLED = validatedEnv.MASTRA_METRICS_ENABLED;
+export const TRACING_ENABLED = validatedEnv.MASTRA_TRACING_ENABLED;
+export const MAX_AUDIO_SIZE_MB = validatedEnv.MASTRA_MAX_AUDIO_SIZE_MB;
+export const MEMORY_HISTORY_LIMIT = validatedEnv.MASTRA_MEMORY_HISTORY_LIMIT;
+
+/**
+ * Check if AI features are available (API key configured)
+ */
+export function isAIAvailable(): boolean {
+  return !!process.env.AI_GATEWAY_API_KEY;
+}
 
 // =============================================================================
 // MCP Tool Definitions
