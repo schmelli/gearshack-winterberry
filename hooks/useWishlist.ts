@@ -197,8 +197,8 @@ export function useWishlist(): UseWishlistReturn {
       // Feature 049 US3: Add the moved item to the inventory zustand store
       // Transform the database row to GearItem and add to inventory
       const transformedItem = gearItemFromDb(updatedDbRow as Tables<'gear_items'>);
-      // Use functional update pattern to avoid stale closure over inventoryItems
-      setRemoteGearItems((prev) => [transformedItem, ...prev]);
+      // setRemoteGearItems expects an array, not a function updater
+      setRemoteGearItems([transformedItem, ...inventoryItems]);
 
       toast.success(`${itemName} moved to inventory!`);
     } catch (err) {
@@ -206,7 +206,7 @@ export function useWishlist(): UseWishlistReturn {
       toast.error(message);
       throw err;
     }
-  }, [wishlistItems, setRemoteGearItems]);
+  }, [wishlistItems, inventoryItems, setRemoteGearItems]);
 
   // ---------------------------------------------------------------------------
   // Duplicate Detection Helper
