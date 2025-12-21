@@ -43,9 +43,9 @@ const mastraEnvSchema = z.object({
   /** Logging level */
   MASTRA_LOG_LEVEL: z.enum(['info', 'debug', 'warn', 'error']).default('info'),
   /** Enable Prometheus metrics */
-  MASTRA_METRICS_ENABLED: z.string().transform(v => v !== 'false').default('true'),
+  MASTRA_METRICS_ENABLED: z.string().default('true').transform(v => v !== 'false'),
   /** Enable distributed tracing */
-  MASTRA_TRACING_ENABLED: z.string().transform(v => v !== 'false').default('true'),
+  MASTRA_TRACING_ENABLED: z.string().default('true').transform(v => v !== 'false'),
   /** Maximum audio file size in MB */
   MASTRA_MAX_AUDIO_SIZE_MB: z.coerce.number().int().positive().default(25),
   /** Memory history limit for context */
@@ -69,8 +69,8 @@ function validateEnv() {
   });
 
   if (!result.success) {
-    const errors = result.error.errors
-      .map(e => `  - ${e.path.join('.')}: ${e.message}`)
+    const errors = result.error.issues
+      .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
       .join('\n');
     console.error(`[Mastra Config] Environment validation failed:\n${errors}`);
 
