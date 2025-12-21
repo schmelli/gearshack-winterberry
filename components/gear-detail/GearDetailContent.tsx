@@ -30,6 +30,7 @@ import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 import { cn } from '@/lib/utils';
 import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
+import { PriceTrackingSection } from '@/components/price-tracking';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
@@ -183,7 +184,7 @@ export function GearDetailContent({
   insights,
   insightsLoading,
   insightsError,
-  userId,
+  // userId - reserved for insight feedback, not currently used
   onEditClick,
   onInsightDismissed,
   className,
@@ -354,6 +355,11 @@ export function GearDetailContent({
             </div>
           </div>
         )}
+
+        {/* Price Tracking Section - Feature 050 */}
+        <div className="border-t pt-4">
+          <PriceTrackingSection item={item} />
+        </div>
 
         {/* External Links */}
         {(item.productUrl || item.brandUrl || item.retailerUrl) && (
