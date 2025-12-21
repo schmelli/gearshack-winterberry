@@ -104,24 +104,26 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       )}
     >
       {/* FR-020: h-24 = 96px header height, items-center for FR-019 vertical centering */}
-      <div className="container flex h-24 items-center">
+      {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
+      <div className="container flex h-24 items-center px-3 md:px-4">
         {/* Mobile menu trigger */}
         <MobileNav />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-20 w-20 items-center justify-center rounded-lg">
+        {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
+        <Link href="/" className="flex items-center gap-2 md:gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg md:h-20 md:w-20">
             <Image
               src="/logos/small_gearshack_logo.png"
               alt="Gearshack Logo"
               width={80}
               height={80}
-              className="h-20 w-20"
+              className="h-12 w-12 md:h-20 md:w-20"
               priority
             />
           </div>
-          <span className="font-[family-name:var(--font-rock-salt)] text-3xl leading-tight text-white">
+          <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white md:text-3xl">
             Gearshack
           </span>
         </Link>
@@ -154,7 +156,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         </nav>
 
         {/* Right side: sync indicator, language switcher, notifications and user menu */}
-        <div className="flex items-center gap-2">
+        {/* Issue #73: Tighter spacing on mobile to fit all controls */}
+        <div className="flex items-center gap-1 md:gap-2">
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
 
