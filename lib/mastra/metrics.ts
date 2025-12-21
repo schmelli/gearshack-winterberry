@@ -849,13 +849,16 @@ export function classifyQuery(query: string): QueryType {
 /**
  * Timer utility for measuring operation duration
  * Returns a function to call when the operation completes
+ *
+ * Uses performance.now() for Edge Runtime compatibility
+ * (process.hrtime.bigint() is not available in Edge Runtime)
  */
 export function startTimer(): () => number {
-  const startTime = process.hrtime.bigint();
+  const startTime = performance.now();
 
   return (): number => {
-    const endTime = process.hrtime.bigint();
+    const endTime = performance.now();
     // Return duration in milliseconds
-    return Number(endTime - startTime) / 1_000_000;
+    return endTime - startTime;
   };
 }

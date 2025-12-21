@@ -36,7 +36,9 @@ import {
 import type { UserContext } from '@/types/ai-assistant';
 import { validateAIConfig } from '@/lib/env';
 
-export const runtime = 'edge'; // Use Edge runtime for streaming
+// Note: Using Node.js runtime because dependencies (prom-client, MCP SDK)
+// require Node.js APIs (cluster, child_process, v8). SSE streaming works fine with Node.js.
+export const runtime = 'nodejs';
 
 interface StreamRequest {
   conversationId: string | null;

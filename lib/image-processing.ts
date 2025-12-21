@@ -6,9 +6,9 @@
  *
  * Client-side image processing using WASM-based background removal.
  * Assets are lazy-loaded from CDN on first use to avoid bundle impact.
+ *
+ * Note: Uses dynamic import to avoid webpack bundling WASM at build time.
  */
-
-import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
 
 /**
  * Version of @imgly/background-removal package.
@@ -31,6 +31,9 @@ const IMGLY_BACKGROUND_REMOVAL_VERSION = '1.7.0';
  */
 export async function removeBackground(imageFile: File): Promise<Blob> {
   try {
+    // Dynamic import to avoid webpack bundling WASM at build time
+    const { removeBackground: imglyRemoveBackground } = await import('@imgly/background-removal');
+
     const blob = await imglyRemoveBackground(imageFile, {
       publicPath: `https://staticimgly.com/@imgly/background-removal-data/${IMGLY_BACKGROUND_REMOVAL_VERSION}/dist/`,
       debug: process.env.NODE_ENV === 'development',
