@@ -73,7 +73,12 @@ function validateEnv() {
       .map(e => `  - ${e.path.join('.')}: ${e.message}`)
       .join('\n');
     console.error(`[Mastra Config] Environment validation failed:\n${errors}`);
-    // Don't throw - allow graceful degradation with defaults
+
+    // In production, fail fast for missing required variables
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`[Mastra Config] Missing required environment variables:\n${errors}`);
+    }
+    // In development, allow graceful degradation with defaults
   }
 
   return result.success ? result.data : mastraEnvSchema.parse({});

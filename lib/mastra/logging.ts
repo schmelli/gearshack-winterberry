@@ -1,14 +1,19 @@
 /**
  * Structured JSON Logging Module for Mastra AI System
  * Feature: T019 - Structured Logging with Pino
+ * Feature: T020 - PII Sanitization Integration
  *
  * Provides structured JSON logging with context fields for observability.
  * All log entries include timestamp, level, and optional context fields
  * (userId, conversationId, workflowId, traceId).
+ *
+ * PII sanitization is automatically applied to all log messages and context
+ * to ensure privacy compliance and data protection.
  */
 
 import pino from 'pino';
 import type { LogEntry } from '@/types/mastra';
+import { sanitizePII, type SanitizationResult } from './log-sanitizer';
 
 // ==================== Type Definitions ====================
 
@@ -129,7 +134,20 @@ export function withContext(context: LogContext): pino.Logger {
 // ==================== Helper Functions ====================
 
 /**
+ * Sanitize data for logging (removes PII)
+ * Applied to all messages and context before logging
+ */
+function sanitizeForLogging<T>(data: T): T {
+  const result = sanitizePII(data, {
+    sensitiveKeys: ['password', 'apiKey', 'secret', 'token', 'authorization'],
+    preservePartial: false,
+  });
+  return result.sanitized as T;
+}
+
+/**
  * Merge context with current context and format for logging
+ * Applies PII sanitization to all metadata
  */
 function mergeContext(context?: LogContext): Record<string, unknown> {
   const merged = {
@@ -143,7 +161,8 @@ function mergeContext(context?: LogContext): Record<string, unknown> {
   if (merged.conversationId) result.conversationId = merged.conversationId;
   if (merged.workflowId) result.workflowId = merged.workflowId;
   if (merged.traceId) result.traceId = merged.traceId;
-  if (merged.metadata) result.metadata = merged.metadata;
+  // Sanitize metadata to remove any PII
+  if (merged.metadata) result.metadata = sanitizeForLogging(merged.metadata);
 
   return result;
 }
@@ -168,42 +187,49 @@ function formatError(error: unknown): Record<string, unknown> {
 /**
  * Log an info-level message
  * Use for normal operational messages
+ * PII is automatically sanitized from messages and context
  */
 export function logInfo(
   message: string,
   context?: LogContext
 ): void {
   const ctx = mergeContext(context);
-  baseLogger.info(ctx, message);
+  const sanitizedMessage = sanitizeForLogging(message);
+  baseLogger.info(ctx, sanitizedMessage);
 }
 
 /**
  * Log a debug-level message
  * Use for detailed debugging information
+ * PII is automatically sanitized from messages and context
  */
 export function logDebug(
   message: string,
   context?: LogContext
 ): void {
   const ctx = mergeContext(context);
-  baseLogger.debug(ctx, message);
+  const sanitizedMessage = sanitizeForLogging(message);
+  baseLogger.debug(ctx, sanitizedMessage);
 }
 
 /**
  * Log a warning-level message
  * Use for potentially problematic situations
+ * PII is automatically sanitized from messages and context
  */
 export function logWarn(
   message: string,
   context?: LogContext
 ): void {
   const ctx = mergeContext(context);
-  baseLogger.warn(ctx, message);
+  const sanitizedMessage = sanitizeForLogging(message);
+  baseLogger.warn(ctx, sanitizedMessage);
 }
 
 /**
  * Log an error-level message
  * Use for error conditions that need attention
+ * PII is automatically sanitized from messages, errors, and context
  */
 export function logError(
   message: string,
@@ -211,9 +237,10 @@ export function logError(
   context?: LogContext
 ): void {
   const ctx = mergeContext(context);
-  const errorDetails = error ? formatError(error) : {};
+  const sanitizedMessage = sanitizeForLogging(message);
+  const errorDetails = error ? sanitizeForLogging(formatError(error)) : {};
 
-  baseLogger.error({ ...ctx, ...errorDetails }, message);
+  baseLogger.error({ ...ctx, ...errorDetails }, sanitizedMessage);
 }
 
 // ==================== Specialized Logging Functions ====================

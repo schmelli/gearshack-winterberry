@@ -37,7 +37,8 @@ interface SynthesisRequest {
   voice?: TTSVoice;
   model?: TTSModel;
   format?: TTSFormat;
-  speed?: number;
+  stability?: number;
+  similarityBoost?: number;
   stream?: boolean;
 }
 
@@ -59,34 +60,42 @@ function validateRequest(body: unknown): {
     return { valid: false, error: 'text is required and must be a non-empty string' };
   }
 
-  // Validate text length (max 4096 characters for OpenAI TTS)
-  if (request.text.length > 4096) {
-    return { valid: false, error: 'text must not exceed 4096 characters' };
+  // Validate text length (max 5000 characters for ElevenLabs TTS)
+  if (request.text.length > 5000) {
+    return { valid: false, error: 'text must not exceed 5000 characters' };
   }
 
-  // Validate voice if provided
-  const validVoices: TTSVoice[] = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  // Validate voice if provided (ElevenLabs voices)
+  const validVoices: TTSVoice[] = ['rachel', 'domi', 'bella', 'antoni', 'josh', 'adam'];
   if (request.voice !== undefined && !validVoices.includes(request.voice as TTSVoice)) {
     return { valid: false, error: `voice must be one of: ${validVoices.join(', ')}` };
   }
 
-  // Validate model if provided
-  const validModels: TTSModel[] = ['tts-1', 'tts-1-hd'];
+  // Validate model if provided (ElevenLabs models)
+  const validModels: TTSModel[] = ['eleven_turbo_v2_5', 'eleven_multilingual_v2'];
   if (request.model !== undefined && !validModels.includes(request.model as TTSModel)) {
     return { valid: false, error: `model must be one of: ${validModels.join(', ')}` };
   }
 
-  // Validate format if provided
-  const validFormats: TTSFormat[] = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
+  // Validate format if provided (ElevenLabs formats)
+  const validFormats: TTSFormat[] = ['mp3_44100_128', 'mp3_22050_32', 'pcm_16000', 'pcm_22050', 'pcm_24000'];
   if (request.format !== undefined && !validFormats.includes(request.format as TTSFormat)) {
     return { valid: false, error: `format must be one of: ${validFormats.join(', ')}` };
   }
 
-  // Validate speed if provided
-  if (request.speed !== undefined) {
-    const speed = Number(request.speed);
-    if (isNaN(speed) || speed < 0.25 || speed > 4.0) {
-      return { valid: false, error: 'speed must be a number between 0.25 and 4.0' };
+  // Validate stability if provided (0.0 - 1.0)
+  if (request.stability !== undefined) {
+    const stability = Number(request.stability);
+    if (isNaN(stability) || stability < 0 || stability > 1) {
+      return { valid: false, error: 'stability must be a number between 0.0 and 1.0' };
+    }
+  }
+
+  // Validate similarityBoost if provided (0.0 - 1.0)
+  if (request.similarityBoost !== undefined) {
+    const similarityBoost = Number(request.similarityBoost);
+    if (isNaN(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
+      return { valid: false, error: 'similarityBoost must be a number between 0.0 and 1.0' };
     }
   }
 
@@ -97,7 +106,8 @@ function validateRequest(body: unknown): {
       voice: request.voice as TTSVoice | undefined,
       model: request.model as TTSModel | undefined,
       format: request.format as TTSFormat | undefined,
-      speed: request.speed as number | undefined,
+      stability: request.stability as number | undefined,
+      similarityBoost: request.similarityBoost as number | undefined,
       stream: request.stream !== false, // Default to streaming
     },
   };
@@ -145,11 +155,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Check rate limit (voice tier)
-    const rateLimitResult = await checkRateLimit(
-      supabase as unknown as import('@supabase/supabase-js').SupabaseClient,
-      user.id,
-      'voice'
-    );
+    const rateLimitResult = await checkRateLimit(user.id, 'voice');
 
     if (!rateLimitResult.allowed) {
       logWarn('Voice rate limit exceeded', {
@@ -196,7 +202,15 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const { text, voice = 'nova', model = 'tts-1', format = 'mp3', speed = 1.0, stream = true } = validation.data;
+    const {
+      text,
+      voice = 'rachel',
+      model = 'eleven_turbo_v2_5',
+      format = 'mp3_44100_128',
+      stability = 0.5,
+      similarityBoost = 0.75,
+      stream = true,
+    } = validation.data;
 
     logInfo('Starting voice synthesis', {
       userId: user.id,
@@ -205,7 +219,6 @@ export async function POST(request: Request): Promise<Response> {
         voice,
         model,
         format,
-        speed,
         stream,
       },
     });
@@ -219,7 +232,8 @@ export async function POST(request: Request): Promise<Response> {
           metadata: { textLength: text.length, voice },
         });
 
-        return new Response(cachedAudio, {
+        // Cast Buffer to BodyInit for Response compatibility (Buffer extends Uint8Array in Node.js)
+        return new Response(cachedAudio as unknown as BodyInit, {
           status: 200,
           headers: {
             'Content-Type': getContentType(format),
@@ -237,7 +251,8 @@ export async function POST(request: Request): Promise<Response> {
         voice,
         model,
         format,
-        speed,
+        stability,
+        similarityBoost,
       });
 
       return new Response(audioStream, {
@@ -255,7 +270,8 @@ export async function POST(request: Request): Promise<Response> {
         voice,
         model,
         format,
-        speed,
+        stability,
+        similarityBoost,
       });
 
       // Cache if this is a common phrase (T081)
@@ -272,7 +288,8 @@ export async function POST(request: Request): Promise<Response> {
         },
       });
 
-      return new Response(result.audio, {
+      // Cast Buffer to BodyInit for Response compatibility (Buffer extends Uint8Array in Node.js)
+      return new Response(result.audio as unknown as BodyInit, {
         status: 200,
         headers: {
           'Content-Type': result.contentType,

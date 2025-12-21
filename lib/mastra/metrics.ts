@@ -343,7 +343,7 @@ export const mcpFallbackTotal = new Counter({
 
 /**
  * Voice transcriptions total
- * Labels: provider (whisper, vercel-ai-sdk)
+ * Labels: provider (whisper, vercel-ai-sdk, elevenlabs)
  */
 export const voiceTranscriptionsTotal = new Counter({
   name: 'mastra_voice_transcriptions_total',
@@ -384,7 +384,7 @@ export const voiceTranscriptionConfidence = new Histogram({
 
 /**
  * Voice synthesis total
- * Labels: model (tts-1, tts-1-hd)
+ * Labels: model (tts-1, tts-1-hd, eleven_turbo_v2_5, eleven_multilingual_v2)
  */
 export const voiceSynthesisTotal = new Counter({
   name: 'mastra_voice_synthesis_total',
@@ -502,7 +502,7 @@ export type ErrorType =
 /**
  * Operation types for chat requests
  */
-export type OperationType = 'simple_query' | 'workflow';
+export type OperationType = 'simple_query' | 'workflow' | 'voice';
 
 /**
  * Query complexity classification
@@ -717,10 +717,20 @@ export function recordMcpFallback(
 }
 
 /**
+ * Voice provider types for transcription
+ */
+export type VoiceProvider = 'whisper' | 'vercel-ai-sdk' | 'elevenlabs';
+
+/**
+ * TTS model types (OpenAI and ElevenLabs)
+ */
+export type TTSModelType = 'tts-1' | 'tts-1-hd' | 'eleven_turbo_v2_5' | 'eleven_multilingual_v2';
+
+/**
  * Records a voice transcription
  */
 export function recordVoiceTranscription(
-  provider: 'whisper' | 'vercel-ai-sdk',
+  provider: VoiceProvider,
   latencyMs: number,
   confidence: number
 ): void {
@@ -734,7 +744,7 @@ export function recordVoiceTranscription(
  * Records voice synthesis
  */
 export function recordVoiceSynthesis(
-  model: 'tts-1' | 'tts-1-hd',
+  model: TTSModelType,
   latencyMs: number
 ): void {
   voiceSynthesisTotal.inc({ model });

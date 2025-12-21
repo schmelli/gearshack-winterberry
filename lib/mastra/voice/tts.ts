@@ -1,16 +1,15 @@
 /**
- * Text-to-Speech Integration
+ * Text-to-Speech Integration with ElevenLabs
  * Feature: 001-mastra-agentic-voice
  * Task: T072 - Create TTS integration
  * Task: T075 - Implement streaming TTS
  *
- * Wraps OpenAI TTS API for speech synthesis with:
+ * Wraps ElevenLabs TTS API for speech synthesis with:
  * - Streaming support for low-latency playback
- * - Multiple voice options
- * - Quality vs speed trade-off (tts-1 vs tts-1-hd)
+ * - Multiple voice options with natural-sounding voices
+ * - Quality settings via model selection
  */
 
-import OpenAI from 'openai';
 import { logInfo, logError, logDebug } from '../logging';
 import { recordVoiceSynthesis } from '../metrics';
 
@@ -19,34 +18,36 @@ import { recordVoiceSynthesis } from '../metrics';
 // ============================================================================
 
 /**
- * Available TTS voices
+ * Available TTS voices (ElevenLabs voice IDs mapped to friendly names)
  */
-export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+export type TTSVoice = 'rachel' | 'domi' | 'bella' | 'antoni' | 'josh' | 'adam';
 
 /**
- * TTS model selection
- * - tts-1: Faster, lower quality
- * - tts-1-hd: Slower, higher quality
+ * ElevenLabs model selection
+ * - eleven_turbo_v2_5: Fast, lower latency (recommended for realtime)
+ * - eleven_multilingual_v2: Higher quality, supports multiple languages
  */
-export type TTSModel = 'tts-1' | 'tts-1-hd';
+export type TTSModel = 'eleven_turbo_v2_5' | 'eleven_multilingual_v2';
 
 /**
  * Audio output format
  */
-export type TTSFormat = 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+export type TTSFormat = 'mp3_44100_128' | 'mp3_22050_32' | 'pcm_16000' | 'pcm_22050' | 'pcm_24000';
 
 /**
  * Options for speech synthesis
  */
 export interface SynthesisOptions {
-  /** Voice to use (default: nova) */
+  /** Voice to use (default: rachel) */
   voice?: TTSVoice;
-  /** Model to use (default: tts-1 for speed) */
+  /** Model to use (default: eleven_turbo_v2_5 for speed) */
   model?: TTSModel;
-  /** Output format (default: mp3) */
+  /** Output format (default: mp3_44100_128) */
   format?: TTSFormat;
-  /** Speech speed (0.25 - 4.0, default: 1.0) */
-  speed?: number;
+  /** Stability (0.0 - 1.0, default: 0.5) - lower = more expressive */
+  stability?: number;
+  /** Similarity boost (0.0 - 1.0, default: 0.75) */
+  similarityBoost?: number;
 }
 
 /**
@@ -68,6 +69,18 @@ export interface SynthesisResult {
 // ============================================================================
 
 /**
+ * ElevenLabs voice ID mapping
+ */
+const VOICE_IDS: Record<TTSVoice, string> = {
+  rachel: '21m00Tcm4TlvDq8ikWAM',
+  domi: 'AZnzlk1XvdvUeBnXmlld',
+  bella: 'EXAVITQu4vr4xnSDxMaL',
+  antoni: 'ErXwobaYiN019PkySvjV',
+  josh: 'TxGEqnHWrfWFTfGW9XjX',
+  adam: 'pNInz6obpgDQGcFmaJgB',
+};
+
+/**
  * Voice metadata for UI display
  */
 export const VOICE_OPTIONS: Array<{
@@ -75,24 +88,23 @@ export const VOICE_OPTIONS: Array<{
   label: string;
   description: string;
 }> = [
-  { value: 'nova', label: 'Nova', description: 'Female, warm and natural (recommended)' },
-  { value: 'alloy', label: 'Alloy', description: 'Neutral, balanced' },
-  { value: 'echo', label: 'Echo', description: 'Male, deep and expressive' },
-  { value: 'fable', label: 'Fable', description: 'British accent, storytelling' },
-  { value: 'onyx', label: 'Onyx', description: 'Male, deep and authoritative' },
-  { value: 'shimmer', label: 'Shimmer', description: 'Female, soft and soothing' },
+  { value: 'rachel', label: 'Rachel', description: 'Female, calm and warm (recommended)' },
+  { value: 'bella', label: 'Bella', description: 'Female, soft and friendly' },
+  { value: 'domi', label: 'Domi', description: 'Female, confident and clear' },
+  { value: 'josh', label: 'Josh', description: 'Male, deep and authoritative' },
+  { value: 'adam', label: 'Adam', description: 'Male, natural and expressive' },
+  { value: 'antoni', label: 'Antoni', description: 'Male, warm storytelling voice' },
 ];
 
 /**
  * Content types for audio formats
  */
 const FORMAT_CONTENT_TYPES: Record<TTSFormat, string> = {
-  mp3: 'audio/mpeg',
-  opus: 'audio/opus',
-  aac: 'audio/aac',
-  flac: 'audio/flac',
-  wav: 'audio/wav',
-  pcm: 'audio/pcm',
+  mp3_44100_128: 'audio/mpeg',
+  mp3_22050_32: 'audio/mpeg',
+  pcm_16000: 'audio/pcm',
+  pcm_22050: 'audio/pcm',
+  pcm_24000: 'audio/pcm',
 };
 
 /**
@@ -106,21 +118,21 @@ export const CACHEABLE_PHRASES = [
   "Here's what I found:",
 ];
 
+/**
+ * ElevenLabs API base URL
+ */
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
+
 // ============================================================================
-// OpenAI Client
+// API Client
 // ============================================================================
 
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
-    openaiClient = new OpenAI({ apiKey });
+function getApiKey(): string {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error('ELEVENLABS_API_KEY environment variable is not set');
   }
-  return openaiClient;
+  return apiKey;
 }
 
 // ============================================================================
@@ -151,11 +163,14 @@ export async function synthesizeSpeechStream(
 ): Promise<ReadableStream<Uint8Array>> {
   const startTime = Date.now();
   const {
-    voice = 'nova',
-    model = 'tts-1',
-    format = 'mp3',
-    speed = 1.0,
+    voice = 'rachel',
+    model = 'eleven_turbo_v2_5',
+    format = 'mp3_44100_128',
+    stability = 0.5,
+    similarityBoost = 0.75,
   } = options;
+
+  const voiceId = VOICE_IDS[voice];
 
   logDebug('Starting speech synthesis (streaming)', {
     metadata: {
@@ -167,15 +182,31 @@ export async function synthesizeSpeechStream(
   });
 
   try {
-    const openai = getOpenAIClient();
+    const response = await fetch(
+      `${ELEVENLABS_API_URL}/text-to-speech/${voiceId}/stream`,
+      {
+        method: 'POST',
+        headers: {
+          'Accept': FORMAT_CONTENT_TYPES[format],
+          'Content-Type': 'application/json',
+          'xi-api-key': getApiKey(),
+        },
+        body: JSON.stringify({
+          text,
+          model_id: model,
+          output_format: format,
+          voice_settings: {
+            stability,
+            similarity_boost: similarityBoost,
+          },
+        }),
+      }
+    );
 
-    const response = await openai.audio.speech.create({
-      model,
-      voice,
-      input: text,
-      response_format: format,
-      speed,
-    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+    }
 
     const durationMs = Date.now() - startTime;
 
@@ -192,8 +223,7 @@ export async function synthesizeSpeechStream(
     });
 
     // Return the response body as a stream
-    // The OpenAI SDK returns a Response with a body stream
-    return response.body as unknown as ReadableStream<Uint8Array>;
+    return response.body as ReadableStream<Uint8Array>;
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
@@ -224,11 +254,14 @@ export async function synthesizeSpeech(
 ): Promise<SynthesisResult> {
   const startTime = Date.now();
   const {
-    voice = 'nova',
-    model = 'tts-1',
-    format = 'mp3',
-    speed = 1.0,
+    voice = 'rachel',
+    model = 'eleven_turbo_v2_5',
+    format = 'mp3_44100_128',
+    stability = 0.5,
+    similarityBoost = 0.75,
   } = options;
+
+  const voiceId = VOICE_IDS[voice];
 
   logDebug('Starting speech synthesis (buffered)', {
     metadata: {
@@ -240,15 +273,31 @@ export async function synthesizeSpeech(
   });
 
   try {
-    const openai = getOpenAIClient();
+    const response = await fetch(
+      `${ELEVENLABS_API_URL}/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Accept': FORMAT_CONTENT_TYPES[format],
+          'Content-Type': 'application/json',
+          'xi-api-key': getApiKey(),
+        },
+        body: JSON.stringify({
+          text,
+          model_id: model,
+          output_format: format,
+          voice_settings: {
+            stability,
+            similarity_boost: similarityBoost,
+          },
+        }),
+      }
+    );
 
-    const response = await openai.audio.speech.create({
-      model,
-      voice,
-      input: text,
-      response_format: format,
-      speed,
-    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+    }
 
     // Convert response to buffer
     const arrayBuffer = await response.arrayBuffer();
@@ -331,7 +380,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
  * @param voice - Voice used
  * @returns Cached audio buffer or null
  */
-export function getCachedAudio(text: string, voice: TTSVoice = 'nova'): Buffer | null {
+export function getCachedAudio(text: string, voice: TTSVoice = 'rachel'): Buffer | null {
   const key = `${voice}:${text.toLowerCase().trim()}`;
   const cached = ttsCache.get(key);
 
@@ -363,8 +412,8 @@ export function getCachedAudio(text: string, voice: TTSVoice = 'nova'): Buffer |
 export function cacheAudio(
   text: string,
   audio: Buffer,
-  voice: TTSVoice = 'nova',
-  format: TTSFormat = 'mp3'
+  voice: TTSVoice = 'rachel',
+  format: TTSFormat = 'mp3_44100_128'
 ): void {
   const key = `${voice}:${text.toLowerCase().trim()}`;
 

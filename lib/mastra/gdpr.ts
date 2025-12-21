@@ -6,7 +6,7 @@
  * Provides GDPR Article 17 "Right to Erasure" compliance for:
  * - conversation_memory: Persistent chat history
  * - workflow_executions: Trip planner and other workflow records
- * - rate_limit_tracking: Rate limit usage data
+ * - ai_rate_limits: Rate limit usage data
  *
  * All deletion operations are audited in gdpr_deletion_records.
  */
@@ -133,7 +133,7 @@ export async function requestGdprDeletion(
  * Deletes all user data from:
  * - conversation_memory
  * - workflow_executions
- * - rate_limit_tracking
+ * - ai_rate_limits
  *
  * @param supabase - Supabase client with service role key
  * @param userId - User ID to delete data for
@@ -194,7 +194,7 @@ export async function executeGdprDeletion(
 
     // Delete rate limit tracking
     const rateLimitResult = await supabase
-      .from('rate_limit_tracking')
+      .from('ai_rate_limits')
       .delete()
       .eq('user_id', userId);
 

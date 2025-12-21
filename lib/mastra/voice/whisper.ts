@@ -1,15 +1,14 @@
 /**
- * Whisper Speech-to-Text Integration
+ * Speech-to-Text Integration with ElevenLabs
  * Feature: 001-mastra-agentic-voice
- * Task: T068 - Create Whisper integration
+ * Task: T068 - Create STT integration
  *
- * Wraps OpenAI Whisper API for transcription with:
+ * Wraps ElevenLabs Speech-to-Text API for transcription with:
  * - Multi-language support (en, de for GearShack locales)
  * - Latency tracking
  * - Error handling with retries
  */
 
-import OpenAI from 'openai';
 import { logInfo, logError, logDebug } from '../logging';
 import { recordVoiceTranscription } from '../metrics';
 
@@ -23,7 +22,7 @@ import { recordVoiceTranscription } from '../metrics';
 export type TranscriptionLanguage = 'en' | 'de' | 'auto';
 
 /**
- * Result from Whisper transcription
+ * Result from ElevenLabs transcription
  */
 export interface TranscriptionResult {
   /** Transcribed text */
@@ -32,7 +31,7 @@ export interface TranscriptionResult {
   language: string;
   /** Transcription latency in milliseconds */
   durationMs: number;
-  /** Confidence score (0-1) - estimated from word-level data if available */
+  /** Confidence score (0-1) - from ElevenLabs response */
   confidence: number;
 }
 
@@ -42,10 +41,6 @@ export interface TranscriptionResult {
 export interface TranscriptionOptions {
   /** Language hint for faster processing */
   language?: TranscriptionLanguage;
-  /** Optional prompt to guide transcription (e.g., gear terminology) */
-  prompt?: string;
-  /** Temperature for sampling (0.0-1.0, lower = more deterministic) */
-  temperature?: number;
 }
 
 // ============================================================================
@@ -53,33 +48,35 @@ export interface TranscriptionOptions {
 // ============================================================================
 
 /**
- * Default transcription prompt with gear-specific vocabulary
- */
-const DEFAULT_PROMPT = `GearShack outdoor gear assistant. Common terms: tent, sleeping bag, backpack,
-ultralight, base weight, packed weight, loadout, MSR, Big Agnes, Nemo, Zpacks, REI,
-Patagonia, Arc'teryx, Black Diamond, Petzl, grams, ounces, liters.`;
-
-/**
  * Minimum confidence threshold (T070)
  * Below this, we suggest the user try again
  */
 export const CONFIDENCE_THRESHOLD = 0.7;
 
+/**
+ * ElevenLabs API base URL
+ */
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
+
+/**
+ * Language code mapping for ElevenLabs
+ */
+const LANGUAGE_CODES: Record<TranscriptionLanguage, string | null> = {
+  en: 'en',
+  de: 'de',
+  auto: null, // Let ElevenLabs detect
+};
+
 // ============================================================================
-// OpenAI Client
+// API Client
 // ============================================================================
 
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
-    openaiClient = new OpenAI({ apiKey });
+function getApiKey(): string {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error('ELEVENLABS_API_KEY environment variable is not set');
   }
-  return openaiClient;
+  return apiKey;
 }
 
 // ============================================================================
@@ -87,7 +84,7 @@ function getOpenAIClient(): OpenAI {
 // ============================================================================
 
 /**
- * Transcribe audio using OpenAI Whisper API
+ * Transcribe audio using ElevenLabs Speech-to-Text API
  *
  * @param audioBuffer - Audio data as Buffer
  * @param filename - Original filename with extension (for format detection)
@@ -117,41 +114,43 @@ export async function transcribeAudio(
   });
 
   try {
-    const openai = getOpenAIClient();
+    // Create FormData for file upload
+    const formData = new FormData();
+    // Create Blob directly from Buffer (Node.js Buffer is compatible with Blob constructor)
+    const blob = new Blob([audioBuffer as unknown as BlobPart], { type: getMimeType(filename) });
+    formData.append('audio', blob, filename);
 
-    // Create a File-like object for the API
-    const file = new File([audioBuffer], filename, {
-      type: getMimeType(filename),
-    });
-
-    // Build request options
-    const requestOptions: OpenAI.Audio.Transcriptions.TranscriptionCreateParams = {
-      file,
-      model: 'whisper-1',
-      prompt: options.prompt ?? DEFAULT_PROMPT,
-      response_format: 'verbose_json',
-      temperature: options.temperature ?? 0.0,
-    };
-
-    // Add language if specified (not 'auto')
+    // Add language hint if specified
     if (options.language && options.language !== 'auto') {
-      requestOptions.language = options.language;
+      formData.append('language_code', LANGUAGE_CODES[options.language] || '');
     }
 
     // Make API call
-    const response = await openai.audio.transcriptions.create(requestOptions);
+    const response = await fetch(`${ELEVENLABS_API_URL}/speech-to-text`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': getApiKey(),
+      },
+      body: formData,
+    });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs STT API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
     const durationMs = Date.now() - startTime;
 
-    // Extract text and language
-    const text = response.text || '';
-    const language = response.language || options.language || 'unknown';
+    // Extract text and language from response
+    const text = result.text || '';
+    const language = result.language_code || options.language || 'unknown';
 
-    // Estimate confidence from word-level data if available
-    const confidence = estimateConfidence(response);
+    // ElevenLabs provides confidence per word, calculate average
+    const confidence = calculateConfidence(result);
 
     // Record metrics
-    recordVoiceTranscription('whisper', durationMs, confidence);
+    recordVoiceTranscription('elevenlabs', durationMs, confidence);
 
     logInfo('Audio transcription completed', {
       metadata: {
@@ -176,7 +175,7 @@ export async function transcribeAudio(
     });
 
     // Record failed transcription
-    recordVoiceTranscription('whisper', durationMs, 0);
+    recordVoiceTranscription('elevenlabs', durationMs, 0);
 
     throw new TranscriptionError(
       error instanceof Error ? error.message : 'Unknown transcription error',
@@ -233,58 +232,39 @@ function getMimeType(filename: string): string {
 }
 
 /**
- * Estimate confidence from Whisper response
+ * Calculate average confidence from ElevenLabs response
  *
- * Whisper doesn't provide a direct confidence score, so we estimate:
- * - If segments with avg_logprob available, use exponential of average
- * - Otherwise, return 0.85 as default (high confidence assumption)
+ * ElevenLabs returns word-level confidence scores.
+ * We calculate a weighted average based on word length.
  */
-function estimateConfidence(response: unknown): number {
-  const typedResponse = response as {
-    segments?: Array<{
-      avg_logprob?: number;
-      no_speech_prob?: number;
-    }>;
-  };
-
-  if (!typedResponse.segments || typedResponse.segments.length === 0) {
-    return 0.85; // Default confidence when no segment data
-  }
-
-  // Calculate average log probability across segments
-  let totalLogProb = 0;
-  let totalNoSpeechProb = 0;
-  let count = 0;
-
-  for (const segment of typedResponse.segments) {
-    if (typeof segment.avg_logprob === 'number') {
-      totalLogProb += segment.avg_logprob;
-      count++;
-    }
-    if (typeof segment.no_speech_prob === 'number') {
-      totalNoSpeechProb += segment.no_speech_prob;
-    }
-  }
-
-  if (count === 0) {
+function calculateConfidence(response: {
+  words?: Array<{
+    text?: string;
+    confidence?: number;
+  }>;
+}): number {
+  if (!response.words || response.words.length === 0) {
+    // If no word-level data, assume high confidence
     return 0.85;
   }
 
-  // Convert average log probability to linear probability (0-1)
-  const avgLogProb = totalLogProb / count;
-  const avgNoSpeechProb = totalNoSpeechProb / typedResponse.segments.length;
+  let totalWeight = 0;
+  let weightedSum = 0;
 
-  // Log probability is typically between -2 (low confidence) and 0 (high confidence)
-  // Map to 0-1 range: exp(logprob) gives probability
-  let confidence = Math.exp(avgLogProb);
+  for (const word of response.words) {
+    if (typeof word.confidence === 'number') {
+      const weight = (word.text?.length || 1);
+      weightedSum += word.confidence * weight;
+      totalWeight += weight;
+    }
+  }
 
-  // Penalize if high no-speech probability
-  if (avgNoSpeechProb > 0.5) {
-    confidence *= (1 - avgNoSpeechProb);
+  if (totalWeight === 0) {
+    return 0.85;
   }
 
   // Clamp to valid range
-  return Math.max(0, Math.min(1, confidence));
+  return Math.max(0, Math.min(1, weightedSum / totalWeight));
 }
 
 // ============================================================================

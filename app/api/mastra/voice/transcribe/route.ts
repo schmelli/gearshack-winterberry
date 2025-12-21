@@ -76,11 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Check rate limit (voice tier)
-    const rateLimitResult = await checkRateLimit(
-      supabase as unknown as import('@supabase/supabase-js').SupabaseClient,
-      user.id,
-      'voice'
-    );
+    const rateLimitResult = await checkRateLimit(user.id, 'voice');
 
     if (!rateLimitResult.allowed) {
       logWarn('Voice rate limit exceeded', {
