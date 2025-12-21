@@ -24,7 +24,7 @@ import {
   type TTSFormat,
 } from '@/lib/mastra/voice/tts';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
-import { checkRateLimit } from '@/lib/mastra/rate-limiter';
+import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -154,8 +154,8 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // Check rate limit (voice tier)
-    const rateLimitResult = await checkRateLimit(user.id, 'voice');
+    // Check rate limit (voice tier) - atomically check and increment
+    const rateLimitResult = await checkAndIncrementRateLimit(user.id, 'voice');
 
     if (!rateLimitResult.allowed) {
       logWarn('Voice rate limit exceeded', {

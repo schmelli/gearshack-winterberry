@@ -316,14 +316,17 @@ export async function checkRateLimit(
 /**
  * Increment the rate limit counter for a user and operation type.
  *
- * @deprecated Use checkAndIncrementRateLimit for atomic operations.
- * This separate increment function can cause race conditions.
+ * @deprecated DO NOT USE - This function is deprecated and will be removed in a future version.
+ * Use checkAndIncrementRateLimit for atomic operations.
+ * This separate increment function can cause race conditions and defeats atomic rate limiting.
+ *
+ * @internal This function should not be used in new code and will be removed.
  *
  * @param userId - The user's UUID
  * @param operationType - The type of operation ('simple_query', 'workflow', 'voice')
  * @returns RateLimitIncrementResult indicating success or failure
  */
-export async function incrementRateLimit(
+async function incrementRateLimit(
   userId: string,
   operationType: string
 ): Promise<RateLimitIncrementResult> {

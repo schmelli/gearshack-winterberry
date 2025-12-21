@@ -51,7 +51,7 @@ import {
   classifyQuery,
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
-import { checkRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
+import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
@@ -409,8 +409,9 @@ export async function POST(request: Request): Promise<Response> {
 
     // 6. Check rate limits and fetch memory context in parallel (optimized)
     // Running both in parallel saves ~50-200ms per request in the happy path
+    // Using checkAndIncrementRateLimit for atomic rate limit check and increment
     const [rateLimitResult, memoryContextResult] = await Promise.all([
-      checkRateLimit(user.id, operationType as OperationType),
+      checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
         'memory_retrieval',

@@ -627,6 +627,9 @@ export class MCPClient {
 
   /**
    * Create stdio transport for local development
+   *
+   * Security note: Environment variables are passed via the env object
+   * rather than command-line arguments to prevent exposure in process listings.
    */
   private createStdioTransport(): StdioClientTransport {
     logDebug('Creating stdio transport');
@@ -637,10 +640,12 @@ export class MCPClient {
         './scripts/geargraph-mcp-server.js',
         '--db',
         process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        '--auth',
-        process.env.SUPABASE_SERVICE_ROLE_KEY || '',
       ],
-      env: process.env as Record<string, string>,
+      env: {
+        ...process.env,
+        // Pass sensitive credentials via environment, not CLI args
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      } as Record<string, string>,
     });
   }
 
