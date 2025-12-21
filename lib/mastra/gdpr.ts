@@ -13,7 +13,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
-import { logInfo, logError, logDebug } from './logging';
+import { logInfo, logError, logDebug, logWarn } from './logging';
 import { recordGdprDeletion, recordGdprDeletionDuration } from './metrics';
 
 // Type assertion helper for tables not yet in generated Supabase types
