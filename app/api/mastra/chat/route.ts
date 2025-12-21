@@ -397,13 +397,23 @@ export async function POST(request: Request): Promise<Response> {
     const operationType = enableVoice ? 'voice' : (queryType === 'complex' ? 'workflow' : 'simple_query');
     recordChatRequest(operationType);
 
-    // 6. Check rate limits (integrated from T024)
-    const rateLimitResult = await checkRateLimit(
-      supabase as unknown as import('@supabase/supabase-js').SupabaseClient,
-      user.id,
-      operationType as RateLimitTier
-    );
+    // 6. Check rate limits and fetch memory context in parallel (optimized)
+    // Running both in parallel saves ~50-200ms per request in the happy path
+    const [rateLimitResult, memoryContextResult] = await Promise.all([
+      checkRateLimit(
+        supabase as unknown as import('@supabase/supabase-js').SupabaseClient,
+        user.id,
+        operationType as RateLimitTier
+      ),
+      traceWorkflowStep(
+        `chat-${conversationId}`,
+        'memory_retrieval',
+        () => fetchMemoryContext(supabase, user.id, conversationId),
+        { userId: user.id }
+      ).then(r => r.result),
+    ]);
 
+    // Check rate limit result first (early return if exceeded)
     if (!rateLimitResult.allowed) {
       logWarn('Rate limit exceeded', {
         userId: user.id,
@@ -456,13 +466,8 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // 7. Fetch memory context (T027, T029)
-    const memoryContext = await traceWorkflowStep(
-      `chat-${conversationId}`,
-      'memory_retrieval',
-      () => fetchMemoryContext(supabase, user.id, conversationId),
-      { userId: user.id }
-    ).then(r => r.result);
+    // Use the memory context fetched in parallel
+    const memoryContext = memoryContextResult;
 
     // 8. Detect correction intent (T028)
     const isCorrection = detectCorrectionIntent(message);

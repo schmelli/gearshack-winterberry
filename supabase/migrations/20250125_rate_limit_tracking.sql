@@ -1,11 +1,11 @@
 -- Migration: Rate Limit Tracking for Mastra Agentic Voice AI
 -- Feature: 001-mastra-agentic-voice
 -- Created: 2025-01-25
--- Description: Creates the rate_limit_tracking table for tiered rate limiting (simple/workflow/voice)
+-- Description: Creates the ai_rate_limits table for tiered rate limiting (simple/workflow/voice)
 
 -- ==================== TABLE CREATION ====================
 
-CREATE TABLE IF NOT EXISTS rate_limit_tracking (
+CREATE TABLE IF NOT EXISTS ai_rate_limits (
   -- Primary key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -13,98 +13,134 @@ CREATE TABLE IF NOT EXISTS rate_limit_tracking (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
   -- Rate limit dimensions
-  operation_type TEXT NOT NULL CHECK (operation_type IN ('simple_query', 'workflow', 'voice')),
-  request_count INTEGER NOT NULL DEFAULT 0,
+  endpoint TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
 
   -- Time window
   window_start TIMESTAMPTZ NOT NULL,
-  last_request_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  UNIQUE(user_id, operation_type, window_start)
+  UNIQUE(user_id, endpoint, window_start)
 );
 
 -- ==================== INDEXES ====================
 
--- Performance index for user/window queries
-CREATE INDEX IF NOT EXISTS idx_rate_limit_user_window
-  ON rate_limit_tracking(user_id, window_start DESC);
+-- Performance index for user/endpoint/window queries
+CREATE INDEX IF NOT EXISTS idx_ai_rate_limits_user_endpoint
+  ON ai_rate_limits(user_id, endpoint, window_start DESC);
 
 -- ==================== ROW LEVEL SECURITY ====================
 
 -- Enable RLS to ensure multi-tenancy
-ALTER TABLE rate_limit_tracking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_rate_limits ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can only access their own rate limits
 CREATE POLICY "Users can only access own rate limits"
-  ON rate_limit_tracking
+  ON ai_rate_limits
   FOR ALL
   USING (auth.uid() = user_id);
 
 -- Policy: Service role has full access
 CREATE POLICY "Service role full access"
-  ON rate_limit_tracking
+  ON ai_rate_limits
   FOR ALL
   TO service_role
   USING (true);
 
--- ==================== HELPER FUNCTIONS ====================
+-- ==================== ATOMIC CHECK AND INCREMENT FUNCTION ====================
 
--- Function: Check if user has exceeded rate limit
-CREATE OR REPLACE FUNCTION check_rate_limit(
+-- Function: Atomically check rate limit and increment if allowed
+-- Uses advisory locks to prevent race conditions
+CREATE OR REPLACE FUNCTION check_and_increment_rate_limit(
   p_user_id UUID,
-  p_operation_type TEXT,
-  p_limit INTEGER
+  p_endpoint TEXT,
+  p_limit INTEGER,
+  p_window_hours INTEGER DEFAULT 1
 )
-RETURNS BOOLEAN AS $$
+RETURNS JSON AS $$
 DECLARE
   v_window_start TIMESTAMPTZ;
-  v_request_count INTEGER;
+  v_window_end TIMESTAMPTZ;
+  v_current_count INTEGER;
+  v_lock_key BIGINT;
+  v_exceeded BOOLEAN;
 BEGIN
-  -- Calculate current window start (hourly window)
+  -- Calculate current window start (hourly window by default)
   v_window_start := date_trunc('hour', now());
+  v_window_end := v_window_start + (p_window_hours || ' hours')::INTERVAL;
 
-  -- Get current request count for this window
-  SELECT request_count INTO v_request_count
-  FROM rate_limit_tracking
+  -- Create a unique lock key from user_id and endpoint
+  -- Using hashtext to convert the combination to a bigint for pg_advisory_xact_lock
+  v_lock_key := hashtext(p_user_id::TEXT || ':' || p_endpoint);
+
+  -- Acquire advisory lock for this user+endpoint combination
+  -- This prevents race conditions between check and increment
+  PERFORM pg_advisory_xact_lock(v_lock_key);
+
+  -- Get current count for this window
+  SELECT count INTO v_current_count
+  FROM ai_rate_limits
   WHERE user_id = p_user_id
-    AND operation_type = p_operation_type
+    AND endpoint = p_endpoint
     AND window_start = v_window_start;
 
-  -- If no record exists or count is below limit, allow request
-  IF v_request_count IS NULL OR v_request_count < p_limit THEN
-    RETURN TRUE;
-  ELSE
-    RETURN FALSE;
+  -- If no record exists, create one with count = 1
+  IF v_current_count IS NULL THEN
+    INSERT INTO ai_rate_limits (user_id, endpoint, count, window_start)
+    VALUES (p_user_id, p_endpoint, 1, v_window_start);
+
+    RETURN json_build_object(
+      'exceeded', false,
+      'count', 1,
+      'limit', p_limit,
+      'resets_at', v_window_end
+    );
   END IF;
-END;
-$$ LANGUAGE plpgsql;
 
--- Function: Increment rate limit counter
-CREATE OR REPLACE FUNCTION increment_rate_limit(
-  p_user_id UUID,
-  p_operation_type TEXT
-)
-RETURNS VOID AS $$
+  -- Check if limit would be exceeded
+  IF v_current_count >= p_limit THEN
+    v_exceeded := true;
+  ELSE
+    v_exceeded := false;
+    -- Increment the counter
+    UPDATE ai_rate_limits
+    SET count = count + 1
+    WHERE user_id = p_user_id
+      AND endpoint = p_endpoint
+      AND window_start = v_window_start;
+
+    v_current_count := v_current_count + 1;
+  END IF;
+
+  RETURN json_build_object(
+    'exceeded', v_exceeded,
+    'count', v_current_count,
+    'limit', p_limit,
+    'resets_at', v_window_end
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ==================== CLEANUP FUNCTION ====================
+
+-- Function: Clean up expired rate limit windows (older than 24 hours)
+CREATE OR REPLACE FUNCTION cleanup_expired_rate_limits()
+RETURNS INTEGER AS $$
 DECLARE
-  v_window_start TIMESTAMPTZ;
+  v_deleted_count INTEGER;
 BEGIN
-  -- Calculate current window start (hourly window)
-  v_window_start := date_trunc('hour', now());
+  DELETE FROM ai_rate_limits
+  WHERE window_start < now() - INTERVAL '24 hours';
 
-  -- Insert or update rate limit record
-  INSERT INTO rate_limit_tracking (user_id, operation_type, window_start, request_count, last_request_at)
-  VALUES (p_user_id, p_operation_type, v_window_start, 1, now())
-  ON CONFLICT (user_id, operation_type, window_start)
-  DO UPDATE SET
-    request_count = rate_limit_tracking.request_count + 1,
-    last_request_at = now();
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+  RETURN v_deleted_count;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ==================== COMMENTS ====================
 
-COMMENT ON TABLE rate_limit_tracking IS 'Implements tiered rate limiting: unlimited simple queries, 20 workflows/hour, 40 voice/hour';
-COMMENT ON COLUMN rate_limit_tracking.operation_type IS 'Type of operation: simple_query (unlimited), workflow (20/hr), voice (40/hr)';
-COMMENT ON COLUMN rate_limit_tracking.window_start IS 'Start of hourly rate limit window';
-COMMENT ON FUNCTION check_rate_limit IS 'Returns TRUE if user has not exceeded rate limit for operation type';
-COMMENT ON FUNCTION increment_rate_limit IS 'Increments rate limit counter for user and operation type';
+COMMENT ON TABLE ai_rate_limits IS 'Implements tiered rate limiting: unlimited simple queries, 20 workflows/hour, 40 voice/hour';
+COMMENT ON COLUMN ai_rate_limits.endpoint IS 'Rate limit endpoint (e.g., mastra_workflow, mastra_voice)';
+COMMENT ON COLUMN ai_rate_limits.count IS 'Number of requests in current window';
+COMMENT ON COLUMN ai_rate_limits.window_start IS 'Start of hourly rate limit window';
+COMMENT ON FUNCTION check_and_increment_rate_limit IS 'Atomically checks rate limit and increments if not exceeded. Uses advisory locks for concurrency safety.';
+COMMENT ON FUNCTION cleanup_expired_rate_limits IS 'Removes rate limit records older than 24 hours. Call periodically via cron.';

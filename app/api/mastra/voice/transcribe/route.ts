@@ -108,6 +108,23 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Early file size check via Content-Length header (before reading body into memory)
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE) {
+      logWarn('Audio file too large (Content-Length check)', {
+        userId: user.id,
+        metadata: { contentLength: parseInt(contentLength, 10), maxSize: MAX_FILE_SIZE },
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Audio file too large',
+          message: 'Maximum file size is 25MB.',
+        }),
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Parse multipart form data
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File | null;
@@ -120,15 +137,18 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // Validate file size (max 25MB for Whisper)
-    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    // Validate actual file size (backup check - Content-Length may be missing or incorrect)
     if (audioFile.size > MAX_FILE_SIZE) {
+      logWarn('Audio file too large (file size check)', {
+        userId: user.id,
+        metadata: { fileSize: audioFile.size, maxSize: MAX_FILE_SIZE },
+      });
       return new Response(
         JSON.stringify({
           error: 'Audio file too large',
           message: 'Maximum file size is 25MB.',
         }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
       );
     }
 

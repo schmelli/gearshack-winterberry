@@ -76,6 +76,21 @@ const CLIENT_INFO = {
 /** T057: Default tool cache TTL of 5 minutes */
 const DEFAULT_TOOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Default tool call timeout - configurable via MCP_TOOL_TIMEOUT_MS env var */
+const DEFAULT_TOOL_CALL_TIMEOUT_MS = parseInt(
+  process.env.MCP_TOOL_TIMEOUT_MS || '5000',
+  10
+);
+
+/**
+ * MCP Client capabilities for SDK v1.25+
+ * Using minimal capabilities required for tool discovery and execution.
+ */
+interface MCPClientCapabilities {
+  experimental?: Record<string, unknown>;
+  sampling?: Record<string, unknown>;
+}
+
 // ============================================================================
 // MCPClient Class
 // ============================================================================
@@ -157,12 +172,15 @@ export class MCPClient {
       const transport = await this.createTransport();
       this.state.transport = transport;
 
-      // Create MCP client
-      // Note: ClientCapabilities in @modelcontextprotocol/sdk v1.25+ uses
+      // Create MCP client with typed capabilities
+      // ClientCapabilities in @modelcontextprotocol/sdk v1.25+ supports
       // experimental, sampling, elicitation, roots, and tasks properties.
-      // An empty capabilities object is valid for basic tool discovery.
+      const clientCapabilities: MCPClientCapabilities = {
+        experimental: {},
+        sampling: {},
+      };
       const client = new Client(CLIENT_INFO, {
-        capabilities: {},
+        capabilities: clientCapabilities,
       });
 
       // Connect with timeout
@@ -437,17 +455,18 @@ export class MCPClient {
    * Call a tool on the MCP server.
    *
    * Executes a tool with the given arguments and returns a standardized result.
-   * Implements timeout handling (5-second default) for graceful error handling.
+   * Implements timeout handling for graceful error handling.
+   * Timeout is configurable via MCP_TOOL_TIMEOUT_MS env var (default: 5000ms).
    *
    * @param toolName - Name of the tool to call
    * @param args - Arguments to pass to the tool
-   * @param timeoutMs - Timeout in milliseconds (default: 5000)
+   * @param timeoutMs - Timeout in milliseconds (default: from env or 5000)
    * @returns MCPToolResult with result or error
    */
   async callTool(
     toolName: string,
     args: Record<string, unknown>,
-    timeoutMs: number = 5000
+    timeoutMs: number = DEFAULT_TOOL_CALL_TIMEOUT_MS
   ): Promise<MCPToolResult> {
     const getElapsed = createTimer();
 
