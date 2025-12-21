@@ -72,6 +72,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function: Execute GDPR deletion (background job)
+-- Deletes all user data from Mastra tables:
+-- - conversation_memory (new Mastra format)
+-- - ai_messages (legacy format)
+-- - workflow_executions
+-- - ai_rate_limits
 CREATE OR REPLACE FUNCTION execute_gdpr_deletion(
   p_deletion_id UUID
 )
@@ -79,6 +84,7 @@ RETURNS VOID AS $$
 DECLARE
   v_user_id UUID;
   v_records_deleted INTEGER := 0;
+  v_temp_count INTEGER;
 BEGIN
   -- Get user_id from deletion record
   SELECT user_id INTO v_user_id
@@ -94,15 +100,25 @@ BEGIN
   SET status = 'processing'
   WHERE id = p_deletion_id;
 
-  -- Delete conversation memory
+  -- Delete new conversation memory (Mastra format)
   DELETE FROM conversation_memory WHERE user_id = v_user_id;
-  GET DIAGNOSTICS v_records_deleted = ROW_COUNT;
+  GET DIAGNOSTICS v_temp_count = ROW_COUNT;
+  v_records_deleted := v_records_deleted + v_temp_count;
+
+  -- Delete legacy conversation memory (ai_messages)
+  DELETE FROM ai_messages WHERE user_id = v_user_id;
+  GET DIAGNOSTICS v_temp_count = ROW_COUNT;
+  v_records_deleted := v_records_deleted + v_temp_count;
 
   -- Delete workflow executions
   DELETE FROM workflow_executions WHERE user_id = v_user_id;
+  GET DIAGNOSTICS v_temp_count = ROW_COUNT;
+  v_records_deleted := v_records_deleted + v_temp_count;
 
-  -- Delete rate limit tracking
-  DELETE FROM rate_limit_tracking WHERE user_id = v_user_id;
+  -- Delete rate limit tracking (correct table name: ai_rate_limits)
+  DELETE FROM ai_rate_limits WHERE user_id = v_user_id;
+  GET DIAGNOSTICS v_temp_count = ROW_COUNT;
+  v_records_deleted := v_records_deleted + v_temp_count;
 
   -- Update deletion record with results
   UPDATE gdpr_deletion_records

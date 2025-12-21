@@ -628,11 +628,25 @@ export class MCPClient {
   /**
    * Create stdio transport for local development
    *
-   * Security note: Environment variables are passed via the env object
+   * Security note: Environment variables are whitelisted and passed via the env object
    * rather than command-line arguments to prevent exposure in process listings.
+   * Only necessary variables are passed to the subprocess to minimize attack surface.
    */
   private createStdioTransport(): StdioClientTransport {
     logDebug('Creating stdio transport');
+
+    // Whitelist of environment variables allowed for MCP subprocess
+    // Only include variables necessary for MCP server operation
+    const whitelistedEnvVars: Record<string, string> = {
+      // Node.js runtime
+      NODE_ENV: process.env.NODE_ENV || 'development',
+      // Supabase connection (required for GearGraph queries)
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      // Path variables (required for Node.js module resolution)
+      PATH: process.env.PATH || '',
+      HOME: process.env.HOME || '',
+    };
 
     return new StdioClientTransport({
       command: 'node',
@@ -641,11 +655,7 @@ export class MCPClient {
         '--db',
         process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       ],
-      env: {
-        ...process.env,
-        // Pass sensitive credentials via environment, not CLI args
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-      } as Record<string, string>,
+      env: whitelistedEnvVars,
     });
   }
 

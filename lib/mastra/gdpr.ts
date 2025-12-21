@@ -161,9 +161,12 @@ export async function requestGdprDeletion(
  * Execute GDPR deletion for a user (full erasure)
  *
  * Deletes all user data from:
- * - conversation_memory
+ * - conversation_memory (new Mastra conversation storage)
+ * - ai_messages (legacy conversation storage)
  * - workflow_executions
  * - ai_rate_limits
+ *
+ * Note: gdpr_deletion_records are retained for audit trail (30-day retention)
  *
  * @param supabase - Supabase client with service role key
  * @param userId - User ID to delete data for
@@ -200,18 +203,32 @@ export async function executeGdprDeletion(
         .eq('id', deletionId);
     }
 
-    // Delete conversation memory (ai_messages table)
-    const memoryResult = await supabase
+    // Delete new conversation memory (Mastra format)
+    const newMemoryResult = await client
+      .from('conversation_memory')
+      .delete()
+      .eq('user_id', userId) as { error: Error | null; count: number | null };
+
+    let memoryCount = 0;
+    if (!newMemoryResult.error) {
+      memoryCount += newMemoryResult.count ?? 0;
+    } else {
+      logError('Failed to delete conversation_memory', newMemoryResult.error, { userId });
+    }
+
+    // Delete legacy conversation memory (ai_messages table)
+    const legacyMemoryResult = await supabase
       .from('ai_messages')
       .delete()
       .eq('user_id', userId);
 
-    if (!memoryResult.error) {
-      // Count is not returned by Supabase delete, estimate from operation
-      counts.conversationMemory = memoryResult.count ?? 0;
+    if (!legacyMemoryResult.error) {
+      memoryCount += legacyMemoryResult.count ?? 0;
     } else {
-      logError('Failed to delete conversation memory', memoryResult.error, { userId });
+      logError('Failed to delete ai_messages', legacyMemoryResult.error, { userId });
     }
+
+    counts.conversationMemory = memoryCount;
 
     // Delete workflow executions (using client for non-typed table)
     const workflowResult = await client
@@ -225,7 +242,7 @@ export async function executeGdprDeletion(
       logError('Failed to delete workflow executions', workflowResult.error, { userId });
     }
 
-    // Delete rate limit tracking
+    // Delete rate limit tracking (correct table name: ai_rate_limits)
     const rateLimitResult = await supabase
       .from('ai_rate_limits')
       .delete()
