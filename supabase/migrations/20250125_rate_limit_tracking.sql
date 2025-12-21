@@ -2,9 +2,37 @@
 -- Feature: 001-mastra-agentic-voice
 -- Created: 2025-01-25
 -- Description: Creates the ai_rate_limits table for tiered rate limiting (simple/workflow/voice)
+-- NOTE: This migration handles migration from the old ai_rate_limits schema (from 20251216204932_ai_assistant.sql)
+--       which had user_id as PRIMARY KEY. The new schema uses id as PRIMARY KEY with
+--       UNIQUE(user_id, endpoint, window_start) for proper multi-window rate limiting.
 
 -- ==================== TABLE CREATION ====================
 
+-- Check if old table exists with incompatible schema and drop it
+DO $$
+BEGIN
+  -- Check if the table exists with the old schema (user_id as PRIMARY KEY)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE table_name = 'ai_rate_limits'
+    AND constraint_type = 'PRIMARY KEY'
+    AND constraint_name = 'ai_rate_limits_pkey'
+  ) THEN
+    -- Check if the primary key is on user_id (old schema)
+    IF EXISTS (
+      SELECT 1 FROM information_schema.key_column_usage
+      WHERE table_name = 'ai_rate_limits'
+      AND constraint_name = 'ai_rate_limits_pkey'
+      AND column_name = 'user_id'
+    ) THEN
+      -- Drop old table with incompatible schema
+      DROP TABLE IF EXISTS ai_rate_limits CASCADE;
+      RAISE NOTICE 'Dropped old ai_rate_limits table with incompatible schema';
+    END IF;
+  END IF;
+END $$;
+
+-- Create new table with proper schema
 CREATE TABLE IF NOT EXISTS ai_rate_limits (
   -- Primary key
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

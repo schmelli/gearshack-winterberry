@@ -128,6 +128,16 @@ function validateRequest(body: unknown): {
     return { valid: false, error: 'message must not exceed 10000 characters' };
   }
 
+  // SECURITY: Sanitize input to prevent control character injection and null bytes
+  // Remove null bytes, control characters (except newlines/tabs), and other dangerous chars
+  const sanitizedMessage = trimmedMessage
+    .replace(/\0/g, '') // Null bytes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // Control chars (keep \n \r \t)
+
+  if (sanitizedMessage !== trimmedMessage) {
+    return { valid: false, error: 'message contains invalid control characters' };
+  }
+
   if (request.context !== undefined && (typeof request.context !== 'object' || request.context === null)) {
     return { valid: false, error: 'context must be an object if provided' };
   }

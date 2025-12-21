@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   SPEECH_OPTIMIZED_CONFIG,
   getRecorderOptions,
@@ -329,6 +329,14 @@ export function useVoiceInput(options: VoiceInputOptions = {}): UseVoiceInputRet
     reset();
     startRecording();
   }, [reset, startRecording]);
+
+  // Cleanup on unmount - CRITICAL for preventing memory leaks
+  // Without this, microphone stays active and recording continues after component unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   return {
     state,

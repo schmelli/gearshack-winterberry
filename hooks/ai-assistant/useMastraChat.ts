@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
@@ -270,21 +270,47 @@ export function useMastraChat(): UseMastraChatResult {
         const memoryUpdates: MemoryUpdate[] = [];
         let fullContent = '';
 
+        // Performance optimization: Debounce text updates to reduce re-renders
+        // For long responses (1000+ tokens), this prevents 100+ state updates
+        let textUpdateBuffer = '';
+        let textUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
+        const DEBOUNCE_MS = 100; // Update UI every 100ms max
+
+        const flushTextUpdates = () => {
+          if (textUpdateBuffer.length > 0) {
+            const bufferedText = textUpdateBuffer;
+            textUpdateBuffer = '';
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: msg.content + bufferedText }
+                  : msg
+              )
+            );
+          }
+        };
+
         for await (const event of parseSSEStream(response.body)) {
           await processStreamEvent(
             event,
             assistantMessageId,
             (text) => {
               fullContent += text;
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: msg.content + text }
-                    : msg
-                )
-              );
+              textUpdateBuffer += text;
+
+              // Debounce text updates
+              if (textUpdateTimeout) {
+                clearTimeout(textUpdateTimeout);
+              }
+              textUpdateTimeout = setTimeout(flushTextUpdates, DEBOUNCE_MS);
             },
             (toolCall) => {
+              // Flush pending text updates before adding tool call
+              if (textUpdateTimeout) {
+                clearTimeout(textUpdateTimeout);
+                flushTextUpdates();
+              }
+
               toolCalls.push(toolCall);
               setMessages((prev) =>
                 prev.map((msg) =>
@@ -306,6 +332,12 @@ export function useMastraChat(): UseMastraChatResult {
             }
           );
         }
+
+        // Flush any remaining text updates
+        if (textUpdateTimeout) {
+          clearTimeout(textUpdateTimeout);
+        }
+        flushTextUpdates();
 
         const latency = Date.now() - startTime;
 
@@ -391,6 +423,14 @@ export function useMastraChat(): UseMastraChatResult {
     const { text, options } = lastMessageRef.current;
     await sendMessage(text, options);
   }, [sendMessage]);
+
+  // Cleanup on unmount - CRITICAL for preventing memory leaks
+  // Aborts in-flight requests when component unmounts
+  useEffect(() => {
+    return () => {
+      abort();
+    };
+  }, [abort]);
 
   return {
     messages,

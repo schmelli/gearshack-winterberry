@@ -43,18 +43,16 @@ export async function GET(): Promise<Response> {
       );
     }
 
-    // Check if user is admin (optional - for production, restrict to admins only)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
+    // Check if user is admin using explicit admin user ID list
+    // SECURITY: Do NOT rely on subscription_tier which is client-controllable
+    const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
 
-    // For development, allow any authenticated user
-    // In production, check for admin role
-    const isAdmin = profile?.subscription_tier === 'admin' || process.env.NODE_ENV === 'development';
+    const isAdmin = ADMIN_USER_IDS.includes(user.id);
 
-    if (!isAdmin && process.env.NODE_ENV === 'production') {
+    if (!isAdmin) {
+      // Log unauthorized access attempts for security monitoring
+      console.warn(`[Metrics] Unauthorized access attempt by user ${user.id}`);
+
       return new Response(
         JSON.stringify({ error: 'Forbidden - Admin access required' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }

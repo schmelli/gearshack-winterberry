@@ -20,6 +20,7 @@ import {
 } from '@/lib/mastra/voice/whisper';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
+import { fileTypeFromBuffer } from 'file-type';
 
 export const runtime = 'nodejs';
 
@@ -151,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
       'audio/flac',
     ];
     if (audioFile.type && !ALLOWED_AUDIO_TYPES.includes(audioFile.type)) {
-      logWarn('Invalid audio file type', {
+      logWarn('Invalid audio file type (MIME)', {
         userId: user.id,
         metadata: { mimeType: audioFile.type, fileName: audioFile.name },
       });
@@ -159,6 +160,33 @@ export async function POST(request: Request): Promise<Response> {
         JSON.stringify({
           error: 'Invalid audio format',
           message: 'Supported formats: WebM, WAV, MP3, M4A, OGG, FLAC',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Magic byte validation to prevent MIME type spoofing
+    // Client-provided MIME types can be forged, so we validate actual file content
+    const fileBuffer = Buffer.from(await audioFile.arrayBuffer());
+    const detectedType = await fileTypeFromBuffer(fileBuffer);
+
+    // Map of allowed file extensions to their corresponding MIME types
+    const ALLOWED_EXTENSIONS = ['webm', 'wav', 'mp3', 'mp4', 'm4a', 'ogg', 'flac'];
+
+    if (!detectedType || !ALLOWED_EXTENSIONS.includes(detectedType.ext)) {
+      logWarn('Invalid audio file (magic byte validation failed)', {
+        userId: user.id,
+        metadata: {
+          declaredMime: audioFile.type,
+          detectedMime: detectedType?.mime || 'unknown',
+          detectedExt: detectedType?.ext || 'unknown',
+          fileName: audioFile.name,
+        },
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid audio file',
+          message: 'File content does not match an audio format. Supported: WebM, WAV, MP3, M4A, OGG, FLAC',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -185,13 +213,13 @@ export async function POST(request: Request): Promise<Response> {
         fileSize: audioFile.size,
         fileName: audioFile.name,
         mimeType: audioFile.type,
+        detectedMime: detectedType.mime,
         language: languageHint,
       },
     });
 
-    // Convert File to Buffer
-    const arrayBuffer = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Use the buffer we already created for magic byte validation
+    const buffer = fileBuffer;
 
     // Determine language
     let language: TranscriptionLanguage = 'auto';

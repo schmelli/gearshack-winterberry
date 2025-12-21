@@ -189,6 +189,7 @@ export async function executeGdprDeletion(
     conversationMemory: 0,
     workflowExecutions: 0,
     rateLimitTracking: 0,
+    generatedImages: 0,
   };
 
   // Using type assertion as some tables aren't in generated types yet
@@ -254,8 +255,37 @@ export async function executeGdprDeletion(
       logError('Failed to delete rate limit tracking', rateLimitResult.error, { userId });
     }
 
+    // Delete generated images (from Feature 048: AI Loadout Image Generation)
+    // NOTE: This only deletes database records. Cloudinary CDN cleanup requires
+    // additional steps as we don't store public_ids in the database.
+    // Options:
+    // 1. Store cloudinary_public_id in generated_images table for deletion
+    // 2. Use Cloudinary's upload API with user_id tag for bulk deletion
+    // 3. Implement cleanup via Cloudinary Admin API with user folder prefix
+    const generatedImagesResult = await client
+      .from('generated_images')
+      .delete()
+      .eq('user_id', userId) as { error: Error | null; count: number | null };
+
+    if (!generatedImagesResult.error) {
+      counts.generatedImages = generatedImagesResult.count ?? 0;
+      // TODO: Implement Cloudinary CDN deletion for AI-generated images
+      // This requires storing public_id in database or using Cloudinary Admin API
+      logInfo('Generated images deleted from database (CDN cleanup pending)', {
+        userId,
+        metadata: { count: counts.generatedImages },
+      });
+    } else {
+      // Table might not exist if Feature 048 hasn't been deployed
+      if (generatedImagesResult.error.message.includes('does not exist')) {
+        logWarn('generated_images table not found (skipping deletion)', { userId });
+      } else {
+        logError('Failed to delete generated images', generatedImagesResult.error, { userId });
+      }
+    }
+
     // Calculate total deleted
-    const totalDeleted = counts.conversationMemory + counts.workflowExecutions + counts.rateLimitTracking;
+    const totalDeleted = counts.conversationMemory + counts.workflowExecutions + counts.rateLimitTracking + counts.generatedImages;
     const durationMs = Date.now() - startTime;
 
     // Update deletion record if provided

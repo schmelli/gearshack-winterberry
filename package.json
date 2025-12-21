@@ -61,6 +61,7 @@
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "file-type": "^21.1.1",
     "geolib": "^3.3.4",
     "lucide-react": "^0.555.0",
     "mastra": "^0.18.9",
