@@ -83,13 +83,20 @@ export const SSE_EVENT_ERROR = 'error';
 /**
  * Encode an SSE event for transmission
  *
+ * Per SSE spec, multi-line data must have each line prefixed with "data: "
+ *
  * @param eventType - Type of event (text, tool_call, done, error)
  * @param data - Event data (string for text, object for others)
  * @returns Encoded SSE string
  */
 export function encodeSSEEvent(eventType: SSEEventType, data: unknown): string {
   const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-  return `event: ${eventType}\ndata: ${dataString}\n\n`;
+
+  // Split multi-line data and prefix each line with "data: " per SSE spec
+  const lines = dataString.split('\n');
+  const dataLines = lines.map(line => `data: ${line}`).join('\n');
+
+  return `event: ${eventType}\n${dataLines}\n\n`;
 }
 
 /**
@@ -159,25 +166,30 @@ export function encodeErrorEvent(message: string, code?: string): string {
 /**
  * Parse a single SSE event string into structured data
  *
+ * Per SSE spec, multi-line data has each line prefixed with "data: "
+ *
  * @param eventString - Raw SSE event string (event: type\ndata: ...\n\n)
  * @returns Parsed SSE event or null if invalid
  */
 export function parseSSEEvent(eventString: string): SSEEvent | null {
   const lines = eventString.trim().split('\n');
   let eventType: SSEEventType = SSE_EVENT_TEXT;
-  let dataLine = '';
+  const dataLines: string[] = [];
 
   for (const line of lines) {
     if (line.startsWith('event: ')) {
       eventType = line.slice(7).trim() as SSEEventType;
     } else if (line.startsWith('data: ')) {
-      dataLine = line.slice(6);
+      dataLines.push(line.slice(6));
     }
   }
 
-  if (!dataLine) {
+  if (dataLines.length === 0) {
     return null;
   }
+
+  // Reconstruct multi-line data by joining with newlines
+  const dataLine = dataLines.join('\n');
 
   // Parse data based on event type
   try {

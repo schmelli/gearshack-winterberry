@@ -10,12 +10,13 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Sparkles, Plus, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Plus, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { useMastraChat } from '@/hooks/ai-assistant/useMastraChat';
 import { useVoiceOutput } from '@/hooks/ai-assistant/useVoiceOutput';
+import { useItems } from '@/hooks/useSupabaseStore';
 import { useTranslations } from 'next-intl';
 import {
   Tooltip,
@@ -32,6 +33,9 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const lastMessageIdRef = useRef<string | null>(null);
+
+  // Get inventory items for context
+  const items = useItems();
 
   // Use Mastra chat hook (T113: Updated to use Mastra)
   const {
@@ -82,8 +86,15 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     if (isPlaying) {
       stopSpeaking();
     }
-    await sendMessage(content);
-  }, [sendMessage, isPlaying, stopSpeaking]);
+
+    // Pass inventory count in context
+    await sendMessage(content, {
+      context: {
+        inventoryCount: items.length,
+        screen: 'inventory',
+      },
+    });
+  }, [sendMessage, isPlaying, stopSpeaking, items.length]);
 
   // T102: Start new conversation
   const handleNewConversation = useCallback(() => {
@@ -152,15 +163,6 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                 {t('newConversation')}
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="hover:bg-white/50 dark:hover:bg-black/50"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </Button>
           </div>
         </div>
 

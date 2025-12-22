@@ -58,6 +58,7 @@ export interface MemoryUpdate {
 export interface SendMessageOptions {
   includeMemory?: boolean;
   maxTokens?: number;
+  context?: Record<string, unknown>;
 }
 
 /**
@@ -216,6 +217,7 @@ export function useMastraChat(): UseMastraChatResult {
         const requestBody = {
           message: trimmedText,
           conversationId,
+          context: options?.context,
           options: {
             stream: true,
             includeMemory: options?.includeMemory ?? true,

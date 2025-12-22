@@ -105,13 +105,20 @@ export interface WrapMastraStreamOptions {
  * Encode an SSE event for transmission
  * Format: "event: <type>\ndata: <json>\n\n"
  *
+ * Per SSE spec, multi-line data must have each line prefixed with "data: "
+ *
  * @param eventType - Type of SSE event
  * @param data - Event payload (will be JSON stringified if object)
  * @returns Encoded SSE string
  */
 export function encodeSSEEvent(eventType: SSEEventType, data: unknown): string {
   const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-  return `event: ${eventType}\ndata: ${dataString}\n\n`;
+
+  // Split multi-line data and prefix each line with "data: " per SSE spec
+  const lines = dataString.split('\n');
+  const dataLines = lines.map(line => `data: ${line}`).join('\n');
+
+  return `event: ${eventType}\n${dataLines}\n\n`;
 }
 
 /**
@@ -121,7 +128,7 @@ export function encodeSSEEvent(eventType: SSEEventType, data: unknown): string {
  * @returns Encoded SSE text event
  */
 export function encodeTextEvent(content: string): string {
-  return encodeSSEEvent('text', { content });
+  return encodeSSEEvent('text', content);
 }
 
 /**
