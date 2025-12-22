@@ -14,7 +14,7 @@ import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Menu, User, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,14 +36,22 @@ interface MobileNavProps {
   items?: NavItem[];
   onNavigate?: () => void;
   onProfileClick?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function MobileNav({
   items = MAIN_NAV_ITEMS,
   onNavigate,
   onProfileClick,
+  open: controlledOpen,
+  onOpenChange,
 }: MobileNavProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const router = useRouter();
   const { user, signOut, profile } = useAuthContext();
   const { mergedUser } = profile;
@@ -80,12 +88,7 @@ export function MobileNav({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="mr-2 md:hidden">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
-      </SheetTrigger>
+      {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
       <SheetContent side="left" className="w-72">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
