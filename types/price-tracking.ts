@@ -76,6 +76,15 @@ export interface PriceSearchResults {
   failed_sources: FailedSource[];
   fuzzy_matches: FuzzyMatch[];
   searched_at: string;
+  price_reference?: {
+    catalogProductId: string;
+    catalogProductName: string;
+    brandName: string | null;
+    expectedPriceUsd: number | null;
+    expectedPriceEur: number | null;
+    categoryMain: string | null;
+    productType: string | null;
+  } | null;
 }
 
 // ==================== Partner Offers ====================
