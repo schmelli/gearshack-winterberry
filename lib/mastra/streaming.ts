@@ -121,7 +121,7 @@ export function encodeSSEEvent(eventType: SSEEventType, data: unknown): string {
  * @returns Encoded SSE text event
  */
 export function encodeTextEvent(content: string): string {
-  return encodeSSEEvent('text', { content });
+  return encodeSSEEvent('text', content);
 }
 
 /**
