@@ -9,28 +9,47 @@
  * - False positives from price outliers
  */
 
-import { createClient } from '@/lib/supabase/client';
 import { fuzzyProductSearch } from '@/lib/supabase/catalog';
 import type { PriceResult } from '@/types/price-tracking';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ProductPriceReference {
   catalogProductId: string;
   catalogProductName: string;
   brandName: string | null;
   expectedPriceUsd: number | null;
-  expectedPriceEur: number | null; // USD * 0.92 (approximate conversion)
   categoryMain: string | null;
   productType: string | null;
 }
+
+// Validation thresholds and penalties
+const VALIDATION_THRESHOLDS = {
+  MIN_MATCH_SCORE: 0.3,
+  MIN_CONFIDENCE: 0.3,
+  SUSPICIOUSLY_CHEAP_PERCENT: 70,
+  VERY_CHEAP_PERCENT: 50,
+  UNUSUALLY_EXPENSIVE_PERCENT: -100,
+  CONFIDENCE_SORT_THRESHOLD: 0.1,
+} as const;
+
+const CONFIDENCE_PENALTIES = {
+  SPAM_BRAND_MENTIONS: 0.1,
+  BRAND_MISMATCH: 0.3,
+  SUSPICIOUSLY_CHEAP: 0.2,
+  VERY_CHEAP: 0.5,
+  UNUSUALLY_EXPENSIVE: 0.6,
+  POSSIBLE_ACCESSORY: 0.4,
+  PRODUCT_TYPE_MISMATCH: 0.5,
+} as const;
 
 /**
  * Look up reference price from catalog based on gear item brand and name
  */
 export async function getCatalogPriceReference(
+  supabase: SupabaseClient,
   itemName: string,
   brandName: string | null
 ): Promise<ProductPriceReference | null> {
-  const supabase = createClient();
 
   try {
     // First try exact brand match if brand is provided
@@ -57,7 +76,7 @@ export async function getCatalogPriceReference(
     }
 
     // Only use if we have a price and decent match score
-    if (!bestMatch.priceUsd || bestMatch.score < 0.3) {
+    if (!bestMatch.priceUsd || bestMatch.score < VALIDATION_THRESHOLDS.MIN_MATCH_SCORE) {
       return null;
     }
 
@@ -66,7 +85,6 @@ export async function getCatalogPriceReference(
       catalogProductName: bestMatch.name,
       brandName: bestMatch.brand?.name || null,
       expectedPriceUsd: bestMatch.priceUsd,
-      expectedPriceEur: Math.round(bestMatch.priceUsd * 0.92), // Approximate conversion
       categoryMain: bestMatch.categoryMain,
       productType: bestMatch.productType,
     };
@@ -97,50 +115,50 @@ export function validatePriceResult(
   // Check 1: Spam brand mentions (e.g., "NOT Zpacks, NOT Hilleberg")
   if (hasSpamBrandMentions(result.product_name)) {
     flags.push('spam_brand_mentions');
-    confidence *= 0.1; // Severe penalty
+    confidence *= CONFIDENCE_PENALTIES.SPAM_BRAND_MENTIONS;
   }
 
   // Check 2: Brand validation - if we know the brand, it should appear in title
   if (itemBrand && !titleContainsBrand(result.product_name, itemBrand)) {
     flags.push('brand_mismatch');
-    confidence *= 0.3;
+    confidence *= CONFIDENCE_PENALTIES.BRAND_MISMATCH;
   }
 
   // Check 3: Price range validation against catalog reference
-  if (reference?.expectedPriceEur) {
-    const priceDiff = reference.expectedPriceEur - result.total_price;
-    const priceDiffPercent = (priceDiff / reference.expectedPriceEur) * 100;
+  if (reference?.expectedPriceUsd) {
+    const priceDiff = reference.expectedPriceUsd - result.total_price;
+    const priceDiffPercent = (priceDiff / reference.expectedPriceUsd) * 100;
 
     // Suspiciously cheap (>70% below expected price) - likely accessory or fake
-    if (priceDiffPercent > 70) {
+    if (priceDiffPercent > VALIDATION_THRESHOLDS.SUSPICIOUSLY_CHEAP_PERCENT) {
       flags.push('suspiciously_cheap');
-      confidence *= 0.2;
+      confidence *= CONFIDENCE_PENALTIES.SUSPICIOUSLY_CHEAP;
     }
     // Very cheap (50-70% below) - possible accessory or deeply discounted
-    else if (priceDiffPercent > 50) {
+    else if (priceDiffPercent > VALIDATION_THRESHOLDS.VERY_CHEAP_PERCENT) {
       flags.push('very_cheap');
-      confidence *= 0.5;
+      confidence *= CONFIDENCE_PENALTIES.VERY_CHEAP;
     }
     // Unusually expensive (>100% above) - might be bundle or wrong product
-    else if (priceDiffPercent < -100) {
+    else if (priceDiffPercent < VALIDATION_THRESHOLDS.UNUSUALLY_EXPENSIVE_PERCENT) {
       flags.push('unusually_expensive');
-      confidence *= 0.6;
+      confidence *= CONFIDENCE_PENALTIES.UNUSUALLY_EXPENSIVE;
     }
   }
 
   // Check 4: Accessory keywords detection
   if (hasAccessoryKeywords(result.product_name)) {
     flags.push('possible_accessory');
-    confidence *= 0.4;
+    confidence *= CONFIDENCE_PENALTIES.POSSIBLE_ACCESSORY;
   }
 
   // Check 5: Product type mismatch (if we have catalog info)
   if (reference?.productType && hasProductTypeMismatch(result.product_name, reference.productType)) {
     flags.push('product_type_mismatch');
-    confidence *= 0.5;
+    confidence *= CONFIDENCE_PENALTIES.PRODUCT_TYPE_MISMATCH;
   }
 
-  const isValid = confidence >= 0.3 && !flags.includes('spam_brand_mentions');
+  const isValid = confidence >= VALIDATION_THRESHOLDS.MIN_CONFIDENCE && !flags.includes('spam_brand_mentions');
 
   return {
     isValid,
@@ -276,17 +294,16 @@ export function filterAndRankResults(
   // Sort by confidence (descending) then by price (ascending)
   validResults.sort((a, b) => {
     const confidenceDiff = b.validation.confidence - a.validation.confidence;
-    if (Math.abs(confidenceDiff) > 0.1) {
+    if (Math.abs(confidenceDiff) > VALIDATION_THRESHOLDS.CONFIDENCE_SORT_THRESHOLD) {
       return confidenceDiff;
     }
     return a.result.total_price - b.result.total_price;
   });
 
-  // Return just the results
+  // Return results with validation metadata
   return validResults.map(v => ({
     ...v.result,
-    // Add validation metadata to the result (extend the type)
     validation_confidence: v.validation.confidence,
     validation_flags: v.validation.flags,
-  } as PriceResult & { validation_confidence?: number; validation_flags?: string[] }));
+  }));
 }

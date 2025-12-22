@@ -6,6 +6,7 @@
  */
 
 import PQueue from 'p-queue';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { searchGoogleShopping, searchEbay } from './serpapi-client';
 import { enrichWithDistance, sortByDistance } from '@/lib/services/geolocation-service';
 import {
@@ -23,6 +24,7 @@ const priceSearchQueue = new PQueue({ concurrency: 5 });
  * Enhanced with catalog price lookup and spam detection (Issue #79)
  */
 export async function searchAllSources(
+  supabase: SupabaseClient,
   itemName: string,
   trackingId: string,
   options?: {
@@ -34,25 +36,23 @@ export async function searchAllSources(
   const { userLocation, brandName, brandUrl } = options || {};
 
   // STEP 1: Get catalog price reference for validation
-  const priceReference = await getCatalogPriceReference(itemName, brandName || null);
+  const priceReference = await getCatalogPriceReference(supabase, itemName, brandName || null);
 
   // STEP 2: Build enhanced search query
   // Include brand in search to improve accuracy
   const searchQuery = brandName ? `${brandName} ${itemName}` : itemName;
 
   // STEP 3: Execute searches from multiple sources
-  const sources = [
-    () => searchGoogleShopping(searchQuery),
-    () => searchEbay(searchQuery),
-    // Add manufacturer search if brand URL provided
-    ...(brandUrl ? [() => searchManufacturerSite(itemName, brandUrl)] : []),
-    // Add local shop search if user location is provided
-    ...(userLocation ? [() => searchLocalShops(itemName, userLocation)] : []),
+  const sourceJobs = [
+    { name: 'Google Shopping', task: () => searchGoogleShopping(searchQuery) },
+    { name: 'eBay', task: () => searchEbay(searchQuery) },
+    ...(brandUrl ? [{ name: 'Manufacturer', task: () => searchManufacturerSite(itemName, brandUrl) }] : []),
+    ...(userLocation ? [{ name: 'Local Shops', task: () => searchLocalShops(itemName, userLocation) }] : []),
   ];
 
   // Execute all searches in parallel with concurrency limit
   const results = await Promise.allSettled(
-    sources.map((fn) => priceSearchQueue.add(fn))
+    sourceJobs.map((job) => priceSearchQueue.add(job.task))
   );
 
   // Collect successful results and failures
@@ -60,13 +60,9 @@ export async function searchAllSources(
   const failedSources: FailedSource[] = [];
 
   results.forEach((result, index) => {
-    if (result.status === 'fulfilled' && result.value) {
-      const sourceName =
-        index === 0 ? 'Google Shopping' :
-        index === 1 ? 'eBay' :
-        index === 2 && brandUrl ? 'Manufacturer' :
-        `Source ${index}`;
+    const sourceName = sourceJobs[index].name;
 
+    if (result.status === 'fulfilled' && result.value) {
       priceResults.push(
         ...result.value.map((r) => ({
           ...r,
@@ -74,12 +70,6 @@ export async function searchAllSources(
         }))
       );
     } else if (result.status === 'rejected') {
-      const sourceName =
-        index === 0 ? 'Google Shopping' :
-        index === 1 ? 'eBay' :
-        index === 2 && brandUrl ? 'Manufacturer' :
-        `Source ${index}`;
-
       failedSources.push({
         source_name: sourceName,
         error: result.reason?.message || 'Unknown error',
@@ -118,8 +108,14 @@ async function searchManufacturerSite(
   brandUrl: string
 ): Promise<PriceResult[]> {
   try {
-    // Extract domain from brand URL
-    const domain = new URL(brandUrl).hostname.replace('www.', '');
+    // Validate and extract domain from brand URL
+    let domain: string;
+    try {
+      domain = new URL(brandUrl).hostname.replace('www.', '');
+    } catch (urlError) {
+      console.error('Invalid brand URL:', brandUrl, urlError);
+      return [];
+    }
 
     // Search Google Shopping restricted to manufacturer site
     const manufacturerQuery = `site:${domain} ${itemName}`;

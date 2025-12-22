@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
 
     // Search all sources with brand info for validation (Issue #79)
     const searchResults = await searchAllSources(
+      supabase,
       itemName,
       tracking.id,
       {

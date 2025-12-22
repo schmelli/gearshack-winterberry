@@ -4,6 +4,8 @@
  * Date: 2025-12-17
  */
 
+import type { ProductPriceReference } from '@/lib/services/price-validation-service';
+
 // ==================== Core Tracking ====================
 
 export interface PriceTracking {
@@ -40,6 +42,9 @@ export interface PriceResult {
   distance_km: number | null;
   fetched_at: string;
   expires_at: string;
+  is_manufacturer_price?: boolean;
+  validation_confidence?: number;
+  validation_flags?: string[];
 }
 
 export interface PriceHistoryEntry {
@@ -76,15 +81,7 @@ export interface PriceSearchResults {
   failed_sources: FailedSource[];
   fuzzy_matches: FuzzyMatch[];
   searched_at: string;
-  price_reference?: {
-    catalogProductId: string;
-    catalogProductName: string;
-    brandName: string | null;
-    expectedPriceUsd: number | null;
-    expectedPriceEur: number | null;
-    categoryMain: string | null;
-    productType: string | null;
-  } | null;
+  price_reference?: ProductPriceReference | null;
 }
 
 // ==================== Partner Offers ====================
