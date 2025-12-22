@@ -69,6 +69,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [aiChatModalOpen, setAiChatModalOpen] = useState(false);
   const { isTrailblazer } = useSubscriptionCheck(user?.uid || null);
+  // Issue #77: Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Feature 050: Handle AI Assistant button click
   const handleAIAssistantClick = () => {
@@ -105,25 +107,46 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     >
       {/* FR-020: h-24 = 96px header height, items-center for FR-019 vertical centering */}
       {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
+      {/* Issue #77: Mobile menu state management */}
       <div className="container flex h-24 items-center px-3 md:px-4">
-        {/* Mobile menu trigger */}
-        <MobileNav />
+        {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
+        <MobileNav open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
-        <Link href="/" className="flex items-center gap-2 md:gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg md:h-20 md:w-20">
+        {/* Issue #77: Logo triggers mobile menu on small screens, regular link on desktop */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex items-center gap-2 md:hidden"
+          aria-label="Open menu"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg">
             <Image
               src="/logos/small_gearshack_logo.png"
               alt="Gearshack Logo"
               width={80}
               height={80}
-              className="h-12 w-12 md:h-20 md:w-20"
+              className="h-12 w-12"
               priority
             />
           </div>
-          <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white md:text-3xl">
+          <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
+            Gearshack
+          </span>
+        </button>
+        <Link href="/" className="hidden items-center gap-3 md:flex">
+          <div className="flex h-20 w-20 items-center justify-center rounded-lg">
+            <Image
+              src="/logos/small_gearshack_logo.png"
+              alt="Gearshack Logo"
+              width={80}
+              height={80}
+              className="h-20 w-20"
+              priority
+            />
+          </div>
+          <span className="font-[family-name:var(--font-rock-salt)] text-3xl leading-tight text-white">
             Gearshack
           </span>
         </Link>
@@ -157,12 +180,16 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
         {/* Right side: sync indicator, language switcher, notifications and user menu */}
         {/* Issue #73: Tighter spacing on mobile to fit all controls */}
+        {/* Issue #77: Hide language switcher and avatar on small screens */}
         <div className="flex items-center gap-1 md:gap-2">
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
 
           {/* T021: Language switcher - toggle between EN/DE */}
-          <LanguageSwitcher />
+          {/* Issue #77: Hidden on small screens, accessible via settings */}
+          <div className="hidden md:flex">
+            <LanguageSwitcher />
+          </div>
 
           {/* T012: Messaging icon with unread badge - only show when authenticated */}
           {user && (
@@ -195,7 +222,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           )}
 
           {/* User menu */}
-          <UserMenu />
+          {/* Issue #77: Hidden on small screens, accessible via mobile menu */}
+          <div className="hidden md:flex">
+            <UserMenu />
+          </div>
         </div>
       </div>
 
