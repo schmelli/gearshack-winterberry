@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const results = await Promise.allSettled(
       trackingItems.map((item: any) =>
-        queue.add(() => processTrackingItem(item, priceDropAlerts))
+        queue.add(() => processTrackingItem(supabase, item, priceDropAlerts))
       )
     );
 
@@ -127,6 +127,7 @@ export async function GET(request: NextRequest) {
  * Process a single tracking item (Review fix #12: Collects alerts for batching)
  */
 async function processTrackingItem(
+  supabase: ReturnType<typeof createServiceRoleClient>,
   item: PriceTrackingWithGearItem,
   priceDropAlerts: Array<{
     user_id: string;
@@ -148,7 +149,7 @@ async function processTrackingItem(
     }
 
     // Search all sources
-    const searchResults = await searchAllSources(itemName, item.id);
+    const searchResults = await searchAllSources(supabase, itemName, item.id);
 
     if (searchResults.results.length === 0) {
       log.debug('No price results found', {

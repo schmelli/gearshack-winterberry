@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get gear item details
+    // Get gear item details including brand info (Issue #79)
     const { data: gearItem, error: gearError } = await supabase
       .from('gear_items')
-      .select('name')
+      .select('name, brand, brand_url')
       .eq('id', body.gear_item_id)
       .single();
 
@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
     }
 
     const itemName = body.item_name || gearItem.name;
+    const brandName = gearItem.brand;
+    const brandUrl = gearItem.brand_url;
 
     // Get or create tracking record
     let { data: tracking } = await supabase
@@ -104,11 +106,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Search all sources
+    // Search all sources with brand info for validation (Issue #79)
     const searchResults = await searchAllSources(
+      supabase,
       itemName,
       tracking.id,
-      body.user_location
+      {
+        userLocation: body.user_location,
+        brandName,
+        brandUrl,
+      }
     );
 
     // Sort results (local first with distance, then by price)
