@@ -7,16 +7,23 @@
  * - Concurrent requests don't bypass limits
  * - Window boundaries are handled correctly
  * - Rate limit reset works as expected
+ *
+ * Actual rate limits (from rate-limiter.ts):
+ * - simple_query: null (Unlimited)
+ * - workflow: 20 per hour
+ * - voice: 40 per hour
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
+import { checkAndIncrementRateLimit, RATE_LIMITS, type OperationType } from '@/lib/mastra/rate-limiter';
 
-// Mock Supabase client
-const mockSupabase = {
+// Mock the Supabase createClient
+const mockRpc = vi.fn();
+const mockSupabaseClient = {
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
+        single: vi.fn(),
         maybeSingle: vi.fn(),
       })),
     })),
@@ -29,8 +36,21 @@ const mockSupabase = {
       eq: vi.fn(),
     })),
   })),
-  rpc: vi.fn(),
+  rpc: mockRpc,
 };
+
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(() => Promise.resolve(mockSupabaseClient)),
+}));
+
+// Mock logging to avoid console noise
+vi.mock('@/lib/mastra/logging', () => ({
+  logRateLimit: vi.fn(),
+  logError: vi.fn(),
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logWarn: vi.fn(),
+}));
 
 describe('Rate Limiting', () => {
   beforeEach(() => {
@@ -42,31 +62,36 @@ describe('Rate Limiting', () => {
   });
 
   describe('T089: Concurrent Request Handling', () => {
-    it('should handle concurrent requests atomically', async () => {
+    it('should handle concurrent requests atomically for workflow operations', async () => {
       const userId = 'test-user-123';
-      const operation: OperationType = 'simple_query';
+      const operation: OperationType = 'workflow';
+      const limit = RATE_LIMITS.workflow; // 20
 
       // Mock the RPC function to return success for first 20 requests, then fail
       let callCount = 0;
-      mockSupabase.rpc.mockImplementation(async () => {
+      mockRpc.mockImplementation(async () => {
         callCount++;
-        if (callCount <= 20) {
+        const resetTime = new Date();
+        resetTime.setHours(resetTime.getHours() + 1);
+        resetTime.setMinutes(0, 0, 0);
+
+        if (callCount <= limit) {
           return {
             data: {
-              allowed: true,
-              current_count: callCount,
-              limit: 20,
-              window_start: new Date().toISOString(),
+              exceeded: false,
+              count: callCount,
+              limit: limit,
+              resets_at: resetTime.toISOString(),
             },
             error: null,
           };
         } else {
           return {
             data: {
-              allowed: false,
-              current_count: callCount,
-              limit: 20,
-              window_start: new Date().toISOString(),
+              exceeded: true,
+              count: callCount,
+              limit: limit,
+              resets_at: resetTime.toISOString(),
             },
             error: null,
           };
@@ -84,7 +109,7 @@ describe('Rate Limiting', () => {
       const allowed = results.filter(r => r.allowed);
       const denied = results.filter(r => !r.allowed);
 
-      expect(allowed.length).toBe(20);
+      expect(allowed.length).toBe(limit);
       expect(denied.length).toBe(5);
     });
 
@@ -93,14 +118,18 @@ describe('Rate Limiting', () => {
       const operation: OperationType = 'workflow';
 
       let count = 0;
-      mockSupabase.rpc.mockImplementation(async () => {
+      mockRpc.mockImplementation(async () => {
         count++;
+        const resetTime = new Date();
+        resetTime.setHours(resetTime.getHours() + 1);
+        resetTime.setMinutes(0, 0, 0);
+
         return {
           data: {
-            allowed: true,
-            current_count: count,
-            limit: 40,
-            window_start: new Date().toISOString(),
+            exceeded: false,
+            count: count,
+            limit: RATE_LIMITS.workflow,
+            resets_at: resetTime.toISOString(),
           },
           error: null,
         };
@@ -114,7 +143,26 @@ describe('Rate Limiting', () => {
       await Promise.all(requests);
 
       // RPC should have been called exactly 10 times (atomic increment)
-      expect(mockSupabase.rpc).toHaveBeenCalledTimes(10);
+      expect(mockRpc).toHaveBeenCalledTimes(10);
+    });
+
+    it('should allow unlimited simple_query requests', async () => {
+      const userId = 'test-user-unlimited';
+      const operation: OperationType = 'simple_query';
+
+      // simple_query is unlimited - should not call RPC at all
+      const requests = Array.from({ length: 100 }, () =>
+        checkAndIncrementRateLimit(userId, operation)
+      );
+
+      const results = await Promise.all(requests);
+
+      // All should be allowed
+      expect(results.every(r => r.allowed)).toBe(true);
+      expect(results.every(r => r.limit === null)).toBe(true);
+
+      // RPC should NOT have been called for unlimited tier
+      expect(mockRpc).not.toHaveBeenCalled();
     });
   });
 
@@ -123,24 +171,28 @@ describe('Rate Limiting', () => {
       const userId = 'test-user-789';
       const operation: OperationType = 'voice';
 
+      const resetTime = new Date();
+      resetTime.setHours(resetTime.getHours() + 1);
+      resetTime.setMinutes(0, 0, 0);
+
       // First request in current window
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          allowed: true,
-          current_count: 1,
-          limit: 40,
-          window_start: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+          exceeded: false,
+          count: 1,
+          limit: RATE_LIMITS.voice,
+          resets_at: resetTime.toISOString(),
         },
         error: null,
       }));
 
       // Second request should start new window
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          allowed: true,
-          current_count: 1, // Reset to 1
-          limit: 40,
-          window_start: new Date().toISOString(), // New window
+          exceeded: false,
+          count: 1, // Reset to 1
+          limit: RATE_LIMITS.voice,
+          resets_at: resetTime.toISOString(),
         },
         error: null,
       }));
@@ -154,18 +206,19 @@ describe('Rate Limiting', () => {
 
     it('should handle requests at exact window boundary', async () => {
       const userId = 'test-user-boundary';
-      const operation: OperationType = 'simple_query';
+      const operation: OperationType = 'workflow';
 
       const nowDate = new Date();
-      const currentHour = new Date(nowDate);
-      currentHour.setMinutes(0, 0, 0);
+      const nextHour = new Date(nowDate);
+      nextHour.setHours(nextHour.getHours() + 1);
+      nextHour.setMinutes(0, 0, 0);
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          allowed: true,
-          current_count: 1,
-          limit: 20,
-          window_start: currentHour.toISOString(),
+          exceeded: false,
+          count: 1,
+          limit: RATE_LIMITS.workflow,
+          resets_at: nextHour.toISOString(),
         },
         error: null,
       }));
@@ -178,11 +231,11 @@ describe('Rate Limiting', () => {
   });
 
   describe('T091: Error Handling', () => {
-    it('should handle database errors gracefully', async () => {
+    it('should handle database errors gracefully (fail open)', async () => {
       const userId = 'test-user-error';
       const operation: OperationType = 'workflow';
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      mockRpc.mockImplementationOnce(async () => ({
         data: null,
         error: new Error('Database connection failed'),
       }));
@@ -194,56 +247,62 @@ describe('Rate Limiting', () => {
       expect(result.remaining).toBeNull();
     });
 
-    it('should handle malformed responses', async () => {
+    it('should handle malformed responses gracefully', async () => {
       const userId = 'test-user-malformed';
       const operation: OperationType = 'voice';
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          // Missing required fields
+          // Missing required fields - malformed response
         },
         error: null,
       }));
 
       const result = await checkAndIncrementRateLimit(userId, operation);
 
-      // Should handle gracefully
+      // Should handle gracefully (fail open)
       expect(result).toBeDefined();
-      expect(result.allowed).toBeDefined();
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should handle invalid operation type', async () => {
+      const userId = 'test-user-invalid';
+      const operation = 'invalid_operation';
+
+      const result = await checkAndIncrementRateLimit(userId, operation);
+
+      expect(result.allowed).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain('Invalid operation type');
     });
   });
 
   describe('T092: Rate Limit Tiers', () => {
-    it('should enforce correct limits for simple_query tier', async () => {
+    it('should have unlimited simple_query tier', async () => {
       const userId = 'test-user-simple';
       const operation: OperationType = 'simple_query';
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
-        data: {
-          allowed: true,
-          current_count: 19,
-          limit: 20,
-          window_start: new Date().toISOString(),
-        },
-        error: null,
-      }));
-
       const result = await checkAndIncrementRateLimit(userId, operation);
 
       expect(result.allowed).toBe(true);
-      expect(result.limit).toBe(20);
+      expect(result.limit).toBeNull(); // Unlimited
+      expect(result.remaining).toBeNull();
     });
 
-    it('should enforce correct limits for workflow tier', async () => {
+    it('should enforce correct limits for workflow tier (20/hour)', async () => {
       const userId = 'test-user-workflow';
       const operation: OperationType = 'workflow';
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      const resetTime = new Date();
+      resetTime.setHours(resetTime.getHours() + 1);
+      resetTime.setMinutes(0, 0, 0);
+
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          allowed: true,
-          current_count: 39,
-          limit: 40,
-          window_start: new Date().toISOString(),
+          exceeded: false,
+          count: 19,
+          limit: RATE_LIMITS.workflow,
+          resets_at: resetTime.toISOString(),
         },
         error: null,
       }));
@@ -251,19 +310,23 @@ describe('Rate Limiting', () => {
       const result = await checkAndIncrementRateLimit(userId, operation);
 
       expect(result.allowed).toBe(true);
-      expect(result.limit).toBe(40);
+      expect(result.limit).toBe(20); // workflow limit is 20
     });
 
-    it('should enforce correct limits for voice tier', async () => {
+    it('should enforce correct limits for voice tier (40/hour)', async () => {
       const userId = 'test-user-voice';
       const operation: OperationType = 'voice';
 
-      mockSupabase.rpc.mockImplementationOnce(async () => ({
+      const resetTime = new Date();
+      resetTime.setHours(resetTime.getHours() + 1);
+      resetTime.setMinutes(0, 0, 0);
+
+      mockRpc.mockImplementationOnce(async () => ({
         data: {
-          allowed: false,
-          current_count: 40,
-          limit: 40,
-          window_start: new Date().toISOString(),
+          exceeded: true,
+          count: 40,
+          limit: RATE_LIMITS.voice,
+          resets_at: resetTime.toISOString(),
         },
         error: null,
       }));
@@ -271,8 +334,35 @@ describe('Rate Limiting', () => {
       const result = await checkAndIncrementRateLimit(userId, operation);
 
       expect(result.allowed).toBe(false);
-      expect(result.limit).toBe(40);
+      expect(result.limit).toBe(40); // voice limit is 40
       expect(result.remaining).toBe(0);
+    });
+
+    it('should return error details when rate limit exceeded', async () => {
+      const userId = 'test-user-exceeded';
+      const operation: OperationType = 'workflow';
+
+      const resetTime = new Date();
+      resetTime.setHours(resetTime.getHours() + 1);
+      resetTime.setMinutes(0, 0, 0);
+
+      mockRpc.mockImplementationOnce(async () => ({
+        data: {
+          exceeded: true,
+          count: 20,
+          limit: RATE_LIMITS.workflow,
+          resets_at: resetTime.toISOString(),
+        },
+        error: null,
+      }));
+
+      const result = await checkAndIncrementRateLimit(userId, operation);
+
+      expect(result.allowed).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error?.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(result.error?.limit).toBe(20);
+      expect(result.error?.operationType).toBe('workflow');
     });
   });
 });
