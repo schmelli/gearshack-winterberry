@@ -14,7 +14,7 @@ import type { Database } from '@/types/database';
 export const dynamic = 'force-dynamic';
 
 // Version marker for deployment verification
-const API_VERSION = '2025-12-26-v2';
+const API_VERSION = '2025-12-26-v4';
 
 // Response types
 interface ProductSearchResult {
@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     // Build query - use ILIKE for case-insensitive search
     const normalizedQuery = q.toLowerCase().trim();
 
-    // Simplified query without FK join - use brand_external_id for brand name
+    // Query only columns that exist in the actual database
+    // Note: category_main, subcategory don't exist - only product_type does
     let queryBuilder = supabase
       .from('catalog_products')
       .select(`
@@ -77,8 +78,6 @@ export async function GET(request: NextRequest) {
         name,
         brand_id,
         brand_external_id,
-        category_main,
-        subcategory,
         product_type,
         weight_grams,
         price_usd,
@@ -97,13 +96,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Product search error:', error);
       return NextResponse.json(
-        {
-          error: 'Product search failed [v3]',
-          details: error.message,
-          code: error.code,
-          version: API_VERSION,
-          hint: 'Check RLS policy on catalog_products table'
-        },
+        { error: 'Search failed', details: error.message, code: error.code },
         { status: 500 }
       );
     }
@@ -126,8 +119,8 @@ export async function GET(request: NextRequest) {
         brand: product.brand_external_id
           ? { id: product.brand_id || '', name: product.brand_external_id }
           : null,
-        categoryMain: product.category_main,
-        subcategory: product.subcategory,
+        categoryMain: null, // Column doesn't exist in DB
+        subcategory: null, // Column doesn't exist in DB
         productType: product.product_type,
         weightGrams: product.weight_grams,
         priceUsd: product.price_usd,
@@ -139,18 +132,17 @@ export async function GET(request: NextRequest) {
     // Sort by score descending
     results.sort((a, b) => b.score - a.score);
 
-    const response = {
+    const response: ProductSearchResponse = {
       results,
       query: q,
       count: results.length,
-      version: API_VERSION,
     };
 
     return NextResponse.json(response);
   } catch (err) {
     console.error('Product search error:', err);
     return NextResponse.json(
-      { error: 'Internal server error', version: API_VERSION },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
