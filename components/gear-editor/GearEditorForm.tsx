@@ -6,10 +6,9 @@
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Main container component for the gear item editor form.
- * Organizes sections into 5 tabs for better navigation:
+ * Organizes sections into 4 tabs for better navigation:
  * - General (+ Dependencies)
- * - Category (Classification + Weight/Specs)
- * - Purchase
+ * - Details (Classification + Weight/Specs + Purchase)
  * - Media
  * - Status (+ Marketplace toggles)
  */
@@ -93,8 +92,7 @@ export function GearEditorForm({
   // Tab Configuration - Uses i18n translations
   const TABS = [
     { id: 'general', label: t('tabs.general') },
-    { id: 'category', label: t('tabs.specifications') },
-    { id: 'purchase', label: t('tabs.purchase') },
+    { id: 'details', label: t('tabs.details') },
     { id: 'media', label: t('tabs.media') },
     { id: 'status', label: t('tabs.status') },
   ] as const;
@@ -130,12 +128,13 @@ export function GearEditorForm({
                 />
               </TabsContent>
 
-              <TabsContent value="category" className="mt-0">
-                <CategorySpecsSection />
-              </TabsContent>
-
-              <TabsContent value="purchase" className="mt-0">
-                <PurchaseSection />
+              <TabsContent value="details" className="mt-0">
+                <div className="space-y-8">
+                  <CategorySpecsSection />
+                  <div className="border-t pt-6">
+                    <PurchaseSection />
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="media" className="mt-0">

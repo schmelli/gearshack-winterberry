@@ -231,8 +231,7 @@
     "editTitle": "Ausrüstung bearbeiten",
     "tabs": {
       "general": "Allgemein",
-      "specifications": "Details",
-      "purchase": "Kauf",
+      "details": "Details",
       "media": "Medien",
       "status": "Status"
     },

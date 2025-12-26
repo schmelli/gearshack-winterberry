@@ -231,8 +231,7 @@
     "editTitle": "Edit Gear",
     "tabs": {
       "general": "General",
-      "specifications": "Specifications",
-      "purchase": "Purchase",
+      "details": "Details",
       "media": "Media",
       "status": "Status"
     },
