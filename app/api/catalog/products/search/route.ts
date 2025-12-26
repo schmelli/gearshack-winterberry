@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Product search error:', error);
       return NextResponse.json(
-        { error: 'Search failed', details: error.message, code: error.code },
+        { error: 'Search failed', details: error.message, code: error.code, version: API_VERSION },
         { status: 500 }
       );
     }
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error('Product search error:', err);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', version: API_VERSION },
       { status: 500 }
     );
   }
