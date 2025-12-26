@@ -135,8 +135,8 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
   const categories = useCategoriesStore((state) => state.categories);
   const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
 
-  // Feature 019: Use optimized image URL (checks nobgImages first, falls back to primaryImageUrl)
-  const optimizedImageUrl = getOptimizedImageUrl(item, 112);
+  // The image container is 56x56px (h-14, w-14). Request a 2x resolution image for high-density displays.
+  const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
 
   // Handle add button click without triggering detail modal (FR-018)
   const handleAddClick = (e: React.MouseEvent) => {
