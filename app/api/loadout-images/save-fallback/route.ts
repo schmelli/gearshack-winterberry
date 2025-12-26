@@ -58,10 +58,12 @@ export async function POST(request: NextRequest) {
     console.log('[API] Saving fallback image for loadout:', loadoutId);
 
     // Save fallback image to database
-    // Use fallbackImageId as cloudinary_public_id for tracking
+    // Include loadoutId and timestamp in cloudinary_public_id to ensure uniqueness
+    // (cloudinary_public_id has UNIQUE constraint in database)
+    const timestamp = Date.now();
     const savedImage = await insertGeneratedImage({
       loadoutId,
-      cloudinaryPublicId: `fallback/${fallbackImageId}`,
+      cloudinaryPublicId: `fallback/${loadoutId}/${fallbackImageId}-${timestamp}`,
       cloudinaryUrl: fallbackImageUrl,
       promptUsed: `[FALLBACK] ${altText}`,
       stylePreferences: null,

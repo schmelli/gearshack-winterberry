@@ -2,9 +2,15 @@
  * Vercel AI Client for Image Generation
  * Feature: 048-ai-loadout-image-gen
  * Constitution: Server-side only - uses Vercel AI SDK with AI Gateway
+ *
+ * Uses generateText with multimodal models (like Gemini) that can produce images.
+ * Images are returned as content parts in the response.
+ *
+ * @see https://vercel.com/docs/ai-gateway/image-generation/ai-sdk
  */
 
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateText } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import {
   AI_GENERATION_TIMEOUT_MS,
@@ -18,19 +24,37 @@ import {
 /**
  * AI Model Configuration
  *
- * Supported models via Vercel AI Gateway:
+ * Supported multimodal models via Vercel AI Gateway:
  * - google/gemini-2.5-flash-image (recommended - fast, cost-effective)
- * - openai/dall-e-3
- * - stability-ai/stable-diffusion-xl
+ * - google/gemini-3-pro-image (higher quality)
+ *
+ * These models can generate both text AND images in a single response.
  *
  * Requires:
  * - AI_IMAGE_MODEL environment variable
  * - AI_GATEWAY_API_KEY environment variable (for Vercel AI Gateway)
  * - AI_GENERATION_ENABLED=true
  */
-const AI_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
+const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
-const AI_ENABLED = process.env.AI_GENERATION_ENABLED === 'true';
+const AI_GATEWAY_BASE_URL = process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1/ai';
+
+/**
+ * Create the Vercel AI Gateway instance for image generation
+ * This provides a unified interface to multiple AI providers
+ */
+function getImageModel() {
+  if (!AI_GATEWAY_API_KEY) {
+    throw new Error('AI_GATEWAY_API_KEY is required for image generation');
+  }
+
+  const gateway = createGateway({
+    apiKey: AI_GATEWAY_API_KEY,
+    baseURL: AI_GATEWAY_BASE_URL,
+  });
+
+  return gateway(AI_IMAGE_MODEL);
+}
 
 // =============================================================================
 // Validation Schemas
@@ -127,22 +151,91 @@ export async function generateAIImage(
   try {
     console.log('[VercelAI] Generating image with prompt:', validatedRequest.prompt.substring(0, 100));
 
-    // Generate image using Vercel AI SDK
-    const { image } = await generateImage({
-      model: AI_MODEL,
-      prompt: validatedRequest.prompt,
-      // Add negative prompt if provided
-      ...(validatedRequest.negativePrompt && {
-        negativePrompt: validatedRequest.negativePrompt,
-      }),
-      // Quality and aspect ratio settings
-      size: validatedRequest.aspectRatio === '16:9' ? '1024x576' : '1024x1024',
-      // Add timeout
+    // Get model from gateway
+    const model = getImageModel();
+
+    // Build the image generation prompt
+    // For multimodal models, we ask them to generate an image
+    const imagePrompt = `Generate a high-quality image based on this description: ${validatedRequest.prompt}${
+      validatedRequest.negativePrompt ? `. Avoid: ${validatedRequest.negativePrompt}` : ''
+    }. The image should be in ${validatedRequest.aspectRatio} aspect ratio.`;
+
+    // Generate using multimodal model (returns images as content parts)
+    const result = await generateText({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: imagePrompt,
+        },
+      ],
       abortSignal: AbortSignal.timeout(AI_GENERATION_TIMEOUT_MS),
     });
 
-    // Convert image blob to URL (upload to storage or use data URL)
-    const imageUrl = await uploadImageToStorage(image);
+    // Extract image from content parts
+    // Multimodal models return images as parts in the response
+    // Using flexible typing since the SDK types may not include image parts
+    let imageData: { base64: string; mediaType: string } | null = null;
+
+    // Check response content for image parts
+    // Type casting needed because SDK types don't include image parts yet
+    if (result.response?.messages) {
+      for (const msg of result.response.messages) {
+        if (Array.isArray(msg.content)) {
+          for (const part of msg.content as Array<{ type: string; image?: string | Uint8Array; mimeType?: string }>) {
+            if (part.type === 'image' && part.image) {
+              // Image found - extract base64 and media type
+              imageData = {
+                base64: typeof part.image === 'string' ? part.image : Buffer.from(part.image).toString('base64'),
+                mediaType: part.mimeType || 'image/png',
+              };
+              break;
+            }
+          }
+        }
+        if (imageData) break;
+      }
+    }
+
+    // Also check for images in experimental response fields
+    // Some models return images differently
+    if (!imageData) {
+      const anyResult = result as unknown as {
+        images?: Array<{ image: string; mimeType?: string }>;
+        experimental_providerMetadata?: {
+          google?: { generatedImages?: Array<{ image: string }> };
+        };
+      };
+
+      // Check for images array (some models use this)
+      if (anyResult.images?.[0]) {
+        imageData = {
+          base64: anyResult.images[0].image,
+          mediaType: anyResult.images[0].mimeType || 'image/png',
+        };
+      }
+
+      // Check for Google-specific metadata
+      if (!imageData && anyResult.experimental_providerMetadata?.google?.generatedImages?.[0]) {
+        imageData = {
+          base64: anyResult.experimental_providerMetadata.google.generatedImages[0].image,
+          mediaType: 'image/png',
+        };
+      }
+    }
+
+    // If no image in response, the model might not support image generation
+    if (!imageData) {
+      console.error('[VercelAI] No image found in response. Result:', JSON.stringify(result, null, 2).substring(0, 500));
+      throw new AIGenerationError(
+        'Model did not return an image. The selected model may not support image generation or the response format is unexpected.',
+        500,
+        false
+      );
+    }
+
+    // Convert image to URL (upload to Cloudinary)
+    const imageUrl = await uploadImageToStorage(imageData);
 
     const response: AIImageResponse = {
       url: imageUrl,
