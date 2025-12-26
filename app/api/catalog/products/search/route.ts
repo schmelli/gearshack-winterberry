@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
+// Public endpoint - no authentication required
+export const dynamic = 'force-dynamic';
+
 // Response types
 interface ProductSearchResult {
   id: string;
@@ -63,6 +66,7 @@ export async function GET(request: NextRequest) {
     // Build query - use ILIKE for case-insensitive search
     const normalizedQuery = q.toLowerCase().trim();
 
+    // Simplified query without FK join - use brand_external_id for brand name
     let queryBuilder = supabase
       .from('catalog_products')
       .select(`
@@ -75,11 +79,7 @@ export async function GET(request: NextRequest) {
         product_type,
         weight_grams,
         price_usd,
-        description,
-        catalog_brands!catalog_products_brand_id_fkey (
-          id,
-          name
-        )
+        description
       `)
       .ilike('name', `%${normalizedQuery}%`)
       .limit(limit);
@@ -110,17 +110,13 @@ export async function GET(request: NextRequest) {
             ? 0.5 + 0.3 * (normalizedQuery.length / nameLower.length)
             : 0.3;
 
-      // Handle the joined brand data
-      const brandData = product.catalog_brands as { id: string; name: string } | null;
-
+      // Use brand_external_id as brand name (no FK join needed)
       return {
         id: product.id,
         name: product.name,
-        brand: brandData
-          ? { id: brandData.id, name: brandData.name }
-          : product.brand_external_id
-            ? { id: product.brand_id || '', name: product.brand_external_id }
-            : null,
+        brand: product.brand_external_id
+          ? { id: product.brand_id || '', name: product.brand_external_id }
+          : null,
         categoryMain: product.category_main,
         subcategory: product.subcategory,
         productType: product.product_type,
