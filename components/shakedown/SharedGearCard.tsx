@@ -75,6 +75,7 @@ export function sharedGearItemToGearItem(item: SharedGearItem): GearItem {
     condition: 'new',
     status: 'own',
     notes: null,
+    quantity: 1,
     isFavourite: false,
     isForSale: false,
     canBeBorrowed: false,

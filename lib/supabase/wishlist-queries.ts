@@ -104,6 +104,7 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
     condition: row.condition as 'new' | 'used' | 'worn',
     status: 'wishlist', // Enforce wishlist status at type level
     notes: row.notes,
+    quantity: (row as { quantity?: number }).quantity ?? 1,
     isFavourite: row.is_favourite,
     isForSale: row.is_for_sale,
     canBeBorrowed: row.can_be_borrowed,

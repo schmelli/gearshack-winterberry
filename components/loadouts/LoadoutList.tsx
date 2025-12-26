@@ -20,9 +20,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
+import Image from 'next/image';
 import type { GearItem } from '@/types/gear';
-import { getSortedCategoryGroups, CATEGORY_LABELS, formatWeight } from '@/lib/loadout-utils';
+import { getSortedCategoryGroups, formatWeight } from '@/lib/loadout-utils';
 import { useCategories } from '@/hooks/useCategories';
+import { getLocalizedLabel } from '@/lib/utils/category-helpers';
+import { getOptimizedImageUrl } from '@/lib/gear-utils';
 
 // =============================================================================
 // Types
@@ -91,7 +94,10 @@ export function LoadoutList({
           <div key={categoryId}>
             {/* Category Header */}
             <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
-              {CATEGORY_LABELS[categoryId] ?? categoryId}
+              {(() => {
+                const category = categories.find(c => c.id === categoryId);
+                return category ? getLocalizedLabel(category, 'en') : categoryId;
+              })()}
             </h3>
 
             {/* Items in Category */}
@@ -147,6 +153,9 @@ function LoadoutListItem({
     }
   };
 
+  // Get optimized image URL (56x56 display * 2 for retina)
+  const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
+
   return (
     <div
       role={onClick ? 'button' : undefined}
@@ -159,11 +168,30 @@ function LoadoutListItem({
         }
       } : undefined}
       className={cn(
-        'group flex items-center justify-between rounded-lg border bg-card p-3',
+        'group flex items-center gap-3 rounded-lg border bg-card p-3',
         'transition-colors',
         onClick ? 'cursor-pointer hover:border-primary/50 hover:bg-muted/50' : 'hover:border-destructive/50 hover:bg-destructive/5'
       )}
     >
+      {/* Item Image */}
+      <div className="relative aspect-square h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+        {optimizedImageUrl ? (
+          <Image
+            src={optimizedImageUrl}
+            alt={item.name}
+            fill
+            loading="lazy"
+            className="object-cover"
+            sizes="56px"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Package className="h-6 w-6 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Item Info */}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{item.name}</p>
         <p className="text-sm text-muted-foreground">

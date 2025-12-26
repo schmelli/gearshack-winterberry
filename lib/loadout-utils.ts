@@ -9,7 +9,67 @@ import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, WeightCategory, LoadoutItemState, WeightSummary, ActivityPriorityMatrix } from '@/types/loadout';
 import { WEIGHT_THRESHOLDS } from '@/types/loadout';
 import type { Category } from '@/types/category';
-import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { getParentCategoryIds, getLocalizedLabel } from '@/lib/utils/category-helpers';
+
+// =============================================================================
+// Sort Types and Functions
+// =============================================================================
+
+export type SortOption =
+  | 'name-asc'
+  | 'name-desc'
+  | 'weight-asc'
+  | 'weight-desc'
+  | 'category';
+
+/**
+ * Sort and filter gear items based on provided options.
+ * Used by both LoadoutPicker and LoadoutList for consistent behavior.
+ */
+export function sortAndFilterItems(
+  items: GearItem[],
+  sortBy: SortOption,
+  filterCategoryId: string | null,
+  categories: Category[]
+): GearItem[] {
+  // First, filter by category if specified
+  let filtered = items;
+  if (filterCategoryId) {
+    filtered = items.filter((item) => {
+      const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+      return categoryId === filterCategoryId;
+    });
+  }
+
+  // Then sort
+  return [...filtered].sort((a, b) => {
+    switch (sortBy) {
+      case 'name-asc':
+        return a.name.localeCompare(b.name);
+      case 'name-desc':
+        return b.name.localeCompare(a.name);
+      case 'weight-asc':
+        return (a.weightGrams ?? 0) - (b.weightGrams ?? 0);
+      case 'weight-desc':
+        return (b.weightGrams ?? 0) - (a.weightGrams ?? 0);
+      case 'category': {
+        const catA = getParentCategoryIds(a.productTypeId, categories);
+        const catB = getParentCategoryIds(b.productTypeId, categories);
+        const labelA = catA.categoryId
+          ? categories.find((c) => c.id === catA.categoryId)
+          : null;
+        const labelB = catB.categoryId
+          ? categories.find((c) => c.id === catB.categoryId)
+          : null;
+        const nameA = labelA ? getLocalizedLabel(labelA, 'en') : 'zzz';
+        const nameB = labelB ? getLocalizedLabel(labelB, 'en') : 'zzz';
+        return nameA.localeCompare(nameB);
+      }
+      default:
+        return 0;
+    }
+  });
+}
 
 // =============================================================================
 // Activity Priority Matrix Configuration (Feature: 009-grand-visual-polish)

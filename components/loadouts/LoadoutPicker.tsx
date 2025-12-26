@@ -25,10 +25,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
-import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
+import { formatWeight } from '@/lib/loadout-utils';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
-import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { getParentCategoryIds, getLocalizedLabel } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Types
@@ -90,12 +90,19 @@ export function LoadoutPicker({
             </p>
           ) : (
             items.map((item) => {
-              const isInLoadout = loadoutItemIds.includes(item.id);
+              // Count how many times this item is already in the loadout
+              const addedCount = loadoutItemIds.filter(id => id === item.id).length;
+              const maxQuantity = item.quantity ?? 1;
+              const isFullyAdded = addedCount >= maxQuantity;
+              const isInLoadout = addedCount > 0;
               return (
                 <PickerItem
                   key={item.id}
                   item={item}
                   isInLoadout={isInLoadout}
+                  isFullyAdded={isFullyAdded}
+                  addedCount={addedCount}
+                  maxQuantity={maxQuantity}
                   onAdd={() => onAddItem(item.id)}
                   onOpenDetail={() => handleOpenDetail(item)}
                 />
@@ -123,11 +130,22 @@ export function LoadoutPicker({
 interface PickerItemProps {
   item: GearItem;
   isInLoadout: boolean;
+  isFullyAdded: boolean;
+  addedCount: number;
+  maxQuantity: number;
   onAdd: () => void;
   onOpenDetail: () => void;
 }
 
-function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps) {
+function PickerItem({
+  item,
+  isInLoadout,
+  isFullyAdded,
+  addedCount,
+  maxQuantity,
+  onAdd,
+  onOpenDetail,
+}: PickerItemProps) {
   // Micro-interaction state for Add button (US9)
   const [justAdded, setJustAdded] = useState(false);
 
@@ -141,7 +159,7 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
   // Handle add button click without triggering detail modal (FR-018)
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isInLoadout) {
+    if (!isFullyAdded) {
       onAdd();
       // Brief flash feedback (US9)
       setJustAdded(true);
@@ -152,19 +170,21 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
   return (
     <div
       role="button"
-      tabIndex={0}
-      onClick={onOpenDetail}
-      onKeyDown={(e) => {
+      tabIndex={isFullyAdded ? -1 : 0}
+      onClick={isFullyAdded ? undefined : onOpenDetail}
+      onKeyDown={isFullyAdded ? undefined : (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onOpenDetail();
         }
       }}
       className={cn(
-        'flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-        isInLoadout
-          ? 'border-primary/30 bg-primary/5'
-          : 'hover:border-primary/50 hover:bg-muted/50'
+        'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+        isFullyAdded
+          ? 'cursor-not-allowed opacity-50 border-muted'
+          : isInLoadout
+            ? 'cursor-pointer border-primary/30 bg-primary/5'
+            : 'cursor-pointer hover:border-primary/50 hover:bg-muted/50'
       )}
     >
       {/* Item Image (FR-015, FR-016, Feature 019: optimized image selection) */}
@@ -199,7 +219,10 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
           <span>{formatWeight(item.weightGrams)}</span>
           {categoryId && (
             <span className="ml-2 text-xs">
-              ({CATEGORY_LABELS[categoryId] ?? categoryId})
+              ({(() => {
+                const category = categories.find(c => c.id === categoryId);
+                return category ? getLocalizedLabel(category, 'en') : categoryId;
+              })()})
             </span>
           )}
         </p>
@@ -208,21 +231,35 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
       {/* Add Button (FR-018: stopPropagation, US9: micro-interaction) */}
       <Button
         type="button"
-        variant={isInLoadout ? 'ghost' : 'secondary'}
+        variant={isFullyAdded ? 'ghost' : isInLoadout ? 'outline' : 'secondary'}
         size="sm"
         onClick={handleAddClick}
-        disabled={isInLoadout}
+        disabled={isFullyAdded}
         className={cn(
           'shrink-0 transition-colors duration-200',
-          isInLoadout && 'opacity-50',
+          isFullyAdded && 'opacity-50',
           justAdded && 'bg-primary text-primary-foreground'
         )}
-        aria-label={isInLoadout ? `${item.name} already in loadout` : `Add ${item.name} to loadout`}
+        aria-label={
+          isFullyAdded
+            ? `${item.name} fully added to loadout`
+            : isInLoadout
+              ? `Add another ${item.name} (${addedCount}/${maxQuantity})`
+              : `Add ${item.name} to loadout`
+        }
       >
         {justAdded ? (
           <Check className="h-4 w-4" />
+        ) : isFullyAdded ? (
+          <>
+            <Check className="h-4 w-4" />
+            {maxQuantity > 1 && <span className="ml-1 text-xs">{addedCount}/{maxQuantity}</span>}
+          </>
         ) : isInLoadout ? (
-          <Check className="h-4 w-4" />
+          <>
+            <Plus className="mr-1 h-4 w-4" />
+            <span className="text-xs">{addedCount}/{maxQuantity}</span>
+          </>
         ) : (
           <>
             <Plus className="mr-1 h-4 w-4" />

@@ -86,6 +86,7 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     condition: row.condition as GearCondition,
     status: mapStatusFromDb(row.status),
     notes: row.notes,
+    quantity: (row as { quantity?: number }).quantity ?? 1,
     isFavourite: row.is_favourite ?? false,
     isForSale: row.is_for_sale ?? false,
     canBeBorrowed: row.can_be_borrowed ?? false,
@@ -135,6 +136,8 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     condition: item.condition,
     status: mapStatusToDb(item.status),
     notes: item.notes,
+    // TODO: Add 'quantity' column to gear_items table, then uncomment:
+    // quantity: item.quantity ?? 1,
     is_favourite: item.isFavourite ?? false,
     is_for_sale: item.isForSale ?? false,
     can_be_borrowed: item.canBeBorrowed ?? false,
@@ -185,6 +188,8 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.condition !== undefined) update.condition = item.condition;
   if (item.status !== undefined) update.status = mapStatusToDb(item.status);
   if (item.notes !== undefined) update.notes = item.notes;
+  // TODO: Add 'quantity' column to gear_items table, then uncomment:
+  // if (item.quantity !== undefined) update.quantity = item.quantity;
   if (item.isFavourite !== undefined) update.is_favourite = item.isFavourite;
   if (item.isForSale !== undefined) update.is_for_sale = item.isForSale;
   if (item.canBeBorrowed !== undefined) update.can_be_borrowed = item.canBeBorrowed;

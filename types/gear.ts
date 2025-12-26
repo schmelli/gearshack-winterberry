@@ -111,6 +111,8 @@ export interface GearItem {
   condition: GearCondition;
   status: GearStatus;
   notes: string | null;
+  /** Quantity owned (default 1) - supports items like stakes, batteries, etc. */
+  quantity: number;
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: boolean;
   /** Whether this item is available for sale - Feature 045 */
@@ -170,6 +172,8 @@ export interface GearItemFormData {
   condition: GearCondition;
   status: GearStatus;
   notes: string;
+  /** Quantity owned (default 1) - supports items like stakes, batteries, etc. */
+  quantity: string;
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: boolean;
   /** Whether this item is available for sale - Feature 045 */
@@ -216,6 +220,7 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   condition: 'new',
   status: 'own',
   notes: '',
+  quantity: '1',
   isFavourite: false,
   isForSale: false,
   canBeBorrowed: false,

@@ -12,7 +12,7 @@
 
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useMemo } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
@@ -23,12 +23,15 @@ import { useLoadoutMetadata } from '@/hooks/useLoadoutMetadata';
 import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';
 import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
+import { useCategories } from '@/hooks/useCategories';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
 import { LoadoutMetadataDialog } from '@/components/loadouts/LoadoutMetadataDialog';
 import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDialog';
 import { WeightBar } from '@/components/loadouts/WeightBar';
+import { LoadoutSortFilter, type SortOption } from '@/components/loadouts/LoadoutSortFilter';
+import { sortAndFilterItems } from '@/lib/loadout-utils';
 
 import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
 
@@ -97,6 +100,23 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
   // Chart filter state (FR-012: filter list by chart segment click)
   const { selectedCategoryId, toggleCategory, clearFilter } = useChartFilter();
+
+  // Sort and filter state for both panels
+  const [sortBy, setSortBy] = useState<SortOption>('name-asc');
+  const [sortFilterCategoryId, setSortFilterCategoryId] = useState<string | null>(null);
+  const { categories } = useCategories();
+
+  // Apply sorting and filtering to picker items
+  const sortedFilteredPickerItems = useMemo(
+    () => sortAndFilterItems(filteredPickerItems, sortBy, sortFilterCategoryId, categories),
+    [filteredPickerItems, sortBy, sortFilterCategoryId, categories]
+  );
+
+  // Apply sorting and filtering to loadout items
+  const sortedFilteredLoadoutItems = useMemo(
+    () => sortAndFilterItems(loadoutItems, sortBy, sortFilterCategoryId, categories),
+    [loadoutItems, sortBy, sortFilterCategoryId, categories]
+  );
 
   // Item state for worn/consumable tracking (US4)
   const { isWorn, isConsumable, toggleWorn, toggleConsumable } = useLoadoutItemState(id);
@@ -193,12 +213,22 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
       {/* Two-Column Layout - FR-001, FR-002, FR-003 */}
       <div className="container max-w-6xl flex-1 px-4 py-6 sm:px-6">
+        {/* Sort/Filter Controls (shared across both panels) */}
+        <div className="mb-4 hidden md:block">
+          <LoadoutSortFilter
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            filterCategoryId={sortFilterCategoryId}
+            onFilterChange={setSortFilterCategoryId}
+          />
+        </div>
+
         <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
           {/* Left: Item Picker (hidden on mobile, shown in sheet) - FR-002 */}
           <div className="hidden space-y-4 md:block">
             <h2 className="text-lg font-semibold">Add from Inventory</h2>
             <LoadoutPicker
-              items={filteredPickerItems}
+              items={sortedFilteredPickerItems}
               loadoutItemIds={loadout.itemIds}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -231,7 +261,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               </div>
             </div>
             <LoadoutList
-              items={loadoutItems}
+              items={sortedFilteredLoadoutItems}
               onRemoveItem={removeItem}
               filterCategoryId={selectedCategoryId}
               isWorn={isWorn}
@@ -257,14 +287,22 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
             <SheetHeader>
               <SheetTitle>Add from Inventory</SheetTitle>
             </SheetHeader>
-            <div className="mt-4 h-full overflow-y-auto pb-8">
-              <LoadoutPicker
-                items={filteredPickerItems}
-                loadoutItemIds={loadout.itemIds}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onAddItem={handleAddItem}
+            <div className="mt-4 space-y-4">
+              <LoadoutSortFilter
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                filterCategoryId={sortFilterCategoryId}
+                onFilterChange={setSortFilterCategoryId}
               />
+              <div className="h-[calc(85vh-12rem)] overflow-y-auto pb-8">
+                <LoadoutPicker
+                  items={sortedFilteredPickerItems}
+                  loadoutItemIds={loadout.itemIds}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAddItem={handleAddItem}
+                />
+              </div>
             </div>
           </SheetContent>
         </Sheet>
