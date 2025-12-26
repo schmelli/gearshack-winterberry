@@ -13,6 +13,9 @@ import type { Database } from '@/types/database';
 // Public endpoint - no authentication required
 export const dynamic = 'force-dynamic';
 
+// Version marker for deployment verification
+const API_VERSION = '2025-12-26-v2';
+
 // Response types
 interface ProductSearchResult {
   id: string;
