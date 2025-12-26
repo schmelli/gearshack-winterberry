@@ -28,7 +28,7 @@ import {
   type ProductSuggestion,
 } from '@/hooks/useProductAutocomplete';
 import type { GearItemFormData } from '@/types/gear';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useCategories } from '@/hooks/useCategories';
 import { findProductTypeId } from '@/lib/utils/category-helpers';
 
 // =============================================================================
@@ -56,7 +56,7 @@ export function ProductAutocompleteInput({
   });
 
   // Cascading Category Refactor (Phase 6): Get categories for auto-fill
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useCategories();
 
   // Local state for showing suggestions dropdown
   const [showSuggestions, setShowSuggestions] = useState(false);

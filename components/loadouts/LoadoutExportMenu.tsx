@@ -18,7 +18,7 @@ import type {
   Season,
 } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useCategories } from '@/hooks/useCategories';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 /**
@@ -306,7 +306,7 @@ export function LoadoutExportMenu({
   baseWeight,
 }: LoadoutExportMenuProps) {
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useCategories();
 
   const buildFileName = (suffix: string) => {
     const date = new Date().toISOString().slice(0, 10);

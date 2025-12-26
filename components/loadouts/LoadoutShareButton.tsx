@@ -23,7 +23,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Loadout, LoadoutItemState, ActivityType, Season } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import type { SharedLoadoutPayload } from '@/types/sharing';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useCategories } from '@/hooks/useCategories';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 interface LoadoutShareButtonProps {
@@ -56,7 +56,7 @@ export function LoadoutShareButton({
   const [copied, setCopied] = useState(false);
 
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useCategories();
 
   const payload: SharedLoadoutPayload = useMemo(() => {
     const stateById = new Map(itemStates.map((state) => [state.itemId, state]));

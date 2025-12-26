@@ -34,7 +34,7 @@ import { PriceTrackingSection } from '@/components/price-tracking';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useCategories } from '@/hooks/useCategories';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
@@ -193,7 +193,7 @@ export function GearDetailContent({
   onMoveComplete,
 }: GearDetailContentProps) {
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
-  const categories = useCategoriesStore((state) => state.categories);
+  const { categories } = useCategories();
   const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
 
   return (
