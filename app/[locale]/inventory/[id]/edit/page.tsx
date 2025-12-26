@@ -37,13 +37,25 @@ function EditGearItemContent({ id }: EditGearItemContentProps) {
   const items = useItems();
 
   // Feature 049: Also get wishlist items (Issue #85 fix)
-  const { wishlistItems } = useWishlist();
+  const { wishlistItems, isLoading } = useWishlist();
 
   // Find the item by ID - check both inventory and wishlist
   const gearItem = items.find((item) => item.id === id) ??
                    wishlistItems.find((item) => item.id === id);
 
-  // If item not found, show 404
+  // Show loading state while wishlist is being fetched
+  // This prevents premature 404 for valid wishlist items
+  if (!gearItem && isLoading) {
+    return (
+      <main className="container py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // If item not found after loading completes, show 404
   if (!gearItem) {
     notFound();
   }
