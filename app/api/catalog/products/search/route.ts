@@ -133,10 +133,11 @@ export async function GET(request: NextRequest) {
     // Sort by score descending
     results.sort((a, b) => b.score - a.score);
 
-    const response: ProductSearchResponse = {
+    const response = {
       results,
       query: q,
       count: results.length,
+      version: API_VERSION,
     };
 
     return NextResponse.json(response);
