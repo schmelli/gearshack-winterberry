@@ -356,10 +356,12 @@ export function GearDetailContent({
           </div>
         )}
 
-        {/* Price Tracking Section - Feature 050 */}
-        <div className="border-t pt-4">
-          <PriceTrackingSection item={item} />
-        </div>
+        {/* Price Tracking Section - Feature 050 (only for wishlist items) */}
+        {isWishlistItem && (
+          <div className="border-t pt-4">
+            <PriceTrackingSection item={item} />
+          </div>
+        )}
 
         {/* External Links */}
         {(item.productUrl || item.brandUrl || item.retailerUrl) && (
