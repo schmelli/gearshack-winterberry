@@ -26,7 +26,7 @@ import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
 import { formatWeight, CATEGORY_LABELS } from '@/lib/loadout-utils';
-import { optimizeCloudinaryUrl } from '@/lib/cloudinary-utils';
+import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
@@ -135,6 +135,9 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
   const categories = useCategoriesStore((state) => state.categories);
   const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
 
+  // The image container is 56x56px (h-14, w-14). Request a 2x resolution image for high-density displays.
+  const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
+
   // Handle add button click without triggering detail modal (FR-018)
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -164,11 +167,11 @@ function PickerItem({ item, isInLoadout, onAdd, onOpenDetail }: PickerItemProps)
           : 'hover:border-primary/50 hover:bg-muted/50'
       )}
     >
-      {/* Item Image (FR-015, FR-016) */}
+      {/* Item Image (FR-015, FR-016, Feature 019: optimized image selection) */}
       <div className="relative aspect-square h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-        {item.primaryImageUrl ? (
+        {optimizedImageUrl ? (
           <Image
-            src={optimizeCloudinaryUrl(item.primaryImageUrl, { width: 112, quality: 'auto:good' })}
+            src={optimizedImageUrl}
             alt={item.name}
             fill
             loading="lazy"
