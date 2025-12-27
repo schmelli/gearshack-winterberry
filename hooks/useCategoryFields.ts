@@ -59,8 +59,13 @@ export function useCategoryFields(
       showDimensions: false,
     };
 
-    // If no category selected or still loading, show all fields for backward compatibility
-    if (!productTypeId || isLoading || breadcrumb.length === 0) {
+    // If still loading, return default config to prevent UI flicker
+    if (isLoading) {
+      return defaultConfig;
+    }
+
+    // If no category selected, show all fields for backward compatibility
+    if (!productTypeId || breadcrumb.length === 0) {
       return {
         showSize: true,
         showColor: true,
