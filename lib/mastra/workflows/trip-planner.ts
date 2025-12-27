@@ -466,7 +466,7 @@ async function queryRecommendations(
   for (const gap of gaps.gaps.slice(0, 5)) { // Limit to top 5 gaps
     const { data: catalogItems } = await supabase
       .from('catalog_products')
-      .select('id, name, brand_external_id, weight_grams, price_usd, category_main')
+      .select('id, name, brand_external_id, weight_grams, price_usd, product_type')
       .textSearch('name', gap.category.replace('_', ' '), { type: 'websearch' })
       .order('weight_grams', { ascending: true })
       .limit(2);
@@ -479,7 +479,7 @@ async function queryRecommendations(
           brand: item.brand_external_id || 'Unknown',
           weight: item.weight_grams || 0,
           price: item.price_usd || 0,
-          category: item.category_main || gap.category,
+          category: item.product_type || gap.category,
           matchedGap: gap.requirement,
         });
         totalCost += item.price_usd || 0;

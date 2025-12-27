@@ -6,6 +6,7 @@
  * Provides powerful search capabilities across the entire outdoor gear catalog.
  *
  * Data Source: Supabase catalog_products table (synced from GearGraph API)
+ * Category hierarchy is derived from the categories table via product_type_id FK.
  */
 
 import { z } from 'zod';
@@ -25,8 +26,6 @@ export const searchCatalogParametersSchema = z.object({
 
   filters: z
     .object({
-      category: z.string().optional().describe('Main category (e.g., "Backpacks", "Tents", "Sleeping Bags")'),
-      subcategory: z.string().optional().describe('Subcategory for more specific filtering'),
       brand: z.string().optional().describe('Brand name (case-insensitive, partial match)'),
       productType: z.string().optional().describe('Specific product type'),
       weightMin: z.number().nonnegative().optional().describe('Minimum weight in grams'),
@@ -65,7 +64,7 @@ export const searchCatalogTool = {
 
   The catalog contains:
   - Product names and descriptions
-  - Categories (Backpacks, Tents, Sleeping Bags, Cooking, Clothing, etc.)
+  - Categories (derived from product type hierarchy)
   - Brands and manufacturers
   - Prices (USD)
   - Weights (grams)
@@ -74,9 +73,8 @@ export const searchCatalogTool = {
   Examples:
   - Find ultralight tents: {query: "tent", filters: {weightMax: 1000}}
   - Search by brand: {filters: {brand: "Osprey"}, sortBy: "weight_asc"}
-  - Budget backpacks: {filters: {category: "Backpacks", priceMax: 200}}
   - Specific product: {query: "Atmos AG 65"}
-  - Lightest sleeping bags: {filters: {category: "Sleeping Bags"}, sortBy: "weight_asc", limit: 5}
+  - Lightest sleeping bags: {query: "sleeping bag", sortBy: "weight_asc", limit: 5}
   - Compare options: {query: "down jacket", sortBy: "price_asc", limit: 10}
   `,
   parameters: searchCatalogParametersSchema,
@@ -93,6 +91,7 @@ export interface CatalogSearchResult {
   categoryMain: string | null;
   subcategory: string | null;
   productType: string | null;
+  productTypeId: string | null;
   description: string | null;
   priceUsd: number | null;
   weightGrams: number | null;
@@ -105,6 +104,15 @@ export interface SearchCatalogResponse {
   query: string;
   appliedFilters: Record<string, unknown>;
   error?: string;
+}
+
+// Type for category with parent chain
+interface CategoryWithParent {
+  id: string;
+  label: string;
+  slug: string;
+  level: number;
+  parent_id: string | null;
 }
 
 // =============================================================================
@@ -126,16 +134,15 @@ export async function executeSearchCatalog(
   try {
     const supabase = await createClient();
 
-    // Build base query
+    // Build base query - uses product_type_id FK to categories table
     let dbQuery = supabase
       .from('catalog_products')
       .select(
         `
         id,
         name,
-        category_main,
-        subcategory,
         product_type,
+        product_type_id,
         description,
         price_usd,
         weight_grams,
@@ -157,14 +164,6 @@ export async function executeSearchCatalog(
 
     // Apply filters
     if (filters) {
-      if (filters.category) {
-        dbQuery = dbQuery.ilike('category_main', filters.category);
-        appliedFilters.category = filters.category;
-      }
-      if (filters.subcategory) {
-        dbQuery = dbQuery.ilike('subcategory', filters.subcategory);
-        appliedFilters.subcategory = filters.subcategory;
-      }
       if (filters.productType) {
         dbQuery = dbQuery.ilike('product_type', filters.productType);
         appliedFilters.productType = filters.productType;
@@ -245,18 +244,79 @@ export async function executeSearchCatalog(
       };
     }
 
+    // Collect all product_type_ids to fetch category hierarchy in batch
+    const productTypeIds = (products || [])
+      .map((p) => p.product_type_id)
+      .filter((id): id is string => id !== null);
+
+    // Fetch category hierarchy for all product types in one query
+    const categoryMap = new Map<
+      string,
+      { categoryMain: string | null; subcategory: string | null; productType: string | null }
+    >();
+
+    if (productTypeIds.length > 0) {
+      // Get all categories to build the hierarchy
+      const { data: allCategories } = await supabase
+        .from('categories')
+        .select('id, label, slug, level, parent_id')
+        .order('level');
+
+      if (allCategories) {
+        // Build a lookup map by ID
+        const catById = new Map<string, CategoryWithParent>();
+        for (const cat of allCategories) {
+          catById.set(cat.id, cat);
+        }
+
+        // For each product_type_id, walk up the tree to find subcategory and main category
+        for (const ptId of productTypeIds) {
+          const productTypeCat = catById.get(ptId);
+          if (!productTypeCat) continue;
+
+          let categoryMain: string | null = null;
+          let subcategory: string | null = null;
+          const productType = productTypeCat.label;
+
+          // Walk up the parent chain
+          if (productTypeCat.parent_id) {
+            const subcategoryCat = catById.get(productTypeCat.parent_id);
+            if (subcategoryCat) {
+              subcategory = subcategoryCat.label;
+              if (subcategoryCat.parent_id) {
+                const mainCat = catById.get(subcategoryCat.parent_id);
+                if (mainCat) {
+                  categoryMain = mainCat.label;
+                }
+              }
+            }
+          }
+
+          categoryMap.set(ptId, { categoryMain, subcategory, productType });
+        }
+      }
+    }
+
     // Transform results
-    let results: CatalogSearchResult[] = (products || []).map((product) => ({
-      id: product.id,
-      name: product.name,
-      brand: (product.catalog_brands as { name: string } | null)?.name ?? null,
-      categoryMain: product.category_main,
-      subcategory: product.subcategory,
-      productType: product.product_type,
-      description: product.description,
-      priceUsd: product.price_usd,
-      weightGrams: product.weight_grams,
-    }));
+    let results: CatalogSearchResult[] = (products || []).map((product) => {
+      // Get category hierarchy from the map, or fallback to product_type TEXT field
+      const categoryInfo = product.product_type_id
+        ? categoryMap.get(product.product_type_id)
+        : null;
+
+      return {
+        id: product.id,
+        name: product.name,
+        brand: (product.catalog_brands as { name: string } | null)?.name ?? null,
+        categoryMain: categoryInfo?.categoryMain ?? null,
+        subcategory: categoryInfo?.subcategory ?? null,
+        productType: categoryInfo?.productType ?? product.product_type,
+        productTypeId: product.product_type_id,
+        description: product.description,
+        priceUsd: product.price_usd,
+        weightGrams: product.weight_grams,
+      };
+    });
 
     // Apply brand filter (post-query, case-insensitive)
     if (filters?.brand) {

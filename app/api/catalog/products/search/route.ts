@@ -4,6 +4,8 @@
  * Feature: 044-intelligence-integration
  *
  * Uses the catalog_products table synced from GearGraph.
+ * Category hierarchy (categoryMain, subcategory, productType) is derived from
+ * the categories table via product_type_id FK.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,6 +23,7 @@ interface ProductSearchResult {
   categoryMain: string | null;
   subcategory: string | null;
   productType: string | null;
+  productTypeId: string | null;
   weightGrams: number | null;
   priceUsd: number | null;
   description: string | null;
@@ -31,6 +34,15 @@ interface ProductSearchResponse {
   results: ProductSearchResult[];
   query: string;
   count: number;
+}
+
+// Type for category with parent chain
+interface CategoryWithParent {
+  id: string;
+  label: string;
+  slug: string;
+  level: number;
+  parent_id: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -66,19 +78,23 @@ export async function GET(request: NextRequest) {
     // Build query - use ILIKE for case-insensitive search
     const normalizedQuery = q.toLowerCase().trim();
 
-    // Query only columns that exist in the actual database
-    // Note: category_main, subcategory don't exist - only product_type does
+    // Query catalog_products with FK joins to catalog_brands and categories
+    // The product_type_id references categories at level 3 (product type)
     let queryBuilder = supabase
       .from('catalog_products')
       .select(`
         id,
         name,
-        brand_id,
-        brand_external_id,
         product_type,
+        product_type_id,
         weight_grams,
         price_usd,
-        description
+        description,
+        brand_id,
+        catalog_brands!catalog_products_brand_id_fkey (
+          id,
+          name
+        )
       `)
       .ilike('name', `%${normalizedQuery}%`)
       .limit(limit);
@@ -98,6 +114,60 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Collect all product_type_ids to fetch category hierarchy in batch
+    const productTypeIds = (data || [])
+      .map((p) => p.product_type_id)
+      .filter((id): id is string => id !== null);
+
+    // Fetch category hierarchy for all product types in one query
+    // We need to get the full parent chain for each category
+    const categoryMap = new Map<
+      string,
+      { categoryMain: string | null; subcategory: string | null; productType: string | null }
+    >();
+
+    if (productTypeIds.length > 0) {
+      // Get all categories to build the hierarchy
+      const { data: allCategories } = await supabase
+        .from('categories')
+        .select('id, label, slug, level, parent_id')
+        .order('level');
+
+      if (allCategories) {
+        // Build a lookup map by ID
+        const catById = new Map<string, CategoryWithParent>();
+        for (const cat of allCategories) {
+          catById.set(cat.id, cat);
+        }
+
+        // For each product_type_id, walk up the tree to find subcategory and main category
+        for (const ptId of productTypeIds) {
+          const productTypeCat = catById.get(ptId);
+          if (!productTypeCat) continue;
+
+          let categoryMain: string | null = null;
+          let subcategory: string | null = null;
+          const productType = productTypeCat.label;
+
+          // Walk up the parent chain
+          if (productTypeCat.parent_id) {
+            const subcategoryCat = catById.get(productTypeCat.parent_id);
+            if (subcategoryCat) {
+              subcategory = subcategoryCat.label;
+              if (subcategoryCat.parent_id) {
+                const mainCat = catById.get(subcategoryCat.parent_id);
+                if (mainCat) {
+                  categoryMain = mainCat.label;
+                }
+              }
+            }
+          }
+
+          categoryMap.set(ptId, { categoryMain, subcategory, productType });
+        }
+      }
+    }
+
     // Calculate simple similarity scores and format results
     const results: ProductSearchResult[] = (data || []).map((product) => {
       const nameLower = product.name.toLowerCase();
@@ -109,16 +179,21 @@ export async function GET(request: NextRequest) {
             ? 0.5 + 0.3 * (normalizedQuery.length / nameLower.length)
             : 0.3;
 
-      // Use brand_external_id as brand name (no FK join needed)
+      // Get category hierarchy from the map, or fallback to product_type TEXT field
+      const categoryInfo = product.product_type_id
+        ? categoryMap.get(product.product_type_id)
+        : null;
+
       return {
         id: product.id,
         name: product.name,
-        brand: product.brand_external_id
-          ? { id: product.brand_id || '', name: product.brand_external_id }
+        brand: product.catalog_brands
+          ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
           : null,
-        categoryMain: null, // Column doesn't exist in DB
-        subcategory: null, // Column doesn't exist in DB
-        productType: product.product_type,
+        categoryMain: categoryInfo?.categoryMain ?? null,
+        subcategory: categoryInfo?.subcategory ?? null,
+        productType: categoryInfo?.productType ?? product.product_type,
+        productTypeId: product.product_type_id,
         weightGrams: product.weight_grams,
         priceUsd: product.price_usd,
         description: product.description,

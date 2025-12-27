@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       ai_cached_responses: {
@@ -387,7 +412,6 @@ export type Database = {
         Row: {
           brand_external_id: string | null
           brand_id: string | null
-          category_main: string | null
           created_at: string | null
           description: string | null
           external_id: string
@@ -395,14 +419,14 @@ export type Database = {
           name: string
           price_usd: number | null
           product_type: string | null
-          subcategory: string | null
+          product_type_id: string | null
+          product_url: string | null
           updated_at: string | null
           weight_grams: number | null
         }
         Insert: {
           brand_external_id?: string | null
           brand_id?: string | null
-          category_main?: string | null
           created_at?: string | null
           description?: string | null
           external_id: string
@@ -410,14 +434,14 @@ export type Database = {
           name: string
           price_usd?: number | null
           product_type?: string | null
-          subcategory?: string | null
+          product_type_id?: string | null
+          product_url?: string | null
           updated_at?: string | null
           weight_grams?: number | null
         }
         Update: {
           brand_external_id?: string | null
           brand_id?: string | null
-          category_main?: string | null
           created_at?: string | null
           description?: string | null
           external_id?: string
@@ -425,7 +449,8 @@ export type Database = {
           name?: string
           price_usd?: number | null
           product_type?: string | null
-          subcategory?: string | null
+          product_type_id?: string | null
+          product_url?: string | null
           updated_at?: string | null
           weight_grams?: number | null
         }
@@ -435,6 +460,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "catalog_brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_product_type_id_fkey"
+            columns: ["product_type_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -479,6 +511,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversation_memory: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_content: string
+          message_id: string
+          message_role: string
+          metadata: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_content: string
+          message_id: string
+          message_role: string
+          metadata?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_content?: string
+          message_id?: string
+          message_role?: string
+          metadata?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       conversation_participants: {
         Row: {
@@ -562,6 +630,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gdpr_deletion_records: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          records_deleted: number | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          records_deleted?: number | null
+          requested_at?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          records_deleted?: number | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       gear_enrichment_suggestions: {
         Row: {
@@ -673,6 +771,7 @@ export type Database = {
           product_type_id: string | null
           product_url: string | null
           purchase_date: string | null
+          quantity: number
           retailer: string | null
           retailer_url: string | null
           size: string | null
@@ -715,6 +814,7 @@ export type Database = {
           product_type_id?: string | null
           product_url?: string | null
           purchase_date?: string | null
+          quantity?: number
           retailer?: string | null
           retailer_url?: string | null
           size?: string | null
@@ -757,6 +857,7 @@ export type Database = {
           product_type_id?: string | null
           product_url?: string | null
           purchase_date?: string | null
+          quantity?: number
           retailer?: string | null
           retailer_url?: string | null
           size?: string | null
@@ -1696,6 +1797,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_tracking: {
+        Row: {
+          id: string
+          last_request_at: string
+          operation_type: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          last_request_at?: string
+          operation_type: string
+          request_count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          id?: string
+          last_request_at?: string
+          operation_type?: string
+          request_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           blocked_id: string
@@ -1867,6 +1995,45 @@ export type Database = {
           },
         ]
       }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          current_step: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          started_at: string
+          status: string
+          step_results: Json | null
+          user_id: string
+          workflow_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status: string
+          step_results?: Json | null
+          user_id: string
+          workflow_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          step_results?: Json | null
+          user_id?: string
+          workflow_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       community_availability: {
@@ -1938,11 +2105,16 @@ export type Database = {
         }
         Returns: Json
       }
+      check_rate_limit: {
+        Args: { p_limit: number; p_operation_type: string; p_user_id: string }
+        Returns: boolean
+      }
       check_web_search_quota: {
         Args: { p_daily_limit?: number; p_user_id: string }
         Returns: Json
       }
       cleanup_delivery_queue: { Args: never; Returns: number }
+      cleanup_expired_conversation_memory: { Args: never; Returns: number }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       clear_conversation_state: {
         Args: { p_conversation_id: string }
@@ -1968,6 +2140,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      execute_gdpr_deletion: {
+        Args: { p_deletion_id: string }
+        Returns: undefined
       }
       find_community_availability: {
         Args: { p_user_id: string; p_wishlist_item_id: string }
@@ -2064,6 +2240,10 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      increment_rate_limit: {
+        Args: { p_operation_type: string; p_user_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       log_tool_execution: {
         Args: {
@@ -2093,6 +2273,7 @@ export type Database = {
         }
         Returns: string
       }
+      request_gdpr_deletion: { Args: { p_user_id: string }; Returns: string }
       reset_unread_count: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: undefined
@@ -2272,6 +2453,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       activity_type: ["hiking", "camping", "climbing", "skiing", "backpacking"],

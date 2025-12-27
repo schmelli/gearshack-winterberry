@@ -38,14 +38,14 @@ export const brandSyncRequestSchema = z.union([
 /**
  * Schema for a single product payload in sync requests
  * Matches catalog_products table structure
+ * Note: category_main and subcategory are no longer stored - use product_type_id FK instead
  */
 export const productPayloadSchema = z.object({
   external_id: z.string().min(1, 'external_id is required'),
   name: z.string().min(1).max(500, 'name must be 1-500 characters'),
   brand_external_id: z.string().nullable().optional(),
-  category_main: z.string().max(100, 'category_main must be max 100 characters').nullable().optional(),
-  subcategory: z.string().max(100, 'subcategory must be max 100 characters').nullable().optional(),
   product_type: z.string().max(100, 'product_type must be max 100 characters').nullable().optional(),
+  product_type_id: z.string().uuid('product_type_id must be a valid UUID').nullable().optional(),
   description: z.string().max(5000, 'description must be max 5000 characters').nullable().optional(),
   price_usd: z.number().min(0).nullable().optional(),
   weight_grams: z.number().min(0).nullable().optional(),
@@ -75,12 +75,13 @@ export const brandSearchParamsSchema = z.object({
 
 /**
  * Schema for product search query parameters
+ * Note: category_main filter removed - use product_type_id to filter by category
  */
 export const productSearchParamsSchema = z.object({
   q: z.string().optional(),
   mode: z.enum(['fuzzy']).default('fuzzy'),
   brand_id: z.string().uuid().optional(),
-  category_main: z.string().optional(),
+  product_type_id: z.string().uuid().optional(),
   limit: z.coerce.number().min(1).max(20).default(5),
 });
 

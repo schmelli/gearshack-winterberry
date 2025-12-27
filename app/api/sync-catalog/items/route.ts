@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Note: category_main and subcategory are no longer stored - use product_type_id FK instead
       const { data: upserted, error } = await supabase
         .from('catalog_products')
         .upsert(
@@ -130,9 +131,8 @@ export async function POST(request: NextRequest) {
             name: product.name,
             brand_id: brandId,
             brand_external_id: product.brand_external_id ?? null,
-            category_main: product.category_main ?? null,
-            subcategory: product.subcategory ?? null,
             product_type: product.product_type ?? null,
+            product_type_id: product.product_type_id ?? null,
             description: product.description ?? null,
             price_usd: product.price_usd ?? null,
             weight_grams: product.weight_grams ?? null,

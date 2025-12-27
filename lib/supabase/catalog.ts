@@ -87,17 +87,21 @@ export async function fuzzyBrandSearch(
 
 /**
  * Performs fuzzy search on product names using ILIKE
+ * Note: Category hierarchy (categoryMain, subcategory) is derived from the
+ * categories table via product_type_id. This function returns null for those
+ * fields - use the /api/catalog/products/search endpoint for full hierarchy.
+ *
  * @param supabase - Supabase client instance
  * @param query - Search query string
- * @param options - Search options (brandId, categoryMain, limit)
+ * @param options - Search options (brandId, limit)
  * @returns Array of product search results with scores
  */
 export async function fuzzyProductSearch(
   supabase: ReturnType<typeof createClient<Database>>,
   query: string,
-  options: { brandId?: string; categoryMain?: string; limit?: number } = {}
+  options: { brandId?: string; limit?: number } = {}
 ): Promise<ProductSearchResult[]> {
-  const { brandId, categoryMain, limit = 5 } = options;
+  const { brandId, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
 
   // Build query with optional filters
@@ -107,9 +111,8 @@ export async function fuzzyProductSearch(
       `
       id,
       name,
-      category_main,
-      subcategory,
       product_type,
+      product_type_id,
       description,
       price_usd,
       weight_grams,
@@ -125,10 +128,6 @@ export async function fuzzyProductSearch(
 
   if (brandId) {
     queryBuilder = queryBuilder.eq('brand_id', brandId);
-  }
-
-  if (categoryMain) {
-    queryBuilder = queryBuilder.eq('category_main', categoryMain);
   }
 
   const { data, error } = await queryBuilder;
@@ -152,9 +151,10 @@ export async function fuzzyProductSearch(
       brand: product.catalog_brands
         ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
         : null,
-      categoryMain: product.category_main,
-      subcategory: product.subcategory,
+      categoryMain: null, // Derived from categories table - use API for full hierarchy
+      subcategory: null,  // Derived from categories table - use API for full hierarchy
       productType: product.product_type,
+      productTypeId: product.product_type_id,
       description: product.description,
       priceUsd: product.price_usd,
       weightGrams: product.weight_grams,
@@ -221,6 +221,8 @@ export async function upsertBrand(
 
 /**
  * Upserts a product record
+ * Note: category_main and subcategory are no longer stored - use product_type_id instead
+ *
  * @param supabase - Supabase client instance (with service role)
  * @param product - Product data to upsert
  * @returns Upserted product ID
@@ -232,9 +234,8 @@ export async function upsertProduct(
     name: string;
     brand_id?: string | null;
     brand_external_id?: string | null;
-    category_main?: string | null;
-    subcategory?: string | null;
     product_type?: string | null;
+    product_type_id?: string | null;
     description?: string | null;
     price_usd?: number | null;
     weight_grams?: number | null;
@@ -248,9 +249,8 @@ export async function upsertProduct(
         name: product.name,
         brand_id: product.brand_id ?? null,
         brand_external_id: product.brand_external_id ?? null,
-        category_main: product.category_main ?? null,
-        subcategory: product.subcategory ?? null,
         product_type: product.product_type ?? null,
+        product_type_id: product.product_type_id ?? null,
         description: product.description ?? null,
         price_usd: product.price_usd ?? null,
         weight_grams: product.weight_grams ?? null,

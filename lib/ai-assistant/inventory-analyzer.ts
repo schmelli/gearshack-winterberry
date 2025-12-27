@@ -372,13 +372,12 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   // Search for products matching any of the extracted terms
   const searchTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
 
+  // Note: category_main/subcategory removed - use product_type for category display
   const { data: products, error } = await supabase
     .from('catalog_products')
     .select(`
       id,
       name,
-      category_main,
-      subcategory,
       product_type,
       description,
       price_usd,
@@ -400,7 +399,7 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
     const brand = product.catalog_brands ? `${product.catalog_brands.name} ` : '';
     const weight = product.weight_grams ? ` - ${product.weight_grams}g` : '';
     const price = product.price_usd ? ` - $${product.price_usd}` : '';
-    const category = product.category_main || 'Uncategorized';
+    const category = product.product_type || 'Uncategorized';
     const description = product.description ? `\n    ${product.description.substring(0, 150)}${product.description.length > 150 ? '...' : ''}` : '';
 
     return `  * ${brand}${product.name}${weight}${price} (${category})${description}`;
