@@ -24,10 +24,9 @@ CREATE TABLE IF NOT EXISTS rate_limit_tracking (
 CREATE INDEX IF NOT EXISTS idx_rate_limit_tracking_user_op
   ON rate_limit_tracking(user_id, operation_type, window_start DESC);
 
--- Index for cleanup (expired windows)
+-- Index for cleanup queries (by window_start for efficient deletion)
 CREATE INDEX IF NOT EXISTS idx_rate_limit_tracking_cleanup
-  ON rate_limit_tracking(window_start)
-  WHERE window_start < now() - INTERVAL '7 days';
+  ON rate_limit_tracking(window_start);
 
 -- ==================== ROW LEVEL SECURITY ====================
 
