@@ -197,6 +197,53 @@ export function LoadoutHeader({
               </div>
             )}
 
+            {/* Description with Inline Editing (moved from right side for better flow) */}
+            <div className="max-w-lg">
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editValue}
+                    onChange={(e) => updateValue(e.target.value)}
+                    placeholder="Add a description for this loadout..."
+                    className="min-h-[60px] resize-none"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveDescription}
+                      className="h-8"
+                    >
+                      <Check className="mr-1 h-3 w-3" />
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={cancelEdit}
+                      className="h-8"
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => startEdit(loadout.description)}
+                  className="group w-full rounded-md text-left transition-colors hover:bg-muted/50"
+                >
+                  {loadout.description ? (
+                    <p className="text-sm text-muted-foreground">{loadout.description}</p>
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground/60">
+                      Click to add a description...
+                    </p>
+                  )}
+                </button>
+              )}
+            </div>
+
             {/* Activity Badges - FR-007 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -243,70 +290,15 @@ export function LoadoutHeader({
             </div>
           </div>
 
-          {/* Right: Description and Donut Chart */}
-          <div className="flex flex-col gap-4 lg:items-end">
-            {/* Description with Inline Editing (FR-013, FR-014) */}
-            <div className="w-full max-w-sm space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Description
-              </p>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={editValue}
-                    onChange={(e) => updateValue(e.target.value)}
-                    placeholder="Add a description for this loadout..."
-                    className="min-h-[80px] resize-none"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveDescription}
-                      className="h-8"
-                    >
-                      <Check className="mr-1 h-3 w-3" />
-                      Save
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={cancelEdit}
-                      className="h-8"
-                    >
-                      <X className="mr-1 h-3 w-3" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEdit(loadout.description)}
-                  className="group w-full rounded-md border border-dashed border-muted-foreground/30 p-3 text-left transition-colors hover:border-muted-foreground/50 hover:bg-muted/50"
-                >
-                  {loadout.description ? (
-                    <p className="text-sm text-foreground">{loadout.description}</p>
-                  ) : (
-                    <p className="text-sm italic text-muted-foreground">
-                      Click to add a description...
-                    </p>
-                  )}
-                  <span className="mt-1 block text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                    Click to edit
-                  </span>
-                </button>
-              )}
-            </div>
-
+          {/* Right: Donut Chart */}
+          <div className="hidden lg:flex lg:items-start lg:justify-end">
             {/* Donut Chart with interactive filtering (FR-012) */}
-            <div className="hidden lg:block">
-              <WeightDonut
-                categoryWeights={categoryWeights}
-                size="large"
-                selectedCategoryId={selectedCategoryId}
-                onSegmentClick={onSegmentClick}
-              />
-            </div>
+            <WeightDonut
+              categoryWeights={categoryWeights}
+              size="large"
+              selectedCategoryId={selectedCategoryId}
+              onSegmentClick={onSegmentClick}
+            />
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useLocale } from 'next-intl';
 import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
@@ -96,6 +97,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
 
   // Cascading Category Refactor: Get categories for weight calculations
   const { categories } = useCategories();
+  const locale = useLocale();
 
   // Local state for search
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,7 +126,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
 
   // Compute weight metrics
   const totalWeight = useMemo(() => calculateTotalWeight(loadoutItems), [loadoutItems]);
-  const categoryWeights = useMemo(() => calculateCategoryWeights(loadoutItems, categories), [loadoutItems, categories]);
+  const categoryWeights = useMemo(() => calculateCategoryWeights(loadoutItems, categories, locale), [loadoutItems, categories, locale]);
 
   // Compute base weight using itemStates (Feature: 007)
   const baseWeight = useMemo(() => {

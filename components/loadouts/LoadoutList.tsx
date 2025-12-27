@@ -16,13 +16,14 @@
 'use client';
 
 import { X, Package, Shirt, Apple } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
 import Image from 'next/image';
 import type { GearItem } from '@/types/gear';
-import { getSortedCategoryGroups, formatWeight } from '@/lib/loadout-utils';
+import { getSortedCategoryGroups, formatWeight, type SortOption } from '@/lib/loadout-utils';
 import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel } from '@/lib/utils/category-helpers';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
@@ -36,6 +37,8 @@ interface LoadoutListProps {
   onRemoveItem: (itemId: string) => void;
   /** Filter to show only items from this category (FR-012: chart segment filter) */
   filterCategoryId?: string | null;
+  /** Sort option to apply to items and categories */
+  sortBy?: SortOption;
   /** Check if item is worn (US4) */
   isWorn: (itemId: string) => boolean;
   /** Check if item is consumable (US4) */
@@ -56,6 +59,7 @@ export function LoadoutList({
   items,
   onRemoveItem,
   filterCategoryId,
+  sortBy = 'category',
   isWorn,
   isConsumable,
   onToggleWorn,
@@ -63,7 +67,8 @@ export function LoadoutList({
   onItemClick,
 }: LoadoutListProps) {
   const { categories } = useCategories();
-  const categoryGroups = getSortedCategoryGroups(items, categories);
+  const locale = useLocale();
+  const categoryGroups = getSortedCategoryGroups(items, categories, sortBy, locale);
   const isEmpty = items.length === 0;
 
   // Filter groups if a category is selected (FR-012: chart segment filter)
@@ -89,19 +94,19 @@ export function LoadoutList({
 
   return (
     <ScrollArea className="h-[calc(100vh-20rem)]">
-      <div className="space-y-6 pr-4">
-        {filteredGroups.map(([categoryId, categoryItems]) => (
-          <div key={categoryId}>
+      <div className="divide-y divide-border pr-4">
+        {filteredGroups.map(([categoryId, categoryItems], index) => (
+          <div key={categoryId} className={cn(index > 0 && 'pt-4')}>
             {/* Category Header */}
             <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
               {(() => {
                 const category = categories.find(c => c.id === categoryId);
-                return category ? getLocalizedLabel(category, 'en') : categoryId;
+                return category ? getLocalizedLabel(category, locale) : categoryId;
               })()}
             </h3>
 
             {/* Items in Category */}
-            <div className="space-y-2">
+            <div className="space-y-2 pb-4">
               {categoryItems.map((item) => (
                 <LoadoutListItem
                   key={item.id}

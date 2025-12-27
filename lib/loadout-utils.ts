@@ -255,7 +255,7 @@ export function calculateWeightSummary(
  * Calculate weight breakdown by category
  * Cascading Category Refactor: Requires categories parameter to derive categoryId from productTypeId
  */
-export function calculateCategoryWeights(items: GearItem[], categories: Category[]): CategoryWeight[] {
+export function calculateCategoryWeights(items: GearItem[], categories: Category[], locale: string = 'en'): CategoryWeight[] {
   const totalWeight = calculateTotalWeight(items);
 
   // Group items by category
@@ -274,9 +274,15 @@ export function calculateCategoryWeights(items: GearItem[], categories: Category
   const categoryWeights: CategoryWeight[] = [];
 
   for (const [categoryId, data] of categoryMap) {
+    // Look up category label from categories array (new cascading system)
+    const category = categories.find(c => c.id === categoryId);
+    const categoryLabel = category
+      ? getLocalizedLabel(category, locale)
+      : (CATEGORY_LABELS[categoryId] ?? 'Miscellaneous');
+
     categoryWeights.push({
       categoryId,
-      categoryLabel: CATEGORY_LABELS[categoryId] ?? categoryId,
+      categoryLabel,
       totalWeightGrams: data.weight,
       itemCount: data.items.length,
       percentage: totalWeight > 0 ? (data.weight / totalWeight) * 100 : 0,
@@ -314,26 +320,70 @@ export function groupItemsByCategory(
 
 /**
  * Get sorted category entries for rendering
- * Returns array of [categoryId, items] sorted by category weight
+ * Returns array of [categoryId, items] sorted based on the provided sort option.
+ * Items within each category are also sorted according to the sort option.
  * Cascading Category Refactor: Requires categories parameter
  */
 export function getSortedCategoryGroups(
   items: GearItem[],
-  categories: Category[]
+  categories: Category[],
+  sortBy: SortOption = 'category',
+  locale: string = 'en'
 ): Array<[string, GearItem[]]> {
   const groups = groupItemsByCategory(items, categories);
 
+  // Sort items within each category based on sort option
+  for (const [, categoryItems] of groups) {
+    categoryItems.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'weight-asc':
+          return (a.weightGrams ?? 0) - (b.weightGrams ?? 0);
+        case 'weight-desc':
+          return (b.weightGrams ?? 0) - (a.weightGrams ?? 0);
+        case 'category':
+        default:
+          // For category sort, sort by name within each category
+          return a.name.localeCompare(b.name);
+      }
+    });
+  }
+
   // Calculate total weight per category for sorting
-  const withWeight = Array.from(groups.entries()).map(([categoryId, categoryItems]) => ({
-    categoryId,
-    items: categoryItems,
-    weight: calculateTotalWeight(categoryItems),
-  }));
+  const withMeta = Array.from(groups.entries()).map(([categoryId, categoryItems]) => {
+    const category = categories.find(c => c.id === categoryId);
+    const categoryLabel = category ? getLocalizedLabel(category, locale) : 'zzz';
+    return {
+      categoryId,
+      items: categoryItems,
+      weight: calculateTotalWeight(categoryItems),
+      label: categoryLabel,
+    };
+  });
 
-  // Sort by weight descending
-  withWeight.sort((a, b) => b.weight - a.weight);
+  // Sort categories based on sort option
+  switch (sortBy) {
+    case 'name-asc':
+    case 'name-desc':
+    case 'category':
+      // For name/category sorts, sort categories alphabetically
+      withMeta.sort((a, b) => a.label.localeCompare(b.label));
+      break;
+    case 'weight-asc':
+      // Lightest categories first
+      withMeta.sort((a, b) => a.weight - b.weight);
+      break;
+    case 'weight-desc':
+    default:
+      // Heaviest categories first
+      withMeta.sort((a, b) => b.weight - a.weight);
+      break;
+  }
 
-  return withWeight.map(({ categoryId, items: categoryItems }) => [categoryId, categoryItems]);
+  return withMeta.map(({ categoryId, items: categoryItems }) => [categoryId, categoryItems]);
 }
 
 // =============================================================================

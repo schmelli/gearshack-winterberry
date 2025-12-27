@@ -264,6 +264,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               items={sortedFilteredLoadoutItems}
               onRemoveItem={removeItem}
               filterCategoryId={selectedCategoryId}
+              sortBy={sortBy}
               isWorn={isWorn}
               isConsumable={isConsumable}
               onToggleWorn={toggleWorn}
