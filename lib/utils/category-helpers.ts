@@ -142,6 +142,32 @@ export function getCategoryPath(
 }
 
 /**
+ * Gets the full category slug path for a category.
+ * Returns stable, non-localized slugs from root to category.
+ *
+ * Feature: Issue #89 - Context-aware fields (slug-based matching)
+ *
+ * @param categoryId - The category ID
+ * @param categories - All categories
+ * @returns Array of slugs from root to category, e.g., ["shelter", "tents", "dome-tents"]
+ */
+export function getCategorySlugPath(
+  categoryId: string,
+  categories: Category[]
+): string[] {
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const path: string[] = [];
+
+  let current = categoryMap.get(categoryId);
+  while (current) {
+    path.unshift(current.slug);
+    current = current.parentId ? categoryMap.get(current.parentId) : undefined;
+  }
+
+  return path;
+}
+
+/**
  * Derives parent category IDs from a product type ID.
  * Used for filtering and backward compatibility.
  *

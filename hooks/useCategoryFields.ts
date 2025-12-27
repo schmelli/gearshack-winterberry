@@ -46,7 +46,7 @@ export interface CategoryFieldConfig {
 export function useCategoryFields(
   productTypeId: string | null
 ): CategoryFieldConfig {
-  const { breadcrumb, isLoading } = useCategoryBreadcrumb(productTypeId);
+  const { slugPath, isLoading } = useCategoryBreadcrumb(productTypeId);
 
   return useMemo(() => {
     // Default: show minimal fields
@@ -65,7 +65,7 @@ export function useCategoryFields(
     }
 
     // If no category selected, show all fields for backward compatibility
-    if (!productTypeId || breadcrumb.length === 0) {
+    if (!productTypeId || slugPath.length === 0) {
       return {
         showSize: true,
         showColor: true,
@@ -76,13 +76,13 @@ export function useCategoryFields(
       };
     }
 
-    // Get root category (level 1) from breadcrumb
-    const rootCategory = breadcrumb[0]?.toLowerCase() || '';
+    // Get root category (level 1) slug from path
+    // Slugs are stable, non-localized identifiers (e.g., 'clothing', 'packs', 'shelter')
+    const rootSlug = slugPath[0] || '';
 
-    // Map category to relevant fields
-    switch (rootCategory) {
+    // Map category slug to relevant fields
+    switch (rootSlug) {
       case 'clothing':
-      case 'bekleidung': // German
         return {
           ...defaultConfig,
           showSize: true,
@@ -91,7 +91,6 @@ export function useCategoryFields(
         };
 
       case 'packs':
-      case 'rucksäcke': // German
         return {
           ...defaultConfig,
           showVolume: true,
@@ -101,7 +100,6 @@ export function useCategoryFields(
         };
 
       case 'shelter':
-      case 'unterkunft': // German
         return {
           ...defaultConfig,
           showTentConstruction: true,
@@ -111,7 +109,6 @@ export function useCategoryFields(
         };
 
       case 'sleeping':
-      case 'schlafsysteme': // German
         return {
           ...defaultConfig,
           showColor: true,
@@ -120,7 +117,6 @@ export function useCategoryFields(
         };
 
       case 'cooking':
-      case 'kochen': // German
         return {
           ...defaultConfig,
           showVolume: true,
@@ -129,15 +125,13 @@ export function useCategoryFields(
         };
 
       case 'hydration':
-      case 'trinken': // German
         return {
           ...defaultConfig,
           showVolume: true,
           showMaterials: true,
         };
 
-      case 'packrafts & kayaks':
-      case 'packrafts & kajaks': // German
+      case 'packrafts-kayaks':
         return {
           ...defaultConfig,
           showColor: true,
@@ -153,5 +147,5 @@ export function useCategoryFields(
           showDimensions: true,
         };
     }
-  }, [productTypeId, breadcrumb, isLoading]);
+  }, [productTypeId, slugPath, isLoading]);
 }
