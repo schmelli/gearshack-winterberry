@@ -14,6 +14,7 @@
 'use client';
 
 import { useFormContext, useWatch } from 'react-hook-form';
+import { Search, Loader2 } from 'lucide-react';
 import {
   FormField,
   FormItem,
@@ -23,6 +24,7 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -31,7 +33,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ProgressiveCategorySelect } from '@/components/gear-editor/ProgressiveCategorySelect';
+import { useWeightSearch } from '@/hooks/useWeightSearch';
 import type { GearItemFormData, WeightUnit } from '@/types/gear';
 import { WEIGHT_UNIT_LABELS } from '@/types/gear';
 
@@ -43,7 +52,30 @@ export function CategorySpecsSection() {
   const form = useFormContext<GearItemFormData>();
   const productTypeId = useWatch({ control: form.control, name: 'productTypeId' });
 
+  // Watch brand and name for weight search query
+  const brandValue = useWatch({ control: form.control, name: 'brand' });
+  const nameValue = useWatch({ control: form.control, name: 'name' });
+
+  // Weight search hook
+  const weightSearch = useWeightSearch();
+
   const weightUnits: WeightUnit[] = ['g', 'oz', 'lb'];
+
+  // Build search query from brand + name
+  const searchQuery = [brandValue, nameValue].filter(Boolean).join(' ').trim();
+  const canSearchWeight = searchQuery.length >= 3;
+
+  // Handle weight search
+  const handleWeightSearch = async () => {
+    if (!canSearchWeight) return;
+
+    const result = await weightSearch.search(searchQuery);
+    if (result) {
+      // Populate form with found weight (always in grams)
+      form.setValue('weightValue', String(result.weightGrams), { shouldDirty: true });
+      form.setValue('weightDisplayUnit', 'g', { shouldDirty: true });
+    }
+  };
 
   // For now, show all fields - will add conditional logic based on category in future iteration
   // TODO: Add useCategoryInfo hook to get category/subcategory from productTypeId
@@ -83,22 +115,50 @@ export function CategorySpecsSection() {
 
         {/* Weight with Unit */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Weight Value */}
+          {/* Weight Value with Search Button */}
           <FormField
             control={form.control}
             name="weightValue"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Weight</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    {...field}
-                  />
-                </FormControl>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      className="flex-1"
+                      {...field}
+                    />
+                  </FormControl>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handleWeightSearch}
+                          disabled={!canSearchWeight || weightSearch.status === 'searching'}
+                          className="shrink-0"
+                        >
+                          {weightSearch.status === 'searching' ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {canSearchWeight
+                          ? `Search weight for "${searchQuery}"`
+                          : 'Enter brand/name to search weight'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
