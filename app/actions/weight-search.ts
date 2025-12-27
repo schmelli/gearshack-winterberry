@@ -4,9 +4,20 @@
  * Feature: XXX-weight-lookup
  * Searches the web for product weight specifications using Serper.dev API.
  * Parses weight values from search results and returns the most common weight in grams.
+ *
+ * Tier Differentiation:
+ * - Free tier: 10 searches per day
+ * - Trailblazer: Unlimited searches
  */
 
 'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import {
+  checkWeightSearchLimit,
+  recordWeightSearchUsage,
+  DAILY_LIMIT_FREE,
+} from '@/lib/rate-limits/weight-search';
 
 // =============================================================================
 // Types
@@ -42,6 +53,28 @@ interface ParsedWeight {
   grams: number;
   originalValue: number;
   originalUnit: 'g' | 'kg' | 'oz' | 'lb';
+}
+
+/** Rate limit information returned with search results */
+export interface RateLimitInfo {
+  /** Number of searches remaining today */
+  remaining: number;
+  /** Total daily limit */
+  limit: number;
+  /** When the limit resets (ISO string) */
+  resetAt: string;
+  /** Whether user has unlimited searches */
+  isUnlimited: boolean;
+}
+
+/** Response from rate-limited weight search */
+export interface WeightSearchResponse {
+  /** The search result (null if not found or rate limited) */
+  result: WeightSearchResult | null;
+  /** Rate limit status */
+  rateLimit: RateLimitInfo;
+  /** Error message if rate limited */
+  rateLimitError?: string;
 }
 
 // =============================================================================
@@ -278,5 +311,70 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
     console.error('[Weight Search] Request failed:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Weight search failed: ${errorMessage}`);
+  }
+}
+
+// =============================================================================
+// Rate-Limited Server Action (for UI use)
+// =============================================================================
+
+/**
+ * Search for product weight with rate limiting
+ *
+ * This is the main entry point for UI-triggered weight searches.
+ * It enforces rate limits for free tier users and tracks usage.
+ *
+ * @param query - Product name/brand to search for
+ * @returns Search result with rate limit information
+ */
+export async function searchProductWeightWithRateLimit(
+  query: string
+): Promise<WeightSearchResponse> {
+  // Get current user
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('You must be logged in to search for product weights.');
+  }
+
+  // Check rate limit
+  const rateLimitStatus = await checkWeightSearchLimit(user.id);
+
+  // Build rate limit info for response
+  const rateLimit: RateLimitInfo = {
+    remaining: rateLimitStatus.isUnlimited ? Infinity : rateLimitStatus.remaining,
+    limit: rateLimitStatus.isUnlimited ? Infinity : DAILY_LIMIT_FREE,
+    resetAt: rateLimitStatus.resetAt.toISOString(),
+    isUnlimited: rateLimitStatus.isUnlimited,
+  };
+
+  // If rate limited, return early with error
+  if (!rateLimitStatus.allowed) {
+    return {
+      result: null,
+      rateLimit,
+      rateLimitError: 'Daily search limit reached. Upgrade to Trailblazer for unlimited searches.',
+    };
+  }
+
+  try {
+    // Perform the search
+    const result = await searchProductWeight(query);
+
+    // Record usage (only for successful searches, even if no result found)
+    if (!rateLimitStatus.isUnlimited) {
+      await recordWeightSearchUsage(user.id);
+      // Decrement remaining count
+      rateLimit.remaining = Math.max(0, rateLimit.remaining - 1);
+    }
+
+    return {
+      result,
+      rateLimit,
+    };
+  } catch (error) {
+    // Re-throw with rate limit info
+    throw error;
   }
 }

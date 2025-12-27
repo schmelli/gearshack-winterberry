@@ -6,6 +6,10 @@
  *
  * Manages state and logic for product weight search functionality.
  * Searches the web for product specifications and returns the most common weight.
+ *
+ * Tier Differentiation:
+ * - Free tier: 10 searches per day (displays remaining count)
+ * - Trailblazer: Unlimited searches
  */
 
 'use client';
@@ -14,8 +18,9 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import {
-  searchProductWeight,
+  searchProductWeightWithRateLimit,
   type WeightSearchResult,
+  type RateLimitInfo,
 } from '@/app/actions/weight-search';
 
 // =============================================================================
@@ -35,6 +40,10 @@ export interface UseWeightSearchReturn {
   search: (query: string) => Promise<WeightSearchResult | null>;
   /** Clear results and reset state */
   clear: () => void;
+  /** Rate limit information (null if not yet fetched) */
+  rateLimit: RateLimitInfo | null;
+  /** Whether user has hit rate limit */
+  isRateLimited: boolean;
 }
 
 // =============================================================================
@@ -64,6 +73,7 @@ export function useWeightSearch(): UseWeightSearchReturn {
   const [status, setStatus] = useState<WeightSearchStatus>('idle');
   const [result, setResult] = useState<WeightSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
 
   /**
    * Execute weight search for a product
@@ -81,25 +91,47 @@ export function useWeightSearch(): UseWeightSearchReturn {
     setResult(null);
 
     try {
-      const searchResult = await searchProductWeight(trimmedQuery);
+      const response = await searchProductWeightWithRateLimit(trimmedQuery);
 
-      if (searchResult) {
-        setResult(searchResult);
+      // Update rate limit info
+      setRateLimit(response.rateLimit);
+
+      // Check if rate limited
+      if (response.rateLimitError) {
+        setStatus('error');
+        setError(response.rateLimitError);
+        toast.error(response.rateLimitError);
+        return null;
+      }
+
+      if (response.result) {
+        setResult(response.result);
         setStatus('success');
 
+        // Build remaining searches message for free tier
+        const remainingMsg = !response.rateLimit.isUnlimited
+          ? ` (${response.rateLimit.remaining} searches left today)`
+          : '';
+
         // Show confidence-based feedback
-        if (searchResult.confidence === 'high') {
-          toast.success(`Found weight: ${searchResult.weightGrams}g (${searchResult.sourceCount} sources)`);
-        } else if (searchResult.confidence === 'medium') {
-          toast.success(`Found weight: ${searchResult.weightGrams}g (moderate confidence)`);
+        if (response.result.confidence === 'high') {
+          toast.success(`Found weight: ${response.result.weightGrams}g (${response.result.sourceCount} sources)${remainingMsg}`);
+        } else if (response.result.confidence === 'medium') {
+          toast.success(`Found weight: ${response.result.weightGrams}g (moderate confidence)${remainingMsg}`);
         } else {
-          toast.info(`Found weight: ${searchResult.weightGrams}g (low confidence - verify manually)`);
+          toast.info(`Found weight: ${response.result.weightGrams}g (low confidence - verify manually)${remainingMsg}`);
         }
 
-        return searchResult;
+        return response.result;
       } else {
         setStatus('idle');
-        toast.info(`No weight found for "${trimmedQuery}". Try a more specific search.`);
+
+        // Build remaining searches message for free tier
+        const remainingMsg = !response.rateLimit.isUnlimited
+          ? ` (${response.rateLimit.remaining} searches left today)`
+          : '';
+
+        toast.info(`No weight found for "${trimmedQuery}". Try a more specific search.${remainingMsg}`);
         return null;
       }
     } catch (err) {
@@ -121,11 +153,16 @@ export function useWeightSearch(): UseWeightSearchReturn {
     setError(null);
   }, []);
 
+  // Compute if user is rate limited
+  const isRateLimited = rateLimit !== null && !rateLimit.isUnlimited && rateLimit.remaining <= 0;
+
   return {
     status,
     result,
     error,
     search,
     clear,
+    rateLimit,
+    isRateLimited,
   };
 }

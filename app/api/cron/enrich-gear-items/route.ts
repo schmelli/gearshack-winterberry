@@ -6,12 +6,17 @@
  *
  * Checks all user gear items for missing data and creates enrichment suggestions
  * from the GearGraph catalog. Never overwrites existing user data.
+ *
+ * Tier Differentiation (added 2025-12-27):
+ * - Trailblazer users: Get web search for weight when catalog has no match
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createModuleLogger } from '@/lib/utils/logger';
 import { fuzzyProductSearch, fuzzyBrandSearch } from '@/lib/supabase/catalog';
+import { searchProductWeight } from '@/app/actions/weight-search';
+import { ENRICHMENT_CONFIG } from '@/lib/constants/enrichment';
 
 const log = createModuleLogger('cron:enrich-gear-items');
 
@@ -71,8 +76,29 @@ export async function GET(request: NextRequest) {
 
     log.info('Processing gear items for enrichment', { count: gearItems.length });
 
+    // Batch fetch subscription tiers for all users with pending items
+    const userIds = [...new Set(gearItems.map((item) => item.user_id))];
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, subscription_tier')
+      .in('id', userIds);
+
+    if (profilesError) {
+      log.warn('Failed to fetch subscription tiers, proceeding without web search', {}, profilesError);
+    }
+
+    const trailblazerUsers = new Set(
+      profiles?.filter((p) => p.subscription_tier === 'trailblazer').map((p) => p.id) || []
+    );
+
+    log.info('Subscription tiers fetched', {
+      totalUsers: userIds.length,
+      trailblazerCount: trailblazerUsers.size,
+    });
+
     let suggestionsCreated = 0;
     let notificationsCreated = 0;
+    let webSearchesPerformed = 0;
 
     // Process each gear item
     for (const item of gearItems as GearItem[]) {
@@ -123,6 +149,42 @@ export async function GET(request: NextRequest) {
           hasEnrichment = true;
         }
 
+        // For Trailblazer users: Try web search for weight if catalog has none
+        const isTrailblazer = trailblazerUsers.has(item.user_id);
+        if (
+          !enrichmentData.suggested_weight_grams &&
+          !item.weight_grams &&
+          isTrailblazer &&
+          webSearchesPerformed < ENRICHMENT_CONFIG.maxWebSearchesPerRun
+        ) {
+          try {
+            // Build search query from brand + name
+            const searchQuery = [item.brand, item.name].filter(Boolean).join(' ').trim();
+            if (searchQuery.length >= 3) {
+              // Add delay between web searches to avoid rate limiting
+              if (webSearchesPerformed > 0) {
+                await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_CONFIG.webSearchDelayMs));
+              }
+
+              const webWeight = await searchProductWeight(searchQuery);
+              webSearchesPerformed++;
+
+              if (webWeight) {
+                enrichmentData.suggested_weight_grams = webWeight.weightGrams;
+                hasEnrichment = true;
+                log.info('Found weight via web search', {
+                  gear_item_id: item.id,
+                  query: searchQuery,
+                  weightGrams: webWeight.weightGrams,
+                  confidence: webWeight.confidence,
+                });
+              }
+            }
+          } catch (webSearchError) {
+            log.warn('Web search failed, continuing', { gear_item_id: item.id }, webSearchError as Error);
+          }
+        }
+
         // Only create suggestion if there's data to enrich
         if (!hasEnrichment) {
           continue;
@@ -150,7 +212,11 @@ export async function GET(request: NextRequest) {
 
         // Create notification for user
         const enrichmentFields = [];
-        if (enrichmentData.suggested_weight_grams) enrichmentFields.push('weight');
+        // Track if weight came from web search for notification message
+        const weightFromWebSearch = enrichmentData.suggested_weight_grams && !bestMatch.weight_grams;
+        if (enrichmentData.suggested_weight_grams) {
+          enrichmentFields.push(weightFromWebSearch ? `weight (${enrichmentData.suggested_weight_grams}g from web)` : 'weight');
+        }
         if (enrichmentData.suggested_description) enrichmentFields.push('description');
         if (enrichmentData.suggested_price_usd) enrichmentFields.push('price');
 
@@ -186,6 +252,7 @@ export async function GET(request: NextRequest) {
       processed: gearItems.length,
       suggestions_created: suggestionsCreated,
       notifications_created: notificationsCreated,
+      web_searches_performed: webSearchesPerformed,
     });
 
     return NextResponse.json({
@@ -193,6 +260,7 @@ export async function GET(request: NextRequest) {
       processed: gearItems.length,
       suggestions_created: suggestionsCreated,
       notifications_created: notificationsCreated,
+      web_searches_performed: webSearchesPerformed,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

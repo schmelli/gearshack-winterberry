@@ -63,7 +63,21 @@ export function CategorySpecsSection() {
 
   // Build search query from brand + name
   const searchQuery = [brandValue, nameValue].filter(Boolean).join(' ').trim();
-  const canSearchWeight = searchQuery.length >= 3;
+  const canSearchWeight = searchQuery.length >= 3 && !weightSearch.isRateLimited;
+
+  // Build tooltip message based on rate limit status
+  const getWeightSearchTooltip = (): string => {
+    if (weightSearch.isRateLimited) {
+      return 'Daily limit reached. Upgrade to Trailblazer for unlimited searches.';
+    }
+    if (!searchQuery || searchQuery.length < 3) {
+      return 'Enter brand/name to search weight';
+    }
+    if (weightSearch.rateLimit && !weightSearch.rateLimit.isUnlimited) {
+      return `Search weight for "${searchQuery}" (${weightSearch.rateLimit.remaining} of ${weightSearch.rateLimit.limit} left today)`;
+    }
+    return `Search weight for "${searchQuery}"`;
+  };
 
   // Handle weight search
   const handleWeightSearch = async () => {
@@ -152,9 +166,7 @@ export function CategorySpecsSection() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {canSearchWeight
-                          ? `Search weight for "${searchQuery}"`
-                          : 'Enter brand/name to search weight'}
+                        {getWeightSearchTooltip()}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
