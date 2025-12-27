@@ -81,11 +81,13 @@ export async function GET(request: NextRequest) {
     if (rpcError || !rpcData || rpcData.length === 0) {
       // Fallback to ILIKE search if RPC function not available
       const normalizedQuery = q.toLowerCase().trim();
+      // Escape SQL wildcards to prevent unintended pattern matching
+      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
       // Use ILIKE on 'name' column directly (case-insensitive) as most reliable fallback
       const { data: fallbackData, error: fallbackError } = await publicSupabase
         .from('catalog_brands')
         .select('id, name, logo_url, website_url')
-        .ilike('name', `%${normalizedQuery}%`)
+        .ilike('name', `%${escapedQuery}%`)
         .limit(limit);
 
       if (fallbackError) {
@@ -133,20 +135,25 @@ export async function GET(request: NextRequest) {
     let inventoryResults: BrandSearchResult[] = [];
     if (user) {
       const normalizedQuery = q.toLowerCase().trim();
+      // Escape SQL wildcards to prevent unintended pattern matching
+      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
 
-      // Get distinct brand names from user's gear items
+      // Query for distinct brand names using database function for optimal performance
+      // This pushes deduplication to PostgreSQL using DISTINCT
       const { data: userBrands, error: userBrandsError } = await supabase
-        .from('gear_items')
-        .select('brand')
-        .eq('user_id', user.id)
-        .not('brand', 'is', null)
-        .ilike('brand', `%${normalizedQuery}%`);
+        .rpc('get_distinct_user_brands', {
+          p_user_id: user.id,
+          p_search_pattern: `%${escapedQuery}%`
+        }) as { data: { brand: string }[] | null; error: { message: string } | null };
 
-      if (!userBrandsError && userBrands) {
-        // Extract unique brand names
-        const uniqueBrands = Array.from(
-          new Set(userBrands.map(item => item.brand).filter((b): b is string => b !== null))
-        );
+      if (userBrandsError) {
+        console.error('User brands search error:', userBrandsError);
+        // Continue with empty inventoryResults - this is not a fatal error
+      } else if (userBrands) {
+        // Brand names are already distinct from the database function
+        const uniqueBrands = userBrands
+          .map(item => item.brand)
+          .filter((b): b is string => b !== null);
 
         // Calculate similarity scores for user brands
         inventoryResults = uniqueBrands.map((brandName) => {
