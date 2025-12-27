@@ -14,6 +14,11 @@
  * Feature: 038-cloudinary-hybrid-upload
  * Tasks: T015 - Integrated ImageUploadZone for primary image
  *
+ * Issue #93: Gallery images search function
+ * - Added search button to gallery image inputs
+ * - Opens ProductSearchModal for image search, same as primary image
+ * - Search query built from brand + product name
+ *
  * Functional Fixes Sprint:
  * - Added image upload UI with local file selection
  * - Dual approach: Paste URL or Upload Image
@@ -22,7 +27,7 @@
  *
  * Displays form fields for media management:
  * - Primary image URL with preview (URL or file upload)
- * - Gallery image URLs (multiple) with previews
+ * - Gallery image URLs (multiple) with previews and search
  * - Auto-remove background toggle (default: ON)
  */
 
@@ -30,7 +35,7 @@
 
 import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Search } from 'lucide-react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   FormField,
@@ -44,6 +49,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
 import { ImageUploadZone } from '@/components/gear-editor/ImageUploadZone';
+import { ProductSearchModal } from '@/components/gear-editor/ProductSearchModal';
 import type { GearItemFormData } from '@/types/gear';
 import type { GearItem } from '@/types/gear';
 
@@ -85,9 +91,28 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
     name: 'galleryImageUrls' as never,
   });
 
+  // State for gallery image search modal
+  const [gallerySearchIndex, setGallerySearchIndex] = useState<number | null>(null);
+  const [isGallerySearchOpen, setIsGallerySearchOpen] = useState(false);
+
   const handleAddGalleryImage = useCallback(() => {
     append('' as never);
   }, [append]);
+
+  // Open search modal for a specific gallery image
+  const handleOpenGallerySearch = useCallback((index: number) => {
+    setGallerySearchIndex(index);
+    setIsGallerySearchOpen(true);
+  }, [setGallerySearchIndex, setIsGallerySearchOpen]);
+
+  // Handle image selected from gallery search modal
+  const handleGallerySearchImageSelected = useCallback((cloudinaryUrl: string) => {
+    if (gallerySearchIndex !== null) {
+      form.setValue(`galleryImageUrls.${gallerySearchIndex}`, cloudinaryUrl);
+    }
+    setIsGallerySearchOpen(false);
+    setGallerySearchIndex(null);
+  }, [gallerySearchIndex, form, setIsGallerySearchOpen, setGallerySearchIndex]);
 
   return (
     <div className="space-y-6">
@@ -158,7 +183,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                         alt={`Gallery image ${index + 1} preview`}
                         size="sm"
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 flex gap-2">
                         <FormControl>
                           <Input
                             type="url"
@@ -166,7 +191,17 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                             {...inputField}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleOpenGallerySearch(index)}
+                          disabled={!brand && !productName}
+                          title={brand || productName ? `Search for "${[brand, productName].filter(Boolean).join(' ')}"` : 'Enter brand/product name first'}
+                          aria-label="Search for product images"
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
                       </div>
                       <Button
                         type="button"
@@ -179,6 +214,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -186,6 +222,16 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
           </div>
         )}
       </div>
+
+      {/* Gallery Image Search Modal */}
+      <ProductSearchModal
+        open={isGallerySearchOpen}
+        onOpenChange={setIsGallerySearchOpen}
+        onImageSelected={handleGallerySearchImageSelected}
+        initialQuery={[brand, productName].filter(Boolean).join(' ').trim()}
+        userId={userId}
+        itemId={itemId}
+      />
     </div>
   );
 }
