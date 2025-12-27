@@ -47,6 +47,7 @@ import { CategorySpecsSection } from '@/components/gear-editor/sections/Category
 import { PurchaseSection } from '@/components/gear-editor/sections/PurchaseSection';
 import { MediaSection } from '@/components/gear-editor/sections/MediaSection';
 import { StatusSection } from '@/components/gear-editor/sections/StatusSection';
+import { DuplicateWarningDialog } from '@/components/gear-editor/DuplicateWarningDialog';
 import { useItems } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -74,14 +75,23 @@ export function GearEditorForm({
 }: GearEditorFormProps) {
   const t = useTranslations('GearEditor');
 
-  const { form, isEditing, isDirty, isSubmitting, isDeleting, handleSubmit, handleCancel, handleDelete } =
-    useGearEditor({
-      initialItem,
-      onSaveSuccess,
-      onSaveError,
-      redirectPath,
-      mode,
-    });
+  const {
+    form,
+    isEditing,
+    isDirty,
+    isSubmitting,
+    isDeleting,
+    handleSubmit,
+    handleCancel,
+    handleDelete,
+    duplicateDetection,
+  } = useGearEditor({
+    initialItem,
+    onSaveSuccess,
+    onSaveError,
+    redirectPath,
+    mode,
+  });
 
   // Get all items for dependency picker (Feature: 037-gear-dependencies)
   const allItems = useItems();
@@ -211,6 +221,17 @@ export function GearEditorForm({
           </CardFooter>
         </form>
       </Form>
+
+      {/* Duplicate Warning Dialog */}
+      <DuplicateWarningDialog
+        isOpen={duplicateDetection.isOpen}
+        bestMatch={duplicateDetection.bestMatch}
+        newItem={duplicateDetection.isOpen ? form.getValues() : null}
+        isIncreasingQuantity={duplicateDetection.isIncreasingQuantity}
+        onConfirmSave={duplicateDetection.onConfirmSave}
+        onCancel={duplicateDetection.onCancel}
+        onIncreaseQuantity={duplicateDetection.onIncreaseQuantity}
+      />
     </Card>
   );
 }

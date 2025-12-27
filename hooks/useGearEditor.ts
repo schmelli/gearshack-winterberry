@@ -29,6 +29,10 @@ import { useStore } from '@/hooks/useSupabaseStore';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { useWishlist } from '@/hooks/useWishlist';
+import {
+  useDuplicateDetection,
+  type UseDuplicateDetectionReturn,
+} from '@/hooks/useDuplicateDetection';
 
 // =============================================================================
 // Image Import Helpers
@@ -84,6 +88,16 @@ export interface UseGearEditorReturn {
   resetForm: () => void;
   /** Handle delete action (only available when editing) */
   handleDelete: () => Promise<void>;
+  /** Duplicate detection state and callbacks for DuplicateWarningDialog */
+  duplicateDetection: Pick<
+    UseDuplicateDetectionReturn,
+    | 'isOpen'
+    | 'bestMatch'
+    | 'isIncreasingQuantity'
+    | 'onConfirmSave'
+    | 'onCancel'
+    | 'onIncreaseQuantity'
+  >;
 }
 
 // =============================================================================
@@ -114,6 +128,9 @@ export function useGearEditor(
 
   // Wishlist actions (Feature 049)
   const { addToWishlist } = useWishlist();
+
+  // Duplicate detection (Feature XXX-duplicate-detection)
+  const duplicateDetection = useDuplicateDetection({ redirectPath });
 
   // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
@@ -284,7 +301,7 @@ export function useGearEditor(
     [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist]
   );
 
-  // Wrapped submit handler with validation
+  // Wrapped submit handler with validation and duplicate detection
   const handleSubmit = useCallback(
     async (e?: React.BaseSyntheticEvent) => {
       e?.preventDefault();
@@ -297,11 +314,34 @@ export function useGearEditor(
         return;
       }
 
-      // Proceed with submission if validation passes
+      // Get form data for duplicate check
+      const formData = form.getValues();
+
+      // Check for duplicates (skip when editing existing item)
+      const hasDuplicates = duplicateDetection.checkForDuplicates(
+        formData,
+        initialItem?.id // Exclude current item when editing
+      );
+
+      if (hasDuplicates) {
+        // Dialog will open, wait for user decision
+        return;
+      }
+
+      // No duplicates, proceed with submission
       await rhfHandleSubmit(onSubmit)(e);
     },
-    [form, rhfHandleSubmit, onSubmit]
+    [form, rhfHandleSubmit, onSubmit, duplicateDetection, initialItem?.id]
   );
+
+  // Handle confirmed save after user dismisses duplicate warning
+  useEffect(() => {
+    if (duplicateDetection.shouldProceedWithSave) {
+      duplicateDetection.resetProceedFlag();
+      // Proceed with the actual save
+      rhfHandleSubmit(onSubmit)();
+    }
+  }, [duplicateDetection, rhfHandleSubmit, onSubmit]);
 
   // Cancel handler with dirty check
   const handleCancel = useCallback(() => {
@@ -360,5 +400,13 @@ export function useGearEditor(
     handleCancel,
     resetForm,
     handleDelete,
+    duplicateDetection: {
+      isOpen: duplicateDetection.isOpen,
+      bestMatch: duplicateDetection.bestMatch,
+      isIncreasingQuantity: duplicateDetection.isIncreasingQuantity,
+      onConfirmSave: duplicateDetection.onConfirmSave,
+      onCancel: duplicateDetection.onCancel,
+      onIncreaseQuantity: duplicateDetection.onIncreaseQuantity,
+    },
   };
 }

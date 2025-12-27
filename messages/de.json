@@ -266,7 +266,19 @@
     "saveItem": "Speichern",
     "discardChanges": "Änderungen verwerfen",
     "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
-    "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?"
+    "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?",
+    "duplicateWarning": {
+      "title": "Ähnlicher Gegenstand gefunden",
+      "description": "Das sieht aus wie etwas, das du bereits in deinem Inventar hast.",
+      "newItem": "Dein neuer Gegenstand",
+      "existingItem": "Vorhandener Gegenstand",
+      "matchScore": "{score}% Übereinstimmung",
+      "actions": {
+        "cancel": "Abbrechen",
+        "increaseQuantity": "+1 zum Vorhandenen",
+        "saveAsNew": "Als neu speichern"
+      }
+    }
   },
   "LoadoutCreation": {
     "title": "Neue Packliste erstellen",
