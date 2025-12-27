@@ -2105,6 +2105,26 @@ export type Database = {
         }
         Returns: Json
       }
+      check_and_increment_daily_rate_limit: {
+        Args: {
+          p_user_id: string
+          p_operation_type: string
+          p_limit: number
+        }
+        Returns: Json
+      }
+      get_daily_rate_limit_status: {
+        Args: {
+          p_user_id: string
+          p_operation_type: string
+          p_limit: number
+        }
+        Returns: Json
+      }
+      cleanup_daily_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       check_rate_limit: {
         Args: { p_limit: number; p_operation_type: string; p_user_id: string }
         Returns: boolean

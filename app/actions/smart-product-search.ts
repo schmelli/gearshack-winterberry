@@ -49,6 +49,84 @@ interface SerperSearchResponse {
 }
 
 // =============================================================================
+// Configuration
+// =============================================================================
+
+/** Maximum response size for extraction (5MB) */
+const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+
+/** Timeout for page fetch in ms */
+const FETCH_TIMEOUT_MS = 10000;
+
+/** Blocked hosts for SSRF protection */
+const BLOCKED_HOSTS = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+  '[::1]',
+];
+
+/** Blocked IP ranges (private networks, loopback, link-local) */
+const BLOCKED_IP_PATTERNS = [
+  /^10\./,                     // 10.0.0.0/8
+  /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12
+  /^192\.168\./,               // 192.168.0.0/16
+  /^127\./,                    // 127.0.0.0/8
+  /^169\.254\./,               // Link-local
+  /^fc00:/i,                   // IPv6 unique local
+  /^fe80:/i,                   // IPv6 link-local
+];
+
+// =============================================================================
+// URL Validation (SSRF Protection)
+// =============================================================================
+
+/**
+ * Validates a URL for safe fetching.
+ * Blocks internal IPs, private networks, and non-HTTP(S) schemes.
+ * @returns Error message if invalid, null if safe
+ */
+function validateExtractionUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow HTTPS (and HTTP for development)
+    if (!['https:', 'http:'].includes(parsed.protocol)) {
+      return 'Only HTTP/HTTPS URLs are allowed';
+    }
+
+    // Block known internal hostnames
+    const hostname = parsed.hostname.toLowerCase();
+    if (BLOCKED_HOSTS.includes(hostname)) {
+      return 'Internal URLs are not allowed';
+    }
+
+    // Block private IP ranges
+    for (const pattern of BLOCKED_IP_PATTERNS) {
+      if (pattern.test(hostname)) {
+        return 'Private network URLs are not allowed';
+      }
+    }
+
+    // Block URLs with authentication credentials
+    if (parsed.username || parsed.password) {
+      return 'URLs with credentials are not allowed';
+    }
+
+    // Block non-standard ports (only 80, 443 allowed)
+    const port = parsed.port;
+    if (port && port !== '80' && port !== '443') {
+      return 'Non-standard ports are not allowed';
+    }
+
+    return null; // URL is safe
+  } catch {
+    return 'Invalid URL format';
+  }
+}
+
+// =============================================================================
 // Weight/Price Parsing (reused from weight-search)
 // =============================================================================
 
@@ -314,21 +392,38 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
     return { data: null, error: 'You must be logged in to extract product data.' };
   }
 
+  // SSRF Protection: Validate URL before fetching
+  const validationError = validateExtractionUrl(url);
+  if (validationError) {
+    return { data: null, error: validationError };
+  }
+
   try {
-    // Fetch the page
+    // Fetch the page with timeout
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; GearShackBot/1.0)',
         'Accept': 'text/html,application/xhtml+xml',
       },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
       return { data: null, error: `Failed to fetch page: ${response.status}` };
     }
 
+    // Check content length to prevent DoS via large files
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
+      return { data: null, error: 'Page too large to process' };
+    }
+
     const html = await response.text();
+
+    // Double-check size after reading (in case content-length was missing)
+    if (html.length > MAX_RESPONSE_SIZE) {
+      return { data: null, error: 'Page too large to process' };
+    }
 
     // Try schema.org extraction first
     const schemaData = extractSchemaOrgProduct(html);
@@ -342,6 +437,18 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
     return { data: patternData };
   } catch (error) {
     console.error('[SmartSearch] Extraction failed:', error);
+
+    // Specific handling for timeout errors
+    if (error instanceof Error) {
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        return { data: null, error: 'Request timed out. The page took too long to respond.' };
+      }
+      // Handle network errors
+      if (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND')) {
+        return { data: null, error: 'Could not connect to the website. Please check the URL.' };
+      }
+    }
+
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { data: null, error: `Extraction failed: ${message}` };
   }

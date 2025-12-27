@@ -10,6 +10,23 @@ import type { Database } from '@/types/database';
 import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Escapes special characters in LIKE/ILIKE patterns.
+ * Prevents user input containing %, _, or \ from being interpreted as wildcards.
+ * @param input - Raw user input
+ * @returns Escaped string safe for LIKE patterns
+ */
+function escapeLikePattern(input: string): string {
+  return input
+    .replace(/\\/g, '\\\\')  // Escape backslash first
+    .replace(/%/g, '\\%')    // Escape percent
+    .replace(/_/g, '\\_');   // Escape underscore
+}
+
+// ============================================================================
 // CLIENT SETUP
 // ============================================================================
 
@@ -51,11 +68,12 @@ export async function fuzzyBrandSearch(
   limit: number = 5
 ): Promise<BrandSearchResult[]> {
   const normalizedQuery = query.toLowerCase().trim();
+  const escapedQuery = escapeLikePattern(normalizedQuery);
 
   const { data, error } = await supabase
     .from('catalog_brands')
     .select('id, name, logo_url, website_url, name_normalized')
-    .ilike('name_normalized', `%${normalizedQuery}%`)
+    .ilike('name_normalized', `%${escapedQuery}%`)
     .limit(limit);
 
   if (error) throw error;
@@ -104,6 +122,7 @@ export async function fuzzyProductSearch(
 ): Promise<ProductSearchResult[]> {
   const { brandId, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
+  const escapedQuery = escapeLikePattern(normalizedQuery);
 
   // Build query with optional filters
   let queryBuilder = supabase
@@ -124,7 +143,7 @@ export async function fuzzyProductSearch(
       )
     `
     )
-    .ilike('name', `%${normalizedQuery}%`)
+    .ilike('name', `%${escapedQuery}%`)
     .limit(limit);
 
   if (brandId) {

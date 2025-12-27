@@ -66,14 +66,17 @@ export function SmartProductSearchModal({
 
   const smartSearch = useSmartProductSearch();
 
+  // Extract stable function reference to avoid dependency issues
+  const { search: performSearch } = smartSearch;
+
   // Auto-search when modal opens with initial query
   useEffect(() => {
     if (open && initialQuery && !hasAutoSearched.current) {
       hasAutoSearched.current = true;
       setSearchInput(initialQuery);
-      smartSearch.search(initialQuery);
+      performSearch(initialQuery);
     }
-  }, [open, initialQuery, smartSearch]);
+  }, [open, initialQuery, performSearch]);
 
   // Reset auto-search flag when modal closes
   useEffect(() => {
@@ -92,9 +95,9 @@ export function SmartProductSearchModal({
   // Handle search submit
   const handleSearch = useCallback(() => {
     if (searchInput.trim().length >= 2) {
-      smartSearch.search(searchInput.trim());
+      performSearch(searchInput.trim());
     }
-  }, [searchInput, smartSearch]);
+  }, [searchInput, performSearch]);
 
   // Handle key press
   const handleKeyDown = (e: React.KeyboardEvent) => {
