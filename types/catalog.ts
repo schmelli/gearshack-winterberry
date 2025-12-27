@@ -51,6 +51,7 @@ export type CatalogItem = CatalogProduct;
 
 /**
  * Brand search result with similarity score
+ * Issue #87: Added source field to distinguish catalog vs user inventory brands
  */
 export interface BrandSearchResult {
   id: string;
@@ -58,6 +59,7 @@ export interface BrandSearchResult {
   logoUrl: string | null;
   websiteUrl: string | null;
   similarity: number;
+  source: 'catalog' | 'inventory';
 }
 
 /**
@@ -165,6 +167,7 @@ export type SyncResponse = SyncSuccessResponse | SyncErrorResponse;
 
 /**
  * Brand suggestion for autocomplete
+ * Issue #87: Added source field to distinguish catalog vs user inventory brands
  */
 export interface BrandSuggestion {
   id: string;
@@ -172,6 +175,7 @@ export interface BrandSuggestion {
   logoUrl: string | null;
   websiteUrl: string | null;
   similarity: number;
+  source: 'catalog' | 'inventory';
 }
 
 /**

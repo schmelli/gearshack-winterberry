@@ -214,7 +214,7 @@ export function BrandAutocompleteInput({
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{suggestion.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {Math.round(suggestion.similarity * 100)}% match
+                    {suggestion.source === 'catalog' ? 'GearGraph' : 'Your Inventory'}
                   </span>
                 </div>
               </li>
