@@ -135,7 +135,7 @@ export function DuplicateWarningDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-600">
             <AlertTriangle className="h-5 w-5" />
@@ -177,12 +177,13 @@ export function DuplicateWarningDialog({
           ))}
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="ghost"
             onClick={onCancel}
             disabled={isIncreasingQuantity}
+            className="sm:mr-auto"
           >
             {t('actions.cancel')}
           </Button>
@@ -191,7 +192,7 @@ export function DuplicateWarningDialog({
             variant="secondary"
             onClick={onIncreaseQuantity}
             disabled={isIncreasingQuantity}
-            className="gap-1"
+            className="gap-1 whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
             {t('actions.increaseQuantity')}
@@ -200,7 +201,7 @@ export function DuplicateWarningDialog({
             type="button"
             onClick={onConfirmSave}
             disabled={isIncreasingQuantity}
-            className="gap-1"
+            className="gap-1 whitespace-nowrap"
           >
             <Save className="h-4 w-4" />
             {t('actions.saveAsNew')}
