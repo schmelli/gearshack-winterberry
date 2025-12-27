@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
               : 0.3;
 
           return {
-            id: `inventory-${brandName.toLowerCase().replace(/\s+/g, '-')}`,
+            id: `inventory-${user.id}-${brandName.toLowerCase().replace(/\s+/g, '-')}`,
             name: brandName,
             logoUrl: null,
             websiteUrl: null,
