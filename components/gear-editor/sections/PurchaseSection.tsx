@@ -1,7 +1,7 @@
 /**
  * PurchaseSection Component
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, Issue #89
  * Task: T017
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
@@ -9,6 +9,7 @@
  * - Price paid with currency
  * - Purchase date
  * - Retailer name and URL
+ * - Wrapped in Accordion for collapsibility (Issue #89)
  */
 
 'use client';
@@ -29,6 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import type { GearItemFormData } from '@/types/gear';
 
 // =============================================================================
@@ -53,11 +60,14 @@ export function PurchaseSection() {
   const form = useFormContext<GearItemFormData>();
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Purchase Details</h3>
-
-      {/* Price and Currency */}
-      <div className="grid grid-cols-2 gap-4">
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="purchase">
+        <AccordionTrigger className="text-lg font-medium">
+          Purchase Details
+        </AccordionTrigger>
+        <AccordionContent className="space-y-4 pt-2">
+          {/* Price and Currency */}
+          <div className="grid grid-cols-2 gap-4">
         {/* Price Paid */}
         <FormField
           control={form.control}
@@ -154,6 +164,8 @@ export function PurchaseSection() {
           </FormItem>
         )}
       />
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

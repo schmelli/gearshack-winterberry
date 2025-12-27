@@ -139,11 +139,9 @@ export function GearEditorForm({
               </TabsContent>
 
               <TabsContent value="details" className="mt-0">
-                <div className="space-y-8">
+                <div className="space-y-2">
                   <CategorySpecsSection />
-                  <div className="border-t pt-6">
-                    <PurchaseSection />
-                  </div>
+                  <PurchaseSection />
                 </div>
               </TabsContent>
 
