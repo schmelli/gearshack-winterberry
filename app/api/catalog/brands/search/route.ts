@@ -140,11 +140,15 @@ export async function GET(request: NextRequest) {
 
       // Query for distinct brand names using database function for optimal performance
       // This pushes deduplication to PostgreSQL using DISTINCT
-      const { data: userBrands, error: userBrandsError } = await supabase
-        .rpc('get_distinct_user_brands', {
+      // Use type assertion since get_distinct_user_brands is a custom function
+      // not in the generated Supabase types
+      const { data: userBrands, error: userBrandsError } = await (supabase.rpc as CallableFunction)(
+        'get_distinct_user_brands',
+        {
           p_user_id: user.id,
           p_search_pattern: `%${escapedQuery}%`
-        }) as { data: { brand: string }[] | null; error: { message: string } | null };
+        }
+      ) as { data: { brand: string }[] | null; error: { message: string } | null };
 
       if (userBrandsError) {
         console.error('User brands search error:', userBrandsError);
