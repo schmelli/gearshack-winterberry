@@ -77,6 +77,7 @@ export async function fuzzyBrandSearch(
       logoUrl: brand.logo_url,
       websiteUrl: brand.website_url,
       similarity: Math.round(similarity * 100) / 100,
+      source: 'catalog' as const,
     };
   }).sort((a, b) => b.similarity - a.similarity);
 }

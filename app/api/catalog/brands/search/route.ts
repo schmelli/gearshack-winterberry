@@ -2,12 +2,15 @@
  * GET /api/catalog/brands/search
  * Fuzzy search for brands by name using pg_trgm similarity
  * Feature: 042-catalog-sync-api (US1), 044-intelligence-integration (US2)
+ * Issue #87: Include user's custom brands from inventory
  *
  * Updated to use search_brands_fuzzy RPC function for typo-tolerant search.
+ * Now also searches user's gear_items.brand for custom brands.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createBrowserClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { brandSearchParamsSchema } from '@/lib/validations/catalog-schema';
 import type { Database } from '@/types/database';
 import type { BrandSearchResponse, BrandSearchResult } from '@/types/catalog';
@@ -42,7 +45,11 @@ export async function GET(request: NextRequest) {
 
     const { q, limit } = parseResult.data;
 
-    // Create Supabase client
+    // Create Supabase client for authenticated user
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Create public client for catalog search
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -53,15 +60,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+    const publicSupabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 
-    // Try fuzzy search using RPC function (if deployed)
+    // Search catalog brands using RPC function (if deployed)
     // Falls back to ILIKE if function doesn't exist
-    let results: BrandSearchResult[] = [];
+    let catalogResults: BrandSearchResult[] = [];
 
     // Use type assertion since search_brands_fuzzy is a custom function
     // not in the generated Supabase types
-    const { data: rpcData, error: rpcError } = await (supabase.rpc as CallableFunction)(
+    const { data: rpcData, error: rpcError } = await (publicSupabase.rpc as CallableFunction)(
       'search_brands_fuzzy',
       {
         search_query: q,
@@ -74,11 +81,13 @@ export async function GET(request: NextRequest) {
     if (rpcError || !rpcData || rpcData.length === 0) {
       // Fallback to ILIKE search if RPC function not available
       const normalizedQuery = q.toLowerCase().trim();
+      // Escape SQL wildcards to prevent unintended pattern matching
+      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
       // Use ILIKE on 'name' column directly (case-insensitive) as most reliable fallback
-      const { data: fallbackData, error: fallbackError } = await supabase
+      const { data: fallbackData, error: fallbackError } = await publicSupabase
         .from('catalog_brands')
         .select('id, name, logo_url, website_url')
-        .ilike('name', `%${normalizedQuery}%`)
+        .ilike('name', `%${escapedQuery}%`)
         .limit(limit);
 
       if (fallbackError) {
@@ -90,7 +99,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate simple similarity scores for fallback
-      results = (fallbackData || []).map((brand) => {
+      catalogResults = (fallbackData || []).map((brand) => {
         const normalized = brand.name.toLowerCase();
         const matchIndex = normalized.indexOf(normalizedQuery);
         const similarity = matchIndex === 0
@@ -105,25 +114,113 @@ export async function GET(request: NextRequest) {
           logoUrl: brand.logo_url,
           websiteUrl: brand.website_url,
           similarity: Math.round(similarity * 100) / 100,
+          source: 'catalog' as const,
         };
       });
 
-      results.sort((a, b) => b.similarity - a.similarity);
+      catalogResults.sort((a, b) => b.similarity - a.similarity);
     } else {
       // Use RPC results (already sorted by similarity)
-      results = ((rpcData as FuzzySearchResult[]) || []).map((brand) => ({
+      catalogResults = ((rpcData as FuzzySearchResult[]) || []).map((brand) => ({
         id: brand.id,
         name: brand.name,
         logoUrl: brand.logo_url,
         websiteUrl: brand.website_url,
         similarity: Math.round(brand.similarity * 100) / 100,
+        source: 'catalog' as const,
       }));
     }
 
+    // Issue #87: Search user's custom brands from gear_items if authenticated
+    let inventoryResults: BrandSearchResult[] = [];
+    if (user) {
+      const normalizedQuery = q.toLowerCase().trim();
+      // Escape SQL wildcards to prevent unintended pattern matching
+      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
+
+      // Query for distinct brand names using database function for optimal performance
+      // This pushes deduplication to PostgreSQL using DISTINCT
+      // Use type assertion since get_distinct_user_brands is a custom function
+      // not in the generated Supabase types
+      const { data: userBrands, error: userBrandsError } = await (supabase.rpc as CallableFunction)(
+        'get_distinct_user_brands',
+        {
+          p_user_id: user.id,
+          p_search_pattern: `%${escapedQuery}%`
+        }
+      ) as { data: { brand: string }[] | null; error: { message: string } | null };
+
+      if (userBrandsError) {
+        console.error('User brands search error:', userBrandsError);
+        // Continue with empty inventoryResults - this is not a fatal error
+      } else if (userBrands) {
+        // Brand names are already distinct from the database function
+        const uniqueBrands = userBrands
+          .map(item => item.brand)
+          .filter((b): b is string => b !== null);
+
+        // Calculate similarity scores for user brands
+        inventoryResults = uniqueBrands.map((brandName) => {
+          const normalized = brandName.toLowerCase();
+          const matchIndex = normalized.indexOf(normalizedQuery);
+          const similarity = matchIndex === 0
+            ? 0.9 + (0.1 * (normalizedQuery.length / normalized.length))
+            : matchIndex > 0
+              ? 0.5 + (0.3 * (normalizedQuery.length / normalized.length))
+              : 0.3;
+
+          return {
+            id: `inventory-${user.id}-${brandName.toLowerCase().replace(/\s+/g, '-')}`,
+            name: brandName,
+            logoUrl: null,
+            websiteUrl: null,
+            similarity: Math.round(similarity * 100) / 100,
+            source: 'inventory' as const,
+          };
+        });
+
+        inventoryResults.sort((a, b) => b.similarity - a.similarity);
+      }
+    }
+
+    // Merge results: deduplicate (prefer catalog version), then sort
+    const brandNameSet = new Set<string>();
+    const results: BrandSearchResult[] = [];
+
+    // Add catalog brands first (they have logos and URLs)
+    for (const catalogBrand of catalogResults) {
+      const normalizedName = catalogBrand.name.toLowerCase();
+      if (!brandNameSet.has(normalizedName)) {
+        brandNameSet.add(normalizedName);
+        results.push(catalogBrand);
+      }
+    }
+
+    // Add inventory brands that don't exist in catalog
+    for (const inventoryBrand of inventoryResults) {
+      const normalizedName = inventoryBrand.name.toLowerCase();
+      if (!brandNameSet.has(normalizedName)) {
+        brandNameSet.add(normalizedName);
+        results.push(inventoryBrand);
+      }
+    }
+
+    // Sort by similarity (exact matches first), then by source (catalog before inventory)
+    results.sort((a, b) => {
+      if (a.similarity !== b.similarity) {
+        return b.similarity - a.similarity;
+      }
+      // If similarity is equal, prefer catalog brands
+      return a.source === 'catalog' ? -1 : 1;
+    });
+
+    // Limit final results
+    const limitedResults = results.slice(0, limit);
+
     const response: BrandSearchResponse = {
-      results,
+      results: limitedResults,
       query: q,
-      count: results.length,
+      count: limitedResults.length,
     };
 
     return NextResponse.json(response);
