@@ -119,7 +119,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="flex items-center gap-2 md:hidden"
-          aria-label="Open menu"
+          aria-label={t('openMenu')}
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-lg">
             <Image
@@ -205,7 +205,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-              <span className="sr-only">Messages</span>
+              <span className="sr-only">{t('messages')}</span>
             </Button>
           )}
 

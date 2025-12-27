@@ -11,6 +11,7 @@
 
 import { Link } from '@/i18n/navigation';
 import { Calendar, Package, Scale } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeleteLoadoutDialog } from '@/components/loadouts/DeleteLoadoutDialog';
 import { useStore } from '@/hooks/useSupabaseStore';
@@ -39,6 +40,7 @@ interface LoadoutCardProps {
 // =============================================================================
 
 export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
+  const t = useTranslations('Loadouts');
   const deleteLoadout = useStore((state) => state.deleteLoadout);
 
   // FR-004: Guard against invalid loadout IDs (e.g., hex colors, malformed data)
@@ -87,7 +89,7 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Package className="h-4 w-4" />
                 <span>
-                  {loadoutItems.length} {loadoutItems.length === 1 ? 'item' : 'items'}
+                  {t('itemCount', { count: loadoutItems.length })}
                 </span>
               </div>
 

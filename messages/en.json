@@ -6,7 +6,21 @@
     "login": "Login",
     "signOut": "Sign out",
     "profile": "Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "openMenu": "Open menu",
+    "messages": "Messages"
+  },
+  "Footer": {
+    "logoAlt": "Gearshack Logo",
+    "tagline": "Gear management for the obsessed. Track your gear, build loadouts, and explore the great outdoors with confidence.",
+    "features": "Features",
+    "tripPlanning": "Trip Planning",
+    "resources": "Resources",
+    "helpCenter": "Help Center",
+    "blog": "Blog",
+    "connect": "Connect",
+    "followUs": "Follow us for updates and inspiration.",
+    "copyright": "© {year} Gearshack. Built with Vibe."
   },
   "Hero": {
     "title": "Master Your Loadout",
@@ -141,6 +155,7 @@
     "registerSubtitle": "Start organizing your outdoor gear today",
     "emailLabel": "Email",
     "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
     "displayNameLabel": "Display Name",
     "loginButton": "Log In",
     "registerButton": "Create Account",
@@ -149,15 +164,37 @@
     "hasAccount": "Already have an account?",
     "signUpLink": "Sign up",
     "signInLink": "Sign in",
+    "backToSignIn": "Back to Sign In",
     "orContinueWith": "Or continue with",
     "googleButton": "Continue with Google",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "emailPlaceholder": "you@example.com",
+    "createPasswordPlaceholder": "Create a password",
+    "enterPasswordPlaceholder": "Enter your password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "confirmation": {
+      "checkEmail": "Check your email",
+      "sentTo": "We've sent a confirmation link to {email}. Please click the link to verify your email and complete your registration."
+    },
+    "passwordReset": {
+      "title": "Forgot password?",
+      "description": "Enter your email and we'll send you reset instructions.",
+      "sendResetLink": "Send Reset Link",
+      "checkEmail": "Check your email",
+      "instructions": "If an account exists with that email, we've sent password reset instructions.",
+      "successTitle": "Password reset email sent",
+      "successDescription": "Check your inbox for instructions to reset your password.",
+      "successFallback": "If an account exists with this email, you will receive reset instructions."
+    },
     "errors": {
       "invalidEmail": "Please enter a valid email address",
       "invalidPassword": "Password must be at least 8 characters",
       "loginFailed": "Login failed. Please check your credentials.",
       "registerFailed": "Registration failed. Please try again.",
       "emailInUse": "This email is already registered",
-      "weakPassword": "Password is too weak"
+      "weakPassword": "Password is too weak",
+      "signInFailed": "Sign in failed"
     }
   },
   "Inventory": {
@@ -264,9 +301,18 @@
       "priceInvalid": "Please enter a valid price"
     },
     "saveItem": "Save Item",
+    "saveChanges": "Save Changes",
+    "addItem": "Add Item",
+    "saving": "Saving...",
     "discardChanges": "Discard Changes",
+    "deleteItem": "Delete item",
+    "deleteItemTitle": "Delete Gear Item?",
+    "deleteItemDescription": "This cannot be undone.",
     "deleteConfirm": "Are you sure you want to delete this item?",
-    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "unsavedChanges": "Unsaved changes",
+    "unsavedChangesConfirm": "You have unsaved changes. Are you sure you want to leave?",
+    "removeBackground": "Remove Background",
+    "searchProductImages": "Search for product images",
     "duplicateWarning": {
       "title": "Similar Item Found",
       "description": "This looks like something you already have in your inventory.",
@@ -279,6 +325,35 @@
         "saveAsNew": "Save as New"
       }
     }
+  },
+  "Loadouts": {
+    "deleteTitle": "Delete Loadout",
+    "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
+    "deleteLoadout": "Delete loadout",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "exportOptions": "Export options",
+    "export": "Export",
+    "pdfClean": "PDF (clean)",
+    "pdfChecklist": "PDF with checklist",
+    "csvExport": "CSV export",
+    "packList": "Pack List",
+    "tableHeaders": {
+      "item": "Item",
+      "category": "Category",
+      "weight": "Weight",
+      "status": "Status"
+    },
+    "weightStats": {
+      "totalWeight": "Total Weight",
+      "baseWeight": "Base Weight",
+      "wornItems": "Worn Items",
+      "consumables": "Consumables"
+    },
+    "noActivities": "No activities specified",
+    "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
+    "addCommentFirst": "Add a comment before sending",
+    "yes": "Yes",
+    "no": "No"
   },
   "LoadoutCreation": {
     "title": "Create New Loadout",

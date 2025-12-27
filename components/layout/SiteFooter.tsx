@@ -13,8 +13,11 @@
  * T003: Deep Forest Green background (#405A3D) with white text
  */
 
+'use client';
+
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { FOOTER_LEGAL_LINKS, FOOTER_SOCIAL_LINKS } from '@/lib/constants/navigation';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +26,9 @@ interface SiteFooterProps {
 }
 
 export function SiteFooter({ className }: SiteFooterProps) {
+  const t = useTranslations('Footer');
+  const tNav = useTranslations('Navigation');
+
   return (
     <footer className={cn('bg-[#405A3D] border-t border-[#405A3D]/20', className)}>
       {/* FR-020: container respects max-w-7xl, FR-021: py-8 instead of py-12 */}
@@ -32,46 +38,46 @@ export function SiteFooter({ className }: SiteFooterProps) {
           <div className="flex items-center gap-3">
             <Image
               src="/logos/big_gearshack_logo.png"
-              alt="Gearshack Logo"
+              alt={t('logoAlt')}
               width={64}
               height={64}
               className="h-16 w-16"
             />
           </div>
           <p className="text-sm text-white/90">
-            Gear management for the obsessed. Track your gear, build loadouts, and explore the great outdoors with confidence.
+            {t('tagline')}
           </p>
         </div>
 
         {/* Column 2: Features */}
         <div className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-            Features
+            {t('features')}
           </h3>
           <nav className="flex flex-col gap-2">
             <Link
               href="/inventory"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Inventory
+              {tNav('inventory')}
             </Link>
             <Link
               href="/loadouts"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Loadouts
+              {tNav('loadouts')}
             </Link>
             <Link
               href="#"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Trip Planning
+              {t('tripPlanning')}
             </Link>
             <Link
               href="#"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Community
+              {tNav('community')}
             </Link>
           </nav>
         </div>
@@ -79,7 +85,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
         {/* Column 3: Resources */}
         <div className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-            Resources
+            {t('resources')}
           </h3>
           <nav className="flex flex-col gap-2">
             {FOOTER_LEGAL_LINKS.map((link, index) => (
@@ -95,13 +101,13 @@ export function SiteFooter({ className }: SiteFooterProps) {
               href="#"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Help Center
+              {t('helpCenter')}
             </Link>
             <Link
               href="#"
               className="text-sm text-white/90 transition-colors hover:text-white"
             >
-              Blog
+              {t('blog')}
             </Link>
           </nav>
         </div>
@@ -109,7 +115,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
         {/* Column 4: Connect */}
         <div className="flex flex-col gap-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
-            Connect
+            {t('connect')}
           </h3>
           <div className="flex gap-4">
             {FOOTER_SOCIAL_LINKS.map((link) => (
@@ -126,14 +132,14 @@ export function SiteFooter({ className }: SiteFooterProps) {
             ))}
           </div>
           <p className="text-sm text-white/90 mt-2">
-            Follow us for updates and inspiration.
+            {t('followUs')}
           </p>
         </div>
       </div>
 
       {/* Copyright bar - T003: White text on deep forest green */}
       <div className="border-t border-white/20 py-4 text-center text-sm text-white/90">
-        &copy; 2025 Gearshack. Built with Vibe.
+        {t('copyright', { year: new Date().getFullYear() })}
       </div>
     </footer>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, FileDown, FileSpreadsheet, ListChecks } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -305,8 +306,20 @@ export function LoadoutExportMenu({
   totalWeight,
   baseWeight,
 }: LoadoutExportMenuProps) {
+  const t = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
   const categories = useCategoriesStore((state) => state.categories);
+
+  // Helper functions that use translations
+  const buildCategoryLabelLocal = (categoryId: string | null): string => {
+    if (!categoryId) return tCommon('uncategorized');
+    return CATEGORY_LABELS[categoryId] || categoryId;
+  };
+
+  const formatBooleanLocal = (value: boolean | undefined): string => {
+    return value ? t('yes') : t('no');
+  };
 
   const buildFileName = (suffix: string) => {
     const date = new Date().toISOString().slice(0, 10);
@@ -321,10 +334,10 @@ export function LoadoutExportMenu({
       return [
         item.name,
         item.brand ?? '',
-        buildCategoryLabel(categoryId),
+        buildCategoryLabelLocal(categoryId),
         item.weightGrams ?? '',
-        formatBoolean(state?.isWorn),
-        formatBoolean(state?.isConsumable),
+        formatBooleanLocal(state?.isWorn),
+        formatBooleanLocal(state?.isConsumable),
       ];
     });
 
@@ -351,7 +364,7 @@ export function LoadoutExportMenu({
   const renderPdf = (includeChecklist: boolean) => {
     const printWindow = window.open('', '_blank', 'width=900,height=1200');
     if (!printWindow) {
-      alert('Unable to open export window. Please allow popups for this site and try again.');
+      alert(t('popupBlockedAlert'));
       return;
     }
 
@@ -391,7 +404,7 @@ export function LoadoutExportMenu({
               <div class="item-name">${escape(item.name)}</div>
               ${item.brand ? `<div class="muted">${escape(item.brand)}</div>` : ''}
             </td>
-            <td>${escape(buildCategoryLabel(categoryId))}</td>
+            <td>${escape(buildCategoryLabelLocal(categoryId))}</td>
             <td class="right">${formatWeight(item.weightGrams)}</td>
             <td>${statusParts.length > 0 ? statusParts.map(escape).join(' • ') : '—'}</td>
           </tr>
@@ -432,23 +445,23 @@ export function LoadoutExportMenu({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
-          Export
+          {t('export')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Export options</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('exportOptions')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => renderPdf(false)}>
           <FileDown className="mr-2 h-4 w-4" />
-          PDF (clean)
+          {t('pdfClean')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => renderPdf(true)}>
           <ListChecks className="mr-2 h-4 w-4" />
-          PDF with checklist
+          {t('pdfChecklist')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportCsv}>
           <FileSpreadsheet className="mr-2 h-4 w-4" />
-          CSV export
+          {t('csvExport')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

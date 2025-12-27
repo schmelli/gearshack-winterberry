@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ export function VirtualGearShakedown({
   userId,
   owner,
 }: VirtualGearShakedownProps) {
+  const t = useTranslations('Loadouts');
   const supabase = useMemo(() => createClient(), []);
   const [comments, setComments] = useState<SharedComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
@@ -155,7 +157,7 @@ export function VirtualGearShakedown({
     if (!allowComments) return;
     const trimmed = message.trim();
     if (!trimmed) {
-      toast.error('Add a comment before sending');
+      toast.error(t('addCommentFirst'));
       return;
     }
     if (trimmed.length < 3) {

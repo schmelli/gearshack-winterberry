@@ -6,7 +6,21 @@
     "login": "Anmelden",
     "signOut": "Abmelden",
     "profile": "Profil",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "openMenu": "Menü öffnen",
+    "messages": "Nachrichten"
+  },
+  "Footer": {
+    "logoAlt": "Gearshack Logo",
+    "tagline": "Ausrüstungsmanagement für Besessene. Verfolge deine Ausrüstung, erstelle Packlisten und erkunde die Natur mit Zuversicht.",
+    "features": "Funktionen",
+    "tripPlanning": "Tourenplanung",
+    "resources": "Ressourcen",
+    "helpCenter": "Hilfe-Center",
+    "blog": "Blog",
+    "connect": "Verbinden",
+    "followUs": "Folge uns für Updates und Inspiration.",
+    "copyright": "© {year} Gearshack. Mit Leidenschaft gebaut."
   },
   "Hero": {
     "title": "Meistere Deine Ausrüstung",
@@ -141,6 +155,7 @@
     "registerSubtitle": "Beginne noch heute, deine Outdoor-Ausrüstung zu organisieren",
     "emailLabel": "E-Mail",
     "passwordLabel": "Passwort",
+    "confirmPasswordLabel": "Passwort bestätigen",
     "displayNameLabel": "Anzeigename",
     "loginButton": "Anmelden",
     "registerButton": "Konto erstellen",
@@ -149,15 +164,37 @@
     "hasAccount": "Bereits ein Konto?",
     "signUpLink": "Registrieren",
     "signInLink": "Anmelden",
+    "backToSignIn": "Zurück zur Anmeldung",
     "orContinueWith": "Oder fortfahren mit",
     "googleButton": "Mit Google fortfahren",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
+    "emailPlaceholder": "du@beispiel.de",
+    "createPasswordPlaceholder": "Passwort erstellen",
+    "enterPasswordPlaceholder": "Passwort eingeben",
+    "confirmPasswordPlaceholder": "Passwort bestätigen",
+    "confirmation": {
+      "checkEmail": "E-Mail überprüfen",
+      "sentTo": "Wir haben einen Bestätigungslink an {email} gesendet. Bitte klicke auf den Link, um deine E-Mail zu verifizieren und die Registrierung abzuschließen."
+    },
+    "passwordReset": {
+      "title": "Passwort vergessen?",
+      "description": "Gib deine E-Mail-Adresse ein und wir senden dir Anweisungen zum Zurücksetzen.",
+      "sendResetLink": "Link zum Zurücksetzen senden",
+      "checkEmail": "E-Mail überprüfen",
+      "instructions": "Falls ein Konto mit dieser E-Mail existiert, haben wir Anweisungen zum Zurücksetzen des Passworts gesendet.",
+      "successTitle": "E-Mail zum Zurücksetzen des Passworts gesendet",
+      "successDescription": "Überprüfe deinen Posteingang für Anweisungen zum Zurücksetzen deines Passworts.",
+      "successFallback": "Falls ein Konto mit dieser E-Mail existiert, erhältst du Anweisungen zum Zurücksetzen."
+    },
     "errors": {
       "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
       "invalidPassword": "Das Passwort muss mindestens 8 Zeichen lang sein",
       "loginFailed": "Anmeldung fehlgeschlagen. Bitte überprüfe deine Anmeldedaten.",
       "registerFailed": "Registrierung fehlgeschlagen. Bitte versuche es erneut.",
       "emailInUse": "Diese E-Mail-Adresse ist bereits registriert",
-      "weakPassword": "Das Passwort ist zu schwach"
+      "weakPassword": "Das Passwort ist zu schwach",
+      "signInFailed": "Anmeldung fehlgeschlagen"
     }
   },
   "Inventory": {
@@ -264,9 +301,18 @@
       "priceInvalid": "Bitte gib einen gültigen Preis ein"
     },
     "saveItem": "Speichern",
+    "saveChanges": "Änderungen speichern",
+    "addItem": "Hinzufügen",
+    "saving": "Speichern...",
     "discardChanges": "Änderungen verwerfen",
+    "deleteItem": "Gegenstand löschen",
+    "deleteItemTitle": "Ausrüstung löschen?",
+    "deleteItemDescription": "Dies kann nicht rückgängig gemacht werden.",
     "deleteConfirm": "Bist du sicher, dass du diesen Gegenstand löschen möchtest?",
-    "unsavedChanges": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?",
+    "unsavedChanges": "Ungespeicherte Änderungen",
+    "unsavedChangesConfirm": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?",
+    "removeBackground": "Hintergrund entfernen",
+    "searchProductImages": "Nach Produktbildern suchen",
     "duplicateWarning": {
       "title": "Ähnlicher Gegenstand gefunden",
       "description": "Das sieht aus wie etwas, das du bereits in deinem Inventar hast.",
@@ -279,6 +325,35 @@
         "saveAsNew": "Als neu speichern"
       }
     }
+  },
+  "Loadouts": {
+    "deleteTitle": "Packliste löschen",
+    "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
+    "deleteLoadout": "Packliste löschen",
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
+    "exportOptions": "Export-Optionen",
+    "export": "Exportieren",
+    "pdfClean": "PDF (sauber)",
+    "pdfChecklist": "PDF mit Checkliste",
+    "csvExport": "CSV-Export",
+    "packList": "Packliste",
+    "tableHeaders": {
+      "item": "Gegenstand",
+      "category": "Kategorie",
+      "weight": "Gewicht",
+      "status": "Status"
+    },
+    "weightStats": {
+      "totalWeight": "Gesamtgewicht",
+      "baseWeight": "Basisgewicht",
+      "wornItems": "Getragene Gegenstände",
+      "consumables": "Verbrauchsgüter"
+    },
+    "noActivities": "Keine Aktivitäten angegeben",
+    "popupBlockedAlert": "Export-Fenster konnte nicht geöffnet werden. Bitte erlaube Popups für diese Seite und versuche es erneut.",
+    "addCommentFirst": "Füge einen Kommentar hinzu bevor du sendest",
+    "yes": "Ja",
+    "no": "Nein"
   },
   "LoadoutCreation": {
     "title": "Neue Packliste erstellen",

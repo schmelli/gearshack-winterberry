@@ -74,6 +74,7 @@ export function GearEditorForm({
   mode = 'inventory',
 }: GearEditorFormProps) {
   const t = useTranslations('GearEditor');
+  const tCommon = useTranslations('Common');
 
   const {
     form,
@@ -163,7 +164,7 @@ export function GearEditorForm({
                 onClick={handleCancel}
                 disabled={isSubmitting}
               >
-                Cancel
+                {tCommon('cancel')}
               </Button>
 
               {/* Delete button - only when editing */}
@@ -178,23 +179,23 @@ export function GearEditorForm({
                       disabled={isSubmitting || isDeleting}
                     >
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete item</span>
+                      <span className="sr-only">{t('deleteItem')}</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Gear Item?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('deleteItemTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This cannot be undone.
+                        {t('deleteItemDescription')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete
+                        {tCommon('delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -205,15 +206,15 @@ export function GearEditorForm({
             <div className="flex gap-2 items-center">
               {isDirty && (
                 <span className="text-sm text-muted-foreground">
-                  Unsaved changes
+                  {t('unsavedChanges')}
                 </span>
               )}
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting
-                  ? 'Saving...'
+                  ? t('saving')
                   : isEditing
-                    ? 'Save Changes'
-                    : 'Add Item'}
+                    ? t('saveChanges')
+                    : t('addItem')}
               </Button>
             </div>
           </CardFooter>
