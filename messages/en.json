@@ -517,5 +517,46 @@
     "forSale": "For Sale",
     "forRent": "For Rent",
     "forTrade": "For Trade"
+  },
+  "SmartSearch": {
+    "title": "Smart Product Search",
+    "description": "Search GearGraph catalog and web for product information",
+    "searchPlaceholder": "Enter product name...",
+    "searchButton": "Search",
+    "searchButtonSearching": "Searching...",
+    "fromCatalog": "From GearGraph Catalog",
+    "fromWeb": "From Web",
+    "found": "found",
+    "matchScore": "{score}% match",
+    "webBadge": "Web",
+    "noResults": "No products found. Try a different search term.",
+    "rateLimitWarning": "Daily internet search limit reached. Catalog results are still available.",
+    "upgradePrompt": "Upgrade to Trailblazer for unlimited searches.",
+    "extraction": {
+      "title": "Extracted Product Data",
+      "extracting": "Extracting data from {domain}...",
+      "confidence": "{level} confidence",
+      "fields": {
+        "name": "Name",
+        "brand": "Brand",
+        "weight": "Weight",
+        "price": "Price",
+        "description": "Description",
+        "image": "Image"
+      },
+      "applyButton": "Apply to Form",
+      "cancelButton": "Cancel",
+      "success": "Product data extracted successfully",
+      "mediumConfidence": "Product data extracted (some fields may need verification)",
+      "lowConfidence": "Limited data extracted - please verify",
+      "failed": "Could not extract product data from this page"
+    },
+    "button": {
+      "tooltip": "Search for {query}",
+      "tooltipWithLimit": "Search for {query} ({remaining} of {limit} left today)",
+      "tooltipDisabled": "Enter a product name to search",
+      "tooltipRateLimited": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
+      "ariaLabel": "Search for product information"
+    }
   }
 }

@@ -512,5 +512,46 @@
     "forSale": "Zu verkaufen",
     "forRent": "Zu verleihen",
     "forTrade": "Zum Tauschen"
+  },
+  "SmartSearch": {
+    "title": "Intelligente Produktsuche",
+    "description": "Durchsuche GearGraph-Katalog und Web nach Produktinformationen",
+    "searchPlaceholder": "Produktnamen eingeben...",
+    "searchButton": "Suchen",
+    "searchButtonSearching": "Suche läuft...",
+    "fromCatalog": "Aus GearGraph-Katalog",
+    "fromWeb": "Aus dem Web",
+    "found": "gefunden",
+    "matchScore": "{score}% Übereinstimmung",
+    "webBadge": "Web",
+    "noResults": "Keine Produkte gefunden. Versuche einen anderen Suchbegriff.",
+    "rateLimitWarning": "Tägliches Limit für Internet-Suchen erreicht. Katalog-Ergebnisse sind weiterhin verfügbar.",
+    "upgradePrompt": "Upgrade auf Trailblazer für unbegrenzte Suchen.",
+    "extraction": {
+      "title": "Extrahierte Produktdaten",
+      "extracting": "Extrahiere Daten von {domain}...",
+      "confidence": "{level} Konfidenz",
+      "fields": {
+        "name": "Name",
+        "brand": "Marke",
+        "weight": "Gewicht",
+        "price": "Preis",
+        "description": "Beschreibung",
+        "image": "Bild"
+      },
+      "applyButton": "In Formular übernehmen",
+      "cancelButton": "Abbrechen",
+      "success": "Produktdaten erfolgreich extrahiert",
+      "mediumConfidence": "Produktdaten extrahiert (einige Felder müssen möglicherweise überprüft werden)",
+      "lowConfidence": "Begrenzte Daten extrahiert - bitte überprüfen",
+      "failed": "Produktdaten konnten von dieser Seite nicht extrahiert werden"
+    },
+    "button": {
+      "tooltip": "Suche nach {query}",
+      "tooltipWithLimit": "Suche nach {query} ({remaining} von {limit} heute übrig)",
+      "tooltipDisabled": "Produktnamen eingeben, um zu suchen",
+      "tooltipRateLimited": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "ariaLabel": "Nach Produktinformationen suchen"
+    }
   }
 }
