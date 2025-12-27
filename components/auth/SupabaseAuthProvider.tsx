@@ -69,6 +69,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
   const supabaseProfile = useSupabaseProfile(supabaseAuth.user?.id ?? null);
   const setUserId = useSupabaseStore((state) => state.setUserId);
   const setRemoteGearItems = useSupabaseStore((state) => state.setRemoteGearItems);
+  const setRemoteLoadouts = useSupabaseStore((state) => state.setRemoteLoadouts);
 
   // Sync user ID to the store when auth state changes
   useEffect(() => {
@@ -106,6 +107,48 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
 
     fetchGearItems();
   }, [supabaseAuth.user?.id, setRemoteGearItems]);
+
+  // Fetch loadouts from Supabase when user logs in
+  useEffect(() => {
+    const userId = supabaseAuth.user?.id;
+    if (!userId) {
+      // Clear loadouts when user logs out
+      setRemoteLoadouts([]);
+      return;
+    }
+
+    const fetchLoadouts = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('loadouts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[SupabaseAuthProvider] Error fetching loadouts:', error);
+        return;
+      }
+
+      const loadouts = ((data || []) as Tables<'loadouts'>[]).map((row) => ({
+        id: row.id,
+        name: row.name,
+        tripDate: row.trip_date ? new Date(row.trip_date) : null,
+        itemIds: [], // Will be populated from loadout_items
+        description: row.description,
+        activityTypes: (row.activity_types || []) as any[],
+        seasons: (row.seasons || []) as any[],
+        itemStates: [],
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      }));
+
+      console.log('[SupabaseAuthProvider] Loaded', loadouts.length, 'loadouts from database');
+      setRemoteLoadouts(loadouts);
+    };
+
+    fetchLoadouts();
+  }, [supabaseAuth.user?.id, setRemoteLoadouts]);
 
   // Map Supabase user to AuthUser format
   const user: AuthUser | null = useMemo(() => {
