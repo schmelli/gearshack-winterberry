@@ -713,6 +713,26 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
+          // BUGFIX: Detect empty responses and provide fallback message
+          // This happens when tool calls fail (e.g., database rate limits) and AI generates no text
+          if (!fullResponse || fullResponse.trim().length === 0) {
+            const fallbackMessage = toolCalls && toolCalls.length > 0
+              ? "I apologize, but I'm having trouble accessing your data right now. This might be due to temporary rate limiting. Please try again in a moment, or rephrase your question."
+              : "I apologize, but I wasn't able to generate a response. Please try asking your question again.";
+
+            fullResponse = fallbackMessage;
+            controller.enqueue(encoder.encode(encodeTextEvent(fallbackMessage)));
+
+            logWarn('Empty AI response detected, injected fallback message', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                hadToolCalls: toolCalls?.length || 0,
+                finishReason,
+              },
+            });
+          }
+
           // Improvement #4: Add proactive suggestions to stream
           // Only show suggestions when conversation naturally completes (not during tool calls or errors)
           const isNaturalCompletion = finishReason === 'stop';
