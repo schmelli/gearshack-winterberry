@@ -174,7 +174,7 @@ export function EnhancedWeightDonut({
           label: subLabel,
           weight: subData.weight,
           itemCount: subData.items.length,
-          percentage: (subData.weight / catData.weight) * 100,
+          percentage: catData.weight > 0 ? (subData.weight / catData.weight) * 100 : 0,
           parentId: catId,
         });
       }
