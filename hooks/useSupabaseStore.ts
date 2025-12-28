@@ -496,6 +496,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
             return {
               ...loadout,
               itemIds: [...loadout.itemIds, itemId],
+              itemStates: [...loadout.itemStates, { itemId, isWorn: false, isConsumable: false }],
               updatedAt: new Date(),
             };
           }),
@@ -532,6 +533,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               return {
                 ...loadout,
                 itemIds: loadout.itemIds.filter((id) => id !== itemId),
+                itemStates: loadout.itemStates.filter((s) => s.itemId !== itemId),
                 updatedAt: new Date(),
               };
             }),
@@ -643,10 +645,10 @@ export const useSupabaseStore = create<SupabaseStore>()(
           // Build update data for loadouts table
           const updateData: TablesUpdate<'loadouts'> = {};
           if (metadata.activityTypes !== undefined) {
-            updateData.activity_types = metadata.activityTypes as never[];
+            updateData.activity_types = metadata.activityTypes;
           }
           if (metadata.seasons !== undefined) {
-            updateData.seasons = metadata.seasons as never[];
+            updateData.seasons = metadata.seasons;
           }
           if (metadata.description !== undefined) {
             updateData.description = metadata.description;

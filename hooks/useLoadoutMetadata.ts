@@ -23,9 +23,9 @@ interface UseLoadoutMetadataReturn {
   /** Currently selected seasons */
   seasons: Season[];
   /** Toggle an activity type on/off */
-  toggleActivity: (activity: ActivityType) => void;
+  toggleActivity: (activity: ActivityType) => Promise<void>;
   /** Toggle a season on/off */
-  toggleSeason: (season: Season) => void;
+  toggleSeason: (season: Season) => Promise<void>;
 }
 
 // =============================================================================
@@ -42,23 +42,33 @@ export function useLoadoutMetadata(loadoutId: string): UseLoadoutMetadataReturn 
   const seasons = loadout?.seasons ?? [];
 
   const toggleActivity = useCallback(
-    (activity: ActivityType) => {
+    async (activity: ActivityType) => {
       const current = loadout?.activityTypes ?? [];
       const newActivities = current.includes(activity)
         ? current.filter((a) => a !== activity)
         : [...current, activity];
-      updateLoadoutMetadata(loadoutId, { activityTypes: newActivities });
+      try {
+        await updateLoadoutMetadata(loadoutId, { activityTypes: newActivities });
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutMetadata] Failed to toggle activity:', error);
+      }
     },
     [loadoutId, loadout?.activityTypes, updateLoadoutMetadata]
   );
 
   const toggleSeason = useCallback(
-    (season: Season) => {
+    async (season: Season) => {
       const current = loadout?.seasons ?? [];
       const newSeasons = current.includes(season)
         ? current.filter((s) => s !== season)
         : [...current, season];
-      updateLoadoutMetadata(loadoutId, { seasons: newSeasons });
+      try {
+        await updateLoadoutMetadata(loadoutId, { seasons: newSeasons });
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutMetadata] Failed to toggle season:', error);
+      }
     },
     [loadoutId, loadout?.seasons, updateLoadoutMetadata]
   );

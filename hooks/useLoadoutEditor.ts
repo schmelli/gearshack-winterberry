@@ -71,9 +71,9 @@ export interface UseLoadoutEditorReturn {
   /** Filtered items for the picker (based on search) */
   filteredPickerItems: GearItem[];
   /** Add an item to the loadout */
-  addItem: (itemId: string) => void;
+  addItem: (itemId: string) => Promise<void>;
   /** Remove an item from the loadout */
-  removeItem: (itemId: string) => void;
+  removeItem: (itemId: string) => Promise<void>;
   /** Total weight of items in loadout */
   totalWeight: number;
   /** Base weight (total minus worn and consumable items) - Feature 007 */
@@ -136,22 +136,32 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
 
   // Actions
   const addItem = useCallback(
-    (itemId: string) => {
+    async (itemId: string) => {
       const item = allItems.find((i) => i.id === itemId);
-      addItemToLoadout(loadoutId, itemId);
-      // FR-022: Toast notification when item is added
-      if (item) {
-        toast.success(`Added ${item.name}`, {
-          description: item.weightGrams ? formatWeight(item.weightGrams) : undefined,
-        });
+      try {
+        await addItemToLoadout(loadoutId, itemId);
+        // FR-022: Toast notification when item is added - only after successful save
+        if (item) {
+          toast.success(`Added ${item.name}`, {
+            description: item.weightGrams ? formatWeight(item.weightGrams) : undefined,
+          });
+        }
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutEditor] Failed to add item:', error);
       }
     },
     [loadoutId, addItemToLoadout, allItems]
   );
 
   const removeItem = useCallback(
-    (itemId: string) => {
-      removeItemFromLoadout(loadoutId, itemId);
+    async (itemId: string) => {
+      try {
+        await removeItemFromLoadout(loadoutId, itemId);
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutEditor] Failed to remove item:', error);
+      }
     },
     [loadoutId, removeItemFromLoadout]
   );
