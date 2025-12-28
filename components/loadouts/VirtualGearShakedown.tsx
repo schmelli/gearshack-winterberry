@@ -88,6 +88,22 @@ export function VirtualGearShakedown({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Track view for analytics (Feature: Share Management)
+  useEffect(() => {
+    const trackView = async () => {
+      try {
+        await fetch(`/api/shares/${shareToken}/track-view`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        // Silent fail - don't interrupt user experience for analytics
+        console.debug('[VirtualGearShakedown] View tracking failed:', error);
+      }
+    };
+
+    trackView();
+  }, [shareToken]);
+
   const tripDate = useMemo(
     () => (payload.loadout.tripDate ? new Date(payload.loadout.tripDate) : null),
     [payload.loadout.tripDate]
