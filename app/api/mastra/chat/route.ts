@@ -55,6 +55,17 @@ import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rat
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
+import {
+  getCachedLoadoutContext,
+  preloadLoadoutContext,
+  formatLoadoutContextForPrompt,
+  type LoadoutContext,
+} from '@/lib/mastra/context-preloader';
+import {
+  generateProactiveSuggestions,
+  formatSuggestionsForStream,
+  shouldShowProactiveSuggestions,
+} from '@/lib/mastra/proactive-suggestions';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Database } from '@/types/supabase';
@@ -306,13 +317,13 @@ async function saveToMemory(
 // System Prompt Builder
 // =====================================================
 
-function buildPromptContext(
+async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   history: Array<{ role: string; content: string }>,
+  userId: string,
   memoryWarning?: string,
-  userId?: string,
   subscriptionTier?: 'standard' | 'trailblazer'
-): PromptContext {
+): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
   const inventoryCount = (userContext?.inventoryCount as number) || 0;
@@ -324,7 +335,7 @@ function buildPromptContext(
     locale,
     inventoryCount,
     currentLoadoutId,
-    userId: userId || 'anonymous',
+    userId,
     subscriptionTier: subscriptionTier || 'standard',
   };
 
@@ -342,7 +353,37 @@ function buildPromptContext(
     promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
   }
 
-  return promptContext;
+  // Pre-load loadout context if viewing a loadout (Improvement #3: Context Pre-loading)
+  let loadoutContext: LoadoutContext | null = null;
+  if (screen === 'loadout-detail' && currentLoadoutId) {
+    // Try to get from cache first (instant - no DB query)
+    loadoutContext = getCachedLoadoutContext(currentLoadoutId, userId);
+
+    // If not cached, pre-load it now
+    if (!loadoutContext) {
+      loadoutContext = await preloadLoadoutContext(currentLoadoutId, userId);
+    }
+
+    // Add loadout context to system prompt
+    if (loadoutContext) {
+      const formattedContext = formatLoadoutContextForPrompt(loadoutContext, locale as 'en' | 'de');
+      promptContext.catalogResults = promptContext.catalogResults
+        ? `${promptContext.catalogResults}\n\n${formattedContext}`
+        : formattedContext;
+
+      logDebug('Loadout context added to system prompt', {
+        userId,
+        metadata: {
+          loadoutId: currentLoadoutId,
+          itemCount: loadoutContext.gearItems.length,
+          totalWeight: loadoutContext.loadout.totalWeight,
+          cached: !!getCachedLoadoutContext(currentLoadoutId, userId),
+        },
+      });
+    }
+  }
+
+  return { promptContext, loadoutContext };
 }
 
 // =====================================================
@@ -495,8 +536,13 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 9. Build system prompt with memory context
-    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning, user.id);
+    // 9. Build system prompt with memory context and loadout context
+    const { promptContext, loadoutContext } = await buildPromptContext(
+      context,
+      memoryContext.history,
+      user.id,
+      memoryContext.warning
+    );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
     // 10. Check AI availability
@@ -551,6 +597,33 @@ export async function POST(request: Request): Promise<Response> {
           if (toolCalls && Array.isArray(toolCalls)) {
             for (const tc of toolCalls) {
               recordToolCall(tc.toolName || 'unknown');
+            }
+          }
+
+          // Improvement #4: Add proactive suggestions to stream
+          const hadError = false; // We're in the success path
+          if (shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
+            const suggestions = generateProactiveSuggestions(
+              promptContext.userContext,
+              loadoutContext,
+              (context?.locale as 'en' | 'de') || 'en'
+            );
+
+            if (suggestions.length > 0) {
+              const suggestionsText = formatSuggestionsForStream(
+                suggestions,
+                (context?.locale as 'en' | 'de') || 'en'
+              );
+              controller.enqueue(encoder.encode(encodeTextEvent(suggestionsText)));
+              fullResponse += suggestionsText;
+
+              logDebug('Proactive suggestions added to response', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  suggestionCount: suggestions.length,
+                },
+              });
             }
           }
 
