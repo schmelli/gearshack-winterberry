@@ -33,7 +33,14 @@ export type SpecIconType =
   | 'comfort'
   | 'wishlist'
   | 'ai'
-  | 'category';
+  | 'category'
+  // Additional spec types for gear details
+  | 'size'
+  | 'color'
+  | 'volume'
+  | 'materials'
+  | 'construction'
+  | 'quantity';
 
 interface SpecIconProps {
   /** Icon type to display */
@@ -94,6 +101,19 @@ function getIconPath(type: SpecIconType, categoryId?: string): string | null {
       // Try exact match first
       const categoryPath = `/icons/gear_categories/${categoryId.toLowerCase()}.svg`;
       return categoryPath;
+    // Additional spec types - use appropriate fallbacks
+    case 'size':
+      return '/icons/app/items.svg';
+    case 'color':
+      return '/icons/app/items.svg';
+    case 'volume':
+      return '/icons/app/items.svg';
+    case 'materials':
+      return '/icons/app/items.svg';
+    case 'construction':
+      return '/icons/app/items.svg';
+    case 'quantity':
+      return '/icons/app/items.svg';
     default:
       return null;
   }

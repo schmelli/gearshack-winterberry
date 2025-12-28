@@ -11,10 +11,16 @@
 
 'use client';
 
-import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag } from 'lucide-react';
+import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import {
   Tooltip,
   TooltipContent,
@@ -287,150 +293,216 @@ export function GearDetailContent({
           {item.isFavourite && <Badge variant="default">Favourite</Badge>}
         </div>
 
-        {/* Specifications Grid */}
-        <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
-          <SpecRow
-            label="Weight"
-            value={item.weightGrams ? formatWeight(item.weightGrams) : null}
-            icon="weight"
-          />
-          <SpecRow label="Model" value={item.modelNumber} icon="model" />
-          {(item.lengthCm || item.widthCm || item.heightCm) && (
-            <div className="col-span-2">
-              <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
-                <SpecIcon type="dimensions" size={14} className="opacity-70" />
-                Dimensions (L × W × H)
-              </p>
-              <p className="font-medium">
-                {item.lengthCm ?? '–'} × {item.widthCm ?? '–'} ×{' '}
-                {item.heightCm ?? '–'} cm
-              </p>
-            </div>
+        {/* Collapsible Sections */}
+        <Accordion type="multiple" defaultValue={['specifications', 'description', 'reviews']} className="w-full">
+          {/* SPECIFICATIONS Section */}
+          <AccordionItem value="specifications">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              Specifications
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
+                <SpecRow
+                  label="Weight"
+                  value={item.weightGrams ? formatWeight(item.weightGrams) : null}
+                  icon="weight"
+                />
+                <SpecRow label="Model" value={item.modelNumber} icon="model" />
+                {(item.lengthCm || item.widthCm || item.heightCm) && (
+                  <div className="col-span-2">
+                    <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
+                      <SpecIcon type="dimensions" size={14} className="opacity-70" />
+                      Dimensions (L × W × H)
+                    </p>
+                    <p className="font-medium">
+                      {item.lengthCm ?? '–'} × {item.widthCm ?? '–'} ×{' '}
+                      {item.heightCm ?? '–'} cm
+                    </p>
+                  </div>
+                )}
+                <SpecRow label="Size" value={item.size} icon="size" />
+                <SpecRow label="Color" value={item.color} icon="color" />
+                <SpecRow
+                  label="Volume"
+                  value={item.volumeLiters ? `${item.volumeLiters} L` : null}
+                  icon="volume"
+                />
+                <SpecRow label="Materials" value={item.materials} icon="materials" />
+                <SpecRow label="Construction" value={item.tentConstruction} icon="construction" />
+                {item.quantity > 1 && (
+                  <SpecRow label="Quantity" value={`${item.quantity}`} icon="quantity" />
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* DESCRIPTION Section */}
+          {(item.description || item.notes) && (
+            <AccordionItem value="description">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                Description
+              </AccordionTrigger>
+              <AccordionContent>
+                {item.description && (
+                  <div className="mb-4">
+                    <TruncatedText text={item.description} maxLength={300} />
+                  </div>
+                )}
+                {item.notes && (
+                  <div>
+                    <p className="mb-1 text-xs uppercase text-muted-foreground">
+                      Notes
+                    </p>
+                    <TruncatedText text={item.notes} maxLength={200} />
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
           )}
-        </div>
 
-        {/* Description (T017a: Truncate long descriptions) */}
-        {item.description && (
-          <div>
-            <p className="mb-1 text-xs uppercase text-muted-foreground">
-              Description
-            </p>
-            <TruncatedText text={item.description} maxLength={300} />
-          </div>
-        )}
-
-        {/* Notes (T017a: Truncate long notes) */}
-        {item.notes && (
-          <div>
-            <p className="mb-1 text-xs uppercase text-muted-foreground">
-              Notes
-            </p>
-            <TruncatedText text={item.notes} maxLength={200} />
-          </div>
-        )}
-
-        {/* Purchase Info */}
-        {(item.pricePaid || item.retailer || item.purchaseDate) && (
-          <div className="border-t pt-4">
-            <p className="mb-2 text-xs uppercase text-muted-foreground">
-              Purchase Info
-            </p>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              {item.pricePaid && (
-                <span className="font-medium">
-                  {item.currency ?? '$'}
-                  {item.pricePaid.toFixed(2)}
-                </span>
-              )}
-              {item.retailer && (
-                <span className="text-muted-foreground">
-                  from {item.retailer}
-                </span>
-              )}
-              {item.purchaseDate && (
-                <span className="text-muted-foreground">
-                  {new Date(item.purchaseDate).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Price Tracking Section - Feature 050 (only for wishlist items) */}
-        {isWishlistItem && (
-          <div className="border-t pt-4">
-            <PriceTrackingSection item={item} />
-          </div>
-        )}
-
-        {/* External Links */}
-        {(item.productUrl || item.brandUrl || item.retailerUrl) && (
-          <div className="flex flex-wrap gap-2">
-            {item.productUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={item.productUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Product Page
-                </a>
-              </Button>
-            )}
-            {item.brandUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={item.brandUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Brand Site
-                </a>
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* T042: YouTube Reviews Section */}
-        <div className="border-t pt-4">
-          <p className="mb-3 text-xs uppercase text-muted-foreground">
-            Reviews
-          </p>
-          {/* T043: Show message when brand/name missing */}
-          {!item.brand && !item.name ? (
-            <p className="text-sm text-muted-foreground">
-              Add brand and name to find reviews
-            </p>
-          ) : (
-            <YouTubeCarousel
-              videos={youtubeVideos}
-              isLoading={youtubeLoading}
-              error={youtubeError}
-              onRetry={onRetryYouTube}
-            />
+          {/* PURCHASE INFO Section */}
+          {(item.pricePaid || item.retailer || item.purchaseDate) && (
+            <AccordionItem value="purchase">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                Purchase Info
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  {item.pricePaid && (
+                    <span className="font-medium">
+                      {item.currency ?? '$'}
+                      {item.pricePaid.toFixed(2)}
+                    </span>
+                  )}
+                  {item.retailer && (
+                    <span className="text-muted-foreground">
+                      from {item.retailer}
+                    </span>
+                  )}
+                  {item.purchaseDate && (
+                    <span className="text-muted-foreground">
+                      {new Date(item.purchaseDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
           )}
-        </div>
 
-        {/* T059: Gear Insights Section */}
-        <div className="border-t pt-4">
-          <p className="mb-3 text-xs uppercase text-muted-foreground">
-            Gear Insights
-          </p>
-          <GearInsightsSection
-            insights={insights}
-            isLoading={insightsLoading}
-            error={insightsError}
-            gearContext={{
-              gearItemId: item.id,
-              brand: item.brand ?? undefined,
-              name: item.name,
-              categoryId: categoryId ?? undefined,
-            }}
-            onInsightDismissed={onInsightDismissed}
-          />
-        </div>
+          {/* Price Tracking Section - Feature 050 (only for wishlist items) */}
+          {isWishlistItem && (
+            <AccordionItem value="price-tracking">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                Price Tracking
+              </AccordionTrigger>
+              <AccordionContent>
+                <PriceTrackingSection item={item} />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* External Links */}
+          {(item.productUrl || item.brandUrl || item.retailerUrl) && (
+            <AccordionItem value="links">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                External Links
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-wrap gap-2">
+                  {item.productUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={item.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Product Page
+                      </a>
+                    </Button>
+                  )}
+                  {item.brandUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={item.brandUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Brand Site
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* REVIEWS Section */}
+          <AccordionItem value="reviews">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              Reviews
+            </AccordionTrigger>
+            <AccordionContent>
+              {!item.brand && !item.name ? (
+                <p className="text-sm text-muted-foreground">
+                  Add brand and name to find reviews
+                </p>
+              ) : (
+                <YouTubeCarousel
+                  videos={youtubeVideos}
+                  isLoading={youtubeLoading}
+                  error={youtubeError}
+                  onRetry={onRetryYouTube}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* GEAR INSIGHTS Section */}
+          <AccordionItem value="insights">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              Gear Insights
+            </AccordionTrigger>
+            <AccordionContent>
+              <GearInsightsSection
+                insights={insights}
+                isLoading={insightsLoading}
+                error={insightsError}
+                gearContext={{
+                  gearItemId: item.id,
+                  brand: item.brand ?? undefined,
+                  name: item.name,
+                  categoryId: categoryId ?? undefined,
+                }}
+                onInsightDismissed={onInsightDismissed}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* GEARGRAPH DESCRIPTION Section (Placeholder for AI-generated content) */}
+          {item.productTypeId && (
+            <AccordionItem value="geargraph-description">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  GearGraph Description
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-center">
+                  <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    AI-powered product description coming soon
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    Detailed specifications and expert insights from GearGraph
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+        </Accordion>
       </div>
     </div>
   );
