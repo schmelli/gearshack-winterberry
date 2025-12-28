@@ -80,6 +80,15 @@ const CHART_COLORS = [
 ];
 
 // =============================================================================
+// Chart Sizing Constants
+// =============================================================================
+
+/** Outer radius as fraction of chart size */
+const OUTER_RADIUS_RATIO = 0.38;
+/** Inner radius as fraction of chart size (creates donut hole) */
+const INNER_RADIUS_RATIO = 0.22;
+
+// =============================================================================
 // Custom Tooltip
 // =============================================================================
 
@@ -175,7 +184,7 @@ export function EnhancedWeightDonut({
           label: subLabel,
           weight: subData.weight,
           itemCount: subData.items.length,
-          percentage: catData.weight > 0 && subData.weight > 0 ? (subData.weight / catData.weight) * 100 : 0,
+          percentage: catData.weight > 0 ? (subData.weight / catData.weight) * 100 : 0,
           parentId: catId,
         });
       }
@@ -226,11 +235,11 @@ export function EnhancedWeightDonut({
 
   // Handlers
   const handlePieClick = useCallback((data: CategoryData | SubcategoryData) => {
-    // Check if this is a CategoryData with subcategories to drill into
-    const categoryWithSubs = data as CategoryData;
+    // Type guard to check if this is CategoryData with subcategories
     const hasSubcategories = !drillDownCategoryId &&
-      Array.isArray(categoryWithSubs.subcategories) &&
-      categoryWithSubs.subcategories.length > 0;
+      'subcategories' in data &&
+      Array.isArray(data.subcategories) &&
+      data.subcategories.length > 0;
 
     if (hasSubcategories) {
       // Drill down into category
@@ -247,8 +256,8 @@ export function EnhancedWeightDonut({
   }, []);
 
   // Chart dimensions
-  const outerRadius = size * 0.38;
-  const innerRadius = size * 0.22;
+  const outerRadius = size * OUTER_RADIUS_RATIO;
+  const innerRadius = size * INNER_RADIUS_RATIO;
 
   // Get parent category label for breadcrumb
   const parentCategoryLabel = drillDownCategoryId
