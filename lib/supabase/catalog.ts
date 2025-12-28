@@ -162,8 +162,10 @@ export async function fuzzyProductSearch(
   // Extract first word for initial filtering (to avoid fetching all products)
   const firstWord = escapeLikePattern(queryWords[0]);
 
-  // Build query - fetch products where name contains at least the first search word
+  // Build query - fetch products where name or description contains at least the first search word
   // This narrows down the dataset before JS filtering
+  // Note: We can't filter on joined table columns (catalog_brands.name) in the .or() clause,
+  // so brand matching is handled in the JS scoring phase
   let queryBuilder = supabase
     .from('catalog_products')
     .select(
@@ -182,7 +184,7 @@ export async function fuzzyProductSearch(
       )
     `
     )
-    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%,catalog_brands.name.ilike.%${firstWord}%`)
+    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%`)
     .limit(fetchLimit);
 
   if (brandId) {
