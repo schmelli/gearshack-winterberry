@@ -450,6 +450,32 @@
       "descriptionTooLong": "Description must be 500 characters or less"
     }
   },
+  "Shakedown": {
+    "linkCopied": "Link copied",
+    "copyFailed": "Failed to copy",
+    "createdAgo": "Created {time}",
+    "expired": "Expired",
+    "views": "Views",
+    "passwordProtected": "Password protected",
+    "commentsEnabled": "Comments enabled",
+    "disableComments": "Disable comments",
+    "enableComments": "Enable comments",
+    "removePassword": "Remove password",
+    "setPassword": "Set password",
+    "deleteShare": "Delete share",
+    "enterPassword": "Enter password (min 8 chars)",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "expiresOn": "Expires {date}",
+    "deleteShareTitle": "Delete share link?",
+    "deleteShareDescription": "This will permanently remove this share link. Anyone with the link will no longer be able to access your loadout.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "manageShares": "Manage Shares",
+    "manageSharesDescription": "Manage share links for \"{name}\"",
+    "loading": "Loading...",
+    "noShares": "No share links yet",
+    "noSharesHint": "Create a share link to let others view your loadout"
+  },
   "SharedLoadout": {
     "heroTitle": "Virtual Gear Shakedown",
     "sharedBy": "Shared by {name}",

@@ -24,7 +24,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const body = await request.json();
     const { password } = body as { password?: string };
 
@@ -98,7 +98,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const supabase = await createClient();
 
     // Fetch the share
