@@ -85,7 +85,7 @@ export async function DELETE(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = await params;
+    const { token } = params;
     const supabase = await createClient();
 
     // Verify user is authenticated and owns this share
