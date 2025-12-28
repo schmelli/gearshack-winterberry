@@ -11,6 +11,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -132,43 +133,43 @@ function DetailStatusIcons({ item }: { item: GearItem }) {
 
   if (item.isFavourite) {
     icons.push(
-      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" title="Favourite">
-        <Heart className="h-3.5 w-3.5 text-white fill-white" />
+      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" role="img" aria-label="Marked as favourite">
+        <Heart className="h-3.5 w-3.5 text-white fill-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.isForSale) {
     icons.push(
-      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" title="For Sale">
-        <DollarSign className="h-3.5 w-3.5 text-white" />
+      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" role="img" aria-label="Listed for sale">
+        <DollarSign className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.canBeBorrowed) {
     icons.push(
-      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" title="Can be Borrowed">
-        <HandHeart className="h-3.5 w-3.5 text-white" />
+      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" role="img" aria-label="Available to borrow">
+        <HandHeart className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.canBeTraded) {
     icons.push(
-      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" title="Up for Trade">
-        <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
+      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" role="img" aria-label="Available for trade">
+        <ArrowLeftRight className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.status === 'lent') {
     icons.push(
-      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" title="Currently Lent">
-        <Recycle className="h-3.5 w-3.5 text-white" />
+      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" role="img" aria-label="Currently lent out">
+        <Recycle className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.status === 'sold') {
     icons.push(
-      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" title="Sold">
-        <Tag className="h-3.5 w-3.5 text-white" />
+      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" role="img" aria-label="Item has been sold">
+        <Tag className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
@@ -200,7 +201,10 @@ export function GearDetailContent({
 }: GearDetailContentProps) {
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
   const categories = useCategoriesStore((state) => state.categories);
-  const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+  const categoryId = useMemo(
+    () => getParentCategoryIds(item.productTypeId, categories).categoryId,
+    [item.productTypeId, categories]
+  );
 
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
@@ -329,7 +333,7 @@ export function GearDetailContent({
                 />
                 <SpecRow label="Materials" value={item.materials} icon="materials" />
                 <SpecRow label="Construction" value={item.tentConstruction} icon="construction" />
-                {item.quantity > 1 && (
+                {item.quantity != null && item.quantity > 1 && (
                   <SpecRow label="Quantity" value={`${item.quantity}`} icon="quantity" />
                 )}
               </div>
@@ -368,10 +372,12 @@ export function GearDetailContent({
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {item.pricePaid && (
+                  {item.pricePaid != null && (
                     <span className="font-medium">
-                      {item.currency ?? '$'}
-                      {item.pricePaid.toFixed(2)}
+                      {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: item.currency ?? 'USD',
+                      }).format(item.pricePaid)}
                     </span>
                   )}
                   {item.retailer && (
@@ -433,6 +439,18 @@ export function GearDetailContent({
                       </a>
                     </Button>
                   )}
+                  {item.retailerUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={item.retailerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Retailer
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -444,7 +462,7 @@ export function GearDetailContent({
               Reviews
             </AccordionTrigger>
             <AccordionContent>
-              {!item.brand && !item.name ? (
+              {!item.brand || !item.name ? (
                 <p className="text-sm text-muted-foreground">
                   Add brand and name to find reviews
                 </p>
@@ -485,7 +503,7 @@ export function GearDetailContent({
             <AccordionItem value="geargraph-description">
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                   GearGraph Description
                 </span>
               </AccordionTrigger>
