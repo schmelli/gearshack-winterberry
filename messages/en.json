@@ -724,6 +724,9 @@
       "pending": "Pending",
       "friends": "Friends",
       "unfriend": "Unfriend",
+      "unfriended": "Friend removed",
+      "unfriendFailed": "Failed to unfriend",
+      "unfriendTitle": "Remove Friend?",
       "cancel": "Cancel Request",
       "accept": "Accept",
       "decline": "Decline",
@@ -733,11 +736,20 @@
       "unfriendDescription": "They will lose access to your friends-only content.",
       "emptyTitle": "No friends yet",
       "emptyDescription": "Start a conversation with someone to send them a friend request.",
+      "noOnlineFriends": "No online friends right now",
+      "noSearchResults": "No friends found matching \"{query}\"",
       "searchPlaceholder": "Search friends...",
+      "searchAriaLabel": "Search friends",
+      "listAriaLabel": "Friends list",
+      "since": "Friends since {date}",
+      "sort": "Sort",
+      "sortBy": "Sort by",
       "sortByName": "Name",
       "sortByRecent": "Recent Activity",
       "sortByOnline": "Online",
       "sortByDateAdded": "Date Added",
+      "onlineOnly": "Online only",
+      "showingFiltered": "Showing {shown} of {total} friends",
       "mutualFriends": "{count} mutual friends",
       "mutualFriend": "1 mutual friend",
       "noMutualFriends": "No mutual friends",
@@ -752,7 +764,13 @@
       "outgoing": "Sent",
       "emptyIncoming": "No pending friend requests",
       "emptyOutgoing": "No sent friend requests",
-      "expiresIn": "Expires in {days} days"
+      "expiresIn": "Expires in {days} days",
+      "sendFailed": "Failed to send friend request",
+      "acceptFailed": "Failed to accept friend request",
+      "declineFailed": "Failed to decline friend request",
+      "cancelFailed": "Failed to cancel friend request",
+      "rateLimitExceeded": "You've sent too many friend requests. Try again later.",
+      "noMessageExchange": "You need to message them first before sending a friend request"
     },
     "activity": {
       "title": "Activity Feed",
@@ -776,7 +794,8 @@
       "invisible": "Invisible",
       "offline": "Offline",
       "lastActive": "Last active {time}",
-      "updating": "Updating..."
+      "updating": "Updating...",
+      "updateFailed": "Failed to update status"
     },
     "privacy": {
       "title": "Privacy Settings",
@@ -805,7 +824,11 @@
         "everyone": "Everyone",
         "friendsOnly": "Friends Only",
         "nobody": "Nobody"
-      }
+      },
+      "presetApplied": "Privacy preset applied",
+      "presetFailed": "Failed to apply preset",
+      "settingUpdated": "Setting updated",
+      "settingFailed": "Failed to update setting"
     }
   }
 }

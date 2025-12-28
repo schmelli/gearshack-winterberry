@@ -515,10 +515,15 @@ export async function unfriend(userId: string, friendId: string): Promise<void> 
 
 /**
  * Fetches mutual friends between two users using the RPC function.
+ *
+ * @param userId1 - First user ID
+ * @param userId2 - Second user ID
+ * @param limit - Maximum number of results to return (default: 100)
  */
 export async function fetchMutualFriends(
   userId1: string,
-  userId2: string
+  userId2: string,
+  limit = 100
 ): Promise<FriendInfo[]> {
   const supabase = getSocialClient();
 
@@ -535,12 +540,15 @@ export async function fetchMutualFriends(
     throw new Error(`Failed to fetch mutual friends: ${error.message}`);
   }
 
-  return ((data ?? []) as QueryResult[]).map((row) => ({
+  // Apply client-side limit (IMPROVED: configurable limit)
+  const results = ((data ?? []) as QueryResult[]).map((row) => ({
     id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
     avatar_url: row.avatar_url,
     friends_since: '', // Not available from this RPC
   }));
+
+  return results.slice(0, limit);
 }
 
 /**
@@ -815,8 +823,58 @@ export async function getOnlineStatuses(
 // =============================================================================
 
 /**
+ * Profile cache for real-time subscriptions to avoid N+1 queries.
+ * TTL: 5 minutes
+ */
+const profileCache = new Map<string, {
+  profile: { display_name: string; avatar_url: string | null };
+  timestamp: number;
+}>();
+
+const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetches profile with caching to reduce N+1 queries.
+ */
+async function getCachedProfile(
+  userId: string,
+  supabase: QueryResult
+): Promise<{ display_name: string; avatar_url: string | null }> {
+  const now = Date.now();
+  const cached = profileCache.get(userId);
+
+  // Return cached if valid
+  if (cached && now - cached.timestamp < PROFILE_CACHE_TTL) {
+    return cached.profile;
+  }
+
+  // Fetch fresh profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('id', userId)
+    .single();
+
+  const profileData = {
+    display_name: profile?.display_name ?? 'Unknown',
+    avatar_url: profile?.avatar_url ?? null,
+  };
+
+  // Update cache
+  profileCache.set(userId, {
+    profile: profileData,
+    timestamp: now,
+  });
+
+  return profileData;
+}
+
+/**
  * Creates a Realtime subscription for friend activities.
  * Returns an unsubscribe function.
+ *
+ * IMPROVED: Uses profile caching to avoid N+1 queries when multiple
+ * friends are active simultaneously.
  */
 export function subscribeToFriendActivities(
   userId: string,
@@ -834,18 +892,14 @@ export function subscribeToFriendActivities(
         table: 'friend_activities',
       },
       async (payload: QueryResult) => {
-        // Fetch the profile for the activity creator
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('id', payload.new.user_id)
-          .single();
+        // Fetch profile with caching (FIXED: reduces N+1 queries)
+        const profile = await getCachedProfile(payload.new.user_id, supabase);
 
         const activity: FriendActivityWithProfile = {
           id: payload.new.id,
           user_id: payload.new.user_id,
-          display_name: profile?.display_name ?? 'Unknown',
-          avatar_url: profile?.avatar_url,
+          display_name: profile.display_name,
+          avatar_url: profile.avatar_url,
           activity_type: payload.new.activity_type,
           reference_type: payload.new.reference_type,
           reference_id: payload.new.reference_id,

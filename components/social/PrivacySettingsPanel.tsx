@@ -185,9 +185,9 @@ export function PrivacySettingsPanel({
   const handlePresetSelect = async (preset: Exclude<PrivacyPreset, 'custom'>) => {
     try {
       await applyPreset(preset);
-      toast.success(t(`privacy.presets.${preset}`) + ' applied');
+      toast.success(t('privacy.presetApplied'));
     } catch {
-      toast.error('Failed to apply preset');
+      toast.error(t('privacy.presetFailed'));
     }
   };
 
@@ -198,8 +198,9 @@ export function PrivacySettingsPanel({
   ) => {
     try {
       await updateSettings({ [key]: value });
+      toast.success(t('privacy.settingUpdated'));
     } catch {
-      toast.error('Failed to update setting');
+      toast.error(t('privacy.settingFailed'));
     }
   };
 

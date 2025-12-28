@@ -719,6 +719,9 @@
       "pending": "Ausstehend",
       "friends": "Freunde",
       "unfriend": "Entfreunden",
+      "unfriended": "Freund entfernt",
+      "unfriendFailed": "Entfernen fehlgeschlagen",
+      "unfriendTitle": "Freund entfernen?",
       "cancel": "Anfrage abbrechen",
       "accept": "Annehmen",
       "decline": "Ablehnen",
@@ -728,11 +731,20 @@
       "unfriendDescription": "Diese Person verliert den Zugriff auf deine Inhalte, die nur für Freunde sichtbar sind.",
       "emptyTitle": "Noch keine Freunde",
       "emptyDescription": "Beginne eine Unterhaltung mit jemandem, um eine Freundschaftsanfrage zu senden.",
+      "noOnlineFriends": "Derzeit sind keine Freunde online",
+      "noSearchResults": "Keine Freunde gefunden mit \"{query}\"",
       "searchPlaceholder": "Freunde suchen...",
+      "searchAriaLabel": "Freunde suchen",
+      "listAriaLabel": "Freundesliste",
+      "since": "Freunde seit {date}",
+      "sort": "Sortieren",
+      "sortBy": "Sortieren nach",
       "sortByName": "Name",
       "sortByRecent": "Letzte Aktivität",
       "sortByOnline": "Online",
       "sortByDateAdded": "Hinzugefügt am",
+      "onlineOnly": "Nur Online",
+      "showingFiltered": "{shown} von {total} Freunden angezeigt",
       "mutualFriends": "{count} gemeinsame Freunde",
       "mutualFriend": "1 gemeinsamer Freund",
       "noMutualFriends": "Keine gemeinsamen Freunde",
@@ -747,7 +759,13 @@
       "outgoing": "Gesendet",
       "emptyIncoming": "Keine ausstehenden Freundschaftsanfragen",
       "emptyOutgoing": "Keine gesendeten Freundschaftsanfragen",
-      "expiresIn": "Läuft in {days} Tagen ab"
+      "expiresIn": "Läuft in {days} Tagen ab",
+      "sendFailed": "Senden der Freundschaftsanfrage fehlgeschlagen",
+      "acceptFailed": "Annehmen der Freundschaftsanfrage fehlgeschlagen",
+      "declineFailed": "Ablehnen der Freundschaftsanfrage fehlgeschlagen",
+      "cancelFailed": "Abbrechen der Freundschaftsanfrage fehlgeschlagen",
+      "rateLimitExceeded": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
+      "noMessageExchange": "Du musst dieser Person zuerst eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst"
     },
     "activity": {
       "title": "Aktivitäten",
@@ -771,7 +789,8 @@
       "invisible": "Unsichtbar",
       "offline": "Offline",
       "lastActive": "Zuletzt aktiv {time}",
-      "updating": "Wird aktualisiert..."
+      "updating": "Wird aktualisiert...",
+      "updateFailed": "Aktualisierung des Status fehlgeschlagen"
     },
     "privacy": {
       "title": "Datenschutzeinstellungen",
@@ -800,7 +819,11 @@
         "everyone": "Alle",
         "friendsOnly": "Nur Freunde",
         "nobody": "Niemand"
-      }
+      },
+      "presetApplied": "Datenschutzvoreinstellung angewendet",
+      "presetFailed": "Anwendung der Voreinstellung fehlgeschlagen",
+      "settingUpdated": "Einstellung aktualisiert",
+      "settingFailed": "Aktualisierung der Einstellung fehlgeschlagen"
     }
   }
 }

@@ -254,11 +254,13 @@ export function useFriendRequestStatus(targetUserId: string): {
     }
   }, [targetUserId, canSendRequest]);
 
-  // Reset when target changes and auto-check
-  if (lastTargetIdRef.current !== targetUserId) {
-    lastTargetIdRef.current = targetUserId;
-    setCanSendResult(null);
-  }
+  // Reset when target changes (FIXED: moved to useEffect to prevent state update during render)
+  useEffect(() => {
+    if (lastTargetIdRef.current !== targetUserId) {
+      lastTargetIdRef.current = targetUserId;
+      setCanSendResult(null);
+    }
+  }, [targetUserId]);
 
   // Auto-check on mount and target change
   useEffect(() => {
