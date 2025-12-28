@@ -199,7 +199,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onToggleActivity={toggleActivity}
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
-        onSegmentClick={(categoryId) => toggleCategory(categoryId)}
+        onSegmentClick={(categoryId, _level) => toggleCategory(categoryId)}
         onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
       />

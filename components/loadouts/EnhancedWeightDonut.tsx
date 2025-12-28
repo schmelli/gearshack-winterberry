@@ -89,6 +89,7 @@ interface TooltipProps {
 }
 
 function CustomTooltip({ active, payload }: TooltipProps) {
+  const t = useTranslations('Loadouts');
   if (!active || !payload || payload.length === 0) return null;
 
   const data = payload[0].payload;
@@ -99,7 +100,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
         {formatWeight(data.weight)} ({data.percentage.toFixed(1)}%)
       </p>
       <p className="text-xs text-muted-foreground">
-        {data.itemCount} {data.itemCount === 1 ? 'item' : 'items'}
+        {t('itemCount', { count: data.itemCount })}
       </p>
     </div>
   );
@@ -174,7 +175,7 @@ export function EnhancedWeightDonut({
           label: subLabel,
           weight: subData.weight,
           itemCount: subData.items.length,
-          percentage: catData.weight > 0 ? (subData.weight / catData.weight) * 100 : 0,
+          percentage: catData.weight > 0 && subData.weight > 0 ? (subData.weight / catData.weight) * 100 : 0,
           parentId: catId,
         });
       }
@@ -213,7 +214,7 @@ export function EnhancedWeightDonut({
       ...sub,
       color: CHART_COLORS[index % CHART_COLORS.length],
       // Recalculate percentage relative to parent
-      percentage: (sub.weight / parentCategory.weight) * 100,
+      percentage: parentCategory.weight > 0 ? (sub.weight / parentCategory.weight) * 100 : 0,
     }));
   }, [categoryData, drillDownCategoryId]);
 
