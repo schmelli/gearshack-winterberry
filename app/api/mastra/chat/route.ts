@@ -624,7 +624,7 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 9. Build system prompt with memory context and loadout context
+    // 9. Build system prompt with memory context, loadout context, and user context (Issue #110)
     const { promptContext, loadoutContext } = await buildPromptContext(
       context,
       memoryContext.history,
