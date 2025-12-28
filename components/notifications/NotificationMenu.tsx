@@ -70,28 +70,37 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
       const response = await fetch('/api/gear-items/apply-enrichment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestion_id: suggestionId, action }),
+        body: JSON.stringify({
+          suggestion_id: suggestionId,
+          action,
+          notification_id: notificationId, // Pass notification ID to delete it
+        }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to process enrichment');
+        // Show specific error from API
+        const errorMsg = data.error || 'Failed to process enrichment';
+        throw new Error(errorMsg);
       }
 
-      // Mark notification as read
-      await markAsRead(notificationId);
-
-      // Refresh notifications list
+      // Refresh notifications list (notification was deleted by API)
       await refetch();
 
-      // Show success message
-      toast.success(
-        action === 'accept'
-          ? 'Gear item updated with GearGraph data'
-          : 'Suggestion dismissed'
-      );
+      // Show success message with details
+      if (action === 'accept' && data.updated_fields?.length > 0) {
+        toast.success(`Updated: ${data.updated_fields.join(', ')}`);
+      } else {
+        toast.success(
+          action === 'accept'
+            ? 'Gear item updated with GearGraph data'
+            : 'Suggestion dismissed'
+        );
+      }
     } catch (error) {
       console.error('Enrichment action error:', error);
-      toast.error('Failed to process suggestion');
+      toast.error(error instanceof Error ? error.message : 'Failed to process suggestion');
     } finally {
       setProcessingEnrichment(null);
     }

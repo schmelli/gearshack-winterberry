@@ -14,6 +14,7 @@ import { z } from 'zod';
 const applyEnrichmentSchema = z.object({
   suggestion_id: z.string().uuid(),
   action: z.enum(['accept', 'dismiss']),
+  notification_id: z.string().uuid().optional(), // Optional: delete notification after processing
 });
 
 export async function POST(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { suggestion_id, action } = validation.data;
+    const { suggestion_id, action, notification_id } = validation.data;
 
     // Fetch the enrichment suggestion
     const { data: suggestion, error: fetchError } = await supabase
@@ -70,6 +71,15 @@ export async function POST(request: NextRequest) {
           { error: 'Failed to dismiss suggestion' },
           { status: 500 }
         );
+      }
+
+      // Delete the notification so it's removed from the list
+      if (notification_id) {
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notification_id)
+          .eq('user_id', user.id); // Security: ensure user owns notification
       }
 
       return NextResponse.json({
@@ -122,6 +132,15 @@ export async function POST(request: NextRequest) {
     if (updateSuggestionError) {
       // Item was updated but suggestion status wasn't - log but don't fail
       console.error('Failed to update suggestion status:', updateSuggestionError);
+    }
+
+    // Delete the notification so it's removed from the list
+    if (notification_id) {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notification_id)
+        .eq('user_id', user.id); // Security: ensure user owns notification
     }
 
     return NextResponse.json({

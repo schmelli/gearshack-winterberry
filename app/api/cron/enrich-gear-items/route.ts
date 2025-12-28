@@ -210,17 +210,26 @@ export async function GET(request: NextRequest) {
 
         suggestionsCreated++;
 
-        // Create notification for user
-        const enrichmentFields = [];
+        // Create notification for user with detailed field information
+        const enrichmentDetails: string[] = [];
         // Track if weight came from web search for notification message
         const weightFromWebSearch = enrichmentData.suggested_weight_grams && !bestMatch.weight_grams;
         if (enrichmentData.suggested_weight_grams) {
-          enrichmentFields.push(weightFromWebSearch ? `weight (${enrichmentData.suggested_weight_grams}g from web)` : 'weight');
+          const weightStr = `${enrichmentData.suggested_weight_grams}g`;
+          enrichmentDetails.push(weightFromWebSearch ? `Weight: ${weightStr} (web)` : `Weight: ${weightStr}`);
         }
-        if (enrichmentData.suggested_description) enrichmentFields.push('description');
-        if (enrichmentData.suggested_price_usd) enrichmentFields.push('price');
+        if (enrichmentData.suggested_price_usd) {
+          enrichmentDetails.push(`Price: $${enrichmentData.suggested_price_usd.toFixed(2)}`);
+        }
+        if (enrichmentData.suggested_description) {
+          // Truncate long descriptions
+          const descPreview = enrichmentData.suggested_description.length > 50
+            ? enrichmentData.suggested_description.slice(0, 47) + '...'
+            : enrichmentData.suggested_description;
+          enrichmentDetails.push(`Desc: "${descPreview}"`);
+        }
 
-        const message = `New data available for "${item.name}": ${enrichmentFields.join(', ')}`;
+        const message = `"${item.name}" • ${enrichmentDetails.join(' • ')}`;
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -240,7 +249,7 @@ export async function GET(request: NextRequest) {
 
         log.info('Created enrichment suggestion', {
           gear_item_id: item.id,
-          fields: enrichmentFields,
+          fields: enrichmentDetails,
           confidence: bestMatch.score,
         });
       } catch (err) {
