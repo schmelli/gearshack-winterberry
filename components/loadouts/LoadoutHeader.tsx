@@ -23,13 +23,13 @@ import { ArrowLeft, Calendar, Pencil, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ToggleBadge } from '@/components/ui/toggle-badge';
-import { WeightDonut } from '@/components/loadouts/WeightDonut';
+import { EnhancedWeightDonut } from '@/components/loadouts/EnhancedWeightDonut';
+import { WeightSummaryTable } from '@/components/loadouts/WeightSummaryTable';
 import { Textarea } from '@/components/ui/textarea';
-import { formatTripDate, formatWeight, DEFAULT_WEIGHT_GOAL_GRAMS } from '@/lib/loadout-utils';
+import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
-import { ActivityMatrix } from '@/components/loadouts/ActivityMatrix';
 import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
-import type { Loadout, CategoryWeight, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
+import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 
@@ -39,24 +39,22 @@ import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 
 interface LoadoutHeaderProps {
   loadout: Loadout;
-  totalWeight: number;
-  baseWeight: number; // US4: Base Weight calculation
-  categoryWeights: CategoryWeight[];
+  /** Gear items in the loadout */
+  items: GearItem[];
+  /** Item states (worn/consumable flags) */
+  itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
   onToggleActivity: (activity: ActivityType) => void;
   onToggleSeason: (season: Season) => void;
-  /** Currently selected category for chart highlight (FR-012) */
+  /** Currently selected category for chart highlight */
   selectedCategoryId?: string | null;
-  /** Callback when chart segment is clicked (FR-012) */
-  onSegmentClick?: (categoryId: string) => void;
+  /** Callback when chart segment is clicked (includes level for drill-down) */
+  onSegmentClick?: (categoryId: string, level: 'category' | 'subcategory') => void;
   /** Callback when edit button is clicked (US5) */
   onEdit?: () => void;
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
-  /** Props for share button */
-  items?: GearItem[];
-  itemStates?: LoadoutItemState[];
 }
 
 // =============================================================================
@@ -67,54 +65,13 @@ const ACTIVITY_OPTIONS: ActivityType[] = ['hiking', 'camping', 'backpacking', 'c
 const SEASON_OPTIONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
 
 // =============================================================================
-// Weight Progress Bar Component (US4: Enhanced with Total/Base display)
-// =============================================================================
-
-interface WeightProgressBarProps {
-  totalWeight: number;
-  baseWeight: number;
-}
-
-function WeightProgressBar({ totalWeight, baseWeight }: WeightProgressBarProps) {
-  const progress = Math.min((baseWeight / DEFAULT_WEIGHT_GOAL_GRAMS) * 100, 100);
-  const isOverGoal = baseWeight > DEFAULT_WEIGHT_GOAL_GRAMS;
-
-  return (
-    <div className="space-y-2">
-      {/* Total Weight and Base Weight Display (US4) */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Total Weight</span>
-        <span className="font-medium">{formatWeight(totalWeight)}</span>
-      </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Base Weight</span>
-        <span className={cn('font-medium', isOverGoal && 'text-destructive')}>
-          {formatWeight(baseWeight)} / {formatWeight(DEFAULT_WEIGHT_GOAL_GRAMS)}
-        </span>
-      </div>
-      {/* Progress Bar */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn(
-            'h-full transition-all duration-300',
-            isOverGoal ? 'bg-destructive' : 'bg-primary'
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
 // Component
 // =============================================================================
 
 export function LoadoutHeader({
   loadout,
-  totalWeight,
-  baseWeight,
-  categoryWeights,
+  items,
+  itemStates,
   activityTypes,
   seasons,
   onToggleActivity,
@@ -123,8 +80,6 @@ export function LoadoutHeader({
   onSegmentClick,
   onEdit,
   onDescriptionChange,
-  items = [],
-  itemStates = [],
 }: LoadoutHeaderProps) {
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
@@ -261,12 +216,6 @@ export function LoadoutHeader({
               </div>
             </div>
 
-            {/* Activity Matrix - FR-015, FR-016, FR-017, FR-018 */}
-            <ActivityMatrix
-              selectedActivities={activityTypes}
-              className="max-w-xs"
-            />
-
             {/* Season Badges - FR-008 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -284,20 +233,21 @@ export function LoadoutHeader({
               </div>
             </div>
 
-            {/* Weight Progress Bar - FR-009 (US4: Enhanced with Total/Base) */}
-            <div className="max-w-sm">
-              <WeightProgressBar totalWeight={totalWeight} baseWeight={baseWeight} />
-            </div>
+            {/* Weight Summary Table (LighterPack style) */}
+            <WeightSummaryTable
+              items={items}
+              itemStates={itemStates}
+              className="max-w-sm"
+            />
           </div>
 
-          {/* Right: Donut Chart */}
+          {/* Right: Enhanced Donut Chart with drill-down */}
           <div className="hidden lg:flex lg:items-start lg:justify-end">
-            {/* Donut Chart with interactive filtering (FR-012) */}
-            <WeightDonut
-              categoryWeights={categoryWeights}
-              size="large"
-              selectedCategoryId={selectedCategoryId}
+            <EnhancedWeightDonut
+              items={items}
+              selectedId={selectedCategoryId}
               onSegmentClick={onSegmentClick}
+              size={300}
             />
           </div>
         </div>

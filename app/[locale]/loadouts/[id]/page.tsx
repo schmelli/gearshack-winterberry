@@ -24,6 +24,7 @@ import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';
 import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { useCategories } from '@/hooks/useCategories';
+import { useLighterAlternatives } from '@/hooks/useLighterAlternatives';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
@@ -121,6 +122,9 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   // Item state for worn/consumable tracking (US4)
   const { isWorn, isConsumable, toggleWorn, toggleConsumable } = useLoadoutItemState(id);
 
+  // Lighter alternatives detection (Feature: loadout-ux-enhancements)
+  const { getLighterAlternative } = useLighterAlternatives(loadoutItems);
+
   // Feature 045: Gear detail modal state
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
   const [gearModalOpen, setGearModalOpen] = useState(false);
@@ -185,22 +189,19 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         </div>
       )}
 
-      {/* Enhanced Header with sans-serif title, badges, weight progress (FR-012) */}
+      {/* Enhanced Header with sans-serif title, badges, weight summary */}
       <LoadoutHeader
         loadout={loadout}
-        totalWeight={totalWeight}
-        baseWeight={baseWeight}
-        categoryWeights={categoryWeights}
+        items={loadoutItems}
+        itemStates={itemStates}
         activityTypes={activityTypes}
         seasons={seasons}
         onToggleActivity={toggleActivity}
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
-        onSegmentClick={toggleCategory}
+        onSegmentClick={(categoryId, _level) => toggleCategory(categoryId)}
         onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
-        items={loadoutItems}
-        itemStates={itemStates}
       />
 
       {/* Metadata Edit Dialog (US5) */}
@@ -270,6 +271,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               onToggleWorn={toggleWorn}
               onToggleConsumable={toggleConsumable}
               onItemClick={handleGearClick}
+              getLighterAlternative={getLighterAlternative}
             />
           </div>
         </div>
