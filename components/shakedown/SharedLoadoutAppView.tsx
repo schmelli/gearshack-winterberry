@@ -12,7 +12,7 @@
  * This is the authenticated alternative to SharedLoadoutHero (anonymous view).
  */
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { Calendar, MapPin } from 'lucide-react';
@@ -77,6 +77,22 @@ export function SharedLoadoutAppView({
 
   // Initialize owned items check hook
   const { checkOwned } = useOwnedItemsCheck(userId);
+
+  // Track view for analytics (Feature: Share Management)
+  useEffect(() => {
+    const trackView = async () => {
+      try {
+        await fetch(`/api/shares/${shareToken}/track-view`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        // Silent fail - don't interrupt user experience for analytics
+        console.debug('[SharedLoadoutAppView] View tracking failed:', error);
+      }
+    };
+
+    trackView();
+  }, [shareToken]);
 
   const tripDate = useMemo(
     () => (payload.loadout.tripDate ? new Date(payload.loadout.tripDate) : null),
