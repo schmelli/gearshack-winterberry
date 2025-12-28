@@ -544,8 +544,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to add item to loadout');
           console.error('[SupabaseStore] addItemToLoadout error:', error);
+          throw error;
         }
       },
 
@@ -613,8 +613,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to remove item from loadout');
           console.error('[SupabaseStore] removeItemFromLoadout error:', error);
+          throw error;
         }
       },
 
@@ -690,8 +690,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to update loadout metadata');
           console.error('[SupabaseStore] updateLoadoutMetadata error:', error);
+          throw error;
         }
       },
 
@@ -755,8 +755,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to update item worn state');
           console.error('[SupabaseStore] setItemWorn error:', error);
+          throw error;
         }
       },
 
@@ -820,8 +820,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to update item consumable state');
           console.error('[SupabaseStore] setItemConsumable error:', error);
+          throw error;
         }
       },
 

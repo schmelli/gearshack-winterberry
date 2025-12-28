@@ -9,6 +9,8 @@
 'use client';
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useStore } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -36,6 +38,7 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
   );
   const setItemWorn = useStore((state) => state.setItemWorn);
   const setItemConsumable = useStore((state) => state.setItemConsumable);
+  const t = useTranslations('Loadouts.errors');
 
   const isWorn = useCallback(
     (itemId: string): boolean => {
@@ -59,11 +62,11 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       try {
         await setItemWorn(loadoutId, itemId, !currentState);
       } catch (error) {
-        // Error toast is already shown by the store
+        toast.error(t('updateWornStateFailed'));
         console.error('[LoadoutItemState] Failed to toggle worn state:', error);
       }
     },
-    [loadoutId, isWorn, setItemWorn]
+    [loadoutId, isWorn, setItemWorn, t]
   );
 
   const toggleConsumable = useCallback(
@@ -72,11 +75,11 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       try {
         await setItemConsumable(loadoutId, itemId, !currentState);
       } catch (error) {
-        // Error toast is already shown by the store
+        toast.error(t('updateConsumableStateFailed'));
         console.error('[LoadoutItemState] Failed to toggle consumable state:', error);
       }
     },
-    [loadoutId, isConsumable, setItemConsumable]
+    [loadoutId, isConsumable, setItemConsumable, t]
   );
 
   return {

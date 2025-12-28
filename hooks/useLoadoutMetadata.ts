@@ -10,6 +10,8 @@
 'use client';
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useStore } from '@/hooks/useSupabaseStore';
 import type { ActivityType, Season } from '@/types/loadout';
 
@@ -37,6 +39,7 @@ export function useLoadoutMetadata(loadoutId: string): UseLoadoutMetadataReturn 
     state.loadouts.find((l) => l.id === loadoutId)
   );
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
+  const t = useTranslations('Loadouts.errors');
 
   const activityTypes = loadout?.activityTypes ?? [];
   const seasons = loadout?.seasons ?? [];
@@ -50,11 +53,11 @@ export function useLoadoutMetadata(loadoutId: string): UseLoadoutMetadataReturn 
       try {
         await updateLoadoutMetadata(loadoutId, { activityTypes: newActivities });
       } catch (error) {
-        // Error toast is already shown by the store
+        toast.error(t('updateMetadataFailed'));
         console.error('[LoadoutMetadata] Failed to toggle activity:', error);
       }
     },
-    [loadoutId, loadout?.activityTypes, updateLoadoutMetadata]
+    [loadoutId, loadout?.activityTypes, updateLoadoutMetadata, t]
   );
 
   const toggleSeason = useCallback(
@@ -66,11 +69,11 @@ export function useLoadoutMetadata(loadoutId: string): UseLoadoutMetadataReturn 
       try {
         await updateLoadoutMetadata(loadoutId, { seasons: newSeasons });
       } catch (error) {
-        // Error toast is already shown by the store
+        toast.error(t('updateMetadataFailed'));
         console.error('[LoadoutMetadata] Failed to toggle season:', error);
       }
     },
-    [loadoutId, loadout?.seasons, updateLoadoutMetadata]
+    [loadoutId, loadout?.seasons, updateLoadoutMetadata, t]
   );
 
   return {

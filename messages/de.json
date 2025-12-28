@@ -382,6 +382,13 @@
     "deleteTitle": "Packliste löschen",
     "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
     "deleteLoadout": "Packliste löschen",
+    "errors": {
+      "addItemFailed": "Gegenstand konnte nicht zur Packliste hinzugefügt werden",
+      "removeItemFailed": "Gegenstand konnte nicht aus der Packliste entfernt werden",
+      "updateMetadataFailed": "Packlisten-Metadaten konnten nicht aktualisiert werden",
+      "updateWornStateFailed": "Getragen-Status konnte nicht aktualisiert werden",
+      "updateConsumableStateFailed": "Verbrauchsgut-Status konnte nicht aktualisiert werden"
+    },
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "exportOptions": "Export-Optionen",
     "export": "Exportieren",
