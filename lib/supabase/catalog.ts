@@ -105,7 +105,26 @@ export async function fuzzyBrandSearch(
 // ============================================================================
 
 /**
- * Performs fuzzy search on product names using ILIKE
+ * Maximum number of products to fetch from database before client-side scoring.
+ * Prevents excessive memory usage while ensuring sufficient candidates for ranking.
+ */
+const MAX_FETCH_LIMIT = 100;
+
+/**
+ * Multiplier for initial database fetch to ensure enough candidates after scoring.
+ * Higher values improve result quality but increase memory usage.
+ */
+const FETCH_LIMIT_MULTIPLIER = 5;
+
+/**
+ * Performs fuzzy search on product names AND brand names
+ * Searches both product.name and catalog_brands.name fields for better matches.
+ *
+ * Example: Query "MSR Hubba Hubba" will match products where:
+ * - Product name contains "Hubba Hubba" AND brand name is "MSR"
+ * - Product name contains "MSR Hubba Hubba"
+ * - Brand name contains "MSR"
+ *
  * Note: Category hierarchy (categoryMain, subcategory) is derived from the
  * categories table via product_type_id. This function returns null for those
  * fields - use the /api/catalog/products/search endpoint for full hierarchy.
@@ -122,9 +141,29 @@ export async function fuzzyProductSearch(
 ): Promise<ProductSearchResult[]> {
   const { brandId, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
-  const escapedQuery = escapeLikePattern(normalizedQuery);
 
-  // Build query with optional filters
+  // Handle empty query edge case
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  // Split query into words for multi-word matching
+  const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  // Handle empty queryWords edge case (shouldn't happen after trim check, but be defensive)
+  if (queryWords.length === 0) {
+    return [];
+  }
+
+  // Fetch more results than needed (will filter and score in JS)
+  // Use multiplier to ensure we have enough matches after scoring
+  const fetchLimit = Math.min(limit * FETCH_LIMIT_MULTIPLIER, MAX_FETCH_LIMIT);
+
+  // Extract first word for initial filtering (to avoid fetching all products)
+  const firstWord = escapeLikePattern(queryWords[0]);
+
+  // Build query - fetch products where name contains at least the first search word
+  // This narrows down the dataset before JS filtering
   let queryBuilder = supabase
     .from('catalog_products')
     .select(
@@ -143,8 +182,8 @@ export async function fuzzyProductSearch(
       )
     `
     )
-    .ilike('name', `%${escapedQuery}%`)
-    .limit(limit);
+    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%,catalog_brands.name.ilike.%${firstWord}%`)
+    .limit(fetchLimit);
 
   if (brandId) {
     queryBuilder = queryBuilder.eq('brand_id', brandId);
@@ -154,33 +193,93 @@ export async function fuzzyProductSearch(
 
   if (error) throw error;
 
-  return (data || []).map((product) => {
-    // Calculate simple similarity score
-    const normalized = product.name.toLowerCase();
-    const matchIndex = normalized.indexOf(normalizedQuery);
-    const score =
-      matchIndex === 0
-        ? 0.9 + 0.1 * (normalizedQuery.length / normalized.length)
-        : matchIndex > 0
-          ? 0.5 + 0.3 * (normalizedQuery.length / normalized.length)
-          : 0.3;
+  // Filter and score products
+  const scoredProducts = (data || [])
+    .map((product) => {
+      // Defensive null checks for product name and brand
+      const productName = (product.name ?? '').toLowerCase();
+      const brandName = (product.catalog_brands?.name ?? '').toLowerCase();
+      const combinedText = `${brandName} ${productName}`.trim();
 
-    return {
-      id: product.id,
-      name: product.name,
-      brand: product.catalog_brands
-        ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
-        : null,
-      categoryMain: null, // Derived from categories table - use API for full hierarchy
-      subcategory: null,  // Derived from categories table - use API for full hierarchy
-      productType: product.product_type,
-      productTypeId: product.product_type_id,
-      description: product.description,
-      priceUsd: product.price_usd,
-      weightGrams: product.weight_grams,
-      score: Math.round(score * 100) / 100,
-    };
-  }).sort((a, b) => b.score - a.score);
+      // Evaluate all scoring strategies and select the highest score
+      const potentialScores: number[] = [];
+
+      // Strategy 1: Check if full query matches combined brand + name (0.85-1.0)
+      let strategy1Matched = false;
+      if (combinedText.includes(normalizedQuery)) {
+        const matchIndex = combinedText.indexOf(normalizedQuery);
+        const currentScore = matchIndex === 0
+          ? 0.95 + 0.05 * (normalizedQuery.length / combinedText.length)
+          : 0.85 + 0.1 * (normalizedQuery.length / combinedText.length);
+        potentialScores.push(currentScore);
+        strategy1Matched = true;
+      }
+
+      // Strategy 2: Check if all query words appear in combined text (0.75-0.85)
+      // Skip if Strategy 1 already matched (optimization - Strategy 1 implies Strategy 2)
+      if (!strategy1Matched && queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
+        const currentScore = 0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
+        potentialScores.push(currentScore);
+      }
+
+      // Strategy 3: Check product name only (0.5-0.8)
+      if (productName.includes(normalizedQuery)) {
+        const matchIndex = productName.indexOf(normalizedQuery);
+        const currentScore = matchIndex === 0
+          ? 0.7 + 0.1 * (normalizedQuery.length / productName.length)
+          : 0.5 + 0.15 * (normalizedQuery.length / productName.length);
+        potentialScores.push(currentScore);
+      }
+
+      // Strategy 4: Check brand name only (0.4-0.7)
+      if (brandName.includes(normalizedQuery)) {
+        const matchIndex = brandName.indexOf(normalizedQuery);
+        const currentScore = matchIndex === 0
+          ? 0.6 + 0.1 * (normalizedQuery.length / brandName.length)
+          : 0.4 + 0.15 * (normalizedQuery.length / brandName.length);
+        potentialScores.push(currentScore);
+      }
+
+      // Strategy 5: Check if any query word matches (0.1-0.3)
+      // Require at least 50% of words to match to avoid too many irrelevant results
+      if (queryWords.some(word => combinedText.includes(word))) {
+        const matchingWords = queryWords.filter(word => combinedText.includes(word));
+        const matchRatio = matchingWords.length / queryWords.length;
+
+        // Only score if at least 50% of query words are present
+        if (matchRatio >= 0.5) {
+          const currentScore = 0.3 * matchRatio;
+          potentialScores.push(currentScore);
+        }
+      }
+
+      // Select the highest score from all strategies
+      const score = potentialScores.length > 0 ? Math.max(...potentialScores) : 0;
+      const hasMatch = potentialScores.length > 0;
+
+      return {
+        id: product.id,
+        name: product.name,
+        brand: product.catalog_brands
+          ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
+          : null,
+        categoryMain: null, // Derived from categories table - use API for full hierarchy
+        subcategory: null,  // Derived from categories table - use API for full hierarchy
+        productType: product.product_type,
+        productTypeId: product.product_type_id,
+        description: product.description,
+        priceUsd: product.price_usd,
+        weightGrams: product.weight_grams,
+        score: Math.round(score * 100) / 100,
+        hasMatch,
+      };
+    })
+    .filter(product => product.hasMatch)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ hasMatch, ...product }) => product); // Remove hasMatch flag
+
+  return scoredProducts;
 }
 
 // ============================================================================
