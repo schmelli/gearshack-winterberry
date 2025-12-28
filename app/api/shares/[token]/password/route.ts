@@ -20,7 +20,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = await params;
+    const { token } = params;
     const body = await request.json();
     const { password } = body as { password?: string };
 
