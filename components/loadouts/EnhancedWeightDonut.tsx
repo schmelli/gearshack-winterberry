@@ -282,7 +282,11 @@ export function EnhancedWeightDonut({
       )}
 
       {/* Donut Chart */}
-      <div style={{ width: size, height: size }}>
+      <div
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label={`Weight distribution chart showing ${currentData.length} categories. Use the legend below for details.`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -320,13 +324,15 @@ export function EnhancedWeightDonut({
       </div>
 
       {/* Legend */}
-      <div className="w-full max-w-sm space-y-1">
+      <div className="w-full max-w-sm space-y-1" role="list" aria-label="Weight breakdown by category">
         {currentData.map((item) => (
           <button
             key={item.id}
             onClick={() => handlePieClick(item)}
+            aria-label={`${item.label}: ${formatWeight(item.weight)} (${item.percentage.toFixed(1)}%). Click to ${drillDownCategoryId ? 'filter' : 'view subcategories'}`}
             className={cn(
-              'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50',
+              'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors',
+              'hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               selectedId === item.id && 'bg-muted'
             )}
           >
@@ -334,6 +340,7 @@ export function EnhancedWeightDonut({
               <div
                 className="h-3 w-3 rounded-sm"
                 style={{ backgroundColor: item.color }}
+                aria-hidden="true"
               />
               <span className="text-left">{item.label}</span>
             </div>

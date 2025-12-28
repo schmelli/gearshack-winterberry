@@ -228,8 +228,13 @@ function LoadoutListItem({
           {lighterAlternative && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="shrink-0 text-amber-500" onClick={(e) => e.stopPropagation()}>
-                  <AlertTriangle className="h-4 w-4" />
+                <span
+                  className="shrink-0 text-amber-500"
+                  onClick={(e) => e.stopPropagation()}
+                  role="img"
+                  aria-label="Lighter alternative available"
+                >
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs">

@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 
@@ -59,12 +59,25 @@ export function useLighterAlternatives(
 ): UseLighterAlternativesReturn {
   const allItems = useItems();
 
+  // Pre-group all items by productTypeId for O(1) lookup (instead of O(m) filter per item)
+  // This reduces overall complexity from O(n×m) to O(n+m)
+  const itemsByProductType = useMemo(() => {
+    const map = new Map<string, GearItem[]>();
+    for (const item of allItems) {
+      if (!item.productTypeId || item.weightGrams === null) continue;
+      const existing = map.get(item.productTypeId) ?? [];
+      existing.push(item);
+      map.set(item.productTypeId, existing);
+    }
+    return map;
+  }, [allItems]);
+
   // Build a map of lighter alternatives
   const alternatives = useMemo(() => {
     const result = new Map<string, LighterAlternative>();
 
     // Skip if no items
-    if (loadoutItems.length === 0 || allItems.length === 0) {
+    if (loadoutItems.length === 0 || itemsByProductType.size === 0) {
       return result;
     }
 
@@ -78,20 +91,18 @@ export function useLighterAlternatives(
         continue;
       }
 
-      // Find all items with the same productTypeId that are NOT in the loadout
-      const sameTypeItems = allItems.filter(
-        item =>
-          item.productTypeId === currentItem.productTypeId &&
-          !loadoutItemIds.has(item.id) &&
-          item.weightGrams !== null
-      );
+      // O(1) lookup: Get items with the same productTypeId
+      const sameTypeItems = itemsByProductType.get(currentItem.productTypeId) ?? [];
 
-      // Find the lightest alternative
+      // Find the lightest alternative that is NOT in the loadout
       let lightest: GearItem | null = null;
       for (const item of sameTypeItems) {
+        // Skip items already in the loadout
+        if (loadoutItemIds.has(item.id)) continue;
+
         if (
           item.weightGrams !== null &&
-          item.weightGrams < currentItem.weightGrams! &&
+          item.weightGrams < currentItem.weightGrams &&
           (!lightest || item.weightGrams < (lightest.weightGrams ?? Infinity))
         ) {
           lightest = item;
@@ -103,23 +114,23 @@ export function useLighterAlternatives(
         result.set(currentItem.id, {
           currentItemId: currentItem.id,
           alternativeItem: lightest,
-          weightSavings: currentItem.weightGrams! - lightest.weightGrams,
+          weightSavings: currentItem.weightGrams - lightest.weightGrams,
         });
       }
     }
 
     return result;
-  }, [loadoutItems, allItems]);
+  }, [loadoutItems, itemsByProductType]);
 
   // Helper: Check if an item has a lighter alternative
-  const hasLighterAlternative = useMemo(
-    () => (itemId: string) => alternatives.has(itemId),
+  const hasLighterAlternative = useCallback(
+    (itemId: string) => alternatives.has(itemId),
     [alternatives]
   );
 
   // Helper: Get lighter alternative info for an item
-  const getLighterAlternative = useMemo(
-    () => (itemId: string) => alternatives.get(itemId) ?? null,
+  const getLighterAlternative = useCallback(
+    (itemId: string) => alternatives.get(itemId) ?? null,
     [alternatives]
   );
 
