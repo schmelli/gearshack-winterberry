@@ -18,14 +18,29 @@ import { markNotificationRead } from '@/app/actions/notifications';
 import type { Notification } from '@/types/notifications';
 
 /**
+ * Result of processing an enrichment action
+ */
+export interface EnrichmentActionResult {
+  success: boolean;
+  updatedFields?: string[];
+  error?: string;
+}
+
+/**
  * Hook result interface
  */
 interface UseNotificationsResult {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
+  processingEnrichmentId: string | null;
   markAsRead: (notificationId: string) => Promise<void>;
   refetch: () => Promise<void>;
+  processEnrichmentAction: (
+    notificationId: string,
+    suggestionId: string,
+    action: 'accept' | 'dismiss'
+  ) => Promise<EnrichmentActionResult>;
 }
 
 /**
@@ -54,6 +69,7 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
   const supabase = useMemo(() => createClient(), []);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [processingEnrichmentId, setProcessingEnrichmentId] = useState<string | null>(null);
 
   /**
    * Fetches notifications from the database
@@ -151,11 +167,63 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
     }
   }, []);
 
+  /**
+   * Processes an enrichment action (accept or dismiss).
+   * Encapsulates the API call and state management.
+   */
+  const processEnrichmentAction = useCallback(
+    async (
+      notificationId: string,
+      suggestionId: string,
+      action: 'accept' | 'dismiss'
+    ): Promise<EnrichmentActionResult> => {
+      setProcessingEnrichmentId(suggestionId);
+
+      try {
+        const response = await fetch('/api/gear-items/apply-enrichment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            suggestion_id: suggestionId,
+            action,
+            notification_id: notificationId,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg = data.error || 'Failed to process enrichment';
+          return { success: false, error: errorMsg };
+        }
+
+        // Refresh notifications list (notification was deleted by API)
+        await fetchNotifications();
+
+        return {
+          success: true,
+          updatedFields: data.updated_fields,
+        };
+      } catch (error) {
+        console.error('[useNotifications] Enrichment action error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to process suggestion',
+        };
+      } finally {
+        setProcessingEnrichmentId(null);
+      }
+    },
+    [fetchNotifications]
+  );
+
   return {
     notifications,
     unreadCount,
     isLoading,
+    processingEnrichmentId,
     markAsRead,
     refetch: fetchNotifications,
+    processEnrichmentAction,
   };
 }

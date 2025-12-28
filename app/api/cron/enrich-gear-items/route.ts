@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createModuleLogger } from '@/lib/utils/logger';
 import { fuzzyProductSearch, fuzzyBrandSearch } from '@/lib/supabase/catalog';
@@ -41,11 +42,30 @@ interface CatalogMatch {
 
 const MIN_MATCH_CONFIDENCE = 0.70; // Match threshold - allows "contains" matches from fuzzyProductSearch
 
+/**
+ * Timing-safe comparison of authorization header to prevent timing attacks.
+ * Uses constant-time comparison to avoid leaking secret length or content.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  const expected = `Bearer ${expectedSecret}`;
+  if (authHeader.length !== expected.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret using timing-safe comparison
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!verifyAuthHeader(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -210,17 +230,26 @@ export async function GET(request: NextRequest) {
 
         suggestionsCreated++;
 
-        // Create notification for user
-        const enrichmentFields = [];
+        // Create notification for user with detailed field information
+        const enrichmentDetails: string[] = [];
         // Track if weight came from web search for notification message
         const weightFromWebSearch = enrichmentData.suggested_weight_grams && !bestMatch.weight_grams;
         if (enrichmentData.suggested_weight_grams) {
-          enrichmentFields.push(weightFromWebSearch ? `weight (${enrichmentData.suggested_weight_grams}g from web)` : 'weight');
+          const weightStr = `${enrichmentData.suggested_weight_grams}g`;
+          enrichmentDetails.push(weightFromWebSearch ? `Weight: ${weightStr} (web)` : `Weight: ${weightStr}`);
         }
-        if (enrichmentData.suggested_description) enrichmentFields.push('description');
-        if (enrichmentData.suggested_price_usd) enrichmentFields.push('price');
+        if (enrichmentData.suggested_price_usd) {
+          enrichmentDetails.push(`Price: $${enrichmentData.suggested_price_usd.toFixed(2)}`);
+        }
+        if (enrichmentData.suggested_description) {
+          // Truncate long descriptions
+          const descPreview = enrichmentData.suggested_description.length > 50
+            ? enrichmentData.suggested_description.slice(0, 47) + '...'
+            : enrichmentData.suggested_description;
+          enrichmentDetails.push(`Desc: "${descPreview}"`);
+        }
 
-        const message = `New data available for "${item.name}": ${enrichmentFields.join(', ')}`;
+        const message = `"${item.name}" • ${enrichmentDetails.join(' • ')}`;
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -240,7 +269,7 @@ export async function GET(request: NextRequest) {
 
         log.info('Created enrichment suggestion', {
           gear_item_id: item.id,
-          fields: enrichmentFields,
+          fields: enrichmentDetails,
           confidence: bestMatch.score,
         });
       } catch (err) {
