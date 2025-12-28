@@ -59,49 +59,55 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
     await deleteLoadout(loadout.id);
   };
 
+  // Structure note: The delete dialog is placed OUTSIDE the Link to prevent
+  // navigation events when the dialog closes during deletion (fixes 404 bug).
   return (
-    <Link href={`/loadouts/${loadout.id}`}>
-      <Card className="group transition-colors hover:border-primary/50 hover:bg-muted/50">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <CardTitle className="line-clamp-1 text-lg">{loadout.name}</CardTitle>
-            <div className="opacity-0 transition-opacity group-hover:opacity-100">
-              <DeleteLoadoutDialog
-                loadoutName={loadout.name}
-                onConfirm={handleDelete}
-              />
+    <div className="group relative">
+      <Link href={`/loadouts/${loadout.id}`}>
+        <Card className="transition-colors hover:border-primary/50 hover:bg-muted/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <CardTitle className="line-clamp-1 text-lg pr-8">{loadout.name}</CardTitle>
+              {/* Spacer for delete button positioning */}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3">
-            {/* Trip Date */}
-            {loadout.tripDate && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{formatTripDate(loadout.tripDate)}</span>
-              </div>
-            )}
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              {/* Trip Date */}
+              {loadout.tripDate && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatTripDate(loadout.tripDate)}</span>
+                </div>
+              )}
 
-            {/* Stats Row */}
-            <div className="flex items-center gap-4">
-              {/* Item Count */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Package className="h-4 w-4" />
-                <span>
-                  {t('itemCount', { count: loadoutItems.length })}
-                </span>
-              </div>
+              {/* Stats Row */}
+              <div className="flex items-center gap-4">
+                {/* Item Count */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Package className="h-4 w-4" />
+                  <span>
+                    {t('itemCount', { count: loadoutItems.length })}
+                  </span>
+                </div>
 
-              {/* Total Weight */}
-              <div className={cn('flex items-center gap-2 text-sm font-medium', weightColorClass)}>
-                <Scale className="h-4 w-4" />
-                <span>{formatWeight(totalWeight)}</span>
+                {/* Total Weight */}
+                <div className={cn('flex items-center gap-2 text-sm font-medium', weightColorClass)}>
+                  <Scale className="h-4 w-4" />
+                  <span>{formatWeight(totalWeight)}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      {/* Delete button positioned absolutely OUTSIDE the Link to prevent navigation during deletion */}
+      <div className="absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100">
+        <DeleteLoadoutDialog
+          loadoutName={loadout.name}
+          onConfirm={handleDelete}
+        />
+      </div>
+    </div>
   );
 }
