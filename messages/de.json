@@ -353,7 +353,19 @@
     "popupBlockedAlert": "Export-Fenster konnte nicht geöffnet werden. Bitte erlaube Popups für diese Seite und versuche es erneut.",
     "addCommentFirst": "Füge einen Kommentar hinzu bevor du sendest",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "miscellaneous": "Sonstiges",
+    "other": "Andere",
+    "noData": "Keine Daten",
+    "clickToDrillDown": "Klicke auf eine Kategorie für Details",
+    "weightSummary": {
+      "total": "Gesamt",
+      "worn": "Getragen",
+      "consumable": "Verbrauchbar",
+      "baseWeight": "Basisgewicht"
+    },
+    "lighterAlternative": "Leichtere Option verfügbar",
+    "lighterAlternativeTooltip": "Du hast einen leichteren {productType} im Inventar: {itemName} ({weight})"
   },
   "LoadoutCreation": {
     "title": "Neue Packliste erstellen",

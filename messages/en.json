@@ -353,7 +353,19 @@
     "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
     "addCommentFirst": "Add a comment before sending",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "miscellaneous": "Miscellaneous",
+    "other": "Other",
+    "noData": "No data",
+    "clickToDrillDown": "Click a category to see details",
+    "weightSummary": {
+      "total": "Total",
+      "worn": "Worn",
+      "consumable": "Consumable",
+      "baseWeight": "Base Weight"
+    },
+    "lighterAlternative": "Lighter option available",
+    "lighterAlternativeTooltip": "You have a lighter {productType} in your inventory: {itemName} ({weight})"
   },
   "LoadoutCreation": {
     "title": "Create New Loadout",

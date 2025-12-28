@@ -15,18 +15,24 @@
 
 'use client';
 
-import { X, Package, Shirt, Apple } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { X, Package, Shirt, Apple, AlertTriangle } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Image from 'next/image';
 import type { GearItem } from '@/types/gear';
 import { getSortedCategoryGroups, formatWeight, type SortOption } from '@/lib/loadout-utils';
 import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel } from '@/lib/utils/category-helpers';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
+import type { LighterAlternative } from '@/hooks/useLighterAlternatives';
 
 // =============================================================================
 // Types
@@ -49,6 +55,8 @@ interface LoadoutListProps {
   onToggleConsumable: (itemId: string) => void;
   /** Feature 045: Click to view gear details in modal */
   onItemClick?: (itemId: string) => void;
+  /** Get lighter alternative for an item */
+  getLighterAlternative?: (itemId: string) => LighterAlternative | null;
 }
 
 // =============================================================================
@@ -65,9 +73,11 @@ export function LoadoutList({
   onToggleWorn,
   onToggleConsumable,
   onItemClick,
+  getLighterAlternative,
 }: LoadoutListProps) {
-  const { categories } = useCategories();
+  const { categories, getLabelById } = useCategories();
   const locale = useLocale();
+  const t = useTranslations('Loadouts');
   const categoryGroups = getSortedCategoryGroups(items, categories, sortBy, locale);
   const isEmpty = items.length === 0;
 
@@ -107,18 +117,24 @@ export function LoadoutList({
 
             {/* Items in Category */}
             <div className="space-y-2 pb-4">
-              {categoryItems.map((item) => (
-                <LoadoutListItem
-                  key={item.id}
-                  item={item}
-                  onRemove={() => onRemoveItem(item.id)}
-                  isWorn={isWorn(item.id)}
-                  isConsumable={isConsumable(item.id)}
-                  onToggleWorn={() => onToggleWorn(item.id)}
-                  onToggleConsumable={() => onToggleConsumable(item.id)}
-                  onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                />
-              ))}
+              {categoryItems.map((item) => {
+                const lighterAlt = getLighterAlternative?.(item.id) ?? null;
+                return (
+                  <LoadoutListItem
+                    key={item.id}
+                    item={item}
+                    onRemove={() => onRemoveItem(item.id)}
+                    isWorn={isWorn(item.id)}
+                    isConsumable={isConsumable(item.id)}
+                    onToggleWorn={() => onToggleWorn(item.id)}
+                    onToggleConsumable={() => onToggleConsumable(item.id)}
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    lighterAlternative={lighterAlt}
+                    productTypeLabel={item.productTypeId ? getLabelById(item.productTypeId) : undefined}
+                    t={t}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}
@@ -140,6 +156,12 @@ interface LoadoutListItemProps {
   onToggleConsumable: () => void;
   /** Feature 045: Click to view gear details */
   onClick?: () => void;
+  /** Lighter alternative info */
+  lighterAlternative: LighterAlternative | null;
+  /** Product type label for tooltip */
+  productTypeLabel?: string;
+  /** Translation function */
+  t: ReturnType<typeof useTranslations<'Loadouts'>>;
 }
 
 function LoadoutListItem({
@@ -150,6 +172,9 @@ function LoadoutListItem({
   onToggleWorn,
   onToggleConsumable,
   onClick,
+  lighterAlternative,
+  productTypeLabel,
+  t,
 }: LoadoutListItemProps) {
   // Handle click on item body to open detail modal (Feature 045)
   const handleClick = () => {
@@ -198,7 +223,30 @@ function LoadoutListItem({
 
       {/* Item Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{item.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate font-medium">{item.name}</p>
+          {lighterAlternative && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="shrink-0 text-amber-500" onClick={(e) => e.stopPropagation()}>
+                  <AlertTriangle className="h-4 w-4" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="text-sm">
+                  {t('lighterAlternativeTooltip', {
+                    productType: productTypeLabel ?? 'item',
+                    itemName: lighterAlternative.alternativeItem.name,
+                    weight: formatWeight(lighterAlternative.alternativeItem.weightGrams),
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Save {formatWeight(lighterAlternative.weightSavings)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           {item.brand && <span>{item.brand} · </span>}
           <span>{formatWeight(item.weightGrams)}</span>
