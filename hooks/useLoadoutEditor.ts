@@ -12,7 +12,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
@@ -71,9 +71,9 @@ export interface UseLoadoutEditorReturn {
   /** Filtered items for the picker (based on search) */
   filteredPickerItems: GearItem[];
   /** Add an item to the loadout */
-  addItem: (itemId: string) => void;
+  addItem: (itemId: string) => Promise<void>;
   /** Remove an item from the loadout */
-  removeItem: (itemId: string) => void;
+  removeItem: (itemId: string) => Promise<void>;
   /** Total weight of items in loadout */
   totalWeight: number;
   /** Base weight (total minus worn and consumable items) - Feature 007 */
@@ -98,6 +98,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
   // Cascading Category Refactor: Get categories for weight calculations
   const { categories } = useCategories();
   const locale = useLocale();
+  const t = useTranslations('Loadouts.errors');
 
   // Local state for search
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,24 +137,34 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
 
   // Actions
   const addItem = useCallback(
-    (itemId: string) => {
+    async (itemId: string) => {
       const item = allItems.find((i) => i.id === itemId);
-      addItemToLoadout(loadoutId, itemId);
-      // FR-022: Toast notification when item is added
-      if (item) {
-        toast.success(`Added ${item.name}`, {
-          description: item.weightGrams ? formatWeight(item.weightGrams) : undefined,
-        });
+      try {
+        await addItemToLoadout(loadoutId, itemId);
+        // FR-022: Toast notification when item is added - only after successful save
+        if (item) {
+          toast.success(`Added ${item.name}`, {
+            description: item.weightGrams ? formatWeight(item.weightGrams) : undefined,
+          });
+        }
+      } catch (error) {
+        toast.error(t('addItemFailed'));
+        console.error('[LoadoutEditor] Failed to add item:', error);
       }
     },
-    [loadoutId, addItemToLoadout, allItems]
+    [loadoutId, addItemToLoadout, allItems, t]
   );
 
   const removeItem = useCallback(
-    (itemId: string) => {
-      removeItemFromLoadout(loadoutId, itemId);
+    async (itemId: string) => {
+      try {
+        await removeItemFromLoadout(loadoutId, itemId);
+      } catch (error) {
+        toast.error(t('removeItemFailed'));
+        console.error('[LoadoutEditor] Failed to remove item:', error);
+      }
     },
-    [loadoutId, removeItemFromLoadout]
+    [loadoutId, removeItemFromLoadout, t]
   );
 
   return {
