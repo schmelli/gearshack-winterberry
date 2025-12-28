@@ -1095,26 +1095,38 @@ export type Database = {
         Row: {
           allow_comments: boolean
           created_at: string
+          expires_at: string | null
+          last_viewed_at: string | null
           loadout_id: string | null
           owner_id: string | null
+          password_hash: string | null
           payload: Json
           share_token: string
+          view_count: number
         }
         Insert: {
           allow_comments?: boolean
           created_at?: string
+          expires_at?: string | null
+          last_viewed_at?: string | null
           loadout_id?: string | null
           owner_id?: string | null
+          password_hash?: string | null
           payload: Json
           share_token: string
+          view_count?: number
         }
         Update: {
           allow_comments?: boolean
           created_at?: string
+          expires_at?: string | null
+          last_viewed_at?: string | null
           loadout_id?: string | null
           owner_id?: string | null
+          password_hash?: string | null
           payload?: Json
           share_token?: string
+          view_count?: number
         }
         Relationships: [
           {
@@ -1122,6 +1134,42 @@ export type Database = {
             columns: ["loadout_id"]
             isOneToOne: false
             referencedRelation: "loadouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loadout_share_views: {
+        Row: {
+          id: string
+          share_token: string
+          viewer_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          share_token: string
+          viewer_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          share_token?: string
+          viewer_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loadout_share_views_share_token_fkey"
+            columns: ["share_token"]
+            isOneToOne: false
+            referencedRelation: "loadout_shares"
+            referencedColumns: ["share_token"]
+          },
+          {
+            foreignKeyName: "loadout_share_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2262,6 +2310,10 @@ export type Database = {
       }
       increment_rate_limit: {
         Args: { p_operation_type: string; p_user_id: string }
+        Returns: undefined
+      }
+      increment_share_view_count: {
+        Args: { p_share_token: string; p_viewer_id?: string }
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
