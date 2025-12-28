@@ -98,7 +98,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = await params;
+    const { token } = params;
     const supabase = await createClient();
 
     // Fetch the share
