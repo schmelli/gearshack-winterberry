@@ -10,8 +10,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { Bell, Check, X } from 'lucide-react';
+import { useCallback } from 'react';
+import { Bell, Check, X, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,85 +26,97 @@ interface NotificationMenuProps {
 }
 
 export function NotificationMenu({ userId, className }: NotificationMenuProps) {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [processingEnrichment, setProcessingEnrichment] = useState<string | null>(null);
-  const { notifications, unreadCount, markAsRead, refetch } = useNotifications(userId);
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    processingEnrichmentId,
+    processEnrichmentAction,
+  } = useNotifications(userId);
   const router = useRouter();
 
-  const handleNotificationClick = async (notificationId: string, type: string, referenceId: string | null, referenceType: string | null) => {
-    // Don't handle click for gear enrichment (uses buttons instead)
-    if (type === 'gear_enrichment') {
-      return;
-    }
-
-    // Mark notification as read
-    await markAsRead(notificationId);
-
-    // Handle navigation based on notification type
-    if (type === 'loadout_comment' && referenceId) {
-      // For loadout comments, referenceType should contain the share_token
-      // Check that we have a valid share token (not just the type itself)
-      const shareToken = referenceType;
-      // More explicit check: ensure shareToken is a non-empty string
-      // and looks like a valid token (not a type name)
-      if (
-        shareToken &&
-        typeof shareToken === 'string' &&
-        shareToken.length > 0 &&
-        !shareToken.includes('_') // Type names typically have underscores
-      ) {
-        setNotificationsOpen(false);
-        router.push(`/shakedown/${shareToken}`);
-      }
-    }
-  };
-
-  const handleEnrichmentAction = async (
-    notificationId: string,
-    suggestionId: string,
-    action: 'accept' | 'dismiss'
-  ) => {
-    setProcessingEnrichment(suggestionId);
-
-    try {
-      const response = await fetch('/api/gear-items/apply-enrichment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          suggestion_id: suggestionId,
-          action,
-          notification_id: notificationId, // Pass notification ID to delete it
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Show specific error from API
-        const errorMsg = data.error || 'Failed to process enrichment';
-        throw new Error(errorMsg);
+  /**
+   * Handles click/keyboard navigation for non-enrichment notifications
+   */
+  const handleNotificationActivate = useCallback(
+    async (
+      notificationId: string,
+      type: string,
+      referenceId: string | null,
+      referenceType: string | null
+    ) => {
+      // Don't handle for gear enrichment (uses buttons instead)
+      if (type === 'gear_enrichment') {
+        return;
       }
 
-      // Refresh notifications list (notification was deleted by API)
-      await refetch();
+      // Mark notification as read
+      await markAsRead(notificationId);
 
-      // Show success message with details
-      if (action === 'accept' && data.updated_fields?.length > 0) {
-        toast.success(`Updated: ${data.updated_fields.join(', ')}`);
+      // Handle navigation based on notification type
+      if (type === 'loadout_comment' && referenceId) {
+        const shareToken = referenceType;
+        // Validate share token format (UUID or alphanumeric, no underscores)
+        const isValidToken =
+          shareToken &&
+          typeof shareToken === 'string' &&
+          shareToken.length > 0 &&
+          /^[a-zA-Z0-9-]+$/.test(shareToken);
+
+        if (isValidToken) {
+          router.push(`/shakedown/${shareToken}`);
+        }
+      }
+    },
+    [markAsRead, router]
+  );
+
+  /**
+   * Keyboard handler for accessible notification activation
+   */
+  const handleNotificationKeyDown = useCallback(
+    (
+      event: React.KeyboardEvent,
+      notificationId: string,
+      type: string,
+      referenceId: string | null,
+      referenceType: string | null
+    ) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleNotificationActivate(notificationId, type, referenceId, referenceType);
+      }
+    },
+    [handleNotificationActivate]
+  );
+
+  /**
+   * Handles enrichment actions (accept/dismiss) using the hook
+   */
+  const handleEnrichmentAction = useCallback(
+    async (
+      notificationId: string,
+      suggestionId: string,
+      action: 'accept' | 'dismiss'
+    ) => {
+      const result = await processEnrichmentAction(notificationId, suggestionId, action);
+
+      if (result.success) {
+        if (action === 'accept' && result.updatedFields?.length) {
+          toast.success(`Updated: ${result.updatedFields.join(', ')}`);
+        } else {
+          toast.success(
+            action === 'accept'
+              ? 'Gear item updated with GearGraph data'
+              : 'Suggestion dismissed'
+          );
+        }
       } else {
-        toast.success(
-          action === 'accept'
-            ? 'Gear item updated with GearGraph data'
-            : 'Suggestion dismissed'
-        );
+        toast.error(result.error || 'Failed to process suggestion');
       }
-    } catch (error) {
-      console.error('Enrichment action error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to process suggestion');
-    } finally {
-      setProcessingEnrichment(null);
-    }
-  };
+    },
+    [processEnrichmentAction]
+  );
 
   // Don't render if no user
   if (!userId) {
@@ -112,7 +124,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
   }
 
   return (
-    <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+    <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -121,26 +133,35 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
             'relative text-white hover:bg-white/10 hover:text-white',
             className
           )}
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+            <span
+              className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white"
+              aria-hidden="true"
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
-          <span className="sr-only">Notifications</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="font-semibold">Notifications</h3>
+          <h3 className="font-semibold" id="notifications-heading">
+            Notifications
+          </h3>
           {unreadCount > 0 && (
             <span className="text-xs text-muted-foreground">
               {unreadCount} unread
             </span>
           )}
         </div>
-        <div className="max-h-[400px] overflow-y-auto">
+        <div
+          className="max-h-[400px] overflow-y-auto"
+          role="list"
+          aria-labelledby="notifications-heading"
+        >
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               No notifications yet
@@ -148,27 +169,43 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
           ) : (
             notifications.map((notification) => {
               const isEnrichment = notification.type === 'gear_enrichment';
-              const isProcessing = processingEnrichment === notification.referenceId;
+              const isProcessing = processingEnrichmentId === notification.referenceId;
+              const isClickable = !isEnrichment;
 
               return (
                 <div
                   key={notification.id}
+                  role="listitem"
+                  tabIndex={isClickable ? 0 : undefined}
                   className={cn(
-                    'w-full border-b px-4 py-3 transition-colors',
+                    'w-full border-b px-4 py-3 transition-colors outline-none',
                     !notification.isRead && 'bg-accent/50',
-                    !isEnrichment && 'cursor-pointer hover:bg-accent'
+                    isClickable && 'cursor-pointer hover:bg-accent focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                   )}
                   onClick={
-                    isEnrichment
-                      ? undefined
-                      : () =>
-                          handleNotificationClick(
+                    isClickable
+                      ? () =>
+                          handleNotificationActivate(
                             notification.id,
                             notification.type,
                             notification.referenceId,
                             notification.referenceType
                           )
+                      : undefined
                   }
+                  onKeyDown={
+                    isClickable
+                      ? (e) =>
+                          handleNotificationKeyDown(
+                            e,
+                            notification.id,
+                            notification.type,
+                            notification.referenceId,
+                            notification.referenceType
+                          )
+                      : undefined
+                  }
+                  aria-label={`${notification.message}, ${formatDistanceToNow(notification.createdAt, { addSuffix: true })}${!notification.isRead ? ', unread' : ''}`}
                 >
                   <div className="flex gap-3">
                     <div className="flex-1 space-y-2">
@@ -177,7 +214,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
                         {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
                       </p>
 
-                      {/* Enrichment action buttons */}
+                      {/* Enrichment action buttons with improved touch targets */}
                       {isEnrichment && notification.referenceId && (
                         <div className="flex gap-2 pt-1">
                           <Button
@@ -190,9 +227,14 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
                               )
                             }
                             disabled={isProcessing}
-                            className="h-7 text-xs"
+                            className="h-9 min-w-[72px] text-xs"
+                            aria-label="Accept suggested data"
                           >
-                            <Check className="mr-1 h-3 w-3" />
+                            {isProcessing ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <Check className="mr-1 h-3 w-3" />
+                            )}
                             Accept
                           </Button>
                           <Button
@@ -206,16 +248,24 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
                               )
                             }
                             disabled={isProcessing}
-                            className="h-7 text-xs"
+                            className="h-9 min-w-[72px] text-xs"
+                            aria-label="Dismiss suggestion"
                           >
-                            <X className="mr-1 h-3 w-3" />
+                            {isProcessing ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <X className="mr-1 h-3 w-3" />
+                            )}
                             Dismiss
                           </Button>
                         </div>
                       )}
                     </div>
                     {!notification.isRead && !isEnrichment && (
-                      <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                      <div
+                        className="mt-1 h-2 w-2 rounded-full bg-blue-500"
+                        aria-hidden="true"
+                      />
                     )}
                   </div>
                 </div>
