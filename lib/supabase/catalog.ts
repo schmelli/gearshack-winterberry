@@ -182,42 +182,51 @@ export async function fuzzyProductSearch(
       let score = 0;
       let hasMatch = false;
 
+      const potentialScores: number[] = [];
+
       // Strategy 1: Check if full query matches combined brand + name
       if (combinedText.includes(normalizedQuery)) {
-        hasMatch = true;
         const matchIndex = combinedText.indexOf(normalizedQuery);
-        // Exact match at start gets highest score
-        score = matchIndex === 0
+        const currentScore = matchIndex === 0
           ? 0.95 + 0.05 * (normalizedQuery.length / combinedText.length)
           : 0.85 + 0.1 * (normalizedQuery.length / combinedText.length);
+        potentialScores.push(currentScore);
       }
+
       // Strategy 2: Check if all query words appear in combined text
-      else if (queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
-        hasMatch = true;
-        // All words present but not contiguous
-        score = 0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
+      if (queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
+        const currentScore = 0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
+        potentialScores.push(currentScore);
       }
+
       // Strategy 3: Check product name only
-      else if (productName.includes(normalizedQuery)) {
-        hasMatch = true;
+      if (productName.includes(normalizedQuery)) {
         const matchIndex = productName.indexOf(normalizedQuery);
-        score = matchIndex === 0
+        const currentScore = matchIndex === 0
           ? 0.7 + 0.1 * (normalizedQuery.length / productName.length)
           : 0.5 + 0.15 * (normalizedQuery.length / productName.length);
+        potentialScores.push(currentScore);
       }
+
       // Strategy 4: Check brand name only
-      else if (brandName.includes(normalizedQuery)) {
-        hasMatch = true;
+      if (brandName.includes(normalizedQuery)) {
         const matchIndex = brandName.indexOf(normalizedQuery);
-        score = matchIndex === 0
+        const currentScore = matchIndex === 0
           ? 0.6 + 0.1 * (normalizedQuery.length / brandName.length)
           : 0.4 + 0.15 * (normalizedQuery.length / brandName.length);
+        potentialScores.push(currentScore);
       }
+
       // Strategy 5: Check if any query word matches
-      else if (queryWords.some(word => combinedText.includes(word))) {
-        hasMatch = true;
+      if (queryWords.some(word => combinedText.includes(word))) {
         const matchingWords = queryWords.filter(word => combinedText.includes(word));
-        score = 0.3 * (matchingWords.length / queryWords.length);
+        const currentScore = 0.3 * (matchingWords.length / queryWords.length);
+        potentialScores.push(currentScore);
+      }
+
+      if (potentialScores.length > 0) {
+        score = Math.max(...potentialScores);
+        hasMatch = true;
       }
 
       return {
