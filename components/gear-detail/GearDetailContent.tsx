@@ -12,6 +12,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -128,47 +129,47 @@ function TruncatedText({
   );
 }
 
-function DetailStatusIcons({ item }: { item: GearItem }) {
+function DetailStatusIcons({ item, t }: { item: GearItem; t: (key: string) => string }) {
   const icons: React.ReactNode[] = [];
 
   if (item.isFavourite) {
     icons.push(
-      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" role="img" aria-label="Marked as favourite">
+      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" role="img" aria-label={t('aria.favourite')}>
         <Heart className="h-3.5 w-3.5 text-white fill-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.isForSale) {
     icons.push(
-      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" role="img" aria-label="Listed for sale">
+      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" role="img" aria-label={t('aria.forSale')}>
         <DollarSign className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.canBeBorrowed) {
     icons.push(
-      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" role="img" aria-label="Available to borrow">
+      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" role="img" aria-label={t('aria.borrowable')}>
         <HandHeart className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.canBeTraded) {
     icons.push(
-      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" role="img" aria-label="Available for trade">
+      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" role="img" aria-label={t('aria.tradeable')}>
         <ArrowLeftRight className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.status === 'lent') {
     icons.push(
-      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" role="img" aria-label="Currently lent out">
+      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" role="img" aria-label={t('aria.lent')}>
         <Recycle className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
   }
   if (item.status === 'sold') {
     icons.push(
-      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" role="img" aria-label="Item has been sold">
+      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" role="img" aria-label={t('aria.sold')}>
         <Tag className="h-3.5 w-3.5 text-white" aria-hidden="true" />
       </div>
     );
@@ -199,12 +200,23 @@ export function GearDetailContent({
   onMoveToInventory,
   onMoveComplete,
 }: GearDetailContentProps) {
+  const t = useTranslations('GearDetail');
+
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
   const categories = useCategoriesStore((state) => state.categories);
   const categoryId = useMemo(
     () => getParentCategoryIds(item.productTypeId, categories).categoryId,
     [item.productTypeId, categories]
   );
+
+  // Conditionally determine which accordion sections should be open by default
+  const defaultOpenSections = useMemo(() => {
+    const sections = ['specifications', 'reviews'];
+    if (item.description || item.notes) {
+      sections.push('description');
+    }
+    return sections;
+  }, [item.description, item.notes]);
 
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
@@ -254,7 +266,7 @@ export function GearDetailContent({
               >
                 <Link href={`/inventory/${item.id}/edit`}>
                   <Pencil className="h-4 w-4" />
-                  <span className="sr-only">Edit {item.name}</span>
+                  <span className="sr-only">{t('aria.edit', { name: item.name })}</span>
                 </Link>
               </Button>
             </div>
@@ -278,7 +290,7 @@ export function GearDetailContent({
             </div>
           )}
           {/* Status icons row */}
-          <DetailStatusIcons item={item} />
+          <DetailStatusIcons item={item} t={t} />
         </div>
 
         {/* Image Gallery */}
@@ -294,29 +306,29 @@ export function GearDetailContent({
             {GEAR_CONDITION_LABELS[item.condition]}
           </Badge>
           <Badge variant="outline">{GEAR_STATUS_LABELS[item.status]}</Badge>
-          {item.isFavourite && <Badge variant="default">Favourite</Badge>}
+          {item.isFavourite && <Badge variant="default">{t('badges.favourite')}</Badge>}
         </div>
 
         {/* Collapsible Sections */}
-        <Accordion type="multiple" defaultValue={['specifications', 'description', 'reviews']} className="w-full">
+        <Accordion type="multiple" defaultValue={defaultOpenSections} className="w-full">
           {/* SPECIFICATIONS Section */}
           <AccordionItem value="specifications">
             <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-              Specifications
+              {t('sections.specifications')}
             </AccordionTrigger>
             <AccordionContent>
-              <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
                 <SpecRow
-                  label="Weight"
+                  label={t('specLabels.weight')}
                   value={item.weightGrams ? formatWeight(item.weightGrams) : null}
                   icon="weight"
                 />
-                <SpecRow label="Model" value={item.modelNumber} icon="model" />
+                <SpecRow label={t('specLabels.model')} value={item.modelNumber} icon="model" />
                 {(item.lengthCm || item.widthCm || item.heightCm) && (
                   <div className="col-span-2">
                     <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
                       <SpecIcon type="dimensions" size={14} className="opacity-70" />
-                      Dimensions (L × W × H)
+                      {t('specLabels.dimensions')}
                     </p>
                     <p className="font-medium">
                       {item.lengthCm ?? '–'} × {item.widthCm ?? '–'} ×{' '}
@@ -324,17 +336,17 @@ export function GearDetailContent({
                     </p>
                   </div>
                 )}
-                <SpecRow label="Size" value={item.size} icon="size" />
-                <SpecRow label="Color" value={item.color} icon="color" />
+                <SpecRow label={t('specLabels.size')} value={item.size} icon="size" />
+                <SpecRow label={t('specLabels.color')} value={item.color} icon="color" />
                 <SpecRow
-                  label="Volume"
+                  label={t('specLabels.volume')}
                   value={item.volumeLiters ? `${item.volumeLiters} L` : null}
                   icon="volume"
                 />
-                <SpecRow label="Materials" value={item.materials} icon="materials" />
-                <SpecRow label="Construction" value={item.tentConstruction} icon="construction" />
+                <SpecRow label={t('specLabels.materials')} value={item.materials} icon="materials" />
+                <SpecRow label={t('specLabels.construction')} value={item.tentConstruction} icon="construction" />
                 {item.quantity != null && item.quantity > 1 && (
-                  <SpecRow label="Quantity" value={`${item.quantity}`} icon="quantity" />
+                  <SpecRow label={t('specLabels.quantity')} value={`${item.quantity}`} icon="quantity" />
                 )}
               </div>
             </AccordionContent>
@@ -344,7 +356,7 @@ export function GearDetailContent({
           {(item.description || item.notes) && (
             <AccordionItem value="description">
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                Description
+                {t('sections.description')}
               </AccordionTrigger>
               <AccordionContent>
                 {item.description && (
@@ -355,7 +367,7 @@ export function GearDetailContent({
                 {item.notes && (
                   <div>
                     <p className="mb-1 text-xs uppercase text-muted-foreground">
-                      Notes
+                      {t('specLabels.notes')}
                     </p>
                     <TruncatedText text={item.notes} maxLength={200} />
                   </div>
@@ -368,7 +380,7 @@ export function GearDetailContent({
           {(item.pricePaid || item.retailer || item.purchaseDate) && (
             <AccordionItem value="purchase">
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                Purchase Info
+                {t('sections.purchaseInfo')}
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -382,7 +394,7 @@ export function GearDetailContent({
                   )}
                   {item.retailer && (
                     <span className="text-muted-foreground">
-                      from {item.retailer}
+                      {t('purchaseInfo.from')} {item.retailer}
                     </span>
                   )}
                   {item.purchaseDate && (
@@ -399,7 +411,7 @@ export function GearDetailContent({
           {isWishlistItem && (
             <AccordionItem value="price-tracking">
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                Price Tracking
+                {t('sections.priceTracking')}
               </AccordionTrigger>
               <AccordionContent>
                 <PriceTrackingSection item={item} />
@@ -411,7 +423,7 @@ export function GearDetailContent({
           {(item.productUrl || item.brandUrl || item.retailerUrl) && (
             <AccordionItem value="links">
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                External Links
+                {t('sections.externalLinks')}
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-wrap gap-2">
@@ -423,7 +435,7 @@ export function GearDetailContent({
                         rel="noopener noreferrer"
                       >
                         <ExternalLink className="mr-1 h-3 w-3" />
-                        Product Page
+                        {t('externalLinks.productPage')}
                       </a>
                     </Button>
                   )}
@@ -435,7 +447,7 @@ export function GearDetailContent({
                         rel="noopener noreferrer"
                       >
                         <ExternalLink className="mr-1 h-3 w-3" />
-                        Brand Site
+                        {t('externalLinks.brandSite')}
                       </a>
                     </Button>
                   )}
@@ -447,7 +459,7 @@ export function GearDetailContent({
                         rel="noopener noreferrer"
                       >
                         <ExternalLink className="mr-1 h-3 w-3" />
-                        Retailer
+                        {t('externalLinks.retailer')}
                       </a>
                     </Button>
                   )}
@@ -459,12 +471,12 @@ export function GearDetailContent({
           {/* REVIEWS Section */}
           <AccordionItem value="reviews">
             <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-              Reviews
+              {t('sections.reviews')}
             </AccordionTrigger>
             <AccordionContent>
               {!item.brand || !item.name ? (
                 <p className="text-sm text-muted-foreground">
-                  Add brand and name to find reviews
+                  {t('reviews.emptyMessage')}
                 </p>
               ) : (
                 <YouTubeCarousel
@@ -480,7 +492,7 @@ export function GearDetailContent({
           {/* GEAR INSIGHTS Section */}
           <AccordionItem value="insights">
             <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-              Gear Insights
+              {t('sections.gearInsights')}
             </AccordionTrigger>
             <AccordionContent>
               <GearInsightsSection
@@ -504,17 +516,17 @@ export function GearDetailContent({
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                  GearGraph Description
+                  {t('sections.gearGraphDescription')}
                 </span>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-center">
                   <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    AI-powered product description coming soon
+                    {t('gearGraph.aiPlaceholder')}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground/70">
-                    Detailed specifications and expert insights from GearGraph
+                    {t('gearGraph.aiSubtext')}
                   </p>
                 </div>
               </AccordionContent>

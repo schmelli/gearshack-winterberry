@@ -326,6 +326,58 @@
       }
     }
   },
+  "GearDetail": {
+    "sections": {
+      "specifications": "Specifications",
+      "description": "Description",
+      "purchaseInfo": "Purchase Info",
+      "priceTracking": "Price Tracking",
+      "externalLinks": "External Links",
+      "reviews": "Reviews",
+      "gearInsights": "Gear Insights",
+      "gearGraphDescription": "GearGraph Description"
+    },
+    "specLabels": {
+      "weight": "Weight",
+      "model": "Model",
+      "dimensions": "Dimensions (L × W × H)",
+      "size": "Size",
+      "color": "Color",
+      "volume": "Volume",
+      "materials": "Materials",
+      "construction": "Construction",
+      "quantity": "Quantity",
+      "notes": "Notes"
+    },
+    "externalLinks": {
+      "productPage": "Product Page",
+      "brandSite": "Brand Site",
+      "retailer": "Retailer"
+    },
+    "reviews": {
+      "emptyMessage": "Add brand and name to find reviews"
+    },
+    "gearGraph": {
+      "aiPlaceholder": "AI-powered product description coming soon",
+      "aiSubtext": "Detailed specifications and expert insights from GearGraph"
+    },
+    "purchaseInfo": {
+      "from": "from",
+      "purchased": "Purchased"
+    },
+    "badges": {
+      "favourite": "Favourite"
+    },
+    "aria": {
+      "favourite": "Marked as favourite",
+      "forSale": "Listed for sale",
+      "borrowable": "Available to borrow",
+      "tradeable": "Available for trade",
+      "lent": "Currently lent out",
+      "sold": "Item has been sold",
+      "edit": "Edit {name}"
+    }
+  },
   "Loadouts": {
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",

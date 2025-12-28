@@ -326,6 +326,58 @@
       }
     }
   },
+  "GearDetail": {
+    "sections": {
+      "specifications": "Spezifikationen",
+      "description": "Beschreibung",
+      "purchaseInfo": "Kaufinformationen",
+      "priceTracking": "Preisverfolgung",
+      "externalLinks": "Externe Links",
+      "reviews": "Bewertungen",
+      "gearInsights": "Ausrüstungs-Einblicke",
+      "gearGraphDescription": "GearGraph Beschreibung"
+    },
+    "specLabels": {
+      "weight": "Gewicht",
+      "model": "Modell",
+      "dimensions": "Abmessungen (L × B × H)",
+      "size": "Größe",
+      "color": "Farbe",
+      "volume": "Volumen",
+      "materials": "Materialien",
+      "construction": "Konstruktion",
+      "quantity": "Menge",
+      "notes": "Notizen"
+    },
+    "externalLinks": {
+      "productPage": "Produktseite",
+      "brandSite": "Marken-Website",
+      "retailer": "Händler"
+    },
+    "reviews": {
+      "emptyMessage": "Marke und Name hinzufügen, um Bewertungen zu finden"
+    },
+    "gearGraph": {
+      "aiPlaceholder": "KI-gestützte Produktbeschreibung kommt bald",
+      "aiSubtext": "Detaillierte Spezifikationen und Experten-Einblicke von GearGraph"
+    },
+    "purchaseInfo": {
+      "from": "von",
+      "purchased": "Gekauft"
+    },
+    "badges": {
+      "favourite": "Favorit"
+    },
+    "aria": {
+      "favourite": "Als Favorit markiert",
+      "forSale": "Zum Verkauf",
+      "borrowable": "Ausleihbar",
+      "tradeable": "Tauschbar",
+      "lent": "Derzeit verliehen",
+      "sold": "Artikel wurde verkauft",
+      "edit": "{name} bearbeiten"
+    }
+  },
   "Loadouts": {
     "deleteTitle": "Packliste löschen",
     "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
