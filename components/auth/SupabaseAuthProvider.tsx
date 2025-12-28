@@ -130,18 +130,53 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
         return;
       }
 
-      const loadouts = ((data || []) as Tables<'loadouts'>[]).map((row) => ({
-        id: row.id,
-        name: row.name,
-        tripDate: row.trip_date ? new Date(row.trip_date) : null,
-        itemIds: [], // Will be populated from loadout_items
-        description: row.description,
-        activityTypes: (row.activity_types || []) as any[],
-        seasons: (row.seasons || []) as any[],
-        itemStates: [],
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-      }));
+      const typedLoadoutData = (data || []) as Tables<'loadouts'>[];
+
+      if (typedLoadoutData.length === 0) {
+        setRemoteLoadouts([]);
+        return;
+      }
+
+      // Fetch all loadout items for these loadouts
+      const loadoutIds = typedLoadoutData.map((l) => l.id);
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('loadout_items')
+        .select('*')
+        .in('loadout_id', loadoutIds);
+
+      if (itemsError) {
+        console.error('[SupabaseAuthProvider] Error fetching loadout items:', itemsError);
+        // Continue without items rather than failing entirely
+      }
+
+      // Group items by loadout ID
+      const typedItemsData = (itemsData || []) as Tables<'loadout_items'>[];
+      const itemsByLoadout = new Map<string, Tables<'loadout_items'>[]>();
+      typedItemsData.forEach((item) => {
+        const existing = itemsByLoadout.get(item.loadout_id) || [];
+        existing.push(item);
+        itemsByLoadout.set(item.loadout_id, existing);
+      });
+
+      const loadouts = typedLoadoutData.map((row) => {
+        const items = itemsByLoadout.get(row.id) || [];
+        return {
+          id: row.id,
+          name: row.name,
+          tripDate: row.trip_date ? new Date(row.trip_date) : null,
+          itemIds: items.map((item) => item.gear_item_id),
+          description: row.description,
+          activityTypes: (row.activity_types || []) as any[],
+          seasons: (row.seasons || []) as any[],
+          itemStates: items.map((item) => ({
+            itemId: item.gear_item_id,
+            isWorn: item.is_worn,
+            isConsumable: item.is_consumable,
+          })),
+          createdAt: new Date(row.created_at),
+          updatedAt: new Date(row.updated_at),
+        };
+      });
 
       console.log('[SupabaseAuthProvider] Loaded', loadouts.length, 'loadouts from database');
       setRemoteLoadouts(loadouts);
