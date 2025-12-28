@@ -204,22 +204,25 @@ export async function fuzzyProductSearch(
       // Evaluate all scoring strategies and select the highest score
       const potentialScores: number[] = [];
 
-      // Strategy 1: Check if full query matches combined brand + name
+      // Strategy 1: Check if full query matches combined brand + name (0.85-1.0)
+      let strategy1Matched = false;
       if (combinedText.includes(normalizedQuery)) {
         const matchIndex = combinedText.indexOf(normalizedQuery);
         const currentScore = matchIndex === 0
           ? 0.95 + 0.05 * (normalizedQuery.length / combinedText.length)
           : 0.85 + 0.1 * (normalizedQuery.length / combinedText.length);
         potentialScores.push(currentScore);
+        strategy1Matched = true;
       }
 
-      // Strategy 2: Check if all query words appear in combined text
-      if (queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
+      // Strategy 2: Check if all query words appear in combined text (0.75-0.85)
+      // Skip if Strategy 1 already matched (optimization - Strategy 1 implies Strategy 2)
+      if (!strategy1Matched && queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
         const currentScore = 0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
         potentialScores.push(currentScore);
       }
 
-      // Strategy 3: Check product name only
+      // Strategy 3: Check product name only (0.5-0.8)
       if (productName.includes(normalizedQuery)) {
         const matchIndex = productName.indexOf(normalizedQuery);
         const currentScore = matchIndex === 0
@@ -228,7 +231,7 @@ export async function fuzzyProductSearch(
         potentialScores.push(currentScore);
       }
 
-      // Strategy 4: Check brand name only
+      // Strategy 4: Check brand name only (0.4-0.7)
       if (brandName.includes(normalizedQuery)) {
         const matchIndex = brandName.indexOf(normalizedQuery);
         const currentScore = matchIndex === 0
@@ -237,11 +240,17 @@ export async function fuzzyProductSearch(
         potentialScores.push(currentScore);
       }
 
-      // Strategy 5: Check if any query word matches
+      // Strategy 5: Check if any query word matches (0.1-0.3)
+      // Require at least 50% of words to match to avoid too many irrelevant results
       if (queryWords.some(word => combinedText.includes(word))) {
         const matchingWords = queryWords.filter(word => combinedText.includes(word));
-        const currentScore = 0.3 * (matchingWords.length / queryWords.length);
-        potentialScores.push(currentScore);
+        const matchRatio = matchingWords.length / queryWords.length;
+
+        // Only score if at least 50% of query words are present
+        if (matchRatio >= 0.5) {
+          const currentScore = 0.3 * matchRatio;
+          potentialScores.push(currentScore);
+        }
       }
 
       // Select the highest score from all strategies
