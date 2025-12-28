@@ -9,7 +9,44 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+
+// =============================================================================
+// Helper: Verify authentication and ownership
+// =============================================================================
+
+/**
+ * Verifies that the user is authenticated and owns the share
+ * @returns User object if authorized, or NextResponse error if not
+ */
+async function verifyShareOwnership(
+  supabase: SupabaseClient,
+  token: string
+): Promise<{ user: { id: string } } | NextResponse> {
+  // Verify user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check ownership
+  const { data: share, error: fetchError } = await supabase
+    .from('loadout_shares')
+    .select('owner_id')
+    .eq('share_token', token)
+    .single();
+
+  if (fetchError || !share) {
+    return NextResponse.json({ error: 'Share not found' }, { status: 404 });
+  }
+
+  if (share.owner_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  return { user };
+}
 
 // =============================================================================
 // POST: Set password for a share
@@ -20,7 +57,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const body = await request.json();
     const { password } = body as { password?: string };
 
@@ -34,24 +71,9 @@ export async function POST(
     const supabase = await createClient();
 
     // Verify user is authenticated and owns this share
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check ownership
-    const { data: share, error: fetchError } = await supabase
-      .from('loadout_shares')
-      .select('owner_id')
-      .eq('share_token', token)
-      .single();
-
-    if (fetchError || !share) {
-      return NextResponse.json({ error: 'Share not found' }, { status: 404 });
-    }
-
-    if (share.owner_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await verifyShareOwnership(supabase, token);
+    if (authResult instanceof NextResponse) {
+      return authResult; // Return error response
     }
 
     // Hash the password
@@ -85,28 +107,13 @@ export async function DELETE(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const supabase = await createClient();
 
     // Verify user is authenticated and owns this share
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check ownership
-    const { data: share, error: fetchError } = await supabase
-      .from('loadout_shares')
-      .select('owner_id')
-      .eq('share_token', token)
-      .single();
-
-    if (fetchError || !share) {
-      return NextResponse.json({ error: 'Share not found' }, { status: 404 });
-    }
-
-    if (share.owner_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await verifyShareOwnership(supabase, token);
+    if (authResult instanceof NextResponse) {
+      return authResult; // Return error response
     }
 
     // Remove the password
