@@ -105,6 +105,18 @@ export async function fuzzyBrandSearch(
 // ============================================================================
 
 /**
+ * Maximum number of products to fetch from database before client-side scoring.
+ * Prevents excessive memory usage while ensuring sufficient candidates for ranking.
+ */
+const MAX_FETCH_LIMIT = 100;
+
+/**
+ * Multiplier for initial database fetch to ensure enough candidates after scoring.
+ * Higher values improve result quality but increase memory usage.
+ */
+const FETCH_LIMIT_MULTIPLIER = 5;
+
+/**
  * Performs fuzzy search on product names AND brand names
  * Searches both product.name and catalog_brands.name fields for better matches.
  *
@@ -129,17 +141,26 @@ export async function fuzzyProductSearch(
 ): Promise<ProductSearchResult[]> {
   const { brandId, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
-  const escapedQuery = escapeLikePattern(normalizedQuery);
+
+  // Handle empty query edge case
+  if (!normalizedQuery) {
+    return [];
+  }
 
   // Split query into words for multi-word matching
   const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
 
+  // Handle empty queryWords edge case (shouldn't happen after trim check, but be defensive)
+  if (queryWords.length === 0) {
+    return [];
+  }
+
   // Fetch more results than needed (will filter and score in JS)
-  // Fetch limit * 3 to ensure we have enough matches after scoring
-  const fetchLimit = Math.min(limit * 3, 50);
+  // Use multiplier to ensure we have enough matches after scoring
+  const fetchLimit = Math.min(limit * FETCH_LIMIT_MULTIPLIER, MAX_FETCH_LIMIT);
 
   // Extract first word for initial filtering (to avoid fetching all products)
-  const firstWord = queryWords.length > 0 ? escapeLikePattern(queryWords[0]) : escapedQuery;
+  const firstWord = escapeLikePattern(queryWords[0]);
 
   // Build query - fetch products where name contains at least the first search word
   // This narrows down the dataset before JS filtering
@@ -175,13 +196,12 @@ export async function fuzzyProductSearch(
   // Filter and score products
   const scoredProducts = (data || [])
     .map((product) => {
-      const productName = product.name.toLowerCase();
-      const brandName = product.catalog_brands?.name.toLowerCase() || '';
+      // Defensive null checks for product name and brand
+      const productName = (product.name ?? '').toLowerCase();
+      const brandName = (product.catalog_brands?.name ?? '').toLowerCase();
       const combinedText = `${brandName} ${productName}`.trim();
 
-      let score = 0;
-      let hasMatch = false;
-
+      // Evaluate all scoring strategies and select the highest score
       const potentialScores: number[] = [];
 
       // Strategy 1: Check if full query matches combined brand + name
@@ -224,10 +244,9 @@ export async function fuzzyProductSearch(
         potentialScores.push(currentScore);
       }
 
-      if (potentialScores.length > 0) {
-        score = Math.max(...potentialScores);
-        hasMatch = true;
-      }
+      // Select the highest score from all strategies
+      const score = potentialScores.length > 0 ? Math.max(...potentialScores) : 0;
+      const hasMatch = potentialScores.length > 0;
 
       return {
         id: product.id,
