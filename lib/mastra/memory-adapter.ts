@@ -393,6 +393,102 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
       .replace(/\s+/g, ' ')
       .trim();
   }
+
+  // ==========================================================================
+  // User Context Management (Issue #110)
+  // ==========================================================================
+
+  /**
+   * Store user context in a special metadata message
+   *
+   * This stores structured context (inventory summary, preferences, etc.)
+   * in the conversation memory as a system message with special metadata.
+   *
+   * @param userId - User ID
+   * @param conversationId - Conversation ID
+   * @param context - User context to store
+   */
+  async storeUserContext(
+    userId: string,
+    conversationId: string,
+    context: unknown
+  ): Promise<void> {
+    const now = new Date();
+    const contextMessage: Message = {
+      id: `context-${Date.now()}`,
+      userId,
+      conversationId,
+      role: 'system',
+      content: '[User Context Metadata]',
+      metadata: {
+        type: 'user_context',
+        context: context as Record<string, unknown>,
+        lastUpdated: now.toISOString(),
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await this.saveMessages([contextMessage]);
+  }
+
+  /**
+   * Retrieve user context from conversation metadata
+   *
+   * Fetches the most recent user context metadata message
+   *
+   * @param userId - User ID
+   * @param conversationId - Conversation ID
+   * @returns User context or null if not found
+   */
+  async getUserContext(
+    userId: string,
+    conversationId: string
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from(this.tableName)
+        .select('metadata')
+        .eq('user_id', userId)
+        .eq('conversation_id', conversationId)
+        .eq('message_role', 'system')
+        .eq('message_content', '[User Context Metadata]')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        return null;
+      }
+
+      const contextMetadata = data[0].metadata as Record<string, unknown>;
+      return contextMetadata?.context as Record<string, unknown> || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Update user context with partial data
+   *
+   * Merges new context data with existing context
+   *
+   * @param userId - User ID
+   * @param conversationId - Conversation ID
+   * @param partialContext - Partial context to merge
+   */
+  async updateUserContext(
+    userId: string,
+    conversationId: string,
+    partialContext: unknown
+  ): Promise<void> {
+    const existingContext = await this.getUserContext(userId, conversationId) as Record<string, unknown> | null;
+    const partial = partialContext as Record<string, unknown>;
+    const mergedContext = {
+      ...(existingContext || {}),
+      ...partial,
+    };
+    await this.storeUserContext(userId, conversationId, mergedContext);
+  }
 }
 
 // ============================================================================
