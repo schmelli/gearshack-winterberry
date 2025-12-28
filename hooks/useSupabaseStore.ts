@@ -89,13 +89,13 @@ interface SupabaseStore {
   ) => Promise<string>;
   updateLoadout: (id: string, updates: Partial<LoadoutLocal>) => Promise<void>;
   deleteLoadout: (id: string) => Promise<void>;
-  addItemToLoadout: (loadoutId: string, itemId: string) => void;
-  removeItemFromLoadout: (loadoutId: string, itemId: string) => void;
-  updateLoadoutMetadata: (id: string, metadata: Partial<LoadoutLocal>) => void;
+  addItemToLoadout: (loadoutId: string, itemId: string) => Promise<void>;
+  removeItemFromLoadout: (loadoutId: string, itemId: string) => Promise<void>;
+  updateLoadoutMetadata: (id: string, metadata: Partial<LoadoutLocal>) => Promise<void>;
 
   // Item State Actions
-  setItemWorn: (loadoutId: string, itemId: string, isWorn: boolean) => void;
-  setItemConsumable: (loadoutId: string, itemId: string, isConsumable: boolean) => void;
+  setItemWorn: (loadoutId: string, itemId: string, isWorn: boolean) => Promise<void>;
+  setItemConsumable: (loadoutId: string, itemId: string, isConsumable: boolean) => Promise<void>;
 
   // Sync Actions
   setSyncState: (updates: Partial<SyncState>) => void;
@@ -479,7 +479,16 @@ export const useSupabaseStore = create<SupabaseStore>()(
         }
       },
 
-      addItemToLoadout: (loadoutId, itemId) => {
+      addItemToLoadout: async (loadoutId, itemId) => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const loadout = get().loadouts.find((l) => l.id === loadoutId);
+        if (!loadout || loadout.itemIds.includes(itemId)) return;
+
+        const supabase = createClient();
+
+        // Optimistic update
         set((state) => ({
           loadouts: state.loadouts.map((loadout) => {
             if (loadout.id !== loadoutId) return loadout;
@@ -490,25 +499,134 @@ export const useSupabaseStore = create<SupabaseStore>()(
               updatedAt: new Date(),
             };
           }),
+          syncState: { ...state.syncState, status: 'syncing', pendingOperations: state.syncState.pendingOperations + 1 },
         }));
-        // TODO: Sync with Supabase loadout_items table
+
+        try {
+          // Insert into loadout_items table
+          const { error } = await supabase
+            .from('loadout_items')
+            .insert({
+              loadout_id: loadoutId,
+              gear_item_id: itemId,
+              quantity: 1,
+              is_worn: false,
+              is_consumable: false,
+            });
+
+          if (error) throw error;
+
+          set((state) => ({
+            syncState: {
+              ...state.syncState,
+              status: 'idle',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+              lastSyncedAt: new Date(),
+            },
+          }));
+        } catch (error) {
+          // Rollback optimistic update
+          set((state) => ({
+            loadouts: state.loadouts.map((loadout) => {
+              if (loadout.id !== loadoutId) return loadout;
+              return {
+                ...loadout,
+                itemIds: loadout.itemIds.filter((id) => id !== itemId),
+                updatedAt: new Date(),
+              };
+            }),
+            syncState: {
+              ...state.syncState,
+              status: 'error',
+              error: 'Failed to add item to loadout',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+            },
+          }));
+          toast.error('Failed to add item to loadout');
+          console.error('[SupabaseStore] addItemToLoadout error:', error);
+        }
       },
 
-      removeItemFromLoadout: (loadoutId, itemId) => {
+      removeItemFromLoadout: async (loadoutId, itemId) => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const loadout = get().loadouts.find((l) => l.id === loadoutId);
+        if (!loadout || !loadout.itemIds.includes(itemId)) return;
+
+        const supabase = createClient();
+
+        // Store previous state for rollback
+        const previousItemIds = [...loadout.itemIds];
+        const previousItemStates = [...loadout.itemStates];
+
+        // Optimistic update
         set((state) => ({
           loadouts: state.loadouts.map((loadout) => {
             if (loadout.id !== loadoutId) return loadout;
             return {
               ...loadout,
               itemIds: loadout.itemIds.filter((id) => id !== itemId),
+              itemStates: loadout.itemStates.filter((s) => s.itemId !== itemId),
               updatedAt: new Date(),
             };
           }),
+          syncState: { ...state.syncState, status: 'syncing', pendingOperations: state.syncState.pendingOperations + 1 },
         }));
-        // TODO: Sync with Supabase loadout_items table
+
+        try {
+          // Delete from loadout_items table
+          const { error } = await supabase
+            .from('loadout_items')
+            .delete()
+            .eq('loadout_id', loadoutId)
+            .eq('gear_item_id', itemId);
+
+          if (error) throw error;
+
+          set((state) => ({
+            syncState: {
+              ...state.syncState,
+              status: 'idle',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+              lastSyncedAt: new Date(),
+            },
+          }));
+        } catch (error) {
+          // Rollback optimistic update
+          set((state) => ({
+            loadouts: state.loadouts.map((loadout) => {
+              if (loadout.id !== loadoutId) return loadout;
+              return {
+                ...loadout,
+                itemIds: previousItemIds,
+                itemStates: previousItemStates,
+                updatedAt: new Date(),
+              };
+            }),
+            syncState: {
+              ...state.syncState,
+              status: 'error',
+              error: 'Failed to remove item from loadout',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+            },
+          }));
+          toast.error('Failed to remove item from loadout');
+          console.error('[SupabaseStore] removeItemFromLoadout error:', error);
+        }
       },
 
-      updateLoadoutMetadata: (id, metadata) => {
+      updateLoadoutMetadata: async (id, metadata) => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const loadout = get().loadouts.find((l) => l.id === id);
+        if (!loadout) return;
+
+        const supabase = createClient();
+        const previousLoadout = { ...loadout };
+
+        // Optimistic update
         set((state) => ({
           loadouts: state.loadouts.map((loadout) => {
             if (loadout.id !== id) return loadout;
@@ -518,10 +636,74 @@ export const useSupabaseStore = create<SupabaseStore>()(
               updatedAt: new Date(),
             };
           }),
+          syncState: { ...state.syncState, status: 'syncing', pendingOperations: state.syncState.pendingOperations + 1 },
         }));
+
+        try {
+          // Build update data for loadouts table
+          const updateData: TablesUpdate<'loadouts'> = {};
+          if (metadata.activityTypes !== undefined) {
+            updateData.activity_types = metadata.activityTypes as never[];
+          }
+          if (metadata.seasons !== undefined) {
+            updateData.seasons = metadata.seasons as never[];
+          }
+          if (metadata.description !== undefined) {
+            updateData.description = metadata.description;
+          }
+          if (metadata.tripDate !== undefined) {
+            updateData.trip_date = metadata.tripDate?.toISOString().split('T')[0] ?? null;
+          }
+
+          // Only update if there's something to update
+          if (Object.keys(updateData).length > 0) {
+            const { error } = await supabase
+              .from('loadouts')
+              .update(updateData)
+              .eq('id', id)
+              .eq('user_id', userId);
+
+            if (error) throw error;
+          }
+
+          set((state) => ({
+            syncState: {
+              ...state.syncState,
+              status: 'idle',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+              lastSyncedAt: new Date(),
+            },
+          }));
+        } catch (error) {
+          // Rollback optimistic update
+          set((state) => ({
+            loadouts: state.loadouts.map((loadout) => {
+              if (loadout.id !== id) return loadout;
+              return previousLoadout;
+            }),
+            syncState: {
+              ...state.syncState,
+              status: 'error',
+              error: 'Failed to update loadout metadata',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+            },
+          }));
+          toast.error('Failed to update loadout metadata');
+          console.error('[SupabaseStore] updateLoadoutMetadata error:', error);
+        }
       },
 
-      setItemWorn: (loadoutId, itemId, isWorn) => {
+      setItemWorn: async (loadoutId, itemId, isWorn) => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const loadout = get().loadouts.find((l) => l.id === loadoutId);
+        if (!loadout || !loadout.itemIds.includes(itemId)) return;
+
+        const supabase = createClient();
+        const previousItemStates = [...loadout.itemStates];
+
+        // Optimistic update
         set((state) => ({
           loadouts: state.loadouts.map((loadout) => {
             if (loadout.id !== loadoutId) return loadout;
@@ -536,10 +718,57 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
             return { ...loadout, itemStates: newItemStates, updatedAt: new Date() };
           }),
+          syncState: { ...state.syncState, status: 'syncing', pendingOperations: state.syncState.pendingOperations + 1 },
         }));
+
+        try {
+          // Update loadout_items table
+          const { error } = await supabase
+            .from('loadout_items')
+            .update({ is_worn: isWorn })
+            .eq('loadout_id', loadoutId)
+            .eq('gear_item_id', itemId);
+
+          if (error) throw error;
+
+          set((state) => ({
+            syncState: {
+              ...state.syncState,
+              status: 'idle',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+              lastSyncedAt: new Date(),
+            },
+          }));
+        } catch (error) {
+          // Rollback optimistic update
+          set((state) => ({
+            loadouts: state.loadouts.map((loadout) => {
+              if (loadout.id !== loadoutId) return loadout;
+              return { ...loadout, itemStates: previousItemStates, updatedAt: new Date() };
+            }),
+            syncState: {
+              ...state.syncState,
+              status: 'error',
+              error: 'Failed to update item worn state',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+            },
+          }));
+          toast.error('Failed to update item worn state');
+          console.error('[SupabaseStore] setItemWorn error:', error);
+        }
       },
 
-      setItemConsumable: (loadoutId, itemId, isConsumable) => {
+      setItemConsumable: async (loadoutId, itemId, isConsumable) => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const loadout = get().loadouts.find((l) => l.id === loadoutId);
+        if (!loadout || !loadout.itemIds.includes(itemId)) return;
+
+        const supabase = createClient();
+        const previousItemStates = [...loadout.itemStates];
+
+        // Optimistic update
         set((state) => ({
           loadouts: state.loadouts.map((loadout) => {
             if (loadout.id !== loadoutId) return loadout;
@@ -554,7 +783,44 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
             return { ...loadout, itemStates: newItemStates, updatedAt: new Date() };
           }),
+          syncState: { ...state.syncState, status: 'syncing', pendingOperations: state.syncState.pendingOperations + 1 },
         }));
+
+        try {
+          // Update loadout_items table
+          const { error } = await supabase
+            .from('loadout_items')
+            .update({ is_consumable: isConsumable })
+            .eq('loadout_id', loadoutId)
+            .eq('gear_item_id', itemId);
+
+          if (error) throw error;
+
+          set((state) => ({
+            syncState: {
+              ...state.syncState,
+              status: 'idle',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+              lastSyncedAt: new Date(),
+            },
+          }));
+        } catch (error) {
+          // Rollback optimistic update
+          set((state) => ({
+            loadouts: state.loadouts.map((loadout) => {
+              if (loadout.id !== loadoutId) return loadout;
+              return { ...loadout, itemStates: previousItemStates, updatedAt: new Date() };
+            }),
+            syncState: {
+              ...state.syncState,
+              status: 'error',
+              error: 'Failed to update item consumable state',
+              pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
+            },
+          }));
+          toast.error('Failed to update item consumable state');
+          console.error('[SupabaseStore] setItemConsumable error:', error);
+        }
       },
 
       setSyncState: (updates) => {
