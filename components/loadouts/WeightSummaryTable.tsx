@@ -42,6 +42,9 @@ export function WeightSummaryTable({
 
   // Calculate weight breakdown
   const weightSummary = useMemo(() => {
+    // Create Map for O(1) lookup instead of O(M) find() calls
+    const itemStateMap = new Map(itemStates.map(s => [s.itemId, s]));
+
     let totalWeight = 0;
     let wornWeight = 0;
     let consumableWeight = 0;
@@ -52,7 +55,7 @@ export function WeightSummaryTable({
       const weight = item.weightGrams ?? 0;
       totalWeight += weight;
 
-      const state = itemStates.find(s => s.itemId === item.id);
+      const state = itemStateMap.get(item.id);
       if (state?.isWorn) {
         wornWeight += weight;
         excludedItemIds.add(item.id);
