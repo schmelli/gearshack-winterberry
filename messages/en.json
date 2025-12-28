@@ -697,5 +697,115 @@
       "tooltipRateLimited": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
       "ariaLabel": "Search for product information"
     }
+  },
+  "Social": {
+    "common": {
+      "back": "Back",
+      "retry": "Try again",
+      "loading": "Loading...",
+      "refresh": "Refresh",
+      "message": "Message",
+      "cancel": "Cancel"
+    },
+    "following": {
+      "title": "Following",
+      "follow": "Follow",
+      "following": "Following",
+      "unfollow": "Unfollow",
+      "followSuccess": "You're now following {name}",
+      "unfollowSuccess": "You unfollowed {name}",
+      "emptyTitle": "Not following anyone yet",
+      "emptyDescription": "Follow community members and VIP accounts to see their public activities.",
+      "findPeople": "Find People to Follow"
+    },
+    "friends": {
+      "title": "Friends",
+      "addFriend": "Add Friend",
+      "pending": "Pending",
+      "friends": "Friends",
+      "unfriend": "Unfriend",
+      "cancel": "Cancel Request",
+      "accept": "Accept",
+      "decline": "Decline",
+      "requestSent": "Friend request sent to {name}",
+      "requestAccepted": "You are now friends with {name}",
+      "unfriendConfirm": "Remove {name} from friends?",
+      "unfriendDescription": "They will lose access to your friends-only content.",
+      "emptyTitle": "No friends yet",
+      "emptyDescription": "Start a conversation with someone to send them a friend request.",
+      "searchPlaceholder": "Search friends...",
+      "sortByName": "Name",
+      "sortByRecent": "Recent Activity",
+      "sortByOnline": "Online",
+      "sortByDateAdded": "Date Added",
+      "mutualFriends": "{count} mutual friends",
+      "mutualFriend": "1 mutual friend",
+      "noMutualFriends": "No mutual friends",
+      "seeAll": "See all",
+      "friendLimit": "You've reached the friend limit (1,000). Remove a friend to add a new one.",
+      "rateLimit": "You've sent too many friend requests. Try again later.",
+      "noMessageExchange": "You need to message {name} first before sending a friend request."
+    },
+    "requests": {
+      "title": "Friend Requests",
+      "incoming": "Incoming",
+      "outgoing": "Sent",
+      "emptyIncoming": "No pending friend requests",
+      "emptyOutgoing": "No sent friend requests",
+      "expiresIn": "Expires in {days} days"
+    },
+    "activity": {
+      "title": "Activity Feed",
+      "markAllRead": "Mark all as read",
+      "emptyTitle": "No activity yet",
+      "emptyDescription": "When your friends do something, you'll see it here.",
+      "filterAll": "All",
+      "filterLoadouts": "Loadouts",
+      "filterMarketplace": "Marketplace",
+      "filterGear": "Gear",
+      "newLoadout": "{name} created a new loadout",
+      "sharedLoadout": "{name} shared a loadout",
+      "newListing": "{name} listed something in the marketplace",
+      "addedGear": "{name} added new gear",
+      "newFriend": "{name} is now friends with {friend}",
+      "loadMore": "Load More"
+    },
+    "presence": {
+      "online": "Online",
+      "away": "Away",
+      "invisible": "Invisible",
+      "offline": "Offline",
+      "lastActive": "Last active {time}",
+      "updating": "Updating..."
+    },
+    "privacy": {
+      "title": "Privacy Settings",
+      "description": "Control who can see your content and activity",
+      "presets": {
+        "title": "Quick Presets",
+        "onlyMe": "Only Me",
+        "onlyMeDesc": "Maximum privacy - only you can see your content",
+        "friendsOnly": "Friends Only",
+        "friendsOnlyDesc": "Share with your trusted friends",
+        "everyone": "Everyone",
+        "everyoneDesc": "Open to the community"
+      },
+      "granular": {
+        "title": "Fine-tune Settings",
+        "onlineStatus": "Online Status",
+        "onlineStatusDesc": "Who can see when you're online",
+        "activityFeed": "Activity Feed",
+        "activityFeedDesc": "Who can see your activity in their feed",
+        "loadouts": "Loadouts",
+        "loadoutsDesc": "Who can see your loadouts",
+        "discoverable": "Discoverable",
+        "discoverableDesc": "Allow others to find you and send messages"
+      },
+      "values": {
+        "everyone": "Everyone",
+        "friendsOnly": "Friends Only",
+        "nobody": "Nobody"
+      }
+    }
   }
 }

@@ -1,0 +1,672 @@
+openapi: 3.1.0
+info:
+  title: GearShack Social Graph API
+  description: |
+    API contracts for the Social Graph feature (Friends + Follow System).
+
+    **Note**: Most operations are performed via Supabase RPC functions for
+    atomic transactions and proper authorization. These contracts define
+    the expected request/response shapes for frontend integration.
+  version: 1.0.0
+  contact:
+    name: GearShack Team
+
+servers:
+  - url: /api
+    description: Next.js API routes
+
+tags:
+  - name: Friend Requests
+    description: Send, accept, decline friend requests
+  - name: Friendships
+    description: View and manage friendships
+  - name: Following
+    description: Follow/unfollow users
+  - name: Activity Feed
+    description: View friend activities
+  - name: Privacy
+    description: Manage social privacy settings
+
+paths:
+  /social/friend-requests:
+    get:
+      tags: [Friend Requests]
+      summary: Get pending friend requests
+      description: Returns both incoming and outgoing pending friend requests
+      operationId: getFriendRequests
+      security:
+        - supabaseAuth: []
+      responses:
+        '200':
+          description: Friend requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  incoming:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendRequestWithProfile'
+                  outgoing:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendRequestWithProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Friend Requests]
+      summary: Send a friend request
+      description: |
+        Sends a friend request to another user.
+
+        **Prerequisites**:
+        - Must have exchanged messages with the recipient
+        - Cannot send to self
+        - Cannot send if already friends
+        - Cannot send if pending request exists
+        - Rate limited to 20 requests per 24 hours
+      operationId: sendFriendRequest
+      security:
+        - supabaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipientId]
+              properties:
+                recipientId:
+                  type: string
+                  format: uuid
+                  description: ID of the user to send request to
+                message:
+                  type: string
+                  maxLength: 500
+                  description: Optional personal message
+      responses:
+        '200':
+          description: Friend request sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendFriendRequestResponse'
+        '400':
+          description: Invalid request (rate limit, no message exchange, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendFriendRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /social/friend-requests/{requestId}:
+    parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags: [Friend Requests]
+      summary: Respond to a friend request
+      description: Accept or decline a pending friend request
+      operationId: respondToFriendRequest
+      security:
+        - supabaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, decline]
+      responses:
+        '200':
+          description: Response recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespondToFriendRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Request not found or not authorized
+
+    delete:
+      tags: [Friend Requests]
+      summary: Cancel a friend request
+      description: Cancel a pending outgoing friend request
+      operationId: cancelFriendRequest
+      security:
+        - supabaseAuth: []
+      responses:
+        '204':
+          description: Request cancelled successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Request not found or not authorized
+
+  /social/friend-requests/{userId}/can-send:
+    get:
+      tags: [Friend Requests]
+      summary: Check if can send friend request
+      description: |
+        Checks if the current user can send a friend request to the specified user.
+        Validates: message exchange exists, not blocked, not already friends,
+        no pending request, rate limit not exceeded.
+      operationId: canSendFriendRequest
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Eligibility check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canSend:
+                    type: boolean
+                  reason:
+                    type: string
+                    enum: [eligible, no_message_exchange, blocked, already_friends, request_pending, rate_limited]
+
+  /social/friends:
+    get:
+      tags: [Friendships]
+      summary: Get friends list
+      description: Returns the current user's friends with optional filtering and sorting
+      operationId: getFriends
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by display name
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, recent, online]
+            default: name
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Friends list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  friends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendInfo'
+                  total:
+                    type: integer
+                  hasMore:
+                    type: boolean
+
+  /social/friends/{userId}:
+    delete:
+      tags: [Friendships]
+      summary: Unfriend a user
+      description: Removes friendship with the specified user
+      operationId: unfriend
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Friendship removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Friendship not found
+
+  /social/friends/{userId}/mutual:
+    get:
+      tags: [Friendships]
+      summary: Get mutual friends
+      description: Returns friends shared between current user and specified user
+      operationId: getMutualFriends
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Mutual friends retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mutualFriends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendInfo'
+                  count:
+                    type: integer
+
+  /social/following:
+    get:
+      tags: [Following]
+      summary: Get following list
+      description: Returns users the current user is following
+      operationId: getFollowing
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Following list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FollowInfo'
+                  total:
+                    type: integer
+
+    post:
+      tags: [Following]
+      summary: Follow a user
+      description: Start following a user (no approval needed)
+      operationId: followUser
+      security:
+        - supabaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Now following user
+        '400':
+          description: Cannot follow (self, blocked, etc.)
+        '409':
+          description: Already following
+
+  /social/following/{userId}:
+    delete:
+      tags: [Following]
+      summary: Unfollow a user
+      description: Stop following a user
+      operationId: unfollowUser
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Unfollowed successfully
+        '404':
+          description: Not following this user
+
+  /social/followers/count:
+    get:
+      tags: [Following]
+      summary: Get follower count
+      description: Returns follower count for VIP accounts only
+      operationId: getFollowerCount
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Follower count (VIP only)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    nullable: true
+                    description: null if not a VIP account
+
+  /social/activity-feed:
+    get:
+      tags: [Activity Feed]
+      summary: Get friend activity feed
+      description: Returns recent activities from friends
+      operationId: getActivityFeed
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: types
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [new_loadout, loadout_shared, marketplace_listing, gear_added, friend_added]
+          description: Filter by activity types
+      responses:
+        '200':
+          description: Activity feed retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendActivityWithProfile'
+                  hasMore:
+                    type: boolean
+
+  /social/privacy:
+    get:
+      tags: [Privacy]
+      summary: Get social privacy settings
+      operationId: getSocialPrivacy
+      security:
+        - supabaseAuth: []
+      responses:
+        '200':
+          description: Privacy settings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialPrivacySettings'
+
+    patch:
+      tags: [Privacy]
+      summary: Update social privacy settings
+      operationId: updateSocialPrivacy
+      security:
+        - supabaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialPrivacySettings'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialPrivacySettings'
+
+  /social/privacy/presets/{preset}:
+    post:
+      tags: [Privacy]
+      summary: Apply a privacy preset
+      description: Applies a predefined privacy configuration
+      operationId: applyPrivacyPreset
+      security:
+        - supabaseAuth: []
+      parameters:
+        - name: preset
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [only_me, friends_only, everyone]
+      responses:
+        '200':
+          description: Preset applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialPrivacySettings'
+
+components:
+  securitySchemes:
+    supabaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+
+  schemas:
+    FriendRequestWithProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        recipient_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, accepted, declined, expired]
+        message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        sender:
+          $ref: '#/components/schemas/UserProfile'
+        recipient:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+
+    SendFriendRequestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+          enum: [rate_limit_exceeded, no_message_exchange, already_friends, request_already_sent]
+        request_id:
+          type: string
+          format: uuid
+        resets_at:
+          type: string
+          format: date-time
+          description: When rate limit resets (if exceeded)
+
+    RespondToFriendRequestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+          enum: [request_not_found]
+        accepted:
+          type: boolean
+
+    FriendInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        friends_since:
+          type: string
+          format: date-time
+        is_online:
+          type: boolean
+        mutual_friends_count:
+          type: integer
+
+    FollowInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        following_since:
+          type: string
+          format: date-time
+        is_vip:
+          type: boolean
+
+    FriendActivityWithProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        activity_type:
+          type: string
+          enum: [new_loadout, loadout_shared, marketplace_listing, gear_added, friend_added, profile_updated]
+        reference_type:
+          type: string
+        reference_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+
+    SocialPrivacySettings:
+      type: object
+      properties:
+        privacy_preset:
+          type: string
+          enum: [only_me, friends_only, everyone, custom]
+        messaging_privacy:
+          type: string
+          enum: [everyone, friends_only, nobody]
+        online_status_privacy:
+          type: string
+          enum: [everyone, friends_only, nobody]
+        activity_feed_privacy:
+          type: string
+          enum: [everyone, friends_only, nobody]
+        discoverable:
+          type: boolean
