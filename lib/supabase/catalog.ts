@@ -161,7 +161,7 @@ export async function fuzzyProductSearch(
       )
     `
     )
-    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%`)
+    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%,catalog_brands.name.ilike.%${firstWord}%`)
     .limit(fetchLimit);
 
   if (brandId) {
