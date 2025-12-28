@@ -19,7 +19,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = await params;
+    const { token } = params;
     const supabase = await createClient();
 
     // Get current user ID if authenticated (optional)
