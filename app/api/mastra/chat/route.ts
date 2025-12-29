@@ -56,6 +56,16 @@ import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/me
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
 import {
+  getCachedLoadoutContext,
+  preloadLoadoutContext,
+  formatLoadoutContextForPrompt,
+  type LoadoutContext,
+} from '@/lib/mastra/context-preloader';
+import {
+  generateProactiveSuggestions,
+  formatSuggestionsForStream,
+  shouldShowProactiveSuggestions,
+} from '@/lib/mastra/proactive-suggestions';
   buildUserContext,
   isCacheStale,
   formatContextForPrompt,
@@ -370,14 +380,14 @@ async function saveToMemory(
 // System Prompt Builder
 // =====================================================
 
-function buildPromptContext(
+async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   history: Array<{ role: string; content: string }>,
+  userId: string,
   mastraUserContext: MastraUserContext | null,
   memoryWarning?: string,
-  userId?: string,
   subscriptionTier?: 'standard' | 'trailblazer'
-): PromptContext {
+): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
   const inventoryCount = (userContext?.inventoryCount as number) || 0;
@@ -389,7 +399,7 @@ function buildPromptContext(
     locale,
     inventoryCount,
     currentLoadoutId,
-    userId: userId || 'anonymous',
+    userId,
     subscriptionTier: subscriptionTier || 'standard',
   };
 
@@ -416,7 +426,37 @@ function buildPromptContext(
     promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
   }
 
-  return promptContext;
+  // Pre-load loadout context if viewing a loadout (Improvement #3: Context Pre-loading)
+  let loadoutContext: LoadoutContext | null = null;
+  if (screen === 'loadout-detail' && currentLoadoutId) {
+    // Try to get from cache first (instant - no DB query)
+    loadoutContext = getCachedLoadoutContext(currentLoadoutId, userId);
+
+    // If not cached, pre-load it now
+    if (!loadoutContext) {
+      loadoutContext = await preloadLoadoutContext(currentLoadoutId, userId);
+    }
+
+    // Add loadout context to system prompt
+    if (loadoutContext) {
+      const formattedContext = formatLoadoutContextForPrompt(loadoutContext, locale as 'en' | 'de');
+      promptContext.catalogResults = promptContext.catalogResults
+        ? `${promptContext.catalogResults}\n\n${formattedContext}`
+        : formattedContext;
+
+      logDebug('Loadout context added to system prompt', {
+        userId,
+        metadata: {
+          loadoutId: currentLoadoutId,
+          itemCount: loadoutContext.gearItems.length,
+          totalWeight: loadoutContext.loadout.totalWeight,
+          cached: !!getCachedLoadoutContext(currentLoadoutId, userId),
+        },
+      });
+    }
+  }
+
+  return { promptContext, loadoutContext };
 }
 
 // =====================================================
@@ -570,13 +610,12 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 9. Build system prompt with memory context and user context (Issue #110)
-    const promptContext = buildPromptContext(
+    // 9. Build system prompt with memory context and loadout context
+    const { promptContext, loadoutContext } = await buildPromptContext(
       context,
       memoryContext.history,
-      memoryContext.userContext,
-      memoryContext.warning,
-      user.id
+      user.id,
+      memoryContext.warning
     );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
@@ -635,24 +674,31 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // BUGFIX: Detect empty responses and provide fallback message
-          // This happens when tool calls fail (e.g., database rate limits) and AI generates no text
-          if (!fullResponse || fullResponse.trim().length === 0) {
-            const fallbackMessage = toolCalls && toolCalls.length > 0
-              ? "I apologize, but I'm having trouble accessing your data right now. This might be due to temporary rate limiting. Please try again in a moment, or rephrase your question."
-              : "I apologize, but I wasn't able to generate a response. Please try asking your question again.";
+          // Improvement #4: Add proactive suggestions to stream
+          const hadError = streamingResult.error !== undefined; // Assuming streamingResult can indicate an error
+          if (shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
+            const suggestions = generateProactiveSuggestions(
+              promptContext.userContext,
+              loadoutContext,
+              (context?.locale as 'en' | 'de') || 'en'
+            );
 
-            fullResponse = fallbackMessage;
-            controller.enqueue(encoder.encode(encodeTextEvent(fallbackMessage)));
+            if (suggestions.length > 0) {
+              const suggestionsText = formatSuggestionsForStream(
+                suggestions,
+                (context?.locale as 'en' | 'de') || 'en'
+              );
+              controller.enqueue(encoder.encode(encodeTextEvent(suggestionsText)));
+              fullResponse += suggestionsText;
 
-            logWarn('Empty AI response detected, injected fallback message', {
-              userId: user.id,
-              conversationId,
-              metadata: {
-                hadToolCalls: toolCalls?.length || 0,
-                finishReason,
-              },
-            });
+              logDebug('Proactive suggestions added to response', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  suggestionCount: suggestions.length,
+                },
+              });
+            }
           }
 
           // Save to memory after successful response (T026)
