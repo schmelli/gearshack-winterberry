@@ -949,7 +949,8 @@
       "details": "Zusätzliche Details (optional)",
       "detailsPlaceholder": "Gib zusätzlichen Kontext an...",
       "submit": "Meldung absenden",
-      "success": "Meldung eingereicht. Inhalt wird bis zur Überprüfung ausgeblendet.",
+      "successMessage": "Meldung eingereicht. Vielen Dank, dass du unsere Community sicher hältst.",
+      "successHidden": "Meldung eingereicht. Inhalt wird bis zur Überprüfung ausgeblendet.",
       "alreadyReported": "Du hast dieses Feedback bereits gemeldet"
     },
     "badges": {

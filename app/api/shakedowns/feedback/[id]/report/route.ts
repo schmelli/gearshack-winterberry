@@ -27,7 +27,7 @@ const REPORT_THRESHOLD = 3;
 
 interface ReportFeedbackResponse {
   success: true;
-  message: string;
+  code: 'REPORT_SUCCESS' | 'REPORT_SUCCESS_HIDDEN';
   hidden: boolean;
 }
 
@@ -238,15 +238,13 @@ export async function POST(
     const wasHidden = newReportCount >= REPORT_THRESHOLD;
 
     // -------------------------------------------------------------------------
-    // Build response message
+    // Build response with code for client-side i18n
     // -------------------------------------------------------------------------
-    const message = wasHidden
-      ? 'Report submitted. Content hidden pending review.'
-      : 'Report submitted. Thank you for helping keep our community safe.';
+    const code = wasHidden ? 'REPORT_SUCCESS_HIDDEN' : 'REPORT_SUCCESS';
 
     return NextResponse.json({
       success: true,
-      message,
+      code,
       hidden: wasHidden,
     });
   } catch (error) {

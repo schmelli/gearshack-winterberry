@@ -955,7 +955,8 @@
       "details": "Additional Details (optional)",
       "detailsPlaceholder": "Provide any additional context...",
       "submit": "Submit Report",
-      "success": "Report submitted. Content hidden pending review.",
+      "successMessage": "Report submitted. Thank you for helping keep our community safe.",
+      "successHidden": "Report submitted. Content hidden pending review.",
       "alreadyReported": "You've already reported this feedback"
     },
     "badges": {
