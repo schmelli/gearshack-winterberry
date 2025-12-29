@@ -983,7 +983,9 @@
     },
     "notifications": {
       "newFeedback": "{author} hat deinen Shakedown kommentiert",
+      "newFeedbackGeneric": "Neues Feedback zu deinem Shakedown",
       "newReply": "{author} hat auf deinen Kommentar geantwortet",
+      "newReplyGeneric": "Neue Antwort auf deinen Kommentar",
       "markedHelpful": "{author} fand dein Feedback hilfreich",
       "loadoutUpdated": "Das Loadout wurde aktualisiert",
       "badgeEarned": "Du hast das Abzeichen {badge} verdient!"

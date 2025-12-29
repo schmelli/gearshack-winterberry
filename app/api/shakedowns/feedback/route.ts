@@ -414,7 +414,8 @@ export async function POST(
             type: 'shakedown_feedback',
             reference_type: 'shakedown',
             reference_id: typedShakedown.id,
-            message: `Someone commented on your shakedown "${typedShakedown.trip_name}"`,
+            // Generic message - client builds translated message using reference_id
+            message: 'New feedback on your shakedown',
           });
         }
 
@@ -426,7 +427,8 @@ export async function POST(
             type: 'shakedown_reply',
             reference_type: 'shakedown_feedback',
             reference_id: minimalFeedback.id,
-            message: 'Someone replied to your comment',
+            // Generic message - client builds translated message using reference_id
+            message: 'New reply to your comment',
           });
         }
       } catch (notifError) {
@@ -441,8 +443,6 @@ export async function POST(
 
     // Send notifications (non-blocking - failures don't affect the response)
     try {
-      const authorName = feedback.authorName || 'Someone';
-
       // Notify shakedown owner (if feedback author is not the owner)
       if (typedShakedown.owner_id !== user.id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -451,7 +451,8 @@ export async function POST(
           type: 'shakedown_feedback',
           reference_type: 'shakedown',
           reference_id: typedShakedown.id,
-          message: `${authorName} commented on your shakedown "${typedShakedown.trip_name}"`,
+          // Generic message - client builds translated message using reference_id
+          message: 'New feedback on your shakedown',
         });
       }
 
@@ -463,7 +464,8 @@ export async function POST(
           type: 'shakedown_reply',
           reference_type: 'shakedown_feedback',
           reference_id: feedback.id,
-          message: `${authorName} replied to your comment`,
+          // Generic message - client builds translated message using reference_id
+          message: 'New reply to your comment',
         });
       }
     } catch (notifError) {

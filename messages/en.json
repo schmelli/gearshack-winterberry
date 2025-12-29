@@ -989,7 +989,9 @@
     },
     "notifications": {
       "newFeedback": "{author} commented on your shakedown",
+      "newFeedbackGeneric": "New feedback on your shakedown",
       "newReply": "{author} replied to your comment",
+      "newReplyGeneric": "New reply to your comment",
       "markedHelpful": "{author} found your feedback helpful",
       "loadoutUpdated": "The loadout has been updated",
       "badgeEarned": "You earned the {badge} badge!"
