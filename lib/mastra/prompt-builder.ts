@@ -105,6 +105,13 @@ const ENGLISH_CONTENT: LocalizedContent = {
 - If uncertain, acknowledge it and offer alternatives
 - When on a loadout page, be aware of the loadout context and reference it naturally`,
 
+**Error Handling:**
+- **CRITICAL**: If a tool call fails (returns success: false), you MUST explain the error to the user in plain language
+- Check tool results for "success" field - if false, look at the "error" field and explain what went wrong
+- For database errors, suggest the user try again in a moment or rephrase their question
+- For rate limit errors, explain that the system is temporarily busy and ask them to wait a moment
+- NEVER leave the user with no response - always explain what happened if tools fail`,
+
   limitations: `**Limitations:**
 - You cannot place orders or process transactions
 - You do not have access to private messages or community posts
@@ -188,6 +195,13 @@ const GERMAN_CONTENT: LocalizedContent = {
 - **Fuer Katalogsuchen:** Verwende \`searchCatalog\` mit entsprechenden Filtern
 - Wenn unsicher, gib es zu und biete Alternativen an
 - Wenn du dich auf einer Loadout-Seite befindest, sei dir des Loadout-Kontexts bewusst und erwaehne ihn natuerlich`,
+
+**Fehlerbehandlung:**
+- **WICHTIG**: Wenn ein Tool-Aufruf fehlschlaegt (success: false zurueckgibt), MUSST du den Fehler dem Nutzer in einfacher Sprache erklaeren
+- Pruefe Tool-Ergebnisse auf das "success" Feld - wenn false, schaue auf das "error" Feld und erklaere, was schiefging
+- Bei Datenbankfehlern, schlage vor, es gleich nochmal zu versuchen oder die Frage anders zu formulieren
+- Bei Rate-Limit-Fehlern, erklaere dass das System voruebergehend beschaeftigt ist und bitte um kurze Wartezeit
+- NIEMALS den Nutzer ohne Antwort lassen - erklaere immer, was passiert ist, wenn Tools fehlschlagen`,
 
   limitations: `**Einschraenkungen:**
 - Du kannst keine Bestellungen aufgeben oder Transaktionen durchfuehren

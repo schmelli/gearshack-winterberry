@@ -10,6 +10,8 @@
 'use client';
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useStore } from '@/hooks/useSupabaseStore';
 import type { ActivityType, Season } from '@/types/loadout';
 
@@ -23,9 +25,9 @@ interface UseLoadoutMetadataReturn {
   /** Currently selected seasons */
   seasons: Season[];
   /** Toggle an activity type on/off */
-  toggleActivity: (activity: ActivityType) => void;
+  toggleActivity: (activity: ActivityType) => Promise<void>;
   /** Toggle a season on/off */
-  toggleSeason: (season: Season) => void;
+  toggleSeason: (season: Season) => Promise<void>;
 }
 
 // =============================================================================
@@ -37,30 +39,41 @@ export function useLoadoutMetadata(loadoutId: string): UseLoadoutMetadataReturn 
     state.loadouts.find((l) => l.id === loadoutId)
   );
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
+  const t = useTranslations('Loadouts.errors');
 
   const activityTypes = loadout?.activityTypes ?? [];
   const seasons = loadout?.seasons ?? [];
 
   const toggleActivity = useCallback(
-    (activity: ActivityType) => {
+    async (activity: ActivityType) => {
       const current = loadout?.activityTypes ?? [];
       const newActivities = current.includes(activity)
         ? current.filter((a) => a !== activity)
         : [...current, activity];
-      updateLoadoutMetadata(loadoutId, { activityTypes: newActivities });
+      try {
+        await updateLoadoutMetadata(loadoutId, { activityTypes: newActivities });
+      } catch (error) {
+        toast.error(t('updateMetadataFailed'));
+        console.error('[LoadoutMetadata] Failed to toggle activity:', error);
+      }
     },
-    [loadoutId, loadout?.activityTypes, updateLoadoutMetadata]
+    [loadoutId, loadout?.activityTypes, updateLoadoutMetadata, t]
   );
 
   const toggleSeason = useCallback(
-    (season: Season) => {
+    async (season: Season) => {
       const current = loadout?.seasons ?? [];
       const newSeasons = current.includes(season)
         ? current.filter((s) => s !== season)
         : [...current, season];
-      updateLoadoutMetadata(loadoutId, { seasons: newSeasons });
+      try {
+        await updateLoadoutMetadata(loadoutId, { seasons: newSeasons });
+      } catch (error) {
+        toast.error(t('updateMetadataFailed'));
+        console.error('[LoadoutMetadata] Failed to toggle season:', error);
+      }
     },
-    [loadoutId, loadout?.seasons, updateLoadoutMetadata]
+    [loadoutId, loadout?.seasons, updateLoadoutMetadata, t]
   );
 
   return {
