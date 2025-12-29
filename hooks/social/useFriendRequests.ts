@@ -15,7 +15,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriendRequests,
   sendFriendRequest as sendRequest,
@@ -31,7 +31,7 @@ import type {
 } from '@/types/social';
 
 export function useFriendRequests(): UseFriendRequestsReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [pendingIncoming, setPendingIncoming] = useState<FriendRequestWithProfile[]>([]);
   const [pendingOutgoing, setPendingOutgoing] = useState<FriendRequestWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +41,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    * Loads all pending friend requests.
    */
   const loadRequests = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setPendingIncoming([]);
       setPendingOutgoing([]);
       setIsLoading(false);
@@ -51,7 +51,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const { incoming, outgoing } = await fetchFriendRequests(user.id);
+      const { incoming, outgoing } = await fetchFriendRequests(user.uid);
       setPendingIncoming(incoming);
       setPendingOutgoing(outgoing);
     } catch (err) {
@@ -63,7 +63,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Sends a friend request to another user.
@@ -76,7 +76,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const sendFriendRequest = useCallback(
     async (recipientId: string, message?: string): Promise<SendFriendRequestResponse> => {
-      if (!user?.id) {
+      if (!user?.uid) {
         return { success: false, error: 'no_message_exchange' };
       }
 
@@ -96,7 +96,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return { success: false, error: 'request_already_sent' };
       }
     },
-    [user?.id, loadRequests]
+    [user?.uid, loadRequests]
   );
 
   /**
@@ -158,10 +158,10 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const cancelOutgoingRequest = useCallback(
     async (requestId: string): Promise<void> => {
-      if (!user?.id) return;
+      if (!user?.uid) return;
 
       try {
-        await cancelFriendRequest(requestId, user.id);
+        await cancelFriendRequest(requestId, user.uid);
 
         // Optimistic update: remove from outgoing list
         setPendingOutgoing((prev) => prev.filter((r) => r.id !== requestId));
@@ -171,7 +171,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         throw err;
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**
@@ -184,7 +184,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const checkCanSendRequest = useCallback(
     async (recipientId: string): Promise<CanSendFriendRequestResponse> => {
-      if (!user?.id) {
+      if (!user?.uid) {
         return { canSend: false, reason: 'no_message_exchange' };
       }
 
@@ -197,7 +197,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return { canSend: false, reason: 'blocked' };
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**

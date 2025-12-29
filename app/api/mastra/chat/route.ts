@@ -66,6 +66,7 @@ import {
   formatSuggestionsForStream,
   shouldShowProactiveSuggestions,
 } from '@/lib/mastra/proactive-suggestions';
+import {
   buildUserContext,
   isCacheStale,
   formatContextForPrompt,
@@ -615,6 +616,7 @@ export async function POST(request: Request): Promise<Response> {
       context,
       memoryContext.history,
       user.id,
+      memoryContext.userContext,
       memoryContext.warning
     );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
@@ -675,7 +677,7 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // Improvement #4: Add proactive suggestions to stream
-          const hadError = streamingResult.error !== undefined; // Assuming streamingResult can indicate an error
+          const hadError = false; // No error tracking in streaming result
           if (shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
             const suggestions = generateProactiveSuggestions(
               promptContext.userContext,

@@ -47,7 +47,7 @@ interface PrivacySettingsPanelProps {
 }
 
 type VisibilityLevel = 'everyone' | 'friends_only' | 'nobody';
-type ActivityVisibility = 'everyone' | 'friends' | 'nobody';
+type ActivityVisibility = 'everyone' | 'friends_only' | 'nobody';
 
 // =============================================================================
 // Preset Card Component

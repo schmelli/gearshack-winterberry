@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useFriendRequests, useFriendRequestStatus } from '@/hooks/social/useFriendRequests';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { areFriends } from '@/lib/supabase/social-queries';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -85,7 +85,7 @@ export function FriendRequestButton({
   onMessageClick,
 }: FriendRequestButtonProps) {
   const t = useTranslations('Social');
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useAuthContext();
   const { sendRequest, acceptRequest, cancelRequest, declineRequest } = useFriendRequests();
   const friendRequestStatus = useFriendRequestStatus(userId);
   const { status, requestId, canSend, isLoading: isStatusLoading } = friendRequestStatus;
@@ -96,13 +96,13 @@ export function FriendRequestButton({
   // Check if already friends
   useEffect(() => {
     const checkFriendship = async () => {
-      if (!currentUser?.id) {
+      if (!currentUser?.uid) {
         setIsCheckingFriends(false);
         return;
       }
 
       try {
-        const friends = await areFriends(currentUser.id, userId);
+        const friends = await areFriends(currentUser.uid, userId);
         setIsFriends(friends);
       } catch (err) {
         console.error('Error checking friendship:', err);
@@ -112,11 +112,11 @@ export function FriendRequestButton({
     };
 
     checkFriendship();
-  }, [currentUser?.id, userId]);
+  }, [currentUser?.uid, userId]);
 
   // Determine button state
   const getButtonState = (): ButtonState => {
-    if (currentUser?.id === userId) return 'self';
+    if (currentUser?.uid === userId) return 'self';
     if (isStatusLoading || isCheckingFriends) return 'loading';
     if (isFriends) return 'friends';
     if (status === 'pending_outgoing') return 'pending_outgoing';

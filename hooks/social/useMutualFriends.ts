@@ -10,18 +10,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { fetchMutualFriends, getMutualFriendsCount } from '@/lib/supabase/social-queries';
 import type { UseMutualFriendsReturn, FriendInfo } from '@/types/social';
 
 export function useMutualFriends(targetUserId: string): UseMutualFriendsReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [mutualFriends, setMutualFriends] = useState<FriendInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadMutualFriends = useCallback(async () => {
-    if (!user?.id || !targetUserId || user.id === targetUserId) {
+    if (!user?.uid || !targetUserId || user.uid === targetUserId) {
       setMutualFriends([]);
       setIsLoading(false);
       return;
@@ -30,7 +30,7 @@ export function useMutualFriends(targetUserId: string): UseMutualFriendsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchMutualFriends(user.id, targetUserId);
+      const data = await fetchMutualFriends(user.uid, targetUserId);
       setMutualFriends(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load mutual friends';
@@ -39,7 +39,7 @@ export function useMutualFriends(targetUserId: string): UseMutualFriendsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, targetUserId]);
+  }, [user?.uid, targetUserId]);
 
   useEffect(() => {
     loadMutualFriends();
@@ -60,12 +60,12 @@ export function useMutualFriendsCount(targetUserId: string): {
   count: number;
   isLoading: boolean;
 } {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id || !targetUserId || user.id === targetUserId) {
+    if (!user?.uid || !targetUserId || user.uid === targetUserId) {
       setCount(0);
       setIsLoading(false);
       return;
@@ -74,7 +74,7 @@ export function useMutualFriendsCount(targetUserId: string): {
     const loadCount = async () => {
       try {
         setIsLoading(true);
-        const result = await getMutualFriendsCount(user.id, targetUserId);
+        const result = await getMutualFriendsCount(user.uid, targetUserId);
         setCount(result);
       } catch (err) {
         console.error('Error loading mutual friends count:', err);
@@ -85,7 +85,7 @@ export function useMutualFriendsCount(targetUserId: string): {
     };
 
     loadCount();
-  }, [user?.id, targetUserId]);
+  }, [user?.uid, targetUserId]);
 
   return { count, isLoading };
 }

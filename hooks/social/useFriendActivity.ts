@@ -14,7 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriendActivities,
   subscribeToFriendActivities,
@@ -32,7 +32,7 @@ const MAX_ACTIVITIES = 50; // Maximum activities to display
 export function useFriendActivity(
   activityTypeFilter?: ActivityTypeFilter
 ): UseFriendActivityReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [activities, setActivities] = useState<FriendActivityWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function useFriendActivity(
    * Loads initial activities.
    */
   const loadActivities = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setActivities([]);
       setIsLoading(false);
       return;
@@ -69,13 +69,13 @@ export function useFriendActivity(
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, activityTypeFilter]);
+  }, [user?.uid, activityTypeFilter]);
 
   /**
    * Loads more activities (pagination).
    */
   const loadMore = useCallback(async () => {
-    if (!user?.id || isLoading || !hasMore) return;
+    if (!user?.uid || isLoading || !hasMore) return;
 
     try {
       const newOffset = offset + PAGE_SIZE;
@@ -97,7 +97,7 @@ export function useFriendActivity(
       setError(message);
       console.error('Error loading more activities:', err);
     }
-  }, [user?.id, isLoading, hasMore, offset, activities.length, activityTypeFilter]);
+  }, [user?.uid, isLoading, hasMore, offset, activities.length, activityTypeFilter]);
 
   /**
    * Refreshes the activity feed.
@@ -145,7 +145,7 @@ export function useFriendActivity(
 
   // Setup Realtime subscription
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
 
     // Cleanup previous subscription
     if (unsubscribeRef.current) {
@@ -153,7 +153,7 @@ export function useFriendActivity(
     }
 
     // Subscribe to new activities
-    unsubscribeRef.current = subscribeToFriendActivities(user.id, handleNewActivity);
+    unsubscribeRef.current = subscribeToFriendActivities(user.uid, handleNewActivity);
 
     return () => {
       if (unsubscribeRef.current) {
@@ -161,7 +161,7 @@ export function useFriendActivity(
         unsubscribeRef.current = null;
       }
     };
-  }, [user?.id, handleNewActivity]);
+  }, [user?.uid, handleNewActivity]);
 
   return {
     activities,

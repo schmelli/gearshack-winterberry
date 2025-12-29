@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchSocialPrivacySettings,
   updateSocialPrivacySettings,
@@ -22,7 +22,7 @@ import {
 import type { UseSocialPrivacyReturn, SocialPrivacySettings, PrivacyPreset } from '@/types/social';
 
 export function useSocialPrivacy(): UseSocialPrivacyReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [settings, setSettings] = useState<SocialPrivacySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
    * Loads privacy settings.
    */
   const loadSettings = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setSettings(null);
       setIsLoading(false);
       return;
@@ -40,7 +40,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchSocialPrivacySettings(user.id);
+      const data = await fetchSocialPrivacySettings(user.uid);
       setSettings(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load privacy settings';
@@ -49,7 +49,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Updates specific privacy settings.
@@ -57,7 +57,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
    */
   const updateSettings = useCallback(
     async (updates: Partial<SocialPrivacySettings>): Promise<void> => {
-      if (!user?.id || !settings) return;
+      if (!user?.uid || !settings) return;
 
       // Optimistic update
       const previousSettings = { ...settings };
@@ -69,7 +69,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
       }
 
       try {
-        await updateSocialPrivacySettings(user.id, updates);
+        await updateSocialPrivacySettings(user.uid, updates);
       } catch (err) {
         // Rollback on error
         setSettings(previousSettings);
@@ -78,7 +78,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
         throw err;
       }
     },
-    [user?.id, settings]
+    [user?.uid, settings]
   );
 
   /**
@@ -87,7 +87,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
    */
   const setPreset = useCallback(
     async (preset: Exclude<PrivacyPreset, 'custom'>): Promise<void> => {
-      if (!user?.id) return;
+      if (!user?.uid) return;
 
       // Optimistic update with preset values
       const presetSettings: Record<Exclude<PrivacyPreset, 'custom'>, SocialPrivacySettings> = {
@@ -102,14 +102,14 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
           privacy_preset: 'friends_only',
           messaging_privacy: 'friends_only',
           online_status_privacy: 'friends_only',
-          activity_feed_privacy: 'friends',
+          activity_feed_privacy: 'friends_only',
           discoverable: true,
         },
         everyone: {
           privacy_preset: 'everyone',
           messaging_privacy: 'everyone',
           online_status_privacy: 'everyone',
-          activity_feed_privacy: 'friends',
+          activity_feed_privacy: 'friends_only',
           discoverable: true,
         },
       };
@@ -118,7 +118,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
       setSettings(presetSettings[preset]);
 
       try {
-        await applyPrivacyPreset(user.id, preset);
+        await applyPrivacyPreset(user.uid, preset);
       } catch (err) {
         // Rollback on error
         setSettings(previousSettings);
@@ -127,7 +127,7 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
         throw err;
       }
     },
-    [user?.id, settings]
+    [user?.uid, settings]
   );
 
   // Initial load

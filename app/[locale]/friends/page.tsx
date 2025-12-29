@@ -36,7 +36,7 @@ import { useTranslations } from 'next-intl';
 
 function RequestsTabs() {
   const t = useTranslations('Social');
-  const { incomingRequests, outgoingRequests, isLoading, error } = useFriendRequests();
+  const { pendingIncoming, pendingOutgoing, isLoading, error } = useFriendRequests();
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
 
   if (isLoading) {
@@ -60,41 +60,41 @@ function RequestsTabs() {
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="incoming" className="gap-2">
           {t('requests.incoming')}
-          {incomingRequests.length > 0 && (
+          {pendingIncoming.length > 0 && (
             <Badge variant="secondary" className="ml-1">
-              {incomingRequests.length}
+              {pendingIncoming.length}
             </Badge>
           )}
         </TabsTrigger>
         <TabsTrigger value="outgoing" className="gap-2">
           {t('requests.outgoing')}
-          {outgoingRequests.length > 0 && (
+          {pendingOutgoing.length > 0 && (
             <Badge variant="outline" className="ml-1">
-              {outgoingRequests.length}
+              {pendingOutgoing.length}
             </Badge>
           )}
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="incoming" className="mt-4">
-        {incomingRequests.length === 0 ? (
+        {pendingIncoming.length === 0 ? (
           <EmptyStateCard
-            type="requests"
+            type="friend-requests"
             title={t('requests.emptyIncoming')}
           />
         ) : (
-          <FriendRequestList requests={incomingRequests} variant="card" />
+          <FriendRequestList requests={pendingIncoming} variant="card" />
         )}
       </TabsContent>
 
       <TabsContent value="outgoing" className="mt-4">
-        {outgoingRequests.length === 0 ? (
+        {pendingOutgoing.length === 0 ? (
           <EmptyStateCard
-            type="requests"
+            type="friend-requests"
             title={t('requests.emptyOutgoing')}
           />
         ) : (
-          <OutgoingRequestsList requests={outgoingRequests} />
+          <OutgoingRequestsList requests={pendingOutgoing} />
         )}
       </TabsContent>
     </Tabs>
@@ -205,11 +205,11 @@ function OutgoingRequestsList({ requests }: OutgoingRequestsListProps) {
 
 function FriendsPageContent() {
   const t = useTranslations('Social');
-  const { incomingRequests } = useFriendRequests();
+  const { pendingIncoming } = useFriendRequests();
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'activity'>('friends');
 
   // Badge count for requests tab
-  const requestCount = incomingRequests.length;
+  const requestCount = pendingIncoming.length;
 
   return (
     <main className="container mx-auto px-4 py-8">
