@@ -725,5 +725,138 @@
       "tooltipRateLimited": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
       "ariaLabel": "Nach Produktinformationen suchen"
     }
+  },
+  "Social": {
+    "common": {
+      "back": "Zurück",
+      "retry": "Erneut versuchen",
+      "loading": "Wird geladen...",
+      "refresh": "Aktualisieren",
+      "message": "Nachricht",
+      "cancel": "Abbrechen"
+    },
+    "following": {
+      "title": "Folge ich",
+      "follow": "Folgen",
+      "following": "Folge ich",
+      "unfollow": "Entfolgen",
+      "followSuccess": "Du folgst jetzt {name}",
+      "unfollowSuccess": "Du folgst {name} nicht mehr",
+      "emptyTitle": "Du folgst noch niemandem",
+      "emptyDescription": "Folge Community-Mitgliedern und VIP-Accounts, um ihre öffentlichen Aktivitäten zu sehen.",
+      "findPeople": "Leute zum Folgen finden"
+    },
+    "friends": {
+      "title": "Freunde",
+      "addFriend": "Freund hinzufügen",
+      "pending": "Ausstehend",
+      "friends": "Freunde",
+      "unfriend": "Entfreunden",
+      "unfriended": "Freund entfernt",
+      "unfriendFailed": "Entfernen fehlgeschlagen",
+      "unfriendTitle": "Freund entfernen?",
+      "cancel": "Anfrage abbrechen",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "requestSent": "Freundschaftsanfrage an {name} gesendet",
+      "requestAccepted": "Du bist jetzt mit {name} befreundet",
+      "unfriendConfirm": "{name} aus der Freundesliste entfernen?",
+      "unfriendDescription": "Diese Person verliert den Zugriff auf deine Inhalte, die nur für Freunde sichtbar sind.",
+      "emptyTitle": "Noch keine Freunde",
+      "emptyDescription": "Beginne eine Unterhaltung mit jemandem, um eine Freundschaftsanfrage zu senden.",
+      "noOnlineFriends": "Derzeit sind keine Freunde online",
+      "noSearchResults": "Keine Freunde gefunden mit \"{query}\"",
+      "searchPlaceholder": "Freunde suchen...",
+      "searchAriaLabel": "Freunde suchen",
+      "listAriaLabel": "Freundesliste",
+      "since": "Freunde seit {date}",
+      "sort": "Sortieren",
+      "sortBy": "Sortieren nach",
+      "sortByName": "Name",
+      "sortByRecent": "Letzte Aktivität",
+      "sortByOnline": "Online",
+      "sortByDateAdded": "Hinzugefügt am",
+      "onlineOnly": "Nur Online",
+      "showingFiltered": "{shown} von {total} Freunden angezeigt",
+      "mutualFriends": "{count} gemeinsame Freunde",
+      "mutualFriend": "1 gemeinsamer Freund",
+      "noMutualFriends": "Keine gemeinsamen Freunde",
+      "seeAll": "Alle anzeigen",
+      "friendLimit": "Du hast das Freundeslimit erreicht (1.000). Entferne einen Freund, um einen neuen hinzuzufügen.",
+      "rateLimit": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
+      "noMessageExchange": "Du musst zuerst {name} eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst."
+    },
+    "requests": {
+      "title": "Freundschaftsanfragen",
+      "incoming": "Eingehend",
+      "outgoing": "Gesendet",
+      "emptyIncoming": "Keine ausstehenden Freundschaftsanfragen",
+      "emptyOutgoing": "Keine gesendeten Freundschaftsanfragen",
+      "expiresIn": "Läuft in {days} Tagen ab",
+      "sendFailed": "Senden der Freundschaftsanfrage fehlgeschlagen",
+      "acceptFailed": "Annehmen der Freundschaftsanfrage fehlgeschlagen",
+      "declineFailed": "Ablehnen der Freundschaftsanfrage fehlgeschlagen",
+      "cancelFailed": "Abbrechen der Freundschaftsanfrage fehlgeschlagen",
+      "rateLimitExceeded": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
+      "noMessageExchange": "Du musst dieser Person zuerst eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst"
+    },
+    "activity": {
+      "title": "Aktivitäten",
+      "markAllRead": "Alle als gelesen markieren",
+      "emptyTitle": "Noch keine Aktivitäten",
+      "emptyDescription": "Wenn deine Freunde etwas tun, siehst du es hier.",
+      "filterAll": "Alle",
+      "filterLoadouts": "Loadouts",
+      "filterMarketplace": "Marktplatz",
+      "filterGear": "Ausrüstung",
+      "newLoadout": "{name} hat ein neues Loadout erstellt",
+      "sharedLoadout": "{name} hat ein Loadout geteilt",
+      "newListing": "{name} hat etwas auf dem Marktplatz eingestellt",
+      "addedGear": "{name} hat neue Ausrüstung hinzugefügt",
+      "newFriend": "{name} ist jetzt mit {friend} befreundet",
+      "loadMore": "Mehr laden"
+    },
+    "presence": {
+      "online": "Online",
+      "away": "Abwesend",
+      "invisible": "Unsichtbar",
+      "offline": "Offline",
+      "lastActive": "Zuletzt aktiv {time}",
+      "updating": "Wird aktualisiert...",
+      "updateFailed": "Aktualisierung des Status fehlgeschlagen"
+    },
+    "privacy": {
+      "title": "Datenschutzeinstellungen",
+      "description": "Kontrolliere, wer deine Inhalte und Aktivitäten sehen kann",
+      "presets": {
+        "title": "Schnelleinstellungen",
+        "onlyMe": "Nur ich",
+        "onlyMeDesc": "Maximale Privatsphäre - nur du kannst deine Inhalte sehen",
+        "friendsOnly": "Nur Freunde",
+        "friendsOnlyDesc": "Teile mit deinen vertrauenswürdigen Freunden",
+        "everyone": "Alle",
+        "everyoneDesc": "Offen für die Community"
+      },
+      "granular": {
+        "title": "Feineinstellungen",
+        "onlineStatus": "Online-Status",
+        "onlineStatusDesc": "Wer kann sehen, wenn du online bist",
+        "activityFeed": "Aktivitäten",
+        "activityFeedDesc": "Wer kann deine Aktivitäten in seinem Feed sehen",
+        "loadouts": "Loadouts",
+        "loadoutsDesc": "Wer kann deine Loadouts sehen",
+        "discoverable": "Auffindbar",
+        "discoverableDesc": "Andere können dich finden und dir Nachrichten senden"
+      },
+      "values": {
+        "everyone": "Alle",
+        "friendsOnly": "Nur Freunde",
+        "nobody": "Niemand"
+      },
+      "presetApplied": "Datenschutzvoreinstellung angewendet",
+      "presetFailed": "Anwendung der Voreinstellung fehlgeschlagen",
+      "settingUpdated": "Einstellung aktualisiert",
+      "settingFailed": "Aktualisierung der Einstellung fehlgeschlagen"
+    }
   }
 }
