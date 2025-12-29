@@ -42,6 +42,7 @@ import { PriceTrackingSection } from '@/components/price-tracking';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
+import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
@@ -308,6 +309,14 @@ export function GearDetailContent({
           <Badge variant="outline">{GEAR_STATUS_LABELS[item.status]}</Badge>
           {item.isFavourite && <Badge variant="default">{t('badges.favourite')}</Badge>}
         </div>
+
+        {/* Feature 053 T087: Merchant Source Attribution for wishlist items */}
+        {isWishlistItem && item.sourceMerchantId && (
+          <MerchantSourceBadge
+            sourceMerchantId={item.sourceMerchantId}
+            sourceLoadoutId={item.sourceLoadoutId}
+          />
+        )}
 
         {/* Collapsible Sections */}
         <Accordion type="multiple" defaultValue={defaultOpenSections} className="w-full">

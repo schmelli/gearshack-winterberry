@@ -1,0 +1,727 @@
+# Merchant Offers API Contracts
+# Feature: 053-merchant-integration
+
+openapi: 3.1.0
+info:
+  title: Merchant Integration API - Offers
+  version: 1.0.0
+  description: API endpoints for merchant offers and wishlist brokering
+
+paths:
+  # Merchant Portal - Wishlist Insights
+  /api/merchants/insights/wishlist:
+    get:
+      summary: Get wishlist demand insights
+      operationId: getWishlistInsights
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: radiusKm
+          in: query
+          schema:
+            type: integer
+            enum: [5, 10, 25, 50, 100]
+            default: 25
+        - name: catalogItemId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific product
+      responses:
+        '200':
+          description: Wishlist demand aggregates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WishlistInsight'
+
+  /api/merchants/insights/wishlist/{catalogItemId}:
+    get:
+      summary: Get detailed wishlist demand for item
+      operationId: getWishlistInsightDetail
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: catalogItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: radiusKm
+          in: query
+          schema:
+            type: integer
+            enum: [5, 10, 25, 50, 100]
+      responses:
+        '200':
+          description: Anonymized user list with proximity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistInsightDetail'
+
+  # Merchant Portal - Offer Management
+  /api/merchants/offers:
+    get:
+      summary: List merchant's offers
+      operationId: listMerchantOffers
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, viewed, accepted, declined, expired, converted]
+        - name: catalogItemId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Paginated offers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantOfferList'
+
+    post:
+      summary: Create and send offers
+      operationId: createMerchantOffers
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOffersInput'
+      responses:
+        '201':
+          description: Offers created and sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offersSent:
+                    type: integer
+                  totalFee:
+                    type: number
+                  offerIds:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        '400':
+          description: Validation error (e.g., duplicate offers, blocked users)
+
+  /api/merchants/offers/{offerId}:
+    get:
+      summary: Get offer details
+      operationId: getMerchantOffer
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Offer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantOfferDetail'
+
+  /api/merchants/offers/analytics:
+    get:
+      summary: Get offer analytics
+      operationId: getOfferAnalytics
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: periodDays
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Offer performance analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferAnalytics'
+
+  # User - Offer Management
+  /api/offers:
+    get:
+      summary: List user's received offers
+      operationId: listUserOffers
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, viewed, accepted, declined, expired]
+        - name: includeExpired
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: User's offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserOffer'
+
+  /api/offers/{offerId}:
+    get:
+      summary: Get offer details (user view)
+      operationId: getUserOffer
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Offer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOfferDetail'
+        '404':
+          description: Offer not found
+
+  /api/offers/{offerId}/accept:
+    post:
+      summary: Accept offer (opens DM)
+      operationId: acceptOffer
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Offer accepted, DM created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationId:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+
+  /api/offers/{offerId}/decline:
+    post:
+      summary: Decline offer
+      operationId: declineOffer
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Offer declined
+
+  /api/offers/{offerId}/report:
+    post:
+      summary: Report offer as spam/misleading
+      operationId: reportOffer
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [spam, misleading, inappropriate, other]
+                details:
+                  type: string
+              required: [reason]
+      responses:
+        '200':
+          description: Report submitted
+
+  # User - Merchant Blocking
+  /api/merchants/{merchantId}/block:
+    post:
+      summary: Block merchant from sending offers
+      operationId: blockMerchant
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Merchant blocked
+
+  /api/merchants/{merchantId}/unblock:
+    delete:
+      summary: Unblock merchant
+      operationId: unblockMerchant
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Merchant unblocked
+
+  /api/merchants/blocked:
+    get:
+      summary: List blocked merchants
+      operationId: listBlockedMerchants
+      tags: [User]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Blocked merchants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlockedMerchant'
+
+  # User - Location Sharing
+  /api/merchants/{merchantId}/location-share:
+    get:
+      summary: Get location sharing setting for merchant
+      operationId: getLocationShareSetting
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current setting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationShareSetting'
+
+    put:
+      summary: Update location sharing setting
+      operationId: updateLocationShareSetting
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                granularity:
+                  type: string
+                  enum: [city, neighborhood, none]
+              required: [granularity]
+      responses:
+        '200':
+          description: Setting updated
+
+components:
+  schemas:
+    WishlistInsight:
+      type: object
+      properties:
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+        catalogItemBrand:
+          type: string
+        userCount:
+          type: integer
+        proximityBreakdown:
+          type: object
+          properties:
+            within5km:
+              type: integer
+            within10km:
+              type: integer
+            within25km:
+              type: integer
+            within50km:
+              type: integer
+            beyond50km:
+              type: integer
+        recentAddCount:
+          type: integer
+          description: Added in last 7 days
+
+    WishlistInsightDetail:
+      type: object
+      properties:
+        catalogItem:
+          $ref: '#/components/schemas/CatalogItemSummary'
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              anonymousId:
+                type: string
+                description: Anonymous identifier (e.g., "User A")
+              proximityBucket:
+                type: string
+                enum: [5km, 10km, 25km, 50km, 100km+]
+              addedDaysAgo:
+                type: integer
+              canSendOffer:
+                type: boolean
+                description: False if blocked or recent offer exists
+
+    MerchantOfferList:
+      type: object
+      properties:
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/MerchantOffer'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    MerchantOffer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        catalogItem:
+          $ref: '#/components/schemas/CatalogItemSummary'
+        regularPrice:
+          type: number
+        offerPrice:
+          type: number
+        discountPercent:
+          type: number
+        status:
+          type: string
+          enum: [pending, viewed, accepted, declined, expired, converted]
+        expiresAt:
+          type: string
+          format: date-time
+        viewedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    MerchantOfferDetail:
+      allOf:
+        - $ref: '#/components/schemas/MerchantOffer'
+        - type: object
+          properties:
+            message:
+              type: string
+            userProximityBucket:
+              type: string
+            offerFeeCharged:
+              type: number
+            conversion:
+              $ref: '#/components/schemas/ConversionSummary'
+
+    CreateOffersInput:
+      type: object
+      required: [catalogItemId, offerPrice, userIds]
+      properties:
+        catalogItemId:
+          type: string
+          format: uuid
+        regularPrice:
+          type: number
+          description: Defaults to catalog item price if not specified
+        offerPrice:
+          type: number
+        message:
+          type: string
+          maxLength: 500
+        expiresInDays:
+          type: integer
+          default: 14
+          minimum: 1
+          maximum: 30
+        userIds:
+          type: array
+          items:
+            type: string
+          description: Anonymous user IDs from wishlist insights
+
+    UserOffer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        merchant:
+          $ref: '#/components/schemas/MerchantSummary'
+        productName:
+          type: string
+        productBrand:
+          type: string
+        productImageUrl:
+          type: string
+        regularPrice:
+          type: number
+        offerPrice:
+          type: number
+        discountPercent:
+          type: number
+        status:
+          type: string
+          enum: [pending, viewed, accepted, declined, expired]
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    UserOfferDetail:
+      allOf:
+        - $ref: '#/components/schemas/UserOffer'
+        - type: object
+          properties:
+            message:
+              type: string
+            nearestLocation:
+              type: object
+              properties:
+                name:
+                  type: string
+                distanceKm:
+                  type: number
+                address:
+                  type: string
+            wishlistItemId:
+              type: string
+              format: uuid
+            expiresIn:
+              type: string
+              description: Human-readable (e.g., "12 days")
+
+    OfferAnalytics:
+      type: object
+      properties:
+        periodDays:
+          type: integer
+        offersSent:
+          type: integer
+        offersViewed:
+          type: integer
+        offersAccepted:
+          type: integer
+        offersDeclined:
+          type: integer
+        offersExpired:
+          type: integer
+        conversions:
+          type: integer
+        viewRate:
+          type: number
+        acceptanceRate:
+          type: number
+        conversionRate:
+          type: number
+        totalOfferFees:
+          type: number
+        totalCommissions:
+          type: number
+        averageDiscountPercent:
+          type: number
+
+    BlockedMerchant:
+      type: object
+      properties:
+        merchantId:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        blockedAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+
+    LocationShareSetting:
+      type: object
+      properties:
+        merchantId:
+          type: string
+          format: uuid
+        merchantName:
+          type: string
+        granularity:
+          type: string
+          enum: [city, neighborhood, none]
+        city:
+          type: string
+        neighborhood:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        salePrice:
+          type: number
+        commissionAmount:
+          type: number
+        isLocalPickup:
+          type: boolean
+        conversionDate:
+          type: string
+          format: date-time
+
+    MerchantSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        businessType:
+          type: string
+        logoUrl:
+          type: string
+        isVerified:
+          type: boolean
+
+    CatalogItemSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

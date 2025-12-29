@@ -1,0 +1,785 @@
+# Merchant Conversions & Billing API Contracts
+# Feature: 053-merchant-integration
+
+openapi: 3.1.0
+info:
+  title: Merchant Integration API - Conversions & Billing
+  version: 1.0.0
+  description: API endpoints for conversion tracking, billing cycles, and transaction management
+
+paths:
+  # Merchant Portal - Conversion Management
+  /api/merchants/conversions:
+    get:
+      summary: List merchant conversions
+      operationId: listMerchantConversions
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, disputed, refunded]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Paginated conversions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionList'
+
+  /api/merchants/conversions/{conversionId}:
+    get:
+      summary: Get conversion details
+      operationId: getMerchantConversion
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversion details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionDetail'
+
+  /api/merchants/conversions/log:
+    post:
+      summary: Log a conversion (mark purchase complete)
+      operationId: logConversion
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogConversionInput'
+      responses:
+        '201':
+          description: Conversion logged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversion'
+        '400':
+          description: Invalid conversion (expired offer, already converted, etc.)
+        '409':
+          description: Conversion already exists for this offer
+
+  # User - Conversion Confirmation
+  /api/conversions/{conversionId}/confirm:
+    post:
+      summary: Confirm conversion (user acknowledges purchase)
+      operationId: confirmConversion
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                feedback:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Conversion confirmed
+
+  /api/conversions/{conversionId}/dispute:
+    post:
+      summary: Dispute conversion
+      operationId: disputeConversion
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [never_purchased, wrong_price, wrong_item, other]
+                details:
+                  type: string
+              required: [reason]
+      responses:
+        '200':
+          description: Dispute submitted for review
+
+  # Merchant Portal - Billing
+  /api/merchants/billing/cycles:
+    get:
+      summary: List billing cycles
+      operationId: listBillingCycles
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, invoiced, paid, overdue]
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Billing cycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillingCycle'
+
+  /api/merchants/billing/cycles/{cycleId}:
+    get:
+      summary: Get billing cycle details
+      operationId: getBillingCycle
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Billing cycle with line items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCycleDetail'
+
+  /api/merchants/billing/cycles/{cycleId}/invoice:
+    get:
+      summary: Download invoice PDF
+      operationId: downloadInvoice
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invoice PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Invoice not yet generated
+
+  /api/merchants/billing/transactions:
+    get:
+      summary: List all transactions
+      operationId: listMerchantTransactions
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [listing_fee, offer_fee, commission, refund]
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Paginated transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+
+  /api/merchants/billing/summary:
+    get:
+      summary: Get billing summary
+      operationId: getBillingSummary
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: periodMonths
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        '200':
+          description: Billing summary with totals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSummary'
+
+  # Admin - Billing Management
+  /api/admin/billing/cycles:
+    get:
+      summary: List all billing cycles (admin)
+      operationId: adminListBillingCycles
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, invoiced, paid, overdue]
+        - name: month
+          in: query
+          schema:
+            type: string
+            format: date
+            description: YYYY-MM format
+      responses:
+        '200':
+          description: All billing cycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillingCycleAdmin'
+
+  /api/admin/billing/cycles/{cycleId}/generate-invoice:
+    post:
+      summary: Generate invoice for billing cycle
+      operationId: generateInvoice
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invoice generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoiceUrl:
+                    type: string
+
+  /api/admin/billing/cycles/{cycleId}/mark-paid:
+    post:
+      summary: Mark billing cycle as paid
+      operationId: markCyclePaid
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentReference:
+                  type: string
+                paymentDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Cycle marked as paid
+
+  # Admin - Conversion Review
+  /api/admin/conversions/flagged:
+    get:
+      summary: List flagged conversions for review
+      operationId: listFlaggedConversions
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flagType
+          in: query
+          schema:
+            type: string
+            enum: [late_attribution, high_value, velocity_anomaly, disputed]
+      responses:
+        '200':
+          description: Flagged conversions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FlaggedConversion'
+
+  /api/admin/conversions/{conversionId}/approve:
+    post:
+      summary: Approve flagged conversion
+      operationId: approveConversion
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          description: Conversion approved
+
+  /api/admin/conversions/{conversionId}/reject:
+    post:
+      summary: Reject flagged conversion
+      operationId: rejectConversion
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required: [reason]
+      responses:
+        '200':
+          description: Conversion rejected
+
+components:
+  schemas:
+    Conversion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        offerId:
+          type: string
+          format: uuid
+        merchantId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        salePrice:
+          type: number
+        commissionPercent:
+          type: number
+        commissionAmount:
+          type: number
+        isLocalPickup:
+          type: boolean
+        status:
+          type: string
+          enum: [pending, confirmed, disputed, refunded]
+        conversionDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ConversionDetail:
+      allOf:
+        - $ref: '#/components/schemas/Conversion'
+        - type: object
+          properties:
+            offer:
+              $ref: '#/components/schemas/OfferSummary'
+            catalogItem:
+              $ref: '#/components/schemas/CatalogItemSummary'
+            attributionDays:
+              type: integer
+              description: Days between offer acceptance and conversion
+            isLateAttribution:
+              type: boolean
+            flags:
+              type: array
+              items:
+                type: string
+            userRating:
+              type: integer
+            userFeedback:
+              type: string
+
+    ConversionList:
+      type: object
+      properties:
+        conversions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversion'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        summary:
+          type: object
+          properties:
+            totalConversions:
+              type: integer
+            totalRevenue:
+              type: number
+            totalCommissions:
+              type: number
+
+    LogConversionInput:
+      type: object
+      required: [offerId, salePrice]
+      properties:
+        offerId:
+          type: string
+          format: uuid
+        salePrice:
+          type: number
+        isLocalPickup:
+          type: boolean
+          default: false
+        receiptReference:
+          type: string
+          description: Optional receipt/transaction ID
+
+    BillingCycle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cycleStart:
+          type: string
+          format: date
+        cycleEnd:
+          type: string
+          format: date
+        listingFees:
+          type: number
+        offerFees:
+          type: number
+        commissions:
+          type: number
+        totalDue:
+          type: number
+        status:
+          type: string
+          enum: [pending, invoiced, paid, overdue]
+        invoiceUrl:
+          type: string
+        dueDate:
+          type: string
+          format: date
+
+    BillingCycleDetail:
+      allOf:
+        - $ref: '#/components/schemas/BillingCycle'
+        - type: object
+          properties:
+            lineItems:
+              type: array
+              items:
+                $ref: '#/components/schemas/BillingLineItem'
+            paymentHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  amount:
+                    type: number
+                  reference:
+                    type: string
+
+    BillingLineItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [listing_fee, offer_fee, commission, refund]
+        description:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+        relatedEntityId:
+          type: string
+          format: uuid
+          description: ID of loadout, offer, or conversion
+        date:
+          type: string
+          format: date
+
+    BillingCycleAdmin:
+      allOf:
+        - $ref: '#/components/schemas/BillingCycle'
+        - type: object
+          properties:
+            merchant:
+              $ref: '#/components/schemas/MerchantSummary'
+            conversionsCount:
+              type: integer
+            offersCount:
+              type: integer
+
+    TransactionList:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [listing_fee, offer_fee, commission, refund]
+        amount:
+          type: number
+        description:
+          type: string
+        relatedEntityType:
+          type: string
+          enum: [loadout, offer, conversion]
+        relatedEntityId:
+          type: string
+          format: uuid
+        billingCycleId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    BillingSummary:
+      type: object
+      properties:
+        periodMonths:
+          type: integer
+        totalListingFees:
+          type: number
+        totalOfferFees:
+          type: number
+        totalCommissions:
+          type: number
+        totalPaid:
+          type: number
+        totalOutstanding:
+          type: number
+        monthlyBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                format: date
+              listingFees:
+                type: number
+              offerFees:
+                type: number
+              commissions:
+                type: number
+              total:
+                type: number
+
+    FlaggedConversion:
+      allOf:
+        - $ref: '#/components/schemas/ConversionDetail'
+        - type: object
+          properties:
+            flagReason:
+              type: string
+            flaggedAt:
+              type: string
+              format: date-time
+            reviewNotes:
+              type: string
+
+    OfferSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        regularPrice:
+          type: number
+        offerPrice:
+          type: number
+        acceptedAt:
+          type: string
+          format: date-time
+
+    CatalogItemSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+
+    MerchantSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        businessType:
+          type: string
+        logoUrl:
+          type: string
+        isVerified:
+          type: boolean
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

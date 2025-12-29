@@ -122,7 +122,15 @@ export interface GearItem {
   /** Whether this item can be traded - Feature 045 */
   canBeTraded: boolean;
 
-  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  // Section 7: Merchant Source Attribution (Feature: 053-merchant-integration)
+  /** Merchant ID if item was added from a merchant loadout */
+  sourceMerchantId: string | null;
+  /** Offer ID if item was added via a merchant offer */
+  sourceOfferId: string | null;
+  /** Loadout ID if item was added from a merchant loadout */
+  sourceLoadoutId: string | null;
+
+  // Section 8: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
   dependencyIds: string[];
 }
