@@ -413,7 +413,20 @@ async function buildPromptContext(
     const contextSummary = formatContextForPrompt(mastraUserContext);
     if (contextSummary) {
       promptContext.gearList = contextSummary;
+      logDebug('User inventory context added to prompt', {
+        userId,
+        metadata: {
+          hasInventory: !!mastraUserContext.inventory,
+          itemCount: mastraUserContext.inventory?.counts.own || 0,
+          wishlistCount: mastraUserContext.inventory?.counts.wishlist || 0,
+        },
+      });
     }
+  } else {
+    logWarn('No user context available for prompt', {
+      userId,
+      metadata: { conversationId: userContext?.currentLoadoutId },
+    });
   }
 
   // Add memory context hint if there's history

@@ -163,6 +163,10 @@ export async function buildInventorySummary(
       .order('created_at', { ascending: false });
 
     if (error) {
+      logError('Failed to fetch gear items for inventory summary', new Error(error.message), {
+        userId,
+        metadata: { errorCode: error.code, errorDetails: error.details },
+      });
       throw new Error(`Failed to fetch gear items: ${error.message}`);
     }
 
@@ -534,15 +538,27 @@ export function formatContextForPrompt(context: UserContext): string {
   // Inventory summary
   if (context.inventory) {
     const inv = context.inventory;
-    parts.push(`**User Inventory:**`);
-    parts.push(`- Total items owned: ${inv.counts.own}`);
-    parts.push(`- Wishlist items: ${inv.counts.wishlist}`);
+    parts.push(`**User Inventory Summary:**`);
+    parts.push(`You can answer basic inventory questions from this summary without using tools.`);
+    parts.push(``);
+    parts.push(`- **Total items owned: ${inv.counts.own}**`);
+    parts.push(`- **Wishlist items: ${inv.counts.wishlist}**`);
+    parts.push(`- **Sold items: ${inv.counts.sold}**`);
+
     if (inv.brands.length > 0) {
-      parts.push(`- Brands owned: ${inv.brands.slice(0, 10).join(', ')}${inv.brands.length > 10 ? '...' : ''}`);
+      parts.push(`- Brands owned (${inv.brands.length} total): ${inv.brands.slice(0, 10).join(', ')}${inv.brands.length > 10 ? '...' : ''}`);
     }
+
+    if (inv.weightStats.avg > 0) {
+      parts.push(`- Weight stats: avg ${inv.weightStats.avg}g, range ${inv.weightStats.min}g-${inv.weightStats.max}g`);
+    }
+
     if (inv.recentItems.length > 0) {
-      parts.push(`- Recent additions: ${inv.recentItems.slice(0, 3).map(i => i.name).join(', ')}`);
+      parts.push(`- Recent additions: ${inv.recentItems.slice(0, 3).map(i => `${i.name} (${i.brand})`).join(', ')}`);
     }
+
+    parts.push(``);
+    parts.push(`**IMPORTANT:** When asked "how many items do you have?", answer directly: "You have ${inv.counts.own} items in your inventory${inv.counts.wishlist > 0 ? ` and ${inv.counts.wishlist} items in your wishlist` : ''}." Only use queryUserData tool for detailed questions about specific items.`);
     parts.push('');
   }
 
