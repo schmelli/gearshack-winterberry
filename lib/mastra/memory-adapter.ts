@@ -160,6 +160,7 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
   private readonly tableName = 'conversation_memory';
   private readonly defaultLimit = 100;
   private readonly maxLimit = 1000;
+  private readonly userContextContentMarker = '[User Context Metadata]';
 
   constructor(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient;
@@ -413,13 +414,23 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
     conversationId: string,
     context: unknown
   ): Promise<void> {
+    // Delete old context messages first to prevent memory bloat
+    await this.supabase
+      .from(this.tableName)
+      .delete()
+      .eq('user_id', userId)
+      .eq('conversation_id', conversationId)
+      .eq('message_role', 'system')
+      .eq('message_content', this.userContextContentMarker);
+
+    // Insert new context
     const now = new Date();
     const contextMessage: Message = {
-      id: `context-${Date.now()}`,
+      id: `context-${crypto.randomUUID()}`,
       userId,
       conversationId,
       role: 'system',
-      content: '[User Context Metadata]',
+      content: this.userContextContentMarker,
       metadata: {
         type: 'user_context',
         context: context as Record<string, unknown>,
@@ -452,7 +463,7 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
         .eq('user_id', userId)
         .eq('conversation_id', conversationId)
         .eq('message_role', 'system')
-        .eq('message_content', '[User Context Metadata]')
+        .eq('message_content', this.userContextContentMarker)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -463,6 +474,7 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
       const contextMetadata = data[0].metadata as Record<string, unknown>;
       return contextMetadata?.context as Record<string, unknown> || null;
     } catch (error) {
+      console.error('Failed to retrieve user context:', error);
       return null;
     }
   }

@@ -77,6 +77,9 @@ export const runtime = 'nodejs';
 /** Maximum conversation history messages to retrieve */
 const MEMORY_HISTORY_LIMIT = 50;
 
+/** User context cache TTL in minutes */
+const USER_CONTEXT_CACHE_TTL_MINUTES = 30;
+
 /** Patterns that indicate user is correcting previous information */
 const CORRECTION_PATTERNS = [
   /actually,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
@@ -220,8 +223,13 @@ async function fetchMemoryContext(
     if (cachedContext) {
       const cachedUserContext = cachedContext as MastraUserContext;
 
-      // Check if inventory cache is stale (30 minutes)
-      if (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, 30)) {
+      // Check if any cached context is fresh (inventory, wishlist, or loadout)
+      const hasValidCache =
+        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
+
+      if (hasValidCache) {
         userContext = cachedUserContext;
         shouldRefreshCache = false;
         logDebug('Using cached user context', { userId, conversationId });

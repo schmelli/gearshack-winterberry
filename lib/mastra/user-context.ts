@@ -14,7 +14,17 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logInfo, logDebug, logError } from './logging';
-import type { Database } from '@/types/supabase';
+import type { Database, Tables } from '@/types/supabase';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Default value for unknown brand */
+const UNKNOWN_BRAND = 'Unknown';
+
+/** Default value for uncategorized items */
+const UNCATEGORIZED = 'uncategorized';
 
 // ============================================================================
 // Types
@@ -195,15 +205,17 @@ export async function buildInventorySummary(
       min: weights[0],
       max: weights[weights.length - 1],
       avg: Math.round(weights.reduce((sum, w) => sum + w, 0) / weights.length),
-      median: weights[Math.floor(weights.length / 2)],
+      median: weights.length % 2 === 0
+        ? Math.round((weights[weights.length / 2 - 1] + weights[weights.length / 2]) / 2)
+        : weights[Math.floor(weights.length / 2)],
     } : { min: 0, max: 0, avg: 0, median: 0 };
 
     // Most recent items (last 10)
     const recentItems = items.slice(0, 10).map(item => ({
       id: item.id,
       name: item.name,
-      brand: item.brand || 'Unknown',
-      category: item.category_id || 'uncategorized',
+      brand: item.brand || UNKNOWN_BRAND,
+      category: item.category_id || UNCATEGORIZED,
       weight_grams: item.weight_grams,
     }));
 
@@ -263,7 +275,7 @@ export async function buildWishlistContext(
       items: items?.map(i => ({
         id: i.id,
         name: i.name,
-        category: i.category_id || 'uncategorized',
+        category: i.category_id || UNCATEGORIZED,
       })) || [],
       lastUpdated: new Date().toISOString(),
     };
@@ -323,13 +335,22 @@ export async function buildLoadoutContext(
       throw new Error(`Failed to fetch loadout items: ${itemsError.message}`);
     }
 
-    const items = loadoutItems?.map(li => ({
-      gearItemId: li.gear_item_id,
-      name: (li.gear_items as any)?.name || 'Unknown',
-      brand: (li.gear_items as any)?.brand || 'Unknown',
-      weight: (li.gear_items as any)?.weight_grams || null,
-      quantity: li.quantity,
-    })) || [];
+    // Type the gear_items relation properly
+    type LoadoutItemWithGear = typeof loadoutItems extends (infer T)[] ? T : never;
+    type GearItemData = LoadoutItemWithGear extends { gear_items: infer G } ? G : never;
+
+    const items = loadoutItems?.map(li => {
+      const gearItem = li.gear_items as GearItemData;
+      const gearData = gearItem as Partial<Tables<'gear_items'>> | null;
+
+      return {
+        gearItemId: li.gear_item_id,
+        name: gearData?.name || UNKNOWN_BRAND,
+        brand: gearData?.brand || UNKNOWN_BRAND,
+        weight: gearData?.weight_grams || null,
+        quantity: li.quantity,
+      };
+    }) || [];
 
     return {
       id: loadout.id,
@@ -399,14 +420,21 @@ export function extractPreferencesFromConversation(
   }
 
   // Extract activity preferences
+  // Pre-compile regex patterns for efficiency
   const activityPatterns = [
-    'hiking', 'backpacking', 'camping', 'mountaineering',
-    'trail running', 'climbing', 'trekking', 'fastpacking'
+    { activity: 'hiking', pattern: /\bhiking\b/i },
+    { activity: 'backpacking', pattern: /\bbackpacking\b/i },
+    { activity: 'camping', pattern: /\bcamping\b/i },
+    { activity: 'mountaineering', pattern: /\bmountaineering\b/i },
+    { activity: 'trail running', pattern: /\btrail running\b/i },
+    { activity: 'climbing', pattern: /\bclimbing\b/i },
+    { activity: 'trekking', pattern: /\btrekking\b/i },
+    { activity: 'fastpacking', pattern: /\bfastpacking\b/i },
   ];
 
   for (const msg of userMessages) {
-    for (const activity of activityPatterns) {
-      if (new RegExp(`\\b${activity}\\b`, 'i').test(msg.content)) {
+    for (const { activity, pattern } of activityPatterns) {
+      if (pattern.test(msg.content)) {
         if (!updated.activities.includes(activity)) {
           updated.activities.push(activity);
         }
