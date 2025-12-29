@@ -25,7 +25,7 @@ import { UserPlus, UserMinus, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsFollowing } from '@/hooks/social/useFollowing';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useTranslations } from 'next-intl';
 
 // =============================================================================

@@ -35,8 +35,8 @@ export async function POST(
     const supabase = await createClient();
 
     // Fetch the share with password hash
-    const { data: share, error: fetchError } = await supabase
-      .from('loadout_shares')
+    // Using 'as any' because database types are out of date (password_hash column exists but not in generated types)
+    const { data: share, error: fetchError } = await (supabase.from as any)('loadout_shares')
       .select('password_hash, expires_at')
       .eq('share_token', token)
       .single();
@@ -102,8 +102,8 @@ export async function GET(
     const supabase = await createClient();
 
     // Fetch the share
-    const { data: share, error: fetchError } = await supabase
-      .from('loadout_shares')
+    // Using 'as any' because database types are out of date (password_hash column exists but not in generated types)
+    const { data: share, error: fetchError } = await (supabase.from as any)('loadout_shares')
       .select('password_hash, expires_at')
       .eq('share_token', token)
       .single();

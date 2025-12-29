@@ -14,7 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import {
   fetchFriendActivities,
   subscribeToFriendActivities,

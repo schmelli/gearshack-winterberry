@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useFriendRequests, useFriendRequestStatus } from '@/hooks/social/useFriendRequests';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { areFriends } from '@/lib/supabase/social-queries';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';

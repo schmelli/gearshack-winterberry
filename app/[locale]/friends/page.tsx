@@ -36,7 +36,7 @@ import { useTranslations } from 'next-intl';
 
 function RequestsTabs() {
   const t = useTranslations('Social');
-  const { incomingRequests, outgoingRequests, isLoading, error } = useFriendRequests();
+  const { pendingIncoming: incomingRequests, pendingOutgoing: outgoingRequests, isLoading, error } = useFriendRequests();
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
 
   if (isLoading) {
@@ -79,7 +79,7 @@ function RequestsTabs() {
       <TabsContent value="incoming" className="mt-4">
         {incomingRequests.length === 0 ? (
           <EmptyStateCard
-            type="requests"
+            type="friend-requests"
             title={t('requests.emptyIncoming')}
           />
         ) : (
@@ -90,7 +90,7 @@ function RequestsTabs() {
       <TabsContent value="outgoing" className="mt-4">
         {outgoingRequests.length === 0 ? (
           <EmptyStateCard
-            type="requests"
+            type="friend-requests"
             title={t('requests.emptyOutgoing')}
           />
         ) : (
@@ -205,7 +205,7 @@ function OutgoingRequestsList({ requests }: OutgoingRequestsListProps) {
 
 function FriendsPageContent() {
   const t = useTranslations('Social');
-  const { incomingRequests } = useFriendRequests();
+  const { pendingIncoming: incomingRequests } = useFriendRequests();
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'activity'>('friends');
 
   // Badge count for requests tab

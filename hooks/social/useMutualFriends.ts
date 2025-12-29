@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { fetchMutualFriends, getMutualFriendsCount } from '@/lib/supabase/social-queries';
 import type { UseMutualFriendsReturn, FriendInfo } from '@/types/social';
 

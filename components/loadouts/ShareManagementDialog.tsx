@@ -173,10 +173,14 @@ function ShareListItemRow({
             <span>{share.viewCount}</span>
           </div>
           {share.hasPassword && (
-            <Lock className="h-3.5 w-3.5" title={t('passwordProtected') || 'Password protected'} />
+            <div title={t('passwordProtected') || 'Password protected'}>
+              <Lock className="h-3.5 w-3.5" />
+            </div>
           )}
           {share.allowComments && (
-            <MessageSquare className="h-3.5 w-3.5" title={t('commentsEnabled') || 'Comments enabled'} />
+            <div title={t('commentsEnabled') || 'Comments enabled'}>
+              <MessageSquare className="h-3.5 w-3.5" />
+            </div>
           )}
         </div>
 

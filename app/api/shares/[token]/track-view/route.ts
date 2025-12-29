@@ -27,7 +27,8 @@ export async function POST(
     const viewerId = user?.id ?? null;
 
     // Call the database function to atomically increment view count
-    const { error } = await supabase.rpc('increment_share_view_count', {
+    // Using 'as any' because database types are out of date (RPC function exists but not in generated types)
+    const { error } = await (supabase.rpc as any)('increment_share_view_count', {
       p_share_token: token,
       p_viewer_id: viewerId,
     });

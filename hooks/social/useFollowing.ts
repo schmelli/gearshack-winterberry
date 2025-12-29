@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import {
   fetchFollowing,
   followUser,

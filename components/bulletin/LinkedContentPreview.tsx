@@ -49,8 +49,8 @@ export function LinkedContentPreview({
 
       try {
         if (contentType === 'loadout' || contentType === 'shakedown') {
-          const { data: loadout, error: err } = await supabase
-            .from('loadouts')
+          // Using 'as any' because database types are out of date (hero_image_url column exists but not in generated types)
+          const { data: loadout, error: err } = await (supabase.from as any)('loadouts')
             .select('id, name, hero_image_url, base_weight_g')
             .eq('id', contentId)
             .single();

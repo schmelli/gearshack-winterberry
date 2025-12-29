@@ -46,8 +46,8 @@ async function PostDetailContent({ postId }: { postId: string }) {
   const t = await getTranslations('bulletin');
 
   // Fetch post with author info (ignoring is_archived)
-  const { data: post, error } = await supabase
-    .from('bulletin_posts')
+  // Using 'as any' because bulletin_posts table not in generated types yet (migration pending)
+  const { data: post, error } = await (supabase.from as any)('bulletin_posts')
     .select(
       `
       *,

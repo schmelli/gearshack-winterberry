@@ -59,8 +59,8 @@ export async function POST(
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Update the share
-    const { error: updateError } = await supabase
-      .from('loadout_shares')
+    // Using 'as any' because database types are out of date (password_hash column exists but not in generated types)
+    const { error: updateError } = await (supabase.from as any)('loadout_shares')
       .update({ password_hash: passwordHash })
       .eq('share_token', token);
 
@@ -110,8 +110,8 @@ export async function DELETE(
     }
 
     // Remove the password
-    const { error: updateError } = await supabase
-      .from('loadout_shares')
+    // Using 'as any' because database types are out of date (password_hash column exists but not in generated types)
+    const { error: updateError } = await (supabase.from as any)('loadout_shares')
       .update({ password_hash: null })
       .eq('share_token', token);
 
