@@ -640,6 +640,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const stream = new ReadableStream({
       async start(controller) {
+        let hadError = false;
+
         try {
           // Stream AI response
           const { result: streamingResult } = await traceWorkflowStep(
@@ -677,8 +679,9 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // Improvement #4: Add proactive suggestions to stream
-          const hadError = false; // No error tracking in streaming result
-          if (shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
+          // Only show suggestions when conversation naturally completes (not during tool calls or errors)
+          const isNaturalCompletion = finishReason === 'stop';
+          if (isNaturalCompletion && shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
             const suggestions = generateProactiveSuggestions(
               promptContext.userContext,
               loadoutContext,
@@ -698,6 +701,7 @@ export async function POST(request: Request): Promise<Response> {
                 conversationId,
                 metadata: {
                   suggestionCount: suggestions.length,
+                  finishReason,
                 },
               });
             }
@@ -740,6 +744,7 @@ export async function POST(request: Request): Promise<Response> {
 
           controller.close();
         } catch (streamError) {
+          hadError = true;
           const errorMessage =
             streamError instanceof Error ? streamError.message : 'Unknown streaming error';
 
