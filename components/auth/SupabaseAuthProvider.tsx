@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import { gearItemFromDb } from '@/lib/supabase/transformers';
 import type { AuthUser, UserProfile, MergedUser } from '@/types/auth';
 import type { Tables } from '@/types/database';
+import type { Tables as SupabaseTables } from '@/types/supabase';
 import { PendingImportHandler } from './PendingImportHandler';
 
 // =============================================================================
@@ -30,6 +31,8 @@ import { PendingImportHandler } from './PendingImportHandler';
 interface ProfileReturn {
   profile: UserProfile | null;
   mergedUser: MergedUser | null;
+  /** Raw profile data from Supabase including shakedown stats (T071) */
+  rawProfile: SupabaseTables<'profiles'> | null;
   loading: boolean;
   error: string | null;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -312,6 +315,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
   const profile: ProfileReturn = useMemo(() => ({
     profile: userProfile,
     mergedUser,
+    rawProfile: supabaseProfile.profile,
     loading: supabaseProfile.isLoading,
     error: supabaseProfile.error,
     updateProfile: async (data: Partial<UserProfile>) => {

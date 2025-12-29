@@ -5,7 +5,7 @@
  * T024: Updated navigation items with translation keys
  */
 
-import { Instagram, Twitter } from 'lucide-react';
+import { Instagram, Twitter, HelpCircle } from 'lucide-react';
 import type { NavItem, UserMenuItem } from '@/types/navigation';
 
 /**
@@ -16,6 +16,7 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
   { label: 'Inventory', translationKey: 'inventory', href: '/inventory', enabled: true },
   { label: 'Loadouts', translationKey: 'loadouts', href: '/loadouts', enabled: true },
   { label: 'Community', translationKey: 'community', href: '/community', enabled: false },
+  { label: 'Shakedowns', translationKey: 'shakedowns', href: '/community/shakedowns', enabled: true, icon: HelpCircle },
 ];
 
 /**

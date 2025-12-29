@@ -1,11 +1,12 @@
 /**
  * ProfileView Component
  *
- * Feature: 008-auth-and-profile, 041-loadout-ux-profile
+ * Feature: 008-auth-and-profile, 041-loadout-ux-profile, 001-community-shakedowns
  * T027: Read-only profile display
  * T028: Social link icons (Instagram, Facebook, YouTube, website)
  * T030: VIP badge display when isVIP is true
  * T032: Merged profile data (Firestore avatarUrl > Auth photoURL)
+ * T071: Shakedown expertise stats and badges
  * Feature 041: Avatar fallback chain (custom > provider > initials)
  * Design: Hero header with gradient, elegant typography, soft shadows
  * Stats tiles, favorites carousel, edit icon top-left
@@ -33,6 +34,10 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
+import {
+  ShakedownExpertiseSection,
+  type ShakedownStats,
+} from '@/components/profile/ShakedownExpertiseSection';
 import { getDisplayAvatarUrl } from '@/lib/utils/avatar';
 import type { MergedUser } from '@/types/auth';
 
@@ -152,9 +157,11 @@ interface ProfileViewProps {
   forRent?: FavoriteItem[];
   /** Items for trade */
   forTrade?: FavoriteItem[];
+  /** Shakedown expertise stats (Feature 001-community-shakedowns, T071) */
+  shakedownStats?: ShakedownStats;
 }
 
-export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade }: ProfileViewProps) {
+export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade, shakedownStats }: ProfileViewProps) {
   const t = useTranslations('Profile');
   // Feature 041: Use avatar fallback chain
   const displayAvatarUrl = getDisplayAvatarUrl(user.avatarUrl, user.providerAvatarUrl);
@@ -301,6 +308,15 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
             label="Shakedowns"
           />
         </div>
+
+        {/* Shakedown Expertise Section (T071) */}
+        {shakedownStats && (
+          <ShakedownExpertiseSection
+            userId={user.uid}
+            stats={shakedownStats}
+            className="mb-6"
+          />
+        )}
 
         {/* Favorites Carousel */}
         {hasFavorites && (
