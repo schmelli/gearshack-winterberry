@@ -336,15 +336,17 @@ export async function POST(
         const authorIds = [...new Set(feedbackNotSelf.map((f) => f.author_id))];
         const previousCounts = new Map<string, number>();
 
-        for (const authorId of authorIds) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: profile } = await (supabase as any)
-            .from('profiles')
-            .select('shakedown_helpful_received')
-            .eq('id', authorId)
-            .single();
+        // Fetch all profiles in a single query to avoid N+1 problem
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: profiles } = await (supabase as any)
+          .from('profiles')
+          .select('id, shakedown_helpful_received')
+          .in('id', authorIds);
 
-          previousCounts.set(authorId, profile?.shakedown_helpful_received ?? 0);
+        if (profiles) {
+          for (const profile of profiles) {
+            previousCounts.set(profile.id, profile.shakedown_helpful_received ?? 0);
+          }
         }
 
         // Batch upsert helpful votes
