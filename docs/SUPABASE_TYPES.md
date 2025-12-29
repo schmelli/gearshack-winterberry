@@ -72,7 +72,7 @@ Regenerate types whenever you:
 
 ### Social Graph (Feature 001)
 
-After running the social graph migrations (`20251228100001_*.sql` through `20251228100010_*.sql`), regenerate types to get proper typing for:
+After running the social graph migrations (`20251228100001_*.sql` through `20251229000001_*.sql`), regenerate types to get proper typing for:
 
 - `friend_requests` table
 - `friendships` table
@@ -85,6 +85,8 @@ After running the social graph migrations (`20251228100001_*.sql` through `20251
   - `can_send_friend_request()`
   - `get_mutual_friends()`
   - `get_friend_activity_feed()`
+  - `get_friend_activity_feed_filtered()` - server-side activity filtering
+  - `unfriend_user()` - safe unfriend with parameterized queries
   - `check_rate_limit_only()`
   - `cleanup_old_friend_requests()`
 

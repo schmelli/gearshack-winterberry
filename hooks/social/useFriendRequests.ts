@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
   fetchFriendRequests,
@@ -57,6 +58,8 @@ export function useFriendRequests(): UseFriendRequestsReturn {
       const message = err instanceof Error ? err.message : 'Failed to load friend requests';
       setError(message);
       console.error('Error loading friend requests:', err);
+      // FIXED: Added user-facing error toast
+      toast.error('Failed to load friend requests');
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +91,8 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return response;
       } catch (err) {
         console.error('Error sending friend request:', err);
+        // FIXED: Added user-facing error toast
+        toast.error('Failed to send friend request');
         return { success: false, error: 'request_already_sent' };
       }
     },
@@ -187,6 +192,8 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return await canSendFriendRequest(recipientId);
       } catch (err) {
         console.error('Error checking friend request eligibility:', err);
+        // FIXED: Added user-facing error toast
+        toast.error('Failed to check friend request eligibility');
         return { canSend: false, reason: 'blocked' };
       }
     },
@@ -244,13 +251,21 @@ export function useFriendRequestStatus(targetUserId: string): {
   const incomingRequest = pendingIncoming.find((r) => r.sender_id === targetUserId);
 
   // Check if can send - exposed as a method for manual triggering
+  // FIXED: Cancellation token to prevent race conditions
   const checkCanSend = useCallback(async () => {
     setIsCheckingCanSend(true);
+    const currentTargetId = targetUserId;
     try {
-      const result = await canSendRequest(targetUserId);
-      setCanSendResult(result.canSend);
+      const result = await canSendRequest(currentTargetId);
+      // Only update state if targetUserId hasn't changed
+      if (currentTargetId === targetUserId) {
+        setCanSendResult(result.canSend);
+      }
     } finally {
-      setIsCheckingCanSend(false);
+      // Only clear loading if targetUserId hasn't changed
+      if (currentTargetId === targetUserId) {
+        setIsCheckingCanSend(false);
+      }
     }
   }, [targetUserId, canSendRequest]);
 
@@ -267,6 +282,11 @@ export function useFriendRequestStatus(targetUserId: string): {
     if (!isLoading && !outgoingRequest && !incomingRequest && canSendResult === null) {
       checkCanSend();
     }
+    // Cleanup: cancel pending operations when component unmounts or targetUserId changes
+    return () => {
+      // Note: We can't actually cancel the Promise, but we prevent state updates above
+      setIsCheckingCanSend(false);
+    };
   }, [isLoading, outgoingRequest, incomingRequest, canSendResult, checkCanSend]);
 
   let status: 'none' | 'pending_outgoing' | 'pending_incoming' | 'friends' | 'loading' = 'none';

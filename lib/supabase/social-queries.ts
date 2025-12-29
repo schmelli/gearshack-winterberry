@@ -500,13 +500,10 @@ export async function areFriends(userId1: string, userId2: string): Promise<bool
 export async function unfriend(userId: string, friendId: string): Promise<void> {
   const supabase = getSocialClient();
 
-  // Due to canonical ordering, we need to delete in both possible orderings
-  const { error } = await supabase
-    .from('friendships')
-    .delete()
-    .or(
-      `and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
-    );
+  // Use RPC function to safely handle unfriend with canonical ordering
+  const { error } = await supabase.rpc('unfriend_user', {
+    p_friend_id: friendId,
+  });
 
   if (error) {
     throw new Error(`Failed to unfriend: ${error.message}`);
@@ -576,20 +573,52 @@ export async function fetchFriendActivities(
 ): Promise<FriendActivityWithProfile[]> {
   const supabase = getSocialClient();
 
-  const { data, error } = await supabase.rpc('get_friend_activity_feed', {
+  // Use server-side filtering to avoid unnecessary data transfer (FIXED: moved filtering to server)
+  const { data, error } = await supabase.rpc('get_friend_activity_feed_filtered', {
     p_limit: limit,
     p_offset: offset,
+    p_activity_type: activityTypeFilter ?? null,
   });
 
   if (error) {
     if (error.code === '42883') {
-      // Function doesn't exist yet
-      return [];
+      // Function doesn't exist yet, fall back to unfiltered version
+      const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_friend_activity_feed', {
+        p_limit: limit,
+        p_offset: offset,
+      });
+
+      if (fallbackError) {
+        if (fallbackError.code === '42883') {
+          return [];
+        }
+        throw new Error(`Failed to fetch friend activities: ${fallbackError.message}`);
+      }
+
+      let activities = ((fallbackData ?? []) as QueryResult[]).map((row) => ({
+        id: row.id,
+        user_id: row.user_id,
+        display_name: row.display_name ?? 'Unknown',
+        avatar_url: row.avatar_url,
+        activity_type: row.activity_type as ActivityType,
+        reference_type: row.reference_type,
+        reference_id: row.reference_id,
+        metadata: row.metadata ?? {},
+        visibility: row.visibility,
+        created_at: row.created_at,
+      }));
+
+      // Client-side filter only for fallback
+      if (activityTypeFilter) {
+        activities = activities.filter((a) => a.activity_type === activityTypeFilter);
+      }
+
+      return activities;
     }
     throw new Error(`Failed to fetch friend activities: ${error.message}`);
   }
 
-  let activities = ((data ?? []) as QueryResult[]).map((row) => ({
+  return ((data ?? []) as QueryResult[]).map((row) => ({
     id: row.id,
     user_id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
@@ -601,13 +630,6 @@ export async function fetchFriendActivities(
     visibility: row.visibility,
     created_at: row.created_at,
   }));
-
-  // Apply client-side filter if specified
-  if (activityTypeFilter) {
-    activities = activities.filter((a) => a.activity_type === activityTypeFilter);
-  }
-
-  return activities;
 }
 
 /**
@@ -834,6 +856,25 @@ const profileCache = new Map<string, {
 const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Cleans up expired entries from the profile cache (FIXED: prevents memory leak).
+ * Should be called periodically or when cache grows too large.
+ */
+function cleanupProfileCache(): void {
+  const now = Date.now();
+  const expiredKeys: string[] = [];
+
+  // Identify expired entries
+  profileCache.forEach((value, key) => {
+    if (now - value.timestamp >= PROFILE_CACHE_TTL) {
+      expiredKeys.push(key);
+    }
+  });
+
+  // Remove expired entries
+  expiredKeys.forEach((key) => profileCache.delete(key));
+}
+
+/**
  * Fetches profile with caching to reduce N+1 queries.
  */
 async function getCachedProfile(
@@ -846,6 +887,11 @@ async function getCachedProfile(
   // Return cached if valid
   if (cached && now - cached.timestamp < PROFILE_CACHE_TTL) {
     return cached.profile;
+  }
+
+  // Periodically cleanup expired entries (every 100 cache misses)
+  if (Math.random() < 0.01) {
+    cleanupProfileCache();
   }
 
   // Fetch fresh profile
