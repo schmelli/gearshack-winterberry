@@ -19,7 +19,8 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Calendar, Pencil, Check, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Pencil, Check, X, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ToggleBadge } from '@/components/ui/toggle-badge';
@@ -55,6 +56,8 @@ interface LoadoutHeaderProps {
   onEdit?: () => void;
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
+  /** Whether to show the "Request Community Shakedown" button (only for owner) */
+  showShakedownButton?: boolean;
 }
 
 // =============================================================================
@@ -80,7 +83,9 @@ export function LoadoutHeader({
   onSegmentClick,
   onEdit,
   onDescriptionChange,
+  showShakedownButton = false,
 }: LoadoutHeaderProps) {
+  const t = useTranslations('Shakedowns');
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
     isEditing,
@@ -141,6 +146,19 @@ export function LoadoutHeader({
                   size="icon"
                   showLabel={false}
                 />
+                {showShakedownButton && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    aria-label={t('actions.requestShakedown')}
+                    asChild
+                  >
+                    <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
+                      <Users className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
 

@@ -1,9 +1,10 @@
 /**
  * ProfileModal Component
  *
- * Feature: 008-auth-and-profile
+ * Feature: 008-auth-and-profile, 001-community-shakedowns
  * T029: Profile modal using shadcn Dialog
  * T034: View/edit mode toggle
+ * T071: Shakedown expertise stats and badges
  * Design: Soft shadow, gradient header, no border
  * Stats tiles, favorites carousel, edit icon
  */
@@ -42,7 +43,7 @@ interface ProfileModalProps {
 
 export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
   const { user, profile } = useAuthContext();
-  const { mergedUser, updateProfile, refreshProfile } = profile;
+  const { mergedUser, rawProfile, updateProfile, refreshProfile } = profile;
   const [mode, setMode] = useState<ProfileMode>('view');
 
   // Get gear items and loadouts for stats
@@ -56,8 +57,18 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
   const stats = useMemo(() => ({
     itemCount: gearItems.length,
     loadoutCount: loadouts.length,
-    shakedownCount: 0, // Placeholder - shakedowns feature not yet implemented
-  }), [gearItems.length, loadouts.length]);
+    shakedownCount: rawProfile?.shakedowns_created ?? 0,
+  }), [gearItems.length, loadouts.length, rawProfile?.shakedowns_created]);
+
+  // Compute shakedown expertise stats (T071)
+  const shakedownStats = useMemo(() => {
+    if (!rawProfile) return undefined;
+    return {
+      shakedownsCreated: rawProfile.shakedowns_created,
+      shakedownsReviewed: rawProfile.shakedowns_reviewed,
+      helpfulVotesReceived: rawProfile.shakedown_helpful_received,
+    };
+  }, [rawProfile]);
 
   // Get favorite items - filter by isFavourite flag
   const favorites = useMemo(() => {
@@ -147,6 +158,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
             forSale={forSale}
             forRent={forRent}
             forTrade={forTrade}
+            shakedownStats={shakedownStats}
           />
         ) : (
           <div className="p-6">

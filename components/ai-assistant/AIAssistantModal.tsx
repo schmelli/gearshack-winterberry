@@ -30,7 +30,7 @@ export function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="h-[90vh] max-h-[900px] w-[95vw] max-w-5xl p-0">
+      <DialogContent className="flex h-[90vh] max-h-[900px] w-[95vw] max-w-5xl flex-col overflow-hidden p-0">
         <VisuallyHidden>
           <DialogTitle>AI Gear Assistant</DialogTitle>
           <DialogDescription>
