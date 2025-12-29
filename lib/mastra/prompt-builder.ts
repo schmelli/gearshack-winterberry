@@ -134,7 +134,7 @@ const GERMAN_CONTENT: LocalizedContent = {
   context: {
     inventoryView: (count: number) =>
       `Der Nutzer befindet sich in seiner Inventar-Ansicht (${count} Gegenstaende).`,
-    loadoutView: `Der Nutzer betrachtet eine spezifische Loadout-Seite. Sei kontextbewusst und hilfsbereit! Wenn er nach Ausruestung in "diesem Loadout" oder "meinem Schlaf-Setup" fragt, solltest du die Ausruestung dieses Loadouts abfragen. Wenn er nach leichteren Alternativen fragt, vergleiche mit dem, was in DIESEM Loadout ist, nicht nur mit dem allgemeinen Inventar. Verhalte dich wie ein professioneller Ausruestungsberater, der versteht, dass der Nutzer ein spezifisches Trip-Setup betrachtet.`,
+    loadoutView: `Der Nutzer betrachtet eine spezifische Loadout-Seite. Sei kontextbewusst und hilfsbereit! Wenn er nach Ausrüstung in "diesem Loadout" oder "meinem Schlaf-Setup" fragt, solltest du die Ausrüstung dieses Loadouts abfragen. Wenn er nach leichteren Alternativen fragt, vergleiche mit dem, was in DIESEM Loadout ist, nicht nur mit dem allgemeinen Inventar. Verhalte dich wie ein professioneller Ausrüstungsberater, der versteht, dass der Nutzer ein spezifisches Trip-Setup betrachtet.`,
     gearDetailView: `Der Nutzer betrachtet die Details eines Ausruestungsgegenstands. Du kannst Alternativen vorschlagen oder Fragen zu diesem Gegenstand beantworten.`,
     noInventory: `Der Nutzer hat noch keine Ausruestung hinzugefuegt. Ermutige ihn, mit dem Inventar zu beginnen.`,
     inventoryAnalysis: (
