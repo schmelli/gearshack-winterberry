@@ -69,7 +69,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
 - \`queryUserData\`: Flexible database queries on user data (gear_items, loadouts, categories, profiles)
   * Use \`search\` parameter for text searches (e.g., product name, brand)
   * Use \`filters\` only for exact values (status, brand)
-  * IMPORTANT: For category searches use \`search: {column: "name", value: "stove"}\` NOT \`filters: {category_id: "cooking"}\`
+  * IMPORTANT: For category searches use \`search: {column: "label", value: "stove"}\` NOT \`filters: {category_id: "cooking"}\`
   * Example: {table: "gear_items", search: {column: "name", value: "tent"}}
 - \`searchCatalog\`: Search GearGraph catalog with filters (weight, price, category, brands)
 - \`searchWeb\`: Real-time web search for trail conditions, reviews, news
@@ -162,7 +162,7 @@ const GERMAN_CONTENT: LocalizedContent = {
 - \`queryUserData\`: Flexible Datenbankabfragen auf Nutzerdaten (gear_items, loadouts, categories, profiles)
   * Verwende \`search\` Parameter fuer Textsuche (z.B. nach Produktname, Marke)
   * Verwende \`filters\` nur fuer exakte Werte (status, brand)
-  * WICHTIG: Fuer Kategoriesuchen verwende \`search: {column: "name", value: "stove"}\` NICHT \`filters: {category_id: "cooking"}\`
+  * WICHTIG: Fuer Kategoriesuchen verwende \`search: {column: "label", value: "stove"}\` NICHT \`filters: {category_id: "cooking"}\`
   * Beispiel: {table: "gear_items", search: {column: "name", value: "tent"}}
 - \`searchCatalog\`: Durchsuche GearGraph-Katalog mit Filtern (Gewicht, Preis, Kategorie, Marken)
 - \`searchWeb\`: Echtzeit-Websuche fuer Trailbedingungen, Bewertungen, Neuigkeiten
