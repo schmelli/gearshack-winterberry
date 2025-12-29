@@ -1,0 +1,188 @@
+{
+  "title": "Community Bulletin Board",
+  "subtitle": "Quick questions, gear advice, and community updates",
+  "newPost": "New Post",
+  "loading": "Loading posts...",
+  "loadingMore": "Loading more...",
+
+  "common": {
+    "cancel": "Cancel",
+    "unknown": "Unknown",
+    "defaultUser": "User"
+  },
+
+  "composer": {
+    "title": "Create Post",
+    "placeholder": "What's on your mind? Ask a question, share an update, or connect with fellow outdoor enthusiasts...",
+    "tagLabel": "Category (optional)",
+    "selectTag": "Select a category",
+    "submit": "Post",
+    "cancel": "Cancel",
+    "posting": "Posting...",
+    "charCount": "{count}/{max}",
+    "linkedContent": "Linked: {title}"
+  },
+
+  "tags": {
+    "question": "Question",
+    "shakedown": "Shakedown",
+    "trade": "Trade",
+    "tripPlanning": "Trip Planning",
+    "gearAdvice": "Gear Advice",
+    "other": "Other",
+    "all": "All Posts"
+  },
+
+  "post": {
+    "postedBy": "Posted by {name}",
+    "replies": "{count, plural, =0 {No replies} =1 {1 reply} other {# replies}}",
+    "showReplies": "Show replies",
+    "hideReplies": "Hide replies",
+    "deleted": "[Post deleted by user]",
+    "archived": "This post has been archived",
+    "editedLabel": "(edited)"
+  },
+
+  "reply": {
+    "placeholder": "Write a reply...",
+    "submit": "Reply",
+    "replyTo": "Reply to {name}",
+    "deleted": "[Reply deleted]",
+    "markdownHint": "Supports **bold**, *italic*, and [links](url)"
+  },
+
+  "menu": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "report": "Report",
+    "editWindowExpired": "Edit window expired (15 min limit)"
+  },
+
+  "delete": {
+    "title": "Delete Post",
+    "titleReply": "Delete Reply",
+    "confirmPost": "Are you sure you want to delete this post?",
+    "confirmReply": "Are you sure you want to delete this reply?",
+    "confirmWithReplies": "This post has replies. The post content will be replaced with '[Post deleted by user]' but replies will remain visible.",
+    "confirm": "Delete",
+    "cancel": "Cancel"
+  },
+
+  "report": {
+    "title": "Report Content",
+    "subtitle": "Help us maintain a safe community",
+    "reasonLabel": "Reason for report",
+    "selectReason": "Select a reason",
+    "detailsLabel": "Additional details (optional)",
+    "detailsPlaceholder": "Provide any additional context...",
+    "submit": "Submit Report",
+    "cancel": "Cancel",
+    "submitting": "Submitting...",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Harassment",
+      "offTopic": "Off-topic",
+      "other": "Other"
+    }
+  },
+
+  "search": {
+    "placeholder": "Search posts...",
+    "clear": "Clear search",
+    "noResults": "No posts match your search",
+    "resultsFor": "Results for \"{query}\""
+  },
+
+  "filter": {
+    "activeFilter": "Filtering by: {tag}",
+    "clearFilter": "Clear filter"
+  },
+
+  "empty": {
+    "title": "Be the first to post!",
+    "subtitle": "Start a conversation with the GearShack community. Ask a question, share gear advice, or plan your next adventure.",
+    "cta": "Create First Post"
+  },
+
+  "noResults": {
+    "title": "No posts found",
+    "subtitle": "Try adjusting your search or filter settings",
+    "clearFilters": "Clear all filters"
+  },
+
+  "linkedContent": {
+    "loadout": "Loadout",
+    "shakedown": "Shakedown",
+    "marketplaceItem": "Marketplace Item",
+    "baseWeight": "Base Weight: {weight}",
+    "items": "{count, plural, =1 {1 item} other {# items}}",
+    "viewFull": "View full {type}",
+    "loadFailed": "Failed to load content",
+    "notFound": "Content not found"
+  },
+
+  "errors": {
+    "postEmpty": "Post cannot be empty",
+    "postTooLong": "Post must be 500 characters or less",
+    "replyEmpty": "Reply cannot be empty",
+    "invalidPostId": "Invalid post ID",
+    "invalidTargetId": "Invalid target ID",
+    "linkedContentIncomplete": "Both content type and ID must be provided together",
+    "detailsTooLong": "Details must be 500 characters or less",
+    "loadFailed": "Failed to load posts. Please try again.",
+    "createFailed": "Failed to create post. Please try again.",
+    "updateFailed": "Failed to update post. Please try again.",
+    "deleteFailed": "Failed to delete. Please try again.",
+    "reportFailed": "Failed to submit report. Please try again.",
+    "replyFailed": "Failed to post reply. Please try again.",
+    "rateLimitPosts": "You've reached your daily post limit ({limit}). Try again tomorrow.",
+    "rateLimitReplies": "You've reached your daily reply limit ({limit}). Try again tomorrow.",
+    "duplicatePost": "You already posted this content recently.",
+    "duplicateReport": "You've already reported this content.",
+    "editWindowExpired": "The 15-minute edit window has expired.",
+    "banned": "You are currently banned from the bulletin board.",
+    "notAuthenticated": "You must be logged in to access the bulletin board."
+  },
+
+  "success": {
+    "postCreated": "Post created successfully!",
+    "postUpdated": "Post updated successfully!",
+    "postDeleted": "Post deleted successfully!",
+    "replyCreated": "Reply posted!",
+    "replyDeleted": "Reply deleted successfully!",
+    "reportSubmitted": "Thank you for your report. Our moderators will review it."
+  },
+
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{count, plural, =1 {1 minute ago} other {# minutes ago}}",
+    "hoursAgo": "{count, plural, =1 {1 hour ago} other {# hours ago}}",
+    "daysAgo": "{count, plural, =1 {1 day ago} other {# days ago}}"
+  },
+
+  "moderation": {
+    "title": "Moderation Queue",
+    "subtitle": "Review and take action on reported content",
+    "noReports": "No pending reports",
+    "noReportsSubtitle": "All reports have been reviewed. Check back later.",
+    "pendingCount": "{count, plural, =1 {1 pending report} other {# pending reports}}",
+    "reportCount": "{count, plural, =1 {1 report} other {# reports}}",
+    "reportedBy": "Reported by {name}",
+    "contentBy": "Content by {name}",
+    "additionalDetails": "Additional details",
+    "targetPost": "Post",
+    "targetReply": "Reply",
+    "takeAction": "Take Action",
+    "deleteContent": "Delete Content",
+    "warnUser": "Warn User",
+    "ban1Day": "Ban 1 Day",
+    "ban7Days": "Ban 7 Days",
+    "banPermanent": "Ban Permanently",
+    "dismiss": "Dismiss",
+    "actionSuccess": "Action completed successfully",
+    "actionFailed": "Failed to complete action",
+    "dismissed": "Report dismissed",
+    "accessDenied": "Access denied. Moderator privileges required.",
+    "highPriority": "High priority"
+  }
+}
