@@ -426,9 +426,10 @@ export async function POST(
       // Continue with default values rather than failing
     }
 
+    // Empty name allows client-side i18n to display "Unknown" in user's language
     const loadoutSummary: LoadoutSummaryRow = loadoutRow
       ? (loadoutRow as unknown as LoadoutSummaryRow)
-      : { name: 'Unknown', total_weight_grams: 0, item_count: 0 };
+      : { name: '', total_weight_grams: 0, item_count: 0 };
 
     // Build response
     const response: CompleteShakedownResponse = {

@@ -34,7 +34,9 @@
     "delete": "Löschen",
     "edit": "Bearbeiten",
     "uncategorized": "Unkategorisiert",
-    "genericUser": "Benutzer"
+    "genericUser": "Benutzer",
+    "unknown": "Unbekannt",
+    "anonymousUser": "Anonymer Benutzer"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",

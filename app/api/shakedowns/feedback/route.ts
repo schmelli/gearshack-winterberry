@@ -382,6 +382,7 @@ export async function POST(
 
       // Return minimal feedback data if view fetch fails
       // This should rarely happen, but provides graceful degradation
+      // Empty authorName allows client-side i18n to display "Unknown" in user's language
       const minimalFeedback: FeedbackWithAuthor = {
         id: insertedFeedback.id,
         shakedownId,
@@ -397,7 +398,7 @@ export async function POST(
         editedAt: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        authorName: 'Unknown',
+        authorName: '',
         authorAvatar: null,
         authorReputation: 0,
         gearItemName: null,
