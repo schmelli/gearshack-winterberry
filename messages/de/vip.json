@@ -1,0 +1,348 @@
+{
+  "title": "VIP-Packlisten",
+  "subtitle": "Ausrüstungs-Setups von deinen Lieblings-Outdoor-Influencern",
+  "featuredVips": "Empfohlene VIP-Packlisten",
+  "allVips": "Alle VIPs",
+  "loading": "Lade VIPs...",
+  "loadingMore": "Lade mehr...",
+  "noVips": "Keine VIPs gefunden",
+  "noLoadouts": "Noch keine Packlisten",
+
+  "profile": {
+    "curatedBanner": "Dies ist ein kuratiertes Profil mit Inhalten von {name}",
+    "verifiedBadge": "Verifizierter VIP",
+    "followers": "{count, plural, =0 {Keine Follower} =1 {1 Follower} other {# Follower}}",
+    "loadouts": "{count, plural, =0 {Keine Packlisten} =1 {1 Packliste} other {# Packlisten}}",
+    "joined": "Beigetreten {date}",
+    "socialLinks": "Soziale Links"
+  },
+
+  "follow": {
+    "follow": "Folgen",
+    "following": "Folge ich",
+    "unfollow": "Entfolgen",
+    "signInToFollow": "Anmelden zum Folgen",
+    "followedNotification": "Du folgst jetzt {name}",
+    "unfollowedNotification": "Du folgst {name} nicht mehr"
+  },
+
+  "loadout": {
+    "sourceAttribution": "Basierend auf",
+    "watchVideo": "Originalvideo ansehen",
+    "viewSource": "Original ansehen",
+    "sourceUnavailable": "Quelle nicht verfügbar",
+    "totalWeight": "Gesamtgewicht",
+    "itemCount": "{count, plural, =1 {1 Teil} other {# Teile}}",
+    "publishedDate": "Veröffentlicht {date}",
+    "tripType": "Reiseart",
+    "dateRange": "Zeitraum",
+    "gearList": "Ausrüstungsliste",
+    "categories": {
+      "shelter": "Unterkunft",
+      "sleep": "Schlafsystem",
+      "pack": "Rucksack",
+      "kitchen": "Küche",
+      "clothing": "Kleidung",
+      "electronics": "Elektronik",
+      "hygiene": "Hygiene",
+      "firstAid": "Erste Hilfe",
+      "misc": "Sonstiges"
+    }
+  },
+
+  "copy": {
+    "copyToLoadout": "In meine Packliste kopieren",
+    "copyConfirmTitle": "VIP-Packliste kopieren",
+    "copyConfirmMessage": "Packliste basierend auf {vipName}'s {loadoutName} erstellen?",
+    "itemsAsWishlist": "Teile werden als Wunschliste hinzugefügt",
+    "cancel": "Abbrechen",
+    "confirm": "Packliste kopieren",
+    "copying": "Kopiere...",
+    "copySuccess": "Packliste kopiert! Teile zu deiner Wunschliste hinzugefügt.",
+    "copyError": "Kopieren fehlgeschlagen. Bitte erneut versuchen.",
+    "signInToCopy": "Anmelden zum Kopieren dieser Packliste"
+  },
+
+  "bookmark": {
+    "bookmark": "Merken",
+    "bookmarked": "Gemerkt",
+    "removeBookmark": "Nicht mehr merken",
+    "signInToBookmark": "Anmelden zum Merken",
+    "bookmarkedNotification": "Packliste gemerkt",
+    "unbookmarkedNotification": "Lesezeichen entfernt",
+    "savedLoadouts": "Gespeicherte Packlisten"
+  },
+
+  "claim": {
+    "pageTitle": "VIP-Konto beanspruchen",
+    "pageDescription": "Verifiziere deine Identität und übernimm die Kontrolle über dein kuratiertes GearShack-Profil",
+    "loading": "Überprüfe Anspruchs-Link...",
+    "claimTitle": "{name}'s Konto beanspruchen",
+    "claimDescription": "Du wurdest eingeladen, dieses VIP-Konto auf GearShack zu übernehmen.",
+    "claimAccount": "Dieses Konto beanspruchen",
+    "claiming": "Konto wird beansprucht...",
+    "claimSuccess": "Konto erfolgreich beansprucht!",
+    "claimSuccessDescription": "Willkommen bei GearShack, {name}! Du hast jetzt volle Kontrolle über dein VIP-Konto.",
+    "successTitle": "Konto beansprucht!",
+    "successDescription": "Du kontrollierst jetzt {name}'s GearShack-Profil.",
+    "redirecting": "Weiterleitung zu deinem Profil...",
+    "signInRequired": "Anmeldung erforderlich",
+    "signInDescription": "Bitte melde dich an oder erstelle ein Konto, um dieses VIP-Profil zu beanspruchen.",
+    "signInToClaim": "Anmelden zum Beanspruchen",
+    "expiresNotice": "Dieser Anspruchs-Link läuft am {date} ab",
+    "backToHome": "Zurück zur Startseite",
+    "browseVips": "VIP-Packlisten durchsuchen",
+    "benefits": {
+      "title": "Was du bekommst:",
+      "manageLoadouts": "Volle Kontrolle zur Verwaltung und Aktualisierung deiner Packlisten",
+      "verifiedBadge": "Verifiziertes VIP-Abzeichen auf deinem Profil",
+      "directMessages": "Direktnachrichten von deinen Followern"
+    },
+    "errors": {
+      "invalidToken": "Dieser Anspruchs-Link ist ungültig oder wurde bereits verwendet.",
+      "invalidTitle": "Ungültiger Anspruchs-Link",
+      "expired": "Dieser Anspruchs-Link ist abgelaufen. Bitte kontaktiere uns für eine neue Einladung.",
+      "expiredTitle": "Link abgelaufen",
+      "alreadyClaimed": "Dieses VIP-Konto wurde bereits beansprucht.",
+      "alreadyClaimedTitle": "Bereits beansprucht",
+      "loadFailed": "Anspruchsinformationen konnten nicht geladen werden. Bitte erneut versuchen.",
+      "claimFailed": "Anspruchsprozess konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
+      "errorTitle": "Etwas ist schiefgelaufen",
+      "genericError": "Ein unerwarteter Fehler ist aufgetreten. Bitte später erneut versuchen."
+    }
+  },
+
+  "compare": {
+    "compareToVip": "Mit VIP vergleichen",
+    "selectVipLoadout": "VIP-Packliste zum Vergleichen auswählen",
+    "selectYourLoadout": "Wähle deine Packliste",
+    "comparison": "Packlisten-Vergleich",
+    "yourLoadout": "Deine Packliste",
+    "vipLoadout": "VIP-Packliste",
+    "weightDifference": "Gewichtsunterschied",
+    "lighter": "{weight} leichter",
+    "heavier": "{weight} schwerer",
+    "same": "Gleiches Gewicht",
+    "categoryBreakdown": "Kategorieübersicht",
+    "uniqueToYou": "Nur in deiner Packliste",
+    "uniqueToVip": "Nur in VIP-Packliste",
+    "commonItems": "Gemeinsame Teile",
+    "addToWishlist": "Zur Wunschliste hinzufügen",
+    "noComparison": "Packlisten zum Vergleichen auswählen",
+    "pageTitle": "Packlisten vergleichen",
+    "pageDescription": "Vergleiche deine Packliste mit VIP-Packlisten, um Gewichtsersparnisse zu finden",
+    "metaTitle": "Packlisten vergleichen | GearShack",
+    "metaDescription": "Vergleiche deine Ausrüstungs-Packliste mit VIP-Influencer-Packlisten und entdecke Gewichtsersparnisse",
+    "startComparing": "Vergleich starten",
+    "selectBothLoadouts": "Wähle sowohl deine Packliste als auch eine VIP-Packliste für einen detaillierten Vergleich",
+    "noLoadouts": "Keine Packlisten verfügbar",
+    "createLoadoutFirst": "Erstelle zuerst eine Packliste für den Vergleich",
+    "signInRequired": "Anmelden zum Vergleichen deiner Packlisten"
+  },
+
+  "search": {
+    "placeholder": "VIPs nach Name oder Reiseart suchen...",
+    "noResults": "Keine VIPs entsprechen deiner Suche",
+    "tryBroader": "Versuche breitere Suchkriterien",
+    "clearSearch": "Suche löschen"
+  },
+
+  "admin": {
+    "title": "VIP-Verwaltung",
+    "addNewVip": "Neuen VIP hinzufügen",
+    "editVip": "VIP bearbeiten",
+    "deleteVip": "VIP löschen",
+    "archiveVip": "VIP archivieren",
+    "featured": "Empfohlen",
+    "notFeatured": "Nicht empfohlen",
+    "toggleFeatured": "Empfehlung umschalten",
+    "status": "Status",
+    "actions": "Aktionen",
+    "createLoadout": "Packliste erstellen",
+    "editLoadout": "Packliste bearbeiten",
+    "deleteLoadout": "Packliste löschen",
+    "publishLoadout": "Veröffentlichen",
+    "unpublishLoadout": "Zurückziehen",
+    "sourceUrl": "Quell-URL",
+    "validateUrl": "URL prüfen",
+    "urlValid": "URL ist erreichbar",
+    "urlInvalid": "URL möglicherweise nicht verfügbar",
+
+    "form": {
+      "name": "VIP-Name",
+      "namePlaceholder": "z.B. Darwin onthetrail",
+      "slug": "URL-Slug",
+      "slugPlaceholder": "z.B. darwin-onthetrail",
+      "slugHint": "Nur Kleinbuchstaben, Zahlen und Bindestriche",
+      "bio": "Biografie",
+      "bioPlaceholder": "Schreibe eine kurze Beschreibung dieses VIPs...",
+      "avatarUrl": "Avatar-URL",
+      "avatarUrlPlaceholder": "https://example.com/avatar.jpg",
+      "youtube": "YouTube-Kanal-URL",
+      "instagram": "Instagram-Profil-URL",
+      "website": "Persönliche Website-URL",
+      "twitter": "Twitter/X-Profil-URL",
+      "socialLinksHint": "Mindestens ein sozialer Link erforderlich",
+      "save": "VIP speichern",
+      "saving": "Speichern...",
+      "cancel": "Abbrechen"
+    },
+
+    "loadoutForm": {
+      "name": "Packlisten-Name",
+      "namePlaceholder": "z.B. PCT 2022 (4.265 km)",
+      "sourceUrl": "Quell-URL",
+      "sourceUrlPlaceholder": "https://youtube.com/watch?v=...",
+      "description": "Beschreibung",
+      "tripType": "Reiseart",
+      "tripTypePlaceholder": "z.B. Pacific Crest Trail",
+      "dateRange": "Zeitraum",
+      "dateRangePlaceholder": "z.B. April - September 2022",
+      "items": "Ausrüstungsteile",
+      "addItem": "Teil hinzufügen",
+      "searchGear": "Ausrüstungsdatenbank durchsuchen...",
+      "createNew": "Neues Teil erstellen",
+      "itemName": "Teilname",
+      "itemBrand": "Marke",
+      "itemWeight": "Gewicht (g)",
+      "itemQuantity": "Menge",
+      "itemCategory": "Kategorie",
+      "itemNotes": "Notizen",
+      "removeItem": "Entfernen",
+      "saveDraft": "Als Entwurf speichern",
+      "saveAndPublish": "Speichern & Veröffentlichen"
+    },
+
+    "claim": {
+      "sendInvitation": "Anspruch-Einladung senden",
+      "inviteTitle": "VIP zur Kontoübernahme einladen",
+      "inviteDescription": "Sende eine Anspruchs-Einladung an {name}, damit sie ihr GearShack-Profil übernehmen können.",
+      "emailLabel": "E-Mail-Adresse des VIPs",
+      "emailPlaceholder": "vip@beispiel.com",
+      "emailHint": "Diese E-Mail erhält den Anspruchs-Einladungslink.",
+      "send": "Einladung senden",
+      "sending": "Sende...",
+      "cancel": "Abbrechen",
+      "invitationSent": "Einladung gesendet!",
+      "invitationSentDescription": "Anspruchs-Einladung an {email} gesendet",
+      "invitationEmail": "E-Mail-Adresse des VIPs",
+      "invitationExpiry": "Läuft in 30 Tagen ab",
+      "pendingInvitations": "Ausstehende Einladungen",
+      "resendInvitation": "Erneut senden",
+      "revokeInvitation": "Widerrufen",
+      "claimStatus": "Anspruch-Status"
+    },
+
+    "archive": {
+      "confirmTitle": "VIP-Konto archivieren",
+      "confirmMessage": "Dies wird {name} von der Seite ausblenden. Follower werden benachrichtigt. Das Konto kann innerhalb von 30 Tagen wiederhergestellt werden.",
+      "reason": "Archivierungsgrund",
+      "reasonPlaceholder": "z.B. Löschungsanfrage vom VIP",
+      "confirm": "Archivieren",
+      "cancel": "Abbrechen"
+    }
+  },
+
+  "notifications": {
+    "newLoadout": "{vipName} hat eine neue Packliste veröffentlicht: {loadoutName}",
+    "vipClaimed": "{vipName} ist GearShack beigetreten!",
+    "vipArchived": "{vipName} ist nicht mehr auf GearShack verfügbar"
+  },
+
+  "directory": {
+    "title": "VIP-Verzeichnis",
+    "description": "Entdecke kuratierte Ausrüstungs-Setups von Top-Outdoor-Influencern und Abenteurern.",
+    "metaTitle": "VIP-Packlisten-Verzeichnis | GearShack",
+    "metaDescription": "Erkunde kuratierte Ausrüstungslisten von Outdoor-Influencern, professionellen Abenteurern und erfahrenen Wanderern.",
+    "searchPlaceholder": "VIPs nach Name suchen...",
+    "loadMore": "Mehr VIPs laden",
+    "errorTitle": "VIPs konnten nicht geladen werden",
+    "noResults": "Keine VIPs entsprechen deiner Suche",
+    "noResultsHint": "Versuche einen anderen Suchbegriff",
+    "empty": "Noch keine VIPs verfügbar",
+    "emptyHint": "Schau bald wieder vorbei für kuratierte Ausrüstungs-Setups"
+  },
+
+  "featured": {
+    "title": "Empfohlene VIPs",
+    "viewAll": "Alle VIPs anzeigen",
+    "errorTitle": "Empfohlene VIPs konnten nicht geladen werden",
+    "errorMessage": "Bitte später erneut versuchen",
+    "emptyTitle": "Noch keine empfohlenen VIPs",
+    "emptyMessage": "Schau bald wieder vorbei für empfohlene Outdoor-Influencer"
+  },
+
+  "profile": {
+    "curatedBanner": "Dies ist ein kuratiertes Profil mit Inhalten von {name}",
+    "verifiedBadge": "Verifizierter VIP",
+    "followers": "{count, plural, =0 {Keine Follower} =1 {1 Follower} other {# Follower}}",
+    "loadouts": "{count, plural, =0 {Keine Packlisten} =1 {1 Packliste} other {# Packlisten}}",
+    "joined": "Beigetreten {date}",
+    "socialLinks": "Soziale Links",
+    "follow": "Folgen",
+    "following": "Folge ich",
+    "loadoutsTitle": "Packlisten",
+    "noLoadouts": "Noch keine Packlisten veröffentlicht",
+    "errorTitle": "Profil konnte nicht geladen werden",
+    "notFound": "VIP nicht gefunden",
+    "metaTitle": "{name} | VIP-Packlisten | GearShack",
+    "metaDescription": "Erkunde {name}'s kuratierte Ausrüstungs-Setups und Packlisten auf GearShack"
+  },
+
+  "loadout": {
+    "sourceAttribution": "Originalquelle",
+    "attributionNotice": "Diese Packliste ist aus öffentlich verfügbaren Inhalten mit vollständiger Quellenangabe kuratiert.",
+    "viewOriginal": "Original ansehen",
+    "watchVideo": "Originalvideo ansehen",
+    "viewSource": "Original ansehen",
+    "sourceUnavailable": "Quelle nicht verfügbar",
+    "totalWeight": "Gesamtgewicht",
+    "itemCount": "{count, plural, =1 {1 Teil} other {# Teile}}",
+    "publishedDate": "Veröffentlicht {date}",
+    "tripType": "Reiseart",
+    "dateRange": "Zeitraum",
+    "gearList": "Ausrüstungsliste",
+    "weightBreakdown": "Gewichtsverteilung",
+    "items": "Teile",
+    "backToProfile": "Zurück zu {name}",
+    "byVip": "von {name}",
+    "bookmark": "Merken",
+    "bookmarked": "Gemerkt",
+    "copyToAccount": "In meine Packlisten kopieren",
+    "copySuccess": "Packliste in dein Konto kopiert!",
+    "copyError": "Packliste konnte nicht kopiert werden",
+    "viewCopy": "Kopie ansehen",
+    "errorTitle": "Packliste konnte nicht geladen werden",
+    "notFound": "Packliste nicht gefunden",
+    "metaTitle": "{loadoutName} von {vipName} | GearShack",
+    "metaDescription": "Erkunde {loadoutName} von {vipName} auf GearShack",
+    "categories": {
+      "shelter": "Unterkunft",
+      "sleep": "Schlafsystem",
+      "pack": "Rucksack",
+      "kitchen": "Küche",
+      "clothing": "Kleidung",
+      "electronics": "Elektronik",
+      "hygiene": "Hygiene",
+      "firstAid": "Erste Hilfe",
+      "misc": "Sonstiges"
+    }
+  },
+
+  "common": {
+    "loading": "Laden...",
+    "retry": "Erneut versuchen"
+  },
+
+  "errors": {
+    "loadFailed": "VIP-Daten konnten nicht geladen werden",
+    "followFailed": "Follow-Status konnte nicht aktualisiert werden",
+    "bookmarkFailed": "Lesezeichen konnte nicht aktualisiert werden",
+    "copyFailed": "Packliste konnte nicht kopiert werden",
+    "saveFailed": "Änderungen konnten nicht gespeichert werden",
+    "notFound": "VIP nicht gefunden",
+    "loadoutNotFound": "Packliste nicht gefunden",
+    "unauthorized": "Bitte anmelden zum Fortfahren",
+    "adminOnly": "Admin-Zugriff erforderlich"
+  }
+}

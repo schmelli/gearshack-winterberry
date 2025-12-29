@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
+import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
 import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
@@ -147,17 +148,24 @@ export function LoadoutHeader({
                   showLabel={false}
                 />
                 {showShakedownButton && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    aria-label={t('actions.requestShakedown')}
-                    asChild
-                  >
-                    <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
-                      <Users className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <>
+                    <CompareToVipButton
+                      loadoutId={loadout.id}
+                      variant="ghost"
+                      size="icon"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      aria-label={t('actions.requestShakedown')}
+                      asChild
+                    >
+                      <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
+                        <Users className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
