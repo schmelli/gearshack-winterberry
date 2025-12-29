@@ -1,0 +1,180 @@
+{
+  "title": "Community-Pinnwand",
+  "subtitle": "Kurze Fragen, Ausrüstungstipps und Community-Updates",
+  "newPost": "Neuer Beitrag",
+  "loading": "Beiträge werden geladen...",
+  "loadingMore": "Weitere werden geladen...",
+
+  "composer": {
+    "title": "Beitrag erstellen",
+    "placeholder": "Was beschäftigt dich? Stelle eine Frage, teile ein Update oder verbinde dich mit anderen Outdoor-Enthusiasten...",
+    "tagLabel": "Kategorie (optional)",
+    "selectTag": "Kategorie auswählen",
+    "submit": "Veröffentlichen",
+    "cancel": "Abbrechen",
+    "posting": "Wird veröffentlicht...",
+    "charCount": "{count}/{max}",
+    "linkedContent": "Verknüpft: {title}"
+  },
+
+  "tags": {
+    "question": "Frage",
+    "shakedown": "Shakedown",
+    "trade": "Tausch",
+    "tripPlanning": "Tourenplanung",
+    "gearAdvice": "Ausrüstungstipps",
+    "other": "Sonstiges",
+    "all": "Alle Beiträge"
+  },
+
+  "post": {
+    "postedBy": "Gepostet von {name}",
+    "replies": "{count, plural, =0 {Keine Antworten} =1 {1 Antwort} other {# Antworten}}",
+    "showReplies": "Antworten anzeigen",
+    "hideReplies": "Antworten ausblenden",
+    "deleted": "[Beitrag vom Nutzer gelöscht]",
+    "archived": "Dieser Beitrag wurde archiviert",
+    "editedLabel": "(bearbeitet)"
+  },
+
+  "reply": {
+    "placeholder": "Schreibe eine Antwort...",
+    "submit": "Antworten",
+    "replyTo": "Antwort an {name}",
+    "deleted": "[Antwort gelöscht]",
+    "markdownHint": "Unterstützt **fett**, *kursiv* und [Links](url)"
+  },
+
+  "menu": {
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "report": "Melden",
+    "editWindowExpired": "Bearbeitungszeit abgelaufen (15 Min. Limit)"
+  },
+
+  "delete": {
+    "title": "Beitrag löschen",
+    "titleReply": "Antwort löschen",
+    "confirmPost": "Möchtest du diesen Beitrag wirklich löschen?",
+    "confirmReply": "Möchtest du diese Antwort wirklich löschen?",
+    "confirmWithReplies": "Dieser Beitrag hat Antworten. Der Inhalt wird durch '[Beitrag vom Nutzer gelöscht]' ersetzt, aber die Antworten bleiben sichtbar.",
+    "confirm": "Löschen",
+    "cancel": "Abbrechen"
+  },
+
+  "report": {
+    "title": "Inhalt melden",
+    "subtitle": "Hilf uns, eine sichere Community zu erhalten",
+    "reasonLabel": "Grund der Meldung",
+    "selectReason": "Grund auswählen",
+    "detailsLabel": "Zusätzliche Details (optional)",
+    "detailsPlaceholder": "Gib zusätzlichen Kontext an...",
+    "submit": "Meldung absenden",
+    "cancel": "Abbrechen",
+    "submitting": "Wird gesendet...",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Belästigung",
+      "offTopic": "Themenfern",
+      "other": "Sonstiges"
+    }
+  },
+
+  "search": {
+    "placeholder": "Beiträge durchsuchen...",
+    "clear": "Suche löschen",
+    "noResults": "Keine Beiträge gefunden",
+    "resultsFor": "Ergebnisse für \"{query}\""
+  },
+
+  "filter": {
+    "activeFilter": "Gefiltert nach: {tag}",
+    "clearFilter": "Filter löschen"
+  },
+
+  "empty": {
+    "title": "Sei der Erste!",
+    "subtitle": "Starte eine Unterhaltung mit der GearShack-Community. Stelle eine Frage, teile Ausrüstungstipps oder plane dein nächstes Abenteuer.",
+    "cta": "Ersten Beitrag erstellen"
+  },
+
+  "noResults": {
+    "title": "Keine Beiträge gefunden",
+    "subtitle": "Versuche, deine Such- oder Filtereinstellungen anzupassen",
+    "clearFilters": "Alle Filter löschen"
+  },
+
+  "linkedContent": {
+    "loadout": "Packliste",
+    "shakedown": "Shakedown",
+    "marketplaceItem": "Marktplatz-Artikel",
+    "baseWeight": "Basisgewicht: {weight}",
+    "items": "{count, plural, =1 {1 Artikel} other {# Artikel}}",
+    "viewFull": "Vollständige {type} anzeigen"
+  },
+
+  "errors": {
+    "postEmpty": "Beitrag darf nicht leer sein",
+    "postTooLong": "Beitrag darf maximal 500 Zeichen haben",
+    "replyEmpty": "Antwort darf nicht leer sein",
+    "invalidPostId": "Ungültige Beitrags-ID",
+    "invalidTargetId": "Ungültige Ziel-ID",
+    "linkedContentIncomplete": "Inhaltstyp und ID müssen zusammen angegeben werden",
+    "detailsTooLong": "Details dürfen maximal 500 Zeichen haben",
+    "loadFailed": "Beiträge konnten nicht geladen werden. Bitte versuche es erneut.",
+    "createFailed": "Beitrag konnte nicht erstellt werden. Bitte versuche es erneut.",
+    "updateFailed": "Beitrag konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+    "deleteFailed": "Löschen fehlgeschlagen. Bitte versuche es erneut.",
+    "reportFailed": "Meldung konnte nicht gesendet werden. Bitte versuche es erneut.",
+    "replyFailed": "Antwort konnte nicht gepostet werden. Bitte versuche es erneut.",
+    "rateLimitPosts": "Du hast dein tägliches Limit erreicht ({limit}). Versuche es morgen wieder.",
+    "rateLimitReplies": "Du hast dein tägliches Antwortlimit erreicht ({limit}). Versuche es morgen wieder.",
+    "duplicatePost": "Du hast diesen Inhalt bereits kürzlich gepostet.",
+    "duplicateReport": "Du hast diesen Inhalt bereits gemeldet.",
+    "editWindowExpired": "Das 15-minütige Bearbeitungsfenster ist abgelaufen.",
+    "banned": "Du bist derzeit von der Pinnwand gesperrt.",
+    "notAuthenticated": "Du musst angemeldet sein, um die Pinnwand zu nutzen."
+  },
+
+  "success": {
+    "postCreated": "Beitrag erfolgreich erstellt!",
+    "postUpdated": "Beitrag erfolgreich aktualisiert!",
+    "postDeleted": "Beitrag erfolgreich gelöscht!",
+    "replyCreated": "Antwort gepostet!",
+    "replyDeleted": "Antwort erfolgreich gelöscht!",
+    "reportSubmitted": "Danke für deine Meldung. Unsere Moderatoren werden sie prüfen."
+  },
+
+  "time": {
+    "justNow": "Gerade eben",
+    "minutesAgo": "{count, plural, =1 {vor 1 Minute} other {vor # Minuten}}",
+    "hoursAgo": "{count, plural, =1 {vor 1 Stunde} other {vor # Stunden}}",
+    "daysAgo": "{count, plural, =1 {vor 1 Tag} other {vor # Tagen}}"
+  },
+
+  "moderation": {
+    "title": "Moderationswarteschlange",
+    "subtitle": "Gemeldete Inhalte prüfen und Maßnahmen ergreifen",
+    "noReports": "Keine ausstehenden Meldungen",
+    "noReportsSubtitle": "Alle Meldungen wurden bearbeitet. Schaue später wieder vorbei.",
+    "pendingCount": "{count, plural, =1 {1 ausstehende Meldung} other {# ausstehende Meldungen}}",
+    "reportCount": "{count, plural, =1 {1 Meldung} other {# Meldungen}}",
+    "reportedBy": "Gemeldet von {name}",
+    "contentBy": "Inhalt von {name}",
+    "additionalDetails": "Zusätzliche Details",
+    "targetPost": "Beitrag",
+    "targetReply": "Antwort",
+    "takeAction": "Maßnahme ergreifen",
+    "deleteContent": "Inhalt löschen",
+    "warnUser": "Nutzer verwarnen",
+    "ban1Day": "1 Tag sperren",
+    "ban7Days": "7 Tage sperren",
+    "banPermanent": "Permanent sperren",
+    "dismiss": "Ablehnen",
+    "actionSuccess": "Aktion erfolgreich abgeschlossen",
+    "actionFailed": "Aktion konnte nicht abgeschlossen werden",
+    "dismissed": "Meldung abgelehnt",
+    "accessDenied": "Zugriff verweigert. Moderatorrechte erforderlich.",
+    "highPriority": "Hohe Priorität"
+  }
+}
