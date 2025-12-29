@@ -280,6 +280,9 @@ async function generateAIResponseInternal(
     // T058: Add tools if enabled
     if (enableTools && userId) {
       config.tools = getAITools(userId);
+      // Allow up to 5 tool execution rounds (tool call → result → continue)
+      // This ensures the AI can call tools and then generate a response based on the results
+      config.maxSteps = 5;
     }
 
     const result = await generateText(config);
@@ -408,6 +411,9 @@ export async function generateStreamingAIResponse(
     // Phase 1: Add tools if enabled
     if (enableTools && userId) {
       config.tools = getAITools(userId);
+      // Allow up to 5 tool execution rounds (tool call → result → continue)
+      // This ensures the AI can call tools and then generate a response based on the results
+      config.maxSteps = 5;
     }
 
     const result = streamText(config);
