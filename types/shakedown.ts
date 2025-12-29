@@ -110,7 +110,7 @@ export interface Badge {
  */
 export interface ShakedownExpert {
   userId: string;
-  displayName: string;
+  displayName: string | null;
   avatarUrl: string | null;
   helpfulVotesReceived: number;
   shakedownsReviewed: number;

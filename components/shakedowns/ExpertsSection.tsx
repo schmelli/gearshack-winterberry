@@ -139,21 +139,25 @@ interface ExpertCardProps {
 
 function ExpertCard({ expert }: ExpertCardProps) {
   const t = useTranslations('Shakedowns.experts');
+  const tCommon = useTranslations('Common');
 
   // Determine badge to display (from data or calculated from votes)
   const displayBadge = useMemo(() => {
     return expert.highestBadge ?? getHighestBadgeFromVotes(expert.helpfulVotesReceived);
   }, [expert.highestBadge, expert.helpfulVotesReceived]);
 
+  // Handle null displayName with i18n fallback
+  const displayName = expert.displayName ?? tCommon('genericUser');
+
   return (
     <div className="flex items-center gap-3 py-3 px-1 rounded-lg hover:bg-muted/50 transition-colors">
       {/* Avatar */}
       <Avatar className="size-10 shrink-0">
         {expert.avatarUrl && (
-          <AvatarImage src={expert.avatarUrl} alt={expert.displayName} />
+          <AvatarImage src={expert.avatarUrl} alt={displayName} />
         )}
         <AvatarFallback className="text-sm font-medium">
-          {getInitials(expert.displayName)}
+          {getInitials(displayName)}
         </AvatarFallback>
       </Avatar>
 
@@ -161,7 +165,7 @@ function ExpertCard({ expert }: ExpertCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm truncate">
-            {expert.displayName}
+            {displayName}
           </span>
           {displayBadge && (
             <ExpertBadgeDisplay badgeType={displayBadge} />
