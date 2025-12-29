@@ -46,19 +46,20 @@ export function VipCompareContent() {
   const tCommon = useTranslations('vip.common');
   const searchParams = useSearchParams();
   const loadoutIdFromUrl = searchParams.get('loadout');
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isAuthenticated = !!user;
 
   // User's loadouts
   const {
     loadouts: userLoadouts,
     isLoading: loadoutsLoading,
-  } = useLoadouts(user?.id ?? null);
+  } = useLoadouts(user?.uid ?? null);
 
   // User's gear items (for weight calculation)
   const {
     items: gearItems,
     isLoading: gearLoading,
-  } = useGearItems(user?.id ?? null);
+  } = useGearItems(user?.uid ?? null);
 
   // Comparison state
   const [selectedUserLoadout, setSelectedUserLoadout] = useState<LoadoutWithWeight | null>(null);
@@ -160,7 +161,7 @@ export function VipCompareContent() {
         brand: gearItem?.brand ?? null,
         weightGrams: gearItem?.weightGrams ?? 0,
         quantity: item.quantity,
-        category: gearItem?.categoryId ?? 'misc',
+        category: gearItem?.productTypeId ?? 'misc',
       };
     });
 

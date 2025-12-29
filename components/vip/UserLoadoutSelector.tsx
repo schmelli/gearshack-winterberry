@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatWeight } from '@/lib/utils/weight';
+import { formatWeightFromGrams } from '@/lib/utils/weight';
 import type { Loadout } from '@/hooks/useLoadouts';
 import type { GearItem } from '@/types/gear';
 
@@ -108,7 +108,7 @@ export function UserLoadoutSelector({
         >
           {selectedLoadout ? (
             <span className="truncate">
-              {selectedLoadout.name} ({formatWeight(selectedLoadout.totalWeightGrams)})
+              {selectedLoadout.name} ({formatWeightFromGrams(selectedLoadout.totalWeightGrams, 'g')})
             </span>
           ) : (
             <span className="text-muted-foreground">
@@ -169,7 +169,7 @@ export function UserLoadoutSelector({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{loadout.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatWeight(loadout.totalWeightGrams)} •{' '}
+                      {formatWeightFromGrams(loadout.totalWeightGrams, 'g')} •{' '}
                       {loadout.items.length} items
                     </p>
                   </div>

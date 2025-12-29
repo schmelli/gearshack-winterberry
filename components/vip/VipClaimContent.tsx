@@ -221,7 +221,7 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
           </div>
           <CardTitle>{t('successTitle')}</CardTitle>
           <CardDescription>
-            {t('successDescription', { name: claimData?.vip.name })}
+            {t('successDescription', { name: claimData?.vip.name || '' })}
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
@@ -244,7 +244,7 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
             />
           </div>
         )}
-        <CardTitle>{t('claimTitle', { name: claimData?.vip.name })}</CardTitle>
+        <CardTitle>{t('claimTitle', { name: claimData?.vip.name || '' })}</CardTitle>
         <CardDescription>
           {t('claimDescription')}
         </CardDescription>

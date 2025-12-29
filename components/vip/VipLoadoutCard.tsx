@@ -15,7 +15,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Backpack, Scale, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatWeight } from '@/lib/utils/weight';
+import { formatWeightFromGrams } from '@/lib/utils/weight';
 import { detectPlatform, getSourcePlatformLabel } from '@/lib/vip/source-url-validator';
 import type { VipLoadoutSummary } from '@/types/vip';
 
@@ -82,7 +82,7 @@ export function VipLoadoutCard({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Scale className="h-4 w-4" />
-              {formatWeight(loadout.totalWeightGrams)}
+              {formatWeightFromGrams(loadout.totalWeightGrams, 'g')}
             </span>
             <span className="flex items-center gap-1">
               <Backpack className="h-4 w-4" />

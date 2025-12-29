@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { formatWeight } from '@/lib/utils/weight';
+import { formatWeightFromGrams } from '@/lib/utils/weight';
 import type { VipLoadoutWithItems, CategoryBreakdown } from '@/types/vip';
 import { VipSourceAttribution } from './VipSourceAttribution';
 
@@ -73,7 +73,7 @@ function WeightBreakdownChart({ breakdown }: { breakdown: CategoryBreakdown[] })
               key={cat.category}
               className={`${colors[index % colors.length]} transition-all`}
               style={{ width: `${percentage}%` }}
-              title={`${cat.category}: ${formatWeight(cat.weightGrams)}`}
+              title={`${cat.category}: ${formatWeightFromGrams(cat.weightGrams, 'g')}`}
             />
           );
         })}
@@ -85,7 +85,7 @@ function WeightBreakdownChart({ breakdown }: { breakdown: CategoryBreakdown[] })
           <div key={cat.category} className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`} />
             <span className="text-muted-foreground truncate">{cat.category}</span>
-            <span className="ml-auto font-medium">{formatWeight(cat.weightGrams)}</span>
+            <span className="ml-auto font-medium">{formatWeightFromGrams(cat.weightGrams, 'g')}</span>
           </div>
         ))}
       </div>
@@ -120,7 +120,7 @@ function LoadoutItemsList({ loadout }: { loadout: VipLoadoutWithItems }) {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-foreground">{category}</h3>
               <span className="text-sm text-muted-foreground">
-                {formatWeight(categoryWeight)}
+                {formatWeightFromGrams(categoryWeight, 'g')}
               </span>
             </div>
 
@@ -142,7 +142,7 @@ function LoadoutItemsList({ loadout }: { loadout: VipLoadoutWithItems }) {
                     )}
                   </div>
                   <span className="text-sm text-muted-foreground ml-4">
-                    {formatWeight(item.weightGrams * item.quantity)}
+                    {formatWeightFromGrams(item.weightGrams * item.quantity, 'g')}
                   </span>
                 </div>
               ))}
@@ -237,7 +237,7 @@ export function VipLoadoutDetail({
             <span className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-muted-foreground" />
               <span className="font-semibold text-lg">
-                {formatWeight(loadout.totalWeightGrams)}
+                {formatWeightFromGrams(loadout.totalWeightGrams, 'g')}
               </span>
             </span>
             <span className="flex items-center gap-2 text-muted-foreground">

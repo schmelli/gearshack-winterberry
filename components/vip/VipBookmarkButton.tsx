@@ -12,11 +12,13 @@
 import { useTranslations } from 'next-intl';
 import { Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, type ButtonProps } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthContext as useAuth } from '@/components/auth/SupabaseAuthProvider';
 import { useVipBookmark } from '@/hooks/vip/useVipBookmark';
 import { useEffect, useCallback, useRef } from 'react';
+import type { VariantProps } from 'class-variance-authority';
+import { buttonVariants } from '@/components/ui/button';
 
 // =============================================================================
 // Types
@@ -25,8 +27,8 @@ import { useEffect, useCallback, useRef } from 'react';
 interface VipBookmarkButtonProps {
   loadoutId: string;
   initialIsBookmarked?: boolean;
-  variant?: ButtonProps['variant'];
-  size?: ButtonProps['size'];
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+  size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
   className?: string;
 }
@@ -44,7 +46,8 @@ export function VipBookmarkButton({
   className,
 }: VipBookmarkButtonProps) {
   const t = useTranslations('vip.bookmark');
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isAuthenticated = !!user;
 
   const {
     isBookmarked,

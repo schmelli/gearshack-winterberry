@@ -96,13 +96,21 @@ export function useModerationReports() {
           const report = state.reports.find((r) => r.id === reportId);
           if (report) {
             if (report.target_type === 'post') {
+<<<<<<< HEAD
               // Note: Type assertion needed - table exists but types need regeneration
+=======
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+>>>>>>> cdc7c1a (fix: resolve TypeScript build errors for deployment)
               await (supabase as any)
                 .from('bulletin_posts')
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
             } else {
+<<<<<<< HEAD
               // Note: Type assertion needed - table exists but types need regeneration
+=======
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+>>>>>>> cdc7c1a (fix: resolve TypeScript build errors for deployment)
               await (supabase as any)
                 .from('bulletin_replies')
                 .update({ is_deleted: true })
@@ -136,7 +144,11 @@ export function useModerationReports() {
             ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
             : null;
 
+<<<<<<< HEAD
           // Note: Type assertion needed - table exists but types need regeneration
+=======
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+>>>>>>> cdc7c1a (fix: resolve TypeScript build errors for deployment)
           await (supabase as any).from('user_bulletin_bans').insert({
             user_id: targetAuthorId,
             reason: 'Violation of community guidelines',
@@ -163,7 +175,11 @@ export function useModerationReports() {
   const dismissReport = useCallback(
     async (reportId: string) => {
       try {
+<<<<<<< HEAD
         // Note: Type assertion needed - table exists but types need regeneration
+=======
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+>>>>>>> cdc7c1a (fix: resolve TypeScript build errors for deployment)
         const { error } = await (supabase as any)
           .from('bulletin_reports')
           .update({
