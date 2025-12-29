@@ -1,0 +1,348 @@
+{
+  "title": "VIP Loadouts",
+  "subtitle": "Expert gear setups from your favorite outdoor influencers",
+  "featuredVips": "Featured VIP Loadouts",
+  "allVips": "All VIPs",
+  "loading": "Loading VIPs...",
+  "loadingMore": "Loading more...",
+  "noVips": "No VIPs found",
+  "noLoadouts": "No loadouts yet",
+
+  "profile": {
+    "curatedBanner": "This is a curated account featuring content from {name}",
+    "verifiedBadge": "Verified VIP",
+    "followers": "{count, plural, =0 {No followers} =1 {1 follower} other {# followers}}",
+    "loadouts": "{count, plural, =0 {No loadouts} =1 {1 loadout} other {# loadouts}}",
+    "joined": "Joined {date}",
+    "socialLinks": "Social Links"
+  },
+
+  "follow": {
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "signInToFollow": "Sign in to follow",
+    "followedNotification": "You are now following {name}",
+    "unfollowedNotification": "You unfollowed {name}"
+  },
+
+  "loadout": {
+    "sourceAttribution": "Based on",
+    "watchVideo": "Watch Original Video",
+    "viewSource": "View Original",
+    "sourceUnavailable": "Source unavailable",
+    "totalWeight": "Total Weight",
+    "itemCount": "{count, plural, =1 {1 item} other {# items}}",
+    "publishedDate": "Published {date}",
+    "tripType": "Trip Type",
+    "dateRange": "Date Range",
+    "gearList": "Gear List",
+    "categories": {
+      "shelter": "Shelter",
+      "sleep": "Sleep System",
+      "pack": "Pack",
+      "kitchen": "Kitchen",
+      "clothing": "Clothing",
+      "electronics": "Electronics",
+      "hygiene": "Hygiene",
+      "firstAid": "First Aid",
+      "misc": "Miscellaneous"
+    }
+  },
+
+  "copy": {
+    "copyToLoadout": "Copy to My Loadout",
+    "copyConfirmTitle": "Copy VIP Loadout",
+    "copyConfirmMessage": "Create a loadout based on {vipName}'s {loadoutName}?",
+    "itemsAsWishlist": "Items will be added as wishlist items",
+    "cancel": "Cancel",
+    "confirm": "Copy Loadout",
+    "copying": "Copying...",
+    "copySuccess": "Loadout copied! Items added to your wishlist.",
+    "copyError": "Failed to copy loadout. Please try again.",
+    "signInToCopy": "Sign in to copy this loadout"
+  },
+
+  "bookmark": {
+    "bookmark": "Bookmark",
+    "bookmarked": "Bookmarked",
+    "removeBookmark": "Remove Bookmark",
+    "signInToBookmark": "Sign in to bookmark",
+    "bookmarkedNotification": "Loadout bookmarked",
+    "unbookmarkedNotification": "Bookmark removed",
+    "savedLoadouts": "Saved Loadouts"
+  },
+
+  "claim": {
+    "pageTitle": "Claim Your VIP Account",
+    "pageDescription": "Verify your identity and take control of your curated GearShack profile",
+    "loading": "Verifying claim link...",
+    "claimTitle": "Claim {name}'s Account",
+    "claimDescription": "You've been invited to take ownership of this VIP account on GearShack.",
+    "claimAccount": "Claim This Account",
+    "claiming": "Claiming account...",
+    "claimSuccess": "Account claimed successfully!",
+    "claimSuccessDescription": "Welcome to GearShack, {name}! You now have full control of your VIP account.",
+    "successTitle": "Account Claimed!",
+    "successDescription": "You now control {name}'s GearShack profile.",
+    "redirecting": "Redirecting to your profile...",
+    "signInRequired": "Sign in required",
+    "signInDescription": "Please sign in or create an account to claim this VIP profile.",
+    "signInToClaim": "Sign In to Claim",
+    "expiresNotice": "This claim link expires on {date}",
+    "backToHome": "Back to Home",
+    "browseVips": "Browse VIP Loadouts",
+    "benefits": {
+      "title": "What you'll get:",
+      "manageLoadouts": "Full control to manage and update your loadouts",
+      "verifiedBadge": "Verified VIP badge on your profile",
+      "directMessages": "Direct messaging from your followers"
+    },
+    "errors": {
+      "invalidToken": "This claim link is invalid or has already been used.",
+      "invalidTitle": "Invalid Claim Link",
+      "expired": "This claim link has expired. Please contact us for a new invitation.",
+      "expiredTitle": "Link Expired",
+      "alreadyClaimed": "This VIP account has already been claimed.",
+      "alreadyClaimedTitle": "Already Claimed",
+      "loadFailed": "Failed to load claim information. Please try again.",
+      "claimFailed": "Failed to complete the claim process. Please try again.",
+      "errorTitle": "Something went wrong",
+      "genericError": "An unexpected error occurred. Please try again later."
+    }
+  },
+
+  "compare": {
+    "compareToVip": "Compare to VIP",
+    "selectVipLoadout": "Select a VIP loadout to compare",
+    "selectYourLoadout": "Select your loadout",
+    "comparison": "Loadout Comparison",
+    "yourLoadout": "Your Loadout",
+    "vipLoadout": "VIP Loadout",
+    "weightDifference": "Weight Difference",
+    "lighter": "{weight} lighter",
+    "heavier": "{weight} heavier",
+    "same": "Same weight",
+    "categoryBreakdown": "Category Breakdown",
+    "uniqueToYou": "Items unique to your loadout",
+    "uniqueToVip": "Items unique to VIP loadout",
+    "commonItems": "Items in both loadouts",
+    "addToWishlist": "Add to Wishlist",
+    "noComparison": "Select loadouts to compare",
+    "pageTitle": "Compare Loadouts",
+    "pageDescription": "Compare your loadout with VIP loadouts to find weight-saving opportunities",
+    "metaTitle": "Compare Loadouts | GearShack",
+    "metaDescription": "Compare your gear loadout with VIP influencer loadouts and discover weight-saving opportunities",
+    "startComparing": "Start Comparing",
+    "selectBothLoadouts": "Select both your loadout and a VIP loadout to see a detailed comparison",
+    "noLoadouts": "No loadouts available",
+    "createLoadoutFirst": "Create a loadout first to use comparison",
+    "signInRequired": "Sign in to compare your loadouts"
+  },
+
+  "search": {
+    "placeholder": "Search VIPs by name or trip type...",
+    "noResults": "No VIPs match your search",
+    "tryBroader": "Try broadening your search criteria",
+    "clearSearch": "Clear search"
+  },
+
+  "admin": {
+    "title": "VIP Management",
+    "addNewVip": "Add New VIP",
+    "editVip": "Edit VIP",
+    "deleteVip": "Delete VIP",
+    "archiveVip": "Archive VIP",
+    "featured": "Featured",
+    "notFeatured": "Not Featured",
+    "toggleFeatured": "Toggle Featured",
+    "status": "Status",
+    "actions": "Actions",
+    "createLoadout": "Create Loadout",
+    "editLoadout": "Edit Loadout",
+    "deleteLoadout": "Delete Loadout",
+    "publishLoadout": "Publish",
+    "unpublishLoadout": "Unpublish",
+    "sourceUrl": "Source URL",
+    "validateUrl": "Validate URL",
+    "urlValid": "URL is accessible",
+    "urlInvalid": "URL may be unavailable",
+
+    "form": {
+      "name": "VIP Name",
+      "namePlaceholder": "e.g., Darwin onthetrail",
+      "slug": "URL Slug",
+      "slugPlaceholder": "e.g., darwin-onthetrail",
+      "slugHint": "Lowercase letters, numbers, and hyphens only",
+      "bio": "Biography",
+      "bioPlaceholder": "Write a brief description of this VIP...",
+      "avatarUrl": "Avatar URL",
+      "avatarUrlPlaceholder": "https://example.com/avatar.jpg",
+      "youtube": "YouTube Channel URL",
+      "instagram": "Instagram Profile URL",
+      "website": "Personal Website URL",
+      "twitter": "Twitter/X Profile URL",
+      "socialLinksHint": "At least one social link is required",
+      "save": "Save VIP",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+
+    "loadoutForm": {
+      "name": "Loadout Name",
+      "namePlaceholder": "e.g., PCT 2022 (2,650 miles)",
+      "sourceUrl": "Source URL",
+      "sourceUrlPlaceholder": "https://youtube.com/watch?v=...",
+      "description": "Description",
+      "tripType": "Trip Type",
+      "tripTypePlaceholder": "e.g., Pacific Crest Trail",
+      "dateRange": "Date Range",
+      "dateRangePlaceholder": "e.g., April - September 2022",
+      "items": "Gear Items",
+      "addItem": "Add Item",
+      "searchGear": "Search gear database...",
+      "createNew": "Create new item",
+      "itemName": "Item Name",
+      "itemBrand": "Brand",
+      "itemWeight": "Weight (g)",
+      "itemQuantity": "Qty",
+      "itemCategory": "Category",
+      "itemNotes": "Notes",
+      "removeItem": "Remove",
+      "saveDraft": "Save as Draft",
+      "saveAndPublish": "Save & Publish"
+    },
+
+    "claim": {
+      "sendInvitation": "Send Claim Invitation",
+      "inviteTitle": "Invite VIP to Claim Account",
+      "inviteDescription": "Send a claim invitation to {name} so they can take ownership of their GearShack profile.",
+      "emailLabel": "VIP's Email Address",
+      "emailPlaceholder": "vip@example.com",
+      "emailHint": "This email will receive the claim invitation link.",
+      "send": "Send Invitation",
+      "sending": "Sending...",
+      "cancel": "Cancel",
+      "invitationSent": "Invitation sent!",
+      "invitationSentDescription": "Claim invitation sent to {email}",
+      "invitationEmail": "VIP's Email Address",
+      "invitationExpiry": "Expires in 30 days",
+      "pendingInvitations": "Pending Invitations",
+      "resendInvitation": "Resend",
+      "revokeInvitation": "Revoke",
+      "claimStatus": "Claim Status"
+    },
+
+    "archive": {
+      "confirmTitle": "Archive VIP Account",
+      "confirmMessage": "This will hide {name} from the site. Followers will be notified. The account can be recovered within 30 days.",
+      "reason": "Archive Reason",
+      "reasonPlaceholder": "e.g., Takedown request from VIP",
+      "confirm": "Archive",
+      "cancel": "Cancel"
+    }
+  },
+
+  "notifications": {
+    "newLoadout": "{vipName} published a new loadout: {loadoutName}",
+    "vipClaimed": "{vipName} joined GearShack!",
+    "vipArchived": "{vipName} is no longer available on GearShack"
+  },
+
+  "directory": {
+    "title": "VIP Directory",
+    "description": "Discover curated gear setups from top outdoor influencers and adventurers.",
+    "metaTitle": "VIP Loadouts Directory | GearShack",
+    "metaDescription": "Explore curated gear lists from outdoor influencers, professional adventurers, and experienced hikers.",
+    "searchPlaceholder": "Search VIPs by name...",
+    "loadMore": "Load more VIPs",
+    "errorTitle": "Failed to load VIPs",
+    "noResults": "No VIPs match your search",
+    "noResultsHint": "Try a different search term",
+    "empty": "No VIPs available yet",
+    "emptyHint": "Check back soon for curated gear setups"
+  },
+
+  "featured": {
+    "title": "Featured VIPs",
+    "viewAll": "View all VIPs",
+    "errorTitle": "Failed to load featured VIPs",
+    "errorMessage": "Please try again later",
+    "emptyTitle": "No featured VIPs yet",
+    "emptyMessage": "Check back soon for featured outdoor influencers"
+  },
+
+  "profile": {
+    "curatedBanner": "This is a curated account featuring content from {name}",
+    "verifiedBadge": "Verified VIP",
+    "followers": "{count, plural, =0 {No followers} =1 {1 follower} other {# followers}}",
+    "loadouts": "{count, plural, =0 {No loadouts} =1 {1 loadout} other {# loadouts}}",
+    "joined": "Joined {date}",
+    "socialLinks": "Social Links",
+    "follow": "Follow",
+    "following": "Following",
+    "loadoutsTitle": "Loadouts",
+    "noLoadouts": "No loadouts published yet",
+    "errorTitle": "Failed to load profile",
+    "notFound": "VIP not found",
+    "metaTitle": "{name} | VIP Loadouts | GearShack",
+    "metaDescription": "Explore {name}'s curated gear setups and loadouts on GearShack"
+  },
+
+  "loadout": {
+    "sourceAttribution": "Original Source",
+    "attributionNotice": "This loadout is curated from publicly available content with full attribution.",
+    "viewOriginal": "View Original",
+    "watchVideo": "Watch Original Video",
+    "viewSource": "View Original",
+    "sourceUnavailable": "Source unavailable",
+    "totalWeight": "Total Weight",
+    "itemCount": "{count, plural, =1 {1 item} other {# items}}",
+    "publishedDate": "Published {date}",
+    "tripType": "Trip Type",
+    "dateRange": "Date Range",
+    "gearList": "Gear List",
+    "weightBreakdown": "Weight Breakdown",
+    "items": "Items",
+    "backToProfile": "Back to {name}",
+    "byVip": "by {name}",
+    "bookmark": "Bookmark",
+    "bookmarked": "Bookmarked",
+    "copyToAccount": "Copy to My Loadouts",
+    "copySuccess": "Loadout copied to your account!",
+    "copyError": "Failed to copy loadout",
+    "viewCopy": "View Copy",
+    "errorTitle": "Failed to load loadout",
+    "notFound": "Loadout not found",
+    "metaTitle": "{loadoutName} by {vipName} | GearShack",
+    "metaDescription": "Explore {loadoutName} by {vipName} on GearShack",
+    "categories": {
+      "shelter": "Shelter",
+      "sleep": "Sleep System",
+      "pack": "Pack",
+      "kitchen": "Kitchen",
+      "clothing": "Clothing",
+      "electronics": "Electronics",
+      "hygiene": "Hygiene",
+      "firstAid": "First Aid",
+      "misc": "Miscellaneous"
+    }
+  },
+
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
+
+  "errors": {
+    "loadFailed": "Failed to load VIP data",
+    "followFailed": "Failed to update follow status",
+    "bookmarkFailed": "Failed to update bookmark",
+    "copyFailed": "Failed to copy loadout",
+    "saveFailed": "Failed to save changes",
+    "notFound": "VIP not found",
+    "loadoutNotFound": "Loadout not found",
+    "unauthorized": "Please sign in to continue",
+    "adminOnly": "Admin access required"
+  }
+}
