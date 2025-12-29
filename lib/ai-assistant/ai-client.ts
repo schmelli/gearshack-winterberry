@@ -113,7 +113,32 @@ export function getAITools(userId: string) {
       description: queryUserDataTool.description,
       parameters: queryUserDataTool.parameters,
       execute: async (args: QueryUserDataParameters) => {
-        return await executeQueryUserData(args, userId);
+        console.log('[Tool: queryUserData] Executing with args:', {
+          table: args.table,
+          operation: args.operation,
+          filters: args.filters,
+          search: args.search,
+          userId,
+        });
+        try {
+          const result = await executeQueryUserData(args, userId);
+          console.log('[Tool: queryUserData] Result:', {
+            success: result.success,
+            rowCount: result.rowCount,
+            error: result.error,
+          });
+          return result;
+        } catch (error) {
+          console.error('[Tool: queryUserData] Execution error:', error);
+          return {
+            success: false,
+            operation: args.operation || 'select',
+            table: args.table,
+            rowCount: 0,
+            data: null,
+            error: error instanceof Error ? error.message : 'Tool execution failed',
+          };
+        }
       },
     },
 
@@ -395,8 +420,10 @@ export async function generateStreamingAIResponse(
   const model = getAIModel();
 
   // Create abort controller for timeout
+  // Use longer timeout when tools are enabled to allow for multi-step execution
+  const effectiveTimeout = enableTools ? Math.max(timeout, 60000) : timeout;
   const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), timeout);
+  const timeoutId = setTimeout(() => abortController.abort(), effectiveTimeout);
 
   try {
     // Build config with optional tools
@@ -422,6 +449,23 @@ export async function generateStreamingAIResponse(
     if (enableTools && userId) {
       config.tools = getAITools(userId);
       config.maxSteps = AI_MAX_STEPS;
+
+      // AI SDK 5: onStepFinish callback for debugging multi-step execution
+      config.onStepFinish = (step: {
+        stepType: string;
+        text: string;
+        toolCalls?: unknown[];
+        toolResults?: unknown[];
+        finishReason: string;
+      }) => {
+        console.log('[AI Multi-Step] Step finished:', {
+          stepType: step.stepType,
+          finishReason: step.finishReason,
+          textLength: step.text?.length || 0,
+          toolCallCount: step.toolCalls?.length || 0,
+          toolResultCount: step.toolResults?.length || 0,
+        });
+      };
     }
 
     const result = streamText(config);
@@ -445,7 +489,7 @@ export async function generateStreamingAIResponse(
     clearTimeout(timeoutId);
     // Check if error is due to timeout
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`AI request timed out after ${timeout}ms`);
+      throw new Error(`AI request timed out after ${effectiveTimeout}ms`);
     }
     throw error;
   }

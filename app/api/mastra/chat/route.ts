@@ -673,16 +673,38 @@ export async function POST(request: Request): Promise<Response> {
           );
 
           // Stream text chunks
+          let chunkCount = 0;
           for await (const chunk of streamingResult.textStream) {
             fullResponse += chunk;
             controller.enqueue(encoder.encode(encodeTextEvent(chunk)));
+            chunkCount++;
           }
+
+          logDebug('Text stream completed', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              chunkCount,
+              fullResponseLength: fullResponse.length,
+              responsePreview: fullResponse.substring(0, 100),
+            },
+          });
 
           // Wait for tool calls and finish reason
           const [toolCalls, finishReason] = await Promise.all([
             streamingResult.toolCalls,
             streamingResult.finishReason,
           ]);
+
+          logDebug('Streaming finished', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              finishReason,
+              toolCallCount: toolCalls?.length || 0,
+              toolNames: toolCalls?.map((tc: { toolName?: string }) => tc.toolName).join(', ') || 'none',
+            },
+          });
 
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
