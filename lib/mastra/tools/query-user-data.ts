@@ -231,8 +231,9 @@ Fuzzy Search:
         const rangeMax = range?.max ?? null;
 
         // Use fuzzy_search_column RPC for typo-tolerant search
+        // Note: Type assertion needed until Supabase types are regenerated after migration
         const { data: fuzzyData, error: fuzzyError } = await Promise.race([
-          supabase.rpc('fuzzy_search_column', {
+          supabase.rpc('fuzzy_search_column' as any, {
             p_table_name: table,
             p_column_name: search.column,
             p_search_value: search.value,

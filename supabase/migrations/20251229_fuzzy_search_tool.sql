@@ -22,7 +22,11 @@ CREATE OR REPLACE FUNCTION fuzzy_search_column(
   p_search_value TEXT,
   p_user_id UUID,
   p_similarity_threshold FLOAT DEFAULT 0.3,
-  p_limit INT DEFAULT 50
+  p_limit INT DEFAULT 50,
+  p_filters JSONB DEFAULT NULL,
+  p_range_column TEXT DEFAULT NULL,
+  p_range_min NUMERIC DEFAULT NULL,
+  p_range_max NUMERIC DEFAULT NULL
 )
 RETURNS TABLE (
   row_data JSONB,
@@ -32,6 +36,10 @@ DECLARE
   query TEXT;
   normalized_search TEXT;
   valid_column BOOLEAN := FALSE;
+  filter_key TEXT;
+  filter_value TEXT;
+  where_clauses TEXT[] := ARRAY[]::TEXT[];
+  final_where TEXT;
 BEGIN
   -- Normalize search value
   normalized_search := LOWER(TRIM(p_search_value));
@@ -60,45 +68,79 @@ BEGIN
     RAISE EXCEPTION 'Invalid column name "%" for table "%"', p_column_name, p_table_name;
   END IF;
 
-  -- Build the query dynamically
-  query := format(
-    'SELECT row_to_json(t.*)::jsonb AS row_data, ' ||
-    'similarity(LOWER(%I), %L)::FLOAT AS similarity_score ' ||
-    'FROM %I t ' ||
-    'WHERE similarity(LOWER(%I), %L) > %s',
-    p_column_name,
-    normalized_search,
-    p_table_name,
-    p_column_name,
-    normalized_search,
-    p_similarity_threshold
+  -- Build initial WHERE clauses array with similarity condition
+  where_clauses := array_append(where_clauses,
+    format('similarity(LOWER(%I), %L) > %s', p_column_name, normalized_search, p_similarity_threshold)
   );
 
   -- Add RLS enforcement for ALL tables
   -- CRITICAL: SECURITY DEFINER bypasses RLS, so we must enforce manually
   IF p_table_name IN ('gear_items', 'loadouts') THEN
-    query := query || format(' AND t.user_id = %L', p_user_id);
+    where_clauses := array_append(where_clauses, format('t.user_id = %L', p_user_id));
   ELSIF p_table_name = 'profiles' THEN
-    query := query || format(' AND t.id = %L', p_user_id);
-  ELSIF p_table_name = 'loadout_items' THEN
-    -- loadout_items doesn't have user_id, so join with loadouts table
+    where_clauses := array_append(where_clauses, format('t.id = %L', p_user_id));
+  ELSIF p_table_name = 'categories' THEN
+    -- Categories table is global (no user ownership), no filtering needed
+    -- This is intentional - all users can search all categories
+    NULL; -- Explicit no-op for clarity
+  END IF;
+
+  -- Apply additional exact-match filters from p_filters JSONB
+  IF p_filters IS NOT NULL THEN
+    FOR filter_key, filter_value IN SELECT * FROM jsonb_each_text(p_filters)
+    LOOP
+      -- Add exact match filter (handles strings, numbers, booleans via text conversion)
+      -- NULL values handled separately
+      IF filter_value = 'null' THEN
+        where_clauses := array_append(where_clauses, format('%I IS NULL', filter_key));
+      ELSE
+        where_clauses := array_append(where_clauses, format('%I = %L', filter_key, filter_value));
+      END IF;
+    END LOOP;
+  END IF;
+
+  -- Apply range filter if specified
+  IF p_range_column IS NOT NULL THEN
+    IF p_range_min IS NOT NULL THEN
+      where_clauses := array_append(where_clauses, format('%I >= %s', p_range_column, p_range_min));
+    END IF;
+    IF p_range_max IS NOT NULL THEN
+      where_clauses := array_append(where_clauses, format('%I <= %s', p_range_column, p_range_max));
+    END IF;
+  END IF;
+
+  -- Build the final WHERE clause by joining all conditions with AND
+  final_where := array_to_string(where_clauses, ' AND ');
+
+  -- Handle loadout_items separately (needs join with loadouts for RLS)
+  IF p_table_name = 'loadout_items' THEN
+    -- Add loadout ownership check via JOIN
+    where_clauses := array_append(where_clauses, format('l.user_id = %L', p_user_id));
+    final_where := array_to_string(where_clauses, ' AND ');
+
     query := format(
       'SELECT row_to_json(t.*)::jsonb AS row_data, ' ||
       'similarity(LOWER(t.%I), %L)::FLOAT AS similarity_score ' ||
       'FROM %I t ' ||
       'INNER JOIN loadouts l ON t.loadout_id = l.id ' ||
-      'WHERE similarity(LOWER(t.%I), %L) > %s AND l.user_id = %L',
+      'WHERE %s',
       p_column_name,
       normalized_search,
       p_table_name,
+      final_where
+    );
+  ELSE
+    -- Standard query for tables with direct user_id or global tables
+    query := format(
+      'SELECT row_to_json(t.*)::jsonb AS row_data, ' ||
+      'similarity(LOWER(%I), %L)::FLOAT AS similarity_score ' ||
+      'FROM %I t ' ||
+      'WHERE %s',
       p_column_name,
       normalized_search,
-      p_similarity_threshold,
-      p_user_id
+      p_table_name,
+      final_where
     );
-  ELSIF p_table_name = 'categories' THEN
-    -- Categories table is global (no user ownership), no filtering needed
-    -- This is intentional - all users can search all categories
   END IF;
 
   -- Add ordering and limit
