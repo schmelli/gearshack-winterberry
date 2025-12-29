@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get blocked user IDs (users we blocked or who blocked us)
-    const { data: blocks } = await supabase
+    const { data: blocks } = await (supabase as any)
       .from('user_blocks')
       .select('user_id, blocked_id')
       .or(`user_id.eq.${user.id},blocked_id.eq.${user.id}`);
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Search users - Using ilike for case-insensitive search
     // Filter by discoverable=true (T043)
-    const { data: users, error: searchError } = await supabase
+    const { data: users, error: searchError } = await (supabase as any)
       .from('profiles')
       .select('id, display_name, avatar_url, trail_name, bio, discoverable')
       .neq('id', user.id) // Exclude self

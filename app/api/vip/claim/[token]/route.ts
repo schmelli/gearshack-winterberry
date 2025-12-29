@@ -38,7 +38,7 @@ export async function GET(
     const supabase = await createClient();
 
     // Find invitation by token
-    const { data: invitation, error: invitationError } = await supabase
+    const { data: invitation, error: invitationError } = await (supabase as any)
       .from('claim_invitations')
       .select(`
         id,
@@ -69,7 +69,7 @@ export async function GET(
     if (new Date(invitation.expires_at) < new Date()) {
       // Update status to expired if not already
       if (invitation.status === 'pending') {
-        await supabase
+        await (supabase as any)
           .from('claim_invitations')
           .update({ status: 'expired' })
           .eq('id', invitation.id);
@@ -146,7 +146,7 @@ export async function POST(
     }
 
     // Find invitation by token
-    const { data: invitation, error: invitationError } = await supabase
+    const { data: invitation, error: invitationError } = await (supabase as any)
       .from('claim_invitations')
       .select(`
         id,
@@ -167,7 +167,8 @@ export async function POST(
 
     // Use atomic RPC function to claim VIP with email verification
     // This ensures both VIP account and invitation are updated together
-    const { data: result, error: rpcError } = await supabase.rpc('claim_vip_account', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: result, error: rpcError } = await (supabase as any).rpc('claim_vip_account', {
       p_invitation_id: invitation.id,
       p_vip_id: invitation.vip_id,
       p_user_id: user.id,

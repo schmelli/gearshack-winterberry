@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify tracking belongs to user
-    const { data: tracking, error: trackingError } = await supabase
+    const { data: tracking, error: trackingError } = await (supabase as any)
       .from('price_tracking')
       .select('*')
       .eq('id', body.tracking_id)
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update tracking with confirmed match
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('price_tracking')
       .update({
         confirmed_product_id: body.selected_product_id,

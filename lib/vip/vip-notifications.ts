@@ -110,7 +110,7 @@ export async function notifyVipArchived(
 
   try {
     // Get all followers
-    const { data: followers, error: followersError } = await supabase
+    const { data: followers, error: followersError } = await (supabase as any)
       .from('vip_follows')
       .select('follower_id')
       .eq('vip_id', vipId);
@@ -133,7 +133,7 @@ export async function notifyVipArchived(
       created_at: new Date().toISOString(),
     }));
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
       .from('notifications')
       .insert(notifications);
 
@@ -231,7 +231,7 @@ export async function userWantsVipNotifications(userId: string): Promise<boolean
   const supabase = createClient();
 
   try {
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('notification_preferences')
       .eq('id', userId)
@@ -256,7 +256,7 @@ export async function setVipNotificationPreference(
   const supabase = createClient();
 
   // Get current preferences
-  const { data: profile } = await supabase
+  const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('notification_preferences')
     .eq('id', userId)
@@ -265,7 +265,7 @@ export async function setVipNotificationPreference(
   const currentPrefs = (profile?.notification_preferences ?? {}) as Record<string, boolean>;
 
   // Update VIP preference
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('profiles')
     .update({
       notification_preferences: {

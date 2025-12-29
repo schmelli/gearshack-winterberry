@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from '@/i18n/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext as useAuth } from '@/components/auth/SupabaseAuthProvider';
 import { useLoadouts, type Loadout as UserLoadout } from '@/hooks/useLoadouts';
 import { useGearItems } from '@/hooks/useGearItems';
 import { useVipComparison } from '@/hooks/vip/useVipComparison';

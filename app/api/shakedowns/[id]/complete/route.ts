@@ -159,7 +159,7 @@ async function checkForNewBadge(
   previousHelpfulCount: number
 ): Promise<Badge | undefined> {
   // Get current helpful count from profile
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await (supabase as any)
     .from('profiles')
     .select('shakedown_helpful_received')
     .eq('id', authorId)
@@ -178,7 +178,7 @@ async function checkForNewBadge(
     // and current count is at or above threshold
     if (previousHelpfulCount < threshold && currentCount >= threshold) {
       // Fetch the badge that was just awarded (by the trigger)
-      const { data: badge, error: badgeError } = await supabase
+      const { data: badge, error: badgeError } = await (supabase as any)
         .from('shakedown_badges')
         .select('id, user_id, badge_type, awarded_at')
         .eq('user_id', authorId)
@@ -415,7 +415,7 @@ export async function POST(
     const updatedShakedown = updatedRow as ShakedownDbRow;
 
     // Fetch loadout summary for response
-    const { data: loadoutRow, error: loadoutError } = await supabase
+    const { data: loadoutRow, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('name, total_weight_grams, item_count')
       .eq('id', updatedShakedown.loadout_id)

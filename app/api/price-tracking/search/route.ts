@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get gear item details including brand info (Issue #79)
-    const { data: gearItem, error: gearError } = await supabase
+    const { data: gearItem, error: gearError } = await (supabase as any)
       .from('gear_items')
       .select('name, brand, brand_url')
       .eq('id', body.gear_item_id)
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const brandUrl = gearItem.brand_url;
 
     // Get or create tracking record
-    let { data: tracking } = await supabase
+    let { data: tracking } = await (supabase as any)
       .from('price_tracking')
       .select('id')
       .eq('user_id', user.id)
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!tracking) {
-      const { data: newTracking, error: trackingError } = await supabase
+      const { data: newTracking, error: trackingError } = await (supabase as any)
         .from('price_tracking')
         .insert({
           user_id: user.id,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache for recent results (6-hour TTL) - T077
-    const { data: cachedResults } = await supabase
+    const { data: cachedResults } = await (supabase as any)
       .from('price_results')
       .select('*')
       .eq('tracking_id', tracking.id)

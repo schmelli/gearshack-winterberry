@@ -35,7 +35,7 @@ export async function POST(
     const supabase = await createClient();
 
     // Fetch the share with password hash
-    const { data: share, error: fetchError } = await supabase
+    const { data: share, error: fetchError } = await (supabase as any)
       .from('loadout_shares')
       .select('password_hash, expires_at')
       .eq('share_token', token)
@@ -102,7 +102,7 @@ export async function GET(
     const supabase = await createClient();
 
     // Fetch the share
-    const { data: share, error: fetchError } = await supabase
+    const { data: share, error: fetchError } = await (supabase as any)
       .from('loadout_shares')
       .select('password_hash, expires_at')
       .eq('share_token', token)

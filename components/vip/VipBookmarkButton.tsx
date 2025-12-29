@@ -14,7 +14,7 @@ import { Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext as useAuth } from '@/components/auth/SupabaseAuthProvider';
 import { useVipBookmark } from '@/hooks/vip/useVipBookmark';
 import { useEffect, useCallback, useRef } from 'react';
 

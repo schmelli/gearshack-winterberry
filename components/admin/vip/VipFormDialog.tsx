@@ -69,13 +69,13 @@ export function VipFormDialog({
   const t = useTranslations('vip.admin.form');
   const isEditing = !!vip;
 
-  const form = useForm<FormData>({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       bio: '',
       avatarUrl: '',
-      isFeatured: false,
+      isFeatured: false as boolean,
       socialLinks: {
         youtube: '',
         instagram: '',

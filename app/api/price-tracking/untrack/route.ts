@@ -32,7 +32,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete tracking record
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('price_tracking')
       .delete()
       .eq('user_id', user.id)

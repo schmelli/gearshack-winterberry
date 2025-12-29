@@ -57,8 +57,10 @@ function transformVipAccount(data: Record<string, unknown>): VipWithStats {
     updatedAt: data.updated_at as string,
     archivedAt: data.archived_at as string | null,
     archiveReason: data.archive_reason as string | null,
-    followerCount: vipFollows?.[0]?.count ?? 0,
-    loadoutCount: vipLoadouts?.[0]?.count ?? 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    followerCount: (vipFollows?.[0] as any)?.count ?? 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    loadoutCount: (vipLoadouts?.[0] as any)?.count ?? 0,
   };
 }
 
@@ -98,6 +100,7 @@ export async function GET(
     // Build query with count and stats (fixing N+1 problem)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let dbQuery = (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_accounts')
       .select(`
         *,

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const upsertedIds: string[] = [];
 
     for (const brand of brands) {
-      const { data: upserted, error } = await supabase
+      const { data: upserted, error } = await (supabase as any)
         .from('catalog_brands')
         .upsert(
           {

@@ -46,7 +46,7 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
@@ -65,7 +65,7 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
     (data ?? []).map(async (vip) => {
       let isFollowing = false;
       if (user) {
-        const { data: followData } = await supabase
+        const { data: followData } = await (supabase as any)
           .from('vip_follows')
           .select('follower_id')
           .eq('follower_id', user.id)
@@ -110,7 +110,7 @@ export async function searchVips(
   const { limit = 20, offset = 0, featured } = options;
   const supabase = createClient();
 
-  let queryBuilder = supabase
+  let queryBuilder = (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
@@ -172,7 +172,7 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: vip, error } = await supabase
+  const { data: vip, error } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
@@ -186,7 +186,7 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   if (error || !vip) return null;
 
   // Get published loadouts
-  const { data: loadouts } = await supabase
+  const { data: loadouts } = await (supabase as any)
     .from('vip_loadouts')
     .select('*')
     .eq('vip_id', vip.id)
@@ -196,7 +196,7 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   // Check if user is following
   let isFollowing = false;
   if (user) {
-    const { data: followData } = await supabase
+    const { data: followData } = await (supabase as any)
       .from('vip_follows')
       .select('follower_id')
       .eq('follower_id', user.id)
@@ -208,7 +208,7 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   // Get loadout summaries with weights
   const loadoutSummaries: VipLoadoutSummary[] = await Promise.all(
     (loadouts ?? []).map(async (loadout) => {
-      const { data: items } = await supabase
+      const { data: items } = await (supabase as any)
         .from('vip_loadout_items')
         .select('weight_grams, quantity')
         .eq('vip_loadout_id', loadout.id);
@@ -272,7 +272,7 @@ export async function getVipLoadout(
   const { data: { user } } = await supabase.auth.getUser();
 
   // Get VIP first
-  const { data: vip } = await supabase
+  const { data: vip } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
@@ -286,7 +286,7 @@ export async function getVipLoadout(
   if (!vip) return null;
 
   // Get loadout
-  const { data: loadout } = await supabase
+  const { data: loadout } = await (supabase as any)
     .from('vip_loadouts')
     .select('*')
     .eq('vip_id', vip.id)
@@ -297,7 +297,7 @@ export async function getVipLoadout(
   if (!loadout) return null;
 
   // Get loadout items
-  const { data: items } = await supabase
+  const { data: items } = await (supabase as any)
     .from('vip_loadout_items')
     .select('*')
     .eq('vip_loadout_id', loadout.id)
@@ -307,7 +307,7 @@ export async function getVipLoadout(
   // Check if bookmarked
   let isBookmarked = false;
   if (user) {
-    const { data: bookmarkData } = await supabase
+    const { data: bookmarkData } = await (supabase as any)
       .from('vip_bookmarks')
       .select('user_id')
       .eq('user_id', user.id)
@@ -375,7 +375,7 @@ export async function followVip(vipId: string): Promise<VipFollowResponse> {
   if (error && error.code !== '23505') throw error; // Ignore duplicate key error
 
   // Get updated follower count
-  const { data: countData } = await supabase
+  const { data: countData } = await (supabase as any)
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
@@ -395,7 +395,7 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
 
   if (!user) throw new Error('Authentication required');
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('vip_follows')
     .delete()
     .eq('follower_id', user.id)
@@ -404,7 +404,7 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
   if (error) throw error;
 
   // Get updated follower count
-  const { count } = await supabase
+  const { count } = await (supabase as any)
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
@@ -447,7 +447,7 @@ export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkR
 
   if (!user) throw new Error('Authentication required');
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('vip_bookmarks')
     .delete()
     .eq('user_id', user.id)
@@ -467,7 +467,7 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
 
   if (!user) return [];
 
-  const { data: bookmarks } = await supabase
+  const { data: bookmarks } = await (supabase as any)
     .from('vip_bookmarks')
     .select(`
       vip_loadout_id,
@@ -522,7 +522,7 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutR
   if (!user) throw new Error('Authentication required');
 
   // Get VIP loadout with items
-  const { data: vipLoadout } = await supabase
+  const { data: vipLoadout } = await (supabase as any)
     .from('vip_loadouts')
     .select(`
       *,
@@ -537,7 +537,7 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutR
   // Create new user loadout
   const loadoutName = `${vipLoadout.vip_accounts?.name}'s ${vipLoadout.name} - Copy`;
 
-  const { data: newLoadout, error: loadoutError } = await supabase
+  const { data: newLoadout, error: loadoutError } = await (supabase as any)
     .from('loadouts')
     .insert({
       user_id: user.id,
@@ -564,7 +564,7 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutR
   }));
 
   if (itemsToInsert.length > 0) {
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await (supabase as any)
       .from('loadout_items')
       .insert(itemsToInsert);
 

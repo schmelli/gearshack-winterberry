@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const contentHash = hashContent(insightContent);
 
     // Upsert the feedback (update if exists, insert if not)
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('insight_feedback')
       .upsert(
         {
@@ -196,7 +196,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('insight_feedback')
       .delete()
       .eq('user_id', user.id)

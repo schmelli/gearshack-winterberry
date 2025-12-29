@@ -55,8 +55,10 @@ function transformVipAccount(data: Record<string, unknown>): VipWithStats {
     updatedAt: data.updated_at as string,
     archivedAt: data.archived_at as string | null,
     archiveReason: data.archive_reason as string | null,
-    followerCount: vipFollows?.[0]?.count ?? 0,
-    loadoutCount: vipLoadouts?.[0]?.count ?? 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    followerCount: (vipFollows?.[0] as any)?.count ?? 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    loadoutCount: (vipLoadouts?.[0] as any)?.count ?? 0,
   };
 }
 
@@ -93,6 +95,7 @@ export async function GET(
     // Get featured VIPs with counts in a single query (fixing N+1 problem)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error: queryError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_accounts')
       .select(`
         *,
@@ -123,6 +126,7 @@ export async function GET(
       const vipIds = vips.map(v => v.id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: follows } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('vip_follows')
         .select('vip_id')
         .eq('follower_id', user.id)

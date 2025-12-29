@@ -90,6 +90,7 @@ export async function GET(
     // Using Supabase's foreign table join syntax
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadouts, error: queryError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadouts')
       .select(`
         id,
@@ -140,6 +141,7 @@ export async function GET(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: itemStats, error: statsError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadout_items')
       .select('vip_loadout_id, weight_grams, quantity')
       .in('vip_loadout_id', loadoutIds);
@@ -189,7 +191,8 @@ export async function GET(
           loadout,
         };
       })
-      .filter((option): option is VipLoadoutOption => option !== null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((option: any): option is VipLoadoutOption => option !== null);
 
     return NextResponse.json({ options });
   } catch (error) {

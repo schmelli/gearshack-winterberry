@@ -37,7 +37,7 @@ async function deleteNotificationIfProvided(
 ): Promise<void> {
   if (!notificationId) return;
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('notifications')
     .delete()
     .eq('id', notificationId)
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const { suggestion_id, action, notification_id } = validation.data;
 
     // Fetch the enrichment suggestion
-    const { data: suggestion, error: fetchError } = await supabase
+    const { data: suggestion, error: fetchError } = await (supabase as any)
       .from('gear_enrichment_suggestions')
       .select('*')
       .eq('id', suggestion_id)
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'dismiss') {
       // Simply mark as dismissed
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('gear_enrichment_suggestions')
         .update({ status: 'dismissed' })
         .eq('id', suggestion_id);
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the gear item
-    const { error: updateGearError } = await supabase
+    const { error: updateGearError } = await (supabase as any)
       .from('gear_items')
       .update(updateData)
       .eq('id', suggestion.gear_item_id)
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark suggestion as accepted
-    const { error: updateSuggestionError } = await supabase
+    const { error: updateSuggestionError } = await (supabase as any)
       .from('gear_enrichment_suggestions')
       .update({ status: 'accepted' })
       .eq('id', suggestion_id);

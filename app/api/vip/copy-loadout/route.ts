@@ -62,6 +62,7 @@ export async function POST(
     // Get VIP loadout with items
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: vipLoadout, error: loadoutError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadouts')
       .select(`
         *,
@@ -82,7 +83,7 @@ export async function POST(
     // Create user loadout
     const loadoutName = `${vipLoadout.vip_accounts?.name}'s ${vipLoadout.name} - Copy`;
 
-    const { data: newLoadout, error: createError } = await supabase
+    const { data: newLoadout, error: createError } = await (supabase as any)
       .from('loadouts')
       .insert({
         user_id: user.id,
@@ -115,7 +116,7 @@ export async function POST(
     }));
 
     if (itemsToInsert.length > 0) {
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await (supabase as any)
         .from('loadout_items')
         .insert(itemsToInsert);
 

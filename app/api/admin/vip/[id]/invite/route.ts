@@ -43,7 +43,7 @@ export async function POST(
     }
 
     // Check admin role
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -70,7 +70,8 @@ export async function POST(
     const { email } = validation.data;
 
     // Verify VIP exists and is not already claimed
-    const { data: vip, error: vipError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: vip, error: vipError } = await (supabase as any)
       .from('vip_accounts')
       .select('id, name, slug, status, claimed_by_user_id')
       .eq('id', vipId)
@@ -91,7 +92,7 @@ export async function POST(
     }
 
     // Check for existing pending invitation with same email
-    const { data: existingInvitation } = await supabase
+    const { data: existingInvitation } = await (supabase as any)
       .from('claim_invitations')
       .select('id, status')
       .eq('vip_id', vipId)
@@ -114,7 +115,7 @@ export async function POST(
     expiresAt.setDate(expiresAt.getDate() + CLAIM_INVITATION_EXPIRY_DAYS);
 
     // Create invitation
-    const { data: invitation, error: insertError } = await supabase
+    const { data: invitation, error: insertError } = await (supabase as any)
       .from('claim_invitations')
       .insert({
         vip_id: vipId,
