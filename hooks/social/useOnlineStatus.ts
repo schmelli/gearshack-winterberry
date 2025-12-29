@@ -14,7 +14,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   updateOnlineStatus,
   getOnlineStatuses,
@@ -27,7 +27,7 @@ const STATUS_REFRESH_INTERVAL = 60 * 1000; // 1 minute
 const HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
 
 export function useOnlineStatus(): UseOnlineStatusReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { friends } = useFriendships();
   const [status, setStatus] = useState<OnlineStatus>('offline');
   const [lastActive, setLastActive] = useState<string | null>(null);
@@ -45,17 +45,17 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
    */
   const updateStatus = useCallback(
     async (newStatus: OnlineStatus): Promise<void> => {
-      if (!user?.id) return;
+      if (!user?.uid) return;
 
       try {
-        await updateOnlineStatus(user.id, newStatus);
+        await updateOnlineStatus(user.uid, newStatus);
         setStatus(newStatus);
         setLastActive(new Date().toISOString());
       } catch (err) {
         console.error('Error updating online status:', err);
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**
@@ -135,7 +135,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
 
   // Set up activity listeners
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
 
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
 
@@ -148,11 +148,11 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [user?.id, handleActivity]);
+  }, [user?.uid, handleActivity]);
 
   // Set up heartbeat (periodic status update)
   useEffect(() => {
-    if (!user?.id || status === 'invisible' || status === 'offline') return;
+    if (!user?.uid || status === 'invisible' || status === 'offline') return;
 
     heartbeatTimerRef.current = setInterval(() => {
       updateStatus(status);
@@ -163,11 +163,11 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(heartbeatTimerRef.current);
       }
     };
-  }, [user?.id, status, updateStatus]);
+  }, [user?.uid, status, updateStatus]);
 
   // Set up periodic friend status refresh
   useEffect(() => {
-    if (!user?.id || !friends.length) return;
+    if (!user?.uid || !friends.length) return;
 
     // Initial refresh
     refreshFriendsStatus();
@@ -180,19 +180,19 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(statusRefreshTimerRef.current);
       }
     };
-  }, [user?.id, friends, refreshFriendsStatus]);
+  }, [user?.uid, friends, refreshFriendsStatus]);
 
   // Set initial status on mount
   useEffect(() => {
-    if (user?.id) {
+    if (user?.uid) {
       updateStatus('online');
       resetInactivityTimer();
     }
 
     // Set to offline on unmount
     return () => {
-      if (user?.id) {
-        updateOnlineStatus(user.id, 'offline').catch(console.error);
+      if (user?.uid) {
+        updateOnlineStatus(user.uid, 'offline').catch(console.error);
       }
 
       if (inactivityTimerRef.current) {
@@ -205,7 +205,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(statusRefreshTimerRef.current);
       }
     };
-  }, [user?.id, updateStatus, resetInactivityTimer]);
+  }, [user?.uid, updateStatus, resetInactivityTimer]);
 
   // Handle visibility change (tab switching)
   useEffect(() => {

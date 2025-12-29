@@ -104,8 +104,8 @@ const ENGLISH_CONTENT: LocalizedContent = {
 - **For inventory searches:** Use \`queryUserData\` with \`search\` parameter (e.g., search: {column: "name", value: "stove"})
 - **For catalog searches:** Use \`searchCatalog\` with appropriate filters
 - If uncertain, acknowledge it and offer alternatives
-- When multiple tools are needed, you can call them in parallel for faster responses`,
-- When on a loadout page, be aware of the loadout context and reference it naturally`,
+- When multiple tools are needed, you can call them in parallel for faster responses
+- When on a loadout page, be aware of the loadout context and reference it naturally
 
 **Error Handling:**
 - **CRITICAL**: If a tool call fails (returns success: false), you MUST explain the error to the user in plain language
@@ -197,8 +197,8 @@ const GERMAN_CONTENT: LocalizedContent = {
 - **Fuer Inventarsuchen:** Verwende \`queryUserData\` mit \`search\` Parameter (z.B. search: {column: "name", value: "stove"})
 - **Fuer Katalogsuchen:** Verwende \`searchCatalog\` mit entsprechenden Filtern
 - Wenn unsicher, gib es zu und biete Alternativen an
-- Wenn mehrere Tools benoetigt werden, kannst du sie parallel aufrufen fuer schnellere Antworten`,
-- Wenn du dich auf einer Loadout-Seite befindest, sei dir des Loadout-Kontexts bewusst und erwaehne ihn natuerlich`,
+- Wenn mehrere Tools benoetigt werden, kannst du sie parallel aufrufen fuer schnellere Antworten
+- Wenn du dich auf einer Loadout-Seite befindest, sei dir des Loadout-Kontexts bewusst und erwaehne ihn natuerlich
 
 **Fehlerbehandlung:**
 - **WICHTIG**: Wenn ein Tool-Aufruf fehlschlaegt (success: false zurueckgibt), MUSST du den Fehler dem Nutzer in einfacher Sprache erklaeren

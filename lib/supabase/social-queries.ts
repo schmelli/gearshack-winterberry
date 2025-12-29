@@ -707,7 +707,7 @@ export async function fetchSocialPrivacySettings(
     privacy_preset: data.privacy_preset ?? 'everyone',
     messaging_privacy: data.messaging_privacy ?? 'everyone',
     online_status_privacy: data.online_status_privacy ?? 'friends_only',
-    activity_feed_privacy: 'friends', // Default - could be added to profiles table
+    activity_feed_privacy: 'friends_only', // Default - could be added to profiles table
     discoverable: data.discoverable ?? true,
   };
 }
@@ -766,14 +766,14 @@ export async function applyPrivacyPreset(
       privacy_preset: 'friends_only',
       messaging_privacy: 'friends_only',
       online_status_privacy: 'friends_only',
-      activity_feed_privacy: 'friends',
+      activity_feed_privacy: 'friends_only',
       discoverable: true,
     },
     everyone: {
       privacy_preset: 'everyone',
       messaging_privacy: 'everyone',
       online_status_privacy: 'everyone',
-      activity_feed_privacy: 'friends',
+      activity_feed_privacy: 'friends_only',
       discoverable: true,
     },
   };

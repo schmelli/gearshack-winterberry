@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFollowing,
   followUser,
@@ -23,7 +23,7 @@ import {
 import type { UseFollowingReturn, FollowInfo } from '@/types/social';
 
 export function useFollowing(): UseFollowingReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [following, setFollowing] = useState<FollowInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function useFollowing(): UseFollowingReturn {
    * Fetches the list of users the current user is following.
    */
   const loadFollowing = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setFollowing([]);
       setIsLoading(false);
       return;
@@ -47,7 +47,7 @@ export function useFollowing(): UseFollowingReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchFollowing(user.id);
+      const data = await fetchFollowing(user.uid);
       setFollowing(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load following list';
@@ -56,7 +56,7 @@ export function useFollowing(): UseFollowingReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Follows a user.
@@ -64,11 +64,11 @@ export function useFollowing(): UseFollowingReturn {
    */
   const follow = useCallback(
     async (userId: string) => {
-      if (!user?.id) {
+      if (!user?.uid) {
         throw new Error('Must be logged in to follow users');
       }
 
-      if (userId === user.id) {
+      if (userId === user.uid) {
         throw new Error('Cannot follow yourself');
       }
 
@@ -82,7 +82,7 @@ export function useFollowing(): UseFollowingReturn {
       setFollowing((prev) => [tempFollow, ...prev]);
 
       try {
-        await followUser(user.id, userId);
+        await followUser(user.uid, userId);
         // Refresh to get actual profile data
         await loadFollowing();
       } catch (err) {
@@ -93,7 +93,7 @@ export function useFollowing(): UseFollowingReturn {
         throw err;
       }
     },
-    [user?.id, loadFollowing]
+    [user?.uid, loadFollowing]
   );
 
   /**
@@ -102,7 +102,7 @@ export function useFollowing(): UseFollowingReturn {
    */
   const unfollow = useCallback(
     async (userId: string) => {
-      if (!user?.id) {
+      if (!user?.uid) {
         throw new Error('Must be logged in to unfollow users');
       }
 
@@ -113,7 +113,7 @@ export function useFollowing(): UseFollowingReturn {
       setFollowing((prev) => prev.filter((f) => f.id !== userId));
 
       try {
-        await unfollowUser(user.id, userId);
+        await unfollowUser(user.uid, userId);
       } catch (err) {
         // Rollback on error
         setFollowing(previousFollowing);
@@ -122,7 +122,7 @@ export function useFollowing(): UseFollowingReturn {
         throw err;
       }
     },
-    [user?.id, following]
+    [user?.uid, following]
   );
 
   /**
@@ -173,12 +173,12 @@ export function useIsFollowing(targetUserId: string): {
   isLoading: boolean;
   toggle: () => Promise<void>;
 } {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkFollowing = useCallback(async () => {
-    if (!user?.id || !targetUserId) {
+    if (!user?.uid || !targetUserId) {
       setIsFollowing(false);
       setIsLoading(false);
       return;
@@ -186,7 +186,7 @@ export function useIsFollowing(targetUserId: string): {
 
     try {
       setIsLoading(true);
-      const result = await isFollowingUser(user.id, targetUserId);
+      const result = await isFollowingUser(user.uid, targetUserId);
       setIsFollowing(result);
     } catch (err) {
       console.error('Error checking follow status:', err);
@@ -194,10 +194,10 @@ export function useIsFollowing(targetUserId: string): {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, targetUserId]);
+  }, [user?.uid, targetUserId]);
 
   const toggle = useCallback(async () => {
-    if (!user?.id || !targetUserId) {
+    if (!user?.uid || !targetUserId) {
       throw new Error('Must be logged in to follow/unfollow');
     }
 
@@ -207,16 +207,16 @@ export function useIsFollowing(targetUserId: string): {
 
     try {
       if (wasFollowing) {
-        await unfollowUser(user.id, targetUserId);
+        await unfollowUser(user.uid, targetUserId);
       } else {
-        await followUser(user.id, targetUserId);
+        await followUser(user.uid, targetUserId);
       }
     } catch (err) {
       // Rollback on error
       setIsFollowing(wasFollowing);
       throw err;
     }
-  }, [user?.id, targetUserId, isFollowing]);
+  }, [user?.uid, targetUserId, isFollowing]);
 
   useEffect(() => {
     checkFollowing();
