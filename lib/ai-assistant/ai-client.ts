@@ -53,6 +53,12 @@ const AI_REQUEST_TIMEOUT = parseInt(process.env.AI_REQUEST_TIMEOUT || '30000', 1
 const AI_RETRY_ENABLED = process.env.AI_RETRY_ENABLED !== 'false'; // Default: true
 const AI_MAX_RETRIES = parseInt(process.env.AI_MAX_RETRIES || '2', 10); // Default: 2 retries (3 total attempts)
 
+// Multi-step tool calling configuration
+// maxSteps controls how many turns the AI can take when using tools
+// - 1 (default in SDK): AI can call tools but CANNOT see results (causes "stuck" behavior)
+// - 5 (recommended): AI can call tools, see results, and respond accordingly
+const AI_MAX_STEPS = parseInt(process.env.AI_MAX_STEPS || '5', 10);
+
 if (!AI_GATEWAY_API_KEY && AI_CHAT_ENABLED) {
   console.warn('⚠️ AI_GATEWAY_API_KEY not configured - AI features will be disabled');
 }
@@ -278,8 +284,11 @@ async function generateAIResponseInternal(
     };
 
     // T058: Add tools if enabled
+    // CRITICAL: maxSteps must be set to allow AI to see tool results and respond
+    // Without maxSteps > 1, AI can call tools but cannot process results (appears "stuck")
     if (enableTools && userId) {
       config.tools = getAITools(userId);
+      config.maxSteps = AI_MAX_STEPS;
     }
 
     const result = await generateText(config);
@@ -406,8 +415,13 @@ export async function generateStreamingAIResponse(
     };
 
     // Phase 1: Add tools if enabled
+    // CRITICAL: maxSteps must be set to allow AI to see tool results and respond
+    // Without maxSteps > 1, AI can call tools but cannot process results (appears "stuck")
+    // This was the root cause of the "stuck agent" bug - the AI would say
+    // "let me check your inventory" but never get to see the tool results
     if (enableTools && userId) {
       config.tools = getAITools(userId);
+      config.maxSteps = AI_MAX_STEPS;
     }
 
     const result = streamText(config);
