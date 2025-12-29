@@ -601,7 +601,7 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // Improvement #4: Add proactive suggestions to stream
-          const hadError = false; // We're in the success path
+          const hadError = streamingResult.error !== undefined; // Assuming streamingResult can indicate an error
           if (shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
             const suggestions = generateProactiveSuggestions(
               promptContext.userContext,
