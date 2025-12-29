@@ -230,7 +230,6 @@ Fuzzy Search:
             p_search_value: search.value,
             p_user_id: userId,
             p_similarity_threshold: threshold,
-            p_additional_filters: filters ?? {},
             p_limit: effectiveLimit,
           }),
           new Promise<never>((_, reject) =>
@@ -239,6 +238,7 @@ Fuzzy Search:
         ]);
 
         if (fuzzyError) {
+          // Log detailed error for debugging (server-side only)
           console.error('[queryUserData] Fuzzy search error:', {
             message: fuzzyError.message,
             details: fuzzyError.details,
@@ -246,20 +246,34 @@ Fuzzy Search:
             code: fuzzyError.code,
             params: { table, column: search.column, value: search.value, threshold },
           });
+
+          // Return sanitized error message to user (no database internals)
+          let userMessage = 'Fuzzy search failed. Please try again with different search terms.';
+
+          // Provide helpful hints for common errors without exposing internals
+          if (fuzzyError.code === '42703') {
+            userMessage = 'Invalid search column. Please contact support if this persists.';
+          } else if (fuzzyError.code === '42P01') {
+            userMessage = 'Invalid table specified. Please contact support if this persists.';
+          }
+
           return {
             success: false,
             operation: effectiveOperation,
             table,
             rowCount: 0,
             data: null,
-            error: `Fuzzy search failed: ${fuzzyError.message}`,
+            error: userMessage,
           };
         }
 
         const executionTime = Date.now() - startTime;
 
         // Extract row_data from fuzzy search results
-        const results = fuzzyData?.map((row: any) => row.row_data) ?? [];
+        // Type: Array of {row_data: JSONB, similarity_score: FLOAT}
+        const results =
+          fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
+          [];
 
         return {
           success: true,
@@ -317,6 +331,7 @@ Fuzzy Search:
       ]);
 
       if (error) {
+        // Log detailed error for debugging (server-side only)
         console.error('[queryUserData] Database error:', {
           message: error.message,
           details: error.details,
@@ -325,13 +340,26 @@ Fuzzy Search:
           table,
           operation: effectiveOperation,
         });
+
+        // Return sanitized error message to user (no database internals)
+        let userMessage = 'Database query failed. Please try again.';
+
+        // Provide helpful hints for common errors without exposing internals
+        if (error.code === '42703') {
+          userMessage = 'Invalid column specified in query. Please contact support if this persists.';
+        } else if (error.code === '42P01') {
+          userMessage = 'Invalid table specified. Please contact support if this persists.';
+        } else if (error.code === 'PGRST116') {
+          userMessage = 'No matching records found.';
+        }
+
         return {
           success: false,
           operation: effectiveOperation,
           table,
           rowCount: 0,
           data: null,
-          error: `Database query failed: ${error.message}${error.hint ? ` (${error.hint})` : ''}`,
+          error: userMessage,
         };
       }
 
