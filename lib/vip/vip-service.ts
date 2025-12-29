@@ -31,6 +31,16 @@ import type {
 
 /**
  * Get featured VIPs for the Community page
+ *
+ * @param limit - Maximum number of VIPs to return (default: 6)
+ * @returns Array of featured VIP accounts with follower/loadout counts and follow status
+ * @throws {Error} If database query fails
+ *
+ * @example
+ * ```ts
+ * const featuredVips = await getFeaturedVips(6);
+ * console.log(featuredVips[0].followerCount); // 42
+ * ```
  */
 export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
   const supabase = createClient();
@@ -78,6 +88,20 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
 
 /**
  * Search VIPs by name, bio, or loadout keywords
+ *
+ * @param query - Search query string (searches name and bio fields)
+ * @param options - Search options
+ * @param options.limit - Maximum results to return (default: 20, max: 50)
+ * @param options.offset - Number of results to skip for pagination (default: 0)
+ * @param options.featured - Filter by featured status (optional)
+ * @returns Paginated list of VIPs matching search criteria with total count
+ * @throws {Error} If database query fails
+ *
+ * @example
+ * ```ts
+ * const { vips, total, hasMore } = await searchVips('hiking', { limit: 10, offset: 0 });
+ * console.log(`Found ${total} VIPs, showing ${vips.length}`);
+ * ```
  */
 export async function searchVips(
   query: string,
@@ -124,7 +148,25 @@ export async function searchVips(
 }
 
 /**
- * Get VIP profile by slug
+ * Get VIP profile by slug with all published loadouts
+ *
+ * @param slug - Unique slug identifier for the VIP (e.g., "andrew-skurka")
+ * @returns Complete VIP profile with loadouts, or null if not found
+ * @throws {Error} If database query fails
+ *
+ * @remarks
+ * This function fetches:
+ * - VIP account details with follower/loadout counts
+ * - All published loadouts with weight and item count calculations
+ * - Follow status for authenticated users
+ *
+ * @example
+ * ```ts
+ * const vip = await getVipBySlug('andrew-skurka');
+ * if (vip) {
+ *   console.log(`${vip.name} has ${vip.loadouts.length} loadouts`);
+ * }
+ * ```
  */
 export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   const supabase = createClient();
@@ -198,7 +240,29 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
 // =============================================================================
 
 /**
- * Get VIP loadout by VIP slug and loadout slug
+ * Get VIP loadout by VIP slug and loadout slug with all items
+ *
+ * @param vipSlug - Unique slug identifier for the VIP
+ * @param loadoutSlug - Unique slug identifier for the loadout
+ * @returns Complete loadout with items, category breakdown, and VIP info, or null if not found
+ * @throws {Error} If database query fails
+ *
+ * @remarks
+ * This function fetches and calculates:
+ * - Loadout details with all items sorted by category
+ * - Total weight and item count
+ * - Category breakdown (weight and count per category)
+ * - Bookmark status for authenticated users
+ * - VIP account information
+ *
+ * @example
+ * ```ts
+ * const loadout = await getVipLoadout('andrew-skurka', 'sierra-high-route-summer');
+ * if (loadout) {
+ *   console.log(`Total weight: ${loadout.totalWeightGrams}g`);
+ *   console.log(`Categories: ${loadout.categoryBreakdown.length}`);
+ * }
+ * ```
  */
 export async function getVipLoadout(
   vipSlug: string,
@@ -431,6 +495,25 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
 
 /**
  * Copy a VIP loadout to user's account as wishlist items
+ *
+ * @param vipLoadoutId - UUID of the VIP loadout to copy
+ * @returns Object containing the new loadout ID and name
+ * @throws {Error} If user is not authenticated
+ * @throws {Error} If VIP loadout is not found
+ * @throws {Error} If database operation fails
+ *
+ * @remarks
+ * Creates a new user loadout with:
+ * - Name format: "{VIP Name}'s {Loadout Name} - Copy"
+ * - All items copied with 'wishlist' status
+ * - Reference to source VIP loadout (source_vip_loadout_id)
+ * - Original item metadata preserved (name, brand, weight, category, notes)
+ *
+ * @example
+ * ```ts
+ * const { loadoutId, loadoutName } = await copyVipLoadout('uuid-here');
+ * console.log(`Created loadout: ${loadoutName} with ID: ${loadoutId}`);
+ * ```
  */
 export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutResponse> {
   const supabase = createClient();

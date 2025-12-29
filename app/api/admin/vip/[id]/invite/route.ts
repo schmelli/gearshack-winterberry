@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { randomBytes } from 'crypto';
+import { CLAIM_TOKEN_BYTES, CLAIM_INVITATION_EXPIRY_DAYS } from '@/lib/vip/vip-constants';
 
 // =============================================================================
 // Validation Schema
@@ -106,11 +107,11 @@ export async function POST(
     }
 
     // Generate secure token (64 characters)
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(CLAIM_TOKEN_BYTES).toString('hex');
 
-    // Calculate expiration (30 days from now)
+    // Calculate expiration
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + CLAIM_INVITATION_EXPIRY_DAYS);
 
     // Create invitation
     const { data: invitation, error: insertError } = await supabase
@@ -136,8 +137,8 @@ export async function POST(
 
     // TODO: Send email notification to VIP
     // This would integrate with an email service (SendGrid, Resend, etc.)
-    // For now, we just create the invitation record
-    console.log(`[VIP Claim] Invitation created for ${email} - Token: ${token}`);
+    // The claim URL is returned in the response for manual sending
+    // SECURITY: Token should never be logged in production
 
     return NextResponse.json({
       invitation: {

@@ -39,9 +39,9 @@ const vipsQuerySchema = z.object({
 // =============================================================================
 
 function transformVipAccount(data: Record<string, unknown>): VipWithStats {
-  // Extract counts from foreign table relationships
-  const followerCountData = data.follower_count as Array<{ count: number }> | undefined;
-  const loadoutCountData = data.loadout_count as Array<{ count: number }> | undefined;
+  // Extract counts from the aggregated query response
+  const vipFollows = data.vip_follows as unknown[];
+  const vipLoadouts = data.vip_loadouts as unknown[];
 
   return {
     id: data.id as string,
@@ -57,8 +57,8 @@ function transformVipAccount(data: Record<string, unknown>): VipWithStats {
     updatedAt: data.updated_at as string,
     archivedAt: data.archived_at as string | null,
     archiveReason: data.archive_reason as string | null,
-    followerCount: followerCountData?.[0]?.count ?? 0,
-    loadoutCount: loadoutCountData?.[0]?.count ?? 0,
+    followerCount: vipFollows?.[0]?.count ?? 0,
+    loadoutCount: vipLoadouts?.[0]?.count ?? 0,
   };
 }
 
@@ -95,15 +95,14 @@ export async function GET(
 
     const { query, limit, offset, featured } = validation.data;
 
-    // Build query with count and foreign table relationship counts
-    // Note: Supabase will perform left joins, counting only published loadouts
+    // Build query with count and stats (fixing N+1 problem)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let dbQuery = (supabase as any)
       .from('vip_accounts')
       .select(`
         *,
-        follower_count:vip_follows(count),
-        loadout_count:vip_loadouts!vip_id(count)
+        vip_follows(count),
+        vip_loadouts!inner(count)
       `, { count: 'exact' })
       .is('archived_at', null)
       .eq('vip_loadouts.status', 'published');
@@ -134,8 +133,7 @@ export async function GET(
       );
     }
 
-    // Transform VIP accounts with counts from the query
-    // Counts are now retrieved in a single query via foreign table relationships
+    // Transform VIPs with stats (counts now included in the query)
     const vips: VipWithStats[] = (rows || []).map((row: Record<string, unknown>) =>
       transformVipAccount(row)
     );

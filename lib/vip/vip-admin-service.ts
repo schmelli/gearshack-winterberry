@@ -27,7 +27,7 @@ import type {
 export async function getAllVips(): Promise<VipWithStats[]> {
   const supabase = createClient();
 
-  // Fetch VIPs with counts in a single query using Supabase relationship counting
+  // Fetch all VIPs with counts in a single query (fixing N+1 problem)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('vip_accounts')
@@ -40,8 +40,11 @@ export async function getAllVips(): Promise<VipWithStats[]> {
 
   if (error) throw error;
 
-  // Map the results to VipWithStats
+  // Transform VIPs with stats (counts now included in the query)
   const vips: VipWithStats[] = (data || []).map((vip: Record<string, unknown>) => {
+    const vipFollows = vip.vip_follows as unknown[];
+    const vipLoadouts = vip.vip_loadouts as unknown[];
+
     return {
       id: vip.id as string,
       name: vip.name as string,
@@ -56,9 +59,8 @@ export async function getAllVips(): Promise<VipWithStats[]> {
       updatedAt: vip.updated_at as string,
       archivedAt: vip.archived_at as string | null,
       archiveReason: vip.archive_reason as string | null,
-      // Supabase returns counts as an array with a single object containing 'count'
-      followerCount: (vip.vip_follows as Array<{ count: number }>)?.[0]?.count ?? 0,
-      loadoutCount: (vip.vip_loadouts as Array<{ count: number }>)?.[0]?.count ?? 0,
+      followerCount: vipFollows?.[0]?.count ?? 0,
+      loadoutCount: vipLoadouts?.[0]?.count ?? 0,
     };
   });
 

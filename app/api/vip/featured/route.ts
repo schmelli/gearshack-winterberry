@@ -37,6 +37,10 @@ const featuredQuerySchema = z.object({
 // =============================================================================
 
 function transformVipAccount(data: Record<string, unknown>): VipWithStats {
+  // Extract counts from the aggregated query response
+  const vipFollows = data.vip_follows as unknown[];
+  const vipLoadouts = data.vip_loadouts as unknown[];
+
   return {
     id: data.id as string,
     name: data.name as string,
@@ -51,8 +55,8 @@ function transformVipAccount(data: Record<string, unknown>): VipWithStats {
     updatedAt: data.updated_at as string,
     archivedAt: data.archived_at as string | null,
     archiveReason: data.archive_reason as string | null,
-    followerCount: 0,
-    loadoutCount: 0,
+    followerCount: vipFollows?.[0]?.count ?? 0,
+    loadoutCount: vipLoadouts?.[0]?.count ?? 0,
   };
 }
 
@@ -86,13 +90,18 @@ export async function GET(
 
     const { limit } = validation.data;
 
-    // Get featured VIPs
+    // Get featured VIPs with counts in a single query (fixing N+1 problem)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error: queryError } = await (supabase as any)
       .from('vip_accounts')
-      .select('*')
+      .select(`
+        *,
+        vip_follows(count),
+        vip_loadouts!inner(count)
+      `)
       .eq('is_featured', true)
       .is('archived_at', null)
+      .eq('vip_loadouts.status', 'published')
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -104,47 +113,28 @@ export async function GET(
       );
     }
 
-    // Get stats and follow status for each VIP
-    const vips: VipWithStats[] = await Promise.all(
-      (rows || []).map(async (row: Record<string, unknown>) => {
-        const vip = transformVipAccount(row);
-
-        // Get follower count
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: followerCount } = await (supabase as any)
-          .from('vip_follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('vip_id', vip.id);
-
-        // Get loadout count
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: loadoutCount } = await (supabase as any)
-          .from('vip_loadouts')
-          .select('*', { count: 'exact', head: true })
-          .eq('vip_id', vip.id)
-          .eq('status', 'published');
-
-        // Check if user is following
-        let isFollowing = false;
-        if (user) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: follow } = await (supabase as any)
-            .from('vip_follows')
-            .select('follower_id')
-            .eq('follower_id', user.id)
-            .eq('vip_id', vip.id)
-            .single();
-          isFollowing = !!follow;
-        }
-
-        return {
-          ...vip,
-          followerCount: followerCount ?? 0,
-          loadoutCount: loadoutCount ?? 0,
-          isFollowing,
-        };
-      })
+    // Transform VIPs with stats (counts now included in the query)
+    let vips: VipWithStats[] = (rows || []).map((row: Record<string, unknown>) =>
+      transformVipAccount(row)
     );
+
+    // Check follow status for authenticated users (batch query)
+    if (user) {
+      const vipIds = vips.map(v => v.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: follows } = await (supabase as any)
+        .from('vip_follows')
+        .select('vip_id')
+        .eq('follower_id', user.id)
+        .in('vip_id', vipIds);
+
+      const followedVipIds = new Set((follows || []).map((f: { vip_id: string }) => f.vip_id));
+
+      vips = vips.map(vip => ({
+        ...vip,
+        isFollowing: followedVipIds.has(vip.id),
+      }));
+    }
 
     return NextResponse.json({ vips });
   } catch (error) {

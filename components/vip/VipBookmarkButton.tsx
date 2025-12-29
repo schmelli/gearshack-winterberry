@@ -16,7 +16,7 @@ import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useVipBookmark } from '@/hooks/vip/useVipBookmark';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 // =============================================================================
 // Types
@@ -53,14 +53,18 @@ export function VipBookmarkButton({
     toggleBookmark,
   } = useVipBookmark(loadoutId, initialIsBookmarked);
 
+  // Use ref to track previous error state
+  const prevErrorRef = useRef<string | null>(null);
+
   // Show error toast
   useEffect(() => {
-    if (error) {
+    if (error && error !== prevErrorRef.current) {
       toast.error(error);
+      prevErrorRef.current = error;
     }
   }, [error]);
 
-  // Show success toast
+  // Show success toast - using ref to track state reliably
   const handleToggle = useCallback(async () => {
     if (!isAuthenticated) {
       toast.error(t('signInToBookmark'));
@@ -68,12 +72,17 @@ export function VipBookmarkButton({
     }
 
     const wasBookmarked = isBookmarked;
+    const previousError = error;
+
     await toggleBookmark();
 
-    // Only show toast if toggle was successful (error state handles failures)
-    if (!error) {
-      toast.success(wasBookmarked ? t('unbookmarkedNotification') : t('bookmarkedNotification'));
-    }
+    // Show success toast only if there was no previous error and no new error occurred
+    // Use a small delay to allow error state to update
+    setTimeout(() => {
+      if (!previousError && !error) {
+        toast.success(wasBookmarked ? t('unbookmarkedNotification') : t('bookmarkedNotification'));
+      }
+    }, 100);
   }, [isAuthenticated, isBookmarked, toggleBookmark, error, t]);
 
   // Disabled if not authenticated or loading auth

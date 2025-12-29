@@ -12,6 +12,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 // =============================================================================
+// Error Codes for i18n
+// =============================================================================
+
+const ERROR_CODES = {
+  INVITATION_NOT_FOUND: 'Claim invitation not found',
+  EMAIL_MISMATCH: 'Email does not match invitation',
+  INVITATION_NOT_PENDING: 'Invitation is not in pending status',
+  INVITATION_EXPIRED: 'Claim invitation has expired',
+  VIP_NOT_FOUND: 'VIP account not found',
+  VIP_ALREADY_CLAIMED: 'VIP account has already been claimed',
+  CLAIM_FAILED: 'Failed to claim VIP account',
+} as const;
+
+// =============================================================================
 // GET - Get claim invitation details
 // =============================================================================
 
@@ -117,8 +131,17 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { error: 'Please sign in to claim your VIP account' },
+        { error: 'AUTHENTICATION_REQUIRED', message: 'Please sign in to claim your VIP account' },
         { status: 401 }
+      );
+    }
+
+    // Get user email for verification
+    const userEmail = user.email;
+    if (!userEmail) {
+      return NextResponse.json(
+        { error: 'EMAIL_REQUIRED', message: 'User email is required for verification' },
+        { status: 400 }
       );
     }
 
@@ -137,115 +160,60 @@ export async function POST(
 
     if (invitationError || !invitation) {
       return NextResponse.json(
-        { error: 'Invalid or expired claim link' },
+        { error: 'INVALID_TOKEN', message: 'Invalid or expired claim link' },
         { status: 404 }
       );
     }
 
-    // Check expiration
-    if (new Date(invitation.expires_at) < new Date()) {
-      if (invitation.status === 'pending') {
-        await supabase
-          .from('claim_invitations')
-          .update({ status: 'expired' })
-          .eq('id', invitation.id);
-      }
+    // Use atomic RPC function to claim VIP with email verification
+    // This ensures both VIP account and invitation are updated together
+    const { data: result, error: rpcError } = await supabase.rpc('claim_vip_account', {
+      p_invitation_id: invitation.id,
+      p_vip_id: invitation.vip_id,
+      p_user_id: user.id,
+      p_user_email: userEmail,
+    });
+
+    if (rpcError) {
+      console.error('Error in claim_vip_account RPC:', rpcError);
       return NextResponse.json(
-        { error: 'This claim link has expired' },
-        { status: 410 }
-      );
-    }
-
-    // Check if already claimed
-    if (invitation.status === 'claimed') {
-      return NextResponse.json(
-        { error: 'This VIP account has already been claimed' },
-        { status: 400 }
-      );
-    }
-
-    // Verify email matches (optional - depends on requirements)
-    // For now, we allow any authenticated user to claim
-    // In a real implementation, you might want to verify the email matches
-
-    // Get VIP account to ensure it's still claimable
-    const { data: vip, error: vipError } = await supabase
-      .from('vip_accounts')
-      .select('id, name, slug, status, claimed_by_user_id')
-      .eq('id', invitation.vip_id)
-      .single();
-
-    if (vipError || !vip) {
-      return NextResponse.json(
-        { error: 'VIP account not found' },
-        { status: 404 }
-      );
-    }
-
-    if (vip.claimed_by_user_id) {
-      return NextResponse.json(
-        { error: 'This VIP account has already been claimed by another user' },
-        { status: 400 }
-      );
-    }
-
-    // Update VIP account to claimed status
-    const { error: updateVipError } = await supabase
-      .from('vip_accounts')
-      .update({
-        status: 'claimed',
-        claimed_by_user_id: user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', vip.id);
-
-    if (updateVipError) {
-      console.error('Error updating VIP account:', updateVipError);
-      return NextResponse.json(
-        { error: 'Failed to complete claim process' },
+        { error: 'CLAIM_FAILED', message: 'Failed to complete claim process' },
         { status: 500 }
       );
     }
 
-    // Update invitation status
-    const { error: updateInvitationError } = await supabase
-      .from('claim_invitations')
-      .update({
-        status: 'claimed',
-        claimed_at: new Date().toISOString(),
-      })
-      .eq('id', invitation.id);
+    // Check result from RPC function
+    const claimResult = result as { success: boolean; error?: string; message?: string; vip?: { id: string; name: string; slug: string } };
 
-    if (updateInvitationError) {
-      console.error('Error updating invitation:', updateInvitationError);
-      // Don't fail the whole operation, VIP is already claimed
-    }
+    if (!claimResult.success) {
+      const errorCode = claimResult.error || 'CLAIM_FAILED';
+      const errorMessage = ERROR_CODES[errorCode as keyof typeof ERROR_CODES] || claimResult.message || 'Claim failed';
 
-    // Create notification for VIP's followers (optional)
-    // This could be done via a database trigger or here
-    try {
-      await supabase.rpc('notify_vip_claimed', {
-        p_vip_id: vip.id,
-        p_vip_name: vip.name,
-      });
-    } catch {
-      // Notification failure shouldn't block the claim
-      console.warn('Failed to notify followers about VIP claim');
+      // Return appropriate status code based on error type
+      let statusCode = 400;
+      if (errorCode === 'INVITATION_NOT_FOUND' || errorCode === 'VIP_NOT_FOUND') {
+        statusCode = 404;
+      } else if (errorCode === 'INVITATION_EXPIRED') {
+        statusCode = 410;
+      } else if (errorCode === 'EMAIL_MISMATCH') {
+        statusCode = 403;
+      }
+
+      return NextResponse.json(
+        { error: errorCode, message: errorMessage },
+        { status: statusCode }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      vip: {
-        id: vip.id,
-        name: vip.name,
-        slug: vip.slug,
-      },
+      vip: claimResult.vip,
       message: 'VIP account successfully claimed!',
     });
   } catch (error) {
     console.error('Unexpected error in POST /api/vip/claim/[token]:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'INTERNAL_ERROR', message: 'Internal server error' },
       { status: 500 }
     );
   }
