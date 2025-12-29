@@ -66,6 +66,7 @@ import {
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Database } from '@/types/supabase';
+import { z } from 'zod';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -90,6 +91,85 @@ const CORRECTION_PATTERNS = [
   /to\s+clarify,?\s*/i,
   /i\s+should\s+have\s+said/i,
 ];
+
+// =====================================================
+// Zod Schema for User Context Validation
+// =====================================================
+
+const InventorySummarySchema = z.object({
+  counts: z.object({
+    own: z.number(),
+    wishlist: z.number(),
+    sold: z.number(),
+  }),
+  brands: z.array(z.string()),
+  categories: z.record(z.string(), z.number()),
+  weightStats: z.object({
+    min: z.number(),
+    max: z.number(),
+    avg: z.number(),
+    median: z.number(),
+  }),
+  recentItems: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    brand: z.string(),
+    category: z.string(),
+    weight_grams: z.number().nullable(),
+  })),
+  lastUpdated: z.string(),
+}).optional();
+
+const UserPreferencesSchema = z.object({
+  favoriteBrands: z.array(z.string()),
+  weightPriority: z.enum(['ultralight', 'lightweight', 'standard']).nullable(),
+  activities: z.array(z.string()),
+  budgetRange: z.object({
+    min: z.number().nullable(),
+    max: z.number().nullable(),
+  }).nullable(),
+  lastUpdated: z.string(),
+}).optional();
+
+const WishlistContextSchema = z.object({
+  count: z.number(),
+  categories: z.array(z.string()),
+  items: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    category: z.string(),
+  })),
+  lastUpdated: z.string(),
+}).optional();
+
+const LoadoutContextSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  activityTypes: z.array(z.string()),
+  seasons: z.array(z.string()),
+  items: z.array(z.object({
+    gearItemId: z.string(),
+    name: z.string(),
+    brand: z.string(),
+    weight: z.number().nullable(),
+    quantity: z.number(),
+  })),
+  lastUpdated: z.string(),
+}).optional();
+
+const UserContextSchema = z.object({
+  inventory: InventorySummarySchema,
+  preferences: UserPreferencesSchema,
+  wishlist: WishlistContextSchema,
+  currentLoadout: LoadoutContextSchema,
+});
+
+// =====================================================
+// Cache Locking (prevents race conditions)
+// =====================================================
+
+/** In-memory cache of pending context refresh promises */
+const pendingRefreshes = new Map<string, Promise<MastraUserContext>>();
 
 // =====================================================
 // Types
@@ -221,42 +301,76 @@ async function fetchMemoryContext(
     let shouldRefreshCache = true;
 
     if (cachedContext) {
-      const cachedUserContext = cachedContext as MastraUserContext;
+      // Validate cached context with Zod schema
+      const validationResult = UserContextSchema.safeParse(cachedContext);
 
-      // Check if any cached context is fresh (inventory, wishlist, or loadout)
-      const hasValidCache =
-        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
+      if (validationResult.success) {
+        const cachedUserContext = validationResult.data;
 
-      if (hasValidCache) {
-        userContext = cachedUserContext;
-        shouldRefreshCache = false;
-        logDebug('Using cached user context', { userId, conversationId });
+        // Check if any cached context is fresh (inventory, wishlist, or loadout)
+        const hasValidCache =
+          (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+          (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+          (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
+
+        if (hasValidCache) {
+          userContext = cachedUserContext;
+          shouldRefreshCache = false;
+          logDebug('Using cached user context', { userId, conversationId });
+        }
+      } else {
+        logDebug('Invalid cached context, rebuilding', {
+          userId,
+          conversationId,
+          metadata: { error: validationResult.error.message }
+        });
+        shouldRefreshCache = true;
       }
     }
 
-    // Refresh user context if needed
+    // Refresh user context if needed (with cache locking to prevent race conditions)
     if (shouldRefreshCache) {
-      logDebug('Building fresh user context', { userId, conversationId });
+      const cacheKey = `${userId}:${conversationId}`;
+      const existingRefresh = pendingRefreshes.get(cacheKey);
 
-      userContext = await buildUserContext(
-        supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>,
-        userId,
-        currentLoadoutId
-      );
+      if (existingRefresh) {
+        // Another request is already building context - wait for it
+        logDebug('Waiting for existing context build', { userId, conversationId });
+        userContext = await existingRefresh;
+      } else {
+        // We're the first request - build the context
+        logDebug('Building fresh user context', { userId, conversationId });
 
-      // Extract preferences from conversation history
-      if (history.length > 0 && userContext.preferences) {
-        userContext.preferences = extractPreferencesFromConversation(
-          history,
-          userContext.preferences
-        );
+        const refreshPromise = (async () => {
+          try {
+            const freshContext = await buildUserContext(
+              supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>,
+              userId,
+              currentLoadoutId
+            );
+
+            // Extract preferences from conversation history
+            if (history.length > 0 && freshContext.preferences) {
+              freshContext.preferences = extractPreferencesFromConversation(
+                history,
+                freshContext.preferences
+              );
+            }
+
+            // Store updated context in memory
+            await adapter.storeUserContext(userId, conversationId, freshContext);
+            logDebug('User context cached in memory', { userId, conversationId });
+
+            return freshContext;
+          } finally {
+            // Clean up the lock
+            pendingRefreshes.delete(cacheKey);
+          }
+        })();
+
+        pendingRefreshes.set(cacheKey, refreshPromise);
+        userContext = await refreshPromise;
       }
-
-      // Store updated context in memory
-      await adapter.storeUserContext(userId, conversationId, userContext);
-      logDebug('User context cached in memory', { userId, conversationId });
     }
 
     logInfo('Memory retrieval completed', {

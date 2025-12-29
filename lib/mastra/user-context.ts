@@ -27,6 +27,21 @@ const UNKNOWN_BRAND = 'Unknown';
 const UNCATEGORIZED = 'uncategorized';
 
 // ============================================================================
+// Internal Types
+// ============================================================================
+
+/** Partial gear item data fetched for context building */
+type PartialGearItem = {
+  id: string;
+  name: string;
+  brand: string | null;
+  category_id: string | null;
+  weight_grams: number | null;
+  status: 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
+  created_at: string;
+};
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -465,9 +480,106 @@ export function isCacheStale(lastUpdated: string, maxAgeMinutes: number = 30): b
 }
 
 /**
+ * Build inventory summary from gear items array (in-memory)
+ *
+ * @param items - Array of partial gear items
+ * @returns Inventory summary
+ */
+function buildInventorySummaryFromItems(
+  items: PartialGearItem[]
+): InventorySummary {
+  if (items.length === 0) {
+    return {
+      counts: { own: 0, wishlist: 0, sold: 0 },
+      brands: [],
+      categories: {},
+      weightStats: { min: 0, max: 0, avg: 0, median: 0 },
+      recentItems: [],
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  // Count by status
+  const counts = {
+    own: items.filter(i => i.status === 'own').length,
+    wishlist: items.filter(i => i.status === 'wishlist').length,
+    sold: items.filter(i => i.status === 'sold').length,
+  };
+
+  // Extract unique brands
+  const brands = [...new Set(items.map(i => i.brand).filter(Boolean) as string[])];
+
+  // Category breakdown (count per category)
+  const categories: Record<string, number> = {};
+  items.forEach(item => {
+    if (item.category_id) {
+      categories[item.category_id] = (categories[item.category_id] || 0) + 1;
+    }
+  });
+
+  // Weight statistics
+  const weights = items
+    .filter(i => i.weight_grams !== null && i.status === 'own')
+    .map(i => i.weight_grams as number)
+    .sort((a, b) => a - b);
+
+  const weightStats = weights.length > 0 ? {
+    min: weights[0],
+    max: weights[weights.length - 1],
+    avg: Math.round(weights.reduce((sum, w) => sum + w, 0) / weights.length),
+    median: weights.length % 2 === 0
+      ? Math.round((weights[weights.length / 2 - 1] + weights[weights.length / 2]) / 2)
+      : weights[Math.floor(weights.length / 2)],
+  } : { min: 0, max: 0, avg: 0, median: 0 };
+
+  // Most recent items (last 10)
+  const recentItems = items.slice(0, 10).map(item => ({
+    id: item.id,
+    name: item.name,
+    brand: item.brand || UNKNOWN_BRAND,
+    category: item.category_id || UNCATEGORIZED,
+    weight_grams: item.weight_grams,
+  }));
+
+  return {
+    counts,
+    brands,
+    categories,
+    weightStats,
+    recentItems,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Build wishlist context from gear items array (in-memory)
+ *
+ * @param items - Array of partial gear items
+ * @returns Wishlist context
+ */
+function buildWishlistContextFromItems(
+  items: PartialGearItem[]
+): WishlistContext {
+  const wishlistItems = items.filter(i => i.status === 'wishlist');
+  const categories = [...new Set(wishlistItems.map(i => i.category_id).filter(Boolean) as string[])];
+
+  return {
+    count: wishlistItems.length,
+    categories,
+    items: wishlistItems.map(i => ({
+      id: i.id,
+      name: i.name,
+      category: i.category_id || UNCATEGORIZED,
+    })),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
  * Build complete user context
  *
  * Combines inventory, wishlist, preferences, and optional loadout context
+ * Optimized to fetch gear items once and filter in-memory
  *
  * @param supabase - Supabase client
  * @param userId - User ID
@@ -489,13 +601,24 @@ export async function buildUserContext(
   };
 
   try {
-    // Build inventory summary
-    context.inventory = await buildInventorySummary(supabase, userId);
+    // Fetch all gear items once (single query instead of 2)
+    const { data: allGearItems, error: gearError } = await supabase
+      .from('gear_items')
+      .select('id, name, brand, category_id, weight_grams, status, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-    // Build wishlist context
-    context.wishlist = await buildWishlistContext(supabase, userId);
+    if (gearError) {
+      throw new Error(`Failed to fetch gear items: ${gearError.message}`);
+    }
 
-    // Build loadout context if requested
+    const items = allGearItems || [];
+
+    // Build inventory and wishlist from in-memory data
+    context.inventory = buildInventorySummaryFromItems(items);
+    context.wishlist = buildWishlistContextFromItems(items);
+
+    // Build loadout context if requested (separate query - different table)
     if (loadoutId) {
       const loadoutContext = await buildLoadoutContext(supabase, userId, loadoutId);
       if (loadoutContext) {
@@ -509,6 +632,7 @@ export async function buildUserContext(
         hasInventory: !!context.inventory,
         hasWishlist: !!context.wishlist,
         hasLoadout: !!context.currentLoadout,
+        gearItemsFetched: items.length,
       },
     });
 
