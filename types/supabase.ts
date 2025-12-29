@@ -1783,6 +1783,9 @@ export type Database = {
             | null
           read_receipts_enabled: boolean | null
           role: Database["public"]["Enums"]["user_role"]
+          shakedown_helpful_received: number
+          shakedowns_created: number
+          shakedowns_reviewed: number
           subscription_tier: string | null
           trail_name: string | null
           updated_at: string
@@ -1810,6 +1813,9 @@ export type Database = {
             | null
           read_receipts_enabled?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          shakedown_helpful_received?: number
+          shakedowns_created?: number
+          shakedowns_reviewed?: number
           subscription_tier?: string | null
           trail_name?: string | null
           updated_at?: string
@@ -1837,6 +1843,9 @@ export type Database = {
             | null
           read_receipts_enabled?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          shakedown_helpful_received?: number
+          shakedowns_created?: number
+          shakedowns_reviewed?: number
           subscription_tier?: string | null
           trail_name?: string | null
           updated_at?: string

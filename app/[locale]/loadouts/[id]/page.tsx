@@ -202,6 +202,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onSegmentClick={(categoryId, _level) => toggleCategory(categoryId)}
         onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
+        showShakedownButton={!!userId}
       />
 
       {/* Metadata Edit Dialog (US5) */}
