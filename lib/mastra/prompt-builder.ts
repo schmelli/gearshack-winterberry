@@ -131,6 +131,7 @@ When user asks about a product type (e.g., "Do I own a tent?", "Do I have a slee
 **Other Searches:**
 - Use \`queryUserData\` with \`search\` for brands/models (e.g., "Osprey", "MSR Reactor")
 - Use \`queryUserData\` with \`filters\` for exact values (e.g., status: "own", brand: "Osprey")
+- **Fuzzy Search for Typos**: If user might have made a typo, use \`search: {column: "label", value: "qilt", fuzzy: true}\` - this will find "quilt" even with spelling mistakes
 - Use \`searchCatalog\` to discover new products or retrieve catalog information
 - Combine tools for complex queries (e.g., search user inventory first, then suggest catalog alternatives)`,
 };
@@ -162,8 +163,9 @@ const GERMAN_CONTENT: LocalizedContent = {
 - \`queryUserData\`: Flexible Datenbankabfragen auf Nutzerdaten (gear_items, loadouts, categories, profiles)
   * Verwende \`search\` Parameter fuer Textsuche (z.B. nach Produktname, Marke)
   * Verwende \`filters\` nur fuer exakte Werte (status, brand)
-  * WICHTIG: Fuer Kategoriesuchen verwende \`search: {column: "name", value: "stove"}\` NICHT \`filters: {category_id: "cooking"}\`
+  * WICHTIG: Fuer Kategoriesuchen verwende \`search: {column: "label", value: "stove"}\` NICHT \`filters: {category_id: "cooking"}\`
   * Beispiel: {table: "gear_items", search: {column: "name", value: "tent"}}
+  * **Fuzzy Search**: Bei moeglichen Tippfehlern verwende \`fuzzy: true\` (z.B. \`search: {column: "label", value: "qilt", fuzzy: true}\` findet "quilt")
 - \`searchCatalog\`: Durchsuche GearGraph-Katalog mit Filtern (Gewicht, Preis, Kategorie, Marken)
 - \`searchWeb\`: Echtzeit-Websuche fuer Trailbedingungen, Bewertungen, Neuigkeiten
 

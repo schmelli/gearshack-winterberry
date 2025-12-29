@@ -49,9 +49,11 @@ const queryUserDataInputSchema = z.object({
       column: z.string(),
       value: z.string(),
       caseSensitive: z.boolean().optional().default(false),
+      fuzzy: z.boolean().optional().default(false),
+      fuzzyThreshold: z.number().min(0).max(1).optional().default(0.3),
     })
     .optional()
-    .describe('Text search filter (uses ILIKE for case-insensitive search)'),
+    .describe('Text search filter (uses ILIKE for exact match, or similarity() for fuzzy/typo-tolerant search when fuzzy=true)'),
 
   orderBy: z
     .object({
@@ -116,7 +118,7 @@ export type QueryUserDataOutput = z.infer<typeof queryUserDataOutputSchema>;
  */
 export const queryUserDataTool = createTool({
   id: 'queryUserData',
-  description: `Execute flexible read-only queries on user's database.
+  description: `Execute flexible read-only queries on user's database with optional fuzzy/typo-tolerant search.
 
 Available tables:
 - gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, category_id, status, etc.)
@@ -131,8 +133,15 @@ Examples:
 - Find all Osprey gear: {table: "gear_items", filters: {brand: "Osprey"}}
 - Count wishlist items: {table: "gear_items", operation: "count", filters: {status: "wishlist"}}
 - Search by name: {table: "gear_items", search: {column: "name", value: "tent"}}
+- Fuzzy search (typo-tolerant): {table: "gear_items", search: {column: "name", value: "qilt", fuzzy: true}}
 - Find items under 500g: {table: "gear_items", range: {column: "weight_grams", max: 500}}
-- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}`,
+- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}
+
+Fuzzy Search:
+- Set search.fuzzy = true to enable typo-tolerant search (e.g., "qilt" will match "quilt")
+- Uses PostgreSQL trigram similarity (pg_trgm) with default 30% match threshold
+- Results ordered by similarity score (best matches first)
+- Adjust threshold with search.fuzzyThreshold (0-1, default 0.3)`,
 
   inputSchema: queryUserDataInputSchema,
   outputSchema: queryUserDataOutputSchema,
@@ -208,7 +217,65 @@ Examples:
         }
       }
 
-      // Apply search filter (case-insensitive ILIKE)
+      // Handle fuzzy search differently - uses RPC function
+      if (search?.fuzzy) {
+        const threshold = search.fuzzyThreshold ?? 0.3;
+        const effectiveLimit = limit ?? 50;
+
+        // Use fuzzy_search_column RPC for typo-tolerant search
+        const { data: fuzzyData, error: fuzzyError } = await Promise.race([
+          supabase.rpc('fuzzy_search_column', {
+            p_table_name: table,
+            p_column_name: search.column,
+            p_search_value: search.value,
+            p_user_id: userId,
+            p_similarity_threshold: threshold,
+            p_additional_filters: filters ?? {},
+            p_limit: effectiveLimit,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Query timeout (5s)')), 5000)
+          ),
+        ]);
+
+        if (fuzzyError) {
+          console.error('[queryUserData] Fuzzy search error:', {
+            message: fuzzyError.message,
+            details: fuzzyError.details,
+            hint: fuzzyError.hint,
+            code: fuzzyError.code,
+            params: { table, column: search.column, value: search.value, threshold },
+          });
+          return {
+            success: false,
+            operation: effectiveOperation,
+            table,
+            rowCount: 0,
+            data: null,
+            error: `Fuzzy search failed: ${fuzzyError.message}`,
+          };
+        }
+
+        const executionTime = Date.now() - startTime;
+
+        // Extract row_data from fuzzy search results
+        const results = fuzzyData?.map((row: any) => row.row_data) ?? [];
+
+        return {
+          success: true,
+          operation: effectiveOperation,
+          table,
+          rowCount: results.length,
+          data: results as Record<string, unknown>[],
+          metadata: {
+            executionTimeMs: executionTime,
+            limitApplied: effectiveLimit,
+            filtersApplied: [`fuzzy_search:${search.column}:threshold=${threshold}`],
+          },
+        };
+      }
+
+      // Apply standard search filter (case-insensitive ILIKE)
       if (search) {
         if (search.caseSensitive) {
           query = query.like(search.column, `%${search.value}%`);
