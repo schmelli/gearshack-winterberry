@@ -55,6 +55,14 @@ import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rat
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
+import {
+  buildUserContext,
+  isCacheStale,
+  formatContextForPrompt,
+  extractPreferencesFromConversation,
+  type UserContext as MastraUserContext,
+  type UserPreferences,
+} from '@/lib/mastra/user-context';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Database } from '@/types/supabase';
@@ -68,6 +76,9 @@ export const runtime = 'nodejs';
 
 /** Maximum conversation history messages to retrieve */
 const MEMORY_HISTORY_LIMIT = 50;
+
+/** User context cache TTL in minutes */
+const USER_CONTEXT_CACHE_TTL_MINUTES = 30;
 
 /** Patterns that indicate user is correcting previous information */
 const CORRECTION_PATTERNS = [
@@ -88,6 +99,7 @@ interface MemoryContext {
   available: boolean;
   adapter: SupabaseMemoryAdapter | null;
   history: Array<{ role: string; content: string }>;
+  userContext: MastraUserContext | null;
   warning?: string;
 }
 
@@ -169,28 +181,34 @@ function validateRequest(body: unknown): {
 /**
  * T027: Fetch conversation history from memory
  * T029: Gracefully handle memory unavailability
+ * Issue #110: Fetch and cache user context for intelligent memory
  */
 async function fetchMemoryContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  conversationId: string
+  conversationId: string,
+  currentLoadoutId?: string
 ): Promise<MemoryContext> {
   const getElapsed = createTimer();
 
   try {
     const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
 
-    logDebug('Fetching conversation history', {
+    logDebug('Fetching conversation history and user context', {
       userId,
       conversationId,
-      metadata: { limit: MEMORY_HISTORY_LIMIT },
+      metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
     });
 
-    const messages = await adapter.getMessages({
-      userId,
-      conversationId,
-      limit: MEMORY_HISTORY_LIMIT,
-    });
+    // Fetch conversation history and cached user context in parallel
+    const [messages, cachedContext] = await Promise.all([
+      adapter.getMessages({
+        userId,
+        conversationId,
+        limit: MEMORY_HISTORY_LIMIT,
+      }),
+      adapter.getUserContext(userId, conversationId),
+    ]);
 
     // Reverse to get chronological order (oldest first)
     const history = messages.reverse().map(msg => ({
@@ -198,11 +216,55 @@ async function fetchMemoryContext(
       content: msg.content,
     }));
 
+    // Check if cached context exists and is fresh
+    let userContext: MastraUserContext | null = null;
+    let shouldRefreshCache = true;
+
+    if (cachedContext) {
+      const cachedUserContext = cachedContext as MastraUserContext;
+
+      // Check if any cached context is fresh (inventory, wishlist, or loadout)
+      const hasValidCache =
+        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
+
+      if (hasValidCache) {
+        userContext = cachedUserContext;
+        shouldRefreshCache = false;
+        logDebug('Using cached user context', { userId, conversationId });
+      }
+    }
+
+    // Refresh user context if needed
+    if (shouldRefreshCache) {
+      logDebug('Building fresh user context', { userId, conversationId });
+
+      userContext = await buildUserContext(
+        supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>,
+        userId,
+        currentLoadoutId
+      );
+
+      // Extract preferences from conversation history
+      if (history.length > 0 && userContext.preferences) {
+        userContext.preferences = extractPreferencesFromConversation(
+          history,
+          userContext.preferences
+        );
+      }
+
+      // Store updated context in memory
+      await adapter.storeUserContext(userId, conversationId, userContext);
+      logDebug('User context cached in memory', { userId, conversationId });
+    }
+
     logInfo('Memory retrieval completed', {
       userId,
       conversationId,
       metadata: {
         messageCount: history.length,
+        userContextCached: !!userContext,
         latencyMs: getElapsed(),
       },
     });
@@ -211,6 +273,7 @@ async function fetchMemoryContext(
       available: true,
       adapter,
       history,
+      userContext,
     };
   } catch (error) {
     // T029: Graceful degradation - continue without memory
@@ -227,6 +290,7 @@ async function fetchMemoryContext(
       available: false,
       adapter: null,
       history: [],
+      userContext: null,
       warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
     };
   }
@@ -309,6 +373,7 @@ async function saveToMemory(
 function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   history: Array<{ role: string; content: string }>,
+  mastraUserContext: MastraUserContext | null,
   memoryWarning?: string,
   userId?: string,
   subscriptionTier?: 'standard' | 'trailblazer'
@@ -332,9 +397,18 @@ function buildPromptContext(
     userContext: promptUserContext,
   };
 
+  // Add user context summary to system prompt (Issue #110)
+  if (mastraUserContext) {
+    const contextSummary = formatContextForPrompt(mastraUserContext);
+    if (contextSummary) {
+      promptContext.gearList = contextSummary;
+    }
+  }
+
   // Add memory context hint if there's history
   if (history.length > 0) {
-    promptContext.gearList = `Previous conversation context: ${history.length} messages in history.`;
+    const historyNote = `\n**Conversation History:** ${history.length} messages in context.`;
+    promptContext.gearList = (promptContext.gearList || '') + historyNote;
   }
 
   // Add memory warning if applicable
@@ -420,12 +494,13 @@ export async function POST(request: Request): Promise<Response> {
     // 6. Check rate limits and fetch memory context in parallel (optimized)
     // Running both in parallel saves ~50-200ms per request in the happy path
     // Using checkAndIncrementRateLimit for atomic rate limit check and increment
+    const currentLoadoutId = context?.currentLoadoutId as string | undefined;
     const [rateLimitResult, memoryContextResult] = await Promise.all([
       checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
         'memory_retrieval',
-        () => fetchMemoryContext(supabase, user.id, conversationId),
+        () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId),
         { userId: user.id }
       ).then(r => r.result),
     ]);
@@ -495,8 +570,14 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 9. Build system prompt with memory context
-    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning, user.id);
+    // 9. Build system prompt with memory context and user context (Issue #110)
+    const promptContext = buildPromptContext(
+      context,
+      memoryContext.history,
+      memoryContext.userContext,
+      memoryContext.warning,
+      user.id
+    );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
     // 10. Check AI availability
