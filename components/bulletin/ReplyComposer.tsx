@@ -82,7 +82,7 @@ export function ReplyComposer({
               disabled={isSubmitting}
             >
               <X className="mr-1 h-4 w-4" />
-              Cancel
+              {t('common.cancel')}
             </Button>
           )}
           <Button

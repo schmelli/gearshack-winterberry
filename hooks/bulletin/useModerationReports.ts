@@ -82,7 +82,7 @@ export function useModerationReports() {
             status: 'resolved' as ReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
-            resolution_action: action,
+            action_taken: action,
           })
           .eq('id', reportId);
 
@@ -104,6 +104,18 @@ export function useModerationReports() {
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
             }
+          }
+        } else if (action === 'warn_user') {
+          // Send a notification to the user about the warning
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from('notifications').insert({
+              user_id: targetAuthorId,
+              type: 'moderation_warning',
+              title: 'Community Guidelines Warning',
+              message: 'Your content was reported and reviewed by moderators. Please ensure your future posts comply with community guidelines.',
+              created_by: user.id,
+            });
           }
         } else if (
           action === 'ban_1d' ||
@@ -152,7 +164,7 @@ export function useModerationReports() {
             status: 'dismissed' as ReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
-            resolution_action: 'dismiss',
+            action_taken: 'dismiss',
           })
           .eq('id', reportId);
 

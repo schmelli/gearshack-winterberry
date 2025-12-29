@@ -65,9 +65,13 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     setState((prev) => ({ ...prev, loadingState: 'loading', error: null }));
 
     try {
+      // Capture current filter values to avoid stale closure issues
+      const activeTag = state.activeTag;
+      const searchQuery = state.searchQuery;
+
       const result = await fetchBulletinPosts(supabase, {
-        tag: state.activeTag ?? undefined,
-        search: state.searchQuery || undefined,
+        tag: activeTag ?? undefined,
+        search: searchQuery || undefined,
         limit: BULLETIN_CONSTANTS.POSTS_PER_PAGE,
       });
 
@@ -226,8 +230,7 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
   // Load posts when filters change
   useEffect(() => {
     loadPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.activeTag, state.searchQuery]);
+  }, [loadPosts]);
 
   return {
     // State

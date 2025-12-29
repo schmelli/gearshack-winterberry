@@ -30,6 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_bulletin_posts_tag ON bulletin_posts(tag) WHERE t
 CREATE INDEX IF NOT EXISTS idx_bulletin_posts_search ON bulletin_posts USING GIN(content_tsvector);
 CREATE INDEX IF NOT EXISTS idx_bulletin_posts_active ON bulletin_posts(created_at DESC)
   WHERE is_deleted = false AND is_archived = false;
+CREATE INDEX IF NOT EXISTS idx_bulletin_posts_archive_check ON bulletin_posts(created_at)
+  WHERE is_archived = false;
 
 -- Trigger for updated_at (OR REPLACE makes it idempotent)
 CREATE OR REPLACE FUNCTION update_bulletin_post_updated_at()

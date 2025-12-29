@@ -98,13 +98,13 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
 
         setCurrentUser({
           id: user.id,
-          name: profile?.display_name ?? 'User',
+          name: profile?.display_name ?? t('common.defaultUser'),
           avatar: profile?.avatar_url ?? null,
         });
       }
     };
     getUser();
-  }, [supabase]);
+  }, [supabase, t]);
 
   // Infinite scroll observer
   useEffect(() => {

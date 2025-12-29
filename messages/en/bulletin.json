@@ -5,6 +5,12 @@
   "loading": "Loading posts...",
   "loadingMore": "Loading more...",
 
+  "common": {
+    "cancel": "Cancel",
+    "unknown": "Unknown",
+    "defaultUser": "User"
+  },
+
   "composer": {
     "title": "Create Post",
     "placeholder": "What's on your mind? Ask a question, share an update, or connect with fellow outdoor enthusiasts...",
@@ -110,7 +116,9 @@
     "marketplaceItem": "Marketplace Item",
     "baseWeight": "Base Weight: {weight}",
     "items": "{count, plural, =1 {1 item} other {# items}}",
-    "viewFull": "View full {type}"
+    "viewFull": "View full {type}",
+    "loadFailed": "Failed to load content",
+    "notFound": "Content not found"
   },
 
   "errors": {

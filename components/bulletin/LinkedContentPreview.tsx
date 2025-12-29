@@ -73,14 +73,14 @@ export function LinkedContentPreview({
         }
         // TODO: Add marketplace_item support when needed
       } catch {
-        setError('Failed to load content');
+        setError(t('linkedContent.loadFailed'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchContentData();
-  }, [contentType, contentId, supabase]);
+  }, [contentType, contentId, supabase, t]);
 
   if (isLoading) {
     return (
@@ -103,7 +103,7 @@ export function LinkedContentPreview({
         <CardContent className="flex items-center gap-3 p-4">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <span className="text-sm text-destructive">
-            {error ?? 'Content not found'}
+            {error ?? t('linkedContent.notFound')}
           </span>
         </CardContent>
       </Card>

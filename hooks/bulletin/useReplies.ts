@@ -166,8 +166,10 @@ export function useReplies(): UseRepliesReturn {
       try {
         await deleteBulletinReply(supabase, replyId);
 
-        // Remove from local state
-        setReplies((prev) => prev.filter((r) => r.id !== replyId));
+        // Mark as deleted in local state (soft delete)
+        setReplies((prev) =>
+          prev.map((r) => (r.id === replyId ? { ...r, is_deleted: true } : r))
+        );
 
         setOperationState('success');
         return true;
