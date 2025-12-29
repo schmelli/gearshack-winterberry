@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Gearshack Winterberry is a Next.js 16 application using the App Router with React 19, TypeScript (strict mode), and Tailwind CSS 4.
 
+## Git Workflow
+
+- **Default branch**: `development` - ALL PRs must target this branch
+- **Never** target `main`, `master`, or feature branches like `003-app-shell-branding`
+- Feature branches: `{feature-number}-{feature-name}` (e.g., `051-community-bulletin-board`)
+
 ## Commands
 
 ```bash
