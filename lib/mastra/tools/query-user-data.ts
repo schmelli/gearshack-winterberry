@@ -222,6 +222,14 @@ Fuzzy Search:
         const threshold = search.fuzzyThreshold ?? 0.3;
         const effectiveLimit = limit ?? 50;
 
+        // Prepare filters for RPC (convert to JSONB format)
+        const rpcFilters = filters ? filters : null;
+
+        // Prepare range parameters
+        const rangeColumn = range?.column ?? null;
+        const rangeMin = range?.min ?? null;
+        const rangeMax = range?.max ?? null;
+
         // Use fuzzy_search_column RPC for typo-tolerant search
         const { data: fuzzyData, error: fuzzyError } = await Promise.race([
           supabase.rpc('fuzzy_search_column', {
@@ -231,6 +239,10 @@ Fuzzy Search:
             p_user_id: userId,
             p_similarity_threshold: threshold,
             p_limit: effectiveLimit,
+            p_filters: rpcFilters,
+            p_range_column: rangeColumn,
+            p_range_min: rangeMin,
+            p_range_max: rangeMax,
           }),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Query timeout (5s)')), 5000)
@@ -275,6 +287,16 @@ Fuzzy Search:
           fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
           [];
 
+        // Build applied filters list for metadata
+        const fuzzyAppliedFilters = [`fuzzy_search:${search.column}:threshold=${threshold}`];
+        if (filters) {
+          fuzzyAppliedFilters.push(...Object.keys(filters).map(key => `filter:${key}`));
+        }
+        if (range) {
+          if (range.min !== undefined) fuzzyAppliedFilters.push(`${range.column}:min`);
+          if (range.max !== undefined) fuzzyAppliedFilters.push(`${range.column}:max`);
+        }
+
         return {
           success: true,
           operation: effectiveOperation,
@@ -284,7 +306,7 @@ Fuzzy Search:
           metadata: {
             executionTimeMs: executionTime,
             limitApplied: effectiveLimit,
-            filtersApplied: [`fuzzy_search:${search.column}:threshold=${threshold}`],
+            filtersApplied: fuzzyAppliedFilters,
           },
         };
       }
