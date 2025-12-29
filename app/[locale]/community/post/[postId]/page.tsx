@@ -46,17 +46,11 @@ async function PostDetailContent({ postId }: { postId: string }) {
   const t = await getTranslations('bulletin');
 
   // Fetch post with author info (ignoring is_archived)
-  const { data: post, error } = await supabase
-    .from('bulletin_posts')
-    .select(
-      `
-      *,
-      author:profiles!bulletin_posts_author_id_fkey (
-        display_name,
-        avatar_url
-      )
-    `
-    )
+  // Use the view which has proper types and includes author info
+  // Note: View exists but types need regeneration after bulletin migrations
+  const { data: post, error } = await (supabase as any)
+    .from('v_bulletin_posts_with_author')
+    .select('*')
     .eq('id', postId)
     .single();
 
@@ -64,12 +58,5 @@ async function PostDetailContent({ postId }: { postId: string }) {
     notFound();
   }
 
-  // Transform to match BulletinPostWithAuthor type
-  const postWithAuthor = {
-    ...post,
-    author_name: post.author?.display_name ?? t('common.unknown'),
-    author_avatar: post.author?.avatar_url ?? null,
-  };
-
-  return <PostDetailView post={postWithAuthor} />;
+  return <PostDetailView post={post} />;
 }

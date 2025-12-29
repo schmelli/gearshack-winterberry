@@ -167,14 +167,15 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
   // Handle post deletion request (shows confirmation)
   const handleDeleteRequest = useCallback(
     (postId: string) => {
-      const post = displayPosts.find((p) => p.id === postId);
+      const allPosts = posts.length > 0 ? posts : initialPosts ?? [];
+      const post = allPosts.find((p) => p.id === postId);
       setDeleteTarget({
         id: postId,
         type: 'post',
         hasReplies: (post?.reply_count ?? 0) > 0,
       });
     },
-    [displayPosts]
+    [posts, initialPosts]
   );
 
   // Handle confirmed deletion

@@ -49,9 +49,10 @@ export function LinkedContentPreview({
 
       try {
         if (contentType === 'loadout' || contentType === 'shakedown') {
-          const { data: loadout, error: err } = await supabase
+          // Note: Type assertion needed due to schema mismatch
+          const { data: loadout, error: err } = await (supabase as any)
             .from('loadouts')
-            .select('id, name, hero_image_url, base_weight_g')
+            .select('id, name')
             .eq('id', contentId)
             .single();
 
@@ -66,8 +67,8 @@ export function LinkedContentPreview({
           setData({
             id: loadout.id,
             title: loadout.name,
-            thumbnail: loadout.hero_image_url,
-            baseWeight: loadout.base_weight_g,
+            thumbnail: null, // TODO: Join with generated_images when needed
+            baseWeight: 0, // TODO: Calculate from loadout_items
             itemCount: count ?? 0,
           });
         }
