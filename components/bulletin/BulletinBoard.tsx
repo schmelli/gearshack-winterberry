@@ -164,6 +164,9 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
     [createPost, currentUser, addPostOptimistically, t]
   );
 
+  // Display posts (use initial if available and no local state yet)
+  const displayPosts = posts.length > 0 ? posts : initialPosts ?? [];
+
   // Handle post deletion request (shows confirmation)
   const handleDeleteRequest = useCallback(
     (postId: string) => {
@@ -209,9 +212,6 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
     },
     [setSearchQuery]
   );
-
-  // Display posts (use initial if available and no local state yet)
-  const displayPosts = posts.length > 0 ? posts : initialPosts ?? [];
 
   return (
     <div className="space-y-6">
