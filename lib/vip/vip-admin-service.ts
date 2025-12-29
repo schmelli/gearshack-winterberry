@@ -27,48 +27,40 @@ import type {
 export async function getAllVips(): Promise<VipWithStats[]> {
   const supabase = createClient();
 
+  // Fetch VIPs with counts in a single query using Supabase relationship counting
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('vip_accounts')
-    .select('*')
+    .select(`
+      *,
+      vip_follows(count),
+      vip_loadouts(count)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  // Get stats for each VIP
-  const vips: VipWithStats[] = await Promise.all(
-    (data || []).map(async (vip: Record<string, unknown>) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: followerCount } = await (supabase as any)
-        .from('vip_follows')
-        .select('*', { count: 'exact', head: true })
-        .eq('vip_id', vip.id);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: loadoutCount } = await (supabase as any)
-        .from('vip_loadouts')
-        .select('*', { count: 'exact', head: true })
-        .eq('vip_id', vip.id);
-
-      return {
-        id: vip.id as string,
-        name: vip.name as string,
-        slug: vip.slug as string,
-        bio: vip.bio as string,
-        avatarUrl: vip.avatar_url as string,
-        socialLinks: vip.social_links as Record<string, string>,
-        status: vip.status as 'curated' | 'claimed',
-        isFeatured: vip.is_featured as boolean,
-        claimedByUserId: vip.claimed_by_user_id as string | null,
-        createdAt: vip.created_at as string,
-        updatedAt: vip.updated_at as string,
-        archivedAt: vip.archived_at as string | null,
-        archiveReason: vip.archive_reason as string | null,
-        followerCount: followerCount ?? 0,
-        loadoutCount: loadoutCount ?? 0,
-      };
-    })
-  );
+  // Map the results to VipWithStats
+  const vips: VipWithStats[] = (data || []).map((vip: Record<string, unknown>) => {
+    return {
+      id: vip.id as string,
+      name: vip.name as string,
+      slug: vip.slug as string,
+      bio: vip.bio as string,
+      avatarUrl: vip.avatar_url as string,
+      socialLinks: vip.social_links as Record<string, string>,
+      status: vip.status as 'curated' | 'claimed',
+      isFeatured: vip.is_featured as boolean,
+      claimedByUserId: vip.claimed_by_user_id as string | null,
+      createdAt: vip.created_at as string,
+      updatedAt: vip.updated_at as string,
+      archivedAt: vip.archived_at as string | null,
+      archiveReason: vip.archive_reason as string | null,
+      // Supabase returns counts as an array with a single object containing 'count'
+      followerCount: (vip.vip_follows as Array<{ count: number }>)?.[0]?.count ?? 0,
+      loadoutCount: (vip.vip_loadouts as Array<{ count: number }>)?.[0]?.count ?? 0,
+    };
+  });
 
   return vips;
 }
