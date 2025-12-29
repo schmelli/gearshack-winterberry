@@ -873,6 +873,9 @@
       "addPlaceholder": "Share your thoughts, suggestions, or experience...",
       "reply": "Reply",
       "replyTo": "Reply to {author}",
+      "replyingToComment": "Replying to comment",
+      "cancel": "Cancel",
+      "save": "Save",
       "edit": "Edit",
       "delete": "Delete",
       "report": "Report",
@@ -888,7 +891,9 @@
       "characterCount": "{count}/{max} characters",
       "maxDepthReached": "Maximum reply depth reached",
       "submitting": "Submitting...",
-      "closed": "This shakedown is no longer accepting feedback"
+      "closed": "This shakedown is no longer accepting feedback",
+      "generalFeedback": "General Feedback",
+      "itemFeedback": "Item Feedback"
     },
     "actions": {
       "edit": "Edit Shakedown",
@@ -909,7 +914,11 @@
       "startSimilar": "Start Similar Shakedown",
       "startSimilarTooltip": "Create your own shakedown inspired by this one",
       "requestShakedown": "Request Community Shakedown",
-      "retry": "Retry"
+      "retry": "Retry",
+      "deleteShakedown": "Delete Shakedown",
+      "deleteShakedownConfirm": "Are you sure you want to delete this shakedown? This action cannot be undone.",
+      "deleteFeedback": "Delete Feedback",
+      "deleteFeedbackConfirm": "Are you sure you want to delete this feedback? This action cannot be undone."
     },
     "filters": {
       "title": "Filters",

@@ -208,6 +208,7 @@ function EditComposer({
   isSubmitting,
 }: EditComposerProps) {
   const t = useTranslations('Shakedowns');
+  const tCommon = useTranslations('Common');
 
   const form = useForm<FeedbackFormData>({
     resolver: zodResolver(feedbackSchema),
@@ -266,7 +267,7 @@ function EditComposer({
               disabled={isSubmitting}
             >
               <X className="size-4 mr-1" />
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               type="submit"
@@ -280,7 +281,7 @@ function EditComposer({
                   Saving...
                 </>
               ) : (
-                'Save'
+                tCommon('save')
               )}
             </Button>
           </div>

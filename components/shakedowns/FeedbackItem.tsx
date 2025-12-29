@@ -163,6 +163,7 @@ export function FeedbackItem({
   onMarkHelpful,
 }: FeedbackItemProps) {
   const t = useTranslations('Shakedowns');
+  const tCommon = useTranslations('Common');
   const locale = useLocale();
   const { user } = useAuthContext();
 
@@ -456,7 +457,7 @@ export function FeedbackItem({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
-              Cancel
+              {tCommon('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
@@ -471,7 +472,7 @@ export function FeedbackItem({
               ) : (
                 <>
                   <Trash2 className="size-4" />
-                  {t('feedback.delete')}
+                  {tCommon('delete')}
                 </>
               )}
             </AlertDialogAction>

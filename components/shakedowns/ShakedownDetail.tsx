@@ -631,9 +631,9 @@ function FeedbackSection({
           <div className="space-y-3">
             {replyToId && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Replying to comment</span>
+                <span>{t('replyingToComment')}</span>
                 <Button variant="ghost" size="sm" onClick={handleCancelReply} className="h-6 px-2">
-                  Cancel
+                  {t('cancel')}
                 </Button>
               </div>
             )}
@@ -732,6 +732,7 @@ function OwnerActions({
   isAlreadyShared,
 }: OwnerActionsProps) {
   const t = useTranslations('Shakedowns.actions');
+  const tCommon = useTranslations('Common');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Determine if share to bulletin is available
@@ -815,7 +816,7 @@ function OwnerActions({
             variant="destructive"
           >
             <Trash2 className="size-4" />
-            Delete
+            {tCommon('delete')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -823,19 +824,19 @@ function OwnerActions({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shakedown</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteShakedown')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this shakedown? This action cannot be undone.
+              {t('deleteShakedownConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               <Trash2 className="size-4" />
-              Delete
+              {tCommon('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -852,6 +853,7 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
   const t = useTranslations('Shakedowns');
   const tActions = useTranslations('Shakedowns.actions');
   const tDetail = useTranslations('Shakedowns.detail');
+  const tCommon = useTranslations('Common');
   const locale = useLocale();
   const router = useRouter();
   const { user, profile: authProfile } = useAuthContext();
@@ -958,7 +960,7 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
 
     setIsSharing(true);
     try {
-      const authorName = authProfile?.profile?.displayName ?? user.displayName ?? 'Unknown';
+      const authorName = authProfile?.profile?.displayName ?? user.displayName ?? tCommon('genericUser');
       const authorAvatar = authProfile?.profile?.avatarUrl ?? user.photoURL ?? null;
 
       const result = await createPost(

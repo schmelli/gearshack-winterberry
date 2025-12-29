@@ -868,6 +868,9 @@
       "addPlaceholder": "Teile deine Gedanken, Vorschläge oder Erfahrungen...",
       "reply": "Antworten",
       "replyTo": "Antwort an {author}",
+      "replyingToComment": "Antwort auf Kommentar",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
       "edit": "Bearbeiten",
       "delete": "Löschen",
       "report": "Melden",
@@ -883,7 +886,9 @@
       "characterCount": "{count}/{max} Zeichen",
       "maxDepthReached": "Maximale Antworttiefe erreicht",
       "submitting": "Wird gesendet...",
-      "closed": "Dieser Shakedown nimmt kein Feedback mehr an"
+      "closed": "Dieser Shakedown nimmt kein Feedback mehr an",
+      "generalFeedback": "Allgemeines Feedback",
+      "itemFeedback": "Artikel-Feedback"
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
@@ -904,7 +909,11 @@
       "startSimilar": "Ähnlichen Shakedown starten",
       "startSimilarTooltip": "Erstelle deinen eigenen Shakedown nach diesem Vorbild",
       "requestShakedown": "Community Shakedown anfordern",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "deleteShakedown": "Shakedown löschen",
+      "deleteShakedownConfirm": "Bist du sicher, dass du diesen Shakedown löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleteFeedback": "Feedback löschen",
+      "deleteFeedbackConfirm": "Bist du sicher, dass du dieses Feedback löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "filters": {
       "title": "Filter",

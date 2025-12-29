@@ -274,7 +274,7 @@ export function CompletionModal({
                   {groupedFeedback.general.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        General Feedback
+                        {t('feedback.generalFeedback')}
                       </h4>
                       <div className="space-y-2">
                         {groupedFeedback.general.map((feedback) => (
@@ -360,7 +360,7 @@ export function CompletionModal({
             onClick={() => handleOpenChange(false)}
             disabled={isCompleting}
           >
-            Cancel
+            {t('feedback.cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
