@@ -10,7 +10,6 @@
 
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { PostDetailView } from './PostDetailView';
 import { PostSkeleton } from '@/components/bulletin/PostSkeleton';
@@ -43,7 +42,6 @@ export default async function PostPage({ params }: PostPageProps) {
 
 async function PostDetailContent({ postId }: { postId: string }) {
   const supabase = await createClient();
-  const t = await getTranslations('bulletin');
 
   // Fetch post with author info (ignoring is_archived)
   // Use the view which has proper types and includes author info
