@@ -36,7 +36,7 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' },
         { status: 401 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Admin access required' },
+        { error: 'ADMIN_ACCESS_REQUIRED', message: 'Admin access required' },
         { status: 403 }
       );
     }
@@ -61,7 +61,7 @@ export async function POST(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: 'INVALID_EMAIL', message: 'Invalid email address' },
         { status: 400 }
       );
     }
@@ -77,14 +77,14 @@ export async function POST(
 
     if (vipError || !vip) {
       return NextResponse.json(
-        { error: 'VIP account not found' },
+        { error: 'VIP_NOT_FOUND', message: 'VIP account not found' },
         { status: 404 }
       );
     }
 
     if (vip.status === 'claimed' || vip.claimed_by_user_id) {
       return NextResponse.json(
-        { error: 'VIP account is already claimed' },
+        { error: 'VIP_ALREADY_CLAIMED', message: 'VIP account is already claimed' },
         { status: 400 }
       );
     }
@@ -100,7 +100,7 @@ export async function POST(
 
     if (existingInvitation) {
       return NextResponse.json(
-        { error: 'An invitation is already pending for this email' },
+        { error: 'INVITATION_ALREADY_PENDING', message: 'An invitation is already pending for this email' },
         { status: 400 }
       );
     }
@@ -129,7 +129,7 @@ export async function POST(
     if (insertError) {
       console.error('Error creating claim invitation:', insertError);
       return NextResponse.json(
-        { error: 'Failed to create invitation' },
+        { error: 'INVITATION_CREATE_FAILED', message: 'Failed to create invitation' },
         { status: 500 }
       );
     }
@@ -155,7 +155,7 @@ export async function POST(
   } catch (error) {
     console.error('Unexpected error in POST /api/admin/vip/[id]/invite:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' },
       { status: 500 }
     );
   }

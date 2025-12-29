@@ -103,7 +103,8 @@ export function useVipClaimInvitation(): UseVipClaimInvitationReturn {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to create invitation');
+          // Return error code for client to map to i18n message
+          throw new Error(errorData.error || 'INVITATION_CREATE_FAILED');
         }
 
         const data = await response.json();
@@ -118,12 +119,12 @@ export function useVipClaimInvitation(): UseVipClaimInvitationReturn {
 
         return newInvitation;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to create invitation';
+        const errorCode = err instanceof Error ? err.message : 'INVITATION_CREATE_FAILED';
         console.error('Error creating claim invitation:', err);
         setState((prev) => ({
           ...prev,
           status: 'error',
-          error: message,
+          error: errorCode,
         }));
         return null;
       }

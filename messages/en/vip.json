@@ -230,7 +230,18 @@
       "pendingInvitations": "Pending Invitations",
       "resendInvitation": "Resend",
       "revokeInvitation": "Revoke",
-      "claimStatus": "Claim Status"
+      "claimStatus": "Claim Status",
+      "errors": {
+        "INVALID_EMAIL": "Please enter a valid email address",
+        "AUTHENTICATION_REQUIRED": "You must be signed in to send invitations",
+        "ADMIN_ACCESS_REQUIRED": "Admin access is required to send invitations",
+        "VIP_NOT_FOUND": "VIP account not found",
+        "VIP_ALREADY_CLAIMED": "This VIP account has already been claimed",
+        "INVITATION_ALREADY_PENDING": "An invitation is already pending for this email address",
+        "INVITATION_CREATE_FAILED": "Failed to create invitation. Please try again.",
+        "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
+        "genericError": "An error occurred. Please try again."
+      }
     },
 
     "archive": {

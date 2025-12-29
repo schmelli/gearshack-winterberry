@@ -148,7 +148,9 @@ export function ClaimInvitationForm({ vip, onSuccess }: ClaimInvitationFormProps
           {invitationError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{invitationError}</AlertDescription>
+              <AlertDescription>
+                {t(`errors.${invitationError}`, { defaultValue: t('errors.genericError') })}
+              </AlertDescription>
             </Alert>
           )}
 
