@@ -116,8 +116,7 @@ export const LocationConsentDialog = memo(function LocationConsentDialog({
         <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-sm">
           <Shield className="h-4 w-4 mt-0.5 text-muted-foreground" />
           <p className="text-muted-foreground">
-            Only <strong>{merchantName}</strong> will see your location data.
-            You can change this anytime in settings.
+            {t('privacyNotice', { merchantName })}
           </p>
         </div>
 
@@ -176,10 +175,10 @@ export const LocationConsentDialog = memo(function LocationConsentDialog({
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? 'Saving...' : t('confirm')}
+            {isLoading ? t('saving') : t('confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

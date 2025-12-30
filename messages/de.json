@@ -1229,12 +1229,15 @@
     "locationConsent": {
       "title": "Standort teilen?",
       "description": "Teile deinen Standort mit diesem Händler, um personalisierte Angebote für Artikel aus deiner Wunschliste zu erhalten.",
+      "privacyNotice": "Nur <strong>{merchantName}</strong> kann deine Standortdaten sehen. Du kannst dies jederzeit in den Einstellungen ändern.",
       "cityOnly": "Nur Stadt",
       "cityOnlyDesc": "Händler sieht nur deine Stadt",
       "neighborhood": "Stadtteil",
       "neighborhoodDesc": "Händler sieht deinen Stadtteil für relevantere Angebote",
       "noSharing": "Kein Standort teilen",
       "noSharingDesc": "Du kannst Artikel hinzufügen, erhältst aber keine standortbasierten Angebote",
+      "cancel": "Abbrechen",
+      "saving": "Speichern...",
       "confirm": "Zur Wunschliste hinzufügen"
     },
     "wishlist": {

@@ -66,10 +66,10 @@ export interface UseMerchantOffersReturn {
   calculateOfferFee: (offerPrice: number, userCount: number) => number;
 }
 
-// Constants
-const OFFER_FEE_RATE = 0.02; // 2% of offer price per offer
-const MIN_OFFER_FEE = 0.5; // Minimum €0.50 per offer
-const MAX_OFFER_FEE = 5.0; // Maximum €5.00 per offer
+// Constants - configurable via environment variables
+const OFFER_FEE_RATE = parseFloat(process.env.NEXT_PUBLIC_OFFER_FEE_RATE || '0.02'); // Default 2%
+const MIN_OFFER_FEE = parseFloat(process.env.NEXT_PUBLIC_MIN_OFFER_FEE || '0.5'); // Default €0.50
+const MAX_OFFER_FEE = parseFloat(process.env.NEXT_PUBLIC_MAX_OFFER_FEE || '5.0'); // Default €5.00
 const DEFAULT_LIMIT = 20;
 
 // =============================================================================
@@ -251,7 +251,8 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
 
         if (rateCheckError) {
           console.error('Rate limit check error:', rateCheckError);
-          // Continue anyway - database RLS will enforce
+          toast.warning('Unable to verify rate limits - some offers may be rejected by the database');
+          // Continue anyway - database unique constraint will enforce
         } else if (recentOffers && recentOffers.length > 0) {
           const blockedUserIds = new Set(recentOffers.map((o) => o.user_id));
           const remainingUserIds = input.userIds.filter((id) => !blockedUserIds.has(id));

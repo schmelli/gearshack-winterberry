@@ -1235,12 +1235,15 @@
     "locationConsent": {
       "title": "Share Your Location?",
       "description": "Share your location with this merchant to receive personalized offers on items from your wishlist.",
+      "privacyNotice": "Only <strong>{merchantName}</strong> will see your location data. You can change this anytime in settings.",
       "cityOnly": "City Only",
       "cityOnlyDesc": "Merchant sees only your city",
       "neighborhood": "Neighborhood",
       "neighborhoodDesc": "Merchant sees your neighborhood for more relevant offers",
       "noSharing": "No Location Sharing",
       "noSharingDesc": "You can still add items but won't receive location-based offers",
+      "cancel": "Cancel",
+      "saving": "Saving...",
       "confirm": "Add to Wishlist"
     },
     "wishlist": {

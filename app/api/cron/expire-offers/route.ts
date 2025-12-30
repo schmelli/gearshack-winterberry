@@ -13,9 +13,19 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify cron secret exists
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      console.error('[cron:expire-offers] CRON_SECRET environment variable not set');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
