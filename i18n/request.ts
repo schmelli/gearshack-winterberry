@@ -5,6 +5,7 @@
  * DR-002: Server-side request configuration for next-intl
  *
  * Provides locale and messages for server components via getRequestConfig.
+ * Merges main messages with additional namespaced files (vip, bulletin).
  */
 
 import { getRequestConfig } from 'next-intl/server';
@@ -18,8 +19,32 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = 'en';
   }
 
+  // Load main messages file
+  const mainMessages = (await import(`../messages/${locale}.json`)).default;
+
+  // Load additional namespaced message files
+  let vipMessages = {};
+  let bulletinMessages = {};
+
+  try {
+    vipMessages = (await import(`../messages/${locale}/vip.json`)).default;
+  } catch {
+    // VIP messages file not found for this locale, use empty object
+  }
+
+  try {
+    bulletinMessages = (await import(`../messages/${locale}/bulletin.json`))
+      .default;
+  } catch {
+    // Bulletin messages file not found for this locale, use empty object
+  }
+
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: {
+      ...mainMessages,
+      vip: vipMessages,
+      bulletin: bulletinMessages,
+    },
   };
 });
