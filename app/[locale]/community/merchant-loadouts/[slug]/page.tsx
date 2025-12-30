@@ -10,8 +10,17 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { MerchantLoadoutDetailClient } from './MerchantLoadoutDetailClient';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove this after running migrations and regenerating types
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getMerchantServerClient(): Promise<any> {
+  return createClient();
+}
 
 interface PageProps {
   params: Promise<{
@@ -25,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const t = await getTranslations({ locale, namespace: 'MerchantLoadouts' });
 
   // Fetch loadout for metadata - T093: Enhanced SEO metadata
-  const supabase = await createServerClient();
+  const supabase = await getMerchantServerClient();
   const { data: loadout } = await supabase
     .from('merchant_loadouts')
     .select(`
@@ -83,7 +92,7 @@ export default async function MerchantLoadoutDetailPage({ params }: PageProps) {
   const { slug } = await params;
 
   // Server-side validation that loadout exists
-  const supabase = await createServerClient();
+  const supabase = await getMerchantServerClient();
   const { data: loadout } = await supabase
     .from('merchant_loadouts')
     .select('id')

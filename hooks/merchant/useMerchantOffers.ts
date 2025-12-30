@@ -12,8 +12,17 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useMerchantAuth } from './useMerchantAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import type {
   MerchantOffer,
   MerchantOfferView,
@@ -101,7 +110,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
       return;
     }
 
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -140,7 +149,8 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
 
       if (fetchError) throw fetchError;
 
-      const transformed: MerchantOfferView[] = (data ?? []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed: MerchantOfferView[] = (data ?? []).map((row: any) => ({
         id: row.id,
         merchantId: row.merchant_id,
         userId: row.user_id,
@@ -212,7 +222,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
         return false;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsCreating(true);
 
       try {
@@ -231,7 +241,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
         }
 
         // Validate offer price
-        if (input.offerPrice >= regularPrice) {
+        if (!regularPrice || input.offerPrice >= regularPrice) {
           toast.error('Offer price must be less than regular price');
           return false;
         }
@@ -254,7 +264,8 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
           toast.warning('Unable to verify rate limits - some offers may be rejected by the database');
           // Continue anyway - database unique constraint will enforce
         } else if (recentOffers && recentOffers.length > 0) {
-          const blockedUserIds = new Set(recentOffers.map((o) => o.user_id));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const blockedUserIds = new Set(recentOffers.map((o: any) => o.user_id));
           const remainingUserIds = input.userIds.filter((id) => !blockedUserIds.has(id));
 
           if (remainingUserIds.length === 0) {
@@ -345,7 +356,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
     async (offerId: string) => {
       if (!merchant?.id) return;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         setError(null);
@@ -426,7 +437,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
     async (periodDays: number = 30) => {
       if (!merchant?.id) return;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         const { data, error: rpcError } = await supabase.rpc('get_merchant_analytics', {

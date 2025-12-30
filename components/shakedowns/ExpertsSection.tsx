@@ -21,9 +21,9 @@ import { Link } from '@/i18n/navigation';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ExpertBadge } from './ExpertBadge';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -38,28 +38,6 @@ interface ExpertsSectionProps {
 }
 
 type LoadingState = 'idle' | 'loading' | 'error' | 'success';
-
-// =============================================================================
-// Badge Styling Configuration
-// =============================================================================
-
-const BADGE_STYLES: Record<ShakedownBadge, { bg: string; text: string; icon: string }> = {
-  shakedown_helper: {
-    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
-    text: 'text-emerald-800 dark:text-emerald-300',
-    icon: 'text-emerald-600 dark:text-emerald-400',
-  },
-  trail_expert: {
-    bg: 'bg-amber-100 dark:bg-amber-900/30',
-    text: 'text-amber-800 dark:text-amber-300',
-    icon: 'text-amber-600 dark:text-amber-400',
-  },
-  community_legend: {
-    bg: 'bg-violet-100 dark:bg-violet-900/30',
-    text: 'text-violet-800 dark:text-violet-300',
-    icon: 'text-violet-600 dark:text-violet-400',
-  },
-};
 
 // =============================================================================
 // Helper Functions
@@ -95,41 +73,6 @@ function getHighestBadgeFromVotes(helpfulVotes: number): ShakedownBadge | null {
 }
 
 // =============================================================================
-// Expert Badge Sub-component (inline until T069 is implemented)
-// =============================================================================
-
-interface ExpertBadgeDisplayProps {
-  badgeType: ShakedownBadge;
-  className?: string;
-}
-
-function ExpertBadgeDisplay({ badgeType, className }: ExpertBadgeDisplayProps) {
-  const t = useTranslations('Shakedowns.badges');
-  const styles = BADGE_STYLES[badgeType];
-
-  const badgeLabel = {
-    shakedown_helper: t('shakedownHelper'),
-    trail_expert: t('trailExpert'),
-    community_legend: t('communityLegend'),
-  }[badgeType];
-
-  return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        'gap-1 text-xs font-medium',
-        styles.bg,
-        styles.text,
-        className
-      )}
-    >
-      <Award className={cn('size-3', styles.icon)} />
-      {badgeLabel}
-    </Badge>
-  );
-}
-
-// =============================================================================
 // Expert Card Sub-component
 // =============================================================================
 
@@ -139,21 +82,25 @@ interface ExpertCardProps {
 
 function ExpertCard({ expert }: ExpertCardProps) {
   const t = useTranslations('Shakedowns.experts');
+  const tCommon = useTranslations('Common');
 
   // Determine badge to display (from data or calculated from votes)
   const displayBadge = useMemo(() => {
     return expert.highestBadge ?? getHighestBadgeFromVotes(expert.helpfulVotesReceived);
   }, [expert.highestBadge, expert.helpfulVotesReceived]);
 
+  // Handle null displayName with i18n fallback
+  const displayName = expert.displayName ?? tCommon('genericUser');
+
   return (
     <div className="flex items-center gap-3 py-3 px-1 rounded-lg hover:bg-muted/50 transition-colors">
       {/* Avatar */}
       <Avatar className="size-10 shrink-0">
         {expert.avatarUrl && (
-          <AvatarImage src={expert.avatarUrl} alt={expert.displayName} />
+          <AvatarImage src={expert.avatarUrl} alt={displayName} />
         )}
         <AvatarFallback className="text-sm font-medium">
-          {getInitials(expert.displayName)}
+          {getInitials(displayName)}
         </AvatarFallback>
       </Avatar>
 
@@ -161,10 +108,10 @@ function ExpertCard({ expert }: ExpertCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm truncate">
-            {expert.displayName}
+            {displayName}
           </span>
           {displayBadge && (
-            <ExpertBadgeDisplay badgeType={displayBadge} />
+            <ExpertBadge badge={displayBadge} size="sm" showLabel showTooltip={false} />
           )}
         </div>
 

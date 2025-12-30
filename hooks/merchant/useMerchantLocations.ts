@@ -11,8 +11,17 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useMerchantAuth } from './useMerchantAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import type { MerchantLocation, MerchantLocationInput } from '@/types/merchant';
 
 // =============================================================================
@@ -58,7 +67,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
       return;
     }
 
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -73,7 +82,8 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
 
       if (fetchError) throw fetchError;
 
-      const transformed: MerchantLocation[] = (data ?? []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed: MerchantLocation[] = (data ?? []).map((row: any) => ({
         id: row.id,
         merchantId: row.merchant_id,
         name: row.name,
@@ -115,7 +125,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
         return null;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsSaving(true);
 
       try {
@@ -197,7 +207,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
     async (locationId: string, input: Partial<MerchantLocationInput>): Promise<boolean> => {
       if (!merchant?.id) return false;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsSaving(true);
 
       try {
@@ -261,7 +271,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
     async (locationId: string): Promise<boolean> => {
       if (!merchant?.id) return false;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsSaving(true);
 
       try {
@@ -314,7 +324,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
     async (locationId: string): Promise<boolean> => {
       if (!merchant?.id) return false;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsSaving(true);
 
       try {

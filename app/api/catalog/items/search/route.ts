@@ -149,7 +149,7 @@ async function performFuzzySearch(
 
   if (productTypeIds.length > 0) {
     // Get all categories to build the hierarchy
-    const { data: allCategories } = await supabase
+    const { data: allCategories } = await (supabase as any)
       .from('categories')
       .select('id, label, slug, level, parent_id')
       .order('level');

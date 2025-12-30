@@ -15,8 +15,17 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Store, AlertTriangle, ExternalLink } from 'lucide-react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Types
@@ -60,7 +69,7 @@ export function MerchantSourceBadge({
     async function fetchSourceInfo() {
       setIsLoading(true);
       try {
-        const supabase = createBrowserClient();
+        const supabase = getMerchantClient();
 
         // Fetch merchant name
         const { data: merchant } = await supabase

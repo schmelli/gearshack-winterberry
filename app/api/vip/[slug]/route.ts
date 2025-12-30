@@ -83,6 +83,7 @@ export async function GET(
     // Get VIP account
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: vip, error: vipError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_accounts')
       .select('*')
       .eq('slug', slug)
@@ -99,6 +100,7 @@ export async function GET(
     // Get follower count
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: followerCount } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_follows')
       .select('*', { count: 'exact', head: true })
       .eq('vip_id', vip.id);
@@ -106,6 +108,7 @@ export async function GET(
     // Get loadout count
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: loadoutCount } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadouts')
       .select('*', { count: 'exact', head: true })
       .eq('vip_id', vip.id)
@@ -116,6 +119,7 @@ export async function GET(
     if (user) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: follow } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('vip_follows')
         .select('follower_id')
         .eq('follower_id', user.id)
@@ -127,6 +131,7 @@ export async function GET(
     // Get published loadouts
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadouts } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadouts')
       .select('*')
       .eq('vip_id', vip.id)
@@ -138,6 +143,7 @@ export async function GET(
       (loadouts || []).map(async (loadout: Record<string, unknown>) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: items } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from('vip_loadout_items')
           .select('weight_grams, quantity')
           .eq('vip_loadout_id', loadout.id);

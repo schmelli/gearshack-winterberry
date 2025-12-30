@@ -112,6 +112,11 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
 
     // Section 7: Dependencies
     dependencyIds: row.dependency_ids ?? [],
+
+    // Section 8: Merchant integration (053)
+    sourceMerchantId: (row as { source_merchant_id?: string | null }).source_merchant_id ?? null,
+    sourceOfferId: (row as { source_offer_id?: string | null }).source_offer_id ?? null,
+    sourceLoadoutId: (row as { source_loadout_id?: string | null }).source_loadout_id ?? null,
   };
 }
 

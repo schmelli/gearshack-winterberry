@@ -55,6 +55,25 @@ import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rat
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
+import {
+  getCachedLoadoutContext,
+  preloadLoadoutContext,
+  formatLoadoutContextForPrompt,
+  type LoadoutContext,
+} from '@/lib/mastra/context-preloader';
+import {
+  generateProactiveSuggestions,
+  formatSuggestionsForStream,
+  shouldShowProactiveSuggestions,
+} from '@/lib/mastra/proactive-suggestions';
+import {
+  buildUserContext,
+  isCacheStale,
+  formatContextForPrompt,
+  extractPreferencesFromConversation,
+  type UserContext as MastraUserContext,
+  type UserPreferences,
+} from '@/lib/mastra/user-context';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Database } from '@/types/supabase';
@@ -68,6 +87,9 @@ export const runtime = 'nodejs';
 
 /** Maximum conversation history messages to retrieve */
 const MEMORY_HISTORY_LIMIT = 50;
+
+/** User context cache TTL in minutes */
+const USER_CONTEXT_CACHE_TTL_MINUTES = 30;
 
 /** Patterns that indicate user is correcting previous information */
 const CORRECTION_PATTERNS = [
@@ -88,6 +110,7 @@ interface MemoryContext {
   available: boolean;
   adapter: SupabaseMemoryAdapter | null;
   history: Array<{ role: string; content: string }>;
+  userContext: MastraUserContext | null;
   warning?: string;
 }
 
@@ -169,28 +192,34 @@ function validateRequest(body: unknown): {
 /**
  * T027: Fetch conversation history from memory
  * T029: Gracefully handle memory unavailability
+ * Issue #110: Fetch and cache user context for intelligent memory
  */
 async function fetchMemoryContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  conversationId: string
+  conversationId: string,
+  currentLoadoutId?: string
 ): Promise<MemoryContext> {
   const getElapsed = createTimer();
 
   try {
     const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
 
-    logDebug('Fetching conversation history', {
+    logDebug('Fetching conversation history and user context', {
       userId,
       conversationId,
-      metadata: { limit: MEMORY_HISTORY_LIMIT },
+      metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
     });
 
-    const messages = await adapter.getMessages({
-      userId,
-      conversationId,
-      limit: MEMORY_HISTORY_LIMIT,
-    });
+    // Fetch conversation history and cached user context in parallel
+    const [messages, cachedContext] = await Promise.all([
+      adapter.getMessages({
+        userId,
+        conversationId,
+        limit: MEMORY_HISTORY_LIMIT,
+      }),
+      adapter.getUserContext(userId, conversationId),
+    ]);
 
     // Reverse to get chronological order (oldest first)
     const history = messages.reverse().map(msg => ({
@@ -198,11 +227,55 @@ async function fetchMemoryContext(
       content: msg.content,
     }));
 
+    // Check if cached context exists and is fresh
+    let userContext: MastraUserContext | null = null;
+    let shouldRefreshCache = true;
+
+    if (cachedContext) {
+      const cachedUserContext = cachedContext as MastraUserContext;
+
+      // Check if any cached context is fresh (inventory, wishlist, or loadout)
+      const hasValidCache =
+        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
+        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
+
+      if (hasValidCache) {
+        userContext = cachedUserContext;
+        shouldRefreshCache = false;
+        logDebug('Using cached user context', { userId, conversationId });
+      }
+    }
+
+    // Refresh user context if needed
+    if (shouldRefreshCache) {
+      logDebug('Building fresh user context', { userId, conversationId });
+
+      userContext = await buildUserContext(
+        supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>,
+        userId,
+        currentLoadoutId
+      );
+
+      // Extract preferences from conversation history
+      if (history.length > 0 && userContext.preferences) {
+        userContext.preferences = extractPreferencesFromConversation(
+          history,
+          userContext.preferences
+        );
+      }
+
+      // Store updated context in memory
+      await adapter.storeUserContext(userId, conversationId, userContext);
+      logDebug('User context cached in memory', { userId, conversationId });
+    }
+
     logInfo('Memory retrieval completed', {
       userId,
       conversationId,
       metadata: {
         messageCount: history.length,
+        userContextCached: !!userContext,
         latencyMs: getElapsed(),
       },
     });
@@ -211,6 +284,7 @@ async function fetchMemoryContext(
       available: true,
       adapter,
       history,
+      userContext,
     };
   } catch (error) {
     // T029: Graceful degradation - continue without memory
@@ -227,6 +301,7 @@ async function fetchMemoryContext(
       available: false,
       adapter: null,
       history: [],
+      userContext: null,
       warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
     };
   }
@@ -306,13 +381,14 @@ async function saveToMemory(
 // System Prompt Builder
 // =====================================================
 
-function buildPromptContext(
+async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   history: Array<{ role: string; content: string }>,
+  userId: string,
+  mastraUserContext: MastraUserContext | null,
   memoryWarning?: string,
-  userId?: string,
   subscriptionTier?: 'standard' | 'trailblazer'
-): PromptContext {
+): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
   const inventoryCount = (userContext?.inventoryCount as number) || 0;
@@ -324,7 +400,7 @@ function buildPromptContext(
     locale,
     inventoryCount,
     currentLoadoutId,
-    userId: userId || 'anonymous',
+    userId,
     subscriptionTier: subscriptionTier || 'standard',
   };
 
@@ -332,9 +408,31 @@ function buildPromptContext(
     userContext: promptUserContext,
   };
 
+  // Add user context summary to system prompt (Issue #110)
+  if (mastraUserContext) {
+    const contextSummary = formatContextForPrompt(mastraUserContext);
+    if (contextSummary) {
+      promptContext.gearList = contextSummary;
+      logDebug('User inventory context added to prompt', {
+        userId,
+        metadata: {
+          hasInventory: !!mastraUserContext.inventory,
+          itemCount: mastraUserContext.inventory?.counts.own || 0,
+          wishlistCount: mastraUserContext.inventory?.counts.wishlist || 0,
+        },
+      });
+    }
+  } else {
+    logWarn('No user context available for prompt', {
+      userId,
+      metadata: { conversationId: userContext?.currentLoadoutId },
+    });
+  }
+
   // Add memory context hint if there's history
   if (history.length > 0) {
-    promptContext.gearList = `Previous conversation context: ${history.length} messages in history.`;
+    const historyNote = `\n**Conversation History:** ${history.length} messages in context.`;
+    promptContext.gearList = (promptContext.gearList || '') + historyNote;
   }
 
   // Add memory warning if applicable
@@ -342,7 +440,37 @@ function buildPromptContext(
     promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
   }
 
-  return promptContext;
+  // Pre-load loadout context if viewing a loadout (Improvement #3: Context Pre-loading)
+  let loadoutContext: LoadoutContext | null = null;
+  if (screen === 'loadout-detail' && currentLoadoutId) {
+    // Try to get from cache first (instant - no DB query)
+    loadoutContext = getCachedLoadoutContext(currentLoadoutId, userId);
+
+    // If not cached, pre-load it now
+    if (!loadoutContext) {
+      loadoutContext = await preloadLoadoutContext(currentLoadoutId, userId);
+    }
+
+    // Add loadout context to system prompt
+    if (loadoutContext) {
+      const formattedContext = formatLoadoutContextForPrompt(loadoutContext, locale as 'en' | 'de');
+      promptContext.catalogResults = promptContext.catalogResults
+        ? `${promptContext.catalogResults}\n\n${formattedContext}`
+        : formattedContext;
+
+      logDebug('Loadout context added to system prompt', {
+        userId,
+        metadata: {
+          loadoutId: currentLoadoutId,
+          itemCount: loadoutContext.gearItems.length,
+          totalWeight: loadoutContext.loadout.totalWeight,
+          cached: !!getCachedLoadoutContext(currentLoadoutId, userId),
+        },
+      });
+    }
+  }
+
+  return { promptContext, loadoutContext };
 }
 
 // =====================================================
@@ -420,12 +548,13 @@ export async function POST(request: Request): Promise<Response> {
     // 6. Check rate limits and fetch memory context in parallel (optimized)
     // Running both in parallel saves ~50-200ms per request in the happy path
     // Using checkAndIncrementRateLimit for atomic rate limit check and increment
+    const currentLoadoutId = context?.currentLoadoutId as string | undefined;
     const [rateLimitResult, memoryContextResult] = await Promise.all([
       checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
         'memory_retrieval',
-        () => fetchMemoryContext(supabase, user.id, conversationId),
+        () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId),
         { userId: user.id }
       ).then(r => r.result),
     ]);
@@ -495,8 +624,14 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 9. Build system prompt with memory context
-    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning, user.id);
+    // 9. Build system prompt with memory context, loadout context, and user context (Issue #110)
+    const { promptContext, loadoutContext } = await buildPromptContext(
+      context,
+      memoryContext.history,
+      user.id,
+      memoryContext.userContext,
+      memoryContext.warning
+    );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
     // 10. Check AI availability
@@ -518,6 +653,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const stream = new ReadableStream({
       async start(controller) {
+        let hadError = false;
+
         try {
           // Stream AI response
           const { result: streamingResult } = await traceWorkflowStep(
@@ -536,10 +673,22 @@ export async function POST(request: Request): Promise<Response> {
           );
 
           // Stream text chunks
+          let chunkCount = 0;
           for await (const chunk of streamingResult.textStream) {
             fullResponse += chunk;
             controller.enqueue(encoder.encode(encodeTextEvent(chunk)));
+            chunkCount++;
           }
+
+          logDebug('Text stream completed', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              chunkCount,
+              fullResponseLength: fullResponse.length,
+              responsePreview: fullResponse.substring(0, 100),
+            },
+          });
 
           // Wait for tool calls and finish reason
           const [toolCalls, finishReason] = await Promise.all([
@@ -547,10 +696,69 @@ export async function POST(request: Request): Promise<Response> {
             streamingResult.finishReason,
           ]);
 
+          logDebug('Streaming finished', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              finishReason,
+              toolCallCount: toolCalls?.length || 0,
+              toolNames: toolCalls?.map((tc: { toolName?: string }) => tc.toolName).join(', ') || 'none',
+            },
+          });
+
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
             for (const tc of toolCalls) {
               recordToolCall(tc.toolName || 'unknown');
+            }
+          }
+
+          // BUGFIX: Detect empty responses and provide fallback message
+          // This happens when tool calls fail (e.g., database rate limits) and AI generates no text
+          if (!fullResponse || fullResponse.trim().length === 0) {
+            const fallbackMessage = toolCalls && toolCalls.length > 0
+              ? "I apologize, but I'm having trouble accessing your data right now. This might be due to temporary rate limiting. Please try again in a moment, or rephrase your question."
+              : "I apologize, but I wasn't able to generate a response. Please try asking your question again.";
+
+            fullResponse = fallbackMessage;
+            controller.enqueue(encoder.encode(encodeTextEvent(fallbackMessage)));
+
+            logWarn('Empty AI response detected, injected fallback message', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                hadToolCalls: toolCalls?.length || 0,
+                finishReason,
+              },
+            });
+          }
+
+          // Improvement #4: Add proactive suggestions to stream
+          // Only show suggestions when conversation naturally completes (not during tool calls or errors)
+          const isNaturalCompletion = finishReason === 'stop';
+          if (isNaturalCompletion && shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
+            const suggestions = generateProactiveSuggestions(
+              promptContext.userContext,
+              loadoutContext,
+              (context?.locale as 'en' | 'de') || 'en'
+            );
+
+            if (suggestions.length > 0) {
+              const suggestionsText = formatSuggestionsForStream(
+                suggestions,
+                (context?.locale as 'en' | 'de') || 'en'
+              );
+              controller.enqueue(encoder.encode(encodeTextEvent(suggestionsText)));
+              fullResponse += suggestionsText;
+
+              logDebug('Proactive suggestions added to response', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  suggestionCount: suggestions.length,
+                  finishReason,
+                },
+              });
             }
           }
 
@@ -591,6 +799,7 @@ export async function POST(request: Request): Promise<Response> {
 
           controller.close();
         } catch (streamError) {
+          hadError = true;
           const errorMessage =
             streamError instanceof Error ? streamError.message : 'Unknown streaming error';
 

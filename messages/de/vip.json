@@ -230,7 +230,18 @@
       "pendingInvitations": "Ausstehende Einladungen",
       "resendInvitation": "Erneut senden",
       "revokeInvitation": "Widerrufen",
-      "claimStatus": "Anspruch-Status"
+      "claimStatus": "Anspruch-Status",
+      "errors": {
+        "INVALID_EMAIL": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+        "AUTHENTICATION_REQUIRED": "Sie müssen angemeldet sein, um Einladungen zu senden",
+        "ADMIN_ACCESS_REQUIRED": "Administratorzugriff ist erforderlich, um Einladungen zu senden",
+        "VIP_NOT_FOUND": "VIP-Konto nicht gefunden",
+        "VIP_ALREADY_CLAIMED": "Dieses VIP-Konto wurde bereits beansprucht",
+        "INVITATION_ALREADY_PENDING": "Für diese E-Mail-Adresse steht bereits eine Einladung aus",
+        "INVITATION_CREATE_FAILED": "Einladung konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+        "INTERNAL_SERVER_ERROR": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+        "genericError": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+      }
     },
 
     "archive": {

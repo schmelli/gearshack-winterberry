@@ -25,8 +25,17 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, AlertCircle, Inbox } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import type { OfferReportReason } from '@/types/merchant-offer';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Component
@@ -117,7 +126,7 @@ export function UserOffersClient() {
     async (reason: string, details?: string): Promise<boolean> => {
       if (!selectedOffer) return false;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         // Insert report - T064: Report functionality

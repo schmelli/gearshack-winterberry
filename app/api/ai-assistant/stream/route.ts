@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     if (!rateLimitingDisabled) {
       // 2a. Check subscription tier (Trailblazer only for MVP)
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await (supabase as any)
         .from('profiles')
         .select('subscription_tier')
         .eq('id', user.id)

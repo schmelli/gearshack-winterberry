@@ -425,7 +425,7 @@ export function FriendsList({
           <AlertDialogHeader>
             <AlertDialogTitle>{t('friends.unfriendTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('friends.unfriendConfirm', { name: confirmUnfriend?.display_name })}
+              {t('friends.unfriendConfirm', { name: confirmUnfriend?.display_name || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

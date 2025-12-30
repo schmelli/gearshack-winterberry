@@ -48,7 +48,7 @@ export function EditLoadoutClient({ loadoutId }: EditLoadoutClientProps) {
     removeAvailability,
   } = useMerchantLoadouts();
 
-  const { catalogItems, isLoading: isCatalogLoading } = useMerchantCatalog();
+  const { items: catalogItems, isLoading: isCatalogLoading } = useMerchantCatalog();
   const { locations, isLoading: isLocationsLoading } = useMerchantLocations();
 
   // Load the loadout on mount

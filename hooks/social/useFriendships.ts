@@ -13,7 +13,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriends,
   areFriends,
@@ -23,7 +24,7 @@ import {
 import type { UseFriendshipsReturn, FriendInfo, FriendsListFilters, FriendsListSortBy } from '@/types/social';
 
 export function useFriendships(): UseFriendshipsReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export function useFriendships(): UseFriendshipsReturn {
    * Loads the friends list.
    */
   const loadFriends = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setFriends([]);
       setIsLoading(false);
       return;
@@ -47,7 +48,7 @@ export function useFriendships(): UseFriendshipsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchFriends(user.id);
+      const data = await fetchFriends(user.uid);
       setFriends(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load friends list';
@@ -56,7 +57,7 @@ export function useFriendships(): UseFriendshipsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Unfriends a user. Silent operation - no notification sent.
@@ -64,7 +65,7 @@ export function useFriendships(): UseFriendshipsReturn {
    */
   const unfriendUser = useCallback(
     async (friendId: string): Promise<void> => {
-      if (!user?.id) {
+      if (!user?.uid) {
         throw new Error('Must be logged in to unfriend users');
       }
 
@@ -75,7 +76,7 @@ export function useFriendships(): UseFriendshipsReturn {
       setFriends((prev) => prev.filter((f) => f.id !== friendId));
 
       try {
-        await unfriend(user.id, friendId);
+        await unfriend(user.uid, friendId);
       } catch (err) {
         // Rollback on error
         setFriends(previousFriends);
@@ -84,7 +85,7 @@ export function useFriendships(): UseFriendshipsReturn {
         throw err;
       }
     },
-    [user?.id, friends]
+    [user?.uid, friends]
   );
 
   /**
@@ -105,16 +106,16 @@ export function useFriendships(): UseFriendshipsReturn {
    */
   const getMutualFriends = useCallback(
     async (userId: string): Promise<FriendInfo[]> => {
-      if (!user?.id) return [];
+      if (!user?.uid) return [];
 
       try {
-        return await fetchMutualFriends(user.id, userId);
+        return await fetchMutualFriends(user.uid, userId);
       } catch (err) {
         console.error('Error fetching mutual friends:', err);
         return [];
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**
@@ -227,12 +228,12 @@ export function useIsFriend(targetUserId: string): {
   isFriend: boolean;
   isLoading: boolean;
 } {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [isFriend, setIsFriend] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id || !targetUserId) {
+    if (!user?.uid || !targetUserId) {
       setIsFriend(false);
       setIsLoading(false);
       return;
@@ -241,7 +242,7 @@ export function useIsFriend(targetUserId: string): {
     const checkFriendship = async () => {
       try {
         setIsLoading(true);
-        const result = await areFriends(user.id, targetUserId);
+        const result = await areFriends(user.uid, targetUserId);
         setIsFriend(result);
       } catch (err) {
         console.error('Error checking friendship:', err);
@@ -252,7 +253,7 @@ export function useIsFriend(targetUserId: string): {
     };
 
     checkFriendship();
-  }, [user?.id, targetUserId]);
+  }, [user?.uid, targetUserId]);
 
   return { isFriend, isLoading };
 }

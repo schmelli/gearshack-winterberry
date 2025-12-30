@@ -84,7 +84,7 @@ export function MessageList({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto scroll-smooth px-6 py-4"
+      className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-6 py-4"
     >
       <div className="mx-auto max-w-3xl space-y-4">
         {messages.map((message, index) => {

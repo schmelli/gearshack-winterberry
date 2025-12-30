@@ -21,9 +21,9 @@ interface UseLoadoutItemStateReturn {
   /** Get consumable state for an item */
   isConsumable: (itemId: string) => boolean;
   /** Toggle worn state for an item */
-  toggleWorn: (itemId: string) => void;
+  toggleWorn: (itemId: string) => Promise<void>;
   /** Toggle consumable state for an item */
-  toggleConsumable: (itemId: string) => void;
+  toggleConsumable: (itemId: string) => Promise<void>;
 }
 
 // =============================================================================
@@ -54,17 +54,27 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
   );
 
   const toggleWorn = useCallback(
-    (itemId: string) => {
+    async (itemId: string) => {
       const currentState = isWorn(itemId);
-      setItemWorn(loadoutId, itemId, !currentState);
+      try {
+        await setItemWorn(loadoutId, itemId, !currentState);
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutItemState] Failed to toggle worn state:', error);
+      }
     },
     [loadoutId, isWorn, setItemWorn]
   );
 
   const toggleConsumable = useCallback(
-    (itemId: string) => {
+    async (itemId: string) => {
       const currentState = isConsumable(itemId);
-      setItemConsumable(loadoutId, itemId, !currentState);
+      try {
+        await setItemConsumable(loadoutId, itemId, !currentState);
+      } catch (error) {
+        // Error toast is already shown by the store
+        console.error('[LoadoutItemState] Failed to toggle consumable state:', error);
+      }
     },
     [loadoutId, isConsumable, setItemConsumable]
   );

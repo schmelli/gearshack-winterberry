@@ -500,13 +500,10 @@ export async function areFriends(userId1: string, userId2: string): Promise<bool
 export async function unfriend(userId: string, friendId: string): Promise<void> {
   const supabase = getSocialClient();
 
-  // Due to canonical ordering, we need to delete in both possible orderings
-  const { error } = await supabase
-    .from('friendships')
-    .delete()
-    .or(
-      `and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
-    );
+  // Use RPC function to safely handle unfriend with canonical ordering
+  const { error } = await supabase.rpc('unfriend_user', {
+    p_friend_id: friendId,
+  });
 
   if (error) {
     throw new Error(`Failed to unfriend: ${error.message}`);
@@ -515,10 +512,15 @@ export async function unfriend(userId: string, friendId: string): Promise<void> 
 
 /**
  * Fetches mutual friends between two users using the RPC function.
+ *
+ * @param userId1 - First user ID
+ * @param userId2 - Second user ID
+ * @param limit - Maximum number of results to return (default: 100)
  */
 export async function fetchMutualFriends(
   userId1: string,
-  userId2: string
+  userId2: string,
+  limit = 100
 ): Promise<FriendInfo[]> {
   const supabase = getSocialClient();
 
@@ -535,12 +537,15 @@ export async function fetchMutualFriends(
     throw new Error(`Failed to fetch mutual friends: ${error.message}`);
   }
 
-  return ((data ?? []) as QueryResult[]).map((row) => ({
+  // Apply client-side limit (IMPROVED: configurable limit)
+  const results = ((data ?? []) as QueryResult[]).map((row) => ({
     id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
     avatar_url: row.avatar_url,
     friends_since: '', // Not available from this RPC
   }));
+
+  return results.slice(0, limit);
 }
 
 /**
@@ -568,20 +573,52 @@ export async function fetchFriendActivities(
 ): Promise<FriendActivityWithProfile[]> {
   const supabase = getSocialClient();
 
-  const { data, error } = await supabase.rpc('get_friend_activity_feed', {
+  // Use server-side filtering to avoid unnecessary data transfer (FIXED: moved filtering to server)
+  const { data, error } = await supabase.rpc('get_friend_activity_feed_filtered', {
     p_limit: limit,
     p_offset: offset,
+    p_activity_type: activityTypeFilter ?? null,
   });
 
   if (error) {
     if (error.code === '42883') {
-      // Function doesn't exist yet
-      return [];
+      // Function doesn't exist yet, fall back to unfiltered version
+      const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_friend_activity_feed', {
+        p_limit: limit,
+        p_offset: offset,
+      });
+
+      if (fallbackError) {
+        if (fallbackError.code === '42883') {
+          return [];
+        }
+        throw new Error(`Failed to fetch friend activities: ${fallbackError.message}`);
+      }
+
+      let activities = ((fallbackData ?? []) as QueryResult[]).map((row) => ({
+        id: row.id,
+        user_id: row.user_id,
+        display_name: row.display_name ?? 'Unknown',
+        avatar_url: row.avatar_url,
+        activity_type: row.activity_type as ActivityType,
+        reference_type: row.reference_type,
+        reference_id: row.reference_id,
+        metadata: row.metadata ?? {},
+        visibility: row.visibility,
+        created_at: row.created_at,
+      }));
+
+      // Client-side filter only for fallback
+      if (activityTypeFilter) {
+        activities = activities.filter((a) => a.activity_type === activityTypeFilter);
+      }
+
+      return activities;
     }
     throw new Error(`Failed to fetch friend activities: ${error.message}`);
   }
 
-  let activities = ((data ?? []) as QueryResult[]).map((row) => ({
+  return ((data ?? []) as QueryResult[]).map((row) => ({
     id: row.id,
     user_id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
@@ -593,13 +630,6 @@ export async function fetchFriendActivities(
     visibility: row.visibility,
     created_at: row.created_at,
   }));
-
-  // Apply client-side filter if specified
-  if (activityTypeFilter) {
-    activities = activities.filter((a) => a.activity_type === activityTypeFilter);
-  }
-
-  return activities;
 }
 
 /**
@@ -677,7 +707,7 @@ export async function fetchSocialPrivacySettings(
     privacy_preset: data.privacy_preset ?? 'everyone',
     messaging_privacy: data.messaging_privacy ?? 'everyone',
     online_status_privacy: data.online_status_privacy ?? 'friends_only',
-    activity_feed_privacy: 'friends', // Default - could be added to profiles table
+    activity_feed_privacy: 'friends_only', // Default - could be added to profiles table
     discoverable: data.discoverable ?? true,
   };
 }
@@ -736,14 +766,14 @@ export async function applyPrivacyPreset(
       privacy_preset: 'friends_only',
       messaging_privacy: 'friends_only',
       online_status_privacy: 'friends_only',
-      activity_feed_privacy: 'friends',
+      activity_feed_privacy: 'friends_only',
       discoverable: true,
     },
     everyone: {
       privacy_preset: 'everyone',
       messaging_privacy: 'everyone',
       online_status_privacy: 'everyone',
-      activity_feed_privacy: 'friends',
+      activity_feed_privacy: 'friends_only',
       discoverable: true,
     },
   };
@@ -815,8 +845,82 @@ export async function getOnlineStatuses(
 // =============================================================================
 
 /**
+ * Profile cache for real-time subscriptions to avoid N+1 queries.
+ * TTL: 5 minutes
+ */
+const profileCache = new Map<string, {
+  profile: { display_name: string; avatar_url: string | null };
+  timestamp: number;
+}>();
+
+const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Cleans up expired entries from the profile cache (FIXED: prevents memory leak).
+ * Should be called periodically or when cache grows too large.
+ */
+function cleanupProfileCache(): void {
+  const now = Date.now();
+  const expiredKeys: string[] = [];
+
+  // Identify expired entries
+  profileCache.forEach((value, key) => {
+    if (now - value.timestamp >= PROFILE_CACHE_TTL) {
+      expiredKeys.push(key);
+    }
+  });
+
+  // Remove expired entries
+  expiredKeys.forEach((key) => profileCache.delete(key));
+}
+
+/**
+ * Fetches profile with caching to reduce N+1 queries.
+ */
+async function getCachedProfile(
+  userId: string,
+  supabase: QueryResult
+): Promise<{ display_name: string; avatar_url: string | null }> {
+  const now = Date.now();
+  const cached = profileCache.get(userId);
+
+  // Return cached if valid
+  if (cached && now - cached.timestamp < PROFILE_CACHE_TTL) {
+    return cached.profile;
+  }
+
+  // Periodically cleanup expired entries (every 100 cache misses)
+  if (Math.random() < 0.01) {
+    cleanupProfileCache();
+  }
+
+  // Fetch fresh profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('id', userId)
+    .single();
+
+  const profileData = {
+    display_name: profile?.display_name ?? 'Unknown',
+    avatar_url: profile?.avatar_url ?? null,
+  };
+
+  // Update cache
+  profileCache.set(userId, {
+    profile: profileData,
+    timestamp: now,
+  });
+
+  return profileData;
+}
+
+/**
  * Creates a Realtime subscription for friend activities.
  * Returns an unsubscribe function.
+ *
+ * IMPROVED: Uses profile caching to avoid N+1 queries when multiple
+ * friends are active simultaneously.
  */
 export function subscribeToFriendActivities(
   userId: string,
@@ -834,18 +938,14 @@ export function subscribeToFriendActivities(
         table: 'friend_activities',
       },
       async (payload: QueryResult) => {
-        // Fetch the profile for the activity creator
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('id', payload.new.user_id)
-          .single();
+        // Fetch profile with caching (FIXED: reduces N+1 queries)
+        const profile = await getCachedProfile(payload.new.user_id, supabase);
 
         const activity: FriendActivityWithProfile = {
           id: payload.new.id,
           user_id: payload.new.user_id,
-          display_name: profile?.display_name ?? 'Unknown',
-          avatar_url: profile?.avatar_url,
+          display_name: profile.display_name,
+          avatar_url: profile.avatar_url,
           activity_type: payload.new.activity_type,
           reference_type: payload.new.reference_type,
           reference_id: payload.new.reference_id,

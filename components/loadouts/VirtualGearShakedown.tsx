@@ -292,6 +292,10 @@ export function VirtualGearShakedown({
       canBeBorrowed: false,
       canBeTraded: false,
       dependencyIds: [],
+      // Merchant integration properties (053)
+      sourceMerchantId: null,
+      sourceOfferId: null,
+      sourceLoadoutId: null,
     };
   }, [selectedItem]);
 

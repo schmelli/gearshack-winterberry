@@ -35,7 +35,9 @@
     "edit": "Edit",
     "error": "Something went wrong",
     "uncategorized": "Uncategorized",
-    "genericUser": "User"
+    "genericUser": "User",
+    "unknown": "Unknown",
+    "anonymousUser": "Anonymous User"
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
@@ -399,6 +401,13 @@
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
     "deleteLoadout": "Delete loadout",
+    "errors": {
+      "addItemFailed": "Failed to add item to loadout",
+      "removeItemFailed": "Failed to remove item from loadout",
+      "updateMetadataFailed": "Failed to update loadout metadata",
+      "updateWornStateFailed": "Failed to update item worn state",
+      "updateConsumableStateFailed": "Failed to update item consumable state"
+    },
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "exportOptions": "Export options",
     "export": "Export",
@@ -466,6 +475,32 @@
       "nameTooLong": "Name must be 100 characters or less",
       "descriptionTooLong": "Description must be 500 characters or less"
     }
+  },
+  "Shakedown": {
+    "linkCopied": "Link copied",
+    "copyFailed": "Failed to copy",
+    "createdAgo": "Created {time}",
+    "expired": "Expired",
+    "views": "Views",
+    "passwordProtected": "Password protected",
+    "commentsEnabled": "Comments enabled",
+    "disableComments": "Disable comments",
+    "enableComments": "Enable comments",
+    "removePassword": "Remove password",
+    "setPassword": "Set password",
+    "deleteShare": "Delete share",
+    "enterPassword": "Enter password (min 8 chars)",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "expiresOn": "Expires {date}",
+    "deleteShareTitle": "Delete share link?",
+    "deleteShareDescription": "This will permanently remove this share link. Anyone with the link will no longer be able to access your loadout.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "manageShares": "Manage Shares",
+    "manageSharesDescription": "Manage share links for \"{name}\"",
+    "loading": "Loading...",
+    "noShares": "No share links yet",
+    "noSharesHint": "Create a share link to let others view your loadout"
   },
   "SharedLoadout": {
     "heroTitle": "Virtual Gear Shakedown",
@@ -747,6 +782,9 @@
       "pending": "Pending",
       "friends": "Friends",
       "unfriend": "Unfriend",
+      "unfriended": "Friend removed",
+      "unfriendFailed": "Failed to unfriend",
+      "unfriendTitle": "Remove Friend?",
       "cancel": "Cancel Request",
       "accept": "Accept",
       "decline": "Decline",
@@ -756,11 +794,20 @@
       "unfriendDescription": "They will lose access to your friends-only content.",
       "emptyTitle": "No friends yet",
       "emptyDescription": "Start a conversation with someone to send them a friend request.",
+      "noOnlineFriends": "No online friends right now",
+      "noSearchResults": "No friends found matching \"{query}\"",
       "searchPlaceholder": "Search friends...",
+      "searchAriaLabel": "Search friends",
+      "listAriaLabel": "Friends list",
+      "since": "Friends since {date}",
+      "sort": "Sort",
+      "sortBy": "Sort by",
       "sortByName": "Name",
       "sortByRecent": "Recent Activity",
       "sortByOnline": "Online",
       "sortByDateAdded": "Date Added",
+      "onlineOnly": "Online only",
+      "showingFiltered": "Showing {shown} of {total} friends",
       "mutualFriends": "{count} mutual friends",
       "mutualFriend": "1 mutual friend",
       "noMutualFriends": "No mutual friends",
@@ -775,7 +822,13 @@
       "outgoing": "Sent",
       "emptyIncoming": "No pending friend requests",
       "emptyOutgoing": "No sent friend requests",
-      "expiresIn": "Expires in {days} days"
+      "expiresIn": "Expires in {days} days",
+      "sendFailed": "Failed to send friend request",
+      "acceptFailed": "Failed to accept friend request",
+      "declineFailed": "Failed to decline friend request",
+      "cancelFailed": "Failed to cancel friend request",
+      "rateLimitExceeded": "You've sent too many friend requests. Try again later.",
+      "noMessageExchange": "You need to message them first before sending a friend request"
     },
     "activity": {
       "title": "Activity Feed",
@@ -799,7 +852,8 @@
       "invisible": "Invisible",
       "offline": "Offline",
       "lastActive": "Last active {time}",
-      "updating": "Updating..."
+      "updating": "Updating...",
+      "updateFailed": "Failed to update status"
     },
     "privacy": {
       "title": "Privacy Settings",
@@ -828,7 +882,11 @@
         "everyone": "Everyone",
         "friendsOnly": "Friends Only",
         "nobody": "Nobody"
-      }
+      },
+      "presetApplied": "Privacy preset applied",
+      "presetFailed": "Failed to apply preset",
+      "settingUpdated": "Setting updated",
+      "settingFailed": "Failed to update setting"
     }
   },
   "Shakedowns": {
@@ -887,6 +945,9 @@
       "addPlaceholder": "Share your thoughts, suggestions, or experience...",
       "reply": "Reply",
       "replyTo": "Reply to {author}",
+      "replyingToComment": "Replying to comment",
+      "cancel": "Cancel",
+      "save": "Save",
       "edit": "Edit",
       "delete": "Delete",
       "report": "Report",
@@ -902,7 +963,9 @@
       "characterCount": "{count}/{max} characters",
       "maxDepthReached": "Maximum reply depth reached",
       "submitting": "Submitting...",
-      "closed": "This shakedown is no longer accepting feedback"
+      "closed": "This shakedown is no longer accepting feedback",
+      "generalFeedback": "General Feedback",
+      "itemFeedback": "Item Feedback"
     },
     "actions": {
       "edit": "Edit Shakedown",
@@ -923,7 +986,11 @@
       "startSimilar": "Start Similar Shakedown",
       "startSimilarTooltip": "Create your own shakedown inspired by this one",
       "requestShakedown": "Request Community Shakedown",
-      "retry": "Retry"
+      "retry": "Retry",
+      "deleteShakedown": "Delete Shakedown",
+      "deleteShakedownConfirm": "Are you sure you want to delete this shakedown? This action cannot be undone.",
+      "deleteFeedback": "Delete Feedback",
+      "deleteFeedbackConfirm": "Are you sure you want to delete this feedback? This action cannot be undone."
     },
     "filters": {
       "title": "Filters",
@@ -971,7 +1038,8 @@
       "details": "Additional Details (optional)",
       "detailsPlaceholder": "Provide any additional context...",
       "submit": "Submit Report",
-      "success": "Report submitted. Content hidden pending review.",
+      "successMessage": "Report submitted. Thank you for helping keep our community safe.",
+      "successHidden": "Report submitted. Content hidden pending review.",
       "alreadyReported": "You've already reported this feedback"
     },
     "badges": {
@@ -1002,7 +1070,9 @@
     },
     "notifications": {
       "newFeedback": "{author} commented on your shakedown",
+      "newFeedbackGeneric": "New feedback on your shakedown",
       "newReply": "{author} replied to your comment",
+      "newReplyGeneric": "New reply to your comment",
       "markedHelpful": "{author} found your feedback helpful",
       "loadoutUpdated": "The loadout has been updated",
       "badgeEarned": "You earned the {badge} badge!"

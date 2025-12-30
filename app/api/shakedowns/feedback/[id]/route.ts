@@ -255,6 +255,7 @@ export async function PATCH(
       console.error('[API] Failed to fetch updated feedback:', viewError);
 
       // Return minimal feedback data if view fetch fails
+      // Empty authorName allows client-side i18n to display "Unknown" in user's language
       const minimalFeedback: FeedbackWithAuthor = {
         id: feedbackId,
         shakedownId: feedback.shakedown_id,
@@ -270,7 +271,7 @@ export async function PATCH(
         editedAt: now,
         createdAt: feedback.created_at,
         updatedAt: now,
-        authorName: 'Unknown',
+        authorName: '',
         authorAvatar: null,
         authorReputation: 0,
         gearItemName: null,

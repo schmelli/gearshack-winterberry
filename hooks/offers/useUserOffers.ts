@@ -12,8 +12,17 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import type {
   UserOffer,
   UserOfferDetail,
@@ -81,7 +90,7 @@ export function useUserOffers(): UseUserOffersReturn {
       return;
     }
 
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -125,7 +134,8 @@ export function useUserOffers(): UseUserOffersReturn {
 
       if (fetchError) throw fetchError;
 
-      const transformed: UserOffer[] = (data ?? []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed: UserOffer[] = (data ?? []).map((row: any) => ({
         id: row.id,
         merchant: {
           id: row.merchant.id,
@@ -167,7 +177,7 @@ export function useUserOffers(): UseUserOffersReturn {
     async (offerId: string) => {
       if (!user?.id) return;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         setError(null);
@@ -285,7 +295,7 @@ export function useUserOffers(): UseUserOffersReturn {
         return false;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsProcessing(true);
 
       try {
@@ -341,7 +351,7 @@ export function useUserOffers(): UseUserOffersReturn {
         return false;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsProcessing(true);
 
       try {

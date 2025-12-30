@@ -49,9 +49,10 @@ export function LinkedContentPreview({
 
       try {
         if (contentType === 'loadout' || contentType === 'shakedown') {
-          const { data: loadout, error: err } = await supabase
+          // Note: Type assertion needed due to schema mismatch
+          const { data: loadout, error: err } = await (supabase as any)
             .from('loadouts')
-            .select('id, name, hero_image_url, base_weight_g')
+            .select('id, name')
             .eq('id', contentId)
             .single();
 
@@ -63,24 +64,25 @@ export function LinkedContentPreview({
             .select('*', { count: 'exact', head: true })
             .eq('loadout_id', contentId);
 
+          // Note: Type assertion needed - loadouts fields accessed directly
           setData({
-            id: loadout.id,
-            title: loadout.name,
-            thumbnail: loadout.hero_image_url,
-            baseWeight: loadout.base_weight_g,
+            id: (loadout as any).id,
+            title: (loadout as any).name,
+            thumbnail: (loadout as any).hero_image_url || null,
+            baseWeight: (loadout as any).base_weight_g,
             itemCount: count ?? 0,
           });
         }
         // TODO: Add marketplace_item support when needed
       } catch {
-        setError('Failed to load content');
+        setError(t('linkedContent.loadFailed'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchContentData();
-  }, [contentType, contentId, supabase]);
+  }, [contentType, contentId, supabase, t]);
 
   if (isLoading) {
     return (
@@ -103,7 +105,7 @@ export function LinkedContentPreview({
         <CardContent className="flex items-center gap-3 p-4">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <span className="text-sm text-destructive">
-            {error ?? 'Content not found'}
+            {error ?? t('linkedContent.notFound')}
           </span>
         </CardContent>
       </Card>

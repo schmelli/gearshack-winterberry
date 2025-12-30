@@ -10,8 +10,17 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import { useMerchantProfile } from './useMerchantProfile';
 import type {
   MerchantTransaction,
@@ -69,7 +78,7 @@ const SUMMARY_MONTHS = 12;
 // =============================================================================
 
 export function useMerchantBilling(): UseMerchantBillingReturn {
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabase = useMemo(() => getMerchantClient(), []);
   useAuth(); // Ensure user is authenticated
   const { merchant } = useMerchantProfile();
 
@@ -139,7 +148,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
 
       if (fetchError) throw fetchError;
 
-      const mapped: MerchantTransaction[] = (data || []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped: MerchantTransaction[] = (data || []).map((row: any) => ({
         id: row.id,
         merchantId: row.merchant_id,
         type: row.type as TransactionType,
@@ -191,7 +201,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
         }
       >();
 
-      (data || []).forEach((tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data || []).forEach((tx: any) => {
         const key = `${tx.billing_cycle_start}_${tx.billing_cycle_end}`;
         const existing = cycleMap.get(key) || {
           start: tx.billing_cycle_start,
@@ -293,7 +304,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
         { listingFees: number; offerFees: number; commissions: number }
       >();
 
-      (data || []).forEach((tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data || []).forEach((tx: any) => {
         const month = tx.billing_cycle_start.substring(0, 7); // YYYY-MM
 
         const monthData = monthlyData.get(month) || {
@@ -385,7 +397,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
         let offerFees = 0;
         let commissions = 0;
 
-        const lineItems = (data || []).map((tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lineItems = (data || []).map((tx: any) => {
           const amount = Number(tx.amount);
 
           switch (tx.type) {
@@ -424,7 +437,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
           15
         );
 
-        const isPaid = data?.every((tx) => tx.status === 'paid');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isPaid = data?.every((tx: any) => tx.status === 'paid');
 
         setCurrentCycle({
           id: cycleId,

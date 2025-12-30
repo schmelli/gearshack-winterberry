@@ -55,32 +55,22 @@ export function VipLoadoutSelector({
   const [options, setOptions] = useState<VipLoadoutOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load VIP loadouts
+  // Load VIP loadouts using optimized endpoint
   useEffect(() => {
     const fetchLoadouts = async () => {
       setIsLoading(true);
       try {
-        // Fetch VIPs
-        const response = await fetch('/api/vip?limit=50');
-        if (!response.ok) throw new Error('Failed to fetch VIPs');
-
-        const data = await response.json();
-        const loadoutOptions: VipLoadoutOption[] = [];
-
-        // For each VIP, fetch their loadouts
-        for (const vip of data.vips) {
-          const profileResponse = await fetch(`/api/vip/${vip.slug}`);
-          if (!profileResponse.ok) continue;
-
-          const profile = await profileResponse.json();
-          for (const loadout of profile.loadouts || []) {
-            if (loadout.id !== excludeLoadoutId) {
-              loadoutOptions.push({ vip, loadout });
-            }
-          }
+        // Use new optimized endpoint that fetches all VIPs with loadouts in one query
+        const url = new URL('/api/vip-loadout-options', window.location.origin);
+        if (excludeLoadoutId) {
+          url.searchParams.set('excludeLoadoutId', excludeLoadoutId);
         }
 
-        setOptions(loadoutOptions);
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error('Failed to fetch VIP loadout options');
+
+        const data = await response.json();
+        setOptions(data.options || []);
       } catch (err) {
         console.error('Failed to load VIP loadouts:', err);
       } finally {

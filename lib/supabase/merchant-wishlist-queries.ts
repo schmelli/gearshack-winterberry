@@ -7,8 +7,17 @@
  * Functions for adding merchant loadout items to user wishlist with attribution.
  */
 
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import type { LoadoutItemWithDetails } from '@/types/merchant-loadout';
+
+/**
+ * Helper to get supabase client with any typing for merchant columns
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Types
@@ -41,7 +50,7 @@ export interface AddFromLoadoutResult {
 export async function addMerchantItemToWishlist(
   params: AddFromLoadoutParams
 ): Promise<AddFromLoadoutResult> {
-  const supabase = createBrowserClient();
+  const supabase = getMerchantClient();
   const { loadoutItem, merchantId, loadoutId } = params;
 
   // Get current user
@@ -51,14 +60,21 @@ export async function addMerchantItemToWishlist(
   }
 
   // Check for duplicate by name + brand
-  const { data: existing } = await supabase
+  let duplicateQuery = supabase
     .from('gear_items')
     .select('id')
     .eq('user_id', user.id)
     .eq('status', 'wishlist')
-    .ilike('name', loadoutItem.catalogItem.name)
-    .eq('brand', loadoutItem.catalogItem.brand)
-    .maybeSingle();
+    .ilike('name', loadoutItem.catalogItem.name);
+
+  // Handle nullable brand
+  if (loadoutItem.catalogItem.brand) {
+    duplicateQuery = duplicateQuery.eq('brand', loadoutItem.catalogItem.brand);
+  } else {
+    duplicateQuery = duplicateQuery.is('brand', null);
+  }
+
+  const { data: existing } = await duplicateQuery.maybeSingle();
 
   if (existing) {
     return {
@@ -78,7 +94,7 @@ export async function addMerchantItemToWishlist(
       brand: loadoutItem.catalogItem.brand,
       price_paid: loadoutItem.catalogItem.price,
       weight_grams: loadoutItem.catalogItem.weightGrams,
-      product_url: loadoutItem.catalogItem.productUrl,
+      product_url: loadoutItem.catalogItem.externalUrl,
       image_url: loadoutItem.catalogItem.imageUrl,
       catalog_product_id: loadoutItem.catalogItemId,
       source_merchant_id: merchantId,
@@ -135,7 +151,7 @@ export async function addAllLoadoutItemsToWishlist(
  * Used to highlight which items are already in wishlist
  */
 export async function getWishlistedCatalogItemIds(): Promise<Set<string>> {
-  const supabase = createBrowserClient();
+  const supabase = getMerchantClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Set();
@@ -151,7 +167,8 @@ export async function getWishlistedCatalogItemIds(): Promise<Set<string>> {
 
   return new Set(
     data
-      .map((item) => item.catalog_product_id)
-      .filter((id): id is string => id !== null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((item: any) => item.catalog_product_id as string | null)
+      .filter((id: string | null): id is string => id !== null)
   );
 }

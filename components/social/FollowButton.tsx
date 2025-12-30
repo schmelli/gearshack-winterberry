@@ -25,7 +25,7 @@ import { UserPlus, UserMinus, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsFollowing } from '@/hooks/social/useFollowing';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useTranslations } from 'next-intl';
 
 // =============================================================================
@@ -69,13 +69,13 @@ export function FollowButton({
   followerCount,
 }: FollowButtonProps) {
   const t = useTranslations('Social');
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useAuthContext();
   const { isFollowing, isLoading: isCheckingFollow, toggle } = useIsFollowing(userId);
   const [isOperating, setIsOperating] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
   // Can't follow yourself
-  const isSelf = currentUser?.id === userId;
+  const isSelf = currentUser?.uid === userId;
   const isLoading = isCheckingFollow || isOperating;
 
   const handleClick = useCallback(async () => {

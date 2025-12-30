@@ -171,7 +171,7 @@ export async function GET(
     }
 
     // Fetch loadout data
-    const { data: loadoutRow, error: loadoutError } = await supabase
+    const { data: loadoutRow, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('id, name, description, total_weight_grams, item_count, item_ids, item_states')
       .eq('id', shakedown.loadout_id)
@@ -190,7 +190,7 @@ export async function GET(
     // Fetch gear items for the loadout
     let gearItems: GearItemApiResponse[] = [];
     if (loadout.item_ids && loadout.item_ids.length > 0) {
-      const { data: gearItemRows, error: gearItemsError } = await supabase
+      const { data: gearItemRows, error: gearItemsError } = await (supabase as any)
         .from('gear_items')
         .select('id, name, brand, description, weight_grams, image_url, product_type_id')
         .in('id', loadout.item_ids);
@@ -538,7 +538,7 @@ export async function PATCH(
     // Note: total_weight_grams and item_count come from the v_shakedowns_feed view,
     // not the loadouts table directly. We'll get the name from the table
     // and use 0 as defaults for the weight/count (they're calculated in the view)
-    const { data: loadoutRow, error: loadoutError } = await supabase
+    const { data: loadoutRow, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('id, name')
       .eq('id', shakedown.loadout_id)

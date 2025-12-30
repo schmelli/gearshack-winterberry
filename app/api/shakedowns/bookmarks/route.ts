@@ -452,12 +452,13 @@ export async function POST(
       console.error('[API] Failed to fetch shakedown feed data:', feedError);
 
       // Return bookmark with minimal shakedown data if feed fetch fails
+      // Empty strings allow client-side i18n to display "Unknown" in user's language
       const minimalBookmark: BookmarkedShakedown = {
         ...mapDbRowToBookmark(insertedBookmark as BookmarkDbRow),
         shakedown: {
           id: shakedownId,
           ownerId: shakedown.owner_id,
-          tripName: 'Unknown',
+          tripName: '',
           tripStartDate: '',
           tripEndDate: '',
           experienceLevel: 'beginner',
@@ -466,9 +467,9 @@ export async function POST(
           feedbackCount: 0,
           helpfulCount: 0,
           createdAt: '',
-          authorName: 'Unknown',
+          authorName: '',
           authorAvatar: null,
-          loadoutName: 'Unknown',
+          loadoutName: '',
           totalWeightGrams: 0,
           itemCount: 0,
         },

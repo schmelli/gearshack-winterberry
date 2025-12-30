@@ -21,7 +21,7 @@ import { AdminMerchantDetail } from '@/components/admin/AdminMerchantDetail';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 export function AdminMerchantsClient() {
   const t = useTranslations('AdminMerchants');
@@ -42,7 +42,7 @@ export function AdminMerchantsClient() {
       }
 
       try {
-        const supabase = createBrowserClient();
+        const supabase = createClient();
         const { data } = await supabase
           .from('profiles')
           .select('role')

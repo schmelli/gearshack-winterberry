@@ -109,10 +109,10 @@ function ShareListItemRow({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success(t('linkCopied') || 'Link copied');
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy');
+      toast.error(t('copyFailed'));
     }
   };
 
@@ -121,8 +121,8 @@ function ShareListItemRow({
   };
 
   const handleSetPassword = async () => {
-    if (!passwordValue || passwordValue.length < 4) {
-      toast.error('Password must be at least 4 characters');
+    if (!passwordValue || passwordValue.length < 8) {
+      toast.error(t('passwordTooShort'));
       return;
     }
     const success = await onSetPassword(passwordValue);
@@ -173,10 +173,14 @@ function ShareListItemRow({
             <span>{share.viewCount}</span>
           </div>
           {share.hasPassword && (
-            <Lock className="h-3.5 w-3.5" title={t('passwordProtected') || 'Password protected'} />
+            <span title={t('passwordProtected') || 'Password protected'}>
+              <Lock className="h-3.5 w-3.5" />
+            </span>
           )}
           {share.allowComments && (
-            <MessageSquare className="h-3.5 w-3.5" title={t('commentsEnabled') || 'Comments enabled'} />
+            <span title={t('commentsEnabled') || 'Comments enabled'}>
+              <MessageSquare className="h-3.5 w-3.5" />
+            </span>
           )}
         </div>
 
@@ -239,7 +243,7 @@ function ShareListItemRow({
         <div className="flex items-center gap-2 pt-2 border-t">
           <Input
             type="password"
-            placeholder={t('enterPassword') || 'Enter password (min 4 chars)'}
+            placeholder={t('enterPassword')}
             value={passwordValue}
             onChange={(e) => setPasswordValue(e.target.value)}
             className="flex-1"

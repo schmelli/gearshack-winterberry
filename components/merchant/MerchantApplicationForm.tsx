@@ -16,8 +16,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import {
   Form,
   FormControl,
@@ -70,7 +79,7 @@ export const MerchantApplicationForm = memo(function MerchantApplicationForm({
 }: MerchantApplicationFormProps) {
   const t = useTranslations('MerchantApplication');
   const { user } = useAuth();
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabase = useMemo(() => getMerchantClient(), []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);

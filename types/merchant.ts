@@ -236,7 +236,7 @@ export const merchantLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   phone: z.string().optional(),
-  hours: z.record(z.object({
+  hours: z.record(z.string(), z.object({
     open: z.string(),
     close: z.string(),
     closed: z.boolean().optional(),

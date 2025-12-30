@@ -60,7 +60,8 @@ export function MerchantSettingsClient() {
   const t = useTranslations('MerchantSettings');
 
   const { merchant, isLoading: isAuthLoading } = useMerchantAuth();
-  const { updateProfile, isSaving: isProfileSaving } = useMerchantProfile();
+  const { updateProfile, operationStatus: profileOperationStatus } = useMerchantProfile();
+  const isProfileSaving = profileOperationStatus === 'loading';
   const {
     locations,
     isLoading: isLocationsLoading,

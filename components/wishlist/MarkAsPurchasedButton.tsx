@@ -35,8 +35,17 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import { calculateCommission, DEFAULT_COMMISSION_PERCENT } from '@/types/conversion';
 
 // =============================================================================
@@ -91,7 +100,7 @@ export function MarkAsPurchasedButton({
 }: MarkAsPurchasedButtonProps) {
   const t = useTranslations('Inventory.wishlist');
   const { user } = useAuth();
-  const supabase = createBrowserClient();
+  const supabase = getMerchantClient();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

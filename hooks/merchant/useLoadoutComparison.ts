@@ -11,8 +11,17 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import type {
   LoadoutComparisonItem,
   MerchantLoadoutDetail,
@@ -70,7 +79,7 @@ export interface UseLoadoutComparisonReturn {
 // =============================================================================
 
 export function useLoadoutComparison(): UseLoadoutComparisonReturn {
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabase = useMemo(() => getMerchantClient(), []);
   const { user } = useAuth();
 
   // State
@@ -272,7 +281,8 @@ export function useLoadoutComparison(): UseLoadoutComparisonReturn {
             id: data.merchants.id,
             businessName: data.merchants.business_name,
             logoUrl: data.merchants.logo_url,
-            businessType: 'local',
+            businessType: data.merchants.business_type || 'local',
+            isVerified: data.merchants.status === 'approved',
           },
           items: items.map((item: {
             id: string;
@@ -370,7 +380,8 @@ export function useLoadoutComparison(): UseLoadoutComparisonReturn {
 
       if (fetchError) throw fetchError;
 
-      const options: UserLoadoutOption[] = (data || []).map((loadout) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const options: UserLoadoutOption[] = (data || []).map((loadout: any) => {
         const items = loadout.loadout_items || [];
         const totalWeight = items.reduce(
           (sum: number, item: { quantity: number; gear_items: { weight: number | null } | null }) =>

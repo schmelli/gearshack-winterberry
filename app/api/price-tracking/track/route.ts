@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already tracking
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from('price_tracking')
       .select('*')
       .eq('user_id', user.id)
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create tracking record
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('price_tracking')
       .insert({
         user_id: user.id,

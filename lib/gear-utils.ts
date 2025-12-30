@@ -173,6 +173,10 @@ export function formDataToGearItem(
     canBeBorrowed: formData.canBeBorrowed ?? false,
     canBeTraded: formData.canBeTraded ?? false,
     dependencyIds: formData.dependencyIds ?? [],
+    // Merchant integration properties (053)
+    sourceMerchantId: null,
+    sourceOfferId: null,
+    sourceLoadoutId: null,
   };
 }
 

@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { formatWeight } from '@/lib/utils/weight';
+import { formatWeightFromGrams } from '@/lib/utils/weight';
 import type { LoadoutComparison } from '@/types/vip';
 
 // =============================================================================
@@ -58,8 +58,8 @@ function WeightDifference({ grams }: { grams: number }) {
         <ArrowUp className="h-4 w-4" />
       )}
       {isLighter
-        ? t('lighter', { weight: formatWeight(absWeight) })
-        : t('heavier', { weight: formatWeight(absWeight) })}
+        ? t('lighter', { weight: formatWeightFromGrams(absWeight, 'g') })
+        : t('heavier', { weight: formatWeightFromGrams(absWeight, 'g') })}
     </span>
   );
 }
@@ -91,7 +91,7 @@ export function VipComparisonView({
               <p className="text-sm text-muted-foreground">{t('yourLoadout')}</p>
               <p className="text-lg font-semibold">{comparison.userLoadout.name}</p>
               <p className="text-2xl font-bold text-primary">
-                {formatWeight(comparison.userLoadout.totalWeightGrams)}
+                {formatWeightFromGrams(comparison.userLoadout.totalWeightGrams, 'g')}
               </p>
             </div>
 
@@ -112,7 +112,7 @@ export function VipComparisonView({
                 {comparison.vipLoadout.vipName}&apos;s {comparison.vipLoadout.name}
               </p>
               <p className="text-2xl font-bold text-primary">
-                {formatWeight(comparison.vipLoadout.totalWeightGrams)}
+                {formatWeightFromGrams(comparison.vipLoadout.totalWeightGrams, 'g')}
               </p>
             </div>
           </div>
@@ -134,11 +134,11 @@ export function VipComparisonView({
                 <span className="font-medium">{cat.category}</span>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="w-20 text-right">
-                    {formatWeight(cat.userWeightGrams)}
+                    {formatWeightFromGrams(cat.userWeightGrams, 'g')}
                   </span>
                   <span className="text-muted-foreground">vs</span>
                   <span className="w-20">
-                    {formatWeight(cat.vipWeightGrams)}
+                    {formatWeightFromGrams(cat.vipWeightGrams, 'g')}
                   </span>
                   <span
                     className={`w-24 text-right ${
@@ -151,7 +151,7 @@ export function VipComparisonView({
                   >
                     {cat.differenceGrams === 0
                       ? '—'
-                      : `${cat.differenceGrams > 0 ? '+' : ''}${formatWeight(cat.differenceGrams)}`}
+                      : `${cat.differenceGrams > 0 ? '+' : ''}${formatWeightFromGrams(cat.differenceGrams, 'g')}`}
                   </span>
                 </div>
               </div>
@@ -188,7 +188,7 @@ export function VipComparisonView({
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">
-                      {formatWeight(item.weightGrams)}
+                      {formatWeightFromGrams(item.weightGrams, 'g')}
                     </span>
                     {onAddToWishlist && (
                       <Button
@@ -228,9 +228,9 @@ export function VipComparisonView({
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <span>{formatWeight(item.userWeightGrams)}</span>
+                    <span>{formatWeightFromGrams(item.userWeightGrams, 'g')}</span>
                     <span className="text-muted-foreground">vs</span>
-                    <span>{formatWeight(item.vipWeightGrams)}</span>
+                    <span>{formatWeightFromGrams(item.vipWeightGrams, 'g')}</span>
                   </div>
                 </div>
               ))}
@@ -266,7 +266,7 @@ export function VipComparisonView({
                     </div>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {formatWeight(item.weightGrams)}
+                    {formatWeightFromGrams(item.weightGrams, 'g')}
                   </span>
                 </div>
               ))}

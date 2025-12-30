@@ -159,7 +159,7 @@ async function checkForNewBadge(
   previousHelpfulCount: number
 ): Promise<Badge | undefined> {
   // Get current helpful count from profile
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await (supabase as any)
     .from('profiles')
     .select('shakedown_helpful_received')
     .eq('id', authorId)
@@ -178,7 +178,7 @@ async function checkForNewBadge(
     // and current count is at or above threshold
     if (previousHelpfulCount < threshold && currentCount >= threshold) {
       // Fetch the badge that was just awarded (by the trigger)
-      const { data: badge, error: badgeError } = await supabase
+      const { data: badge, error: badgeError } = await (supabase as any)
         .from('shakedown_badges')
         .select('id, user_id, badge_type, awarded_at')
         .eq('user_id', authorId)
@@ -336,15 +336,17 @@ export async function POST(
         const authorIds = [...new Set(feedbackNotSelf.map((f) => f.author_id))];
         const previousCounts = new Map<string, number>();
 
-        for (const authorId of authorIds) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: profile } = await (supabase as any)
-            .from('profiles')
-            .select('shakedown_helpful_received')
-            .eq('id', authorId)
-            .single();
+        // Fetch all profiles in a single query to avoid N+1 problem
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: profiles } = await (supabase as any)
+          .from('profiles')
+          .select('id, shakedown_helpful_received')
+          .in('id', authorIds);
 
-          previousCounts.set(authorId, profile?.shakedown_helpful_received ?? 0);
+        if (profiles) {
+          for (const profile of profiles) {
+            previousCounts.set(profile.id, profile.shakedown_helpful_received ?? 0);
+          }
         }
 
         // Batch upsert helpful votes
@@ -413,7 +415,7 @@ export async function POST(
     const updatedShakedown = updatedRow as ShakedownDbRow;
 
     // Fetch loadout summary for response
-    const { data: loadoutRow, error: loadoutError } = await supabase
+    const { data: loadoutRow, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('name, total_weight_grams, item_count')
       .eq('id', updatedShakedown.loadout_id)
@@ -424,9 +426,10 @@ export async function POST(
       // Continue with default values rather than failing
     }
 
+    // Empty name allows client-side i18n to display "Unknown" in user's language
     const loadoutSummary: LoadoutSummaryRow = loadoutRow
       ? (loadoutRow as unknown as LoadoutSummaryRow)
-      : { name: 'Unknown', total_weight_grams: 0, item_count: 0 };
+      : { name: '', total_weight_grams: 0, item_count: 0 };
 
     // Build response
     const response: CompleteShakedownResponse = {

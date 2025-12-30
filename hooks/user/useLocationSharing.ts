@@ -12,8 +12,17 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import type { LocationGranularity } from '@/types/merchant';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Types
@@ -91,7 +100,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
 
   // Fetch all location shares for current user
   const fetchShares = useCallback(async () => {
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -114,7 +123,8 @@ export function useLocationSharing(): UseLocationSharingReturn {
       if (fetchError) throw fetchError;
 
       // Transform data - extract lat/lng from PostGIS point
-      const transformed: LocationShare[] = (data ?? []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed: LocationShare[] = (data ?? []).map((row: any) => ({
         merchantId: row.merchant_id,
         granularity: row.granularity as LocationGranularity,
         latitude: row.location ? parseFloat(row.location.split('(')[1]?.split(' ')[1] ?? '0') : null,
@@ -151,7 +161,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
       merchantId: string,
       granularity: LocationGranularity
     ): Promise<boolean> => {
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         const {
@@ -222,7 +232,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
 
   // Remove location share for a merchant
   const removeShare = useCallback(async (merchantId: string): Promise<boolean> => {
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       const {

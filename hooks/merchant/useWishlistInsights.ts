@@ -11,8 +11,17 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useMerchantAuth } from './useMerchantAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import { useMerchantLocations } from './useMerchantLocations';
 import type { WishlistInsight, WishlistInsightDetail, ProximityBucket } from '@/types/merchant-offer';
 
@@ -102,7 +111,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
       return;
     }
 
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -123,8 +132,9 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
       if (rpcError) throw rpcError;
 
       // Transform RPC results to WishlistInsight format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insightResults: WishlistInsight[] = (insightsData ?? [])
-        .map((row) => ({
+        .map((row: any) => ({
           catalogItemId: row.catalog_item_id as string,
           catalogItemName: row.catalog_item_name as string,
           catalogItemBrand: row.catalog_item_brand as string | null,
@@ -138,7 +148,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
           },
           recentAddCount: 0, // Would need additional calculation in RPC
         }))
-        .filter((i) => i.userCount >= filters.minUsers);
+        .filter((i: WishlistInsight) => i.userCount >= filters.minUsers);
 
       setInsights(insightResults);
     } catch (err) {
@@ -164,7 +174,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
     async (catalogItemId: string) => {
       if (!merchant?.id || !primaryLocation) return;
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
 
       try {
         setIsLoadingDetail(true);
@@ -201,7 +211,8 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
             price: catalogItem.price,
             imageUrl: catalogItem.image_url,
           },
-          users: (nearbyData ?? []).map((row) => ({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          users: (nearbyData ?? []).map((row: any) => ({
             anonymousId: row.anonymous_id as string,
             proximityBucket: row.proximity_bucket as ProximityBucket,
             addedDaysAgo: row.added_days_ago as number,

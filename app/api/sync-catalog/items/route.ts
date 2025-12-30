@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (brandExternalIds.length > 0) {
       const uniqueBrandIds = [...new Set(brandExternalIds)];
-      const { data: brands, error: brandError } = await supabase
+      const { data: brands, error: brandError } = await (supabase as any)
         .from('catalog_brands')
         .select('id, external_id')
         .in('external_id', uniqueBrandIds);
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Note: category_main and subcategory are no longer stored - use product_type_id FK instead
-      const { data: upserted, error } = await supabase
+      const { data: upserted, error } = await (supabase as any)
         .from('catalog_products')
         .upsert(
           {

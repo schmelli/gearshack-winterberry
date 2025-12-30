@@ -40,7 +40,7 @@ const BADGE_RANK: Record<ShakedownBadge, number> = {
 
 interface Expert {
   userId: string;
-  displayName: string;
+  displayName: string | null;
   avatarUrl: string | null;
   helpfulVotesReceived: number;
   shakedownsReviewed: number;
@@ -99,6 +99,7 @@ function getHighestBadge(badges: ShakedownBadge[]): ShakedownBadge | null {
 
 /**
  * Maps database row to Expert type
+ * Returns null for displayName when missing to allow client-side i18n handling
  */
 function mapDbRowToExpert(
   row: ProfileExpertDbRow,
@@ -106,7 +107,7 @@ function mapDbRowToExpert(
 ): Expert {
   return {
     userId: row.id,
-    displayName: row.display_name || 'Anonymous User',
+    displayName: row.display_name || null,
     avatarUrl: row.avatar_url,
     helpfulVotesReceived: row.shakedown_helpful_received,
     shakedownsReviewed: row.shakedowns_reviewed,

@@ -18,6 +18,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { canEditFeedback } from '@/lib/shakedown-utils';
 import {
@@ -117,6 +118,7 @@ function transformDbToFeedback(row: FeedbackRow): FeedbackWithAuthor {
 
 export function useFeedback(): UseFeedbackReturn {
   const { user } = useAuthContext();
+  const t = useTranslations('Shakedowns.report');
 
   const [state, setState] = useState<MutationState>({
     isSubmitting: false,
@@ -321,15 +323,23 @@ export function useFeedback(): UseFeedbackReturn {
 
           // Handle duplicate report
           if (response.status === 409) {
-            throw new Error('You have already reported this feedback');
+            throw new Error(t('alreadyReported'));
           }
 
           const errorMessage = errorData.error ?? `Failed to report feedback (${response.status})`;
           throw new Error(errorMessage);
         }
 
+        const data = await response.json();
+
         setState((prev) => ({ ...prev, isSubmitting: false }));
-        toast.success('Thank you for your report. We will review it shortly.');
+
+        // Display appropriate success message based on response code
+        if (data.code === 'REPORT_SUCCESS_HIDDEN') {
+          toast.success(t('successHidden'));
+        } else {
+          toast.success(t('successMessage'));
+        }
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to report feedback');
         setState((prev) => ({ ...prev, isSubmitting: false, error }));

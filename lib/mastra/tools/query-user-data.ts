@@ -49,9 +49,11 @@ const queryUserDataInputSchema = z.object({
       column: z.string(),
       value: z.string(),
       caseSensitive: z.boolean().optional().default(false),
+      fuzzy: z.boolean().optional().default(false),
+      fuzzyThreshold: z.number().min(0).max(1).optional().default(0.3),
     })
     .optional()
-    .describe('Text search filter (uses ILIKE for case-insensitive search)'),
+    .describe('Text search filter (uses ILIKE for exact match, or similarity() for fuzzy/typo-tolerant search when fuzzy=true)'),
 
   orderBy: z
     .object({
@@ -116,7 +118,7 @@ export type QueryUserDataOutput = z.infer<typeof queryUserDataOutputSchema>;
  */
 export const queryUserDataTool = createTool({
   id: 'queryUserData',
-  description: `Execute flexible read-only queries on user's database.
+  description: `Execute flexible read-only queries on user's database with optional fuzzy/typo-tolerant search.
 
 Available tables:
 - gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, category_id, status, etc.)
@@ -131,8 +133,15 @@ Examples:
 - Find all Osprey gear: {table: "gear_items", filters: {brand: "Osprey"}}
 - Count wishlist items: {table: "gear_items", operation: "count", filters: {status: "wishlist"}}
 - Search by name: {table: "gear_items", search: {column: "name", value: "tent"}}
+- Fuzzy search (typo-tolerant): {table: "gear_items", search: {column: "name", value: "qilt", fuzzy: true}}
 - Find items under 500g: {table: "gear_items", range: {column: "weight_grams", max: 500}}
-- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}`,
+- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}
+
+Fuzzy Search:
+- Set search.fuzzy = true to enable typo-tolerant search (e.g., "qilt" will match "quilt")
+- Uses PostgreSQL trigram similarity (pg_trgm) with default 30% match threshold
+- Results ordered by similarity score (best matches first)
+- Adjust threshold with search.fuzzyThreshold (0-1, default 0.3)`,
 
   inputSchema: queryUserDataInputSchema,
   outputSchema: queryUserDataOutputSchema,
@@ -208,7 +217,102 @@ Examples:
         }
       }
 
-      // Apply search filter (case-insensitive ILIKE)
+      // Handle fuzzy search differently - uses RPC function
+      if (search?.fuzzy) {
+        const threshold = search.fuzzyThreshold ?? 0.3;
+        const effectiveLimit = limit ?? 50;
+
+        // Prepare filters for RPC (convert to JSONB format)
+        const rpcFilters = filters ? filters : null;
+
+        // Prepare range parameters
+        const rangeColumn = range?.column ?? null;
+        const rangeMin = range?.min ?? null;
+        const rangeMax = range?.max ?? null;
+
+        // Use fuzzy_search_column RPC for typo-tolerant search
+        // Note: Type assertion needed until Supabase types are regenerated after migration
+        const { data: fuzzyData, error: fuzzyError } = await Promise.race([
+          supabase.rpc('fuzzy_search_column' as any, {
+            p_table_name: table,
+            p_column_name: search.column,
+            p_search_value: search.value,
+            p_user_id: userId,
+            p_similarity_threshold: threshold,
+            p_limit: effectiveLimit,
+            p_filters: rpcFilters,
+            p_range_column: rangeColumn,
+            p_range_min: rangeMin,
+            p_range_max: rangeMax,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Query timeout (5s)')), 5000)
+          ),
+        ]);
+
+        if (fuzzyError) {
+          // Log detailed error for debugging (server-side only)
+          console.error('[queryUserData] Fuzzy search error:', {
+            message: fuzzyError.message,
+            details: fuzzyError.details,
+            hint: fuzzyError.hint,
+            code: fuzzyError.code,
+            params: { table, column: search.column, value: search.value, threshold },
+          });
+
+          // Return sanitized error message to user (no database internals)
+          let userMessage = 'Fuzzy search failed. Please try again with different search terms.';
+
+          // Provide helpful hints for common errors without exposing internals
+          if (fuzzyError.code === '42703') {
+            userMessage = 'Invalid search column. Please contact support if this persists.';
+          } else if (fuzzyError.code === '42P01') {
+            userMessage = 'Invalid table specified. Please contact support if this persists.';
+          }
+
+          return {
+            success: false,
+            operation: effectiveOperation,
+            table,
+            rowCount: 0,
+            data: null,
+            error: userMessage,
+          };
+        }
+
+        const executionTime = Date.now() - startTime;
+
+        // Extract row_data from fuzzy search results
+        // Type: Array of {row_data: JSONB, similarity_score: FLOAT}
+        const results =
+          fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
+          [];
+
+        // Build applied filters list for metadata
+        const fuzzyAppliedFilters = [`fuzzy_search:${search.column}:threshold=${threshold}`];
+        if (filters) {
+          fuzzyAppliedFilters.push(...Object.keys(filters).map(key => `filter:${key}`));
+        }
+        if (range) {
+          if (range.min !== undefined) fuzzyAppliedFilters.push(`${range.column}:min`);
+          if (range.max !== undefined) fuzzyAppliedFilters.push(`${range.column}:max`);
+        }
+
+        return {
+          success: true,
+          operation: effectiveOperation,
+          table,
+          rowCount: results.length,
+          data: results as Record<string, unknown>[],
+          metadata: {
+            executionTimeMs: executionTime,
+            limitApplied: effectiveLimit,
+            filtersApplied: fuzzyAppliedFilters,
+          },
+        };
+      }
+
+      // Apply standard search filter (case-insensitive ILIKE)
       if (search) {
         if (search.caseSensitive) {
           query = query.like(search.column, `%${search.value}%`);
@@ -250,6 +354,7 @@ Examples:
       ]);
 
       if (error) {
+        // Log detailed error for debugging (server-side only)
         console.error('[queryUserData] Database error:', {
           message: error.message,
           details: error.details,
@@ -258,13 +363,26 @@ Examples:
           table,
           operation: effectiveOperation,
         });
+
+        // Return sanitized error message to user (no database internals)
+        let userMessage = 'Database query failed. Please try again.';
+
+        // Provide helpful hints for common errors without exposing internals
+        if (error.code === '42703') {
+          userMessage = 'Invalid column specified in query. Please contact support if this persists.';
+        } else if (error.code === '42P01') {
+          userMessage = 'Invalid table specified. Please contact support if this persists.';
+        } else if (error.code === 'PGRST116') {
+          userMessage = 'No matching records found.';
+        }
+
         return {
           success: false,
           operation: effectiveOperation,
           table,
           rowCount: 0,
           data: null,
-          error: `Database query failed: ${error.message}${error.hint ? ` (${error.hint})` : ''}`,
+          error: userMessage,
         };
       }
 

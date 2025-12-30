@@ -47,7 +47,6 @@ interface PrivacySettingsPanelProps {
 }
 
 type VisibilityLevel = 'everyone' | 'friends_only' | 'nobody';
-type ActivityVisibility = 'everyone' | 'friends' | 'nobody';
 
 // =============================================================================
 // Preset Card Component
@@ -177,7 +176,7 @@ export function PrivacySettingsPanel({
   // Activity visibility options (slightly different)
   const activityOptions = [
     { value: 'everyone', label: t('privacy.values.everyone') },
-    { value: 'friends', label: t('privacy.values.friendsOnly') },
+    { value: 'friends_only', label: t('privacy.values.friendsOnly') },
     { value: 'nobody', label: t('privacy.values.nobody') },
   ];
 
@@ -185,9 +184,9 @@ export function PrivacySettingsPanel({
   const handlePresetSelect = async (preset: Exclude<PrivacyPreset, 'custom'>) => {
     try {
       await applyPreset(preset);
-      toast.success(t(`privacy.presets.${preset}`) + ' applied');
+      toast.success(t('privacy.presetApplied'));
     } catch {
-      toast.error('Failed to apply preset');
+      toast.error(t('privacy.presetFailed'));
     }
   };
 
@@ -198,8 +197,9 @@ export function PrivacySettingsPanel({
   ) => {
     try {
       await updateSettings({ [key]: value });
+      toast.success(t('privacy.settingUpdated'));
     } catch {
-      toast.error('Failed to update setting');
+      toast.error(t('privacy.settingFailed'));
     }
   };
 
@@ -293,7 +293,7 @@ export function PrivacySettingsPanel({
               label={t('privacy.granular.activityFeed')}
               description={t('privacy.granular.activityFeedDesc')}
               value={settings.activity_feed_privacy}
-              onChange={(v) => handleSettingChange('activity_feed_privacy', v as ActivityVisibility)}
+              onChange={(v) => handleSettingChange('activity_feed_privacy', v as VisibilityLevel)}
               options={activityOptions}
               icon={<Activity className="h-5 w-5" />}
             />

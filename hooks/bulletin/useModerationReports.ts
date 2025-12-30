@@ -45,7 +45,8 @@ export function useModerationReports() {
 
     try {
       // Use the moderation view
-      const { data, error } = await supabase
+      // Note: Type assertion needed - view exists but types need regeneration
+      const { data, error } = await (supabase as any)
         .from('v_bulletin_reports_for_mods')
         .select('*')
         .eq('status', 'pending')
@@ -76,13 +77,14 @@ export function useModerationReports() {
     ) => {
       try {
         // Update report status
-        const { error: reportError } = await supabase
+        // Note: Type assertion needed - table exists but types need regeneration
+        const { error: reportError } = await (supabase as any)
           .from('bulletin_reports')
           .update({
             status: 'resolved' as ReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
-            resolution_action: action,
+            action_taken: action,
           })
           .eq('id', reportId);
 
@@ -94,16 +96,30 @@ export function useModerationReports() {
           const report = state.reports.find((r) => r.id === reportId);
           if (report) {
             if (report.target_type === 'post') {
-              await supabase
+              // Note: Type assertion needed - table exists but types need regeneration
+              await (supabase as any)
                 .from('bulletin_posts')
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
             } else {
-              await supabase
+              // Note: Type assertion needed - table exists but types need regeneration
+              await (supabase as any)
                 .from('bulletin_replies')
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
             }
+          }
+        } else if (action === 'warn_user') {
+          // Send a notification to the user about the warning
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from('notifications').insert({
+              user_id: targetAuthorId,
+              type: 'moderation_warning',
+              title: 'Community Guidelines Warning',
+              message: 'Your content was reported and reviewed by moderators. Please ensure your future posts comply with community guidelines.',
+              created_by: user.id,
+            });
           }
         } else if (
           action === 'ban_1d' ||
@@ -120,7 +136,8 @@ export function useModerationReports() {
             ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
             : null;
 
-          await supabase.from('user_bulletin_bans').insert({
+          // Note: Type assertion needed - table exists but types need regeneration
+          await (supabase as any).from('user_bulletin_bans').insert({
             user_id: targetAuthorId,
             reason: 'Violation of community guidelines',
             expires_at: expiresAt,
@@ -146,13 +163,14 @@ export function useModerationReports() {
   const dismissReport = useCallback(
     async (reportId: string) => {
       try {
-        const { error } = await supabase
+        // Note: Type assertion needed - table exists but types need regeneration
+        const { error } = await (supabase as any)
           .from('bulletin_reports')
           .update({
             status: 'dismissed' as ReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
-            resolution_action: 'dismiss',
+            action_taken: 'dismiss',
           })
           .eq('id', reportId);
 

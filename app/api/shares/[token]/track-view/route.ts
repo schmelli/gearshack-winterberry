@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { trackShareView } from '@/lib/supabase/queries/sharing';
 
 // =============================================================================
 // POST: Track a view
@@ -24,17 +25,13 @@ export async function POST(
 
     // Get current user ID if authenticated (optional)
     const { data: { user } } = await supabase.auth.getUser();
-    const viewerId = user?.id ?? null;
+    const viewerId = user?.id;
 
-    // Call the database function to atomically increment view count
-    const { error } = await supabase.rpc('increment_share_view_count', {
-      p_share_token: token,
-      p_viewer_id: viewerId,
-    });
+    // Track the view using the helper function
+    const success = await trackShareView(supabase, token, viewerId);
 
-    if (error) {
+    if (!success) {
       // Don't fail the page load if tracking fails
-      console.error('[shares/track-view] Error:', error);
       return NextResponse.json({ success: false, error: 'Tracking failed' }, { status: 500 });
     }
 

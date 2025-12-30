@@ -12,8 +12,17 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Types
@@ -66,7 +75,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
       return;
     }
 
-    const supabase = createBrowserClient();
+    const supabase = getMerchantClient();
 
     try {
       setIsLoading(true);
@@ -88,7 +97,8 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
 
       if (error) throw error;
 
-      const transformed: BlockedMerchant[] = (data ?? []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformed: BlockedMerchant[] = (data ?? []).map((row: any) => ({
         id: row.id,
         merchantId: row.merchant_id,
         merchantName: row.merchant.business_name,
@@ -135,7 +145,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
         return false;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsProcessing(true);
 
       try {
@@ -197,7 +207,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
         return false;
       }
 
-      const supabase = createBrowserClient();
+      const supabase = getMerchantClient();
       setIsProcessing(true);
 
       try {

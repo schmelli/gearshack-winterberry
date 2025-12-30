@@ -42,7 +42,9 @@ SELECT
   r.resolved_at,
   r.action_taken,
   COUNT(*) OVER (PARTITION BY r.target_type, r.target_id) AS report_count,
-  -- Include content preview for moderation
+  -- Include reporter info
+  reporter.display_name AS reporter_name,
+  -- Include content preview and author for moderation
   CASE
     WHEN r.target_type = 'post' THEN (
       SELECT substring(content, 1, 100)
@@ -54,8 +56,7 @@ SELECT
       FROM bulletin_replies
       WHERE id = r.target_id
     )
-  END AS content_preview,
-  -- Include author info
+  END AS target_content,
   CASE
     WHEN r.target_type = 'post' THEN (
       SELECT author_id FROM bulletin_posts WHERE id = r.target_id
@@ -63,8 +64,23 @@ SELECT
     WHEN r.target_type = 'reply' THEN (
       SELECT author_id FROM bulletin_replies WHERE id = r.target_id
     )
-  END AS content_author_id
+  END AS target_author_id,
+  CASE
+    WHEN r.target_type = 'post' THEN (
+      SELECT p_author.display_name
+      FROM bulletin_posts bp
+      JOIN profiles p_author ON bp.author_id = p_author.id
+      WHERE bp.id = r.target_id
+    )
+    WHEN r.target_type = 'reply' THEN (
+      SELECT r_author.display_name
+      FROM bulletin_replies br
+      JOIN profiles r_author ON br.author_id = r_author.id
+      WHERE br.id = r.target_id
+    )
+  END AS target_author_name
 FROM bulletin_reports r
+JOIN profiles reporter ON r.reporter_id = reporter.id
 WHERE r.status = 'pending'
 ORDER BY report_count DESC, r.created_at ASC;
 

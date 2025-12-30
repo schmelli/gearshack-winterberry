@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServiceRoleClient();
+    // TODO: Remove type assertion after regenerating Supabase types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createServiceRoleClient() as any;
     const now = new Date().toISOString();
 
     // Find all offers that are pending or viewed but past expiration
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const offerIds = expiredOffers.map((o) => o.id);
+    const offerIds = expiredOffers.map((o: { id: string }) => o.id);
 
     // Update offers to expired status
     const { error: updateError, count } = await supabase

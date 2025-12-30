@@ -77,7 +77,7 @@ function DropdownStatusControl({ className }: { className?: string }) {
       toast.success(t(`presence.${newStatus}`));
     } catch (err) {
       console.error('Error changing status:', err);
-      toast.error('Failed to update status');
+      toast.error(t('presence.updateFailed'));
     } finally {
       setIsChanging(false);
     }
@@ -137,7 +137,7 @@ function CardStatusControl({ className }: { className?: string }) {
       toast.success(t(`presence.${newStatus}`));
     } catch (err) {
       console.error('Error changing status:', err);
-      toast.error('Failed to update status');
+      toast.error(t('presence.updateFailed'));
     } finally {
       setIsChanging(false);
     }

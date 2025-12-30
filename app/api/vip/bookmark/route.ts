@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
     const { loadoutId } = validation.data;
 
     // Verify loadout exists and is published
-    const { data: loadout, error: loadoutError } = await supabase
+    const { data: loadout, error: loadoutError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_loadouts')
       .select('id, status')
       .eq('id', loadoutId)
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert bookmark (upsert to handle duplicates gracefully)
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_bookmarks')
       .upsert(
         {
@@ -131,7 +133,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete bookmark
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_bookmarks')
       .delete()
       .eq('user_id', user.id)
@@ -171,7 +174,8 @@ export async function GET() {
       );
     }
 
-    const { data: bookmarks, error } = await supabase
+    const { data: bookmarks, error } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_bookmarks')
       .select(`
         created_at,
@@ -201,9 +205,10 @@ export async function GET() {
     }
 
     // Filter out any bookmarks where the loadout was deleted/unpublished
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const validBookmarks = (bookmarks ?? [])
-      .filter((b) => b.vip_loadouts && (b.vip_loadouts as { status?: string }).status === 'published')
-      .map((b) => ({
+      .filter((b: any) => b.vip_loadouts && (b.vip_loadouts as { status?: string }).status === 'published')
+      .map((b: any) => ({
         bookmarkedAt: b.created_at,
         loadout: {
           id: (b.vip_loadouts as { id: string }).id,

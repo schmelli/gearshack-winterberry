@@ -11,8 +11,17 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import type { Merchant, MerchantStatus } from '@/types/merchant';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 
 // =============================================================================
 // Types
@@ -71,7 +80,7 @@ const DEFAULT_LIMIT = 20;
 // =============================================================================
 
 export function useAdminMerchants(): UseAdminMerchantsReturn {
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabase = useMemo(() => getMerchantClient(), []);
 
   // State
   const [merchants, setMerchants] = useState<MerchantWithUser[]>([]);
@@ -144,7 +153,8 @@ export function useAdminMerchants(): UseAdminMerchantsReturn {
 
       if (fetchError) throw fetchError;
 
-      const mapped: MerchantWithUser[] = (data || []).map((row) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped: MerchantWithUser[] = (data || []).map((row: any) => ({
         id: row.id,
         userId: row.user_id,
         businessName: row.business_name,

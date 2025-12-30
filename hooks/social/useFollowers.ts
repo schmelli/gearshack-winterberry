@@ -13,7 +13,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFollowers,
   getFollowerCount,
@@ -21,7 +22,7 @@ import {
 import type { UseFollowersReturn, FollowInfo } from '@/types/social';
 
 export function useFollowers(): UseFollowersReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function useFollowers(): UseFollowersReturn {
    * Fetches the follower count (VIP only).
    */
   const loadFollowerCount = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setFollowerCount(null);
       setIsLoading(false);
       return;
@@ -39,7 +40,7 @@ export function useFollowers(): UseFollowersReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const count = await getFollowerCount(user.id);
+      const count = await getFollowerCount(user.uid);
       setFollowerCount(count);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load follower count';
@@ -49,7 +50,7 @@ export function useFollowers(): UseFollowersReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Refreshes the follower count.
@@ -85,13 +86,13 @@ export function useFollowerList(): {
   error: string | null;
   refresh: () => Promise<void>;
 } {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [followers, setFollowers] = useState<FollowInfo[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadFollowers = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setFollowers(null);
       setIsLoading(false);
       return;
@@ -100,7 +101,7 @@ export function useFollowerList(): {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchFollowers(user.id);
+      const data = await fetchFollowers(user.uid);
       setFollowers(data); // Will be null for non-VIP users
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load followers';
@@ -110,7 +111,7 @@ export function useFollowerList(): {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   const refresh = useCallback(async () => {
     await loadFollowers();

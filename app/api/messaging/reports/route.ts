@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const { reportedUserId, messageId, reason, details } = validation.data;
 
     // Create the report
-    const { data: report, error: reportError } = await supabase
+    const { data: report, error: reportError } = await (supabase as any)
       .from('user_reports')
       .insert({
         reporter_id: user.id,

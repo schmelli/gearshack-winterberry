@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS vip_loadout_items (
   -- Item details (standalone or linked)
   name VARCHAR(200) NOT NULL,
   brand VARCHAR(100),
-  weight_grams INTEGER NOT NULL CHECK (weight_grams > 0),
+  weight_grams INTEGER NOT NULL CHECK (weight_grams >= 0),
   quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 1),
   notes TEXT,
 

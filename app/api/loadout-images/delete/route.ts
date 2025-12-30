@@ -34,7 +34,7 @@ export async function DELETE(request: NextRequest) {
     const { imageId, loadoutId } = validatedData;
 
     // Verify loadout ownership
-    const { data: loadout, error: loadoutError } = await supabase
+    const { data: loadout, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('user_id')
       .eq('id', loadoutId)

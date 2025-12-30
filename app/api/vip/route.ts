@@ -39,6 +39,10 @@ const vipsQuerySchema = z.object({
 // =============================================================================
 
 function transformVipAccount(data: Record<string, unknown>): VipWithStats {
+  // Extract counts from the aggregated query response
+  const vipFollows = data.vip_follows as unknown[];
+  const vipLoadouts = data.vip_loadouts as unknown[];
+
   return {
     id: data.id as string,
     name: data.name as string,
@@ -53,8 +57,10 @@ function transformVipAccount(data: Record<string, unknown>): VipWithStats {
     updatedAt: data.updated_at as string,
     archivedAt: data.archived_at as string | null,
     archiveReason: data.archive_reason as string | null,
-    followerCount: 0,
-    loadoutCount: 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    followerCount: (vipFollows?.[0] as any)?.count ?? 0,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    loadoutCount: (vipLoadouts?.[0] as any)?.count ?? 0,
   };
 }
 
@@ -91,12 +97,18 @@ export async function GET(
 
     const { query, limit, offset, featured } = validation.data;
 
-    // Build query with count
+    // Build query with count and stats (fixing N+1 problem)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let dbQuery = (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('vip_accounts')
-      .select('*', { count: 'exact' })
-      .is('archived_at', null);
+      .select(`
+        *,
+        vip_follows(count),
+        vip_loadouts!inner(count)
+      `, { count: 'exact' })
+      .is('archived_at', null)
+      .eq('vip_loadouts.status', 'published');
 
     // Apply search filter
     if (query && query.trim()) {
@@ -124,32 +136,9 @@ export async function GET(
       );
     }
 
-    // Get follower and loadout counts for each VIP
-    const vips: VipWithStats[] = await Promise.all(
-      (rows || []).map(async (row: Record<string, unknown>) => {
-        const vip = transformVipAccount(row);
-
-        // Get follower count
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: followerCount } = await (supabase as any)
-          .from('vip_follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('vip_id', vip.id);
-
-        // Get loadout count
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: loadoutCount } = await (supabase as any)
-          .from('vip_loadouts')
-          .select('*', { count: 'exact', head: true })
-          .eq('vip_id', vip.id)
-          .eq('status', 'published');
-
-        return {
-          ...vip,
-          followerCount: followerCount ?? 0,
-          loadoutCount: loadoutCount ?? 0,
-        };
-      })
+    // Transform VIPs with stats (counts now included in the query)
+    const vips: VipWithStats[] = (rows || []).map((row: Record<string, unknown>) =>
+      transformVipAccount(row)
     );
 
     return NextResponse.json({

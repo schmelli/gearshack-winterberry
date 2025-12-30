@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { randomBytes } from 'crypto';
+import { CLAIM_TOKEN_BYTES, CLAIM_INVITATION_EXPIRY_DAYS } from '@/lib/vip/vip-constants';
 
 // =============================================================================
 // Validation Schema
@@ -36,13 +37,13 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' },
         { status: 401 }
       );
     }
 
     // Check admin role
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -50,7 +51,7 @@ export async function POST(
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Admin access required' },
+        { error: 'ADMIN_ACCESS_REQUIRED', message: 'Admin access required' },
         { status: 403 }
       );
     }
@@ -61,7 +62,7 @@ export async function POST(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: 'INVALID_EMAIL', message: 'Invalid email address' },
         { status: 400 }
       );
     }
@@ -69,7 +70,8 @@ export async function POST(
     const { email } = validation.data;
 
     // Verify VIP exists and is not already claimed
-    const { data: vip, error: vipError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: vip, error: vipError } = await (supabase as any)
       .from('vip_accounts')
       .select('id, name, slug, status, claimed_by_user_id')
       .eq('id', vipId)
@@ -77,20 +79,20 @@ export async function POST(
 
     if (vipError || !vip) {
       return NextResponse.json(
-        { error: 'VIP account not found' },
+        { error: 'VIP_NOT_FOUND', message: 'VIP account not found' },
         { status: 404 }
       );
     }
 
     if (vip.status === 'claimed' || vip.claimed_by_user_id) {
       return NextResponse.json(
-        { error: 'VIP account is already claimed' },
+        { error: 'VIP_ALREADY_CLAIMED', message: 'VIP account is already claimed' },
         { status: 400 }
       );
     }
 
     // Check for existing pending invitation with same email
-    const { data: existingInvitation } = await supabase
+    const { data: existingInvitation } = await (supabase as any)
       .from('claim_invitations')
       .select('id, status')
       .eq('vip_id', vipId)
@@ -100,20 +102,20 @@ export async function POST(
 
     if (existingInvitation) {
       return NextResponse.json(
-        { error: 'An invitation is already pending for this email' },
+        { error: 'INVITATION_ALREADY_PENDING', message: 'An invitation is already pending for this email' },
         { status: 400 }
       );
     }
 
     // Generate secure token (64 characters)
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(CLAIM_TOKEN_BYTES).toString('hex');
 
-    // Calculate expiration (30 days from now)
+    // Calculate expiration
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + CLAIM_INVITATION_EXPIRY_DAYS);
 
     // Create invitation
-    const { data: invitation, error: insertError } = await supabase
+    const { data: invitation, error: insertError } = await (supabase as any)
       .from('claim_invitations')
       .insert({
         vip_id: vipId,
@@ -129,15 +131,15 @@ export async function POST(
     if (insertError) {
       console.error('Error creating claim invitation:', insertError);
       return NextResponse.json(
-        { error: 'Failed to create invitation' },
+        { error: 'INVITATION_CREATE_FAILED', message: 'Failed to create invitation' },
         { status: 500 }
       );
     }
 
     // TODO: Send email notification to VIP
     // This would integrate with an email service (SendGrid, Resend, etc.)
-    // For now, we just create the invitation record
-    console.log(`[VIP Claim] Invitation created for ${email} - Token: ${token}`);
+    // The claim URL is returned in the response for manual sending
+    // SECURITY: Token should never be logged in production
 
     return NextResponse.json({
       invitation: {
@@ -155,7 +157,7 @@ export async function POST(
   } catch (error) {
     console.error('Unexpected error in POST /api/admin/vip/[id]/invite:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' },
       { status: 500 }
     );
   }

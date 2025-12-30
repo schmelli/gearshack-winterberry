@@ -26,7 +26,7 @@ export function CreateLoadoutClient() {
 
   // Hooks for data
   const { createLoadout, submitForReview, addItem, setAvailability } = useMerchantLoadouts();
-  const { catalogItems, isLoading: isCatalogLoading } = useMerchantCatalog();
+  const { items: catalogItems, isLoading: isCatalogLoading } = useMerchantCatalog();
   const { locations, isLoading: isLocationsLoading } = useMerchantLocations();
 
   const isLoading = isCatalogLoading || isLocationsLoading;

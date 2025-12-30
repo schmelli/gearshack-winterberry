@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { VipLoadoutDetail } from './VipLoadoutDetail';
 import { useVipLoadout } from '@/hooks/vip/useVipLoadout';
 import { useVipBookmark } from '@/hooks/vip/useVipBookmark';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 
 // =============================================================================
 // Types
@@ -38,7 +38,7 @@ export function VipLoadoutContent({ vipSlug, loadoutSlug }: VipLoadoutContentPro
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('vip');
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   const { status, loadout, error, refetch } = useVipLoadout(vipSlug, loadoutSlug);
   const {

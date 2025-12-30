@@ -27,48 +27,42 @@ import type {
 export async function getAllVips(): Promise<VipWithStats[]> {
   const supabase = createClient();
 
+  // Fetch all VIPs with counts in a single query (fixing N+1 problem)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('vip_accounts')
-    .select('*')
+    .select(`
+      *,
+      vip_follows(count),
+      vip_loadouts(count)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  // Get stats for each VIP
-  const vips: VipWithStats[] = await Promise.all(
-    (data || []).map(async (vip: Record<string, unknown>) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: followerCount } = await (supabase as any)
-        .from('vip_follows')
-        .select('*', { count: 'exact', head: true })
-        .eq('vip_id', vip.id);
+  // Transform VIPs with stats (counts now included in the query)
+  const vips: VipWithStats[] = (data || []).map((vip: Record<string, unknown>) => {
+    const vipFollows = vip.vip_follows as { count: number }[] | null;
+    const vipLoadouts = vip.vip_loadouts as { count: number }[] | null;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: loadoutCount } = await (supabase as any)
-        .from('vip_loadouts')
-        .select('*', { count: 'exact', head: true })
-        .eq('vip_id', vip.id);
-
-      return {
-        id: vip.id as string,
-        name: vip.name as string,
-        slug: vip.slug as string,
-        bio: vip.bio as string,
-        avatarUrl: vip.avatar_url as string,
-        socialLinks: vip.social_links as Record<string, string>,
-        status: vip.status as 'curated' | 'claimed',
-        isFeatured: vip.is_featured as boolean,
-        claimedByUserId: vip.claimed_by_user_id as string | null,
-        createdAt: vip.created_at as string,
-        updatedAt: vip.updated_at as string,
-        archivedAt: vip.archived_at as string | null,
-        archiveReason: vip.archive_reason as string | null,
-        followerCount: followerCount ?? 0,
-        loadoutCount: loadoutCount ?? 0,
-      };
-    })
-  );
+    return {
+      id: vip.id as string,
+      name: vip.name as string,
+      slug: vip.slug as string,
+      bio: vip.bio as string,
+      avatarUrl: vip.avatar_url as string,
+      socialLinks: vip.social_links as Record<string, string>,
+      status: vip.status as 'curated' | 'claimed',
+      isFeatured: vip.is_featured as boolean,
+      claimedByUserId: vip.claimed_by_user_id as string | null,
+      createdAt: vip.created_at as string,
+      updatedAt: vip.updated_at as string,
+      archivedAt: vip.archived_at as string | null,
+      archiveReason: vip.archive_reason as string | null,
+      followerCount: vipFollows?.[0]?.count ?? 0,
+      loadoutCount: vipLoadouts?.[0]?.count ?? 0,
+    };
+  });
 
   return vips;
 }

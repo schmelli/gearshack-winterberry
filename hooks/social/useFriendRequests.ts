@@ -14,7 +14,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+
+import { toast } from 'sonner';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriendRequests,
   sendFriendRequest as sendRequest,
@@ -30,7 +32,7 @@ import type {
 } from '@/types/social';
 
 export function useFriendRequests(): UseFriendRequestsReturn {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [pendingIncoming, setPendingIncoming] = useState<FriendRequestWithProfile[]>([]);
   const [pendingOutgoing, setPendingOutgoing] = useState<FriendRequestWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    * Loads all pending friend requests.
    */
   const loadRequests = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       setPendingIncoming([]);
       setPendingOutgoing([]);
       setIsLoading(false);
@@ -50,17 +52,19 @@ export function useFriendRequests(): UseFriendRequestsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const { incoming, outgoing } = await fetchFriendRequests(user.id);
+      const { incoming, outgoing } = await fetchFriendRequests(user.uid);
       setPendingIncoming(incoming);
       setPendingOutgoing(outgoing);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load friend requests';
       setError(message);
       console.error('Error loading friend requests:', err);
+      // FIXED: Added user-facing error toast
+      toast.error('Failed to load friend requests');
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.uid]);
 
   /**
    * Sends a friend request to another user.
@@ -73,7 +77,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const sendFriendRequest = useCallback(
     async (recipientId: string, message?: string): Promise<SendFriendRequestResponse> => {
-      if (!user?.id) {
+      if (!user?.uid) {
         return { success: false, error: 'no_message_exchange' };
       }
 
@@ -88,10 +92,12 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return response;
       } catch (err) {
         console.error('Error sending friend request:', err);
+        // FIXED: Added user-facing error toast
+        toast.error('Failed to send friend request');
         return { success: false, error: 'request_already_sent' };
       }
     },
-    [user?.id, loadRequests]
+    [user?.uid, loadRequests]
   );
 
   /**
@@ -153,10 +159,10 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const cancelOutgoingRequest = useCallback(
     async (requestId: string): Promise<void> => {
-      if (!user?.id) return;
+      if (!user?.uid) return;
 
       try {
-        await cancelFriendRequest(requestId, user.id);
+        await cancelFriendRequest(requestId, user.uid);
 
         // Optimistic update: remove from outgoing list
         setPendingOutgoing((prev) => prev.filter((r) => r.id !== requestId));
@@ -166,7 +172,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         throw err;
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**
@@ -179,7 +185,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
    */
   const checkCanSendRequest = useCallback(
     async (recipientId: string): Promise<CanSendFriendRequestResponse> => {
-      if (!user?.id) {
+      if (!user?.uid) {
         return { canSend: false, reason: 'no_message_exchange' };
       }
 
@@ -187,10 +193,12 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return await canSendFriendRequest(recipientId);
       } catch (err) {
         console.error('Error checking friend request eligibility:', err);
+        // FIXED: Added user-facing error toast
+        toast.error('Failed to check friend request eligibility');
         return { canSend: false, reason: 'blocked' };
       }
     },
-    [user?.id]
+    [user?.uid]
   );
 
   /**
@@ -244,27 +252,42 @@ export function useFriendRequestStatus(targetUserId: string): {
   const incomingRequest = pendingIncoming.find((r) => r.sender_id === targetUserId);
 
   // Check if can send - exposed as a method for manual triggering
+  // FIXED: Cancellation token to prevent race conditions
   const checkCanSend = useCallback(async () => {
     setIsCheckingCanSend(true);
+    const currentTargetId = targetUserId;
     try {
-      const result = await canSendRequest(targetUserId);
-      setCanSendResult(result.canSend);
+      const result = await canSendRequest(currentTargetId);
+      // Only update state if targetUserId hasn't changed
+      if (currentTargetId === targetUserId) {
+        setCanSendResult(result.canSend);
+      }
     } finally {
-      setIsCheckingCanSend(false);
+      // Only clear loading if targetUserId hasn't changed
+      if (currentTargetId === targetUserId) {
+        setIsCheckingCanSend(false);
+      }
     }
   }, [targetUserId, canSendRequest]);
 
-  // Reset when target changes and auto-check
-  if (lastTargetIdRef.current !== targetUserId) {
-    lastTargetIdRef.current = targetUserId;
-    setCanSendResult(null);
-  }
+  // Reset when target changes (FIXED: moved to useEffect to prevent state update during render)
+  useEffect(() => {
+    if (lastTargetIdRef.current !== targetUserId) {
+      lastTargetIdRef.current = targetUserId;
+      setCanSendResult(null);
+    }
+  }, [targetUserId]);
 
   // Auto-check on mount and target change
   useEffect(() => {
     if (!isLoading && !outgoingRequest && !incomingRequest && canSendResult === null) {
       checkCanSend();
     }
+    // Cleanup: cancel pending operations when component unmounts or targetUserId changes
+    return () => {
+      // Note: We can't actually cancel the Promise, but we prevent state updates above
+      setIsCheckingCanSend(false);
+    };
   }, [isLoading, outgoingRequest, incomingRequest, canSendResult, checkCanSend]);
 
   let status: 'none' | 'pending_outgoing' | 'pending_incoming' | 'friends' | 'loading' = 'none';

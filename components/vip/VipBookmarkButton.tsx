@@ -12,11 +12,13 @@
 import { useTranslations } from 'next-intl';
 import { Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, type ButtonProps } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext as useAuth } from '@/components/auth/SupabaseAuthProvider';
 import { useVipBookmark } from '@/hooks/vip/useVipBookmark';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
+import type { VariantProps } from 'class-variance-authority';
+import { buttonVariants } from '@/components/ui/button';
 
 // =============================================================================
 // Types
@@ -25,8 +27,8 @@ import { useEffect, useCallback } from 'react';
 interface VipBookmarkButtonProps {
   loadoutId: string;
   initialIsBookmarked?: boolean;
-  variant?: ButtonProps['variant'];
-  size?: ButtonProps['size'];
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+  size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
   className?: string;
 }
@@ -44,7 +46,8 @@ export function VipBookmarkButton({
   className,
 }: VipBookmarkButtonProps) {
   const t = useTranslations('vip.bookmark');
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isAuthenticated = !!user;
 
   const {
     isBookmarked,
@@ -53,14 +56,18 @@ export function VipBookmarkButton({
     toggleBookmark,
   } = useVipBookmark(loadoutId, initialIsBookmarked);
 
+  // Use ref to track previous error state
+  const prevErrorRef = useRef<string | null>(null);
+
   // Show error toast
   useEffect(() => {
-    if (error) {
+    if (error && error !== prevErrorRef.current) {
       toast.error(error);
+      prevErrorRef.current = error;
     }
   }, [error]);
 
-  // Show success toast
+  // Show success toast - using ref to track state reliably
   const handleToggle = useCallback(async () => {
     if (!isAuthenticated) {
       toast.error(t('signInToBookmark'));
@@ -68,12 +75,17 @@ export function VipBookmarkButton({
     }
 
     const wasBookmarked = isBookmarked;
+    const previousError = error;
+
     await toggleBookmark();
 
-    // Only show toast if toggle was successful (error state handles failures)
-    if (!error) {
-      toast.success(wasBookmarked ? t('unbookmarkedNotification') : t('bookmarkedNotification'));
-    }
+    // Show success toast only if there was no previous error and no new error occurred
+    // Use a small delay to allow error state to update
+    setTimeout(() => {
+      if (!previousError && !error) {
+        toast.success(wasBookmarked ? t('unbookmarkedNotification') : t('bookmarkedNotification'));
+      }
+    }, 100);
   }, [isAuthenticated, isBookmarked, toggleBookmark, error, t]);
 
   // Disabled if not authenticated or loading auth

@@ -11,8 +11,17 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Helper to get supabase client with any typing for merchant tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getMerchantClient(): any {
+  return createClient();
+}
 import type {
   ConversionDetail,
   ConversionAnalytics,
@@ -81,7 +90,7 @@ const DEFAULT_LIMIT = 20;
 export function useConversionTracking(
   merchantId?: string
 ): UseConversionTrackingReturn {
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabase = useMemo(() => getMerchantClient(), []);
   const { user } = useAuth();
 
   // State
@@ -167,7 +176,8 @@ export function useConversionTracking(
       if (fetchError) throw fetchError;
 
       // Map to ConversionDetail
-      const mapped: ConversionDetail[] = (data || []).map((row) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped: ConversionDetail[] = (data || []).map((row: any) => {
         const acceptedAt = row.merchant_offers?.responded_at;
         const attributionDays = acceptedAt
           ? getAttributionDays(acceptedAt, row.conversion_date)

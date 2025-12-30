@@ -35,7 +35,9 @@
     "edit": "Bearbeiten",
     "error": "Etwas ist schief gelaufen",
     "uncategorized": "Unkategorisiert",
-    "genericUser": "Benutzer"
+    "genericUser": "Benutzer",
+    "unknown": "Unbekannt",
+    "anonymousUser": "Anonymer Benutzer"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
@@ -399,6 +401,13 @@
     "deleteTitle": "Packliste löschen",
     "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
     "deleteLoadout": "Packliste löschen",
+    "errors": {
+      "addItemFailed": "Gegenstand konnte nicht zur Packliste hinzugefügt werden",
+      "removeItemFailed": "Gegenstand konnte nicht aus der Packliste entfernt werden",
+      "updateMetadataFailed": "Packlisten-Metadaten konnten nicht aktualisiert werden",
+      "updateWornStateFailed": "Getragen-Status konnte nicht aktualisiert werden",
+      "updateConsumableStateFailed": "Verbrauchsgut-Status konnte nicht aktualisiert werden"
+    },
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "exportOptions": "Export-Optionen",
     "export": "Exportieren",
@@ -466,6 +475,32 @@
       "nameTooLong": "Name darf maximal 100 Zeichen lang sein",
       "descriptionTooLong": "Beschreibung darf maximal 500 Zeichen lang sein"
     }
+  },
+  "Shakedown": {
+    "linkCopied": "Link kopiert",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "createdAgo": "Erstellt {time}",
+    "expired": "Abgelaufen",
+    "views": "Aufrufe",
+    "passwordProtected": "Passwortgeschützt",
+    "commentsEnabled": "Kommentare aktiviert",
+    "disableComments": "Kommentare deaktivieren",
+    "enableComments": "Kommentare aktivieren",
+    "removePassword": "Passwort entfernen",
+    "setPassword": "Passwort setzen",
+    "deleteShare": "Freigabe löschen",
+    "enterPassword": "Passwort eingeben (mind. 8 Zeichen)",
+    "passwordTooShort": "Passwort muss mindestens 8 Zeichen lang sein",
+    "expiresOn": "Läuft ab am {date}",
+    "deleteShareTitle": "Freigabe-Link löschen?",
+    "deleteShareDescription": "Dadurch wird dieser Freigabe-Link dauerhaft entfernt. Niemand mit diesem Link kann mehr auf deine Packliste zugreifen.",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "manageShares": "Freigaben verwalten",
+    "manageSharesDescription": "Freigabe-Links für \"{name}\" verwalten",
+    "loading": "Laden...",
+    "noShares": "Noch keine Freigabe-Links",
+    "noSharesHint": "Erstelle einen Freigabe-Link, damit andere deine Packliste sehen können"
   },
   "SharedLoadout": {
     "heroTitle": "Virtueller Ausrüstungs-Check",
@@ -742,6 +777,9 @@
       "pending": "Ausstehend",
       "friends": "Freunde",
       "unfriend": "Entfreunden",
+      "unfriended": "Freund entfernt",
+      "unfriendFailed": "Entfernen fehlgeschlagen",
+      "unfriendTitle": "Freund entfernen?",
       "cancel": "Anfrage abbrechen",
       "accept": "Annehmen",
       "decline": "Ablehnen",
@@ -751,11 +789,20 @@
       "unfriendDescription": "Diese Person verliert den Zugriff auf deine Inhalte, die nur für Freunde sichtbar sind.",
       "emptyTitle": "Noch keine Freunde",
       "emptyDescription": "Beginne eine Unterhaltung mit jemandem, um eine Freundschaftsanfrage zu senden.",
+      "noOnlineFriends": "Derzeit sind keine Freunde online",
+      "noSearchResults": "Keine Freunde gefunden mit \"{query}\"",
       "searchPlaceholder": "Freunde suchen...",
+      "searchAriaLabel": "Freunde suchen",
+      "listAriaLabel": "Freundesliste",
+      "since": "Freunde seit {date}",
+      "sort": "Sortieren",
+      "sortBy": "Sortieren nach",
       "sortByName": "Name",
       "sortByRecent": "Letzte Aktivität",
       "sortByOnline": "Online",
       "sortByDateAdded": "Hinzugefügt am",
+      "onlineOnly": "Nur Online",
+      "showingFiltered": "{shown} von {total} Freunden angezeigt",
       "mutualFriends": "{count} gemeinsame Freunde",
       "mutualFriend": "1 gemeinsamer Freund",
       "noMutualFriends": "Keine gemeinsamen Freunde",
@@ -770,7 +817,13 @@
       "outgoing": "Gesendet",
       "emptyIncoming": "Keine ausstehenden Freundschaftsanfragen",
       "emptyOutgoing": "Keine gesendeten Freundschaftsanfragen",
-      "expiresIn": "Läuft in {days} Tagen ab"
+      "expiresIn": "Läuft in {days} Tagen ab",
+      "sendFailed": "Senden der Freundschaftsanfrage fehlgeschlagen",
+      "acceptFailed": "Annehmen der Freundschaftsanfrage fehlgeschlagen",
+      "declineFailed": "Ablehnen der Freundschaftsanfrage fehlgeschlagen",
+      "cancelFailed": "Abbrechen der Freundschaftsanfrage fehlgeschlagen",
+      "rateLimitExceeded": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
+      "noMessageExchange": "Du musst dieser Person zuerst eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst"
     },
     "activity": {
       "title": "Aktivitäten",
@@ -794,7 +847,8 @@
       "invisible": "Unsichtbar",
       "offline": "Offline",
       "lastActive": "Zuletzt aktiv {time}",
-      "updating": "Wird aktualisiert..."
+      "updating": "Wird aktualisiert...",
+      "updateFailed": "Aktualisierung des Status fehlgeschlagen"
     },
     "privacy": {
       "title": "Datenschutzeinstellungen",
@@ -823,7 +877,11 @@
         "everyone": "Alle",
         "friendsOnly": "Nur Freunde",
         "nobody": "Niemand"
-      }
+      },
+      "presetApplied": "Datenschutzvoreinstellung angewendet",
+      "presetFailed": "Anwendung der Voreinstellung fehlgeschlagen",
+      "settingUpdated": "Einstellung aktualisiert",
+      "settingFailed": "Aktualisierung der Einstellung fehlgeschlagen"
     }
   },
   "Shakedowns": {
@@ -882,6 +940,9 @@
       "addPlaceholder": "Teile deine Gedanken, Vorschläge oder Erfahrungen...",
       "reply": "Antworten",
       "replyTo": "Antwort an {author}",
+      "replyingToComment": "Antwort auf Kommentar",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
       "edit": "Bearbeiten",
       "delete": "Löschen",
       "report": "Melden",
@@ -897,7 +958,9 @@
       "characterCount": "{count}/{max} Zeichen",
       "maxDepthReached": "Maximale Antworttiefe erreicht",
       "submitting": "Wird gesendet...",
-      "closed": "Dieser Shakedown nimmt kein Feedback mehr an"
+      "closed": "Dieser Shakedown nimmt kein Feedback mehr an",
+      "generalFeedback": "Allgemeines Feedback",
+      "itemFeedback": "Artikel-Feedback"
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
@@ -918,7 +981,11 @@
       "startSimilar": "Ähnlichen Shakedown starten",
       "startSimilarTooltip": "Erstelle deinen eigenen Shakedown nach diesem Vorbild",
       "requestShakedown": "Community Shakedown anfordern",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "deleteShakedown": "Shakedown löschen",
+      "deleteShakedownConfirm": "Bist du sicher, dass du diesen Shakedown löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleteFeedback": "Feedback löschen",
+      "deleteFeedbackConfirm": "Bist du sicher, dass du dieses Feedback löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "filters": {
       "title": "Filter",
@@ -965,7 +1032,8 @@
       "details": "Zusätzliche Details (optional)",
       "detailsPlaceholder": "Gib zusätzlichen Kontext an...",
       "submit": "Meldung absenden",
-      "success": "Meldung eingereicht. Inhalt wird bis zur Überprüfung ausgeblendet.",
+      "successMessage": "Meldung eingereicht. Vielen Dank, dass du unsere Community sicher hältst.",
+      "successHidden": "Meldung eingereicht. Inhalt wird bis zur Überprüfung ausgeblendet.",
       "alreadyReported": "Du hast dieses Feedback bereits gemeldet"
     },
     "badges": {
@@ -996,7 +1064,9 @@
     },
     "notifications": {
       "newFeedback": "{author} hat deinen Shakedown kommentiert",
+      "newFeedbackGeneric": "Neues Feedback zu deinem Shakedown",
       "newReply": "{author} hat auf deinen Kommentar geantwortet",
+      "newReplyGeneric": "Neue Antwort auf deinen Kommentar",
       "markedHelpful": "{author} fand dein Feedback hilfreich",
       "loadoutUpdated": "Das Loadout wurde aktualisiert",
       "badgeEarned": "Du hast das Abzeichen {badge} verdient!"

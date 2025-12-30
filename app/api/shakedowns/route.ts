@@ -407,7 +407,7 @@ export async function POST(
     } = validation.data;
 
     // Verify loadout exists and belongs to user
-    const { data: loadout, error: loadoutError } = await supabase
+    const { data: loadout, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('id, user_id')
       .eq('id', loadoutId)

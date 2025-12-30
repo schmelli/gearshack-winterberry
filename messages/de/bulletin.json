@@ -5,6 +5,12 @@
   "loading": "Beiträge werden geladen...",
   "loadingMore": "Weitere werden geladen...",
 
+  "common": {
+    "cancel": "Abbrechen",
+    "unknown": "Unbekannt",
+    "defaultUser": "Benutzer"
+  },
+
   "composer": {
     "title": "Beitrag erstellen",
     "placeholder": "Was beschäftigt dich? Stelle eine Frage, teile ein Update oder verbinde dich mit anderen Outdoor-Enthusiasten...",
@@ -110,7 +116,9 @@
     "marketplaceItem": "Marktplatz-Artikel",
     "baseWeight": "Basisgewicht: {weight}",
     "items": "{count, plural, =1 {1 Artikel} other {# Artikel}}",
-    "viewFull": "Vollständige {type} anzeigen"
+    "viewFull": "Vollständige {type} anzeigen",
+    "loadFailed": "Inhalt konnte nicht geladen werden",
+    "notFound": "Inhalt nicht gefunden"
   },
 
   "errors": {
