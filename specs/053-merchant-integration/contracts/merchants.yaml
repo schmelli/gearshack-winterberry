@@ -1,0 +1,519 @@
+# Merchant API Contracts
+# Feature: 053-merchant-integration
+
+openapi: 3.1.0
+info:
+  title: Merchant Integration API - Merchants
+  version: 1.0.0
+  description: API endpoints for merchant account management
+
+paths:
+  /api/merchants/profile:
+    get:
+      summary: Get current merchant profile
+      operationId: getMerchantProfile
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Merchant profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not a merchant account
+
+    patch:
+      summary: Update merchant profile
+      operationId: updateMerchantProfile
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantUpdateInput'
+      responses:
+        '200':
+          description: Updated merchant profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+
+  /api/merchants/apply:
+    post:
+      summary: Submit merchant application
+      operationId: applyAsMerchant
+      tags: [Onboarding]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantApplicationInput'
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '400':
+          description: Invalid application data
+        '409':
+          description: Already has merchant account
+
+  /api/merchants/locations:
+    get:
+      summary: List merchant locations
+      operationId: listMerchantLocations
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MerchantLocation'
+
+    post:
+      summary: Add merchant location
+      operationId: addMerchantLocation
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantLocationInput'
+      responses:
+        '201':
+          description: Location added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLocation'
+
+  /api/merchants/locations/{locationId}:
+    parameters:
+      - name: locationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      summary: Update location
+      operationId: updateMerchantLocation
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantLocationInput'
+      responses:
+        '200':
+          description: Location updated
+
+    delete:
+      summary: Delete location
+      operationId: deleteMerchantLocation
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Location deleted
+
+  /api/merchants/catalog:
+    get:
+      summary: List catalog items
+      operationId: listCatalogItems
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Paginated catalog items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItemList'
+
+    post:
+      summary: Add catalog item
+      operationId: addCatalogItem
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogItemInput'
+      responses:
+        '201':
+          description: Item added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItem'
+
+  /api/merchants/catalog/import:
+    post:
+      summary: Bulk import catalog items
+      operationId: importCatalogItems
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file with catalog data
+      responses:
+        '200':
+          description: Import results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: integer
+                  failed:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+
+  /api/admin/merchants:
+    get:
+      summary: List all merchants (admin)
+      operationId: adminListMerchants
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, suspended, rejected]
+      responses:
+        '200':
+          description: List of merchants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MerchantAdmin'
+
+  /api/admin/merchants/{merchantId}/approve:
+    post:
+      summary: Approve merchant application
+      operationId: approveMerchant
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Merchant approved
+
+  /api/admin/merchants/{merchantId}/reject:
+    post:
+      summary: Reject merchant application
+      operationId: rejectMerchant
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+              required: [reason]
+      responses:
+        '200':
+          description: Merchant rejected
+
+components:
+  schemas:
+    Merchant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        businessType:
+          type: string
+          enum: [local, chain, online]
+        status:
+          type: string
+          enum: [pending, approved, suspended, rejected]
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        website:
+          type: string
+          format: uri
+        logoUrl:
+          type: string
+        description:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    MerchantUpdateInput:
+      type: object
+      properties:
+        businessName:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        website:
+          type: string
+          format: uri
+        description:
+          type: string
+
+    MerchantApplicationInput:
+      type: object
+      required: [businessName, businessType, contactEmail]
+      properties:
+        businessName:
+          type: string
+        businessType:
+          type: string
+          enum: [local, chain, online]
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        website:
+          type: string
+        description:
+          type: string
+        taxId:
+          type: string
+
+    MerchantLocation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        phone:
+          type: string
+        hours:
+          type: object
+        isPrimary:
+          type: boolean
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    MerchantLocationInput:
+      type: object
+      required: [name, addressLine1, city, postalCode, latitude, longitude]
+      properties:
+        name:
+          type: string
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          default: DE
+        phone:
+          type: string
+        hours:
+          type: object
+        isPrimary:
+          type: boolean
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    CatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        weightGrams:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        imageUrl:
+          type: string
+        externalUrl:
+          type: string
+        isActive:
+          type: boolean
+
+    CatalogItemInput:
+      type: object
+      required: [sku, name, price]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        weightGrams:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        externalUrl:
+          type: string
+
+    CatalogItemList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    MerchantAdmin:
+      allOf:
+        - $ref: '#/components/schemas/Merchant'
+        - type: object
+          properties:
+            verifiedBy:
+              type: string
+              format: uuid
+            catalogItemCount:
+              type: integer
+            loadoutCount:
+              type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

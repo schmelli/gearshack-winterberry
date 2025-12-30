@@ -9,6 +9,16 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+
+/**
+ * Helper to get supabase client with any typing for VIP tables
+ * TODO: Remove after regenerating types from migrations
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getVipClient(): any {
+  return createClient();
+}
+
 import type {
   VipWithStats,
   VipProfile,
@@ -43,7 +53,7 @@ import type {
  * ```
  */
 export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data, error } = await (supabase as any)
@@ -62,7 +72,8 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
 
   // Check if user is following each VIP
   const vips = await Promise.all(
-    (data ?? []).map(async (vip) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (data ?? []).map(async (vip: any) => {
       let isFollowing = false;
       if (user) {
         const { data: followData } = await (supabase as any)
@@ -108,7 +119,7 @@ export async function searchVips(
   options: { limit?: number; offset?: number; featured?: boolean } = {}
 ): Promise<VipListResponse> {
   const { limit = 20, offset = 0, featured } = options;
-  const supabase = createClient();
+  const supabase = getVipClient();
 
   let queryBuilder = (supabase as any)
     .from('vip_accounts')
@@ -134,7 +145,8 @@ export async function searchVips(
 
   if (error) throw error;
 
-  const vips: VipWithStats[] = (data ?? []).map((vip) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vips: VipWithStats[] = (data ?? []).map((vip: any) => ({
     ...transformVipAccount(vip),
     followerCount: vip.follower_count?.[0]?.count ?? 0,
     loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
@@ -169,7 +181,7 @@ export async function searchVips(
  * ```
  */
 export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: vip, error } = await (supabase as any)
@@ -207,14 +219,16 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
 
   // Get loadout summaries with weights
   const loadoutSummaries: VipLoadoutSummary[] = await Promise.all(
-    (loadouts ?? []).map(async (loadout) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (loadouts ?? []).map(async (loadout: any) => {
       const { data: items } = await (supabase as any)
         .from('vip_loadout_items')
         .select('weight_grams, quantity')
         .eq('vip_loadout_id', loadout.id);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const totalWeight = (items ?? []).reduce(
-        (sum, item) => sum + item.weight_grams * item.quantity,
+        (sum: number, item: any) => sum + item.weight_grams * item.quantity,
         0
       );
 
@@ -268,7 +282,7 @@ export async function getVipLoadout(
   vipSlug: string,
   loadoutSlug: string
 ): Promise<VipLoadoutWithItems | null> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   // Get VIP first
@@ -318,7 +332,8 @@ export async function getVipLoadout(
 
   // Calculate category breakdown
   const categoryMap = new Map<string, { weight: number; count: number }>();
-  (items ?? []).forEach((item) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (items ?? []).forEach((item: any) => {
     const existing = categoryMap.get(item.category) ?? { weight: 0, count: 0 };
     categoryMap.set(item.category, {
       weight: existing.weight + item.weight_grams * item.quantity,
@@ -334,8 +349,9 @@ export async function getVipLoadout(
     })
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalWeight = (items ?? []).reduce(
-    (sum, item) => sum + item.weight_grams * item.quantity,
+    (sum: number, item: any) => sum + item.weight_grams * item.quantity,
     0
   );
 
@@ -362,7 +378,7 @@ export async function getVipLoadout(
  * Follow a VIP
  */
 export async function followVip(vipId: string): Promise<VipFollowResponse> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');
@@ -390,7 +406,7 @@ export async function followVip(vipId: string): Promise<VipFollowResponse> {
  * Unfollow a VIP
  */
 export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');
@@ -423,7 +439,7 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
  * Bookmark a VIP loadout
  */
 export async function bookmarkLoadout(loadoutId: string): Promise<VipBookmarkResponse> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');
@@ -442,7 +458,7 @@ export async function bookmarkLoadout(loadoutId: string): Promise<VipBookmarkRes
  * Remove bookmark from a VIP loadout
  */
 export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkResponse> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');
@@ -462,7 +478,7 @@ export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkR
  * Get user's bookmarked loadouts
  */
 export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return [];
@@ -479,9 +495,10 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (bookmarks ?? [])
-    .filter((b) => b.vip_loadouts)
-    .map((b) => ({
+    .filter((b: any) => b.vip_loadouts)
+    .map((b: any) => ({
       ...transformVipLoadout(b.vip_loadouts as Record<string, unknown>),
       totalWeightGrams: 0, // Would need separate query for weights
       itemCount: 0,
@@ -516,7 +533,7 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
  * ```
  */
 export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutResponse> {
-  const supabase = createClient();
+  const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error('Authentication required');

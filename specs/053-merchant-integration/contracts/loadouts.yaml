@@ -1,0 +1,771 @@
+# Merchant Loadouts API Contracts
+# Feature: 053-merchant-integration
+
+openapi: 3.1.0
+info:
+  title: Merchant Integration API - Loadouts
+  version: 1.0.0
+  description: API endpoints for merchant loadout management and discovery
+
+paths:
+  # Merchant Portal - Loadout Management
+  /api/merchants/loadouts:
+    get:
+      summary: List merchant's loadouts
+      operationId: listMerchantLoadouts
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending_review, published, archived]
+      responses:
+        '200':
+          description: List of loadouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MerchantLoadout'
+
+    post:
+      summary: Create new loadout
+      operationId: createMerchantLoadout
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantLoadoutInput'
+      responses:
+        '201':
+          description: Loadout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLoadout'
+
+  /api/merchants/loadouts/{loadoutId}:
+    parameters:
+      - name: loadoutId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get loadout details
+      operationId: getMerchantLoadout
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Loadout details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLoadoutDetail'
+
+    patch:
+      summary: Update loadout
+      operationId: updateMerchantLoadout
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantLoadoutInput'
+      responses:
+        '200':
+          description: Loadout updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLoadout'
+
+    delete:
+      summary: Delete loadout (archive)
+      operationId: deleteMerchantLoadout
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Loadout archived
+
+  /api/merchants/loadouts/{loadoutId}/items:
+    parameters:
+      - name: loadoutId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Add item to loadout
+      operationId: addLoadoutItem
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadoutItemInput'
+      responses:
+        '201':
+          description: Item added
+
+    put:
+      summary: Replace all loadout items
+      operationId: replaceLoadoutItems
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LoadoutItemInput'
+      responses:
+        '200':
+          description: Items replaced
+
+  /api/merchants/loadouts/{loadoutId}/items/{itemId}:
+    parameters:
+      - name: loadoutId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      summary: Update loadout item
+      operationId: updateLoadoutItem
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadoutItemInput'
+      responses:
+        '200':
+          description: Item updated
+
+    delete:
+      summary: Remove item from loadout
+      operationId: removeLoadoutItem
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Item removed
+
+  /api/merchants/loadouts/{loadoutId}/availability:
+    parameters:
+      - name: loadoutId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      summary: Set loadout availability
+      operationId: setLoadoutAvailability
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LoadoutAvailabilityInput'
+      responses:
+        '200':
+          description: Availability updated
+
+  /api/merchants/loadouts/{loadoutId}/submit:
+    post:
+      summary: Submit loadout for review
+      operationId: submitLoadoutForReview
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Submitted for review
+        '400':
+          description: Loadout not ready (missing items or availability)
+
+  /api/merchants/loadouts/{loadoutId}/unpublish:
+    post:
+      summary: Unpublish loadout
+      operationId: unpublishLoadout
+      tags: [Merchant Portal]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loadout unpublished (archived)
+
+  # Public - Loadout Discovery
+  /api/loadouts/merchant:
+    get:
+      summary: Browse merchant loadouts (public)
+      operationId: browseMerchantLoadouts
+      tags: [Discovery]
+      parameters:
+        - name: tripType
+          in: query
+          schema:
+            type: string
+        - name: season
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: merchantId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lat
+          in: query
+          schema:
+            type: number
+          description: User latitude for distance calculation
+        - name: lng
+          in: query
+          schema:
+            type: number
+          description: User longitude for distance calculation
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated merchant loadouts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLoadoutList'
+
+  /api/loadouts/merchant/{slug}:
+    get:
+      summary: Get merchant loadout by slug (public)
+      operationId: getMerchantLoadoutPublic
+      tags: [Discovery]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Loadout details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantLoadoutPublic'
+        '404':
+          description: Loadout not found
+
+  /api/loadouts/merchant/{loadoutId}/add-to-wishlist:
+    post:
+      summary: Add loadout items to wishlist
+      operationId: addLoadoutToWishlist
+      tags: [Discovery]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Specific items to add (empty = all items)
+                locationGranularity:
+                  type: string
+                  enum: [city, neighborhood, none]
+                  description: Location sharing consent for this merchant
+      responses:
+        '200':
+          description: Items added to wishlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  addedCount:
+                    type: integer
+                  wishlistItemIds:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+  /api/loadouts/compare:
+    get:
+      summary: Compare two loadouts
+      operationId: compareLoadouts
+      tags: [Discovery]
+      parameters:
+        - name: merchantLoadoutId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: compareLoadoutId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comparison data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadoutComparison'
+
+  # Admin - Loadout Review
+  /api/admin/loadouts/pending:
+    get:
+      summary: List loadouts pending review
+      operationId: listPendingLoadouts
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending loadouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MerchantLoadoutDetail'
+
+  /api/admin/loadouts/{loadoutId}/approve:
+    post:
+      summary: Approve loadout for publishing
+      operationId: approveLoadout
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loadout approved and published
+
+  /api/admin/loadouts/{loadoutId}/request-changes:
+    post:
+      summary: Request changes to loadout
+      operationId: requestLoadoutChanges
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                feedback:
+                  type: string
+              required: [feedback]
+      responses:
+        '200':
+          description: Changes requested, loadout returned to draft
+
+components:
+  schemas:
+    MerchantLoadout:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        merchantId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        tripType:
+          type: string
+        season:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending_review, published, archived]
+        discountPercent:
+          type: number
+        isFeatured:
+          type: boolean
+        featuredUntil:
+          type: string
+          format: date-time
+        heroImageUrl:
+          type: string
+        viewCount:
+          type: integer
+        wishlistAddCount:
+          type: integer
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MerchantLoadoutDetail:
+      allOf:
+        - $ref: '#/components/schemas/MerchantLoadout'
+        - type: object
+          properties:
+            merchant:
+              $ref: '#/components/schemas/MerchantSummary'
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/LoadoutItem'
+            availability:
+              type: array
+              items:
+                $ref: '#/components/schemas/LoadoutAvailability'
+            pricing:
+              $ref: '#/components/schemas/LoadoutPricing'
+
+    MerchantLoadoutInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        tripType:
+          type: string
+        season:
+          type: array
+          items:
+            type: string
+        discountPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    LoadoutItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        catalogItem:
+          $ref: '#/components/schemas/CatalogItemSummary'
+        quantity:
+          type: integer
+        expertNote:
+          type: string
+        sortOrder:
+          type: integer
+
+    LoadoutItemInput:
+      type: object
+      required: [catalogItemId]
+      properties:
+        catalogItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          default: 1
+        expertNote:
+          type: string
+        sortOrder:
+          type: integer
+
+    LoadoutAvailability:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        locationName:
+          type: string
+        isInStock:
+          type: boolean
+        stockNote:
+          type: string
+
+    LoadoutAvailabilityInput:
+      type: object
+      required: [locationId, isInStock]
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        isInStock:
+          type: boolean
+        stockNote:
+          type: string
+
+    LoadoutPricing:
+      type: object
+      properties:
+        individualTotal:
+          type: number
+        discountPercent:
+          type: number
+        discountAmount:
+          type: number
+        bundlePrice:
+          type: number
+        totalWeightGrams:
+          type: integer
+
+    MerchantLoadoutPublic:
+      allOf:
+        - $ref: '#/components/schemas/MerchantLoadoutDetail'
+        - type: object
+          properties:
+            nearestLocation:
+              type: object
+              properties:
+                name:
+                  type: string
+                distanceKm:
+                  type: number
+                isInStock:
+                  type: boolean
+
+    MerchantLoadoutList:
+      type: object
+      properties:
+        loadouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MerchantLoadoutCard'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    MerchantLoadoutCard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        merchant:
+          $ref: '#/components/schemas/MerchantSummary'
+        heroImageUrl:
+          type: string
+        bundlePrice:
+          type: number
+        savingsPercent:
+          type: number
+        itemCount:
+          type: integer
+        totalWeightGrams:
+          type: integer
+        isFeatured:
+          type: boolean
+        nearestLocationKm:
+          type: number
+
+    MerchantSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        businessType:
+          type: string
+        logoUrl:
+          type: string
+        isVerified:
+          type: boolean
+
+    CatalogItemSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        price:
+          type: number
+        weightGrams:
+          type: integer
+        imageUrl:
+          type: string
+
+    LoadoutComparison:
+      type: object
+      properties:
+        merchantLoadout:
+          $ref: '#/components/schemas/LoadoutComparisonItem'
+        compareLoadout:
+          $ref: '#/components/schemas/LoadoutComparisonItem'
+        differences:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              merchantItem:
+                type: string
+              compareItem:
+                type: string
+              priceDiff:
+                type: number
+              weightDiff:
+                type: integer
+
+    LoadoutComparisonItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        ownerName:
+          type: string
+        isMerchant:
+          type: boolean
+        totalWeightGrams:
+          type: integer
+        bundlePrice:
+          type: number
+        itemCount:
+          type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

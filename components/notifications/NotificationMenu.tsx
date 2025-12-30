@@ -66,6 +66,9 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
         if (isValidToken) {
           router.push(`/shakedown/${shareToken}`);
         }
+      } else if (type === 'offer_received' && referenceId) {
+        // Navigate to offers page with offer ID to auto-open detail sheet
+        router.push(`/offers?offerId=${referenceId}`);
       }
     },
     [markAsRead, router]

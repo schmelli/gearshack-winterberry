@@ -42,8 +42,8 @@ export async function getAllVips(): Promise<VipWithStats[]> {
 
   // Transform VIPs with stats (counts now included in the query)
   const vips: VipWithStats[] = (data || []).map((vip: Record<string, unknown>) => {
-    const vipFollows = vip.vip_follows as unknown[];
-    const vipLoadouts = vip.vip_loadouts as unknown[];
+    const vipFollows = vip.vip_follows as { count: number }[] | null;
+    const vipLoadouts = vip.vip_loadouts as { count: number }[] | null;
 
     return {
       id: vip.id as string,

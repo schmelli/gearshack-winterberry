@@ -92,7 +92,12 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     canBeBorrowed: row.can_be_borrowed ?? false,
     canBeTraded: row.can_be_traded ?? false,
 
-    // Section 7: Dependencies
+    // Section 7: Merchant Source Attribution (Feature 053)
+    sourceMerchantId: (row as unknown as { source_merchant_id?: string | null }).source_merchant_id ?? null,
+    sourceOfferId: (row as unknown as { source_offer_id?: string | null }).source_offer_id ?? null,
+    sourceLoadoutId: (row as unknown as { source_loadout_id?: string | null }).source_loadout_id ?? null,
+
+    // Section 8: Dependencies
     dependencyIds: row.dependency_ids || [],
   };
 }
