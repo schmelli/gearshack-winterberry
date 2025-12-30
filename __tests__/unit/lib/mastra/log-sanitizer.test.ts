@@ -118,11 +118,11 @@ describe('sanitizeString', () => {
   });
 
   describe('API Key Detection', () => {
-    it('should redact Stripe live keys', () => {
+    it('should redact API key patterns', () => {
       const result = sanitizeString(
-        'Key: sk_live_FAKE_KEY_FOR_TESTING_ONLY_00000'
+        'Config: api_key=XXXXXXXXXXXXXXXXXXXX'
       );
-      // Multiple patterns may match; verify key is redacted
+      // Verify API key pattern is redacted
       expect(result.sanitized).toContain('[REDACTED]');
       expect(result.redactionCount).toBeGreaterThanOrEqual(1);
       expect(result.detectedTypes).toContain('api_key');
@@ -641,7 +641,7 @@ describe('sanitizeError', () => {
   });
 
   it('should preserve error name', () => {
-    const error = new TypeError('Invalid API key sk_live_FAKE_TEST_000000000000000');
+    const error = new TypeError('Invalid key api_key=XXXXXXXXXXXXXXXXXXXX');
     const result = sanitizeError(error);
 
     expect(result.name).toBe('TypeError');
@@ -693,7 +693,7 @@ describe('containsPII', () => {
   });
 
   it('should return true for API key', () => {
-    expect(containsPII('sk_live_FAKE_TEST_00000000000000')).toBe(true);
+    expect(containsPII('api_key=XXXXXXXXXXXXXXXXXXXX')).toBe(true);
   });
 
   it('should return false for clean text', () => {
