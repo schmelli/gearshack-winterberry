@@ -201,7 +201,7 @@ export async function POST(
     }
 
     // Fetch loadout for response
-    const { data: loadout, error: loadoutError } = await supabase
+    const { data: loadout, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('name, total_weight_grams, item_count')
       .eq('id', updatedShakedown.loadout_id)

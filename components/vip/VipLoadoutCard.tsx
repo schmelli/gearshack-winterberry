@@ -1,0 +1,113 @@
+'use client';
+
+/**
+ * VIP Loadout Card Component
+ *
+ * Feature: 052-vip-loadouts
+ * Task: T022
+ *
+ * Card component for displaying VIP loadout in lists.
+ * Shows loadout name, source attribution, weight, and item count.
+ */
+
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { Backpack, Scale, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { formatWeightFromGrams } from '@/lib/utils/weight';
+import { detectPlatform, getSourcePlatformLabel } from '@/lib/vip/source-url-validator';
+import type { VipLoadoutSummary } from '@/types/vip';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface VipLoadoutCardProps {
+  loadout: VipLoadoutSummary;
+  vipSlug: string;
+  vipName?: string;
+  showBookmark?: boolean;
+  bookmarkButton?: React.ReactNode;
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+export function VipLoadoutCard({
+  loadout,
+  vipSlug,
+  vipName,
+  showBookmark = false,
+  bookmarkButton,
+}: VipLoadoutCardProps) {
+  const locale = useLocale();
+  const t = useTranslations('vip');
+
+  const loadoutUrl = `/${locale}/vip/${vipSlug}/${loadout.slug}`;
+  const platform = detectPlatform(loadout.sourceUrl);
+
+  return (
+    <Card className="group h-full transition-all hover:shadow-lg hover:border-primary/50">
+      <Link href={loadoutUrl}>
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground group-hover:text-primary line-clamp-2">
+                {loadout.name}
+              </h3>
+              {vipName && (
+                <p className="text-sm text-muted-foreground mt-1">by {vipName}</p>
+              )}
+            </div>
+            {showBookmark && bookmarkButton && (
+              <div onClick={(e) => e.preventDefault()}>
+                {bookmarkButton}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {/* Trip Type */}
+          {loadout.tripType && (
+            <p className="text-sm text-muted-foreground line-clamp-1">
+              {loadout.tripType}
+              {loadout.dateRange && ` • ${loadout.dateRange}`}
+            </p>
+          )}
+
+          {/* Stats Row */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Scale className="h-4 w-4" />
+              {formatWeightFromGrams(loadout.totalWeightGrams, 'g')}
+            </span>
+            <span className="flex items-center gap-1">
+              <Backpack className="h-4 w-4" />
+              {t('loadout.itemCount', { count: loadout.itemCount })}
+            </span>
+          </div>
+
+          {/* Source Attribution */}
+          <div className="flex items-center gap-2 pt-2 border-t">
+            {loadout.isSourceAvailable ? (
+              <Badge variant="outline" className="text-xs gap-1">
+                <ExternalLink className="h-3 w-3" />
+                {getSourcePlatformLabel(platform)}
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs gap-1 text-amber-600">
+                <AlertTriangle className="h-3 w-3" />
+                {t('loadout.sourceUnavailable')}
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Link>
+    </Card>
+  );
+}
+
+export default VipLoadoutCard;

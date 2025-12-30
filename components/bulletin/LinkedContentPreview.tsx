@@ -64,11 +64,12 @@ export function LinkedContentPreview({
             .select('*', { count: 'exact', head: true })
             .eq('loadout_id', contentId);
 
+          // Note: Type assertion needed - loadouts fields accessed directly
           setData({
-            id: loadout.id,
-            title: loadout.name,
-            thumbnail: null, // TODO: Join with generated_images when needed
-            baseWeight: 0, // TODO: Calculate from loadout_items
+            id: (loadout as any).id,
+            title: (loadout as any).name,
+            thumbnail: (loadout as any).hero_image_url || null,
+            baseWeight: (loadout as any).base_weight_g,
             itemCount: count ?? 0,
           });
         }

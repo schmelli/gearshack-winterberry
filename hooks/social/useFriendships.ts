@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriends,

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get or create preferences
-    let { data: prefs, error: prefsError } = await supabase
+    let { data: prefs, error: prefsError } = await (supabase as any)
       .from('alert_preferences')
       .select('*')
       .eq('user_id', user.id)
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Create default preferences if none exist
     if (!prefs && !prefsError) {
-      const { data: newPrefs, error: createError } = await supabase
+      const { data: newPrefs, error: createError } = await (supabase as any)
         .from('alert_preferences')
         .insert({
           user_id: user.id,
@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update preferences
-    const { data: updatedPrefs, error: updateError } = await supabase
+    const { data: updatedPrefs, error: updateError } = await (supabase as any)
       .from('alert_preferences')
       .update(updates)
       .eq('user_id', user.id)

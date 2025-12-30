@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceRoleClient();
 
     // Get all active tracking items
-    const { data: trackingItems, error: trackingError } = await supabase
+    const { data: trackingItems, error: trackingError } = await (supabase as any)
       .from('price_tracking')
       .select(`
         id,
@@ -88,7 +88,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Batch check conversions (Review fix #12)
-    const conversionData = trackingItems.map((item) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conversionData = trackingItems.map((item: any) => ({
       tracking_id: item.id,
       gear_item_id: item.gear_item_id,
       user_id: item.user_id,
@@ -96,10 +97,11 @@ export async function GET(request: NextRequest) {
     await batchCheckConversions(conversionData);
 
     // Update last_checked_at for all items
-    await supabase
+    await (supabase as any)
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
-      .in('id', trackingItems.map((item) => item.id));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .in('id', trackingItems.map((item: any) => item.id));
 
     log.info('Price check job completed', {
       processed: trackingItems.length,
@@ -209,7 +211,7 @@ async function checkPersonalOffers(
   const supabase = createServiceRoleClient();
 
   // Get active personal offers for this tracking item
-  const { data: offers } = await supabase
+  const { data: offers } = await (supabase as any)
     .from('personal_offers')
     .select(`
       *,

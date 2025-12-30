@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Verify API key belongs to an active partner (Review fix #2)
-    const { data: partnerRaw, error: authError } = await supabase
+    const { data: partnerRaw, error: authError } = await (supabase as any)
       .from('partner_retailers')
       // @ts-ignore - Price tracking table, types will be regenerated after migrations
       .select('id, name, is_active, rate_limit_per_hour')
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Get tracking records for matched gear items
     const gearItemIds = (fuzzyMatches as FuzzySearchResult[]).map((match) => match.gear_item_id);
-    const { data: trackingRecords } = await supabase
+    const { data: trackingRecords } = await (supabase as any)
       .from('price_tracking')
       .select('id, user_id, gear_item_id')
       .in('gear_item_id', gearItemIds)
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert personal offers
-    const { data: createdOffers, error: offerError } = await supabase
+    const { data: createdOffers, error: offerError } = await (supabase as any)
       .from('personal_offers')
       .insert(offers)
       .select();

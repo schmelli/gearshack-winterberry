@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     log.info('Starting gear enrichment check');
 
     // Fetch all gear items with at least one missing field
-    const { data: gearItems, error: gearError } = await supabase
+    const { data: gearItems, error: gearError } = await (supabase as any)
       .from('gear_items')
       .select('id, user_id, name, brand, weight_grams, description, price_paid')
       .or('weight_grams.is.null,description.is.null,price_paid.is.null')
@@ -97,8 +97,9 @@ export async function GET(request: NextRequest) {
     log.info('Processing gear items for enrichment', { count: gearItems.length });
 
     // Batch fetch subscription tiers for all users with pending items
-    const userIds = [...new Set(gearItems.map((item) => item.user_id))];
-    const { data: profiles, error: profilesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userIds = [...new Set(gearItems.map((item: any) => item.user_id))];
+    const { data: profiles, error: profilesError } = await (supabase as any)
       .from('profiles')
       .select('id, subscription_tier')
       .in('id', userIds);
@@ -107,8 +108,9 @@ export async function GET(request: NextRequest) {
       log.warn('Failed to fetch subscription tiers, proceeding without web search', {}, profilesError);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const trailblazerUsers = new Set(
-      profiles?.filter((p) => p.subscription_tier === 'trailblazer').map((p) => p.id) || []
+      profiles?.filter((p: any) => p.subscription_tier === 'trailblazer').map((p: any) => p.id) || []
     );
 
     log.info('Subscription tiers fetched', {
@@ -134,7 +136,7 @@ export async function GET(request: NextRequest) {
         const bestMatch = matches[0];
 
         // Check if we already have a pending suggestion for this item
-        const { data: existingSuggestion } = await supabase
+        const { data: existingSuggestion } = await (supabase as any)
           .from('gear_enrichment_suggestions')
           .select('id')
           .eq('gear_item_id', item.id)
@@ -211,7 +213,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Create enrichment suggestion
-        const { data: suggestion, error: suggestionError } = await supabase
+        const { data: suggestion, error: suggestionError } = await (supabase as any)
           .from('gear_enrichment_suggestions')
           .insert({
             user_id: item.user_id,
@@ -251,7 +253,7 @@ export async function GET(request: NextRequest) {
 
         const message = `"${item.name}" • ${enrichmentDetails.join(' • ')}`;
 
-        const { error: notifError } = await supabase
+        const { error: notifError } = await (supabase as any)
           .from('notifications')
           .insert({
             user_id: item.user_id,

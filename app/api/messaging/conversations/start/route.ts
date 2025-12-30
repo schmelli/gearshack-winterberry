@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const { recipientId, initialMessage } = validation.data;
 
     // Check if recipient exists
-    const { data: recipient, error: recipientError } = await supabase
+    const { data: recipient, error: recipientError } = await (supabase as any)
       .from('profiles')
       .select('id, messaging_privacy')
       .eq('id', recipientId)
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     // Check if blocked (in either direction)
-    const { count: blockCount } = await supabase
+    const { count: blockCount } = await (supabase as any)
       .from('user_blocks')
       .select('*', { count: 'exact', head: true })
       .or(
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
     if (messagingPrivacy === 'friends_only') {
       // Check if we're in recipient's friends list
-      const { count: friendCount } = await supabase
+      const { count: friendCount } = await (supabase as any)
         .from('user_friends')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', recipientId)

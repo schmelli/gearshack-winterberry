@@ -81,7 +81,7 @@ export async function POST(
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Update the share
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('loadout_shares')
       .update({ password_hash: passwordHash })
       .eq('share_token', token);
@@ -117,7 +117,7 @@ export async function DELETE(
     }
 
     // Remove the password
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('loadout_shares')
       .update({ password_hash: null })
       .eq('share_token', token);
