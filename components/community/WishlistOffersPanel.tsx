@@ -11,6 +11,7 @@
 
 'use client';
 
+import React from 'react';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { Tag, ChevronRight, Loader2, Sparkles } from 'lucide-react';
@@ -39,9 +40,9 @@ function formatExpiry(expiresAt: string, t: (key: string, values?: { count: numb
   return t('panels.offers.daysLeft', { count: days });
 }
 
-// =============================================================================
+// ============================================================================
 // Offer Item
-// =============================================================================
+// ============================================================================
 
 interface OfferItemProps {
   offer: UserOffer;
@@ -97,9 +98,9 @@ function OfferItem({ offer }: OfferItemProps) {
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Empty State
-// =============================================================================
+// ============================================================================
 
 function EmptyState() {
   const t = useTranslations('Community');
@@ -117,11 +118,11 @@ function EmptyState() {
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Main Component
-// =============================================================================
+// ============================================================================
 
-export function WishlistOffersPanel({ className, limit = 3 }: WishlistOffersPanelProps) {
+export const WishlistOffersPanel = React.memo(function WishlistOffersPanel({ className, limit = 3 }: WishlistOffersPanelProps) {
   const t = useTranslations('Community');
   const { offers, unreadCount, isLoading } = useUserOffers();
 
@@ -174,6 +175,6 @@ export function WishlistOffersPanel({ className, limit = 3 }: WishlistOffersPane
       </CardContent>
     </Card>
   );
-}
+});
 
 export default WishlistOffersPanel;

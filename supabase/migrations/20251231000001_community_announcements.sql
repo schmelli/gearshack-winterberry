@@ -45,6 +45,10 @@ CREATE INDEX IF NOT EXISTS idx_announcements_active_date
 CREATE INDEX IF NOT EXISTS idx_announcements_priority
   ON community_announcements (priority DESC, created_at DESC);
 
+-- Index for admin analytics
+CREATE INDEX IF NOT EXISTS idx_announcements_creator
+  ON community_announcements (created_by);
+
 -- ============================================================================
 -- 3. ROW LEVEL SECURITY
 -- ============================================================================
@@ -97,3 +101,12 @@ VALUES (
 -- ============================================================================
 -- COMPLETE
 -- ============================================================================
+
+-- ============================================================================
+-- ROLLBACK (if needed)
+-- ============================================================================
+-- To rollback this migration, run the following SQL commands in order:
+--
+-- DROP TRIGGER IF EXISTS trigger_announcements_updated_at ON community_announcements;
+-- DROP FUNCTION IF EXISTS update_announcement_timestamp();
+-- DROP TABLE IF EXISTS community_announcements CASCADE;

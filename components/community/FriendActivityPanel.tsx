@@ -11,6 +11,7 @@
 
 'use client';
 
+import React from 'react';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -27,18 +28,10 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { getInitials } from '@/lib/utils/formatting';
 import { useFriendActivity, formatActivityTime } from '@/hooks/social/useFriendActivity';
 import type { FriendActivityPanelProps } from '@/types/community';
 import type { FriendActivityWithProfile, ActivityType } from '@/types/social';
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 const ACTIVITY_ICONS: Record<ActivityType, typeof Activity> = {
   new_loadout: Backpack,
@@ -58,9 +51,9 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   profile_updated: 'text-gray-500',
 };
 
-// =============================================================================
+// ============================================================================
 // Activity Item
-// =============================================================================
+// ============================================================================
 
 interface ActivityItemProps {
   activity: FriendActivityWithProfile;
@@ -142,9 +135,9 @@ function ActivityItem({ activity }: ActivityItemProps) {
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Empty State
-// =============================================================================
+// ============================================================================
 
 function EmptyState() {
   const t = useTranslations('Community');
@@ -162,11 +155,11 @@ function EmptyState() {
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Main Component
-// =============================================================================
+// ============================================================================
 
-export function FriendActivityPanel({ className, limit = 5 }: FriendActivityPanelProps) {
+export const FriendActivityPanel = React.memo(function FriendActivityPanel({ className, limit = 5 }: FriendActivityPanelProps) {
   const t = useTranslations('Community');
   const { activities, isLoading, hasMore } = useFriendActivity();
 
@@ -211,6 +204,6 @@ export function FriendActivityPanel({ className, limit = 5 }: FriendActivityPane
       </CardContent>
     </Card>
   );
-}
+});
 
 export default FriendActivityPanel;

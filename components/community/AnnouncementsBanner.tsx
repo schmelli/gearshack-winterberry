@@ -112,7 +112,7 @@ export function AnnouncementsBanner({ announcements: initialAnnouncements, class
   }
 
   return (
-    <div className={cn('space-y-3', className)} role="region" aria-label="Announcements">
+    <div className={cn('space-y-3', className)} role="region" aria-label="Announcements" aria-live="polite">
       {announcements.map((announcement) => (
         <SingleAnnouncement
           key={announcement.id}

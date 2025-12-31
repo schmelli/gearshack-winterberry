@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { getInitials } from '@/lib/utils/formatting';
 import { useFriendRequests } from '@/hooks/social/useFriendRequests';
 import { useFilteredFriends } from '@/hooks/social/useFriendships';
 import { AvatarStatusOverlay } from '@/components/social/OnlineStatusIndicator';
@@ -27,18 +28,9 @@ import { toast } from 'sonner';
 import type { FriendsPanelProps } from '@/types/community';
 import type { FriendRequestWithProfile, FriendInfo } from '@/types/social';
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-// =============================================================================
+// ============================================================================
 // Friend Request Item
-// =============================================================================
+// ============================================================================
 
 interface FriendRequestItemProps {
   request: FriendRequestWithProfile;
@@ -91,9 +83,9 @@ function FriendRequestItem({ request, onAccept, onDecline, isProcessing }: Frien
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Online Friend Item
-// =============================================================================
+// ============================================================================
 
 interface OnlineFriendItemProps {
   friend: FriendInfo;
@@ -122,11 +114,11 @@ function OnlineFriendItem({ friend }: OnlineFriendItemProps) {
   );
 }
 
-// =============================================================================
+// ============================================================================
 // Main Component
-// =============================================================================
+// ============================================================================
 
-export function FriendsPanel({ className, compact = false, limit = 5 }: FriendsPanelProps) {
+export const FriendsPanel = React.memo(function FriendsPanel({ className, compact = false, limit = 5 }: FriendsPanelProps) {
   const t = useTranslations('Community');
 
   // Friend requests
@@ -257,6 +249,6 @@ export function FriendsPanel({ className, compact = false, limit = 5 }: FriendsP
       </CardContent>
     </Card>
   );
-}
+});
 
 export default FriendsPanel;

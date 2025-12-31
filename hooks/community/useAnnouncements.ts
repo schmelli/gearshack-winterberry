@@ -13,14 +13,15 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY,
+  ANNOUNCEMENT_DISMISSAL_TTL_MS,
+} from '@/lib/constants/community';
 import type {
   CommunityAnnouncement,
   AnnouncementDismissal,
   UseAnnouncementsReturn,
 } from '@/types/community';
-
-const DISMISSALS_STORAGE_KEY = 'gearshack_announcement_dismissals';
-const DISMISSAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 /**
  * Gets dismissed announcements from localStorage
@@ -29,14 +30,14 @@ function getDismissals(): AnnouncementDismissal[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const stored = localStorage.getItem(DISMISSALS_STORAGE_KEY);
+    const stored = localStorage.getItem(ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY);
     if (!stored) return [];
 
     const dismissals: AnnouncementDismissal[] = JSON.parse(stored);
     const now = Date.now();
 
     // Filter out expired dismissals
-    return dismissals.filter((d) => now - d.dismissedAt < DISMISSAL_TTL_MS);
+    return dismissals.filter((d) => now - d.dismissedAt < ANNOUNCEMENT_DISMISSAL_TTL_MS);
   } catch (error) {
     console.warn('Failed to load announcement dismissals from localStorage:', error);
     return [];
@@ -50,7 +51,7 @@ function saveDismissals(dismissals: AnnouncementDismissal[]): void {
   if (typeof window === 'undefined') return;
 
   try {
-    localStorage.setItem(DISMISSALS_STORAGE_KEY, JSON.stringify(dismissals));
+    localStorage.setItem(ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY, JSON.stringify(dismissals));
   } catch (error) {
     console.warn('Failed to save announcement dismissals to localStorage:', error);
   }
@@ -116,18 +117,27 @@ export function useAnnouncements(
   /**
    * Dismisses an announcement (stores in localStorage)
    */
-  const dismissAnnouncement = useCallback((id: string) => {
-    setDismissals((prev) => {
-      // Check if already dismissed
-      if (prev.some((d) => d.announcementId === id)) {
-        return prev;
+  const dismissAnnouncement = useCallback(
+    (id: string) => {
+      // Validate announcement exists
+      if (!announcements.some((a) => a.id === id)) {
+        console.warn('Attempted to dismiss non-existent announcement:', id);
+        return;
       }
 
-      const updated = [...prev, { announcementId: id, dismissedAt: Date.now() }];
-      saveDismissals(updated);
-      return updated;
-    });
-  }, []);
+      setDismissals((prev) => {
+        // Check if already dismissed
+        if (prev.some((d) => d.announcementId === id)) {
+          return prev;
+        }
+
+        const updated = [...prev, { announcementId: id, dismissedAt: Date.now() }];
+        saveDismissals(updated);
+        return updated;
+      });
+    },
+    [announcements]
+  );
 
   /**
    * Checks if an announcement is dismissed

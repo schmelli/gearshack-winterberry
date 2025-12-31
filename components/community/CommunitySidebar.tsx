@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary, PanelErrorFallback } from '@/components/ErrorBoundary';
 import { FriendsPanel } from '@/components/community/FriendsPanel';
 import { WishlistOffersPanel } from '@/components/community/WishlistOffersPanel';
 import { FriendActivityPanel } from '@/components/community/FriendActivityPanel';
@@ -70,22 +71,34 @@ export function CommunitySidebar({ className, collapsedOnMobile = true }: Commun
       {collapsedOnMobile ? (
         <>
           <CollapsibleSection title={t('panels.friends.title')} defaultOpen={true}>
-            <FriendsPanel compact />
+            <ErrorBoundary fallback={<PanelErrorFallback />}>
+              <FriendsPanel compact />
+            </ErrorBoundary>
           </CollapsibleSection>
 
           <CollapsibleSection title={t('panels.offers.title')} defaultOpen={true}>
-            <WishlistOffersPanel limit={3} />
+            <ErrorBoundary fallback={<PanelErrorFallback />}>
+              <WishlistOffersPanel limit={3} />
+            </ErrorBoundary>
           </CollapsibleSection>
 
           <CollapsibleSection title={t('panels.activity.title')} defaultOpen={false}>
-            <FriendActivityPanel limit={5} />
+            <ErrorBoundary fallback={<PanelErrorFallback />}>
+              <FriendActivityPanel limit={5} />
+            </ErrorBoundary>
           </CollapsibleSection>
         </>
       ) : (
         <>
-          <FriendsPanel />
-          <WishlistOffersPanel limit={3} />
-          <FriendActivityPanel limit={5} />
+          <ErrorBoundary fallback={<PanelErrorFallback />}>
+            <FriendsPanel />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<PanelErrorFallback />}>
+            <WishlistOffersPanel limit={3} />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<PanelErrorFallback />}>
+            <FriendActivityPanel limit={5} />
+          </ErrorBoundary>
         </>
       )}
     </aside>
