@@ -248,7 +248,9 @@ export function VipLoadoutDetail({
 
           {/* Description */}
           {loadout.description && (
-            <p className="text-muted-foreground">{loadout.description}</p>
+            <div className="max-h-32 overflow-y-auto text-muted-foreground leading-relaxed">
+              {loadout.description}
+            </div>
           )}
 
           <Separator />

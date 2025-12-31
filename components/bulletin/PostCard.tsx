@@ -142,9 +142,9 @@ export function PostCard({
 
         {/* Content */}
         <div className="mt-3">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <div className="max-h-32 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
             {post.content}
-          </p>
+          </div>
         </div>
 
         {/* Linked content preview */}

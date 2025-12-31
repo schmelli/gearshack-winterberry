@@ -353,7 +353,9 @@ function TripContext({ experienceLevel, concerns }: TripContextProps) {
         {concerns && (
           <div>
             <span className="text-xs text-muted-foreground block mb-1">{t('concerns')}</span>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{concerns}</p>
+            <div className="max-h-32 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap">
+              {concerns}
+            </div>
           </div>
         )}
       </CardContent>
