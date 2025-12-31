@@ -6,7 +6,7 @@
  */
 
 export { AnnouncementsBanner } from './AnnouncementsBanner';
-export { CommunityHub, fetchAnnouncementsServer } from './CommunityHub';
+export { CommunityHub } from './CommunityHub';
 export { CommunityNavTabs } from './CommunityNavTabs';
 export { CommunitySidebar } from './CommunitySidebar';
 export { FriendsPanel } from './FriendsPanel';
