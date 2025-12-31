@@ -61,32 +61,4 @@ export function CommunityHub({
   );
 }
 
-/**
- * Helper to fetch announcements on the server side
- * Note: Uses type casting as community_announcements table is new
- */
-export async function fetchAnnouncementsServer(): Promise<CommunityAnnouncement[]> {
-  // This will be called from the server component
-  // Import dynamically to avoid client-side bundle issues
-  const { createClient } = await import('@/lib/supabase/server');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = await createClient() as any;
-
-  const { data, error } = await supabase
-    .from('community_announcements')
-    .select('*')
-    .eq('is_active', true)
-    .lte('starts_at', new Date().toISOString())
-    .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Failed to fetch announcements:', error);
-    return [];
-  }
-
-  return (data ?? []) as CommunityAnnouncement[];
-}
-
 export default CommunityHub;

@@ -25,18 +25,18 @@ import type { UserOffer } from '@/types/merchant-offer';
 /**
  * Formats expiration time
  */
-function formatExpiry(expiresAt: string): string {
+function formatExpiry(expiresAt: string, t: (key: string, values?: { count: number }) => string): string {
   const now = new Date();
   const expiry = new Date(expiresAt);
   const diffMs = expiry.getTime() - now.getTime();
 
-  if (diffMs < 0) return 'Expired';
+  if (diffMs < 0) return t('panels.offers.expired', { count: 0 });
 
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  if (hours < 24) return `${hours}h left`;
+  if (hours < 24) return t('panels.offers.hoursLeft', { count: hours });
 
   const days = Math.floor(hours / 24);
-  return `${days}d left`;
+  return t('panels.offers.daysLeft', { count: days });
 }
 
 // =============================================================================
@@ -48,6 +48,7 @@ interface OfferItemProps {
 }
 
 function OfferItem({ offer }: OfferItemProps) {
+  const t = useTranslations('Community');
   const isNew = offer.status === 'pending';
 
   return (
@@ -74,7 +75,7 @@ function OfferItem({ offer }: OfferItemProps) {
           </p>
           {isNew && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary">
-              New
+              {t('panels.offers.new')}
             </Badge>
           )}
         </div>
@@ -89,7 +90,7 @@ function OfferItem({ offer }: OfferItemProps) {
           -{offer.discountPercent}%
         </Badge>
         <span className="text-[10px] text-muted-foreground mt-1">
-          {formatExpiry(offer.expiresAt)}
+          {formatExpiry(offer.expiresAt, t)}
         </span>
       </div>
     </Link>

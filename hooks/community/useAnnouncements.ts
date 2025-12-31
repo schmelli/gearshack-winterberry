@@ -37,7 +37,8 @@ function getDismissals(): AnnouncementDismissal[] {
 
     // Filter out expired dismissals
     return dismissals.filter((d) => now - d.dismissedAt < DISMISSAL_TTL_MS);
-  } catch {
+  } catch (error) {
+    console.warn('Failed to load announcement dismissals from localStorage:', error);
     return [];
   }
 }
@@ -50,8 +51,8 @@ function saveDismissals(dismissals: AnnouncementDismissal[]): void {
 
   try {
     localStorage.setItem(DISMISSALS_STORAGE_KEY, JSON.stringify(dismissals));
-  } catch {
-    // Ignore storage errors
+  } catch (error) {
+    console.warn('Failed to save announcement dismissals to localStorage:', error);
   }
 }
 
@@ -72,11 +73,13 @@ export function useAnnouncements(
 
   /**
    * Fetches announcements from Supabase
-   * Note: Uses type casting as community_announcements table is new
+   *
+   * Note: Uses type assertion as community_announcements table is new.
+   * TODO: Regenerate Supabase types with:
+   * npx supabase gen types typescript --project-id <project-id> > types/supabase.ts
    */
   const fetchAnnouncements = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createClient() as any;
+    const supabase = createClient();
 
     try {
       setIsLoading(true);

@@ -12,8 +12,9 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { CommunityHub, fetchAnnouncementsServer } from '@/components/community/CommunityHub';
+import { CommunityHub } from '@/components/community/CommunityHub';
 import { BulletinBoard } from '@/components/bulletin/BulletinBoard';
+import { fetchActiveAnnouncements } from '@/lib/server/announcements';
 
 export default async function CommunityPage() {
   const supabase = await createClient();
@@ -28,7 +29,7 @@ export default async function CommunityPage() {
   }
 
   // Fetch announcements on the server
-  const announcements = await fetchAnnouncementsServer();
+  const announcements = await fetchActiveAnnouncements();
 
   return (
     <CommunityHub initialAnnouncements={announcements}>

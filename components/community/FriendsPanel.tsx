@@ -11,6 +11,7 @@
 
 'use client';
 
+import React from 'react';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { Users, UserPlus, Check, X, ChevronRight, Loader2 } from 'lucide-react';
@@ -257,8 +258,5 @@ export function FriendsPanel({ className, compact = false, limit = 5 }: FriendsP
     </Card>
   );
 }
-
-// Import React for useState
-import React from 'react';
 
 export default FriendsPanel;

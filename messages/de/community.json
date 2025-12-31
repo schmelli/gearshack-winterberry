@@ -25,7 +25,11 @@
       "noOffers": "Keine Angebote für deine Wunschliste",
       "addToWishlist": "Füge Artikel zu deiner Wunschliste hinzu, um Angebote zu erhalten",
       "viewAll": "Alle Angebote anzeigen ({count})",
-      "manageOffers": "Angebote verwalten"
+      "manageOffers": "Angebote verwalten",
+      "expired": "Abgelaufen",
+      "hoursLeft": "{count, plural, =1 {1h übrig} other {#h übrig}}",
+      "daysLeft": "{count, plural, =1 {1T übrig} other {#T übrig}}",
+      "new": "Neu"
     },
     "activity": {
       "title": "Freunde-Aktivität",

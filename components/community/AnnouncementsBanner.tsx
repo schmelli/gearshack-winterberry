@@ -13,6 +13,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Info, AlertTriangle, CheckCircle, Tag, X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,7 @@ interface SingleAnnouncementProps {
 }
 
 function SingleAnnouncement({ announcement, onDismiss }: SingleAnnouncementProps) {
+  const t = useTranslations('Community');
   const style = ANNOUNCEMENT_STYLES[announcement.type as AnnouncementType] ?? ANNOUNCEMENT_STYLES.info;
   const Icon = style.icon;
 
@@ -82,7 +84,7 @@ function SingleAnnouncement({ announcement, onDismiss }: SingleAnnouncementProps
             rel="noopener noreferrer"
             className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
-            {announcement.link_text ?? 'Learn more'}
+            {announcement.link_text ?? t('announcements.learnMore')}
             <ExternalLink className="h-3 w-3" />
           </a>
         )}
@@ -93,7 +95,7 @@ function SingleAnnouncement({ announcement, onDismiss }: SingleAnnouncementProps
         size="icon"
         className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-foreground"
         onClick={() => onDismiss(announcement.id)}
-        aria-label="Dismiss announcement"
+        aria-label={t('announcements.dismiss')}
       >
         <X className="h-4 w-4" />
       </Button>

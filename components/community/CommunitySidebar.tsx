@@ -14,6 +14,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -62,19 +63,21 @@ function CollapsibleSection({
 }
 
 export function CommunitySidebar({ className, collapsedOnMobile = true }: CommunitySidebarProps) {
+  const t = useTranslations('Community');
+
   return (
     <aside className={cn('space-y-4', className)}>
       {collapsedOnMobile ? (
         <>
-          <CollapsibleSection title="Friends" defaultOpen={true}>
+          <CollapsibleSection title={t('panels.friends.title')} defaultOpen={true}>
             <FriendsPanel compact />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Wishlist Offers" defaultOpen={true}>
+          <CollapsibleSection title={t('panels.offers.title')} defaultOpen={true}>
             <WishlistOffersPanel limit={3} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Friend Activity" defaultOpen={false}>
+          <CollapsibleSection title={t('panels.activity.title')} defaultOpen={false}>
             <FriendActivityPanel limit={5} />
           </CollapsibleSection>
         </>
