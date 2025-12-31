@@ -111,22 +111,17 @@ function SpecRow({
 }
 
 
-function TruncatedText({
+function ScrollableText({
   text,
-  maxLength = 200,
   className,
 }: {
   text: string;
-  maxLength?: number;
   className?: string;
 }) {
-  const isTruncated = text.length > maxLength;
-  const displayText = isTruncated ? `${text.slice(0, maxLength)}...` : text;
-
   return (
-    <p className={cn('text-sm text-muted-foreground', className)} title={isTruncated ? text : undefined}>
-      {displayText}
-    </p>
+    <div className={cn('max-h-32 overflow-y-auto text-sm text-muted-foreground leading-relaxed', className)}>
+      {text}
+    </div>
   );
 }
 
@@ -370,7 +365,7 @@ export function GearDetailContent({
               <AccordionContent>
                 {item.description && (
                   <div className="mb-4">
-                    <TruncatedText text={item.description} maxLength={300} />
+                    <ScrollableText text={item.description} />
                   </div>
                 )}
                 {item.notes && (
@@ -378,7 +373,7 @@ export function GearDetailContent({
                     <p className="mb-1 text-xs uppercase text-muted-foreground">
                       {t('specLabels.notes')}
                     </p>
-                    <TruncatedText text={item.notes} maxLength={200} />
+                    <ScrollableText text={item.notes} />
                   </div>
                 )}
               </AccordionContent>
