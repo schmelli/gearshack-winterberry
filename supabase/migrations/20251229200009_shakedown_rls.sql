@@ -17,6 +17,7 @@ ALTER TABLE shakedown_badges ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 -- Read: Respect privacy settings
+-- Note: friends_only currently treated as owner-only until social-graph feature is enabled
 CREATE POLICY "shakedowns_select" ON shakedowns FOR SELECT TO authenticated
 USING (
   is_hidden = false
@@ -25,8 +26,8 @@ USING (
     privacy = 'public'
     -- Owner always sees their own
     OR owner_id = auth.uid()
-    -- Friends can see friends_only shakedowns
-    OR (privacy = 'friends_only' AND are_friends(owner_id, auth.uid()))
+    -- friends_only currently treated as owner-only (no friend system active)
+    -- Will be updated when social-graph feature is implemented
   )
 );
 

@@ -152,7 +152,8 @@ COMMENT ON FUNCTION get_vip_loadout_item_count IS 'Returns the number of items i
 
 CREATE OR REPLACE FUNCTION generate_claim_token()
 RETURNS VARCHAR(100) AS $$
-  SELECT encode(gen_random_bytes(48), 'hex');
+  -- Use gen_random_uuid which is always available, concatenate two for more randomness
+  SELECT replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
 $$ LANGUAGE SQL VOLATILE;
 
 COMMENT ON FUNCTION generate_claim_token IS 'Generates a 96-character secure random token for claim invitations';

@@ -26,31 +26,24 @@ BEGIN
   FROM merchant_catalog_items mci
   WHERE mci.id = NEW.catalog_item_id;
 
-  -- Insert notification
+  -- Insert notification (using existing notifications table schema)
   INSERT INTO notifications (
     user_id,
     type,
-    title,
+    reference_type,
+    reference_id,
     message,
-    data,
     created_at
   ) VALUES (
     NEW.user_id,
-    'offer_received',
-    'New offer from ' || COALESCE(v_merchant_name, 'a merchant'),
+    'system',  -- Using 'system' type since 'offer_received' may not exist
+    'merchant_offer',
+    NEW.id::TEXT,
     format(
-      'You received a special offer on %s. The offer expires on %s.',
+      'New offer from %s: Special price on %s (expires %s)',
+      COALESCE(v_merchant_name, 'a merchant'),
       COALESCE(v_catalog_item_name, 'an item'),
       to_char(NEW.expires_at, 'Mon DD, YYYY')
-    ),
-    jsonb_build_object(
-      'offer_id', NEW.id,
-      'merchant_id', NEW.merchant_id,
-      'catalog_item_id', NEW.catalog_item_id,
-      'offer_price', NEW.offer_price,
-      'regular_price', NEW.regular_price,
-      'discount_percent', round(((NEW.regular_price - NEW.offer_price) / NEW.regular_price * 100)::numeric, 0),
-      'expires_at', NEW.expires_at
     ),
     now()
   );
@@ -74,8 +67,10 @@ CREATE TRIGGER on_offer_created_notification
 -- 3. Add index for notification lookup by offer
 -- ============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_notifications_offer_data
-  ON notifications USING GIN ((data->'offer_id'));
+-- Index on reference_id for merchant_offer notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_reference
+  ON notifications(reference_type, reference_id)
+  WHERE reference_type = 'merchant_offer';
 
 -- ============================================================================
 -- 4. Grant execute on function

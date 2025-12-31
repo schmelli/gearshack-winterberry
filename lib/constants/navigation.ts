@@ -15,7 +15,7 @@ import type { NavItem, UserMenuItem } from '@/types/navigation';
 export const MAIN_NAV_ITEMS: NavItem[] = [
   { label: 'Inventory', translationKey: 'inventory', href: '/inventory', enabled: true },
   { label: 'Loadouts', translationKey: 'loadouts', href: '/loadouts', enabled: true },
-  { label: 'Community', translationKey: 'community', href: '/community', enabled: false },
+  { label: 'Community', translationKey: 'community', href: '/community', enabled: true },
   { label: 'Shakedowns', translationKey: 'shakedowns', href: '/community/shakedowns', enabled: true, icon: HelpCircle },
 ];
 

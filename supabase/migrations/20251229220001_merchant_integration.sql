@@ -31,7 +31,7 @@ END $$;
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   business_name TEXT NOT NULL,
   business_type TEXT NOT NULL CHECK (business_type IN ('local', 'chain', 'online')),
@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_merchants_status ON merchants(status);
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_locations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   address_line1 TEXT NOT NULL,
@@ -80,7 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_merchant_locations_geo ON merchant_locations USIN
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_catalog_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   sku TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -105,7 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_catalog_category ON merchant_catalog_items(catego
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_loadouts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
@@ -134,7 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_loadouts_featured ON merchant_loadouts(is_feature
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_loadout_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   loadout_id UUID NOT NULL REFERENCES merchant_loadouts(id) ON DELETE CASCADE,
   catalog_item_id UUID NOT NULL REFERENCES merchant_catalog_items(id) ON DELETE CASCADE,
   quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
@@ -152,7 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_loadout_items_catalog ON merchant_loadout_items(c
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS loadout_availability (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   loadout_id UUID NOT NULL REFERENCES merchant_loadouts(id) ON DELETE CASCADE,
   location_id UUID NOT NULL REFERENCES merchant_locations(id) ON DELETE CASCADE,
   is_in_stock BOOLEAN DEFAULT true,
@@ -168,7 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_availability_loadout ON loadout_availability(load
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_offers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   catalog_item_id UUID NOT NULL REFERENCES merchant_catalog_items(id) ON DELETE CASCADE,
@@ -194,7 +194,7 @@ CREATE INDEX IF NOT EXISTS idx_offers_expires ON merchant_offers(expires_at) WHE
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS user_location_shares (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   granularity TEXT NOT NULL DEFAULT 'none' CHECK (granularity IN ('city', 'neighborhood', 'none')),
@@ -215,7 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_location_shares_geo ON user_location_shares USING
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS conversions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   offer_id UUID NOT NULL REFERENCES merchant_offers(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
@@ -246,7 +246,7 @@ CREATE INDEX IF NOT EXISTS idx_conversions_review ON conversions(requires_review
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('listing_fee', 'offer_fee', 'commission', 'adjustment')),
   amount DECIMAL(10, 2) NOT NULL,
@@ -269,7 +269,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_status ON merchant_transactions(stat
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS merchant_blocks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
   reason TEXT,

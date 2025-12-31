@@ -53,13 +53,13 @@ BEGIN
   -- This prevents SQL injection and schema probing
   CASE p_table_name
     WHEN 'gear_items' THEN
-      valid_column := p_column_name IN ('name', 'brand', 'model', 'notes');
+      valid_column := p_column_name IN ('name', 'brand', 'notes');  -- model column not in current schema
     WHEN 'loadouts' THEN
       valid_column := p_column_name IN ('name', 'description');
     WHEN 'categories' THEN
       valid_column := p_column_name IN ('label');
     WHEN 'profiles' THEN
-      valid_column := p_column_name IN ('username', 'display_name');
+      valid_column := p_column_name IN ('display_name');  -- username column not in current schema
     WHEN 'loadout_items' THEN
       valid_column := p_column_name IN ('notes');
   END CASE;
@@ -165,7 +165,7 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 -- gear_items indexes
 CREATE INDEX IF NOT EXISTS idx_gear_items_name_trgm ON gear_items USING gin (name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_gear_items_brand_trgm ON gear_items USING gin (brand gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_gear_items_model_trgm ON gear_items USING gin (model gin_trgm_ops);
+-- Note: model column doesn't exist in current schema, index removed
 
 -- loadouts indexes
 CREATE INDEX IF NOT EXISTS idx_loadouts_name_trgm ON loadouts USING gin (name gin_trgm_ops);
@@ -175,15 +175,15 @@ CREATE INDEX IF NOT EXISTS idx_loadouts_description_trgm ON loadouts USING gin (
 CREATE INDEX IF NOT EXISTS idx_categories_label_trgm ON categories USING gin (label gin_trgm_ops);
 
 -- profiles indexes
-CREATE INDEX IF NOT EXISTS idx_profiles_username_trgm ON profiles USING gin (username gin_trgm_ops);
+-- Note: username column doesn't exist in current schema, index removed
 CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin (display_name gin_trgm_ops);
 
 -- ============================================================================
 -- PERMISSIONS AND DOCUMENTATION
 -- ============================================================================
 
--- Comments
-COMMENT ON FUNCTION fuzzy_search_column IS 'Fuzzy search for any column in allowed tables using pg_trgm similarity with typo tolerance. Includes column validation and RLS enforcement. (AI agent queryUserData tool)';
+-- Comments (specifying signature to avoid ambiguity with overloaded versions)
+COMMENT ON FUNCTION fuzzy_search_column(TEXT, TEXT, TEXT, UUID, FLOAT, INT, JSONB, TEXT, NUMERIC, NUMERIC) IS 'Fuzzy search for any column in allowed tables using pg_trgm similarity with typo tolerance. Includes column validation and RLS enforcement. (AI agent queryUserData tool)';
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION fuzzy_search_column TO authenticated;
+GRANT EXECUTE ON FUNCTION fuzzy_search_column(TEXT, TEXT, TEXT, UUID, FLOAT, INT, JSONB, TEXT, NUMERIC, NUMERIC) TO authenticated;

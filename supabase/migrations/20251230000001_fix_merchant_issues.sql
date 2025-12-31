@@ -93,11 +93,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 -- 2. Add Race Condition Prevention (Issue #3)
 -- ============================================================================
--- Partial unique index to prevent duplicate offers within 30 days
+-- Note: Partial unique index with time-based predicates not possible (now() is not IMMUTABLE)
+-- Rate limiting is enforced in the get_wishlist_users_nearby function instead
+-- which checks for existing offers within 30 days before allowing can_send_offer = true
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_offers_rate_limit_unique
-  ON merchant_offers(merchant_id, user_id, catalog_item_id, (DATE(created_at)))
-  WHERE created_at > now() - INTERVAL '30 days';
+-- Add a regular composite index for efficient rate limit queries
+CREATE INDEX IF NOT EXISTS idx_offers_rate_limit_lookup
+  ON merchant_offers(merchant_id, user_id, catalog_item_id, created_at DESC);
 
 -- ============================================================================
 -- 3. Add Missing source_offer_id Index (Issue #8)

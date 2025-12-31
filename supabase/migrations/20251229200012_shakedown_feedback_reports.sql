@@ -97,16 +97,9 @@ CREATE POLICY "feedback_reports_select_own" ON shakedown_feedback_reports
 FOR SELECT TO authenticated
 USING (reporter_id = auth.uid());
 
--- Admins can view all reports
-CREATE POLICY "feedback_reports_select_admin" ON shakedown_feedback_reports
-FOR SELECT TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND is_admin = true
-  )
-);
+-- Admins can view all reports via service role
+-- Note: Admin access handled via service role until is_admin column is added to profiles
+-- This policy will be updated when admin role system is implemented
 
 -- Users cannot delete their own reports (admins can via service role)
 -- No DELETE policy for regular users

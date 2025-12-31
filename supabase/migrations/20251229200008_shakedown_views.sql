@@ -28,8 +28,18 @@ SELECT
   p.shakedown_helpful_received AS author_reputation,
   -- Loadout summary
   l.name AS loadout_name,
-  l.total_weight_grams,
-  l.item_count
+  -- Computed from loadout_items
+  COALESCE((
+    SELECT SUM(g.weight_grams * li.quantity)
+    FROM loadout_items li
+    JOIN gear_items g ON li.gear_item_id = g.id
+    WHERE li.loadout_id = l.id
+  ), 0)::INTEGER AS total_weight_grams,
+  COALESCE((
+    SELECT COUNT(*)::INTEGER
+    FROM loadout_items li
+    WHERE li.loadout_id = l.id
+  ), 0) AS item_count
 FROM shakedowns s
 JOIN profiles p ON s.owner_id = p.id
 JOIN loadouts l ON s.loadout_id = l.id

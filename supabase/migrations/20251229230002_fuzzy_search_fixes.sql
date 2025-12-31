@@ -49,13 +49,13 @@ BEGIN
   -- This prevents SQL injection and schema probing
   CASE p_table_name
     WHEN 'gear_items' THEN
-      valid_column := p_column_name IN ('name', 'brand', 'model', 'notes');
+      valid_column := p_column_name IN ('name', 'brand', 'notes');  -- model column not in current schema
     WHEN 'loadouts' THEN
       valid_column := p_column_name IN ('name', 'description');
     WHEN 'categories' THEN
       valid_column := p_column_name IN ('label');
     WHEN 'profiles' THEN
-      valid_column := p_column_name IN ('username', 'display_name');
+      valid_column := p_column_name IN ('display_name');  -- username column not in current schema
     WHEN 'loadout_items' THEN
       valid_column := p_column_name IN ('notes');
   END CASE;
@@ -116,7 +116,7 @@ BEGIN
       valid_column := FALSE;
       CASE p_table_name
         WHEN 'gear_items' THEN
-          valid_column := filter_key IN ('status', 'category_id', 'brand', 'model', 'name', 'notes', 'is_consumable');
+          valid_column := filter_key IN ('status', 'category_id', 'brand', 'name', 'notes', 'is_consumable');  -- model removed
         WHEN 'loadouts' THEN
           -- NOTE: activity_types and seasons are JSONB arrays - simple equality won't work
           -- For array filtering, use separate queries with JSONB operators (@>, ?, etc.)
@@ -124,7 +124,7 @@ BEGIN
         WHEN 'categories' THEN
           valid_column := filter_key IN ('parent_id', 'label', 'icon');
         WHEN 'profiles' THEN
-          valid_column := filter_key IN ('username', 'display_name', 'subscription_tier');
+          valid_column := filter_key IN ('display_name', 'subscription_tier');  -- username removed
         WHEN 'loadout_items' THEN
           valid_column := filter_key IN ('loadout_id', 'gear_item_id', 'quantity', 'notes');
       END CASE;
@@ -211,8 +211,9 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 -- gear_items.notes index (was missing)
 CREATE INDEX IF NOT EXISTS idx_gear_items_notes_trgm ON gear_items USING gin (notes gin_trgm_ops);
 
--- loadout_items.notes index (was missing)
-CREATE INDEX IF NOT EXISTS idx_loadout_items_notes_trgm ON loadout_items USING gin (notes gin_trgm_ops);
+-- Note: loadout_items.notes index removed - column doesn't exist in current schema
+-- The fuzzy_search_column function validates against loadout_items.notes but the table
+-- doesn't have this column. This should be addressed when loadout_items is extended.
 
 -- ============================================================================
 -- PERMISSIONS AND DOCUMENTATION
