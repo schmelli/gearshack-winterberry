@@ -19,12 +19,16 @@ import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import { TopPricesDisplay } from '@/components/wishlist/TopPricesDisplay';
+import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
+import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
+import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
 import type { WishlistItemAvailability } from '@/types/wishlist';
 import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 
 // =============================================================================
 // Status Icons Component - Feature 041
@@ -182,6 +186,11 @@ export function GearCard({
   const isWishlistContext = context === 'wishlist';
   // Feature 049 US2 T045: Show community availability panel in wishlist context (medium/detailed views only)
   const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
+
+  // Issue #142: Fetch retail prices for wishlist items
+  const { priceResults, isLoading: priceResultsLoading } = useWishlistPriceResults(
+    isWishlistContext ? item.id : ''
+  );
 
   // Cascading Category Refactor (Phase 4): Use breadcrumb hook instead of prop
   const { breadcrumb, productTypeLabel } = useCategoryBreadcrumb(item.productTypeId);
@@ -447,6 +456,14 @@ export function GearCard({
         {/* Feature 142: Top Prices Display for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
           <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
+        {/* Feature 049 T065 + Issue #142: Display retail prices for standard (medium) wishlist view */}
+        {isStandard && isWishlistContext && (
+          <TopRetailPricesDisplay
+            priceResults={priceResults}
+            isLoading={priceResultsLoading}
+            variant="compact"
+            className="mt-auto"
+          />
         )}
 
         {/* DETAILED VIEW: Description & Notes */}
@@ -483,6 +500,14 @@ export function GearCard({
             {/* Feature 142: Top Prices Display for detailed (large) wishlist view */}
             {isWishlistContext && (
               <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
+            {/* Feature 049 T067 + Issue #142: Display retail prices for detailed (large) wishlist view */}
+            {isWishlistContext && (
+              <TopRetailPricesDisplay
+                priceResults={priceResults}
+                isLoading={priceResultsLoading}
+                variant="full"
+                className="mt-auto"
+              />
             )}
           </div>
         )}
