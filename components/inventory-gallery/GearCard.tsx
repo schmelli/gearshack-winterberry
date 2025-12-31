@@ -18,8 +18,7 @@ import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
-import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
-import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
+import { TopPricesDisplay } from '@/components/wishlist/TopPricesDisplay';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
 import type { WishlistItemAvailability } from '@/types/wishlist';
@@ -445,9 +444,9 @@ export function GearCard({
           )}
         </div>
 
-        {/* Feature 049 T065: Price Stub Indicator for standard (medium) wishlist view */}
+        {/* Feature 142: Top Prices Display for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
-          <PriceStubIndicator className="mt-auto" />
+          <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
         )}
 
         {/* DETAILED VIEW: Description & Notes */}
@@ -481,9 +480,9 @@ export function GearCard({
               </div>
             )}
 
-            {/* Feature 049 T067: Price History Stub for detailed (large) wishlist view */}
+            {/* Feature 142: Top Prices Display for detailed (large) wishlist view */}
             {isWishlistContext && (
-              <PriceHistoryStub className="mt-auto" />
+              <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
             )}
           </div>
         )}
