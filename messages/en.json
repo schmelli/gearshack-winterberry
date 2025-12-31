@@ -1839,5 +1839,12 @@
     "noLongerAvailable": "Loadout no longer available",
     "addedFrom": "Added from {merchant}",
     "viewLoadout": "View loadout"
+  },
+  "TopPrices": {
+    "loading": "Loading prices...",
+    "noOffers": "No offers available yet",
+    "header": "Best Prices Available",
+    "bestBadge": "BEST",
+    "clickToView": "Click card to view all offers and details"
   }
 }

@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
+import { TopPricesDisplay } from '@/components/wishlist/TopPricesDisplay';
 import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
 import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
 import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
@@ -452,6 +453,10 @@ export function GearCard({
           )}
         </div>
 
+        {/* Feature 142: Top Prices Display for standard (medium) wishlist view */}
+        {isStandard && isWishlistContext && (
+          <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
+        )}
         {/* Feature 049 T065 + Issue #142: Display retail prices for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
           <TopRetailPricesDisplay
@@ -493,6 +498,10 @@ export function GearCard({
               </div>
             )}
 
+            {/* Feature 142: Top Prices Display for detailed (large) wishlist view */}
+            {isWishlistContext && (
+              <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
+            )}
             {/* Feature 049 T067 + Issue #142: Display retail prices for detailed (large) wishlist view */}
             {isWishlistContext && (
               <TopRetailPricesDisplay
