@@ -11,8 +11,9 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { Database } from '@/types/supabase';
 import {
   ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY,
   ANNOUNCEMENT_DISMISSAL_TTL_MS,
@@ -23,41 +24,59 @@ import type {
   UseAnnouncementsReturn,
 } from '@/types/community';
 
+// In-memory fallback for dismissed announcements when localStorage is unavailable
+let inMemoryDismissals: AnnouncementDismissal[] = [];
+
 /**
- * Gets dismissed announcements from localStorage
+ * Gets dismissed announcements from localStorage with in-memory fallback
  */
 function getDismissals(): AnnouncementDismissal[] {
   if (typeof window === 'undefined') return [];
 
   try {
     const stored = localStorage.getItem(ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY);
-    if (!stored) return [];
+    if (!stored) {
+      // Return in-memory dismissals if localStorage is empty but memory has data
+      return inMemoryDismissals.length > 0 ? inMemoryDismissals : [];
+    }
 
     const dismissals: AnnouncementDismissal[] = JSON.parse(stored);
     const now = Date.now();
 
     // Filter out expired dismissals
-    return dismissals.filter((d) => now - d.dismissedAt < ANNOUNCEMENT_DISMISSAL_TTL_MS);
+    const filtered = dismissals.filter((d) => now - d.dismissedAt < ANNOUNCEMENT_DISMISSAL_TTL_MS);
+
+    // Sync to in-memory fallback
+    inMemoryDismissals = filtered;
+
+    return filtered;
   } catch (error) {
-    console.warn('Failed to load announcement dismissals from localStorage:', error);
+    console.warn('Failed to load announcement dismissals from localStorage, using in-memory fallback:', error);
     // TODO: Consider tracking these warnings in error monitoring service (e.g., Sentry)
     // to identify localStorage quota issues or browser restrictions
-    return [];
+
+    // Return in-memory fallback
+    const now = Date.now();
+    return inMemoryDismissals.filter((d) => now - d.dismissedAt < ANNOUNCEMENT_DISMISSAL_TTL_MS);
   }
 }
 
 /**
- * Saves dismissed announcements to localStorage
+ * Saves dismissed announcements to localStorage with in-memory fallback
  */
 function saveDismissals(dismissals: AnnouncementDismissal[]): void {
   if (typeof window === 'undefined') return;
 
+  // Always update in-memory fallback
+  inMemoryDismissals = dismissals;
+
   try {
     localStorage.setItem(ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY, JSON.stringify(dismissals));
   } catch (error) {
-    console.warn('Failed to save announcement dismissals to localStorage:', error);
+    console.warn('Failed to save announcement dismissals to localStorage, using in-memory fallback only:', error);
     // TODO: Consider tracking these warnings in error monitoring service (e.g., Sentry)
     // to identify localStorage quota issues or browser restrictions
+    // Note: In-memory fallback will persist for the current session only
   }
 }
 
@@ -69,22 +88,24 @@ export function useAnnouncements(
   );
   const [isLoading, setIsLoading] = useState(!initialAnnouncements);
   const [error, setError] = useState<string | null>(null);
-  const [dismissals, setDismissals] = useState<AnnouncementDismissal[]>([]);
+  const [dismissals, setDismissals] = useState<AnnouncementDismissal[]>(() => getDismissals());
 
-  // Load dismissals from localStorage on mount
-  useEffect(() => {
-    setDismissals(getDismissals());
-  }, []);
+  // Use ref to track if fetch is in progress to prevent race conditions
+  const fetchInProgressRef = useRef(false);
 
   /**
    * Fetches announcements from Supabase
-   *
-   * Note: Uses type assertion as community_announcements table is new.
-   * TODO: Regenerate Supabase types with:
-   * npx supabase gen types typescript --project-id <project-id> > types/supabase.ts
+   * Uses proper Supabase types from Database schema
    */
   const fetchAnnouncements = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (fetchInProgressRef.current) {
+      return;
+    }
+
+    fetchInProgressRef.current = true;
     const supabase = createClient();
+    const now = new Date().toISOString();
 
     try {
       setIsLoading(true);
@@ -94,20 +115,22 @@ export function useAnnouncements(
         .from('community_announcements')
         .select('*')
         .eq('is_active', true)
-        .lte('starts_at', new Date().toISOString())
-        .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)
+        .lte('starts_at', now)
+        .or(`ends_at.is.null,ends_at.gt.${now}`)
         .order('priority', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .returns<CommunityAnnouncement[]>();
 
       if (fetchError) throw fetchError;
 
-      setAnnouncements((data ?? []) as CommunityAnnouncement[]);
+      setAnnouncements(data ?? []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load announcements';
       setError(message);
       console.error('Failed to fetch announcements:', err);
     } finally {
       setIsLoading(false);
+      fetchInProgressRef.current = false;
     }
   }, []);
 
@@ -116,7 +139,7 @@ export function useAnnouncements(
     if (!initialAnnouncements) {
       fetchAnnouncements();
     }
-  }, [fetchAnnouncements, initialAnnouncements]);
+  }, [initialAnnouncements, fetchAnnouncements]);
 
   /**
    * Dismisses an announcement (stores in localStorage)

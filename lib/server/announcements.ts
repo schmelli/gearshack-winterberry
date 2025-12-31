@@ -7,26 +7,26 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/types/supabase';
 import type { CommunityAnnouncement } from '@/types/community';
 
 /**
  * Fetches active community announcements from the database
- *
- * Note: Uses type assertion as community_announcements table is new.
- * TODO: Regenerate Supabase types with:
- * npx supabase gen types typescript --project-id <project-id> > types/supabase.ts
+ * Uses proper Supabase types from Database schema
  */
 export async function fetchActiveAnnouncements(): Promise<CommunityAnnouncement[]> {
   const supabase = await createClient();
+  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from('community_announcements')
     .select('*')
     .eq('is_active', true)
-    .lte('starts_at', new Date().toISOString())
-    .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)
+    .lte('starts_at', now)
+    .or(`ends_at.is.null,ends_at.gt.${now}`)
     .order('priority', { ascending: false })
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .returns<CommunityAnnouncement[]>();
 
   if (error) {
     console.error('Failed to fetch announcements:', {
@@ -40,5 +40,5 @@ export async function fetchActiveAnnouncements(): Promise<CommunityAnnouncement[
     return [];
   }
 
-  return (data ?? []) as CommunityAnnouncement[];
+  return data ?? [];
 }

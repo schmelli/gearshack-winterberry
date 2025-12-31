@@ -34,6 +34,7 @@ export function CommunityHub({
       </div>
 
       {/* Navigation Tabs */}
+      {/* z-40 is correct: tabs appear below main header (z-50) per CLAUDE.md hierarchy */}
       <div className="sticky top-0 z-40 mt-4">
         <div className="container mx-auto px-4">
           <CommunityNavTabs />

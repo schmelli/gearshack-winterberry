@@ -104,7 +104,30 @@ function SingleAnnouncement({ announcement, onDismiss }: SingleAnnouncementProps
 }
 
 export function AnnouncementsBanner({ announcements: initialAnnouncements, className }: AnnouncementsBannerProps) {
-  const { announcements, dismissAnnouncement, isLoading } = useAnnouncements(initialAnnouncements);
+  const { announcements, dismissAnnouncement, isLoading, error, refresh } = useAnnouncements(initialAnnouncements);
+
+  // Show error state with retry option
+  if (error) {
+    return (
+      <div className={cn('space-y-3', className)} role="region" aria-label="Announcements">
+        <div className="relative flex items-start gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground">Failed to load announcements</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={refresh}
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Don't render anything while loading or if no announcements
   if (isLoading || announcements.length === 0) {

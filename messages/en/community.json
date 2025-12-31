@@ -61,5 +61,15 @@
   "announcements": {
     "dismiss": "Dismiss",
     "learnMore": "Learn more"
+  },
+
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{count, plural, =1 {1m ago} other {#m ago}}",
+    "hoursAgo": "{count, plural, =1 {1h ago} other {#h ago}}",
+    "daysAgo": "{count, plural, =1 {1d ago} other {#d ago}}",
+    "weeksAgo": "{count, plural, =1 {1w ago} other {#w ago}}",
+    "monthsAgo": "{count, plural, =1 {1mo ago} other {#mo ago}}",
+    "yearsAgo": "{count, plural, =1 {1y ago} other {#y ago}}"
   }
 }
