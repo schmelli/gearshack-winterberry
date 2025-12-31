@@ -74,6 +74,21 @@ Before writing code:
   - `Dialog` for modals
   - `Sheet` for mobile drawers
 
+### Z-Index Hierarchy
+
+When using z-index in Tailwind classes, follow this documented hierarchy to prevent conflicts:
+
+- `z-0` - Base level (default)
+- `z-10` - Dropdowns, popovers
+- `z-20` - Sticky elements (e.g., table headers)
+- `z-30` - Fixed navigation elements
+- `z-40` - Sticky tabs, community nav (e.g., Community Hub tabs)
+- `z-50` - Main header, navigation bar
+- `z-[60]` - Overlays (Sheet, Dialog backdrops)
+- `z-[70]` - Modals, Dialogs
+- `z-[80]` - Toasts, notifications (Sonner)
+- `z-[100]` - Critical overlays, fullscreen modals
+
 ## Key Patterns & Utilities
 
 ### AI Image Generation (Feature 048)

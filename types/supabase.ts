@@ -512,6 +512,54 @@ export type Database = {
           },
         ]
       }
+      community_announcements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          link_text: string | null
+          link_url: string | null
+          message: string
+          priority: number
+          starts_at: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          message: string
+          priority?: number
+          starts_at?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          message?: string
+          priority?: number
+          starts_at?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversation_memory: {
         Row: {
           conversation_id: string
