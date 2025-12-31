@@ -40,6 +40,8 @@ function getDismissals(): AnnouncementDismissal[] {
     return dismissals.filter((d) => now - d.dismissedAt < ANNOUNCEMENT_DISMISSAL_TTL_MS);
   } catch (error) {
     console.warn('Failed to load announcement dismissals from localStorage:', error);
+    // TODO: Consider tracking these warnings in error monitoring service (e.g., Sentry)
+    // to identify localStorage quota issues or browser restrictions
     return [];
   }
 }
@@ -54,6 +56,8 @@ function saveDismissals(dismissals: AnnouncementDismissal[]): void {
     localStorage.setItem(ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY, JSON.stringify(dismissals));
   } catch (error) {
     console.warn('Failed to save announcement dismissals to localStorage:', error);
+    // TODO: Consider tracking these warnings in error monitoring service (e.g., Sentry)
+    // to identify localStorage quota issues or browser restrictions
   }
 }
 

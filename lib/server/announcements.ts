@@ -29,7 +29,14 @@ export async function fetchActiveAnnouncements(): Promise<CommunityAnnouncement[
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch announcements:', error);
+    console.error('Failed to fetch announcements:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    // Note: Returns empty array to prevent page crashes.
+    // Consider exposing error state in production monitoring.
     return [];
   }
 

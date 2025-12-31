@@ -19,6 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { DEFAULT_WISHLIST_OFFERS_PANEL_LIMIT } from '@/lib/constants/community';
 import { useUserOffers } from '@/hooks/offers/useUserOffers';
 import type { WishlistOffersPanelProps } from '@/types/community';
 import type { UserOffer } from '@/types/merchant-offer';
@@ -122,7 +123,7 @@ function EmptyState() {
 // Main Component
 // ============================================================================
 
-export const WishlistOffersPanel = React.memo(function WishlistOffersPanel({ className, limit = 3 }: WishlistOffersPanelProps) {
+export const WishlistOffersPanel = React.memo(function WishlistOffersPanel({ className, limit = DEFAULT_WISHLIST_OFFERS_PANEL_LIMIT }: WishlistOffersPanelProps) {
   const t = useTranslations('Community');
   const { offers, unreadCount, isLoading } = useUserOffers();
 

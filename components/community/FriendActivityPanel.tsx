@@ -29,6 +29,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { getInitials } from '@/lib/utils/formatting';
+import { DEFAULT_FRIEND_ACTIVITY_PANEL_LIMIT } from '@/lib/constants/community';
 import { useFriendActivity, formatActivityTime } from '@/hooks/social/useFriendActivity';
 import type { FriendActivityPanelProps } from '@/types/community';
 import type { FriendActivityWithProfile, ActivityType } from '@/types/social';
@@ -159,7 +160,7 @@ function EmptyState() {
 // Main Component
 // ============================================================================
 
-export const FriendActivityPanel = React.memo(function FriendActivityPanel({ className, limit = 5 }: FriendActivityPanelProps) {
+export const FriendActivityPanel = React.memo(function FriendActivityPanel({ className, limit = DEFAULT_FRIEND_ACTIVITY_PANEL_LIMIT }: FriendActivityPanelProps) {
   const t = useTranslations('Community');
   const { activities, isLoading, hasMore } = useFriendActivity();
 

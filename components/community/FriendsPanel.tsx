@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { getInitials } from '@/lib/utils/formatting';
+import { DEFAULT_FRIENDS_PANEL_LIMIT } from '@/lib/constants/community';
 import { useFriendRequests } from '@/hooks/social/useFriendRequests';
 import { useFilteredFriends } from '@/hooks/social/useFriendships';
 import { AvatarStatusOverlay } from '@/components/social/OnlineStatusIndicator';
@@ -118,7 +119,7 @@ function OnlineFriendItem({ friend }: OnlineFriendItemProps) {
 // Main Component
 // ============================================================================
 
-export const FriendsPanel = React.memo(function FriendsPanel({ className, compact = false, limit = 5 }: FriendsPanelProps) {
+export const FriendsPanel = React.memo(function FriendsPanel({ className, compact = false, limit = DEFAULT_FRIENDS_PANEL_LIMIT }: FriendsPanelProps) {
   const t = useTranslations('Community');
 
   // Friend requests
