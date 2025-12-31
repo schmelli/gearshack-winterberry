@@ -1,0 +1,61 @@
+{
+  "navigation": {
+    "ariaLabel": "Community sections"
+  },
+
+  "tabs": {
+    "board": "Board",
+    "shakedowns": "Shakedowns",
+    "vipLoadouts": "VIP Loadouts",
+    "marketplace": "Marketplace",
+    "comingSoon": "Soon"
+  },
+
+  "panels": {
+    "friends": {
+      "title": "Friends",
+      "requests": "{count, plural, =1 {1 Request} other {# Requests}}",
+      "online": "{count, plural, =0 {No friends online} =1 {1 Online} other {# Online}}",
+      "noOnline": "No friends are online right now",
+      "viewAll": "View all friends ({count})",
+      "viewAllRequests": "+{count} more"
+    },
+    "offers": {
+      "title": "Wishlist Offers",
+      "noOffers": "No offers on your wishlist items",
+      "addToWishlist": "Add items to your wishlist to receive offers",
+      "viewAll": "View all offers ({count})",
+      "manageOffers": "Manage offers"
+    },
+    "activity": {
+      "title": "Friend Activity",
+      "viewAll": "View all activity"
+    }
+  },
+
+  "friends": {
+    "accept": "Accept request",
+    "decline": "Decline request",
+    "requestAccepted": "Friend request accepted!",
+    "requestDeclined": "Friend request declined",
+    "acceptFailed": "Failed to accept request",
+    "declineFailed": "Failed to decline request"
+  },
+
+  "activity": {
+    "newLoadout": "{name} created a new loadout",
+    "sharedLoadout": "{name} shared a loadout",
+    "listedItem": "{name} listed an item for sale",
+    "addedGear": "{name} added new gear",
+    "newFriend": "{name} made a new friend",
+    "updatedProfile": "{name} updated their profile",
+    "generic": "{name} was active",
+    "noActivity": "No recent activity from friends",
+    "addFriends": "Add friends to see their activity"
+  },
+
+  "announcements": {
+    "dismiss": "Dismiss",
+    "learnMore": "Learn more"
+  }
+}

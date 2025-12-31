@@ -1,14 +1,18 @@
 /**
- * Community Bulletin Board Page
+ * Community Hub Page
  *
- * Feature: 051-community-bulletin-board
- * Task: T031
+ * Feature: Community Hub Enhancement
  *
- * Main bulletin board page with authentication requirement.
+ * Main community page with:
+ * - Announcements banner
+ * - Navigation tabs (Board, Shakedowns, VIP Loadouts, Marketplace)
+ * - Bulletin board as main content
+ * - Sidebar with friends, wishlist offers, and activity feed
  */
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { CommunityHub, fetchAnnouncementsServer } from '@/components/community/CommunityHub';
 import { BulletinBoard } from '@/components/bulletin/BulletinBoard';
 
 export default async function CommunityPage() {
@@ -23,9 +27,12 @@ export default async function CommunityPage() {
     redirect('/login');
   }
 
+  // Fetch announcements on the server
+  const announcements = await fetchAnnouncementsServer();
+
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
+    <CommunityHub initialAnnouncements={announcements}>
       <BulletinBoard />
-    </div>
+    </CommunityHub>
   );
 }
