@@ -456,6 +456,7 @@ export function GearCard({
         {/* Feature 142: Top Prices Display for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
           <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
+        )}
         {/* Feature 049 T065 + Issue #142: Display retail prices for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
           <TopRetailPricesDisplay
@@ -500,6 +501,7 @@ export function GearCard({
             {/* Feature 142: Top Prices Display for detailed (large) wishlist view */}
             {isWishlistContext && (
               <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
+            )}
             {/* Feature 049 T067 + Issue #142: Display retail prices for detailed (large) wishlist view */}
             {isWishlistContext && (
               <TopRetailPricesDisplay

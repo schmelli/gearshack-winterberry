@@ -1833,5 +1833,12 @@
     "noLongerAvailable": "Loadout nicht mehr verfügbar",
     "addedFrom": "Hinzugefügt von {merchant}",
     "viewLoadout": "Loadout anzeigen"
+  },
+  "TopPrices": {
+    "loading": "Preise werden geladen...",
+    "noOffers": "Noch keine Angebote verfügbar",
+    "header": "Beste verfügbare Preise",
+    "bestBadge": "BEST",
+    "clickToView": "Karte anklicken, um alle Angebote und Details anzuzeigen"
   }
 }
