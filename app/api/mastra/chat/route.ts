@@ -552,7 +552,12 @@ export async function POST(request: Request): Promise<Response> {
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
 
     // TESTING: Temporarily bypass rate limiting
-    const rateLimitResult = { allowed: true, limit: null, remaining: null, resetAt: null };
+    const rateLimitResult = {
+      allowed: true,
+      limit: null,
+      remaining: null,
+      resetAt: new Date(Date.now() + 3600000) // 1 hour from now
+    };
     const [memoryContextResult] = await Promise.all([
       // checkAndIncrementRateLimit(user.id, operationType as OperationType), // DISABLED FOR TESTING
       traceWorkflowStep(
