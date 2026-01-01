@@ -2,9 +2,11 @@
  * SerpApi client for price search functionality
  * Feature: 050-price-tracking
  * Date: 2025-12-17
+ * Enhanced: 2026-01-01 (Feature 055 - category-based result filtering)
  */
 
 import { RETRY_CONFIG, CACHE_CONFIG } from '@/lib/constants/price-tracking';
+import { matchesProductType } from './search-query-builder';
 import type { PriceResult } from '@/types/price-tracking';
 
 /**
@@ -91,11 +93,13 @@ function normalizeCondition(condition: string | undefined): ProductCondition {
 }
 
 /**
- * Search Google Shopping via SerpApi
+ * Search Google Shopping via SerpApi with optional category filtering
+ * Enhanced to filter results by product type keywords (Feature 055)
  */
 export async function searchGoogleShopping(
   query: string,
-  location: string = 'Germany'
+  location: string = 'Germany',
+  productTypeKeywords: string[] = []
 ): Promise<PriceResult[]> {
   if (!process.env.SERPAPI_KEY) {
     throw new Error('SERPAPI_KEY environment variable is not set');
@@ -124,7 +128,16 @@ export async function searchGoogleShopping(
     const data = await response.json();
     const results: SerpApiGoogleShoppingResult[] = data.shopping_results || [];
 
-    return results.map((result) => ({
+    // Filter results by product type before mapping (Feature 055)
+    const filteredResults = productTypeKeywords.length > 0
+      ? results.filter(r => matchesProductType(r.title, productTypeKeywords))
+      : results;
+
+    if (productTypeKeywords.length > 0) {
+      console.log(`[Google Shopping] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
+    }
+
+    return filteredResults.map((result) => ({
       id: crypto.randomUUID(),
       tracking_id: '', // Will be set by caller
       source_type: 'google_shopping' as const,
@@ -152,9 +165,13 @@ export async function searchGoogleShopping(
 }
 
 /**
- * Search eBay via SerpApi
+ * Search eBay via SerpApi with optional category filtering
+ * Enhanced to filter results by product type keywords (Feature 055)
  */
-export async function searchEbay(query: string): Promise<PriceResult[]> {
+export async function searchEbay(
+  query: string,
+  productTypeKeywords: string[] = []
+): Promise<PriceResult[]> {
   if (!process.env.SERPAPI_KEY) {
     throw new Error('SERPAPI_KEY environment variable is not set');
   }
@@ -181,7 +198,16 @@ export async function searchEbay(query: string): Promise<PriceResult[]> {
     const data = await response.json();
     const results: SerpApiEbayResult[] = data.organic_results || [];
 
-    return results.map((result) => ({
+    // Filter results by product type before mapping (Feature 055)
+    const filteredResults = productTypeKeywords.length > 0
+      ? results.filter(r => matchesProductType(r.title, productTypeKeywords))
+      : results;
+
+    if (productTypeKeywords.length > 0) {
+      console.log(`[eBay] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
+    }
+
+    return filteredResults.map((result) => ({
       id: crypto.randomUUID(),
       tracking_id: '', // Will be set by caller
       source_type: 'ebay' as const,

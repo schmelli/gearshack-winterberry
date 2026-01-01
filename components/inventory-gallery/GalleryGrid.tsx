@@ -134,7 +134,8 @@ export function GalleryGrid({
   const gridClass = GRID_CLASSES[viewDensity] || GRID_CLASSES.standard;
 
   // Feature 046: Render with category separators when sorting by category
-  // Feature 054: Virtualize individual items within groups for better performance
+  // Feature 054: Virtualize both groups AND items within groups for better performance
+  // Instead of rendering all items in a group at once, we virtualize each group's grid
   if (sortOption === 'category' && groupedItems.length > 0) {
     // Flatten items while tracking group boundaries
     const flattenedItems: GearItem[] = [];
@@ -158,39 +159,46 @@ export function GalleryGrid({
         useWindowScroll
         groupCounts={groupCounts}
         overscan={2}
-        components={{
-          List: GridList,
-        }}
-        groupContent={(index) => {
+        itemContent={(index: number) => {
           const group = groupedItems[index];
           if (!group) return null;
 
           return (
-            <div className="col-span-full mb-4 flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
-                {group.categoryLabel}
-              </h2>
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
-              </span>
-            </div>
-          );
-        }}
-        itemContent={(index) => {
-          const item = flattenedItems[index];
-          if (!item) return null;
+            <section key={group.categoryId ?? 'uncategorized'} className="mb-8">
+              {/* Category Separator Header */}
+              <div className="mb-4 flex items-center gap-4">
+                <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
+                  {group.categoryLabel}
+                </h2>
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
+                </span>
+              </div>
+              {/* Virtualized Items Grid for this category */}
+              <VirtuosoGrid
+                useWindowScroll
+                totalCount={group.items.length}
+                overscan={200}
+                listClassName={cn(gridClass)}
+                itemContent={(itemIndex: number) => {
+                  const item = group.items[itemIndex];
+                  if (!item) return null;
 
-          return (
-            <GearCard
-              key={item.id}
-              item={item}
-              viewDensity={viewDensity}
-              onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-              context={context}
-              onMoveToInventory={onMoveToInventory}
-              onMoveComplete={onMoveComplete}
-            />
+                  return (
+                    <GearCard
+                      key={item.id}
+                      item={item}
+                      viewDensity={viewDensity}
+                      onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                      context={context}
+                      onMoveToInventory={onMoveToInventory}
+                      onMoveComplete={onMoveComplete}
+                    />
+                  );
+                }}
+              />
+            </section>
           );
         }}
       />

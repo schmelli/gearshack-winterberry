@@ -3,6 +3,7 @@
  * Feature: 050-price-tracking
  * Date: 2025-12-17
  * Enhanced: 2025-12-22 (Issue #79 - improved product matching and validation)
+ * Enhanced: 2026-01-01 (Feature 055 - multi-stage search with category context)
  */
 
 import PQueue from 'p-queue';
@@ -14,6 +15,7 @@ import {
   filterAndRankResults,
   type ProductPriceReference,
 } from '@/lib/services/price-validation-service';
+import { buildSearchQueries, type ProductCategoryInfo } from './search-query-builder';
 import type { PriceResult, PriceSearchResults, FailedSource } from '@/types/price-tracking';
 
 // Limit concurrent API calls to 5
@@ -22,6 +24,7 @@ const priceSearchQueue = new PQueue({ concurrency: 5 });
 /**
  * Search all sources in parallel with rate limiting and validation
  * Enhanced with catalog price lookup and spam detection (Issue #79)
+ * Enhanced with multi-stage category-aware search (Feature 055)
  */
 export async function searchAllSources(
   supabase: SupabaseClient,
@@ -31,54 +34,90 @@ export async function searchAllSources(
     userLocation?: { latitude: number; longitude: number };
     brandName?: string | null;
     brandUrl?: string | null;
+    categoryInfo?: ProductCategoryInfo | null;
   }
 ): Promise<PriceSearchResults> {
-  const { userLocation, brandName, brandUrl } = options || {};
+  const { userLocation, brandName, brandUrl, categoryInfo } = options || {};
 
   // STEP 1: Get catalog price reference for validation
   const priceReference = await getCatalogPriceReference(supabase, itemName, brandName || null);
 
-  // STEP 2: Build enhanced search query
-  // Include brand in search to improve accuracy
-  const searchQuery = brandName ? `${brandName} ${itemName}` : itemName;
-
-  // STEP 3: Execute searches from multiple sources
-  const sourceJobs = [
-    { name: 'Google Shopping', task: () => searchGoogleShopping(searchQuery) },
-    { name: 'eBay', task: () => searchEbay(searchQuery) },
-    ...(brandUrl ? [{ name: 'Manufacturer', task: () => searchManufacturerSite(itemName, brandUrl) }] : []),
-    ...(userLocation ? [{ name: 'Local Shops', task: () => searchLocalShops(itemName, userLocation) }] : []),
-  ];
-
-  // Execute all searches in parallel with concurrency limit
-  const results = await Promise.allSettled(
-    sourceJobs.map((job) => priceSearchQueue.add(job.task))
-  );
-
-  // Collect successful results and failures
-  const priceResults: PriceResult[] = [];
-  const failedSources: FailedSource[] = [];
-
-  results.forEach((result, index) => {
-    const sourceName = sourceJobs[index].name;
-
-    if (result.status === 'fulfilled' && result.value) {
-      priceResults.push(
-        ...result.value.map((r) => ({
-          ...r,
-          tracking_id: trackingId,
-        }))
-      );
-    } else if (result.status === 'rejected') {
-      failedSources.push({
-        source_name: sourceName,
-        error: result.reason?.message || 'Unknown error',
-      });
-    }
+  // STEP 2: Build intelligent search queries with category context (Feature 055)
+  // Multi-stage strategy: try category-enriched queries first, fall back to simple query
+  const searchQueries = buildSearchQueries({
+    itemName,
+    brandName: brandName || null,
+    categoryInfo: categoryInfo || null,
   });
 
+  // Get the product type keywords for result filtering
+  const productTypeKeywords = searchQueries[0]?.productTypeKeywords || [];
+
+  // STEP 3: Execute multi-stage search
+  // Try queries in order until we get sufficient results (minimum 3)
+  let allResults: PriceResult[] = [];
+  let failedSources: FailedSource[] = [];
+  let successfulStage: number = 3;
+
+  for (const queryConfig of searchQueries) {
+    console.log(`[Price Search] Stage ${queryConfig.stage}: ${queryConfig.strategy} - "${queryConfig.query}"`);
+
+    // Execute searches from multiple sources
+    const sourceJobs = [
+      { name: 'Google Shopping', task: () => searchGoogleShopping(queryConfig.query, 'Germany', productTypeKeywords) },
+      { name: 'eBay', task: () => searchEbay(queryConfig.query, productTypeKeywords) },
+      ...(brandUrl ? [{ name: 'Manufacturer', task: () => searchManufacturerSite(itemName, brandUrl, productTypeKeywords) }] : []),
+      ...(userLocation ? [{ name: 'Local Shops', task: () => searchLocalShops(itemName, userLocation) }] : []),
+    ];
+
+    // Execute all searches in parallel with concurrency limit
+    const results = await Promise.allSettled(
+      sourceJobs.map((job) => priceSearchQueue.add(job.task))
+    );
+
+    // Collect successful results and failures from this stage
+    const stageResults: PriceResult[] = [];
+    const stageFailures: FailedSource[] = [];
+
+    results.forEach((result, index) => {
+      const sourceName = sourceJobs[index].name;
+
+      if (result.status === 'fulfilled' && result.value) {
+        stageResults.push(
+          ...result.value.map((r) => ({
+            ...r,
+            tracking_id: trackingId,
+          }))
+        );
+      } else if (result.status === 'rejected') {
+        stageFailures.push({
+          source_name: sourceName,
+          error: result.reason?.message || 'Unknown error',
+        });
+      }
+    });
+
+    // Accumulate results
+    allResults.push(...stageResults);
+    failedSources = stageFailures; // Only keep failures from latest stage
+
+    console.log(`[Price Search] Stage ${queryConfig.stage} found ${stageResults.length} results`);
+
+    // If we have at least 3 results, stop searching
+    // This prevents unnecessary API calls when we already have good matches
+    if (stageResults.length >= 3) {
+      successfulStage = queryConfig.stage;
+      console.log(`[Price Search] Sufficient results found at stage ${successfulStage}, stopping search`);
+      break;
+    }
+  }
+
+  console.log(`[Price Search] Total ${allResults.length} results from ${successfulStage === 3 ? 'fallback' : 'stage ' + successfulStage}`);
+
   // STEP 4: Filter and validate results using catalog reference
-  const validatedResults = filterAndRankResults(priceResults, priceReference, brandName || null);
+  const validatedResults = filterAndRankResults(allResults, priceReference, brandName || null);
+
+  console.log(`[Price Search] ${validatedResults.length} results after validation`);
 
   // Determine overall status
   let status: 'success' | 'partial' | 'error' = 'success';
@@ -105,7 +144,8 @@ export async function searchAllSources(
  */
 async function searchManufacturerSite(
   itemName: string,
-  brandUrl: string
+  brandUrl: string,
+  productTypeKeywords: string[] = []
 ): Promise<PriceResult[]> {
   try {
     // Validate and extract domain from brand URL
@@ -121,7 +161,7 @@ async function searchManufacturerSite(
     const manufacturerQuery = `site:${domain} ${itemName}`;
 
     // Use the same Google Shopping search but restricted to manufacturer domain
-    const results = await searchGoogleShopping(manufacturerQuery);
+    const results = await searchGoogleShopping(manufacturerQuery, 'Germany', productTypeKeywords);
 
     // Mark these as manufacturer results
     return results.map(r => ({
