@@ -184,7 +184,8 @@ BEGIN
   FROM profiles p
   WHERE p.discoverable = true
     AND p.id != p_current_user_id
-    AND p.display_name ILIKE '%' || p_query || '%'
+    -- Escape ILIKE wildcards (%, _) in user input to prevent injection
+    AND p.display_name ILIKE '%' || REPLACE(REPLACE(p_query, '%', '\%'), '_', '\_') || '%'
   ORDER BY p.display_name ASC
   LIMIT p_limit;
 END;

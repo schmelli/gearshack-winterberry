@@ -7,6 +7,7 @@
  * Supabase query helpers for messaging operations.
  */
 
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import type {
   Conversation,
@@ -28,6 +29,63 @@ import type {
 // Note: Database types for messaging tables are defined in supabase/migrations/20251213_user_messaging.sql
 // After applying the migration, regenerate types with: npx supabase gen types typescript
 // For now, we use explicit typing since the tables don't exist in Database types yet.
+
+// ============================================================================
+// Zod Schemas for RPC Function Response Validation
+// ============================================================================
+
+/**
+ * Schema for participant info returned by get_user_conversations RPC
+ */
+const ParticipantInfoSchema = z.object({
+  id: z.string().uuid(),
+  display_name: z.string(),
+  avatar_url: z.string().nullable(),
+  role: z.enum(['admin', 'member']),
+  joined_at: z.string(),
+});
+
+/**
+ * Schema for last message preview returned by get_user_conversations RPC
+ */
+const MessagePreviewSchema = z.object({
+  id: z.string().uuid(),
+  content: z.string().nullable(),
+  message_type: z.string(), // Validated at runtime in Message type
+  sender_id: z.string().uuid(),
+  sender_name: z.string().nullable(),
+  created_at: z.string(),
+});
+
+/**
+ * Schema for conversation row returned by get_user_conversations RPC
+ */
+const ConversationRowSchema = z.object({
+  conversation_id: z.string().uuid(),
+  role: z.enum(['admin', 'member']),
+  is_muted: z.boolean(),
+  is_archived: z.boolean(),
+  unread_count: z.number(),
+  last_read_at: z.string().nullable(),
+  conv_id: z.string().uuid(),
+  conv_type: z.enum(['direct', 'group']),
+  conv_name: z.string().nullable(),
+  conv_created_by: z.string().uuid(),
+  conv_created_at: z.string(),
+  conv_updated_at: z.string(),
+  last_message: MessagePreviewSchema.nullable(),
+  participants: z.array(ParticipantInfoSchema).nullable(),
+});
+
+/**
+ * Schema for user row returned by search_users_with_block_status RPC
+ */
+const SearchableUserSchema = z.object({
+  id: z.string().uuid(),
+  display_name: z.string(),
+  avatar_url: z.string().nullable(),
+  can_message: z.boolean(),
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryResult = any;
@@ -78,8 +136,16 @@ export async function fetchConversations(
     return [];
   }
 
-  // Transform RPC results to ConversationListItem format
-  return (data as QueryResult[]).map((row) => ({
+  // Validate RPC response with Zod schema for type safety
+  const validatedData = z.array(ConversationRowSchema).safeParse(data);
+
+  if (!validatedData.success) {
+    console.error('Invalid RPC response from get_user_conversations:', validatedData.error);
+    throw new Error('Invalid data format from get_user_conversations');
+  }
+
+  // Transform validated RPC results to ConversationListItem format
+  return validatedData.data.map((row) => ({
     conversation: {
       id: row.conv_id,
       type: row.conv_type as ConversationType,
@@ -93,7 +159,7 @@ export async function fetchConversations(
     is_archived: row.is_archived,
     unread_count: row.unread_count,
     last_read_at: row.last_read_at,
-    last_message: row.last_message ?? undefined,
+    last_message: row.last_message as MessagePreview | null ?? undefined,
     participants: (row.participants ?? []) as ParticipantInfo[],
   }));
 }
@@ -645,8 +711,15 @@ export async function searchUsers(
     return [];
   }
 
-  // RPC function returns data in the correct format already
-  return data as SearchableUser[];
+  // Validate RPC response with Zod schema for type safety
+  const validatedData = z.array(SearchableUserSchema).safeParse(data);
+
+  if (!validatedData.success) {
+    console.error('Invalid RPC response from search_users_with_block_status:', validatedData.error);
+    throw new Error('Invalid data format from search_users_with_block_status');
+  }
+
+  return validatedData.data;
 }
 
 // ----- Privacy Settings Queries -----
