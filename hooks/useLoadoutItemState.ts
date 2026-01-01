@@ -14,6 +14,7 @@
 
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useStore } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -38,6 +39,7 @@ interface UseLoadoutItemStateReturn {
 // =============================================================================
 
 export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateReturn {
+  const t = useTranslations('Loadouts.errors');
   const loadout = useStore((state) =>
     state.loadouts.find((l) => l.id === loadoutId)
   );
@@ -101,7 +103,7 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       // Get the gear item from inventory
       const gearItem = items.find((item) => item.id === itemId);
       if (!gearItem) {
-        toast.error('Item not found in inventory');
+        toast.error(t('itemNotFound'));
         return false;
       }
 
@@ -111,8 +113,8 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       if (isInLoadout) {
         // Item already in loadout - current system doesn't support quantity increment
         // Show error that all available quantity is already in use
-        toast.error('Cannot add more items', {
-          description: `This item is already in the loadout. Only ${gearItem.quantity} available in inventory.`,
+        toast.error(t('quantityExceeded'), {
+          description: t('quantityExceededDescription', { available: gearItem.quantity }),
         });
         return false;
       }
@@ -121,8 +123,8 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       const availableQuantity = gearItem.quantity || 1; // Default to 1 for backward compatibility
 
       if (availableQuantity < 1) {
-        toast.error('No items available', {
-          description: 'This item has no available quantity in inventory.',
+        toast.error(t('noQuantityAvailable'), {
+          description: t('noQuantityAvailableDescription'),
         });
         return false;
       }
@@ -130,7 +132,7 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       // Item can be added
       return true;
     },
-    [items, loadout]
+    [items, loadout, t]
   );
 
   return {

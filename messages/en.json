@@ -416,7 +416,12 @@
       "removeItemFailed": "Failed to remove item from loadout",
       "updateMetadataFailed": "Failed to update loadout metadata",
       "updateWornStateFailed": "Failed to update item worn state",
-      "updateConsumableStateFailed": "Failed to update item consumable state"
+      "updateConsumableStateFailed": "Failed to update item consumable state",
+      "itemNotFound": "Item not found in inventory",
+      "quantityExceeded": "Cannot add more items",
+      "quantityExceededDescription": "This item is already in the loadout. Only {available} available in inventory.",
+      "noQuantityAvailable": "No items available",
+      "noQuantityAvailableDescription": "This item has no available quantity in inventory."
     },
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "exportOptions": "Export options",
