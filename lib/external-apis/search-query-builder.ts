@@ -84,7 +84,7 @@ const PRODUCT_TYPE_KEYWORDS: Record<string, string[]> = {
 
 /**
  * Get category information for a gear item from database
- * Traverses the category hierarchy to get all three levels
+ * Uses optimized RPC function to fetch the entire category hierarchy in a single query
  *
  * @param supabase - Supabase client
  * @param productTypeId - Level 3 category ID from gear_items table
@@ -98,6 +98,60 @@ export async function getProductCategoryInfo(
     return null;
   }
 
+  try {
+    // Try optimized RPC function first (eliminates N+1 queries)
+    const { data, error } = await (supabase as any)
+      .rpc('get_category_ancestry', { p_category_id: productTypeId });
+
+    // Check for backward compatibility errors (missing function during staged deployment)
+    if (error) {
+      // PostgreSQL error codes:
+      // 42P01 = undefined_table
+      // 42883 = undefined_function
+      if (
+        error.code === '42P01' ||
+        error.code === '42883' ||
+        error.message.includes('does not exist')
+      ) {
+        console.warn(
+          `RPC function get_category_ancestry not available, falling back to legacy queries for category ${productTypeId}`
+        );
+        return await getProductCategoryInfoLegacy(supabase, productTypeId);
+      }
+      throw error;
+    }
+
+    // RPC returns array, get first result
+    const result = Array.isArray(data) ? data[0] : data;
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      productType: result.product_type,
+      categoryMain: result.category_main,
+      categoryTop: result.category_top,
+    };
+  } catch (error) {
+    console.error('Error fetching product category info:', error);
+    return null;
+  }
+}
+
+/**
+ * Legacy fallback for getProductCategoryInfo (backward compatibility)
+ * Uses sequential queries to traverse category hierarchy
+ * Only used when RPC function is not available (e.g., during staged deployment)
+ *
+ * @param supabase - Supabase client
+ * @param productTypeId - Level 3 category ID from gear_items table
+ * @returns Category information with all three levels
+ */
+async function getProductCategoryInfoLegacy(
+  supabase: SupabaseClient,
+  productTypeId: string
+): Promise<ProductCategoryInfo | null> {
   try {
     // Fetch the category and its parents in one query
     const { data, error } = await (supabase as any)
@@ -147,7 +201,7 @@ export async function getProductCategoryInfo(
       categoryTop,
     };
   } catch (error) {
-    console.error('Error fetching product category info:', error);
+    console.error('Error fetching product category info (legacy):', error);
     return null;
   }
 }
