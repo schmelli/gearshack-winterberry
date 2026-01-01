@@ -15,6 +15,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { X, Package, Shirt, Apple, AlertTriangle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -80,6 +81,15 @@ export function LoadoutList({
   const t = useTranslations('Loadouts');
   const isEmpty = items.length === 0;
 
+  // Create category lookup map for O(1) access (Performance optimization)
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category) => {
+      map.set(category.id, getLocalizedLabel(category, locale));
+    });
+    return map;
+  }, [categories, locale]);
+
   // Separate worn items from bag items (Feature 150: Worn items on top)
   const wornItems = items.filter((item) => isWorn(item.id));
   const bagItems = items.filter((item) => !isWorn(item.id));
@@ -121,7 +131,7 @@ export function LoadoutList({
         {/* Worn Items Section (Feature 150: Worn items on top) */}
         {filteredWornItems.length > 0 && (
           <div className="pb-4">
-            <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
               {t('weightSummary.worn')}
             </h3>
             <div className="space-y-2">
@@ -147,15 +157,29 @@ export function LoadoutList({
           </div>
         )}
 
+        {/* Empty state for worn items when filtering */}
+        {filteredWornItems.length === 0 && filterCategoryId !== null && wornItems.length > 0 && (
+          <div className="pb-4">
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+              {t('weightSummary.worn')}
+            </h3>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {t('noWornItemsInCategory')}
+            </p>
+          </div>
+        )}
+
         {/* Bag Items Grouped by Category */}
-        {filteredBagGroups.map(([categoryId, categoryItems]) => (
-          <div key={categoryId} className="pt-4">
+        {filteredBagGroups.map(([categoryId, categoryItems], index) => {
+          const categoryLabel = categoryMap.get(categoryId) ?? categoryId;
+          // Only add top padding if there are worn items above OR this is not the first bag category
+          const shouldAddPadding = filteredWornItems.length > 0 || index > 0;
+
+          return (
+          <div key={categoryId} className={cn(shouldAddPadding && 'pt-4')}>
             {/* Category Header */}
-            <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
-              {(() => {
-                const category = categories.find(c => c.id === categoryId);
-                return category ? getLocalizedLabel(category, locale) : categoryId;
-              })()}
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+              {categoryLabel}
             </h3>
 
             {/* Items in Category */}
@@ -180,7 +204,8 @@ export function LoadoutList({
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </ScrollArea>
   );

@@ -446,6 +446,7 @@
       "consumable": "Consumable",
       "baseWeight": "Base Weight"
     },
+    "noWornItemsInCategory": "No worn items in this category",
     "lighterAlternative": "Lighter option available",
     "lighterAlternativeTooltip": "You have a lighter {productType} in your inventory: {itemName} ({weight})"
   },

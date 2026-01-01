@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Search, Check, Plus, Package } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -68,6 +68,15 @@ export function LoadoutPicker({
   const locale = useLocale();
   const t = useTranslations('Inventory');
 
+  // Create category lookup map for O(1) access (Performance optimization)
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category) => {
+      map.set(category.id, getLocalizedLabel(category, locale));
+    });
+    return map;
+  }, [categories, locale]);
+
   const handleOpenDetail = (item: GearItem) => {
     setSelectedItem(item);
     setModalOpen(true);
@@ -101,13 +110,12 @@ export function LoadoutPicker({
           // Show grouped by category with separators
           <div className="divide-y divide-border pr-4">
             {categoryGroups.map(([categoryId, categoryItems], index) => {
-              const category = categories.find(c => c.id === categoryId);
-              const categoryLabel = category ? getLocalizedLabel(category, locale) : categoryId;
+              const categoryLabel = categoryMap.get(categoryId) ?? categoryId;
 
               return (
                 <div key={categoryId} className={cn(index > 0 && 'pt-4')}>
                   {/* Category Header */}
-                  <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+                  <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
                     {categoryLabel}
                   </h3>
 
@@ -128,6 +136,7 @@ export function LoadoutPicker({
                           maxQuantity={maxQuantity}
                           onAdd={() => onAddItem(item.id)}
                           onOpenDetail={() => handleOpenDetail(item)}
+                          categoryMap={categoryMap}
                         />
                       );
                     })}
@@ -154,6 +163,7 @@ export function LoadoutPicker({
                   maxQuantity={maxQuantity}
                   onAdd={() => onAddItem(item.id)}
                   onOpenDetail={() => handleOpenDetail(item)}
+                  categoryMap={categoryMap}
                 />
               );
             })}
@@ -184,6 +194,7 @@ interface PickerItemProps {
   maxQuantity: number;
   onAdd: () => void;
   onOpenDetail: () => void;
+  categoryMap: Map<string, string>;
 }
 
 function PickerItem({
@@ -194,6 +205,7 @@ function PickerItem({
   maxQuantity,
   onAdd,
   onOpenDetail,
+  categoryMap,
 }: PickerItemProps) {
   // Micro-interaction state for Add button (US9)
   const [justAdded, setJustAdded] = useState(false);
@@ -268,10 +280,7 @@ function PickerItem({
           <span>{formatWeight(item.weightGrams)}</span>
           {categoryId && (
             <span className="ml-2 text-xs">
-              ({(() => {
-                const category = categories.find(c => c.id === categoryId);
-                return category ? getLocalizedLabel(category, 'en') : categoryId;
-              })()})
+              ({categoryMap.get(categoryId) ?? categoryId})
             </span>
           )}
         </p>
