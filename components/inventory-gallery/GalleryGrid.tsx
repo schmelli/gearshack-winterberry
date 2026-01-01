@@ -17,11 +17,12 @@
  * Uses react-virtuoso for virtualized rendering to improve performance with large collections (100+ items)
  */
 
+import React from 'react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
 import { cn } from '@/lib/utils';
-import { VirtuosoGrid, Virtuoso } from 'react-virtuoso';
+import { VirtuosoGrid, GroupedVirtuoso, type ListProps } from 'react-virtuoso';
 
 // =============================================================================
 // Types
@@ -136,10 +137,27 @@ export function GalleryGrid({
   // Feature 054: Virtualize both groups AND items within groups for better performance
   // Instead of rendering all items in a group at once, we virtualize each group's grid
   if (sortOption === 'category' && groupedItems.length > 0) {
+    // Flatten items while tracking group boundaries
+    const flattenedItems: GearItem[] = [];
+    const groupCounts: number[] = [];
+
+    groupedItems.forEach((group) => {
+      flattenedItems.push(...group.items);
+      groupCounts.push(group.items.length);
+    });
+
+    // Custom List component for grid layout
+    const GridList = React.forwardRef<HTMLDivElement, ListProps>((props, ref) => (
+      <div ref={ref} className={cn(gridClass)}>
+        {props.children}
+      </div>
+    ));
+    GridList.displayName = 'GridList';
+
     return (
-      <Virtuoso
+      <GroupedVirtuoso
         useWindowScroll
-        totalCount={groupedItems.length}
+        groupCounts={groupCounts}
         overscan={2}
         itemContent={(index: number) => {
           const group = groupedItems[index];
