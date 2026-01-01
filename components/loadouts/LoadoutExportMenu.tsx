@@ -34,6 +34,8 @@ interface LoadoutExportMenuProps {
   seasons: Season[];
   totalWeight: number;
   baseWeight: number;
+  /** Show as icon button (for header) instead of labeled button */
+  iconOnly?: boolean;
 }
 
 /** HTML escape helper to prevent injection in generated markup. */
@@ -305,6 +307,7 @@ export function LoadoutExportMenu({
   seasons,
   totalWeight,
   baseWeight,
+  iconOnly = false,
 }: LoadoutExportMenuProps) {
   const t = useTranslations('Loadouts');
   const tCommon = useTranslations('Common');
@@ -443,10 +446,16 @@ export function LoadoutExportMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          {t('export')}
-        </Button>
+        {iconOnly ? (
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={t('export')}>
+            <Download className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            {t('export')}
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>{t('exportOptions')}</DropdownMenuLabel>

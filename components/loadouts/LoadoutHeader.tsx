@@ -19,7 +19,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Calendar, Pencil, Check, X, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Pencil, Check, X, Users, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
 import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
+import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
 import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
@@ -59,6 +60,10 @@ interface LoadoutHeaderProps {
   onDescriptionChange?: (description: string | null) => void;
   /** Whether to show the "Request Community Shakedown" button (only for owner) */
   showShakedownButton?: boolean;
+  /** Total weight for export menu */
+  totalWeight: number;
+  /** Base weight for export menu */
+  baseWeight: number;
 }
 
 // =============================================================================
@@ -85,8 +90,12 @@ export function LoadoutHeader({
   onEdit,
   onDescriptionChange,
   showShakedownButton = false,
+  totalWeight,
+  baseWeight,
 }: LoadoutHeaderProps) {
   const t = useTranslations('Shakedowns');
+  const tLoadouts = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
     isEditing,
@@ -114,7 +123,7 @@ export function LoadoutHeader({
           className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Loadouts
+          {tLoadouts('backToLoadouts')}
         </Link>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -146,6 +155,16 @@ export function LoadoutHeader({
                   variant="ghost"
                   size="icon"
                   showLabel={false}
+                />
+                <LoadoutExportMenu
+                  loadout={loadout}
+                  items={items}
+                  itemStates={itemStates}
+                  activityTypes={activityTypes}
+                  seasons={seasons}
+                  totalWeight={totalWeight}
+                  baseWeight={baseWeight}
+                  iconOnly
                 />
                 {showShakedownButton && (
                   <>
@@ -185,7 +204,7 @@ export function LoadoutHeader({
                   <Textarea
                     value={editValue}
                     onChange={(e) => updateValue(e.target.value)}
-                    placeholder="Add a description for this loadout..."
+                    placeholder={tLoadouts('addDescription')}
                     className="min-h-[60px] resize-none"
                     autoFocus
                   />
@@ -196,7 +215,7 @@ export function LoadoutHeader({
                       className="h-8"
                     >
                       <Check className="mr-1 h-3 w-3" />
-                      Save
+                      {tCommon('save')}
                     </Button>
                     <Button
                       size="sm"
@@ -205,7 +224,7 @@ export function LoadoutHeader({
                       className="h-8"
                     >
                       <X className="mr-1 h-3 w-3" />
-                      Cancel
+                      {tCommon('cancel')}
                     </Button>
                   </div>
                 </div>
@@ -218,7 +237,7 @@ export function LoadoutHeader({
                     <p className="text-sm text-muted-foreground">{loadout.description}</p>
                   ) : (
                     <p className="text-sm italic text-muted-foreground/60">
-                      Click to add a description...
+                      {tLoadouts('clickToAddDescription')}
                     </p>
                   )}
                 </button>

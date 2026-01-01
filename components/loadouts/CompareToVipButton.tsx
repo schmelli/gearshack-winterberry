@@ -9,7 +9,7 @@
  * Button that links to VIP comparison page with the current loadout pre-selected.
  */
 
-import { Scale } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
@@ -49,7 +49,7 @@ export function CompareToVipButton({
         asChild
       >
         <Link href={`/vip/compare?loadout=${loadoutId}`}>
-          <Scale className="mr-2 h-4 w-4" />
+          <ArrowLeftRight className="mr-2 h-4 w-4" />
           {t('compareToVip')}
         </Link>
       </Button>
@@ -65,7 +65,7 @@ export function CompareToVipButton({
       asChild
     >
       <Link href={`/vip/compare?loadout=${loadoutId}`}>
-        <Scale className="h-4 w-4" />
+        <ArrowLeftRight className="h-4 w-4" />
       </Link>
     </Button>
   );

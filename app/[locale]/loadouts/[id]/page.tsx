@@ -34,8 +34,6 @@ import { WeightBar } from '@/components/loadouts/WeightBar';
 import { LoadoutSortFilter, type SortOption } from '@/components/loadouts/LoadoutSortFilter';
 import { sortAndFilterItems } from '@/lib/loadout-utils';
 
-import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
-
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
 
@@ -203,6 +201,8 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
         showShakedownButton={!!userId}
+        totalWeight={totalWeight}
+        baseWeight={baseWeight}
       />
 
       {/* Metadata Edit Dialog (US5) */}
@@ -235,6 +235,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onAddItem={handleAddItem}
+              sortBy={sortBy}
             />
           </div>
 
@@ -242,25 +243,14 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
           <div className="space-y-4 md:sticky md:top-28 md:self-start">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Loadout Items</h2>
-              <div className="flex items-center gap-2">
-                {selectedCategoryId && (
-                  <button
-                    onClick={clearFilter}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Clear filter
-                  </button>
-                )}
-                <LoadoutExportMenu
-                  loadout={loadout}
-                  items={loadoutItems}
-                  itemStates={itemStates}
-                  activityTypes={activityTypes}
-                  seasons={seasons}
-                  totalWeight={totalWeight}
-                  baseWeight={baseWeight}
-                />
-              </div>
+              {selectedCategoryId && (
+                <button
+                  onClick={clearFilter}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Clear filter
+                </button>
+              )}
             </div>
             <LoadoutList
               items={sortedFilteredLoadoutItems}
@@ -305,6 +295,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   onAddItem={handleAddItem}
+                  sortBy={sortBy}
                 />
               </div>
             </div>
