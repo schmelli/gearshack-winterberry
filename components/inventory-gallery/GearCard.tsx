@@ -31,6 +31,36 @@ import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 
 // =============================================================================
+// Quantity Badge Component - Feature 013
+// =============================================================================
+
+interface QuantityBadgeProps {
+  /** The quantity to display */
+  quantity: number;
+  /** Additional CSS classes */
+  className?: string;
+}
+
+function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
+  // Only show badge when quantity > 1
+  if (quantity <= 1) return null;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'bg-slate-900/90 text-white dark:bg-slate-100/90 dark:text-slate-900',
+        'shadow-sm',
+        className
+      )}
+      title={`Quantity: ${quantity}`}
+    >
+      x {quantity}
+    </span>
+  );
+}
+
+// =============================================================================
 // Status Icons Component - Feature 041
 // =============================================================================
 
@@ -236,6 +266,8 @@ export function GearCard({
           )}
           {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
           {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />}
+          {/* Quantity Badge (Overlay top-right) - Feature 013 */}
+          <QuantityBadge quantity={item.quantity} className="absolute top-1 right-1 scale-75 origin-top-right" />
         </div>
 
         {/* Content Section */}
@@ -344,8 +376,11 @@ export function GearCard({
         {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
         {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-2 left-2" />}
 
-        {/* Action Button (Overlay top-right) - Feature 049 US3: Show Move button in wishlist context */}
-        <div className="absolute right-2 top-2 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
+        {/* Quantity Badge (Overlay top-right) - Feature 013 */}
+        <QuantityBadge quantity={item.quantity} className="absolute top-2 right-2" />
+
+        {/* Action Button (Overlay top-right, appears below quantity badge on hover) - Feature 049 US3: Show Move button in wishlist context */}
+        <div className="absolute right-2 top-10 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
           {isWishlistContext && onMoveToInventory ? (
             <MoveToInventoryButton
               itemId={item.id}
