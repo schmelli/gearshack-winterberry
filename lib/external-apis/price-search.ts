@@ -58,9 +58,12 @@ export async function searchAllSources(
   let allResults: PriceResult[] = [];
   let failedSources: FailedSource[] = [];
   let successfulStage: number = 3;
+  const stageErrors: Array<{ stage: number; strategy: string; failures: FailedSource[] }> = [];
 
   for (const queryConfig of searchQueries) {
-    console.log(`[Price Search] Stage ${queryConfig.stage}: ${queryConfig.strategy} - "${queryConfig.query}"`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Price Search] Stage ${queryConfig.stage}: ${queryConfig.strategy} - "${queryConfig.query}"`);
+    }
 
     // Execute searches from multiple sources
     const sourceJobs = [
@@ -97,27 +100,49 @@ export async function searchAllSources(
       }
     });
 
+    // Track errors for each stage for diagnostics
+    if (stageFailures.length > 0) {
+      stageErrors.push({
+        stage: queryConfig.stage,
+        strategy: queryConfig.strategy,
+        failures: stageFailures,
+      });
+    }
+
     // Accumulate results
     allResults.push(...stageResults);
     failedSources = stageFailures; // Only keep failures from latest stage
 
-    console.log(`[Price Search] Stage ${queryConfig.stage} found ${stageResults.length} results`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Price Search] Stage ${queryConfig.stage} found ${stageResults.length} results`);
+    }
 
     // If we have at least 3 results, stop searching
     // This prevents unnecessary API calls when we already have good matches
     if (stageResults.length >= 3) {
       successfulStage = queryConfig.stage;
-      console.log(`[Price Search] Sufficient results found at stage ${successfulStage}, stopping search`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Price Search] Sufficient results found at stage ${successfulStage}, stopping search`);
+      }
       break;
     }
   }
 
-  console.log(`[Price Search] Total ${allResults.length} results from ${successfulStage === 3 ? 'fallback' : 'stage ' + successfulStage}`);
+  // Log comprehensive error tracking if all stages failed or produced no results
+  if (allResults.length === 0 && stageErrors.length > 0) {
+    console.error('[Price Search] All stages failed or returned no results:', JSON.stringify(stageErrors, null, 2));
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Price Search] Total ${allResults.length} results from ${successfulStage === 3 ? 'fallback' : 'stage ' + successfulStage}`);
+  }
 
   // STEP 4: Filter and validate results using catalog reference
   const validatedResults = filterAndRankResults(allResults, priceReference, brandName || null);
 
-  console.log(`[Price Search] ${validatedResults.length} results after validation`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Price Search] ${validatedResults.length} results after validation`);
+  }
 
   // Determine overall status
   let status: 'success' | 'partial' | 'error' = 'success';

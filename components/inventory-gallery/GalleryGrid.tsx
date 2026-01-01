@@ -179,7 +179,7 @@ export function GalleryGrid({
               <VirtuosoGrid
                 useWindowScroll
                 totalCount={group.items.length}
-                overscan={200}
+                overscan={50}
                 listClassName={cn(gridClass)}
                 itemContent={(itemIndex: number) => {
                   const item = group.items[itemIndex];
@@ -211,7 +211,7 @@ export function GalleryGrid({
     <VirtuosoGrid
       useWindowScroll
       totalCount={items.length}
-      overscan={200}
+      overscan={50}
       listClassName={cn(gridClass)}
       itemContent={(index) => {
         const item = items[index];

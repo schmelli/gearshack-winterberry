@@ -25,6 +25,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
   // Load additional namespaced message files
   let vipMessages = {};
   let bulletinMessages = {};
+  let communityMessages = {};
 
   try {
     vipMessages = (await import(`../messages/${locale}/vip.json`)).default;
@@ -39,12 +40,20 @@ export default getRequestConfig(async ({ requestLocale }) => {
     // Bulletin messages file not found for this locale, use empty object
   }
 
+  try {
+    communityMessages = (await import(`../messages/${locale}/community.json`))
+      .default;
+  } catch {
+    // Community messages file not found for this locale, use empty object
+  }
+
   return {
     locale,
     messages: {
       ...mainMessages,
       vip: vipMessages,
       bulletin: bulletinMessages,
+      Community: communityMessages,
     },
   };
 });

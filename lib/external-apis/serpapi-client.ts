@@ -133,7 +133,7 @@ export async function searchGoogleShopping(
       ? results.filter(r => matchesProductType(r.title, productTypeKeywords))
       : results;
 
-    if (productTypeKeywords.length > 0) {
+    if (process.env.NODE_ENV === 'development' && productTypeKeywords.length > 0) {
       console.log(`[Google Shopping] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
     }
 
@@ -203,7 +203,7 @@ export async function searchEbay(
       ? results.filter(r => matchesProductType(r.title, productTypeKeywords))
       : results;
 
-    if (productTypeKeywords.length > 0) {
+    if (process.env.NODE_ENV === 'development' && productTypeKeywords.length > 0) {
       console.log(`[eBay] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
     }
 
