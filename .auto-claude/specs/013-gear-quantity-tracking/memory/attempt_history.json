@@ -59,11 +59,35 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-4-1": {
+      "attempts": [
+        {
+          "session": 6,
+          "timestamp": "2026-01-01T17:37:18.723260",
+          "approach": "Implemented: Update calculateWeightSummary to accept and use quantity parameter for loadout weight calculations",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-4-2": {
+      "attempts": [
+        {
+          "session": 7,
+          "timestamp": "2026-01-01T17:40:15.180300",
+          "approach": "Implemented: Update loadout weight calculation logic in useLoadouts hook to pass item quantities",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-01T17:24:37.392692",
-    "last_updated": "2026-01-01T17:34:47.427703"
+    "last_updated": "2026-01-01T17:40:15.180331"
   }
 }

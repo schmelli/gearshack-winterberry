@@ -4,11 +4,16 @@
  * Feature: 007-grand-polish-sprint
  * US4: Advanced Weight Calculations
  * Provides functions to toggle worn and consumable states for items in a loadout
+ *
+ * Feature: 013-gear-quantity-tracking
+ * Phase 5: Loadout Quantity Validation
+ * Provides quantity validation before adding items to prevent over-allocation
  */
 
 'use client';
 
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { useStore } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -24,6 +29,8 @@ interface UseLoadoutItemStateReturn {
   toggleWorn: (itemId: string) => Promise<void>;
   /** Toggle consumable state for an item */
   toggleConsumable: (itemId: string) => Promise<void>;
+  /** Check if item can be added based on available quantity (Feature: 013) */
+  canAddItem: (itemId: string) => boolean;
 }
 
 // =============================================================================
@@ -34,6 +41,7 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
   const loadout = useStore((state) =>
     state.loadouts.find((l) => l.id === loadoutId)
   );
+  const items = useStore((state) => state.items);
   const setItemWorn = useStore((state) => state.setItemWorn);
   const setItemConsumable = useStore((state) => state.setItemConsumable);
 
@@ -79,10 +87,57 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
     [loadoutId, isConsumable, setItemConsumable]
   );
 
+  /**
+   * Check if an item can be added to the loadout based on available quantity
+   * Feature: 013-gear-quantity-tracking
+   *
+   * For MVP scope: Validates only within current loadout (cross-loadout tracking out of scope)
+   *
+   * @param itemId - ID of the gear item to check
+   * @returns true if item can be added, false otherwise
+   */
+  const canAddItem = useCallback(
+    (itemId: string): boolean => {
+      // Get the gear item from inventory
+      const gearItem = items.find((item) => item.id === itemId);
+      if (!gearItem) {
+        toast.error('Item not found in inventory');
+        return false;
+      }
+
+      // Check if item is already in loadout
+      const isInLoadout = loadout?.itemIds.includes(itemId) ?? false;
+
+      if (isInLoadout) {
+        // Item already in loadout - current system doesn't support quantity increment
+        // Show error that all available quantity is already in use
+        toast.error('Cannot add more items', {
+          description: `This item is already in the loadout. Only ${gearItem.quantity} available in inventory.`,
+        });
+        return false;
+      }
+
+      // Check if item has quantity > 0 in inventory
+      const availableQuantity = gearItem.quantity || 1; // Default to 1 for backward compatibility
+
+      if (availableQuantity < 1) {
+        toast.error('No items available', {
+          description: 'This item has no available quantity in inventory.',
+        });
+        return false;
+      }
+
+      // Item can be added
+      return true;
+    },
+    [items, loadout]
+  );
+
   return {
     isWorn,
     isConsumable,
     toggleWorn,
     toggleConsumable,
+    canAddItem,
   };
 }
