@@ -121,7 +121,6 @@ function InlineNotification({
   }
 
   const sender = request.sender;
-  const isOperating = isAccepting || isDeclining;
 
   return (
     <div
@@ -174,7 +173,7 @@ function InlineNotification({
           size="icon"
           className="h-8 w-8 bg-green-600 hover:bg-green-700"
           onClick={handleAccept}
-          disabled={isOperating}
+          disabled={isAccepting}
           aria-label={t('requests.acceptAriaLabel', { name: sender.display_name })}
         >
           {isAccepting ? (
@@ -188,7 +187,7 @@ function InlineNotification({
           size="icon"
           className="h-8 w-8"
           onClick={handleDecline}
-          disabled={isOperating}
+          disabled={isDeclining}
           aria-label={t('requests.declineAriaLabel', { name: sender.display_name })}
         >
           {isDeclining ? (
@@ -253,7 +252,6 @@ function CardNotification({
   }
 
   const sender = request.sender;
-  const isOperating = isAccepting || isDeclining;
 
   return (
     <Card className={cn('overflow-hidden', className)}>
@@ -310,7 +308,7 @@ function CardNotification({
             variant="default"
             className="flex-1 bg-green-600 hover:bg-green-700"
             onClick={handleAccept}
-            disabled={isOperating}
+            disabled={isAccepting}
           >
             {isAccepting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -323,7 +321,7 @@ function CardNotification({
             variant="outline"
             className="flex-1"
             onClick={handleDecline}
-            disabled={isOperating}
+            disabled={isDeclining}
           >
             {isDeclining ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
