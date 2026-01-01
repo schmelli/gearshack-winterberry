@@ -46,6 +46,9 @@ function getMessagingClient(): any {
 /**
  * Fetches user's conversations with last message and participants.
  * Returns empty array if messaging tables don't exist yet.
+ *
+ * Optimized to avoid N+1 queries using database RPC function.
+ * Performance: Reduces 1+2N queries to 1 single query.
  */
 export async function fetchConversations(
   userId: string,
@@ -53,64 +56,41 @@ export async function fetchConversations(
 ): Promise<ConversationListItem[]> {
   const supabase = getMessagingClient();
 
-  let query = supabase
-    .from('conversation_participants')
-    .select(
-      `
-      conversation_id,
-      role,
-      is_muted,
-      is_archived,
-      unread_count,
-      last_read_at,
-      conversations!inner (
-        id,
-        type,
-        name,
-        created_by,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .eq('user_id', userId)
-    .order('conversations(updated_at)', { ascending: false });
-
-  if (!includeArchived) {
-    query = query.eq('is_archived', false);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc('get_user_conversations', {
+    p_user_id: userId,
+    p_include_archived: includeArchived,
+  });
 
   if (error) {
-    // Check if error is due to missing table (42P01 is PostgreSQL "undefined_table" error)
+    // Check if error is due to missing table/function (42P01 is PostgreSQL "undefined_table" error)
     if (error.code === '42P01' || error.message.includes('does not exist')) {
       return [];
     }
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
-  // Transform and fetch additional data
-  const conversations: ConversationListItem[] = [];
-
-  for (const row of (data ?? []) as QueryResult[]) {
-    const conv = row.conversations as Conversation;
-    const participants = await fetchConversationParticipants(conv.id);
-    const lastMessage = await fetchLastMessage(conv.id);
-
-    conversations.push({
-      conversation: conv,
-      role: row.role as ParticipantRole,
-      is_muted: row.is_muted,
-      is_archived: row.is_archived,
-      unread_count: row.unread_count,
-      last_read_at: row.last_read_at,
-      last_message: lastMessage ?? undefined,
-      participants,
-    });
+  if (!data || data.length === 0) {
+    return [];
   }
 
-  return conversations;
+  // Transform RPC results to ConversationListItem format
+  return (data as QueryResult[]).map((row) => ({
+    conversation: {
+      id: row.conv_id,
+      type: row.conv_type as ConversationType,
+      name: row.conv_name,
+      created_by: row.conv_created_by,
+      created_at: row.conv_created_at,
+      updated_at: row.conv_updated_at,
+    },
+    role: row.role as ParticipantRole,
+    is_muted: row.is_muted,
+    is_archived: row.is_archived,
+    unread_count: row.unread_count,
+    last_read_at: row.last_read_at,
+    last_message: row.last_message ?? undefined,
+    participants: (row.participants ?? []) as ParticipantInfo[],
+  }));
 }
 
 /**
@@ -627,6 +607,9 @@ export async function isBlocked(user1: string, user2: string): Promise<boolean> 
 
 /**
  * Searches for discoverable users.
+ *
+ * Optimized to avoid N+1 queries using database RPC function.
+ * Performance: Reduces 1+N queries to 1 single query.
  */
 export async function searchUsers(
   query: string,
@@ -635,34 +618,30 @@ export async function searchUsers(
 ): Promise<SearchableUser[]> {
   const supabase = getMessagingClient();
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_url, messaging_privacy')
-    .eq('discoverable', true)
-    .neq('id', currentUserId)
-    .ilike('display_name', `%${query}%`)
-    .limit(limit);
+  const { data, error } = await supabase.rpc('search_users_with_block_status', {
+    p_query: query,
+    p_current_user_id: currentUserId,
+    p_limit: limit,
+  });
 
   if (error) {
+    // Check if error is due to missing table/function
+    if (
+      error.code === '42P01' ||
+      error.code === '42883' ||
+      error.message.includes('does not exist')
+    ) {
+      return [];
+    }
     throw new Error(`Failed to search users: ${error.message}`);
   }
 
-  // Check messaging ability for each user
-  const results: SearchableUser[] = [];
-
-  for (const user of data ?? []) {
-    const blocked = await isBlocked(currentUserId, user.id);
-    const canMessage = !blocked && user.messaging_privacy !== 'nobody';
-
-    results.push({
-      id: user.id,
-      display_name: user.display_name ?? 'Unknown',
-      avatar_url: user.avatar_url,
-      can_message: canMessage,
-    });
+  if (!data || data.length === 0) {
+    return [];
   }
 
-  return results;
+  // RPC function returns data in the correct format already
+  return data as SearchableUser[];
 }
 
 // ----- Privacy Settings Queries -----
