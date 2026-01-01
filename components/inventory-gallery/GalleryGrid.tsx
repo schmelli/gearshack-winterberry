@@ -22,7 +22,7 @@ import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
 import { cn } from '@/lib/utils';
-import { VirtuosoGrid, GroupedVirtuoso } from 'react-virtuoso';
+import { VirtuosoGrid, GroupedVirtuoso, type ListProps } from 'react-virtuoso';
 
 // =============================================================================
 // Types
@@ -145,18 +145,21 @@ export function GalleryGrid({
       groupCounts.push(group.items.length);
     });
 
+    // Custom List component for grid layout
+    const GridList = React.forwardRef<HTMLDivElement, ListProps>((props, ref) => (
+      <div ref={ref} className={cn(gridClass)}>
+        {props.children}
+      </div>
+    ));
+    GridList.displayName = 'GridList';
+
     return (
       <GroupedVirtuoso
         useWindowScroll
         groupCounts={groupCounts}
         overscan={2}
         components={{
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          List: React.forwardRef<HTMLDivElement, any>((props, ref) => (
-            <div ref={ref} className={cn(gridClass)}>
-              {props.children}
-            </div>
-          )),
+          List: GridList,
         }}
         groupContent={(index) => {
           const group = groupedItems[index];
@@ -180,6 +183,7 @@ export function GalleryGrid({
 
           return (
             <GearCard
+              key={item.id}
               item={item}
               viewDensity={viewDensity}
               onClick={onItemClick ? () => onItemClick(item.id) : undefined}
@@ -207,6 +211,7 @@ export function GalleryGrid({
 
         return (
           <GearCard
+            key={item.id}
             item={item}
             viewDensity={viewDensity}
             onClick={onItemClick ? () => onItemClick(item.id) : undefined}
