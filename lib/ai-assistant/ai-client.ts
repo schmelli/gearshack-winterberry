@@ -9,18 +9,13 @@
 import { createGateway } from '@ai-sdk/gateway';
 import { generateText, streamText } from 'ai';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { withRetry } from './retry';
 
-// Import tool definitions - Lean & powerful set
-import {
-  queryUserDataTool,
-  executeQueryUserData,
-  searchCatalogTool,
-  executeSearchCatalog,
-  searchWebTool,
-  executeSearchWeb,
-  type QueryUserDataParameters,
-} from './tools';
+// Import Mastra tool definitions - Properly formatted with createTool
+import { queryUserDataTool } from '@/lib/mastra/tools/query-user-data';
+import { searchCatalogTool } from '@/lib/mastra/tools/search-catalog';
+import { searchWebTool } from '@/lib/mastra/tools/search-web';
 
 // Import MCP GearGraph tools (T059 - Register MCP tools with agent)
 import {
@@ -87,17 +82,74 @@ export function getAIModel() {
 }
 
 // =====================================================
+// Mastra Tool Adapter for Vercel AI SDK
+// =====================================================
+
+/**
+ * Convert Mastra tool to Vercel AI SDK format
+ *
+ * Mastra tools use: { id, inputSchema, outputSchema, execute({ context, runtimeContext }) }
+ * AI SDK needs: { description, parameters, execute(args) }
+ *
+ * CRITICAL: Claude requires JSON Schema with explicit type: "object" field.
+ * We use zodToJsonSchema to ensure proper conversion with all required fields.
+ */
+function adaptMastraTool<TInput = any, TOutput = any>(
+  mastraTool: any,
+  userId: string
+) {
+  // Convert Zod schema to JSON Schema with proper type field for Claude
+  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema, {
+    target: 'jsonSchema7',
+    $refStrategy: 'none', // Don't use $ref, inline all definitions
+  });
+
+  // Ensure type: "object" is at the root level (required by Claude)
+  if (!jsonSchema.type) {
+    jsonSchema.type = 'object';
+  }
+
+  // DEBUG: Log the schemas for debugging
+  if (mastraTool.id === 'queryUserData') {
+    console.log('[adaptMastraTool] DEBUG - Full tool object keys:', Object.keys(mastraTool));
+    console.log('[adaptMastraTool] DEBUG - inputSchema type:', typeof mastraTool.inputSchema);
+    console.log('[adaptMastraTool] DEBUG - inputSchema constructor:', mastraTool.inputSchema?.constructor?.name);
+    console.log('[adaptMastraTool] DEBUG - Is Zod schema?:', mastraTool.inputSchema?._def !== undefined);
+
+    // Try to get the schema shape
+    if (mastraTool.inputSchema?._def) {
+      console.log('[adaptMastraTool] DEBUG - Zod _def.typeName:', mastraTool.inputSchema._def.typeName);
+      console.log('[adaptMastraTool] DEBUG - Zod _def keys:', Object.keys(mastraTool.inputSchema._def));
+    }
+
+    console.log('[adaptMastraTool] DEBUG - Generated JSON Schema:', JSON.stringify(jsonSchema, null, 2));
+  }
+
+  return {
+    description: mastraTool.description,
+    parameters: jsonSchema as any, // JSON Schema format for Claude compatibility
+    execute: async (args: TInput): Promise<TOutput> => {
+      // Create runtime context with userId
+      const runtimeContext = new Map<string, any>();
+      runtimeContext.set('userId', userId);
+
+      // Call Mastra tool's execute with proper format
+      return await mastraTool.execute({
+        context: args,
+        runtimeContext,
+      });
+    },
+  };
+}
+
+// =====================================================
 // T058: AI Tool Definitions
 // =====================================================
 
 /**
  * Get all available tools for AI with execution functions
  *
- * Lean set of 6 powerful tools:
- * - 3 Data Access tools (query, search catalog, search web)
- * - 3 Action tools (wishlist, message, navigate)
- *
- * Philosophy: Flexible tools > Fixed schemas
+ * Uses Mastra tools with proper schema conversion and runtimeContext
  *
  * @param userId - Current user ID for tool execution
  * @returns Tool definitions with execute functions
@@ -105,60 +157,17 @@ export function getAIModel() {
 export function getAITools(userId: string) {
   return {
     // =========================================================================
-    // Data Access Tools
+    // Data Access Tools (Mastra format with adapter)
     // =========================================================================
 
     // Query user's database (gear, loadouts, categories, etc.)
-    queryUserData: {
-      description: queryUserDataTool.description,
-      parameters: queryUserDataTool.parameters,
-      execute: async (args: QueryUserDataParameters) => {
-        console.log('[Tool: queryUserData] Executing with args:', {
-          table: args.table,
-          operation: args.operation,
-          filters: args.filters,
-          search: args.search,
-          userId,
-        });
-        try {
-          const result = await executeQueryUserData(args, userId);
-          console.log('[Tool: queryUserData] Result:', {
-            success: result.success,
-            rowCount: result.rowCount,
-            error: result.error,
-          });
-          return result;
-        } catch (error) {
-          console.error('[Tool: queryUserData] Execution error:', error);
-          return {
-            success: false,
-            operation: args.operation || 'select',
-            table: args.table,
-            rowCount: 0,
-            data: null,
-            error: error instanceof Error ? error.message : 'Tool execution failed',
-          };
-        }
-      },
-    },
+    queryUserData: adaptMastraTool(queryUserDataTool, userId),
 
     // Search product catalog
-    searchCatalog: {
-      description: searchCatalogTool.description,
-      parameters: searchCatalogTool.parameters,
-      execute: async (args: any) => {
-        return await executeSearchCatalog(args);
-      },
-    },
+    searchCatalog: adaptMastraTool(searchCatalogTool, userId),
 
     // Search the web for real-time information
-    searchWeb: {
-      description: searchWebTool.description,
-      parameters: searchWebTool.parameters,
-      execute: async (args: any) => {
-        return await executeSearchWeb(args);
-      },
-    },
+    searchWeb: adaptMastraTool(searchWebTool, userId),
 
     // =========================================================================
     // Action Tools
@@ -449,6 +458,12 @@ export async function generateStreamingAIResponse(
     if (enableTools && userId) {
       config.tools = getAITools(userId);
       config.maxSteps = AI_MAX_STEPS;
+
+      console.log('[AI Config] Tools enabled with maxSteps:', {
+        maxSteps: config.maxSteps,
+        toolCount: Object.keys(config.tools).length,
+        userId,
+      });
 
       // AI SDK 5: onStepFinish callback for debugging multi-step execution
       config.onStepFinish = (step: {

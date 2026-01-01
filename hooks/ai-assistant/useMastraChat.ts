@@ -218,6 +218,7 @@ export function useMastraChat(): UseMastraChatResult {
           message: trimmedText,
           conversationId,
           context: options?.context,
+          enableTools: true, // CRITICAL: Enable tool calling (queryUserData, searchCatalog, etc.)
           options: {
             stream: true,
             includeMemory: options?.includeMemory ?? true,
@@ -229,6 +230,7 @@ export function useMastraChat(): UseMastraChatResult {
           userId: user.uid,
           conversationId,
           messageLength: trimmedText.length,
+          enableTools: requestBody.enableTools,
         });
 
         // Make streaming request - uses cookie-based auth (credentials: 'include')

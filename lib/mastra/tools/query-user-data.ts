@@ -404,6 +404,84 @@ Fuzzy Search:
         };
       }
 
+      // AUTO-FUZZY FALLBACK: If search returned 0 results and fuzzy wasn't enabled,
+      // automatically retry with fuzzy search to handle typos transparently
+      if (
+        search &&
+        !search.fuzzy &&
+        effectiveOperation === 'select' &&
+        (!data || data.length === 0)
+      ) {
+        console.log('[queryUserData] Auto-fuzzy fallback triggered for zero results', {
+          table,
+          column: search.column,
+          value: search.value,
+        });
+
+        // Retry with fuzzy search enabled
+        const threshold = search.fuzzyThreshold ?? 0.3;
+        const rpcFilters = filters ? filters : null;
+        const rangeColumn = range?.column ?? null;
+        const rangeMin = range?.min ?? null;
+        const rangeMax = range?.max ?? null;
+
+        const { data: fuzzyData, error: fuzzyError } = await Promise.race([
+          supabase.rpc('fuzzy_search_column' as any, {
+            p_table_name: table,
+            p_column_name: search.column,
+            p_search_value: search.value,
+            p_user_id: userId,
+            p_similarity_threshold: threshold,
+            p_limit: effectiveLimit,
+            p_filters: rpcFilters,
+            p_range_column: rangeColumn,
+            p_range_min: rangeMin,
+            p_range_max: rangeMax,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Fuzzy fallback timeout (5s)')), 5000)
+          ),
+        ]);
+
+        // If fuzzy search succeeds and finds results, return those instead
+        if (!fuzzyError && fuzzyData && fuzzyData.length > 0) {
+          const fuzzyExecutionTime = Date.now() - startTime;
+          const results =
+            fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
+            [];
+
+          console.log('[queryUserData] Auto-fuzzy fallback succeeded', {
+            table,
+            column: search.column,
+            value: search.value,
+            resultsFound: results.length,
+          });
+
+          return {
+            success: true,
+            operation: effectiveOperation,
+            table,
+            rowCount: results.length,
+            data: results as Record<string, unknown>[],
+            metadata: {
+              executionTimeMs: fuzzyExecutionTime,
+              limitApplied: effectiveLimit,
+              filtersApplied: [
+                ...appliedFilters,
+                `auto_fuzzy_fallback:${search.column}:threshold=${threshold}`,
+              ],
+            },
+          };
+        }
+
+        // If fuzzy fallback also fails, continue with original empty result
+        console.log('[queryUserData] Auto-fuzzy fallback found no results', {
+          table,
+          column: search.column,
+          value: search.value,
+        });
+      }
+
       return {
         success: true,
         operation: effectiveOperation,

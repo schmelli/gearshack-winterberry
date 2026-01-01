@@ -426,7 +426,7 @@ export class SupabaseMemoryAdapter implements MemoryAdapter {
     // Insert new context
     const now = new Date();
     const contextMessage: Message = {
-      id: `context-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(), // BUGFIX: Use pure UUID without prefix for database compatibility
       userId,
       conversationId,
       role: 'system',
