@@ -1,13 +1,14 @@
 /**
  * StatusSection Component
  *
- * Feature: 001-gear-item-editor, 041-loadout-ux-profile, 045-gear-editor-tabs-marketplace
+ * Feature: 001-gear-item-editor, 041-loadout-ux-profile, 045-gear-editor-tabs-marketplace, 013-gear-quantity-tracking
  * Task: T018
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for status and condition:
  * - Condition (new, used, worn)
  * - Status (active, wishlist, sold)
+ * - Quantity (Feature 013)
  * - Favourite toggle (Feature 041)
  * - For Sale toggle (Feature 045)
  * - Can be Borrowed toggle (Feature 045)
@@ -34,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import type { GearItemFormData, GearCondition, GearStatus } from '@/types/gear';
@@ -113,6 +115,30 @@ export function StatusSection() {
           )}
         />
       </div>
+
+      {/* Quantity */}
+      <FormField
+        control={form.control}
+        name="quantity"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Quantity</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="1"
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              How many of this item do you own? (default: 1)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       {/* Toggles Section */}
       <div className="space-y-3">
