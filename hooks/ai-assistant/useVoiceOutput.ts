@@ -25,10 +25,11 @@ export type VoiceOutputState =
   | 'paused'
   | 'error';
 
-export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+// ElevenLabs voices (matching server validation)
+export type TTSVoice = 'rachel' | 'domi' | 'bella' | 'antoni' | 'josh' | 'adam';
 
 export interface VoiceOutputOptions {
-  /** Voice to use (default: 'nova') */
+  /** Voice to use (default: 'rachel') */
   voice?: TTSVoice;
   /** Playback speed 0.5-2.0 (default: 1.0) */
   speed?: number;
@@ -75,7 +76,7 @@ export interface UseVoiceOutputReturn {
 
 export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutputReturn {
   const {
-    voice = 'nova',
+    voice = 'rachel', // Default ElevenLabs voice (calm and warm)
     speed = 1.0,
     volume: initialVolume = 1.0,
     autoPlay = true,
@@ -151,16 +152,17 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
       setError(null);
       setState('loading');
 
-      // Fetch audio from TTS API
+      // Fetch audio from TTS API (ElevenLabs)
       const response = await fetch('/api/mastra/voice/synthesize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text,
-          voice,
-          model: 'tts-1', // Use fast model for lower latency
-          format: 'mp3',
-          speed,
+          voice: voice || 'rachel', // Default to rachel if not specified
+          model: 'eleven_turbo_v2_5', // Fast ElevenLabs model for low latency
+          format: 'mp3_44100_128', // High quality MP3
+          stability: 0.5, // Balanced stability (0 = more expressive, 1 = more stable)
+          similarityBoost: 0.75, // Voice similarity boost
           stream: false, // Get full audio for better playback control
         }),
       });

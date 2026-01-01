@@ -52,7 +52,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     stop: stopSpeaking,
     isPlaying,
   } = useVoiceOutput({
-    voice: 'nova',
+    voice: 'rachel', // ElevenLabs default voice
     autoPlay: true,
   });
 
