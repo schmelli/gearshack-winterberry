@@ -1,0 +1,561 @@
+{
+  "feature": "Automatic Unit Conversion",
+  "workflow_type": "feature",
+  "workflow_rationale": "This introduces new functionality (user preferences, conversion UI components) rather than modifying existing behavior. Requires database schema changes, new UI components, and integration across multiple parts of the application.",
+  "phases": [
+    {
+      "id": "phase-1-database-types",
+      "name": "Database & Type Foundations",
+      "type": "setup",
+      "description": "Add database migration for preferred_weight_unit column and verify existing type definitions",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create Supabase migration for preferred_weight_unit column",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "supabase/migrations/YYYYMMDDHHMMSS_add_preferred_weight_unit.sql"
+          ],
+          "patterns_from": [
+            "supabase/migrations"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "cat supabase/migrations/*_add_preferred_weight_unit.sql | grep 'preferred_weight_unit'",
+            "expected": "preferred_weight_unit TEXT DEFAULT 'g' CHECK (preferred_weight_unit IN ('g', 'oz', 'lb'))"
+          },
+          "status": "completed",
+          "notes": "Created migration file 20260101162806_add_preferred_weight_unit.sql following existing patterns. Added column to profiles table with TEXT type, default 'g', and CHECK constraint for valid units (g, oz, lb). Used IF NOT EXISTS pattern for idempotency. Verification passed - all required elements present.",
+          "updated_at": "2026-01-01T15:28:39.366514+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Verify WeightUnit type and constants in types/gear.ts",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "types/gear.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -E \"type WeightUnit|WEIGHT_UNIT_LABELS\" types/gear.ts",
+            "expected": "WeightUnit and WEIGHT_UNIT_LABELS already defined"
+          },
+          "status": "completed",
+          "notes": "Verified WeightUnit type ('g' | 'oz' | 'lb') and WEIGHT_UNIT_LABELS constant are already defined in types/gear.ts",
+          "updated_at": "2026-01-01T15:29:26.723866+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-user-preferences",
+      "name": "User Preferences Hook",
+      "type": "implementation",
+      "description": "Create or extend useUserPreferences hook to manage weight unit preference with Supabase persistence",
+      "depends_on": [
+        "phase-1-database-types"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create or extend useUserPreferences hook with weight unit getter/setter",
+          "service": "main",
+          "files_to_modify": [
+            "hooks/useUserPreferences.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "hooks/useLoadouts.ts",
+            "lib/supabase/client.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -E \"preferredWeightUnit|setPreferredWeightUnit\" hooks/useUserPreferences.ts",
+            "expected": "Hook exports preferredWeightUnit state and setter function"
+          },
+          "status": "pending",
+          "notes": "Follow Zustand pattern from useLoadouts.ts. Include Supabase update on setter. Default to 'g' if not set."
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Write unit tests for useUserPreferences weight unit logic",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "__tests__/unit/hooks/useUserPreferences.test.ts"
+          ],
+          "patterns_from": [
+            "__tests__/unit/hooks/useLoadouts.test.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm test -- useUserPreferences.test.ts --run",
+            "expected": "All tests pass"
+          },
+          "status": "pending",
+          "notes": "Mock Supabase client. Test default value, setter, and persistence."
+        }
+      ]
+    },
+    {
+      "id": "phase-3-weight-conversion-hook",
+      "name": "Weight Conversion Hook",
+      "type": "implementation",
+      "description": "Create useWeightConversion hook that wraps lib/utils/weight.ts and integrates with user preferences",
+      "depends_on": [
+        "phase-2-user-preferences"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Create useWeightConversion hook with convert and formatWeight functions",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "hooks/useWeightConversion.ts"
+          ],
+          "patterns_from": [
+            "lib/utils/weight.ts",
+            "hooks/useUserPreferences.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -E \"export.*useWeightConversion|convertWeight|formatForDisplay\" hooks/useWeightConversion.ts",
+            "expected": "Hook exports conversion utilities that respect user preference"
+          },
+          "status": "pending",
+          "notes": "Use useMemo to cache conversions. Integrate with useUserPreferences for default unit."
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Write unit tests for useWeightConversion hook",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "__tests__/unit/hooks/useWeightConversion.test.ts"
+          ],
+          "patterns_from": [
+            "__tests__/unit/lib/utils/weight.test.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm test -- useWeightConversion.test.ts --run",
+            "expected": "All conversion tests pass with memoization checks"
+          },
+          "status": "pending",
+          "notes": "Test conversion accuracy, formatting, and locale-specific number formatting"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-ui-components",
+      "name": "Weight UI Components",
+      "type": "implementation",
+      "description": "Create reusable WeightInput and WeightDisplay components",
+      "depends_on": [
+        "phase-3-weight-conversion-hook"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Create WeightInput component with unit selector",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "components/ui/weight-input.tsx"
+          ],
+          "patterns_from": [
+            "components/ui/select.tsx",
+            "hooks/useWeightConversion.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/inventory",
+            "checks": [
+              "Weight input renders with unit dropdown",
+              "Auto-converts on blur"
+            ]
+          },
+          "status": "pending",
+          "notes": "Stateless component. Accept value, unit, onChange props. Use react-hook-form compatible. Include shadcn Select for unit dropdown."
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Create WeightDisplay component with inline toggle and hover tooltip",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "components/ui/weight-display.tsx"
+          ],
+          "patterns_from": [
+            "components/ui/tooltip.tsx",
+            "hooks/useWeightConversion.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/loadouts",
+            "checks": [
+              "Weight displays correctly",
+              "Toggle switches units",
+              "Tooltip shows on hover"
+            ]
+          },
+          "status": "pending",
+          "notes": "Stateless component. Props: value (grams), showToggle, className. Use shadcn Tooltip for secondary unit display."
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Write component tests for WeightInput and WeightDisplay",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "__tests__/unit/components/WeightInput.test.tsx",
+            "__tests__/unit/components/WeightDisplay.test.tsx"
+          ],
+          "patterns_from": [
+            "__tests__/unit/components"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm test -- components/Weight --run",
+            "expected": "Component tests pass for input and display"
+          },
+          "status": "pending",
+          "notes": "Test rendering, user interactions (dropdown, toggle, hover), and prop handling"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-settings-integration",
+      "name": "Profile Settings Integration",
+      "type": "implementation",
+      "description": "Add weight unit preference selector to user profile settings page",
+      "depends_on": [
+        "phase-4-ui-components"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Add weight unit preference card to settings page",
+          "service": "main",
+          "files_to_modify": [
+            "app/[locale]/settings/page.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "components/ui/select.tsx",
+            "hooks/useUserPreferences.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/en/settings",
+            "checks": [
+              "Weight unit dropdown visible",
+              "Selection persists on reload",
+              "Default is 'g'"
+            ]
+          },
+          "status": "pending",
+          "notes": "Add new Card component with Select dropdown. Use WEIGHT_UNIT_LABELS for options. Call setPreferredWeightUnit on change."
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Add i18n translations for weight unit preference UI",
+          "service": "main",
+          "files_to_modify": [
+            "messages/en.json",
+            "messages/de.json"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "messages/en.json"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/de/settings",
+            "checks": [
+              "German translations display correctly"
+            ]
+          },
+          "status": "pending",
+          "notes": "Add keys: settings.weight_unit.title, settings.weight_unit.description, settings.weight_unit.g, settings.weight_unit.oz, settings.weight_unit.lb"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-display-integration",
+      "name": "Replace Weight Displays Across App",
+      "type": "implementation",
+      "description": "Replace hardcoded weight displays in loadouts and gear items with WeightDisplay component",
+      "depends_on": [
+        "phase-5-settings-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Integrate WeightDisplay in loadout total displays",
+          "service": "main",
+          "files_to_modify": [
+            "components/loadouts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "components/ui/weight-display.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/en/loadouts",
+            "checks": [
+              "Loadout totals show in preferred unit",
+              "Unit toggle works",
+              "Tooltip shows on hover"
+            ]
+          },
+          "status": "pending",
+          "notes": "Find all hardcoded weight displays in loadout components. Replace with <WeightDisplay value={weightGrams} showToggle />. Use useWeightConversion for totals calculation."
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Integrate WeightInput in gear item forms",
+          "service": "main",
+          "files_to_modify": [
+            "components/inventory"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "components/ui/weight-input.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/en/inventory",
+            "checks": [
+              "Weight input accepts all units",
+              "Converts to grams on save",
+              "Form validation works"
+            ]
+          },
+          "status": "pending",
+          "notes": "Replace weight input fields in gear item create/edit forms. Integrate with react-hook-form. Ensure value saved to DB is always in grams."
+        }
+      ]
+    },
+    {
+      "id": "phase-7-integration-testing",
+      "name": "Integration Testing",
+      "type": "integration",
+      "description": "End-to-end verification of preference persistence and conversion across the application",
+      "depends_on": [
+        "phase-6-display-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "E2E test: Change preference and verify all displays update",
+          "all_services": false,
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "__tests__/integration/weight-conversion.test.ts"
+          ],
+          "patterns_from": [
+            "__tests__/integration"
+          ],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Navigate to /settings, change weight unit to 'oz'",
+              "Navigate to /loadouts, verify totals show in oz",
+              "Navigate to /inventory, add item with weight in 'lb', verify saves as grams",
+              "Reload page, verify preference persists"
+            ]
+          },
+          "status": "pending",
+          "notes": "Use Vitest for integration test. Mock Supabase responses. Verify state updates propagate."
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "Manual QA verification checklist",
+          "all_services": false,
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Follow QA Acceptance Criteria from spec.md: verify conversion accuracy, accessibility (keyboard nav), performance (no lag on conversion), and browser compatibility (Chrome, Firefox, Safari)"
+          },
+          "status": "pending",
+          "notes": "See spec.md QA section for detailed checklist including accessibility and performance verification"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 7,
+    "total_subtasks": 14,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution required - phases have strict dependencies",
+      "reasoning": "Each phase builds on the previous. Database migration must complete before preferences hook, which must complete before UI components, etc."
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 012 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass (npm test)",
+      "New unit tests for conversion logic pass",
+      "Integration tests for preference persistence pass",
+      "Manual browser verification complete",
+      "Database migration applied successfully",
+      "No console errors in browser or server"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests - Weight Conversion",
+        "command": "npm test -- __tests__/unit/lib/utils/weight.test.ts --run",
+        "expected_outcome": "All conversion tests pass (g\u2194oz\u2194lb, precision, edge cases)",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests - User Preferences",
+        "command": "npm test -- __tests__/unit/hooks/useUserPreferences.test.ts --run",
+        "expected_outcome": "Preference getter/setter tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests - Components",
+        "command": "npm test -- __tests__/unit/components/Weight --run",
+        "expected_outcome": "WeightInput and WeightDisplay component tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Integration Tests",
+        "command": "npm test -- __tests__/integration/weight-conversion.test.ts --run",
+        "expected_outcome": "E2E preference persistence test passes",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Browser Verification - Settings",
+        "command": "manual",
+        "expected_outcome": "Weight unit dropdown in /settings saves and persists",
+        "type": "manual",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Browser Verification - Loadouts",
+        "command": "manual",
+        "expected_outcome": "Loadout totals display in preferred unit with working toggle",
+        "type": "manual",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Database Migration",
+        "command": "psql -h localhost -U postgres -d gearshack -c \"SELECT preferred_weight_unit FROM profiles LIMIT 1;\"",
+        "expected_outcome": "Column exists and returns 'g', 'oz', or 'lb'",
+        "type": "database",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk due to cross-cutting changes and database migration. Requires unit tests for conversion accuracy and integration tests for preference persistence. No security-sensitive areas involved."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- __tests__/unit/lib/utils/weight.test.ts --run",
+        "npm test -- __tests__/unit/hooks --run",
+        "npm test -- __tests__/unit/components/Weight --run"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- __tests__/integration/weight-conversion.test.ts --run"
+      ],
+      "services_to_test": [
+        "main"
+      ]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3000/en/settings",
+          "checks": [
+            "Weight unit dropdown present",
+            "Selection saves to Supabase",
+            "Persists on reload"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/en/loadouts",
+          "checks": [
+            "Totals show in preferred unit",
+            "Inline toggle works",
+            "Hover tooltip displays secondary unit"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/en/inventory",
+          "checks": [
+            "Weight input accepts any unit",
+            "Converts to grams on save",
+            "Form validation works"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "preferred_weight_unit column exists in profiles table",
+        "Default value is 'g'",
+        "Check constraint allows only 'g', 'oz', 'lb'",
+        "Weights stored in gear_items are in grams"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "last_updated": "2026-01-01T15:29:26.723901+00:00"
+}
