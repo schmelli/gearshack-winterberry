@@ -709,14 +709,14 @@ export async function POST(request: Request): Promise<Response> {
             metadata: {
               finishReason,
               toolCallCount: toolCalls?.length || 0,
-              toolNames: toolCalls?.map((tc: { toolName?: string }) => tc.toolName).join(', ') || 'none',
+              toolNames: toolCalls?.map((tc: any) => tc.toolName || tc.name || 'unknown').join(', ') || 'none',
             },
           });
 
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
-            for (const tc of toolCalls) {
-              recordToolCall(tc.toolName || 'unknown');
+            for (const tc of toolCalls as any[]) {
+              recordToolCall(tc.toolName || tc.name || 'unknown');
             }
           }
 
