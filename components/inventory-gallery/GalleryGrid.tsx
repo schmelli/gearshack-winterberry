@@ -133,14 +133,15 @@ export function GalleryGrid({
   const gridClass = GRID_CLASSES[viewDensity] || GRID_CLASSES.standard;
 
   // Feature 046: Render with category separators when sorting by category
-  // Feature 054: Virtualize groups for better performance with many categories
+  // Feature 054: Virtualize both groups AND items within groups for better performance
+  // Instead of rendering all items in a group at once, we virtualize each group's grid
   if (sortOption === 'category' && groupedItems.length > 0) {
     return (
       <Virtuoso
         useWindowScroll
         totalCount={groupedItems.length}
         overscan={2}
-        itemContent={(index) => {
+        itemContent={(index: number) => {
           const group = groupedItems[index];
           if (!group) return null;
 
@@ -156,20 +157,29 @@ export function GalleryGrid({
                   {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
                 </span>
               </div>
-              {/* Items Grid */}
-              <div className={cn(gridClass)}>
-                {group.items.map((item) => (
-                  <GearCard
-                    key={item.id}
-                    item={item}
-                    viewDensity={viewDensity}
-                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                    context={context}
-                    onMoveToInventory={onMoveToInventory}
-                    onMoveComplete={onMoveComplete}
-                  />
-                ))}
-              </div>
+              {/* Virtualized Items Grid for this category */}
+              <VirtuosoGrid
+                useWindowScroll
+                totalCount={group.items.length}
+                overscan={200}
+                listClassName={cn(gridClass)}
+                itemContent={(itemIndex: number) => {
+                  const item = group.items[itemIndex];
+                  if (!item) return null;
+
+                  return (
+                    <GearCard
+                      key={item.id}
+                      item={item}
+                      viewDensity={viewDensity}
+                      onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                      context={context}
+                      onMoveToInventory={onMoveToInventory}
+                      onMoveComplete={onMoveComplete}
+                    />
+                  );
+                }}
+              />
             </section>
           );
         }}
