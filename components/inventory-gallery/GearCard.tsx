@@ -3,6 +3,7 @@
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag, DollarSign, HandHeart, ArrowLeftRight, ChevronRight } from 'lucide-react';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
@@ -42,6 +43,8 @@ interface QuantityBadgeProps {
 }
 
 function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
+  const t = useTranslations('Inventory');
+
   // Only show badge when quantity > 1
   if (quantity <= 1) return null;
 
@@ -55,7 +58,7 @@ function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
       )}
       title={`Quantity: ${quantity}`}
     >
-      x {quantity}
+      {t('quantityBadge', { quantity })}
     </span>
   );
 }

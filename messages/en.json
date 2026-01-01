@@ -231,6 +231,7 @@
       "retry": "Retry"
     },
     "addToWishlist": "Add to Wishlist",
+    "quantityBadge": "x {quantity}",
     "wishlist": {
       "title": "Wishlist",
       "myGear": "My Gear",
