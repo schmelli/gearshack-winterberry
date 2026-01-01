@@ -12,12 +12,16 @@
  *
  * Feature: 046-inventory-sorting
  * Supports category grouping with visual separators when sorting by category
+ *
+ * Feature: 054-gallery-virtualization
+ * Uses react-virtuoso for virtualized rendering to improve performance with large collections (100+ items)
  */
 
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
 import { cn } from '@/lib/utils';
+import { VirtuosoGrid, Virtuoso } from 'react-virtuoso';
 
 // =============================================================================
 // Types
@@ -129,55 +133,74 @@ export function GalleryGrid({
   const gridClass = GRID_CLASSES[viewDensity] || GRID_CLASSES.standard;
 
   // Feature 046: Render with category separators when sorting by category
+  // Feature 054: Virtualize groups for better performance with many categories
   if (sortOption === 'category' && groupedItems.length > 0) {
     return (
-      <div className="space-y-8">
-        {groupedItems.map((group) => (
-          <section key={group.categoryId ?? 'uncategorized'}>
-            {/* Category Separator Header */}
-            <div className="mb-4 flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
-                {group.categoryLabel}
-              </h2>
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
-              </span>
-            </div>
-            {/* Items Grid */}
-            <div className={cn(gridClass)}>
-              {group.items.map((item) => (
-                <GearCard
-                  key={item.id}
-                  item={item}
-                  viewDensity={viewDensity}
-                  onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                  context={context}
-                  onMoveToInventory={onMoveToInventory}
-                  onMoveComplete={onMoveComplete}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      <Virtuoso
+        useWindowScroll
+        totalCount={groupedItems.length}
+        overscan={2}
+        itemContent={(index) => {
+          const group = groupedItems[index];
+          if (!group) return null;
+
+          return (
+            <section key={group.categoryId ?? 'uncategorized'} className="mb-8">
+              {/* Category Separator Header */}
+              <div className="mb-4 flex items-center gap-4">
+                <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
+                  {group.categoryLabel}
+                </h2>
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
+                </span>
+              </div>
+              {/* Items Grid */}
+              <div className={cn(gridClass)}>
+                {group.items.map((item) => (
+                  <GearCard
+                    key={item.id}
+                    item={item}
+                    viewDensity={viewDensity}
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    context={context}
+                    onMoveToInventory={onMoveToInventory}
+                    onMoveComplete={onMoveComplete}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        }}
+      />
     );
   }
 
-  // Default: flat grid without separators
+  // Default: flat grid without separators - virtualized for performance
+  // Feature 054: Only render visible items to improve performance with 100+ items
   return (
-    <div className={cn(gridClass)}>
-      {items.map((item) => (
-        <GearCard
-          key={item.id}
-          item={item}
-          viewDensity={viewDensity}
-          onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-          context={context}
-          onMoveToInventory={onMoveToInventory}
-          onMoveComplete={onMoveComplete}
-        />
-      ))}
-    </div>
+    <VirtuosoGrid
+      useWindowScroll
+      totalCount={items.length}
+      overscan={200}
+      listClassName={cn(gridClass)}
+      itemContent={(index) => {
+        const item = items[index];
+        if (!item) return null;
+
+        return (
+          <GearCard
+            key={item.id}
+            item={item}
+            viewDensity={viewDensity}
+            onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+            context={context}
+            onMoveToInventory={onMoveToInventory}
+            onMoveComplete={onMoveComplete}
+          />
+        );
+      }}
+    />
   );
 }

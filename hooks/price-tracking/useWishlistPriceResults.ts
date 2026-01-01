@@ -68,7 +68,7 @@ export function useWishlistPriceResults(gearItemId: string): UseWishlistPriceRes
         throw new Error(`Failed to fetch price results: ${resultsError.message}`);
       }
 
-      setPriceResults(resultsData || []);
+      setPriceResults((resultsData as PriceResult[]) || []);
     } catch (err) {
       setError(err as Error);
       // Gracefully degrade - set empty results on error
