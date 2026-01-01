@@ -62,8 +62,8 @@ export async function streamMastraResponse(
 
   // Generate streaming response
   const stream = await agent.stream(message, {
-    resourceid: userId,
-    runtimeContext, // Pass runtimeContext so tools can access userId
+    resourceId: userId,
+    runtimeContext: runtimeContext as any, // Pass runtimeContext so tools can access userId
   });
 
   return {

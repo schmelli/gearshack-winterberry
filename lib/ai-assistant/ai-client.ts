@@ -102,7 +102,7 @@ function adaptMastraTool<TInput = any, TOutput = any>(
   const jsonSchema = zodToJsonSchema(mastraTool.inputSchema, {
     target: 'jsonSchema7',
     $refStrategy: 'none', // Don't use $ref, inline all definitions
-  });
+  }) as any;
 
   // Ensure type: "object" is at the root level (required by Claude)
   if (!jsonSchema.type) {

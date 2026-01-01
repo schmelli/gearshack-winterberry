@@ -426,7 +426,7 @@ export async function checkAndIncrementRateLimit(
       allowed: true,
       limit: null,
       remaining: null,
-      resetAt: null,
+      resetAt: calculateResetTime(), // Provide proper Date object
     };
   }
 
