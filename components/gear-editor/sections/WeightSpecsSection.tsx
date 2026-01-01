@@ -1,12 +1,12 @@
 /**
  * WeightSpecsSection Component
  *
- * Feature: 001-gear-item-editor
- * Task: T016
+ * Feature: 001-gear-item-editor, 012-automatic-unit-conversion
+ * Task: T016, subtask-6-2
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for weight and specifications:
- * - Weight value with unit selector
+ * - Weight value with unit selector (using WeightInput component)
  * - Dimensions (length, width, height in cm)
  */
 
@@ -22,15 +22,8 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { GearItemFormData, WeightUnit } from '@/types/gear';
-import { WEIGHT_UNIT_LABELS } from '@/types/gear';
+import { WeightInput } from '@/components/ui/weight-input';
+import type { GearItemFormData } from '@/types/gear';
 
 // =============================================================================
 // Component
@@ -39,65 +32,41 @@ import { WEIGHT_UNIT_LABELS } from '@/types/gear';
 export function WeightSpecsSection() {
   const form = useFormContext<GearItemFormData>();
 
-  const weightUnits: WeightUnit[] = ['g', 'oz', 'lb'];
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Weight & Specifications</h3>
 
-      {/* Weight with Unit */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Weight Value */}
-        <FormField
-          control={form.control}
-          name="weightValue"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Weight</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="0"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Weight Unit */}
-        <FormField
-          control={form.control}
-          name="weightDisplayUnit"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Unit</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+      {/* Weight with Unit - Using WeightInput compound component */}
+      <FormField
+        control={form.control}
+        name="weightValue"
+        render={({ field: valueField }) => (
+          <FormField
+            control={form.control}
+            name="weightDisplayUnit"
+            render={({ field: unitField }) => (
+              <FormItem>
+                <FormLabel>Weight</FormLabel>
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
+                  <WeightInput
+                    value={valueField.value}
+                    unit={unitField.value}
+                    onValueChange={valueField.onChange}
+                    onUnitChange={unitField.onChange}
+                    onBlur={valueField.onBlur}
+                    name={valueField.name}
+                    aria-invalid={!!form.formState.errors.weightValue}
+                  />
                 </FormControl>
-                <SelectContent>
-                  {weightUnits.map((unit) => (
-                    <SelectItem key={unit} value={unit}>
-                      {WEIGHT_UNIT_LABELS[unit]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <FormDescription>
-        Weight is stored in grams internally for consistency.
-      </FormDescription>
+                <FormMessage />
+                <FormDescription>
+                  Weight is stored in grams internally for consistency.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        )}
+      />
 
       {/* Dimensions */}
       <div className="space-y-2">
