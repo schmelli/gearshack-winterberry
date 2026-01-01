@@ -1,7 +1,7 @@
 {
   "feature": "Gear Quantity Tracking",
   "workflow_type": "feature",
-  "workflow_rationale": "This task introduces new UI functionality by surfacing an existing database column. It requires changes across multiple views (form, inventory, gallery, loadout builder) and involves validation logic and weight calculation updates. Changes follow service dependency order: validation schema → form UI → display components → calculation logic.",
+  "workflow_rationale": "This task introduces new UI functionality by surfacing an existing database column. It requires changes across multiple views (form, inventory, gallery, loadout builder) and involves validation logic and weight calculation updates. Changes follow service dependency order: validation schema \u2192 form UI \u2192 display components \u2192 calculation logic.",
   "phases": [
     {
       "id": "phase-1-validation",
@@ -15,16 +15,21 @@
           "id": "subtask-1-1",
           "description": "Add quantity field validation to gearItemFormSchema with z.coerce.number().int().min(1).default(1)",
           "service": "main",
-          "files_to_modify": ["lib/validations/gear-schema.ts"],
+          "files_to_modify": [
+            "lib/validations/gear-schema.ts"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/validations/gear-schema.ts"],
+          "patterns_from": [
+            "lib/validations/gear-schema.ts"
+          ],
           "verification": {
             "type": "command",
             "command": "npm run build",
             "expected": "Build succeeds with no TypeScript errors"
           },
-          "status": "pending",
-          "notes": "Use z.coerce.number() to handle string-to-number conversion from form inputs. Add i18n error messages for invalid quantity values."
+          "status": "completed",
+          "notes": "Updated quantity field in gearItemFormSchema from z.string().refine() to z.coerce.number().int().min(1).default(1). This change transforms quantity from string to number type with automatic coercion, integer validation, minimum value of 1, and default value of 1.",
+          "updated_at": "2026-01-01T16:25:37.387707+00:00"
         }
       ]
     },
@@ -33,38 +38,59 @@
       "name": "Form UI Enhancement",
       "type": "implementation",
       "description": "Add quantity input field to gear item form with proper validation and i18n",
-      "depends_on": ["phase-1-validation"],
+      "depends_on": [
+        "phase-1-validation"
+      ],
       "parallel_safe": true,
       "subtasks": [
         {
           "id": "subtask-2-1",
           "description": "Add quantity input field to StatusSection component using FormField pattern",
           "service": "main",
-          "files_to_modify": ["components/gear-editor/sections/StatusSection.tsx"],
+          "files_to_modify": [
+            "components/gear-editor/sections/StatusSection.tsx"
+          ],
           "files_to_create": [],
-          "patterns_from": ["components/gear-editor/sections/WeightSpecsSection.tsx", "components/gear-editor/sections/PurchaseSection.tsx"],
+          "patterns_from": [
+            "components/gear-editor/sections/WeightSpecsSection.tsx",
+            "components/gear-editor/sections/PurchaseSection.tsx"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/inventory/new",
-            "checks": ["Quantity field visible in Status section", "Default value is 1", "Accepts integers only", "Shows validation error for values < 1"]
+            "checks": [
+              "Quantity field visible in Status section",
+              "Default value is 1",
+              "Accepts integers only",
+              "Shows validation error for values < 1"
+            ]
           },
-          "status": "pending",
-          "notes": "Place quantity field in the Status section grid (2 columns), after condition/status fields. Use Input type='number' with min=1, step=1. Add FormDescription: 'Number of units owned (default: 1)'."
+          "status": "completed",
+          "notes": "Added quantity input field to StatusSection component. Field is properly configured with:\n- Input type=\"number\" with min=\"1\" and step=\"1\" for integer validation\n- FormField pattern following WeightSpecsSection and PurchaseSection examples\n- FormDescription explaining the field purpose (default: 1)\n- Positioned logically after Condition/Status grid, before Toggles section\n- Updated component header to reference Feature 013\n- Validation schema already configured with z.coerce.number().int().min(1).default(1)",
+          "updated_at": "2026-01-01T16:27:28.899887+00:00"
         },
         {
           "id": "subtask-2-2",
           "description": "Add i18n translations for quantity field labels and validation messages",
           "service": "main",
-          "files_to_modify": ["messages/en.json"],
+          "files_to_modify": [
+            "messages/en.json"
+          ],
           "files_to_create": [],
-          "patterns_from": ["messages/en.json"],
+          "patterns_from": [
+            "messages/en.json"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/inventory/new",
-            "checks": ["Quantity field label displays from i18n", "Validation errors show translated messages"]
+            "checks": [
+              "Quantity field label displays from i18n",
+              "Validation errors show translated messages"
+            ]
           },
-          "status": "pending",
-          "notes": "Add translations under 'GearEditor' key: quantity, quantityDescription, quantityValidationMin, quantityValidationInteger."
+          "status": "completed",
+          "notes": "Added i18n translations for quantity field labels (quantityLabel, quantityPlaceholder) and validation messages (quantityRequired, quantityMin, quantityInvalid) to messages/en.json following existing GearEditor pattern.",
+          "updated_at": "2026-01-01T16:28:39.153442+00:00"
         }
       ]
     },
@@ -80,31 +106,48 @@
           "id": "subtask-3-1",
           "description": "Add quantity badge to GearCard component (all view densities: compact, standard, detailed)",
           "service": "main",
-          "files_to_modify": ["components/inventory-gallery/GearCard.tsx"],
+          "files_to_modify": [
+            "components/inventory-gallery/GearCard.tsx"
+          ],
           "files_to_create": [],
-          "patterns_from": ["components/inventory-gallery/StatusBadge.tsx"],
+          "patterns_from": [
+            "components/inventory-gallery/StatusBadge.tsx"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/inventory",
-            "checks": ["Badge displays on items with quantity > 1", "Badge shows format: 'x N'", "Badge positioned in top-right corner of image section", "Badge NOT shown when quantity = 1"]
+            "checks": [
+              "Badge displays on items with quantity > 1",
+              "Badge shows format: 'x N'",
+              "Badge positioned in top-right corner of image section",
+              "Badge NOT shown when quantity = 1"
+            ]
           },
-          "status": "pending",
-          "notes": "Use shadcn/ui Badge component with variant='secondary'. Position absolute in top-right corner of image section (opposite side from StatusIcons). Format: 'x {quantity}'. Only render when item.quantity > 1."
+          "status": "completed",
+          "notes": "Successfully implemented quantity badge component following StatusBadge pattern. Badge displays 'x N' format, positioned in top-right corner of image section for all view densities (compact, standard, detailed). Only shows when quantity > 1. Adjusted edit button position to prevent overlap.",
+          "updated_at": "2026-01-01T16:30:51.841036+00:00"
         },
         {
           "id": "subtask-3-2",
           "description": "Add i18n translation for quantity badge label",
           "service": "main",
-          "files_to_modify": ["messages/en.json"],
+          "files_to_modify": [
+            "messages/en.json"
+          ],
           "files_to_create": [],
-          "patterns_from": ["messages/en.json"],
+          "patterns_from": [
+            "messages/en.json"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/inventory",
-            "checks": ["Badge label uses i18n translation"]
+            "checks": [
+              "Badge label uses i18n translation"
+            ]
           },
-          "status": "pending",
-          "notes": "Add translation under 'Inventory' key: quantityBadge with value 'x {quantity}'. Use t() function with interpolation."
+          "status": "completed",
+          "notes": "Successfully added i18n translation for quantity badge label. Added 'quantityBadge': 'x {quantity}' to messages/en.json under Inventory section. Updated GearCard.tsx QuantityBadge component to use useTranslations('Inventory') hook and t('quantityBadge', { quantity }) for translation interpolation. Badge now displays localized text following next-intl pattern used throughout the application.",
+          "updated_at": "2026-01-01T16:34:18.952405+00:00"
         }
       ]
     },
@@ -120,9 +163,13 @@
           "id": "subtask-4-1",
           "description": "Update calculateWeightSummary to accept and use quantity parameter for loadout weight calculations",
           "service": "main",
-          "files_to_modify": ["lib/utils/weight.ts"],
+          "files_to_modify": [
+            "lib/utils/weight.ts"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/utils/weight.ts"],
+          "patterns_from": [
+            "lib/utils/weight.ts"
+          ],
           "verification": {
             "type": "command",
             "command": "npm test -- lib/utils/weight",
@@ -135,13 +182,21 @@
           "id": "subtask-4-2",
           "description": "Update loadout weight calculation logic in useLoadouts hook to pass item quantities",
           "service": "main",
-          "files_to_modify": ["hooks/useLoadouts.ts"],
+          "files_to_modify": [
+            "hooks/useLoadouts.ts"
+          ],
           "files_to_create": [],
-          "patterns_from": ["hooks/useLoadouts.ts"],
+          "patterns_from": [
+            "hooks/useLoadouts.ts"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/loadouts/[id]",
-            "checks": ["Loadout total weight reflects quantity × item weight", "Base weight calculation includes quantity", "Worn weight calculation includes quantity"]
+            "checks": [
+              "Loadout total weight reflects quantity \u00d7 item weight",
+              "Base weight calculation includes quantity",
+              "Worn weight calculation includes quantity"
+            ]
           },
           "status": "pending",
           "notes": "Modify calculateWeight function to iterate over loadout items and multiply each item's weight by its quantity from LoadoutItem.quantity field. LoadoutItem already has quantity field (line 45 in useLoadouts.ts)."
@@ -153,20 +208,31 @@
       "name": "Loadout Quantity Validation",
       "type": "implementation",
       "description": "Implement validation in loadout builder to prevent over-allocation of items beyond available inventory quantity",
-      "depends_on": ["phase-4-weight-calculations"],
+      "depends_on": [
+        "phase-4-weight-calculations"
+      ],
       "parallel_safe": false,
       "subtasks": [
         {
           "id": "subtask-5-1",
           "description": "Add available quantity checking logic in useLoadoutItemState hook",
           "service": "main",
-          "files_to_modify": ["hooks/useLoadoutItemState.ts"],
+          "files_to_modify": [
+            "hooks/useLoadoutItemState.ts"
+          ],
           "files_to_create": [],
-          "patterns_from": ["hooks/useLoadoutItemState.ts", "hooks/useLoadouts.ts"],
+          "patterns_from": [
+            "hooks/useLoadoutItemState.ts",
+            "hooks/useLoadouts.ts"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/loadouts/[id]",
-            "checks": ["Cannot add item when inventory quantity exhausted", "Error toast shows when trying to exceed quantity", "Can add up to inventory quantity successfully"]
+            "checks": [
+              "Cannot add item when inventory quantity exhausted",
+              "Error toast shows when trying to exceed quantity",
+              "Can add up to inventory quantity successfully"
+            ]
           },
           "status": "pending",
           "notes": "Add validation before adding item to loadout: check GearItem.quantity vs. sum of quantities already in loadouts. For MVP scope, only validate within current loadout (cross-loadout tracking is out of scope). Show toast error with i18n message when quantity exceeded."
@@ -175,13 +241,19 @@
           "id": "subtask-5-2",
           "description": "Add i18n translations for quantity validation error messages",
           "service": "main",
-          "files_to_modify": ["messages/en.json"],
+          "files_to_modify": [
+            "messages/en.json"
+          ],
           "files_to_create": [],
-          "patterns_from": ["messages/en.json"],
+          "patterns_from": [
+            "messages/en.json"
+          ],
           "verification": {
             "type": "browser",
             "url": "http://localhost:3000/loadouts/[id]",
-            "checks": ["Error messages display in user's language"]
+            "checks": [
+              "Error messages display in user's language"
+            ]
           },
           "status": "pending",
           "notes": "Add translations under 'Loadouts' key: quantityExceeded, quantityAvailable. Format: 'Cannot add more items. Only {available} available in inventory.'"
@@ -193,7 +265,11 @@
       "name": "Integration & Testing",
       "type": "integration",
       "description": "End-to-end verification of quantity tracking flow across all components",
-      "depends_on": ["phase-2-form-ui", "phase-3-display-badges", "phase-5-loadout-validation"],
+      "depends_on": [
+        "phase-2-form-ui",
+        "phase-3-display-badges",
+        "phase-5-loadout-validation"
+      ],
       "parallel_safe": false,
       "subtasks": [
         {
@@ -211,7 +287,7 @@
               "3. Save item and verify success",
               "4. Navigate to /inventory and verify 'x 3' badge displays on card",
               "5. Create new loadout and add the fuel canister (quantity=2)",
-              "6. Verify loadout weight shows 400g (200g × 2)",
+              "6. Verify loadout weight shows 400g (200g \u00d7 2)",
               "7. Try to add 2 more of same item (should fail - only 1 remaining)",
               "8. Verify error toast displays with quantity exceeded message",
               "9. Check existing gear items (created before this feature) default to quantity=1"
@@ -226,17 +302,23 @@
   "summary": {
     "total_phases": 6,
     "total_subtasks": 10,
-    "services_involved": ["main"],
+    "services_involved": [
+      "main"
+    ],
     "parallelism": {
       "max_parallel_phases": 3,
       "parallel_groups": [
         {
-          "phases": ["phase-1-validation", "phase-3-display-badges", "phase-4-weight-calculations"],
+          "phases": [
+            "phase-1-validation",
+            "phase-3-display-badges",
+            "phase-4-weight-calculations"
+          ],
           "reason": "Validation, badge display, and weight calculations can be developed independently with no file conflicts"
         }
       ],
       "recommended_workers": 1,
-      "speedup_estimate": "Minimal benefit from parallelization due to sequential dependencies (form → validation → loadout logic)"
+      "speedup_estimate": "Minimal benefit from parallelization due to sequential dependencies (form \u2192 validation \u2192 loadout logic)"
     },
     "startup_command": "npm run dev"
   },
@@ -244,7 +326,10 @@
     "risk_level": "medium",
     "skip_validation": false,
     "test_creation_phase": "post_implementation",
-    "test_types_required": ["unit", "integration"],
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
     "security_scanning_required": false,
     "staging_deployment_required": false,
     "acceptance_criteria": [
@@ -267,7 +352,7 @@
       {
         "name": "Unit Tests - Weight Calculations",
         "command": "npm test -- lib/utils/weight",
-        "expected_outcome": "Weight calculation with quantity parameter works correctly (e.g., 200g × 3 = 600g)",
+        "expected_outcome": "Weight calculation with quantity parameter works correctly (e.g., 200g \u00d7 3 = 600g)",
         "type": "test",
         "required": true,
         "blocking": true
@@ -318,25 +403,55 @@
   "qa_acceptance": {
     "unit_tests": {
       "required": true,
-      "commands": ["npm test -- lib/validations/gear-schema", "npm test -- lib/utils/weight"],
+      "commands": [
+        "npm test -- lib/validations/gear-schema",
+        "npm test -- lib/utils/weight"
+      ],
       "minimum_coverage": null
     },
     "integration_tests": {
       "required": true,
-      "commands": ["npm test -- hooks/useGearEditor", "npm test -- hooks/useLoadouts"],
-      "services_to_test": ["main"]
+      "commands": [
+        "npm test -- hooks/useGearEditor",
+        "npm test -- hooks/useLoadouts"
+      ],
+      "services_to_test": [
+        "main"
+      ]
     },
     "e2e_tests": {
       "required": false,
       "commands": [],
-      "flows": ["create-gear-with-quantity", "add-to-loadout-with-quantity"]
+      "flows": [
+        "create-gear-with-quantity",
+        "add-to-loadout-with-quantity"
+      ]
     },
     "browser_verification": {
       "required": true,
       "pages": [
-        {"url": "http://localhost:3000/inventory/new", "checks": ["quantity-field-visible", "default-value-1", "validation-min-1"]},
-        {"url": "http://localhost:3000/inventory", "checks": ["quantity-badges-visible", "badge-format-correct"]},
-        {"url": "http://localhost:3000/loadouts/[id]", "checks": ["weight-includes-quantity", "quantity-validation-works"]}
+        {
+          "url": "http://localhost:3000/inventory/new",
+          "checks": [
+            "quantity-field-visible",
+            "default-value-1",
+            "validation-min-1"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/inventory",
+          "checks": [
+            "quantity-badges-visible",
+            "badge-format-correct"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/loadouts/[id]",
+          "checks": [
+            "weight-includes-quantity",
+            "quantity-validation-works"
+          ]
+        }
       ]
     },
     "database_verification": {
@@ -344,5 +459,6 @@
       "checks": []
     }
   },
-  "qa_signoff": null
+  "qa_signoff": null,
+  "last_updated": "2026-01-01T16:34:18.952437+00:00"
 }
