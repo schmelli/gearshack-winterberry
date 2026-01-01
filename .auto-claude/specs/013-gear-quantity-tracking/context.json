@@ -1,0 +1,35 @@
+{
+  "task_description": "# Gear Quantity Tracking\n\nEnable the existing database quantity column to track multiple units of the same gear item, allowing proper inventory counts.\n\n## Rationale\nDatabase column exists but is unused (known gap). Competitor PackLight users complain about inability to track quantities (pain-4-1). Essential for consumables and spares.\n\n## User Stories\n- As a backpacker, I want to track that I own 4 fuel canisters so that I know how many are available for my trip\n\n## Acceptance Criteria\n- [ ] Gear form includes quantity field with default of 1\n- [ ] Inventory shows total count when quantity > 1\n- [ ] Loadout builder respects available quantity\n- [ ] Weight calculations multiply by quantity where applicable\n- [ ] Gallery view displays quantity badge on multi-unit items\n",
+  "scoped_services": ["main"],
+  "files_to_modify": [
+    "components/gear-editor/sections/StatusSection.tsx",
+    "components/inventory-gallery/GearCard.tsx",
+    "lib/validations/gear-schema.ts",
+    "hooks/useLoadoutItemState.ts",
+    "lib/utils/weight.ts"
+  ],
+  "files_to_reference": [
+    "components/gear-editor/sections/WeightSpecsSection.tsx",
+    "components/gear-editor/sections/PurchaseSection.tsx",
+    "types/gear.ts",
+    "hooks/useGearEditor.ts",
+    "hooks/useLoadouts.ts",
+    "lib/utils/weight.ts"
+  ],
+  "patterns": {
+    "form_field_pattern": "FormField with FormControl wrapping shadcn/ui Input component, using react-hook-form control prop",
+    "validation_pattern": "Zod schema with z.number().int().min(1).default(1) for quantity field",
+    "state_management_pattern": "Zustand store with optimistic updates and Supabase sync",
+    "badge_pattern": "shadcn/ui Badge component, conditionally rendered when quantity > 1",
+    "weight_calculation_pattern": "Utility functions in lib/utils/weight.ts that operate on grams"
+  },
+  "existing_implementations": {
+    "description": "Quantity field exists in types and database but NOT in UI. Types show quantity: number (GearItem) and quantity: string (GearItemFormData) with default '1'. Weight calculation utilities exist but don't multiply by quantity yet. LoadoutItem type already has quantity field.",
+    "relevant_files": [
+      "types/gear.ts (lines 115, 184, 231)",
+      "hooks/useLoadouts.ts (LoadoutItem interface has quantity field)",
+      "lib/utils/weight.ts (weight calculation utilities)"
+    ]
+  },
+  "created_at": "2026-01-01T17:10:35.869129"
+}

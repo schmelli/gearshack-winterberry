@@ -115,10 +115,7 @@ export const gearItemFormSchema = z.object({
   status: gearStatusSchema,
   notes: z.string().max(5000, 'Notes must be 5000 characters or less'),
   /** Quantity owned (default 1) - supports items like stakes, batteries, etc. */
-  quantity: z.string().refine(
-    (val) => val === '' || (!isNaN(parseInt(val, 10)) && parseInt(val, 10) >= 1),
-    { message: 'Quantity must be at least 1' }
-  ),
+  quantity: z.coerce.number().int().min(1).default(1),
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: z.boolean(),
   /** Whether this item is available for sale - Feature 045 */
