@@ -708,6 +708,17 @@
       "created": "Erstellt",
       "reviewed": "Bewertet",
       "helpful": "Hilfreich"
+    },
+    "weightUnit": {
+      "title": "Gewichtseinheit-Präferenz",
+      "description": "Wähle deine bevorzugte Einheit für die Gewichtsanzeige in der App",
+      "grams": "Gramm",
+      "ounces": "Unzen",
+      "pounds": "Pfund",
+      "gramsAbbr": "g",
+      "ouncesAbbr": "oz",
+      "poundsAbbr": "lb",
+      "successMessage": "Gewichtseinheit-Präferenz aktualisiert"
     }
   },
   "SmartSearch": {
