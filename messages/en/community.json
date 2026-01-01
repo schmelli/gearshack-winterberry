@@ -60,7 +60,9 @@
 
   "announcements": {
     "dismiss": "Dismiss",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "loadFailed": "Failed to load announcements",
+    "retry": "Try Again"
   },
 
   "time": {

@@ -129,7 +129,7 @@ function ActivityItem({ activity }: ActivityItemProps) {
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-tight line-clamp-2">{getActivityDescription()}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {formatActivityTime(activity.created_at)}
+          {formatActivityTime(activity.created_at, t)}
         </p>
       </div>
     </Link>

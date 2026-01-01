@@ -60,7 +60,9 @@
 
   "announcements": {
     "dismiss": "Schließen",
-    "learnMore": "Mehr erfahren"
+    "learnMore": "Mehr erfahren",
+    "loadFailed": "Ankündigungen konnten nicht geladen werden",
+    "retry": "Erneut versuchen"
   },
 
   "time": {

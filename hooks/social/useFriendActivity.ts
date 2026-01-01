@@ -207,21 +207,36 @@ export function getActivityTypeInfo(type: ActivityType): {
 
 /**
  * Formats activity time relative to now.
+ * @param dateString - ISO date string
+ * @param t - Translation function from useTranslations('Community')
  */
-export function formatActivityTime(dateString: string): string {
+export function formatActivityTime(
+  dateString: string,
+  t: (key: string, values?: { count: number }) => string
+): string {
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return t('time.justNow', { count: 0 });
 
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+  const minutes = Math.floor(seconds / 60);
+  if (seconds < 3600) return t('time.minutesAgo', { count: minutes });
+
+  const hours = Math.floor(seconds / 3600);
+  if (seconds < 86400) return t('time.hoursAgo', { count: hours });
+
+  const days = Math.floor(seconds / 86400);
+  if (seconds < 604800) return t('time.daysAgo', { count: days });
+
+  const weeks = Math.floor(seconds / 604800);
+  if (seconds < 2592000) return t('time.weeksAgo', { count: weeks });
+
+  const months = Math.floor(seconds / 2592000);
+  if (seconds < 31536000) return t('time.monthsAgo', { count: months });
+
+  const years = Math.floor(seconds / 31536000);
+  return t('time.yearsAgo', { count: years });
 }
 
 export default useFriendActivity;

@@ -120,6 +120,7 @@ function getActivityColor(type: ActivityType): string {
 
 function ActivityCard({ activity }: ActivityCardProps) {
   const t = useTranslations('Social');
+  const tCommunity = useTranslations('Community');
   const Icon = getActivityIcon(activity.activity_type);
   const iconColor = getActivityColor(activity.activity_type);
   const activityInfo = getActivityTypeInfo(activity.activity_type);
@@ -221,7 +222,7 @@ function ActivityCard({ activity }: ActivityCardProps) {
 
         {/* Time */}
         <p className="mt-1 text-xs text-muted-foreground">
-          {formatActivityTime(activity.created_at)}
+          {formatActivityTime(activity.created_at, tCommunity)}
         </p>
       </div>
     </div>
