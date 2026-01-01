@@ -313,12 +313,17 @@
     "weightPlaceholder": "Enter weight",
     "priceLabel": "Price",
     "pricePlaceholder": "Enter price",
+    "quantityLabel": "Quantity",
+    "quantityPlaceholder": "Enter quantity",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Add notes about this item...",
     "validation": {
       "nameRequired": "Name is required",
       "weightInvalid": "Please enter a valid weight",
-      "priceInvalid": "Please enter a valid price"
+      "priceInvalid": "Please enter a valid price",
+      "quantityRequired": "Quantity is required",
+      "quantityMin": "Quantity must be at least 1",
+      "quantityInvalid": "Please enter a valid quantity"
     },
     "saveItem": "Save Item",
     "saveChanges": "Save Changes",
