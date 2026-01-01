@@ -6,6 +6,9 @@
  *
  * Feature: 008-auth-and-profile
  * T047: Protected route - requires authentication
+ *
+ * Feature: 012-automatic-unit-conversion
+ * T048: Weight unit preference setting
  */
 
 'use client';
@@ -18,11 +21,28 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Link } from '@/i18n/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import type { WeightUnit } from '@/types/gear';
 
 function SettingsContent() {
+  const { user } = useAuth();
+  const { preferredWeightUnit, setPreferredWeightUnit } = useUserPreferences(user?.id ?? null);
+
+  const handleWeightUnitChange = async (unit: string) => {
+    await setPreferredWeightUnit(unit as WeightUnit);
+  };
+
   return (
     <main className="container mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold">Settings</h1>
@@ -39,6 +59,35 @@ function SettingsContent() {
         </CardHeader>
         <CardContent>
           <ThemeToggle />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Units</CardTitle>
+          <CardDescription>
+            Choose your preferred units for weight measurements.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <label htmlFor="weight-unit" className="text-sm font-medium">
+              Weight Unit
+            </label>
+            <Select
+              value={preferredWeightUnit}
+              onValueChange={handleWeightUnitChange}
+            >
+              <SelectTrigger id="weight-unit" className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="g">Grams (g)</SelectItem>
+                <SelectItem value="oz">Ounces (oz)</SelectItem>
+                <SelectItem value="lb">Pounds (lb)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
