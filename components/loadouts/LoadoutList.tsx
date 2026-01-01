@@ -122,7 +122,7 @@ export function LoadoutList({
         {filteredWornItems.length > 0 && (
           <div className="pb-4">
             <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
-              Worn
+              {t('weightSummary.worn')}
             </h3>
             <div className="space-y-2">
               {filteredWornItems.map((item) => {

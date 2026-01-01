@@ -94,6 +94,8 @@ export function LoadoutHeader({
   baseWeight,
 }: LoadoutHeaderProps) {
   const t = useTranslations('Shakedowns');
+  const tLoadouts = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
     isEditing,
@@ -121,7 +123,7 @@ export function LoadoutHeader({
           className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Loadouts
+          {tLoadouts('backToLoadouts')}
         </Link>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -202,7 +204,7 @@ export function LoadoutHeader({
                   <Textarea
                     value={editValue}
                     onChange={(e) => updateValue(e.target.value)}
-                    placeholder="Add a description for this loadout..."
+                    placeholder={tLoadouts('addDescription')}
                     className="min-h-[60px] resize-none"
                     autoFocus
                   />
@@ -213,7 +215,7 @@ export function LoadoutHeader({
                       className="h-8"
                     >
                       <Check className="mr-1 h-3 w-3" />
-                      Save
+                      {tCommon('save')}
                     </Button>
                     <Button
                       size="sm"
@@ -222,7 +224,7 @@ export function LoadoutHeader({
                       className="h-8"
                     >
                       <X className="mr-1 h-3 w-3" />
-                      Cancel
+                      {tCommon('cancel')}
                     </Button>
                   </div>
                 </div>
@@ -235,7 +237,7 @@ export function LoadoutHeader({
                     <p className="text-sm text-muted-foreground">{loadout.description}</p>
                   ) : (
                     <p className="text-sm italic text-muted-foreground/60">
-                      Click to add a description...
+                      {tLoadouts('clickToAddDescription')}
                     </p>
                   )}
                 </button>

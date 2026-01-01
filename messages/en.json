@@ -204,6 +204,7 @@
   "Inventory": {
     "title": "My Inventory",
     "searchPlaceholder": "Search gear...",
+    "noItemsFound": "No items found",
     "filterCategory": "Category",
     "filterAll": "All Categories",
     "sortBy": "Sort by",
@@ -401,6 +402,9 @@
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
     "deleteLoadout": "Delete loadout",
+    "backToLoadouts": "Back to Loadouts",
+    "addDescription": "Add a description for this loadout...",
+    "clickToAddDescription": "Click to add a description...",
     "errors": {
       "addItemFailed": "Failed to add item to loadout",
       "removeItemFailed": "Failed to remove item from loadout",

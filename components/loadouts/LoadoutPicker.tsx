@@ -18,7 +18,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Search, Check, Plus, Package } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,7 @@ export function LoadoutPicker({
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
   const categories = useCategoriesStore((state) => state.categories);
   const locale = useLocale();
+  const t = useTranslations('Inventory');
 
   const handleOpenDetail = (item: GearItem) => {
     setSelectedItem(item);
@@ -83,7 +84,7 @@ export function LoadoutPicker({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search gear by name or brand..."
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-10"
@@ -94,44 +95,46 @@ export function LoadoutPicker({
       <ScrollArea className="h-[calc(100vh-24rem)]">
         {items.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No items found
+            {t('noItemsFound')}
           </p>
         ) : categoryGroups ? (
           // Show grouped by category with separators
           <div className="divide-y divide-border pr-4">
-            {categoryGroups.map(([categoryId, categoryItems], index) => (
-              <div key={categoryId} className={cn(index > 0 && 'pt-4')}>
-                {/* Category Header */}
-                <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
-                  {(() => {
-                    const category = categories.find(c => c.id === categoryId);
-                    return category ? getLocalizedLabel(category, locale) : categoryId;
-                  })()}
-                </h3>
+            {categoryGroups.map(([categoryId, categoryItems], index) => {
+              const category = categories.find(c => c.id === categoryId);
+              const categoryLabel = category ? getLocalizedLabel(category, locale) : categoryId;
 
-                {/* Items in Category */}
-                <div className="space-y-2 pb-4">
-                  {categoryItems.map((item) => {
-                    const addedCount = loadoutItemIds.filter(id => id === item.id).length;
-                    const maxQuantity = item.quantity ?? 1;
-                    const isFullyAdded = addedCount >= maxQuantity;
-                    const isInLoadout = addedCount > 0;
-                    return (
-                      <PickerItem
-                        key={item.id}
-                        item={item}
-                        isInLoadout={isInLoadout}
-                        isFullyAdded={isFullyAdded}
-                        addedCount={addedCount}
-                        maxQuantity={maxQuantity}
-                        onAdd={() => onAddItem(item.id)}
-                        onOpenDetail={() => handleOpenDetail(item)}
-                      />
-                    );
-                  })}
+              return (
+                <div key={categoryId} className={cn(index > 0 && 'pt-4')}>
+                  {/* Category Header */}
+                  <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+                    {categoryLabel}
+                  </h3>
+
+                  {/* Items in Category */}
+                  <div className="space-y-2 pb-4">
+                    {categoryItems.map((item) => {
+                      const addedCount = loadoutItemIds.filter(id => id === item.id).length;
+                      const maxQuantity = item.quantity ?? 1;
+                      const isFullyAdded = addedCount >= maxQuantity;
+                      const isInLoadout = addedCount > 0;
+                      return (
+                        <PickerItem
+                          key={item.id}
+                          item={item}
+                          isInLoadout={isInLoadout}
+                          isFullyAdded={isFullyAdded}
+                          addedCount={addedCount}
+                          maxQuantity={maxQuantity}
+                          onAdd={() => onAddItem(item.id)}
+                          onOpenDetail={() => handleOpenDetail(item)}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           // Show flat list for other sort options
