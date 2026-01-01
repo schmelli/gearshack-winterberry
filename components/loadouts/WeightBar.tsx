@@ -12,8 +12,8 @@
 
 import { Scale, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WeightDisplay } from '@/components/ui/weight-display';
 import {
-  formatWeight,
   getWeightCategory,
   getWeightCategoryBgColor,
 } from '@/lib/loadout-utils';
@@ -63,7 +63,7 @@ export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
         <div className="flex items-center gap-2">
           <Scale className="h-5 w-5 text-primary-foreground" />
           <span className="text-xl font-bold text-primary-foreground">
-            {formatWeight(totalWeight)}
+            <WeightDisplay value={totalWeight} showToggle />
           </span>
           <span className="rounded bg-primary-foreground/20 px-2 py-0.5 text-xs font-medium text-primary-foreground">
             {categoryLabel}
