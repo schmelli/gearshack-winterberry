@@ -9,8 +9,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import type { PriceResult } from '@/types/price-tracking';
+
+// Zod schema for runtime validation of PriceResult
+const PriceResultSchema = z.object({
+  id: z.string(),
+  tracking_id: z.string(),
+  source_type: z.enum(['google_shopping', 'ebay', 'retailer', 'local_shop']),
+  source_name: z.string(),
+  source_url: z.string(),
+  price_amount: z.number(),
+  price_currency: z.string(),
+  shipping_cost: z.number().nullable(),
+  shipping_currency: z.string(),
+  total_price: z.number(),
+  product_name: z.string(),
+  product_image_url: z.string().nullable(),
+  product_condition: z.enum(['new', 'used', 'refurbished', 'open_box']).nullable(),
+  is_local: z.boolean(),
+  shop_latitude: z.number().nullable(),
+  shop_longitude: z.number().nullable(),
+  distance_km: z.number().nullable(),
+  fetched_at: z.string(),
+  expires_at: z.string(),
+  is_manufacturer_price: z.boolean().optional(),
+  validation_confidence: z.number().optional(),
+  validation_flags: z.array(z.string()).optional(),
+});
 
 interface UseWishlistPriceResultsResult {
   priceResults: PriceResult[];
@@ -68,7 +95,17 @@ export function useWishlistPriceResults(gearItemId: string): UseWishlistPriceRes
         throw new Error(`Failed to fetch price results: ${resultsError.message}`);
       }
 
-      setPriceResults(resultsData || []);
+      // Validate the data with Zod for runtime type safety
+      const validationResult = z.array(PriceResultSchema).safeParse(resultsData);
+
+      if (validationResult.success) {
+        setPriceResults(validationResult.data);
+      } else {
+        // Log validation error for debugging
+        console.error('Price results validation failed:', validationResult.error);
+        // Gracefully degrade - set empty results on validation error
+        setPriceResults([]);
+      }
     } catch (err) {
       setError(err as Error);
       // Gracefully degrade - set empty results on error

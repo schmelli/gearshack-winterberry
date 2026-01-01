@@ -83,6 +83,7 @@
     "react-dom": "19.2.0",
     "react-hook-form": "^7.68.0",
     "react-markdown": "^10.1.0",
+    "react-virtuoso": "^4.18.1",
     "recharts": "^3.5.1",
     "serpapi": "^2.2.1",
     "sonner": "^2.0.7",
