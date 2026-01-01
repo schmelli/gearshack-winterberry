@@ -62,8 +62,13 @@ export async function fetchConversations(
   });
 
   if (error) {
-    // Check if error is due to missing table/function (42P01 is PostgreSQL "undefined_table" error)
-    if (error.code === '42P01' || error.message.includes('does not exist')) {
+    // Check if error is due to missing table/function
+    // 42P01 = undefined_table, 42883 = undefined_function
+    if (
+      error.code === '42P01' ||
+      error.code === '42883' ||
+      error.message.includes('does not exist')
+    ) {
       return [];
     }
     throw new Error(`Failed to fetch conversations: ${error.message}`);
