@@ -19,7 +19,7 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Calendar, Pencil, Check, X, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Pencil, Check, X, Users, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
 import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
+import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
 import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
@@ -59,6 +60,10 @@ interface LoadoutHeaderProps {
   onDescriptionChange?: (description: string | null) => void;
   /** Whether to show the "Request Community Shakedown" button (only for owner) */
   showShakedownButton?: boolean;
+  /** Total weight for export menu */
+  totalWeight: number;
+  /** Base weight for export menu */
+  baseWeight: number;
 }
 
 // =============================================================================
@@ -85,6 +90,8 @@ export function LoadoutHeader({
   onEdit,
   onDescriptionChange,
   showShakedownButton = false,
+  totalWeight,
+  baseWeight,
 }: LoadoutHeaderProps) {
   const t = useTranslations('Shakedowns');
   // Inline description editing state (FR-014, Constitution Principle I)
@@ -146,6 +153,16 @@ export function LoadoutHeader({
                   variant="ghost"
                   size="icon"
                   showLabel={false}
+                />
+                <LoadoutExportMenu
+                  loadout={loadout}
+                  items={items}
+                  itemStates={itemStates}
+                  activityTypes={activityTypes}
+                  seasons={seasons}
+                  totalWeight={totalWeight}
+                  baseWeight={baseWeight}
+                  iconOnly
                 />
                 {showShakedownButton && (
                   <>

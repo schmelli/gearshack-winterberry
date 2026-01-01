@@ -18,6 +18,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Search, Check, Plus, Package } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import type { GearItem } from '@/types/gear';
-import { formatWeight } from '@/lib/loadout-utils';
+import { formatWeight, getSortedCategoryGroups, type SortOption } from '@/lib/loadout-utils';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds, getLocalizedLabel } from '@/lib/utils/category-helpers';
@@ -40,6 +41,7 @@ interface LoadoutPickerProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAddItem: (itemId: string) => void;
+  sortBy?: SortOption;
 }
 
 // =============================================================================
@@ -52,6 +54,7 @@ export function LoadoutPicker({
   searchQuery,
   onSearchChange,
   onAddItem,
+  sortBy = 'category',
 }: LoadoutPickerProps) {
   // Modal state for gear detail view (FR-017)
   const [selectedItem, setSelectedItem] = useState<GearItem | null>(null);
@@ -62,11 +65,17 @@ export function LoadoutPicker({
 
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
   const categories = useCategoriesStore((state) => state.categories);
+  const locale = useLocale();
 
   const handleOpenDetail = (item: GearItem) => {
     setSelectedItem(item);
     setModalOpen(true);
   };
+
+  // Group items by category when sorting by category
+  const categoryGroups = sortBy === 'category'
+    ? getSortedCategoryGroups(items, categories, sortBy, locale)
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,14 +92,51 @@ export function LoadoutPicker({
 
       {/* Items List */}
       <ScrollArea className="h-[calc(100vh-24rem)]">
-        <div className="space-y-2 pr-4">
-          {items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No items found
-            </p>
-          ) : (
-            items.map((item) => {
-              // Count how many times this item is already in the loadout
+        {items.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No items found
+          </p>
+        ) : categoryGroups ? (
+          // Show grouped by category with separators
+          <div className="divide-y divide-border pr-4">
+            {categoryGroups.map(([categoryId, categoryItems], index) => (
+              <div key={categoryId} className={cn(index > 0 && 'pt-4')}>
+                {/* Category Header */}
+                <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+                  {(() => {
+                    const category = categories.find(c => c.id === categoryId);
+                    return category ? getLocalizedLabel(category, locale) : categoryId;
+                  })()}
+                </h3>
+
+                {/* Items in Category */}
+                <div className="space-y-2 pb-4">
+                  {categoryItems.map((item) => {
+                    const addedCount = loadoutItemIds.filter(id => id === item.id).length;
+                    const maxQuantity = item.quantity ?? 1;
+                    const isFullyAdded = addedCount >= maxQuantity;
+                    const isInLoadout = addedCount > 0;
+                    return (
+                      <PickerItem
+                        key={item.id}
+                        item={item}
+                        isInLoadout={isInLoadout}
+                        isFullyAdded={isFullyAdded}
+                        addedCount={addedCount}
+                        maxQuantity={maxQuantity}
+                        onAdd={() => onAddItem(item.id)}
+                        onOpenDetail={() => handleOpenDetail(item)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Show flat list for other sort options
+          <div className="space-y-2 pr-4">
+            {items.map((item) => {
               const addedCount = loadoutItemIds.filter(id => id === item.id).length;
               const maxQuantity = item.quantity ?? 1;
               const isFullyAdded = addedCount >= maxQuantity;
@@ -107,9 +153,9 @@ export function LoadoutPicker({
                   onOpenDetail={() => handleOpenDetail(item)}
                 />
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </ScrollArea>
 
       {/* Gear Detail Modal (FR-017, Feature 045) */}
