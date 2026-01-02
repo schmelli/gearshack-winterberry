@@ -150,25 +150,25 @@ export function RichContentRenderer({ content, className }: RichContentRendererP
 
                 // Regular markdown text
                 return (
-                  <ReactMarkdown
-                    key={partIndex}
-                    className="prose prose-sm dark:prose-invert max-w-none inline"
-                    components={{
-                      // Customize link rendering to open in new tab
-                      a: ({ node, ...props }) => (
-                        <a
-                          {...props}
-                          className="text-primary hover:underline"
-                          target={props.href?.startsWith('http') ? '_blank' : undefined}
-                          rel={props.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        />
-                      ),
-                      // Customize paragraph spacing
-                      p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
-                    }}
-                  >
-                    {part}
-                  </ReactMarkdown>
+                  <div key={partIndex} className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        // Customize link rendering to open in new tab
+                        a: ({ node, ...props }) => (
+                          <a
+                            {...props}
+                            className="text-primary hover:underline"
+                            target={props.href?.startsWith('http') ? '_blank' : undefined}
+                            rel={props.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                          />
+                        ),
+                        // Customize paragraph spacing
+                        p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
+                      }}
+                    >
+                      {part}
+                    </ReactMarkdown>
+                  </div>
                 );
               })}
             </div>
