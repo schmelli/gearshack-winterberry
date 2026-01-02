@@ -191,13 +191,13 @@ export function ImageUploadZone({
     }
 
     // Upload URL to Cloudinary
-    const secureUrl = await uploadUrl(trimmedUrl, { userId, itemId });
+    const secureUrl = await uploadUrl(trimmedUrl, { userId, itemId, removeBackground });
     if (secureUrl) {
       onChange(secureUrl);
       setUrlInput('');
       setTimeout(() => reset(), 2000);
     }
-  }, [urlInput, uploadUrl, userId, itemId, onChange, reset]);
+  }, [urlInput, uploadUrl, userId, itemId, removeBackground, onChange, reset]);
 
   /**
    * Handle image selected from search modal
