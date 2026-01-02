@@ -28,7 +28,7 @@ import type {
   VipListResponse,
   VipFollowResponse,
   VipBookmarkResponse,
-  // CopyLoadoutResponse, // TODO: Implement with new schema
+  CopyVipLoadoutResult,
   CreateVipRequest,
   UpdateVipRequest,
   // CreateVipLoadoutRequest, // REMOVED - use regular loadout types
@@ -510,18 +510,188 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
 // =============================================================================
 // Copy Loadout Operation
 // =============================================================================
-//
-// TODO: Implement Copy VIP Loadout feature with new unified schema
-//
-// New implementation should:
-// 1. Query loadouts where is_vip_loadout = true
-// 2. Query loadout_items joined with gear_items (which have source_attribution)
-// 3. For each item, check user's inventory for matching catalog_product_id
-//    - If found: add existing gear_item to new loadout
-//    - If not found: create new gear_item in user's inventory with status='wishlist'
-// 4. Create new loadout with source_vip_loadout_id reference
-//
-// See tasks #11 and #12 in todo list for full requirements.
+
+/**
+ * Copy a VIP loadout to user's account with intelligent item matching
+ *
+ * @param vipLoadoutId - UUID of the VIP loadout to copy
+ * @returns Object with new loadout details and statistics
+ * @throws {Error} If user is not authenticated
+ * @throws {Error} If VIP loadout is not found or not a VIP loadout
+ * @throws {Error} If database operation fails
+ *
+ * @remarks
+ * For each item in the VIP loadout:
+ * - Checks user's inventory for matching catalog_product_id
+ * - If found: links existing gear_item to new loadout
+ * - If not found: creates new gear_item with status='wishlist'
+ *
+ * All items maintain their original metadata (name, brand, weight, etc.)
+ */
+export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoadoutResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Authentication required');
+
+  // Fetch VIP loadout with items and VIP profile info
+  const { data: loadout, error: loadoutError } = await supabase
+    .from('loadouts')
+    .select(`
+      id,
+      name,
+      description,
+      is_vip_loadout,
+      user_id,
+      profiles!loadouts_user_id_fkey (
+        display_name
+      )
+    `)
+    .eq('id', vipLoadoutId)
+    .eq('is_vip_loadout', true)
+    .single();
+
+  if (loadoutError) throw loadoutError;
+  if (!loadout) throw new Error('VIP loadout not found');
+  if (!loadout.is_vip_loadout) throw new Error('Not a VIP loadout');
+
+  // Fetch loadout items with gear details
+  const { data: items, error: itemsError } = await supabase
+    .from('loadout_items')
+    .select(`
+      id,
+      gear_item_id,
+      quantity,
+      gear_items!inner (
+        id,
+        name,
+        brand,
+        weight_grams,
+        product_type_id,
+        notes,
+        source_attribution
+      )
+    `)
+    .eq('loadout_id', vipLoadoutId);
+
+  if (itemsError) throw itemsError;
+
+  // Get VIP display name for loadout naming
+  const vipName = (loadout.profiles as any)?.display_name || 'VIP';
+  const newLoadoutName = `${vipName}'s ${loadout.name} - Copy`;
+
+  // Create new user loadout
+  const { data: newLoadout, error: createError } = await supabase
+    .from('loadouts')
+    .insert({
+      user_id: user.id,
+      name: newLoadoutName,
+      description: loadout.description || `Copied from ${vipName}'s loadout`,
+      source_vip_loadout_id: vipLoadoutId,
+    })
+    .select('id')
+    .single();
+
+  if (createError) throw createError;
+  if (!newLoadout) throw new Error('Failed to create loadout');
+
+  let wishlistItemsCreated = 0;
+  const loadoutItemsToInsert: Array<{
+    loadout_id: string;
+    gear_item_id: string;
+    quantity: number;
+  }> = [];
+
+  // Process each VIP loadout item
+  for (const item of items || []) {
+    const gearItem = (item as any).gear_items;
+    const catalogProductId = gearItem.source_attribution?.catalog_product_id;
+
+    let userGearItemId: string;
+
+    // Check if user already has this item in their inventory
+    if (catalogProductId) {
+      const { data: existingItem } = await supabase
+        .from('gear_items')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('source_attribution->>catalog_product_id', catalogProductId)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingItem) {
+        // User already owns this item - use existing gear_item
+        userGearItemId = existingItem.id;
+      } else {
+        // Create new wishlist item
+        const { data: newItem, error: newItemError } = await supabase
+          .from('gear_items')
+          .insert({
+            user_id: user.id,
+            name: gearItem.name,
+            brand: gearItem.brand,
+            weight_grams: gearItem.weight_grams,
+            product_type_id: gearItem.product_type_id,
+            status: 'wishlist',
+            notes: gearItem.notes,
+            source_attribution: gearItem.source_attribution,
+          })
+          .select('id')
+          .single();
+
+        if (newItemError) throw newItemError;
+        if (!newItem) throw new Error('Failed to create wishlist item');
+
+        userGearItemId = newItem.id;
+        wishlistItemsCreated++;
+      }
+    } else {
+      // No catalog reference - create wishlist item without matching
+      const { data: newItem, error: newItemError } = await supabase
+        .from('gear_items')
+        .insert({
+          user_id: user.id,
+          name: gearItem.name,
+          brand: gearItem.brand,
+          weight_grams: gearItem.weight_grams,
+          product_type_id: gearItem.product_type_id,
+          status: 'wishlist',
+          notes: gearItem.notes,
+        })
+        .select('id')
+        .single();
+
+      if (newItemError) throw newItemError;
+      if (!newItem) throw new Error('Failed to create wishlist item');
+
+      userGearItemId = newItem.id;
+      wishlistItemsCreated++;
+    }
+
+    // Add to loadout_items batch
+    loadoutItemsToInsert.push({
+      loadout_id: newLoadout.id,
+      gear_item_id: userGearItemId,
+      quantity: (item as any).quantity,
+    });
+  }
+
+  // Batch insert all loadout items
+  if (loadoutItemsToInsert.length > 0) {
+    const { error: insertError } = await supabase
+      .from('loadout_items')
+      .insert(loadoutItemsToInsert);
+
+    if (insertError) throw insertError;
+  }
+
+  return {
+    loadoutId: newLoadout.id,
+    loadoutName: newLoadoutName,
+    itemsAdded: loadoutItemsToInsert.length,
+    wishlistItemsCreated,
+  };
+}
 
 // =============================================================================
 // Transform Functions (DB -> TypeScript types)

@@ -149,6 +149,16 @@ export interface VipBookmarkResponse {
   isBookmarked: boolean;
 }
 
+/**
+ * Copy VIP loadout result
+ */
+export interface CopyVipLoadoutResult {
+  loadoutId: string;
+  loadoutName: string;
+  itemsAdded: number;
+  wishlistItemsCreated: number;
+}
+
 // =============================================================================
 // Source URL Validation
 // =============================================================================
