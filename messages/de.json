@@ -1840,5 +1840,15 @@
     "header": "Beste verfügbare Preise",
     "bestBadge": "BEST",
     "clickToView": "Karte anklicken, um alle Angebote und Details anzuzeigen"
+  },
+  "vip": {
+    "admin": {
+      "status": "Status",
+      "editVip": "VIP bearbeiten",
+      "featured": "Empfohlen",
+      "notFeatured": "Nicht empfohlen",
+      "archiveVip": "VIP archivieren",
+      "manageLoadouts": "Loadouts verwalten"
+    }
   }
 }

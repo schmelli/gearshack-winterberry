@@ -1851,5 +1851,15 @@
     "header": "Best Prices Available",
     "bestBadge": "BEST",
     "clickToView": "Click card to view all offers and details"
+  },
+  "vip": {
+    "admin": {
+      "status": "Status",
+      "editVip": "Edit VIP",
+      "featured": "Featured",
+      "notFeatured": "Unfeatured",
+      "archiveVip": "Archive VIP",
+      "manageLoadouts": "Manage Loadouts"
+    }
   }
 }

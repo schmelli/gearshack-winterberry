@@ -22,6 +22,7 @@ import {
   StarOff,
   ExternalLink,
   Loader2,
+  List,
 } from 'lucide-react';
 import {
   Table,
@@ -41,8 +42,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { VipFormDialog } from './VipFormDialog';
 import { VipArchiveDialog } from './VipArchiveDialog';
+import { VipLoadoutsPanel } from './VipLoadoutsPanel';
 import { toggleVipFeatured, restoreVip } from '@/lib/vip/vip-admin-service';
 import { toast } from 'sonner';
 import type { VipWithStats } from '@/types/vip';
@@ -66,6 +69,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
   const t = useTranslations('vip.admin');
   const [editingVip, setEditingVip] = useState<VipWithStats | null>(null);
   const [archivingVip, setArchivingVip] = useState<VipWithStats | null>(null);
+  const [managingLoadoutsVip, setManagingLoadoutsVip] = useState<VipWithStats | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   // Handle toggle featured
@@ -173,7 +177,16 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                 </TableCell>
 
                 {/* Loadout Count */}
-                <TableCell className="text-right">{vip.loadoutCount}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setManagingLoadoutsVip(vip)}
+                    className="text-primary hover:underline"
+                  >
+                    {vip.loadoutCount} loadouts
+                  </Button>
+                </TableCell>
 
                 {/* Actions */}
                 <TableCell>
@@ -194,6 +207,13 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                     <DropdownMenuContent align="end">
                       {!isArchived && (
                         <>
+                          <DropdownMenuItem onClick={() => setManagingLoadoutsVip(vip)}>
+                            <List className="h-4 w-4 mr-2" />
+                            {t('manageLoadouts')}
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
                           <DropdownMenuItem onClick={() => setEditingVip(vip)}>
                             <Edit className="h-4 w-4 mr-2" />
                             {t('editVip')}
@@ -261,6 +281,21 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
           onUpdate();
         }}
       />
+
+      {/* Loadouts Management Dialog */}
+      {managingLoadoutsVip && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => !open && setManagingLoadoutsVip(null)}
+        >
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <VipLoadoutsPanel
+              vipId={managingLoadoutsVip.id}
+              vipName={managingLoadoutsVip.name}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
