@@ -11,3 +11,4 @@ export { useVipLoadoutsAdmin } from './useVipLoadoutsAdmin';
 export type { VipLoadoutSummary } from './useVipLoadoutsAdmin';
 export { useLoadoutItemsAdmin } from './useLoadoutItemsAdmin';
 export type { CreateItemData, LoadoutItem } from './useLoadoutItemsAdmin';
+export { useCatalogSearch } from './useCatalogSearch';

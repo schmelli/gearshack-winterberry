@@ -19,6 +19,7 @@ function getVipClient(): any {
   return createClient();
 }
 
+// TODO: Update to use new VIP schema - many of these types have been removed/changed
 import type {
   VipWithStats,
   VipProfile,
@@ -27,11 +28,11 @@ import type {
   VipListResponse,
   VipFollowResponse,
   VipBookmarkResponse,
-  CopyLoadoutResponse,
+  // CopyLoadoutResponse, // TODO: Implement with new schema
   CreateVipRequest,
   UpdateVipRequest,
-  CreateVipLoadoutRequest,
-  UpdateVipLoadoutRequest,
+  // CreateVipLoadoutRequest, // REMOVED - use regular loadout types
+  // UpdateVipLoadoutRequest, // REMOVED - use regular loadout types
   CategoryBreakdown,
 } from '@/types/vip';
 
@@ -509,90 +510,18 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
 // =============================================================================
 // Copy Loadout Operation
 // =============================================================================
-
-/**
- * Copy a VIP loadout to user's account as wishlist items
- *
- * @param vipLoadoutId - UUID of the VIP loadout to copy
- * @returns Object containing the new loadout ID and name
- * @throws {Error} If user is not authenticated
- * @throws {Error} If VIP loadout is not found
- * @throws {Error} If database operation fails
- *
- * @remarks
- * Creates a new user loadout with:
- * - Name format: "{VIP Name}'s {Loadout Name} - Copy"
- * - All items copied with 'wishlist' status
- * - Reference to source VIP loadout (source_vip_loadout_id)
- * - Original item metadata preserved (name, brand, weight, category, notes)
- *
- * @example
- * ```ts
- * const { loadoutId, loadoutName } = await copyVipLoadout('uuid-here');
- * console.log(`Created loadout: ${loadoutName} with ID: ${loadoutId}`);
- * ```
- */
-export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyLoadoutResponse> {
-  const supabase = getVipClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) throw new Error('Authentication required');
-
-  // Get VIP loadout with items
-  const { data: vipLoadout } = await (supabase as any)
-    .from('vip_loadouts')
-    .select(`
-      *,
-      vip_accounts (name),
-      vip_loadout_items (*)
-    `)
-    .eq('id', vipLoadoutId)
-    .single();
-
-  if (!vipLoadout) throw new Error('VIP loadout not found');
-
-  // Create new user loadout
-  const loadoutName = `${vipLoadout.vip_accounts?.name}'s ${vipLoadout.name} - Copy`;
-
-  const { data: newLoadout, error: loadoutError } = await (supabase as any)
-    .from('loadouts')
-    .insert({
-      user_id: user.id,
-      name: loadoutName,
-      description: `Copied from VIP loadout: ${vipLoadout.name}`,
-      source_vip_loadout_id: vipLoadoutId,
-    })
-    .select()
-    .single();
-
-  if (loadoutError) throw loadoutError;
-
-  // Copy items as wishlist status
-  const itemsToInsert = (vipLoadout.vip_loadout_items ?? []).map((item: Record<string, unknown>) => ({
-    loadout_id: newLoadout.id,
-    gear_item_id: item.gear_item_id,
-    name: item.name,
-    brand: item.brand,
-    weight_grams: item.weight_grams,
-    quantity: item.quantity,
-    category: item.category,
-    status: 'wishlist',
-    notes: item.notes,
-  }));
-
-  if (itemsToInsert.length > 0) {
-    const { error: itemsError } = await (supabase as any)
-      .from('loadout_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) throw itemsError;
-  }
-
-  return {
-    loadoutId: newLoadout.id,
-    loadoutName,
-  };
-}
+//
+// TODO: Implement Copy VIP Loadout feature with new unified schema
+//
+// New implementation should:
+// 1. Query loadouts where is_vip_loadout = true
+// 2. Query loadout_items joined with gear_items (which have source_attribution)
+// 3. For each item, check user's inventory for matching catalog_product_id
+//    - If found: add existing gear_item to new loadout
+//    - If not found: create new gear_item in user's inventory with status='wishlist'
+// 4. Create new loadout with source_vip_loadout_id reference
+//
+// See tasks #11 and #12 in todo list for full requirements.
 
 // =============================================================================
 // Transform Functions (DB -> TypeScript types)

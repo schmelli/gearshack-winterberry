@@ -21,7 +21,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useLoadoutItemsAdmin, type VipLoadoutSummary, type LoadoutItem } from '@/hooks/admin/vip';
 import { LoadoutItemForm } from './LoadoutItemForm';
+import { CatalogSearchModal } from './CatalogSearchModal';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
+import type { CatalogProductResult } from '@/types/smart-search';
 
 // =============================================================================
 // Component
@@ -38,10 +41,53 @@ export function LoadoutItemsDialog({
   open,
   onOpenChange,
 }: LoadoutItemsDialogProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showCatalogSearch, setShowCatalogSearch] = useState(false);
   const [editingItem, setEditingItem] = useState<LoadoutItem | null>(null);
+  const [isAddingItem, setIsAddingItem] = useState(false);
 
-  const { items, status, deleteItem, refetch } = useLoadoutItemsAdmin(loadout.id);
+  const { items, status, addItem, deleteItem, refetch } = useLoadoutItemsAdmin(loadout.id);
+  const supabase = createClient();
+
+  // Handle catalog item selection
+  const handleCatalogSelect = async (catalogItem: CatalogProductResult) => {
+    setIsAddingItem(true);
+    try {
+      // 1. Create gear_item in VIP user's inventory
+      const insertData: any = {
+        user_id: loadout.userId,
+        name: catalogItem.name,
+        brand: catalogItem.brand?.name || null,
+        weight_grams: catalogItem.weightGrams,
+        product_type_id: null, // Category mapping would require additional logic
+        status: 'own', // VIP items are owned
+        source_attribution: {
+          type: 'catalog',
+          catalog_product_id: catalogItem.id,
+        },
+      };
+
+      const { data: gearItem, error: createError } = await supabase
+        .from('gear_items')
+        .insert(insertData)
+        .select('id')
+        .single();
+
+      if (createError) throw createError;
+      if (!gearItem) throw new Error('Failed to create gear item');
+
+      // 2. Add gear_item to loadout
+      await addItem(gearItem.id, 1);
+
+      toast.success(`Added ${catalogItem.name} to loadout`);
+      await refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add item';
+      toast.error(message);
+      console.error('Error adding catalog item:', err);
+    } finally {
+      setIsAddingItem(false);
+    }
+  };
 
   // Handle delete
   const handleDelete = async (item: LoadoutItem) => {
@@ -90,9 +136,9 @@ export function LoadoutItemsDialog({
           </div>
 
           {/* Add Button */}
-          <Button onClick={() => setShowAddForm(true)} size="sm">
+          <Button onClick={() => setShowCatalogSearch(true)} size="sm" disabled={isAddingItem}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Item
+            {isAddingItem ? 'Adding...' : 'Add Item from Catalog'}
           </Button>
 
           {/* Items Table by Category */}
@@ -153,17 +199,12 @@ export function LoadoutItemsDialog({
             </Table>
           )}
 
-          {/* Add Form */}
-          {showAddForm && (
-            <LoadoutItemForm
-              loadoutId={loadout.id}
-              onSuccess={() => {
-                setShowAddForm(false);
-                refetch();
-              }}
-              onCancel={() => setShowAddForm(false)}
-            />
-          )}
+          {/* Catalog Search Modal */}
+          <CatalogSearchModal
+            open={showCatalogSearch}
+            onOpenChange={setShowCatalogSearch}
+            onSelect={handleCatalogSelect}
+          />
 
           {/* Edit Form */}
           {editingItem && (
