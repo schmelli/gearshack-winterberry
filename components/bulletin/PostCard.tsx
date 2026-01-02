@@ -10,7 +10,7 @@
  * content, tag badge, reply count, and actions menu.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
@@ -64,29 +64,7 @@ export function PostCard({
     addSuffix: true,
   });
   const isEdited = post.updated_at !== post.created_at;
-
-  // Check if within edit window (15 minutes)
-  const [canEdit, setCanEdit] = useState(() => {
-    if (!isAuthor) return false;
-    const createdAt = new Date(post.created_at).getTime();
-    const editWindowMs = 15 * 60 * 1000;
-    const postAge = Date.now() - createdAt;
-    return postAge < editWindowMs;
-  });
-
-  // Re-check periodically in case window expires while viewing
-  useEffect(() => {
-    if (!isAuthor) return;
-    const createdAt = new Date(post.created_at).getTime();
-    const editWindowMs = 15 * 60 * 1000;
-    const interval = setInterval(() => {
-      const postAge = Date.now() - createdAt;
-      if (postAge >= editWindowMs) {
-        setCanEdit(false);
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [isAuthor, post.created_at]);
+  const canEdit = isAuthor; // Authors can edit their posts anytime
 
   if (post.is_deleted) {
     return (
