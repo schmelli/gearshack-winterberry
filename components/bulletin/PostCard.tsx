@@ -21,7 +21,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PostMenu } from './PostMenu';
 import { LinkedContentPreview } from './LinkedContentPreview';
+import { RichContentRenderer } from './RichContentRenderer';
 import type { BulletinPostWithAuthor, PostTag } from '@/types/bulletin';
+import { POST_TAGS } from '@/types/bulletin';
 
 interface PostCardProps {
   post: BulletinPostWithAuthor;
@@ -135,16 +137,17 @@ export function PostCard({
               variant="secondary"
               className={cn('text-xs', TAG_COLORS[post.tag])}
             >
-              {t(`tags.${post.tag.replace('_', '')}`)}
+              {t(POST_TAGS.find((tag) => tag.value === post.tag)?.labelKey ?? 'tags.other')}
             </Badge>
           </div>
         )}
 
         {/* Content */}
         <div className="mt-3">
-          <div className="max-h-32 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
-            {post.content}
-          </div>
+          <RichContentRenderer
+            content={post.content}
+            className="max-h-48 overflow-y-auto text-sm leading-relaxed"
+          />
         </div>
 
         {/* Linked content preview */}
