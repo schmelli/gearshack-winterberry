@@ -104,10 +104,10 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
             updatedAt: loadout.updated_at,
             publishedAt: loadout.published_at,
             totalWeightGrams,
-            itemCount: Array.isArray(loadout.vip_loadout_items)
-              ? loadout.vip_loadout_items.length
-              : loadout.vip_loadout_items?.count || 0,
-          };
+            itemCount: (Array.isArray(loadout.vip_loadout_items)
+              ? loadout.vip_loadout_items[0]?.count
+              : 0) as number,
+          } as VipLoadoutSummary;
         })
       );
 
