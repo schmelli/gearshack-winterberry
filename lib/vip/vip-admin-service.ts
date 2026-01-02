@@ -9,12 +9,13 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+// TODO: Update to use new VIP schema
 import type {
   VipWithStats,
   CreateVipRequest,
   UpdateVipRequest,
-  CreateVipLoadoutRequest,
-  UpdateVipLoadoutRequest,
+  // CreateVipLoadoutRequest, // REMOVED - use regular loadout types
+  // UpdateVipLoadoutRequest, // REMOVED - use regular loadout types
 } from '@/types/vip';
 
 // =============================================================================
@@ -185,156 +186,15 @@ export async function restoreVip(vipId: string): Promise<void> {
 // =============================================================================
 // VIP Loadout Operations
 // =============================================================================
-
-/**
- * Create a VIP loadout
- */
-export async function createVipLoadout(
-  vipId: string,
-  data: CreateVipLoadoutRequest
-): Promise<string> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Generate slug from name
-  const slug = data.name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: loadout, error: loadoutError } = await (supabase as any)
-    .from('vip_loadouts')
-    .insert({
-      vip_id: vipId,
-      name: data.name,
-      slug,
-      source_url: data.sourceUrl,
-      description: data.description,
-      trip_type: data.tripType,
-      date_range: data.dateRange,
-      status: data.status,
-      created_by: user?.id,
-      published_at: data.status === 'published' ? new Date().toISOString() : null,
-    })
-    .select()
-    .single();
-
-  if (loadoutError) throw loadoutError;
-
-  // Insert items
-  if (data.items.length > 0) {
-    const itemsToInsert = data.items.map((item, index) => ({
-      vip_loadout_id: loadout.id,
-      gear_item_id: item.gearItemId || null,
-      name: item.name,
-      brand: item.brand || null,
-      weight_grams: item.weightGrams,
-      quantity: item.quantity,
-      category: item.category,
-      notes: item.notes || null,
-      sort_order: index,
-    }));
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: itemsError } = await (supabase as any)
-      .from('vip_loadout_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) throw itemsError;
-  }
-
-  return loadout.id;
-}
-
-/**
- * Update a VIP loadout
- */
-export async function updateVipLoadout(
-  loadoutId: string,
-  data: UpdateVipLoadoutRequest
-): Promise<void> {
-  const supabase = createClient();
-
-  const updateData: Record<string, unknown> = {};
-  if (data.name !== undefined) updateData.name = data.name;
-  if (data.sourceUrl !== undefined) updateData.source_url = data.sourceUrl;
-  if (data.description !== undefined) updateData.description = data.description;
-  if (data.tripType !== undefined) updateData.trip_type = data.tripType;
-  if (data.dateRange !== undefined) updateData.date_range = data.dateRange;
-  if (data.status !== undefined) {
-    updateData.status = data.status;
-    if (data.status === 'published') {
-      updateData.published_at = new Date().toISOString();
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('vip_loadouts')
-    .update(updateData)
-    .eq('id', loadoutId);
-
-  if (error) throw error;
-}
-
-/**
- * Publish a VIP loadout
- */
-export async function publishVipLoadout(loadoutId: string): Promise<void> {
-  const supabase = createClient();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('vip_loadouts')
-    .update({
-      status: 'published',
-      published_at: new Date().toISOString(),
-    })
-    .eq('id', loadoutId);
-
-  if (error) throw error;
-}
-
-/**
- * Unpublish a VIP loadout
- */
-export async function unpublishVipLoadout(loadoutId: string): Promise<void> {
-  const supabase = createClient();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('vip_loadouts')
-    .update({ status: 'draft' })
-    .eq('id', loadoutId);
-
-  if (error) throw error;
-}
-
-/**
- * Delete a VIP loadout
- */
-export async function deleteVipLoadout(loadoutId: string): Promise<void> {
-  const supabase = createClient();
-
-  // Delete items first
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
-    .from('vip_loadout_items')
-    .delete()
-    .eq('vip_loadout_id', loadoutId);
-
-  // Delete loadout
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('vip_loadouts')
-    .delete()
-    .eq('id', loadoutId);
-
-  if (error) throw error;
-}
+//
+// DEPRECATED: VIP loadouts now use the unified loadout schema.
+// VIP loadouts are regular loadouts with:
+// - is_vip_loadout = true
+// - user_id = VIP's user ID (from profiles where account_type = 'vip')
+// - Items are regular gear_items with source_attribution pointing to catalog
+//
+// Use the regular loadout management functions from @/hooks/loadouts
+// and the admin catalog search flow in LoadoutItemsDialog component.
 
 // =============================================================================
 // Source URL Validation

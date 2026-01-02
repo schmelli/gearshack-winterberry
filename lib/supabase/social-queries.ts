@@ -436,11 +436,12 @@ export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
     row.user_id === userId ? row.friend_id : row.user_id
   );
 
-  // Fetch profiles for all friends
+  // Fetch profiles for all friends (exclude VIP service accounts from friend lists)
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, online_status, last_active_at')
-    .in('id', friendIds);
+    .select('id, display_name, avatar_url, online_status, last_active_at, account_type')
+    .in('id', friendIds)
+    .neq('account_type', 'vip');
 
   if (profileError) {
     throw new Error(`Failed to fetch friend profiles: ${profileError.message}`);
