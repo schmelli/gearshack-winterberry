@@ -1,8 +1,8 @@
 /**
- * Loadout Item Form Component
+ * Loadout Item Form Component (SIMPLIFIED - Feature 052)
  *
- * Form for adding or editing individual items in a VIP loadout.
- * Uses react-hook-form with Zod validation.
+ * Simplified form for updating quantity of items in VIP loadouts.
+ * Full catalog integration pending (next task: Create admin catalog search component).
  */
 
 'use client';
@@ -11,27 +11,21 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLoadoutItemsAdmin } from '@/hooks/admin/vip';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useLoadoutItemsAdmin, type LoadoutItem } from '@/hooks/admin/vip';
 import { toast } from 'sonner';
-import type { VipLoadoutItem } from '@/types/vip';
 
 // =============================================================================
 // Validation Schema
 // =============================================================================
 
 const itemFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  brand: z.string().optional(),
-  weightGrams: z.number().int().positive('Weight must be a positive number'),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
-  category: z.string().min(1, 'Category is required'),
-  notes: z.string().optional(),
 });
 
 type ItemFormData = z.infer<typeof itemFormSchema>;
@@ -42,7 +36,7 @@ type ItemFormData = z.infer<typeof itemFormSchema>;
 
 interface LoadoutItemFormProps {
   loadoutId: string;
-  item?: VipLoadoutItem;
+  item?: LoadoutItem;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -54,7 +48,7 @@ export function LoadoutItemForm({
   onCancel,
 }: LoadoutItemFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addItem, updateItem } = useLoadoutItemsAdmin(loadoutId);
+  const { updateItem } = useLoadoutItemsAdmin(loadoutId);
 
   const {
     register,
@@ -62,141 +56,109 @@ export function LoadoutItemForm({
     formState: { errors },
   } = useForm<ItemFormData>({
     resolver: zodResolver(itemFormSchema),
-    defaultValues: item
-      ? {
-          name: item.name,
-          brand: item.brand || '',
-          weightGrams: item.weightGrams,
-          quantity: item.quantity,
-          category: item.category,
-          notes: item.notes || '',
-        }
-      : {
-          quantity: 1,
-        },
+    defaultValues: {
+      quantity: item?.quantity || 1,
+    },
   });
 
   const onSubmit = async (data: ItemFormData) => {
+    if (!item) {
+      toast.error('Cannot add items yet - catalog search integration pending');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      if (item) {
-        await updateItem(item.id, data);
-        toast.success('Item updated');
-      } else {
-        await addItem(data);
-        toast.success('Item added');
-      }
+      await updateItem(item.id, data.quantity);
+      toast.success('Item quantity updated');
       onSuccess();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save item');
+      toast.error(err instanceof Error ? err.message : 'Failed to update item');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Show message if trying to add new item (not edit)
+  if (!item) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Add VIP Item</CardTitle>
+          <CardDescription>
+            Catalog search integration pending
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-2">Catalog Search Coming Soon</p>
+              <p className="text-sm text-muted-foreground">
+                Adding VIP items requires catalog integration, which is the next feature to be implemented.
+                For now, items must be added directly to the VIP user's gear inventory first, then added to loadouts.
+              </p>
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Close
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{item ? 'Edit Item' : 'Add Item'}</CardTitle>
+        <CardTitle>Edit Item Quantity</CardTitle>
         <CardDescription>
-          {item ? 'Update the item details' : 'Add a new gear item to this loadout'}
+          Editing: {item.name} {item.brand ? `(${item.brand})` : ''}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                {...register('name')}
-                placeholder="e.g., Zpacks Duplex Tent"
-                disabled={isSubmitting}
-              />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
-              )}
+          {/* Display item details (read-only) */}
+          <div className="space-y-2 p-4 bg-muted rounded-md">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Name:</span>
+              <span className="font-medium">{item.name}</span>
             </div>
-
-            {/* Brand */}
-            <div className="space-y-2">
-              <Label htmlFor="brand">Brand</Label>
-              <Input
-                id="brand"
-                {...register('brand')}
-                placeholder="e.g., Zpacks"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Weight */}
-            <div className="space-y-2">
-              <Label htmlFor="weightGrams">
-                Weight (grams) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="weightGrams"
-                type="number"
-                {...register('weightGrams', { valueAsNumber: true })}
-                placeholder="e.g., 540"
-                disabled={isSubmitting}
-              />
-              {errors.weightGrams && (
-                <p className="text-sm text-destructive">{errors.weightGrams.message}</p>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div className="space-y-2">
-              <Label htmlFor="quantity">
-                Quantity <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="quantity"
-                type="number"
-                {...register('quantity', { valueAsNumber: true })}
-                placeholder="1"
-                disabled={isSubmitting}
-              />
-              {errors.quantity && (
-                <p className="text-sm text-destructive">{errors.quantity.message}</p>
-              )}
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="category">
-                Category <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="category"
-                {...register('category')}
-                placeholder="e.g., Shelter, Sleep System, Kitchen"
-                disabled={isSubmitting}
-              />
-              {errors.category && (
-                <p className="text-sm text-destructive">{errors.category.message}</p>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                {...register('notes')}
-                placeholder="Optional notes about this item..."
-                rows={2}
-                disabled={isSubmitting}
-              />
-            </div>
+            {item.brand && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Brand:</span>
+                <span>{item.brand}</span>
+              </div>
+            )}
+            {item.weightGrams && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Weight:</span>
+                <span>{item.weightGrams}g</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 justify-end">
+          {/* Quantity (editable) */}
+          <div className="space-y-2">
+            <Label htmlFor="quantity">
+              Quantity <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              {...register('quantity', { valueAsNumber: true })}
+              disabled={isSubmitting}
+            />
+            {errors.quantity && (
+              <p className="text-sm text-destructive">{errors.quantity.message}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="outline"
@@ -206,8 +168,8 @@ export function LoadoutItemForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {item ? 'Save Changes' : 'Add Item'}
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
             </Button>
           </div>
         </form>

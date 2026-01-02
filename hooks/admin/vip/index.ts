@@ -10,4 +10,4 @@ export { useVipClaimInvitation, getInvitationStatusDisplay, canRevokeInvitation,
 export { useVipLoadoutsAdmin } from './useVipLoadoutsAdmin';
 export type { VipLoadoutSummary } from './useVipLoadoutsAdmin';
 export { useLoadoutItemsAdmin } from './useLoadoutItemsAdmin';
-export type { CreateItemData } from './useLoadoutItemsAdmin';
+export type { CreateItemData, LoadoutItem } from './useLoadoutItemsAdmin';

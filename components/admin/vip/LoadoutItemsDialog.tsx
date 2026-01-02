@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Edit, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useLoadoutItemsAdmin, type VipLoadoutSummary } from '@/hooks/admin/vip';
+import { useLoadoutItemsAdmin, type VipLoadoutSummary, type LoadoutItem } from '@/hooks/admin/vip';
 import { LoadoutItemForm } from './LoadoutItemForm';
 import { toast } from 'sonner';
-import type { VipLoadoutItem } from '@/types/vip';
 
 // =============================================================================
 // Component
@@ -40,12 +39,12 @@ export function LoadoutItemsDialog({
   onOpenChange,
 }: LoadoutItemsDialogProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<VipLoadoutItem | null>(null);
+  const [editingItem, setEditingItem] = useState<LoadoutItem | null>(null);
 
   const { items, status, deleteItem, refetch } = useLoadoutItemsAdmin(loadout.id);
 
   // Handle delete
-  const handleDelete = async (item: VipLoadoutItem) => {
+  const handleDelete = async (item: LoadoutItem) => {
     if (!confirm(`Delete "${item.name}"?`)) return;
 
     try {
@@ -57,7 +56,8 @@ export function LoadoutItemsDialog({
   };
 
   // Format weight
-  const formatWeight = (grams: number, quantity: number) => {
+  const formatWeight = (grams: number | null, quantity: number) => {
+    if (!grams) return '—';
     const total = grams * quantity;
     if (total >= 1000) {
       return `${(total / 1000).toFixed(2)} kg`;
@@ -65,14 +65,10 @@ export function LoadoutItemsDialog({
     return `${total} g`;
   };
 
-  // Group items by category
-  const itemsByCategory = items.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, VipLoadoutItem[]>);
-
-  const totalWeight = items.reduce((sum, item) => sum + item.weightGrams * item.quantity, 0);
+  // Calculate total weight (items with weight only)
+  const totalWeight = items.reduce((sum, item) => {
+    return sum + (item.weightGrams || 0) * item.quantity;
+  }, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,74 +96,61 @@ export function LoadoutItemsDialog({
           </Button>
 
           {/* Items Table by Category */}
-          {Object.keys(itemsByCategory).length === 0 ? (
+          {items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No items yet. Add the first item to this loadout.
             </div>
           ) : (
-            <div className="space-y-6">
-              {Object.entries(itemsByCategory).map(([category, categoryItems]) => (
-                <div key={category}>
-                  <h3 className="font-semibold text-sm mb-2 uppercase text-muted-foreground">
-                    {category}
-                  </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40px]"></TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Brand</TableHead>
-                        <TableHead className="text-right">Weight</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categoryItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          </TableCell>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {item.brand || '—'}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {item.weightGrams} g
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {item.quantity}
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium">
-                            {formatWeight(item.weightGrams, item.quantity)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingItem(item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(item)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead className="text-right">Weight</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {item.brand || '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      {item.weightGrams ? `${item.weightGrams} g` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      {item.quantity}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium">
+                      {formatWeight(item.weightGrams, item.quantity)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingItem(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(item)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {/* Add Form */}

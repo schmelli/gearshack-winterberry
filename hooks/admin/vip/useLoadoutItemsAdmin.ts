@@ -1,42 +1,52 @@
 /**
- * useLoadoutItemsAdmin Hook
+ * useLoadoutItemsAdmin Hook (NEW VERSION - Feature 052)
  *
- * Admin hook for managing individual items within a VIP loadout.
- * Provides full CRUD operations for loadout items.
+ * Admin hook for managing items within a VIP loadout using the unified schema.
+ * VIP loadouts now use regular loadout_items table that references gear_items.
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { VipLoadoutItem } from '@/types/vip';
+import type { Database } from '@/types/database';
 
 // =============================================================================
 // Types
 // =============================================================================
 
+type LoadoutItemRow = Database['public']['Tables']['loadout_items']['Row'];
+type GearItemRow = Database['public']['Tables']['gear_items']['Row'];
+
+export interface LoadoutItem {
+  id: string;
+  loadoutId: string;
+  gearItemId: string;
+  quantity: number;
+  // Denormalized from gear_items for display
+  name: string;
+  brand: string | null;
+  weightGrams: number | null;
+  productTypeId: string | null;
+  primaryImageUrl: string | null;
+}
+
 interface UseLoadoutItemsAdminState {
   status: 'idle' | 'loading' | 'success' | 'error';
-  items: VipLoadoutItem[];
+  items: LoadoutItem[];
   error: string | null;
 }
 
 interface UseLoadoutItemsAdminReturn extends UseLoadoutItemsAdminState {
   refetch: () => Promise<void>;
-  addItem: (data: CreateItemData) => Promise<void>;
-  updateItem: (id: string, data: Partial<CreateItemData>) => Promise<void>;
+  addItem: (gearItemId: string, quantity?: number) => Promise<void>;
+  updateItem: (id: string, quantity: number) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
-  reorderItems: (itemIds: string[]) => Promise<void>;
 }
 
 export interface CreateItemData {
-  name: string;
-  brand?: string;
-  weightGrams: number;
-  quantity: number;
-  category: string;
-  notes?: string;
-  gearItemId?: string;
+  gearItemId: string;
+  quantity?: number;
 }
 
 // =============================================================================
@@ -65,26 +75,34 @@ export function useLoadoutItemsAdmin(
 
     try {
       const { data, error } = await supabase
-        .from('vip_loadout_items')
-        .select('*')
-        .eq('vip_loadout_id', loadoutId)
-        .order('sort_order', { ascending: true })
-        .order('category', { ascending: true });
+        .from('loadout_items')
+        .select(`
+          *,
+          gear_items(
+            id,
+            name,
+            brand,
+            weight_grams,
+            product_type_id,
+            primary_image_url
+          )
+        `)
+        .eq('loadout_id', loadoutId)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const items: VipLoadoutItem[] = (data || []).map((item) => ({
+      const items: LoadoutItem[] = (data || []).map((item: any) => ({
         id: item.id,
-        vipLoadoutId: item.vip_loadout_id,
-        gearItemId: item.gear_item_id || undefined,
-        name: item.name,
-        brand: item.brand || undefined,
-        weightGrams: item.weight_grams,
+        loadoutId: item.loadout_id,
+        gearItemId: item.gear_item_id,
         quantity: item.quantity,
-        notes: item.notes || undefined,
-        category: item.category,
-        sortOrder: item.sort_order,
-        createdAt: item.created_at,
+        // Denormalized fields from gear_items
+        name: item.gear_items?.name || 'Unknown Item',
+        brand: item.gear_items?.brand || null,
+        weightGrams: item.gear_items?.weight_grams || null,
+        productTypeId: item.gear_items?.product_type_id || null,
+        primaryImageUrl: item.gear_items?.primary_image_url || null,
       }));
 
       setState({
@@ -103,31 +121,18 @@ export function useLoadoutItemsAdmin(
     }
   }, [loadoutId, supabase]);
 
-  // Add new item
+  // Add item (must reference existing gear_item)
   const addItem = useCallback(
-    async (data: CreateItemData) => {
-      // Get the max sort_order to append to the end
-      const { data: maxOrder } = await supabase
-        .from('vip_loadout_items')
-        .select('sort_order')
-        .eq('vip_loadout_id', loadoutId)
-        .order('sort_order', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    async (gearItemId: string, quantity: number = 1) => {
+      const insertData: Database['public']['Tables']['loadout_items']['Insert'] = {
+        loadout_id: loadoutId,
+        gear_item_id: gearItemId,
+        quantity,
+      };
 
-      const nextSortOrder = (maxOrder?.sort_order ?? -1) + 1;
-
-      const { error } = await supabase.from('vip_loadout_items').insert({
-        vip_loadout_id: loadoutId,
-        gear_item_id: data.gearItemId || null,
-        name: data.name,
-        brand: data.brand || null,
-        weight_grams: data.weightGrams,
-        quantity: data.quantity,
-        notes: data.notes || null,
-        category: data.category,
-        sort_order: nextSortOrder,
-      });
+      const { error } = await supabase
+        .from('loadout_items')
+        .insert(insertData);
 
       if (error) throw new Error(`Failed to add item: ${error.message}`);
 
@@ -136,22 +141,12 @@ export function useLoadoutItemsAdmin(
     [loadoutId, supabase, fetchItems]
   );
 
-  // Update item
+  // Update item (only quantity can be updated; to change the gear item, delete and re-add)
   const updateItem = useCallback(
-    async (id: string, data: Partial<CreateItemData>) => {
-      const updateData: Record<string, unknown> = {};
-
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.brand !== undefined) updateData.brand = data.brand || null;
-      if (data.weightGrams !== undefined) updateData.weight_grams = data.weightGrams;
-      if (data.quantity !== undefined) updateData.quantity = data.quantity;
-      if (data.category !== undefined) updateData.category = data.category;
-      if (data.notes !== undefined) updateData.notes = data.notes || null;
-      if (data.gearItemId !== undefined) updateData.gear_item_id = data.gearItemId || null;
-
+    async (id: string, quantity: number) => {
       const { error } = await supabase
-        .from('vip_loadout_items')
-        .update(updateData)
+        .from('loadout_items')
+        .update({ quantity })
         .eq('id', id);
 
       if (error) throw new Error(`Failed to update item: ${error.message}`);
@@ -165,29 +160,12 @@ export function useLoadoutItemsAdmin(
   const deleteItem = useCallback(
     async (id: string) => {
       const { error } = await supabase
-        .from('vip_loadout_items')
+        .from('loadout_items')
         .delete()
         .eq('id', id);
 
       if (error) throw new Error(`Failed to delete item: ${error.message}`);
 
-      await fetchItems();
-    },
-    [supabase, fetchItems]
-  );
-
-  // Reorder items
-  const reorderItems = useCallback(
-    async (itemIds: string[]) => {
-      // Update sort_order for each item based on array position
-      const updates = itemIds.map((id, index) =>
-        supabase
-          .from('vip_loadout_items')
-          .update({ sort_order: index })
-          .eq('id', id)
-      );
-
-      await Promise.all(updates);
       await fetchItems();
     },
     [supabase, fetchItems]
@@ -204,7 +182,6 @@ export function useLoadoutItemsAdmin(
     addItem,
     updateItem,
     deleteItem,
-    reorderItems,
   };
 }
 
