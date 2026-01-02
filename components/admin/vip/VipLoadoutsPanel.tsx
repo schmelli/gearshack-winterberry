@@ -13,11 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useVipLoadoutsAdmin } from '@/hooks/admin/vip';
+import { useVipLoadoutsAdmin, type VipLoadoutSummary } from '@/hooks/admin/vip';
 import { LoadoutFormDialog } from './LoadoutFormDialog';
 import { LoadoutItemsDialog } from './LoadoutItemsDialog';
 import { toast } from 'sonner';
-import type { VipLoadoutSummary } from '@/types/vip';
 
 // =============================================================================
 // Component
@@ -60,7 +59,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
   // Handle publish toggle
   const handleTogglePublish = async (loadout: VipLoadoutSummary) => {
     try {
-      if (loadout.status === 'published') {
+      if (loadout.isVipLoadout) {
         await unpublishLoadout(loadout.id);
         toast.success('Loadout unpublished');
       } else {
@@ -154,25 +153,29 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                 <TableRow key={loadout.id}>
                   <TableCell className="font-medium">{loadout.name}</TableCell>
                   <TableCell>
-                    <Badge variant={loadout.status === 'published' ? 'default' : 'secondary'}>
-                      {loadout.status}
+                    <Badge variant={loadout.isVipLoadout ? 'default' : 'secondary'}>
+                      {loadout.isVipLoadout ? 'Published' : 'Draft'}
                     </Badge>
                   </TableCell>
                   <TableCell>{loadout.itemCount} items</TableCell>
                   <TableCell>{formatWeight(loadout.totalWeightGrams)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {loadout.tripType || '—'}
+                    {loadout.activityTypes?.join(', ') || loadout.seasons?.join(', ') || '—'}
                   </TableCell>
                   <TableCell>
-                    <a
-                      href={loadout.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      View source
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                    {loadout.sourceAttribution?.url ? (
+                      <a
+                        href={loadout.sourceAttribution.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        View source
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -196,9 +199,9 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleTogglePublish(loadout)}
-                        title={loadout.status === 'published' ? 'Unpublish' : 'Publish'}
+                        title={loadout.isVipLoadout ? 'Unpublish' : 'Publish'}
                       >
-                        {loadout.status === 'published' ? (
+                        {loadout.isVipLoadout ? (
                           <EyeOff className="h-4 w-4" />
                         ) : (
                           <Eye className="h-4 w-4" />

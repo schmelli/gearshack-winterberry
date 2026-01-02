@@ -1,19 +1,46 @@
 /**
- * useVipLoadoutsAdmin Hook
+ * useVipLoadoutsAdmin Hook (NEW VERSION - Feature 052)
  *
- * Admin hook for managing VIP loadouts with full CRUD operations.
- * Provides loadout list, create, update, delete, and publish functionality.
+ * Admin hook for managing VIP loadouts in the unified user system.
+ * VIPs are now regular users with account_type='vip', owning regular loadouts
+ * marked with is_vip_loadout=true.
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { VipLoadout, VipLoadoutSummary } from '@/types/vip';
+import type { Database } from '@/types/database';
 
 // =============================================================================
 // Types
 // =============================================================================
+
+type LoadoutRow = Database['public']['Tables']['loadouts']['Row'];
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+export interface VipLoadoutSummary {
+  id: string;
+  userId: string; // VIP user ID
+  name: string;
+  description: string | null;
+  sourceAttribution: {
+    type: string;
+    url?: string;
+    checkedAt?: string;
+  } | null;
+  activityTypes: string[] | null;
+  seasons: string[] | null;
+  isVipLoadout: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Computed fields
+  totalWeightGrams: number;
+  itemCount: number;
+  // VIP profile info
+  vipDisplayName: string;
+  vipAvatarUrl: string | null;
+}
 
 interface UseVipLoadoutsAdminState {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -23,7 +50,7 @@ interface UseVipLoadoutsAdminState {
 
 interface UseVipLoadoutsAdminReturn extends UseVipLoadoutsAdminState {
   refetch: () => Promise<void>;
-  createLoadout: (vipId: string, data: CreateLoadoutData) => Promise<string>;
+  createLoadout: (userId: string, data: CreateLoadoutData) => Promise<string>;
   updateLoadout: (id: string, data: Partial<CreateLoadoutData>) => Promise<void>;
   deleteLoadout: (id: string) => Promise<void>;
   publishLoadout: (id: string) => Promise<void>;
@@ -32,17 +59,17 @@ interface UseVipLoadoutsAdminReturn extends UseVipLoadoutsAdminState {
 
 interface CreateLoadoutData {
   name: string;
-  sourceUrl: string;
+  sourceUrl?: string;
   description?: string;
-  tripType?: string;
-  dateRange?: string;
+  activityTypes?: string[];
+  seasons?: string[];
 }
 
 // =============================================================================
 // Hook
 // =============================================================================
 
-export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
+export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn {
   const [state, setState] = useState<UseVipLoadoutsAdminState>({
     status: 'idle',
     loadouts: [],
@@ -51,63 +78,78 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
 
   const supabase = createClient();
 
-  // Fetch all loadouts or loadouts for a specific VIP
+  // Fetch all VIP loadouts or loadouts for a specific VIP user
   const fetchLoadouts = useCallback(async () => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
 
     try {
+      // Query regular loadouts table filtered by VIP account type
       let query = supabase
-        .from('vip_loadouts')
+        .from('loadouts')
         .select(`
           *,
-          vip_loadout_items(count)
+          profiles!inner(
+            id,
+            display_name,
+            avatar_url,
+            account_type
+          ),
+          loadout_items(
+            count
+          )
         `)
+        .eq('profiles.account_type', 'vip')
+        .eq('is_vip_loadout', true)
         .order('created_at', { ascending: false });
 
-      // Filter by VIP if provided
-      if (vipId) {
-        query = query.eq('vip_id', vipId);
+      // Filter by specific VIP user if provided
+      if (userId) {
+        query = query.eq('user_id', userId);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      // Calculate summary statistics
+      // Calculate summary statistics for each loadout
       const loadoutsWithStats: VipLoadoutSummary[] = await Promise.all(
-        (data || []).map(async (loadout) => {
-          // Get total weight
+        (data || []).map(async (loadout: any) => {
+          // Get total weight from loadout items
           const { data: items } = await supabase
-            .from('vip_loadout_items')
-            .select('weight_grams, quantity')
-            .eq('vip_loadout_id', loadout.id);
+            .from('loadout_items')
+            .select(`
+              quantity,
+              gear_items(weight_grams)
+            `)
+            .eq('loadout_id', loadout.id);
 
-          const totalWeightGrams = (items || []).reduce(
-            (sum, item) => sum + item.weight_grams * item.quantity,
-            0
-          );
+          const totalWeightGrams = (items || []).reduce((sum, item: any) => {
+            const weight = item.gear_items?.weight_grams || 0;
+            const quantity = item.quantity || 1;
+            return sum + weight * quantity;
+          }, 0);
+
+          // Get item count
+          const itemCount = Array.isArray(loadout.loadout_items)
+            ? (loadout.loadout_items[0]?.count as number) || 0
+            : 0;
 
           return {
             id: loadout.id,
-            vipId: loadout.vip_id,
+            userId: loadout.user_id,
             name: loadout.name,
-            slug: loadout.slug,
-            sourceUrl: loadout.source_url,
             description: loadout.description,
-            tripType: loadout.trip_type,
-            dateRange: loadout.date_range,
-            status: loadout.status,
-            isSourceAvailable: loadout.is_source_available,
-            sourceCheckedAt: loadout.source_checked_at,
-            createdBy: loadout.created_by,
+            sourceAttribution: loadout.source_attribution,
+            activityTypes: loadout.activity_types,
+            seasons: loadout.seasons,
+            isVipLoadout: loadout.is_vip_loadout,
             createdAt: loadout.created_at,
             updatedAt: loadout.updated_at,
-            publishedAt: loadout.published_at,
             totalWeightGrams,
-            itemCount: (Array.isArray(loadout.vip_loadout_items)
-              ? loadout.vip_loadout_items[0]?.count
-              : 0) as number,
-          } as VipLoadoutSummary;
+            itemCount,
+            vipDisplayName: loadout.profiles.display_name || 'Unknown VIP',
+            vipAvatarUrl: loadout.profiles.avatar_url,
+          };
         })
       );
 
@@ -117,7 +159,7 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
         error: null,
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load loadouts';
+      const message = err instanceof Error ? err.message : 'Failed to load VIP loadouts';
       console.error('Error loading VIP loadouts:', err);
       setState({
         status: 'error',
@@ -125,31 +167,33 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
         error: message,
       });
     }
-  }, [vipId, supabase]);
+  }, [userId, supabase]);
 
-  // Create new loadout
+  // Create new VIP loadout
   const createLoadout = useCallback(
-    async (vipId: string, data: CreateLoadoutData): Promise<string> => {
-      // Generate slug from name
-      const slug = data.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
+    async (userId: string, data: CreateLoadoutData): Promise<string> => {
+      // Build source attribution object
+      const sourceAttribution = data.sourceUrl
+        ? {
+            type: 'vip_curated',
+            url: data.sourceUrl,
+            checkedAt: new Date().toISOString(),
+          }
+        : null;
+
+      const insertData: Database['public']['Tables']['loadouts']['Insert'] = {
+        user_id: userId,
+        name: data.name,
+        description: data.description || null,
+        activity_types: (data.activityTypes as any) || null,
+        seasons: (data.seasons as any) || null,
+        is_vip_loadout: false, // Start as draft (unpublished)
+        source_attribution: sourceAttribution as any, // JSONB type
+      };
 
       const { data: loadout, error } = await supabase
-        .from('vip_loadouts')
-        .insert({
-          vip_id: vipId,
-          name: data.name,
-          slug,
-          source_url: data.sourceUrl,
-          description: data.description || null,
-          trip_type: data.tripType || null,
-          date_range: data.dateRange || null,
-          status: 'draft',
-        })
+        .from('loadouts')
+        .insert(insertData)
         .select()
         .single();
 
@@ -161,27 +205,29 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
     [supabase, fetchLoadouts]
   );
 
-  // Update loadout
+  // Update VIP loadout
   const updateLoadout = useCallback(
     async (id: string, data: Partial<CreateLoadoutData>) => {
       const updateData: Record<string, unknown> = {};
 
-      if (data.name) {
-        updateData.name = data.name;
-        updateData.slug = data.name
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim();
-      }
-      if (data.sourceUrl) updateData.source_url = data.sourceUrl;
+      if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description || null;
-      if (data.tripType !== undefined) updateData.trip_type = data.tripType || null;
-      if (data.dateRange !== undefined) updateData.date_range = data.dateRange || null;
+      if (data.activityTypes !== undefined) updateData.activity_types = data.activityTypes || null;
+      if (data.seasons !== undefined) updateData.seasons = data.seasons || null;
+
+      // Update source attribution if sourceUrl provided
+      if (data.sourceUrl !== undefined) {
+        updateData.source_attribution = data.sourceUrl
+          ? {
+              type: 'vip_curated',
+              url: data.sourceUrl,
+              checkedAt: new Date().toISOString(),
+            }
+          : null;
+      }
 
       const { error } = await supabase
-        .from('vip_loadouts')
+        .from('loadouts')
         .update(updateData)
         .eq('id', id);
 
@@ -192,10 +238,10 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
     [supabase, fetchLoadouts]
   );
 
-  // Delete loadout
+  // Delete VIP loadout
   const deleteLoadout = useCallback(
     async (id: string) => {
-      const { error } = await supabase.from('vip_loadouts').delete().eq('id', id);
+      const { error } = await supabase.from('loadouts').delete().eq('id', id);
 
       if (error) throw new Error(`Failed to delete loadout: ${error.message}`);
 
@@ -204,12 +250,12 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
     [supabase, fetchLoadouts]
   );
 
-  // Publish loadout
+  // Publish loadout (make visible to all users)
   const publishLoadout = useCallback(
     async (id: string) => {
       const { error } = await supabase
-        .from('vip_loadouts')
-        .update({ status: 'published' })
+        .from('loadouts')
+        .update({ is_vip_loadout: true })
         .eq('id', id);
 
       if (error) throw new Error(`Failed to publish loadout: ${error.message}`);
@@ -219,12 +265,12 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
     [supabase, fetchLoadouts]
   );
 
-  // Unpublish loadout
+  // Unpublish loadout (hide from public)
   const unpublishLoadout = useCallback(
     async (id: string) => {
       const { error } = await supabase
-        .from('vip_loadouts')
-        .update({ status: 'draft' })
+        .from('loadouts')
+        .update({ is_vip_loadout: false })
         .eq('id', id);
 
       if (error) throw new Error(`Failed to unpublish loadout: ${error.message}`);
@@ -234,7 +280,7 @@ export function useVipLoadoutsAdmin(vipId?: string): UseVipLoadoutsAdminReturn {
     [supabase, fetchLoadouts]
   );
 
-  // Fetch on mount or when vipId changes
+  // Fetch on mount or when userId changes
   useEffect(() => {
     fetchLoadouts();
   }, [fetchLoadouts]);

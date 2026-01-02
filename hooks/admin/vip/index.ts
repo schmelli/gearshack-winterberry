@@ -8,5 +8,6 @@
 
 export { useVipClaimInvitation, getInvitationStatusDisplay, canRevokeInvitation, canResendInvitation } from './useVipClaimInvitation';
 export { useVipLoadoutsAdmin } from './useVipLoadoutsAdmin';
+export type { VipLoadoutSummary } from './useVipLoadoutsAdmin';
 export { useLoadoutItemsAdmin } from './useLoadoutItemsAdmin';
 export type { CreateItemData } from './useLoadoutItemsAdmin';

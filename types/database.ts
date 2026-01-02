@@ -1310,6 +1310,7 @@ export type Database = {
           retailer: string | null
           retailer_url: string | null
           size: string | null
+          source_attribution: Json | null
           source_loadout_id: string | null
           source_merchant_id: string | null
           source_offer_id: string | null
@@ -1356,6 +1357,7 @@ export type Database = {
           retailer?: string | null
           retailer_url?: string | null
           size?: string | null
+          source_attribution?: Json | null
           source_loadout_id?: string | null
           source_merchant_id?: string | null
           source_offer_id?: string | null
@@ -1402,6 +1404,7 @@ export type Database = {
           retailer?: string | null
           retailer_url?: string | null
           size?: string | null
+          source_attribution?: Json | null
           source_loadout_id?: string | null
           source_merchant_id?: string | null
           source_offer_id?: string | null
@@ -1796,8 +1799,10 @@ export type Database = {
           hero_image_id: string | null
           id: string
           image_source_preference: string | null
+          is_vip_loadout: boolean | null
           name: string
           seasons: Database["public"]["Enums"]["season"][] | null
+          source_attribution: Json | null
           trip_date: string | null
           updated_at: string
           user_id: string
@@ -1809,8 +1814,10 @@ export type Database = {
           hero_image_id?: string | null
           id?: string
           image_source_preference?: string | null
+          is_vip_loadout?: boolean | null
           name: string
           seasons?: Database["public"]["Enums"]["season"][] | null
+          source_attribution?: Json | null
           trip_date?: string | null
           updated_at?: string
           user_id: string
@@ -1822,8 +1829,10 @@ export type Database = {
           hero_image_id?: string | null
           id?: string
           image_source_preference?: string | null
+          is_vip_loadout?: boolean | null
           name?: string
           seasons?: Database["public"]["Enums"]["season"][] | null
+          source_attribution?: Json | null
           trip_date?: string | null
           updated_at?: string
           user_id?: string
@@ -5871,6 +5880,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       account_type: ["standard", "vip", "merchant"],

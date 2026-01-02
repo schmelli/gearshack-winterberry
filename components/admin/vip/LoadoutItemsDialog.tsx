@@ -19,10 +19,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useLoadoutItemsAdmin } from '@/hooks/admin/vip';
+import { useLoadoutItemsAdmin, type VipLoadoutSummary } from '@/hooks/admin/vip';
 import { LoadoutItemForm } from './LoadoutItemForm';
 import { toast } from 'sonner';
-import type { VipLoadoutSummary, VipLoadoutItem } from '@/types/vip';
+import type { VipLoadoutItem } from '@/types/vip';
 
 // =============================================================================
 // Component

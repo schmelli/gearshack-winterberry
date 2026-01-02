@@ -23,9 +23,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useVipLoadoutsAdmin } from '@/hooks/admin/vip';
+import { useVipLoadoutsAdmin, type VipLoadoutSummary } from '@/hooks/admin/vip';
 import { toast } from 'sonner';
-import type { VipLoadoutSummary } from '@/types/vip';
 
 // =============================================================================
 // Validation Schema
@@ -33,10 +32,8 @@ import type { VipLoadoutSummary } from '@/types/vip';
 
 const loadoutFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(200),
-  sourceUrl: z.string().url('Must be a valid URL'),
+  sourceUrl: z.string().url('Must be a valid URL').optional(),
   description: z.string().optional(),
-  tripType: z.string().optional(),
-  dateRange: z.string().optional(),
 });
 
 type LoadoutFormData = z.infer<typeof loadoutFormSchema>;
@@ -73,10 +70,8 @@ export function LoadoutFormDialog({
     defaultValues: loadout
       ? {
           name: loadout.name,
-          sourceUrl: loadout.sourceUrl,
+          sourceUrl: loadout.sourceAttribution?.url || '',
           description: loadout.description || '',
-          tripType: loadout.tripType || '',
-          dateRange: loadout.dateRange || '',
         }
       : undefined,
   });
@@ -134,9 +129,7 @@ export function LoadoutFormDialog({
 
           {/* Source URL */}
           <div className="space-y-2">
-            <Label htmlFor="sourceUrl">
-              Source URL <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="sourceUrl">Source URL</Label>
             <Input
               id="sourceUrl"
               {...register('sourceUrl')}
@@ -150,28 +143,6 @@ export function LoadoutFormDialog({
             <p className="text-xs text-muted-foreground">
               YouTube video, blog post, or other source link
             </p>
-          </div>
-
-          {/* Trip Type */}
-          <div className="space-y-2">
-            <Label htmlFor="tripType">Trip Type</Label>
-            <Input
-              id="tripType"
-              {...register('tripType')}
-              placeholder="e.g., Backpacking, Thru-hiking"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Date Range */}
-          <div className="space-y-2">
-            <Label htmlFor="dateRange">Date Range</Label>
-            <Input
-              id="dateRange"
-              {...register('dateRange')}
-              placeholder="e.g., May-September 2023"
-              disabled={isSubmitting}
-            />
           </div>
 
           {/* Description */}
