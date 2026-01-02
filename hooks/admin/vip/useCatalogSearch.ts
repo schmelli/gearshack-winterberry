@@ -50,6 +50,9 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
       setError(null);
 
       try {
+        // Escape ILIKE wildcards (%, _) to prevent SQL injection
+        const sanitizedQuery = query.replace(/%/g, '\\%').replace(/_/g, '\\_');
+
         // Search catalog_products table using fuzzy matching
         const { data, error: searchError } = await supabase
           .from('catalog_products')
@@ -57,37 +60,46 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
             `
             id,
             name,
-            brand,
+            brand_id,
             weight_grams,
-            msrp,
-            category_id,
-            categories (
+            price_usd,
+            product_type_id,
+            catalog_brands (
               id,
               name
             )
           `
           )
-          .or(
-            `name.ilike.%${query}%,brand.ilike.%${query}%`
-          )
+          .ilike('name', `%${sanitizedQuery}%`)
           .limit(20)
           .order('name', { ascending: true });
 
         if (searchError) throw searchError;
 
+        // Define type for database result
+        type CatalogProductRow = {
+          id: string;
+          name: string;
+          brand_id: string | null;
+          weight_grams: number | null;
+          price_usd: number | null;
+          product_type_id: string | null;
+          catalog_brands: { id: string; name: string } | null;
+        };
+
         // Transform to CatalogProductResult format (simplified - no full catalog structure)
-        const catalogResults: CatalogProductResult[] = (data || []).map((item: any) => ({
+        const catalogResults: CatalogProductResult[] = (data || []).map((item: CatalogProductRow) => ({
           source: 'catalog' as const,
           id: item.id,
           name: item.name,
-          brand: item.brand ? { id: '', name: item.brand } : null, // Simplified brand structure
-          categoryMain: item.categories?.name || null,
+          brand: item.catalog_brands ? { id: item.catalog_brands.id, name: item.catalog_brands.name } : null,
+          categoryMain: null, // Would need to join with categories table
           subcategory: null,
           productType: null,
-          productTypeId: item.category_id || null,
+          productTypeId: item.product_type_id || null,
           description: null,
           weightGrams: item.weight_grams || null,
-          priceUsd: item.msrp || null,
+          priceUsd: item.price_usd || null,
           score: 1, // Default score for simple search
         }));
 

@@ -25,6 +25,7 @@ import { CatalogSearchModal } from './CatalogSearchModal';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { CatalogProductResult } from '@/types/smart-search';
+import type { Database } from '@/types/database';
 
 // =============================================================================
 // Component
@@ -53,7 +54,7 @@ export function LoadoutItemsDialog({
     setIsAddingItem(true);
     try {
       // 1. Create gear_item in VIP user's inventory
-      const insertData: any = {
+      const insertData: Database['public']['Tables']['gear_items']['Insert'] = {
         user_id: loadout.userId,
         name: catalogItem.name,
         brand: catalogItem.brand?.name || null,

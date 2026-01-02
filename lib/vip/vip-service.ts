@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { VipAuthenticationError, VipNotFoundError, VipInvalidLoadoutError } from './errors';
 
 /**
  * Helper to get supabase client with any typing for VIP tables
@@ -71,29 +72,28 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
 
   if (error) throw error;
 
-  // Check if user is following each VIP
-  const vips = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (data ?? []).map(async (vip: any) => {
-      let isFollowing = false;
-      if (user) {
-        const { data: followData } = await (supabase as any)
-          .from('vip_follows')
-          .select('follower_id')
-          .eq('follower_id', user.id)
-          .eq('vip_id', vip.id)
-          .single();
-        isFollowing = !!followData;
-      }
+  // Batch check if user is following VIPs (eliminates N+1 query)
+  const followedVipIds = new Set<string>();
+  if (user && data && data.length > 0) {
+    const vipIds = data.map((vip: any) => vip.id);
+    const { data: followData } = await (supabase as any)
+      .from('vip_follows')
+      .select('vip_id')
+      .eq('follower_id', user.id)
+      .in('vip_id', vipIds);
 
-      return {
-        ...transformVipAccount(vip),
-        followerCount: vip.follower_count?.[0]?.count ?? 0,
-        loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
-        isFollowing,
-      };
-    })
-  );
+    (followData || []).forEach((follow: any) => {
+      followedVipIds.add(follow.vip_id);
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vips = (data ?? []).map((vip: any) => ({
+    ...transformVipAccount(vip),
+    followerCount: vip.follower_count?.[0]?.count ?? 0,
+    loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
+    isFollowing: followedVipIds.has(vip.id),
+  }));
 
   return vips;
 }
@@ -218,28 +218,39 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
     isFollowing = !!followData;
   }
 
-  // Get loadout summaries with weights
-  const loadoutSummaries: VipLoadoutSummary[] = await Promise.all(
+  // Batch fetch items for all loadouts to eliminate N+1 query
+  const loadoutIds = (loadouts ?? []).map((l: any) => l.id);
+  const itemsByLoadout = new Map<string, any[]>();
+
+  if (loadoutIds.length > 0) {
+    const { data: allItems } = await (supabase as any)
+      .from('vip_loadout_items')
+      .select('vip_loadout_id, weight_grams, quantity')
+      .in('vip_loadout_id', loadoutIds);
+
+    (allItems || []).forEach((item: any) => {
+      const items = itemsByLoadout.get(item.vip_loadout_id) || [];
+      items.push(item);
+      itemsByLoadout.set(item.vip_loadout_id, items);
+    });
+  }
+
+  // Build loadout summaries with weights
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadoutSummaries: VipLoadoutSummary[] = (loadouts ?? []).map((loadout: any) => {
+    const items = itemsByLoadout.get(loadout.id) || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (loadouts ?? []).map(async (loadout: any) => {
-      const { data: items } = await (supabase as any)
-        .from('vip_loadout_items')
-        .select('weight_grams, quantity')
-        .eq('vip_loadout_id', loadout.id);
+    const totalWeight = items.reduce(
+      (sum: number, item: any) => sum + item.weight_grams * item.quantity,
+      0
+    );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const totalWeight = (items ?? []).reduce(
-        (sum: number, item: any) => sum + item.weight_grams * item.quantity,
-        0
-      );
-
-      return {
-        ...transformVipLoadout(loadout),
-        totalWeightGrams: totalWeight,
-        itemCount: items?.length ?? 0,
-      };
-    })
-  );
+    return {
+      ...transformVipLoadout(loadout),
+      totalWeightGrams: totalWeight,
+      itemCount: items.length,
+    };
+  });
 
   return {
     ...transformVipAccount(vip),
@@ -532,7 +543,7 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoado
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) throw new Error('Authentication required');
+  if (!user) throw new VipAuthenticationError();
 
   // Fetch VIP loadout with items and VIP profile info
   const { data: loadout, error: loadoutError } = await supabase
@@ -552,8 +563,8 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoado
     .single();
 
   if (loadoutError) throw loadoutError;
-  if (!loadout) throw new Error('VIP loadout not found');
-  if (!loadout.is_vip_loadout) throw new Error('Not a VIP loadout');
+  if (!loadout) throw new VipNotFoundError();
+  if (!loadout.is_vip_loadout) throw new VipInvalidLoadoutError();
 
   // Fetch loadout items with gear details
   const { data: items, error: itemsError } = await supabase
@@ -595,86 +606,114 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoado
   if (createError) throw createError;
   if (!newLoadout) throw new Error('Failed to create loadout');
 
+  // Batch fetch user's existing inventory to avoid N+1 queries
+  const catalogProductIds = (items || [])
+    .map((item: any) => item.gear_items?.source_attribution?.catalog_product_id)
+    .filter(Boolean);
+
+  const userInventoryMap = new Map<string, string>();
+  if (catalogProductIds.length > 0) {
+    const { data: userItems } = await supabase
+      .from('gear_items')
+      .select('id, source_attribution')
+      .eq('user_id', user.id)
+      .not('source_attribution', 'is', null);
+
+    (userItems || []).forEach((item: any) => {
+      const catalogId = item.source_attribution?.catalog_product_id;
+      if (catalogId) {
+        userInventoryMap.set(catalogId, item.id);
+      }
+    });
+  }
+
+  // Prepare items to create in batch
+  const wishlistItemsToCreate: Array<{
+    user_id: string;
+    name: string;
+    brand: string | null;
+    weight_grams: number | null;
+    product_type_id: string | null;
+    status: 'wishlist';
+    notes: string | null;
+    source_attribution?: any;
+  }> = [];
+
+  // Map to track which VIP item needs which gear_item_id
+  const itemMapping: Array<{
+    vipItemIndex: number;
+    quantity: number;
+    existingGearItemId?: string;
+    needsCreation: boolean;
+  }> = [];
+
+  // Process each VIP loadout item
+  (items || []).forEach((item: any, index: number) => {
+    const gearItem = item.gear_items;
+    const catalogProductId = gearItem.source_attribution?.catalog_product_id;
+
+    // Check if user already has this item in their inventory (from batch fetch)
+    if (catalogProductId && userInventoryMap.has(catalogProductId)) {
+      itemMapping.push({
+        vipItemIndex: index,
+        quantity: item.quantity,
+        existingGearItemId: userInventoryMap.get(catalogProductId),
+        needsCreation: false,
+      });
+    } else {
+      // Queue for batch creation
+      itemMapping.push({
+        vipItemIndex: index,
+        quantity: item.quantity,
+        needsCreation: true,
+      });
+
+      wishlistItemsToCreate.push({
+        user_id: user.id,
+        name: gearItem.name,
+        brand: gearItem.brand,
+        weight_grams: gearItem.weight_grams,
+        product_type_id: gearItem.product_type_id,
+        status: 'wishlist',
+        notes: gearItem.notes,
+        ...(gearItem.source_attribution && { source_attribution: gearItem.source_attribution }),
+      });
+    }
+  });
+
+  // Batch create all wishlist items
   let wishlistItemsCreated = 0;
+  const createdItemIds: string[] = [];
+  if (wishlistItemsToCreate.length > 0) {
+    const { data: createdItems, error: createError } = await supabase
+      .from('gear_items')
+      .insert(wishlistItemsToCreate)
+      .select('id');
+
+    if (createError) throw createError;
+    wishlistItemsCreated = createdItems?.length || 0;
+    createdItemIds.push(...(createdItems || []).map((item: any) => item.id));
+  }
+
+  // Build loadout_items array with correct gear_item_ids
   const loadoutItemsToInsert: Array<{
     loadout_id: string;
     gear_item_id: string;
     quantity: number;
   }> = [];
 
-  // Process each VIP loadout item
-  for (const item of items || []) {
-    const gearItem = (item as any).gear_items;
-    const catalogProductId = gearItem.source_attribution?.catalog_product_id;
+  let createdItemCounter = 0;
+  itemMapping.forEach((mapping) => {
+    const gearItemId = mapping.needsCreation
+      ? createdItemIds[createdItemCounter++]
+      : mapping.existingGearItemId!;
 
-    let userGearItemId: string;
-
-    // Check if user already has this item in their inventory
-    if (catalogProductId) {
-      const { data: existingItem } = await supabase
-        .from('gear_items')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('source_attribution->>catalog_product_id', catalogProductId)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingItem) {
-        // User already owns this item - use existing gear_item
-        userGearItemId = existingItem.id;
-      } else {
-        // Create new wishlist item
-        const { data: newItem, error: newItemError } = await supabase
-          .from('gear_items')
-          .insert({
-            user_id: user.id,
-            name: gearItem.name,
-            brand: gearItem.brand,
-            weight_grams: gearItem.weight_grams,
-            product_type_id: gearItem.product_type_id,
-            status: 'wishlist',
-            notes: gearItem.notes,
-            source_attribution: gearItem.source_attribution,
-          })
-          .select('id')
-          .single();
-
-        if (newItemError) throw newItemError;
-        if (!newItem) throw new Error('Failed to create wishlist item');
-
-        userGearItemId = newItem.id;
-        wishlistItemsCreated++;
-      }
-    } else {
-      // No catalog reference - create wishlist item without matching
-      const { data: newItem, error: newItemError } = await supabase
-        .from('gear_items')
-        .insert({
-          user_id: user.id,
-          name: gearItem.name,
-          brand: gearItem.brand,
-          weight_grams: gearItem.weight_grams,
-          product_type_id: gearItem.product_type_id,
-          status: 'wishlist',
-          notes: gearItem.notes,
-        })
-        .select('id')
-        .single();
-
-      if (newItemError) throw newItemError;
-      if (!newItem) throw new Error('Failed to create wishlist item');
-
-      userGearItemId = newItem.id;
-      wishlistItemsCreated++;
-    }
-
-    // Add to loadout_items batch
     loadoutItemsToInsert.push({
       loadout_id: newLoadout.id,
-      gear_item_id: userGearItemId,
-      quantity: (item as any).quantity,
+      gear_item_id: gearItemId,
+      quantity: mapping.quantity,
     });
-  }
+  });
 
   // Batch insert all loadout items
   if (loadoutItemsToInsert.length > 0) {

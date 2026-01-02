@@ -6,19 +6,32 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { copyVipLoadout } from '@/lib/vip/vip-service';
+import {
+  VipAuthenticationError,
+  VipNotFoundError,
+  VipInvalidLoadoutError
+} from '@/lib/vip/errors';
+
+const requestSchema = z.object({
+  vipLoadoutId: z.string().uuid('Invalid UUID format for vipLoadoutId'),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { vipLoadoutId } = body;
 
-    if (!vipLoadoutId || typeof vipLoadoutId !== 'string') {
+    // Validate request body with Zod
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Missing or invalid vipLoadoutId' },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { vipLoadoutId } = validation.data;
 
     // Copy loadout using the new unified schema
     const result = await copyVipLoadout(vipLoadoutId);
@@ -27,19 +40,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error copying VIP loadout:', error);
 
+    // Handle specific error classes instead of string matching
+    if (error instanceof VipAuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+
+    if (error instanceof VipNotFoundError || error instanceof VipInvalidLoadoutError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
     const message = error instanceof Error ? error.message : 'Failed to copy loadout';
-
-    // Handle specific error cases
-    if (message === 'Authentication required') {
-      return NextResponse.json({ error: message }, { status: 401 });
-    }
-
-    if (message === 'VIP loadout not found' || message === 'Not a VIP loadout') {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
-
     return NextResponse.json(
-      { error: 'Failed to copy loadout' },
+      { error: message },
       { status: 500 }
     );
   }
