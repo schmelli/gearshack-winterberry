@@ -83,7 +83,7 @@ BEGIN
     FROM messages m
     LEFT JOIN profiles p ON p.id = m.sender_id
     WHERE m.deletion_state = 'active'
-      AND m.conversation_id IN (SELECT conversation_id FROM user_conversations)
+      AND m.conversation_id IN (SELECT conv_id FROM user_conversations)
   ),
   last_messages AS (
     -- Filter to only the most recent message per conversation
@@ -116,7 +116,7 @@ BEGIN
       ) as participants_data
     FROM conversation_participants cp
     INNER JOIN profiles p ON p.id = cp.user_id
-    WHERE cp.conversation_id IN (SELECT conversation_id FROM user_conversations)
+    WHERE cp.conversation_id IN (SELECT conv_id FROM user_conversations)
     GROUP BY cp.conversation_id
   )
   -- Final join to combine everything
@@ -136,8 +136,8 @@ BEGIN
     lm.message_data as last_message,
     cpa.participants_data as participants
   FROM user_conversations uc
-  LEFT JOIN last_messages lm ON lm.conversation_id = uc.conversation_id
-  LEFT JOIN conversation_participants_agg cpa ON cpa.conversation_id = uc.conversation_id
+  LEFT JOIN last_messages lm ON lm.conversation_id = uc.conv_id
+  LEFT JOIN conversation_participants_agg cpa ON cpa.conversation_id = uc.conv_id
   ORDER BY uc.conv_updated_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
