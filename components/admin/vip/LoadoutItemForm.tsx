@@ -29,7 +29,7 @@ const itemFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   brand: z.string().optional(),
   weightGrams: z.number().int().positive('Weight must be a positive number'),
-  quantity: z.number().int().min(1, 'Quantity must be at least 1').default(1),
+  quantity: z.number().int().min(1, 'Quantity must be at least 1'),
   category: z.string().min(1, 'Category is required'),
   notes: z.string().optional(),
 });
