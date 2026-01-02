@@ -130,7 +130,18 @@ export interface GearItem {
   /** Loadout ID if item was added from a merchant loadout */
   sourceLoadoutId: string | null;
 
-  // Section 8: Dependencies (Feature: 037-gear-dependencies)
+  // Section 8: VIP Source Attribution (Feature: 052-vip-loadouts)
+  /** Attribution metadata for VIP curated items */
+  sourceAttribution?: {
+    /** Type of source (e.g., 'vip_curated', 'merchant') */
+    type: string;
+    /** Source URL (e.g., YouTube video link where VIP showed this gear) */
+    url?: string;
+    /** When the source was last checked/verified */
+    checkedAt?: string;
+  } | null;
+
+  // Section 9: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
   dependencyIds: string[];
 }
