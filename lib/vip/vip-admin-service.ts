@@ -9,7 +9,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-// TODO: Update to use new VIP schema
 import type {
   VipWithStats,
   CreateVipRequest,
@@ -24,27 +23,54 @@ import type {
 
 /**
  * Get all VIPs for admin (includes archived)
+ *
+ * Note: VIP loadouts now use the unified schema (loadouts table with is_vip_loadout=true).
+ * Loadout counts are fetched separately since there's no direct FK relationship.
  */
 export async function getAllVips(): Promise<VipWithStats[]> {
   const supabase = createClient();
 
-  // Fetch all VIPs with counts in a single query (fixing N+1 problem)
+  // Fetch all VIPs with follower counts
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
-      vip_follows(count),
-      vip_loadouts(count)
+      vip_follows(count)
     `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  // Transform VIPs with stats (counts now included in the query)
+  // Get loadout counts for claimed VIPs (those with claimed_by_user_id)
+  // VIP loadouts are in the regular loadouts table with is_vip_loadout = true
+  const claimedUserIds = (data || [])
+    .filter((vip: Record<string, unknown>) => vip.claimed_by_user_id)
+    .map((vip: Record<string, unknown>) => vip.claimed_by_user_id as string);
+
+  let loadoutCountMap: Map<string, number> = new Map();
+
+  if (claimedUserIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: loadoutCounts } = await (supabase as any)
+      .from('loadouts')
+      .select('user_id')
+      .in('user_id', claimedUserIds)
+      .eq('is_vip_loadout', true);
+
+    // Count loadouts per user_id
+    if (loadoutCounts) {
+      loadoutCounts.forEach((row: { user_id: string }) => {
+        const count = loadoutCountMap.get(row.user_id) || 0;
+        loadoutCountMap.set(row.user_id, count + 1);
+      });
+    }
+  }
+
+  // Transform VIPs with stats
   const vips: VipWithStats[] = (data || []).map((vip: Record<string, unknown>) => {
     const vipFollows = vip.vip_follows as { count: number }[] | null;
-    const vipLoadouts = vip.vip_loadouts as { count: number }[] | null;
+    const claimedByUserId = vip.claimed_by_user_id as string | null;
 
     return {
       id: vip.id as string,
@@ -55,13 +81,13 @@ export async function getAllVips(): Promise<VipWithStats[]> {
       socialLinks: vip.social_links as Record<string, string>,
       status: vip.status as 'curated' | 'claimed',
       isFeatured: vip.is_featured as boolean,
-      claimedByUserId: vip.claimed_by_user_id as string | null,
+      claimedByUserId,
       createdAt: vip.created_at as string,
       updatedAt: vip.updated_at as string,
       archivedAt: vip.archived_at as string | null,
       archiveReason: vip.archive_reason as string | null,
       followerCount: vipFollows?.[0]?.count ?? 0,
-      loadoutCount: vipLoadouts?.[0]?.count ?? 0,
+      loadoutCount: claimedByUserId ? (loadoutCountMap.get(claimedByUserId) || 0) : 0,
     };
   });
 
