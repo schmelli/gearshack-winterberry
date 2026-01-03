@@ -58,12 +58,13 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
   const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Note: VIP loadouts now use the unified schema (loadouts table with is_vip_loadout=true)
+  // Loadout counts are fetched separately since there's no direct FK relationship
   const { data, error } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
-      follower_count:vip_follows(count),
-      loadout_count:vip_loadouts(count)
+      follower_count:vip_follows(count)
     `)
     .eq('is_featured', true)
     .is('archived_at', null)
@@ -71,6 +72,30 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
     .limit(limit);
 
   if (error) throw error;
+
+  // Get loadout counts for claimed VIPs (those with claimed_by_user_id)
+  // VIP loadouts are in the regular loadouts table with is_vip_loadout = true
+  const claimedUserIds = (data || [])
+    .filter((vip: Record<string, unknown>) => vip.claimed_by_user_id)
+    .map((vip: Record<string, unknown>) => vip.claimed_by_user_id as string);
+
+  const loadoutCountMap = new Map<string, number>();
+
+  if (claimedUserIds.length > 0) {
+    const { data: loadoutCounts } = await (supabase as any)
+      .from('loadouts')
+      .select('user_id')
+      .in('user_id', claimedUserIds)
+      .eq('is_vip_loadout', true);
+
+    // Count loadouts per user_id
+    if (loadoutCounts) {
+      loadoutCounts.forEach((row: { user_id: string }) => {
+        const count = loadoutCountMap.get(row.user_id) || 0;
+        loadoutCountMap.set(row.user_id, count + 1);
+      });
+    }
+  }
 
   // Batch check if user is following VIPs (eliminates N+1 query)
   const followedVipIds = new Set<string>();
@@ -88,12 +113,15 @@ export async function getFeaturedVips(limit = 6): Promise<VipWithStats[]> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vips = (data ?? []).map((vip: any) => ({
-    ...transformVipAccount(vip),
-    followerCount: vip.follower_count?.[0]?.count ?? 0,
-    loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
-    isFollowing: followedVipIds.has(vip.id),
-  }));
+  const vips = (data ?? []).map((vip: any) => {
+    const claimedByUserId = vip.claimed_by_user_id as string | null;
+    return {
+      ...transformVipAccount(vip),
+      followerCount: vip.follower_count?.[0]?.count ?? 0,
+      loadoutCount: claimedByUserId ? (loadoutCountMap.get(claimedByUserId) || 0) : 0,
+      isFollowing: followedVipIds.has(vip.id),
+    };
+  });
 
   return vips;
 }
@@ -122,12 +150,12 @@ export async function searchVips(
   const { limit = 20, offset = 0, featured } = options;
   const supabase = getVipClient();
 
+  // Note: VIP loadouts now use the unified schema (loadouts table with is_vip_loadout=true)
   let queryBuilder = (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
-      follower_count:vip_follows(count),
-      loadout_count:vip_loadouts(count)
+      follower_count:vip_follows(count)
     `, { count: 'exact' })
     .is('archived_at', null);
 
@@ -146,12 +174,37 @@ export async function searchVips(
 
   if (error) throw error;
 
+  // Get loadout counts for claimed VIPs
+  const claimedUserIds = (data || [])
+    .filter((vip: Record<string, unknown>) => vip.claimed_by_user_id)
+    .map((vip: Record<string, unknown>) => vip.claimed_by_user_id as string);
+
+  const loadoutCountMap = new Map<string, number>();
+
+  if (claimedUserIds.length > 0) {
+    const { data: loadoutCounts } = await (supabase as any)
+      .from('loadouts')
+      .select('user_id')
+      .in('user_id', claimedUserIds)
+      .eq('is_vip_loadout', true);
+
+    if (loadoutCounts) {
+      loadoutCounts.forEach((row: { user_id: string }) => {
+        const cnt = loadoutCountMap.get(row.user_id) || 0;
+        loadoutCountMap.set(row.user_id, cnt + 1);
+      });
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vips: VipWithStats[] = (data ?? []).map((vip: any) => ({
-    ...transformVipAccount(vip),
-    followerCount: vip.follower_count?.[0]?.count ?? 0,
-    loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
-  }));
+  const vips: VipWithStats[] = (data ?? []).map((vip: any) => {
+    const claimedByUserId = vip.claimed_by_user_id as string | null;
+    return {
+      ...transformVipAccount(vip),
+      followerCount: vip.follower_count?.[0]?.count ?? 0,
+      loadoutCount: claimedByUserId ? (loadoutCountMap.get(claimedByUserId) || 0) : 0,
+    };
+  });
 
   return {
     vips,
@@ -185,12 +238,12 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Note: VIP loadouts now use the unified schema (loadouts table with is_vip_loadout=true)
   const { data: vip, error } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
-      follower_count:vip_follows(count),
-      loadout_count:vip_loadouts(count)
+      follower_count:vip_follows(count)
     `)
     .eq('slug', slug)
     .is('archived_at', null)
@@ -198,13 +251,18 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
 
   if (error || !vip) return null;
 
-  // Get published loadouts
-  const { data: loadouts } = await (supabase as any)
-    .from('vip_loadouts')
-    .select('*')
-    .eq('vip_id', vip.id)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
+  // Get VIP loadouts from unified loadouts table
+  // VIP loadouts are linked via user_id = vip.claimed_by_user_id
+  let loadouts: any[] = [];
+  if (vip.claimed_by_user_id) {
+    const { data: loadoutData } = await (supabase as any)
+      .from('loadouts')
+      .select('*')
+      .eq('user_id', vip.claimed_by_user_id)
+      .eq('is_vip_loadout', true)
+      .order('created_at', { ascending: false });
+    loadouts = loadoutData || [];
+  }
 
   // Check if user is following
   let isFollowing = false;
@@ -219,34 +277,45 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   }
 
   // Batch fetch items for all loadouts to eliminate N+1 query
-  const loadoutIds = (loadouts ?? []).map((l: any) => l.id);
+  // Using unified loadout_items table
+  const loadoutIds = loadouts.map((l: any) => l.id);
   const itemsByLoadout = new Map<string, any[]>();
 
   if (loadoutIds.length > 0) {
     const { data: allItems } = await (supabase as any)
-      .from('vip_loadout_items')
-      .select('vip_loadout_id, weight_grams, quantity')
-      .in('vip_loadout_id', loadoutIds);
+      .from('loadout_items')
+      .select(`
+        loadout_id,
+        quantity,
+        gear_items!inner (
+          weight_grams
+        )
+      `)
+      .in('loadout_id', loadoutIds);
 
     (allItems || []).forEach((item: any) => {
-      const items = itemsByLoadout.get(item.vip_loadout_id) || [];
-      items.push(item);
-      itemsByLoadout.set(item.vip_loadout_id, items);
+      const items = itemsByLoadout.get(item.loadout_id) || [];
+      items.push({
+        loadout_id: item.loadout_id,
+        weight_grams: item.gear_items?.weight_grams || 0,
+        quantity: item.quantity,
+      });
+      itemsByLoadout.set(item.loadout_id, items);
     });
   }
 
   // Build loadout summaries with weights
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const loadoutSummaries: VipLoadoutSummary[] = (loadouts ?? []).map((loadout: any) => {
+  const loadoutSummaries: VipLoadoutSummary[] = loadouts.map((loadout: any) => {
     const items = itemsByLoadout.get(loadout.id) || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const totalWeight = items.reduce(
-      (sum: number, item: any) => sum + item.weight_grams * item.quantity,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (sum: number, item: any) => sum + (item.weight_grams || 0) * item.quantity,
       0
     );
 
     return {
-      ...transformVipLoadout(loadout),
+      ...transformUnifiedLoadout(loadout, vip.id),
       totalWeightGrams: totalWeight,
       itemCount: items.length,
     };
@@ -255,7 +324,7 @@ export async function getVipBySlug(slug: string): Promise<VipProfile | null> {
   return {
     ...transformVipAccount(vip),
     followerCount: vip.follower_count?.[0]?.count ?? 0,
-    loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
+    loadoutCount: loadouts.length,
     isFollowing,
     loadouts: loadoutSummaries,
   };
@@ -297,13 +366,13 @@ export async function getVipLoadout(
   const supabase = getVipClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Note: VIP loadouts now use the unified schema (loadouts table with is_vip_loadout=true)
   // Get VIP first
   const { data: vip } = await (supabase as any)
     .from('vip_accounts')
     .select(`
       *,
-      follower_count:vip_follows(count),
-      loadout_count:vip_loadouts(count)
+      follower_count:vip_follows(count)
     `)
     .eq('slug', vipSlug)
     .is('archived_at', null)
@@ -311,44 +380,82 @@ export async function getVipLoadout(
 
   if (!vip) return null;
 
-  // Get loadout
+  // Get loadout from unified loadouts table
+  // VIP loadouts are linked via user_id = vip.claimed_by_user_id
+  if (!vip.claimed_by_user_id) return null;
+
   const { data: loadout } = await (supabase as any)
-    .from('vip_loadouts')
+    .from('loadouts')
     .select('*')
-    .eq('vip_id', vip.id)
+    .eq('user_id', vip.claimed_by_user_id)
     .eq('slug', loadoutSlug)
-    .eq('status', 'published')
+    .eq('is_vip_loadout', true)
     .single();
 
   if (!loadout) return null;
 
-  // Get loadout items
-  const { data: items } = await (supabase as any)
-    .from('vip_loadout_items')
-    .select('*')
-    .eq('vip_loadout_id', loadout.id)
-    .order('category')
-    .order('sort_order');
+  // Get loadout count for this VIP
+  const { data: loadoutCountData } = await (supabase as any)
+    .from('loadouts')
+    .select('id')
+    .eq('user_id', vip.claimed_by_user_id)
+    .eq('is_vip_loadout', true);
+  const loadoutCount = loadoutCountData?.length || 0;
 
-  // Check if bookmarked
+  // Get loadout items from unified loadout_items table with gear_items
+  const { data: items } = await (supabase as any)
+    .from('loadout_items')
+    .select(`
+      id,
+      loadout_id,
+      quantity,
+      gear_items!inner (
+        id,
+        name,
+        brand,
+        weight_grams,
+        notes,
+        product_type_id,
+        categories (
+          name
+        )
+      )
+    `)
+    .eq('loadout_id', loadout.id);
+
+  // Check if bookmarked (using loadout_id instead of vip_loadout_id)
   let isBookmarked = false;
   if (user) {
     const { data: bookmarkData } = await (supabase as any)
       .from('vip_bookmarks')
       .select('user_id')
       .eq('user_id', user.id)
-      .eq('vip_loadout_id', loadout.id)
+      .eq('loadout_id', loadout.id)
       .single();
     isBookmarked = !!bookmarkData;
   }
 
+  // Transform items to match VIP loadout item structure
+  const transformedItems = (items ?? []).map((item: any, index: number) => ({
+    id: item.id,
+    vipLoadoutId: item.loadout_id,
+    gearItemId: item.gear_items?.id || null,
+    name: item.gear_items?.name || 'Unknown Item',
+    brand: item.gear_items?.brand || null,
+    weightGrams: item.gear_items?.weight_grams || 0,
+    quantity: item.quantity,
+    notes: item.gear_items?.notes || null,
+    category: item.gear_items?.categories?.name || 'Uncategorized',
+    sortOrder: index,
+    createdAt: loadout.created_at,
+  }));
+
   // Calculate category breakdown
   const categoryMap = new Map<string, { weight: number; count: number }>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (items ?? []).forEach((item: any) => {
+  transformedItems.forEach((item: any) => {
     const existing = categoryMap.get(item.category) ?? { weight: 0, count: 0 };
     categoryMap.set(item.category, {
-      weight: existing.weight + item.weight_grams * item.quantity,
+      weight: existing.weight + item.weightGrams * item.quantity,
       count: existing.count + 1,
     });
   });
@@ -361,23 +468,22 @@ export async function getVipLoadout(
     })
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalWeight = (items ?? []).reduce(
-    (sum: number, item: any) => sum + item.weight_grams * item.quantity,
+  const totalWeight = transformedItems.reduce(
+    (sum: number, item: any) => sum + item.weightGrams * item.quantity,
     0
   );
 
   return {
-    ...transformVipLoadout(loadout),
+    ...transformUnifiedLoadout(loadout, vip.id),
     totalWeightGrams: totalWeight,
-    itemCount: items?.length ?? 0,
+    itemCount: transformedItems.length,
     isBookmarked,
     vip: {
       ...transformVipAccount(vip),
       followerCount: vip.follower_count?.[0]?.count ?? 0,
-      loadoutCount: vip.loadout_count?.[0]?.count ?? 0,
+      loadoutCount,
     },
-    items: (items ?? []).map(transformVipLoadoutItem),
+    items: transformedItems,
     categoryBreakdown,
   };
 }
@@ -449,6 +555,7 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
 
 /**
  * Bookmark a VIP loadout
+ * Note: Uses loadout_id column (unified schema)
  */
 export async function bookmarkLoadout(loadoutId: string): Promise<VipBookmarkResponse> {
   const supabase = getVipClient();
@@ -456,9 +563,9 @@ export async function bookmarkLoadout(loadoutId: string): Promise<VipBookmarkRes
 
   if (!user) throw new Error('Authentication required');
 
-  const { error } = await supabase.from('vip_bookmarks').insert({
+  const { error } = await (supabase as any).from('vip_bookmarks').insert({
     user_id: user.id,
-    vip_loadout_id: loadoutId,
+    loadout_id: loadoutId,
   });
 
   if (error && error.code !== '23505') throw error;
@@ -468,6 +575,7 @@ export async function bookmarkLoadout(loadoutId: string): Promise<VipBookmarkRes
 
 /**
  * Remove bookmark from a VIP loadout
+ * Note: Uses loadout_id column (unified schema)
  */
 export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkResponse> {
   const supabase = getVipClient();
@@ -479,7 +587,7 @@ export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkR
     .from('vip_bookmarks')
     .delete()
     .eq('user_id', user.id)
-    .eq('vip_loadout_id', loadoutId);
+    .eq('loadout_id', loadoutId);
 
   if (error) throw error;
 
@@ -488,6 +596,7 @@ export async function unbookmarkLoadout(loadoutId: string): Promise<VipBookmarkR
 
 /**
  * Get user's bookmarked loadouts
+ * Note: Now queries unified loadouts table with is_vip_loadout=true
  */
 export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> {
   const supabase = getVipClient();
@@ -495,27 +604,67 @@ export async function getUserBookmarkedLoadouts(): Promise<VipLoadoutSummary[]> 
 
   if (!user) return [];
 
+  // Query bookmarks with unified loadouts table
   const { data: bookmarks } = await (supabase as any)
     .from('vip_bookmarks')
     .select(`
-      vip_loadout_id,
-      vip_loadouts (
+      loadout_id,
+      loadouts!inner (
         *,
-        vip_accounts (name, slug)
+        profiles!loadouts_user_id_fkey (
+          display_name
+        )
       )
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Get VIP account info for the loadouts
+  const loadoutUserIds = (bookmarks ?? [])
+    .map((b: any) => b.loadouts?.user_id)
+    .filter(Boolean);
+
+  const vipAccountMap = new Map<string, { name: string; slug: string }>();
+  if (loadoutUserIds.length > 0) {
+    const { data: vips } = await (supabase as any)
+      .from('vip_accounts')
+      .select('claimed_by_user_id, name, slug')
+      .in('claimed_by_user_id', loadoutUserIds);
+
+    (vips || []).forEach((vip: any) => {
+      if (vip.claimed_by_user_id) {
+        vipAccountMap.set(vip.claimed_by_user_id, { name: vip.name, slug: vip.slug });
+      }
+    });
+  }
+
   return (bookmarks ?? [])
-    .filter((b: any) => b.vip_loadouts)
-    .map((b: any) => ({
-      ...transformVipLoadout(b.vip_loadouts as Record<string, unknown>),
-      totalWeightGrams: 0, // Would need separate query for weights
-      itemCount: 0,
-      isBookmarked: true,
-    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((b: any) => b.loadouts && b.loadouts.is_vip_loadout)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((b: any) => {
+      const vipInfo = vipAccountMap.get(b.loadouts.user_id);
+      return {
+        id: b.loadouts.id,
+        vipId: vipInfo ? b.loadouts.user_id : '',
+        name: b.loadouts.name,
+        slug: b.loadouts.slug || '',
+        sourceUrl: '',
+        description: b.loadouts.description || null,
+        tripType: null,
+        dateRange: null,
+        status: 'published' as const,
+        isSourceAvailable: true,
+        sourceCheckedAt: null,
+        createdBy: b.loadouts.user_id,
+        createdAt: b.loadouts.created_at,
+        updatedAt: b.loadouts.updated_at,
+        publishedAt: b.loadouts.created_at,
+        totalWeightGrams: 0, // Would need separate query for weights
+        itemCount: 0,
+        isBookmarked: true,
+      };
+    });
 }
 
 // =============================================================================
@@ -771,6 +920,30 @@ function transformVipLoadout(data: Record<string, unknown>) {
     createdAt: data.created_at as string,
     updatedAt: data.updated_at as string,
     publishedAt: data.published_at as string | null,
+  };
+}
+
+/**
+ * Transform unified loadout (from loadouts table) to VIP loadout structure
+ * Used when querying VIP loadouts from the unified schema
+ */
+function transformUnifiedLoadout(data: Record<string, unknown>, vipId: string) {
+  return {
+    id: data.id as string,
+    vipId, // Passed from VIP account
+    name: data.name as string,
+    slug: data.slug as string || '',
+    sourceUrl: '', // Not available in unified schema
+    description: data.description as string | null,
+    tripType: null, // Not available in unified schema
+    dateRange: null, // Not available in unified schema
+    status: 'published' as const, // VIP loadouts from unified schema are always published
+    isSourceAvailable: true,
+    sourceCheckedAt: null,
+    createdBy: data.user_id as string | null,
+    createdAt: data.created_at as string,
+    updatedAt: data.updated_at as string,
+    publishedAt: data.created_at as string | null, // Use created_at as published_at
   };
 }
 
