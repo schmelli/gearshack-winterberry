@@ -1,489 +1,237 @@
 /**
  * VIP API Routes Integration Tests
  *
- * Feature: 052-vip-loadouts
+ * Feature: 052-vip-loadouts (Unified Schema)
  *
  * Tests:
- * - GET /api/vip - VIP directory listing with search and pagination
- * - GET /api/vip/featured - Featured VIPs for community page
+ * - POST /api/vip/copy-loadout - Copy VIP loadout to user's account
  *
  * Coverage:
- * - Query parameter validation
- * - Pagination
- * - Search filtering
- * - Featured filtering
+ * - Request validation (Zod schema)
+ * - Authentication checks
+ * - VIP loadout retrieval
+ * - Intelligent item matching
+ * - Wishlist creation
  * - Error handling
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET as getVips } from '@/app/api/vip/route';
-import { GET as getFeaturedVips } from '@/app/api/vip/featured/route';
-import type { VipWithStats } from '@/types/vip';
+import { POST as copyVipLoadout } from '@/app/api/vip/copy-loadout/route';
 
 // =============================================================================
 // Mock Setup
 // =============================================================================
 
-// Mock VIP data
-const mockVipAccounts: Array<Record<string, unknown>> = [
-  {
-    id: 'vip-1',
-    name: 'Andrew Skurka',
-    slug: 'andrew-skurka',
-    bio: 'National Geographic Adventurer of the Year. Ultralight backpacker.',
-    avatar_url: 'https://example.com/skurka.jpg',
-    social_links: { youtube: 'https://youtube.com/skurka' },
-    status: 'claimed',
-    is_featured: true,
-    claimed_by_user_id: 'user-1',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    archived_at: null,
-    archive_reason: null,
-    vip_follows: [{ count: 1500 }],
-    vip_loadouts: [{ count: 12 }],
+// Mock Supabase client
+const mockSupabaseClient = {
+  auth: {
+    getUser: vi.fn(),
   },
-  {
-    id: 'vip-2',
-    name: 'Darwin on the Trail',
-    slug: 'darwin-on-the-trail',
-    bio: 'Thru-hiker and YouTube creator sharing long trails.',
-    avatar_url: 'https://example.com/darwin.jpg',
-    social_links: { youtube: 'https://youtube.com/darwin' },
-    status: 'curated',
-    is_featured: true,
-    claimed_by_user_id: null,
-    created_at: '2024-01-02T00:00:00Z',
-    updated_at: '2024-01-02T00:00:00Z',
-    archived_at: null,
-    archive_reason: null,
-    vip_follows: [{ count: 2200 }],
-    vip_loadouts: [{ count: 8 }],
-  },
-  {
-    id: 'vip-3',
-    name: 'Jupiter Hikes',
-    slug: 'jupiter-hikes',
-    bio: 'Backcountry photographer and gear reviewer.',
-    avatar_url: 'https://example.com/jupiter.jpg',
-    social_links: { instagram: 'https://instagram.com/jupiter' },
-    status: 'curated',
-    is_featured: false,
-    claimed_by_user_id: null,
-    created_at: '2024-01-03T00:00:00Z',
-    updated_at: '2024-01-03T00:00:00Z',
-    archived_at: null,
-    archive_reason: null,
-    vip_follows: [{ count: 800 }],
-    vip_loadouts: [{ count: 5 }],
-  },
-];
+  from: vi.fn(() => mockSupabaseClient),
+  select: vi.fn(() => mockSupabaseClient),
+  insert: vi.fn(() => mockSupabaseClient),
+  eq: vi.fn(() => mockSupabaseClient),
+  single: vi.fn(),
+  maybeSingle: vi.fn(),
+  limit: vi.fn(() => mockSupabaseClient),
+};
 
-// Mock query builder with chaining
-function createMockQueryBuilder(data: unknown[] = [], error: Error | null = null, count = 0) {
-  const mock = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    is: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    range: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    then: vi.fn((resolve) => resolve({ data, error, count })),
-  };
-  return mock;
-}
-
-// Mock Supabase server client
-const mockFrom = vi.fn();
-const mockGetUser = vi.fn();
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => Promise.resolve({
-    from: mockFrom,
-    auth: {
-      getUser: mockGetUser,
-    },
-  })),
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: () => mockSupabaseClient,
 }));
+
+// Mock VIP service
+vi.mock('@/lib/vip/vip-service', () => ({
+  copyVipLoadout: vi.fn(),
+}));
+
+// Import the mocked function
+import { copyVipLoadout as mockCopyVipLoadout } from '@/lib/vip/vip-service';
+
+// =============================================================================
+// Test Data
+// =============================================================================
+
+const mockUser = {
+  id: 'user-123',
+  email: 'test@example.com',
+};
+
+const mockVipLoadoutId = '550e8400-e29b-41d4-a716-446655440000';
+
+const mockCopyResult = {
+  loadoutId: 'new-loadout-123',
+  loadoutName: "Andrew Skurka's PCT Setup - Copy",
+  itemsAdded: 15,
+  wishlistItemsCreated: 10,
+};
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
-function createRequest(path: string, searchParams?: Record<string, string>): NextRequest {
-  const url = new URL(path, 'http://localhost:3000');
-  if (searchParams) {
-    Object.entries(searchParams).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
-    });
-  }
-  return new NextRequest(url);
+function createRequest(body: Record<string, unknown>): NextRequest {
+  return new NextRequest('http://localhost:3000/api/vip/copy-loadout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 // =============================================================================
-// Test Suite: GET /api/vip
+// Tests
 // =============================================================================
 
-describe('GET /api/vip', () => {
+describe('POST /api/vip/copy-loadout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
   });
 
-  describe('Successful Requests', () => {
-    it('should return VIP list with default pagination', async () => {
-      const queryBuilder = createMockQueryBuilder(mockVipAccounts, null, 3);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip');
-      const response = await getVips(request);
+  describe('Request Validation', () => {
+    it('should reject missing vipLoadoutId', async () => {
+      const request = createRequest({});
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.vips).toHaveLength(3);
-      expect(data.total).toBe(3);
-      expect(data.hasMore).toBe(false);
-
-      // Verify first VIP structure
-      const firstVip = data.vips[0];
-      expect(firstVip.name).toBe('Andrew Skurka');
-      expect(firstVip.slug).toBe('andrew-skurka');
-      expect(firstVip.followerCount).toBe(1500);
-      expect(firstVip.loadoutCount).toBe(12);
+      expect(response.status).toBe(400);
+      // Zod error message for missing required field
+      expect(data.error).toMatch(/required|expected string/i);
     });
 
-    it('should apply custom pagination parameters', async () => {
-      const queryBuilder = createMockQueryBuilder([mockVipAccounts[0]], null, 3);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip', { limit: '1', offset: '0' });
-      const response = await getVips(request);
+    it('should reject invalid UUID format', async () => {
+      const request = createRequest({ vipLoadoutId: 'not-a-uuid' });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.vips).toHaveLength(1);
-      expect(data.hasMore).toBe(true); // More results available
-
-      // Verify pagination was applied
-      expect(queryBuilder.range).toHaveBeenCalledWith(0, 0); // offset to offset + limit - 1
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Invalid UUID');
     });
 
-    it('should filter by search query', async () => {
-      const queryBuilder = createMockQueryBuilder([mockVipAccounts[0]], null, 1);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip', { query: 'Skurka' });
-      const response = await getVips(request);
+    it('should reject non-string vipLoadoutId', async () => {
+      const request = createRequest({ vipLoadoutId: 12345 });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(queryBuilder.or).toHaveBeenCalled();
-      expect(data.vips).toHaveLength(1);
-    });
-
-    it('should filter by featured status', async () => {
-      const featuredVips = mockVipAccounts.filter((v) => v.is_featured);
-      const queryBuilder = createMockQueryBuilder(featuredVips, null, 2);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip', { featured: 'true' });
-      const response = await getVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(queryBuilder.eq).toHaveBeenCalledWith('is_featured', true);
-      expect(data.vips.every((v: VipWithStats) => v.isFeatured)).toBe(true);
-    });
-
-    it('should exclude archived VIPs', async () => {
-      const queryBuilder = createMockQueryBuilder(mockVipAccounts, null, 3);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip');
-      await getVips(request);
-
-      expect(queryBuilder.is).toHaveBeenCalledWith('archived_at', null);
-    });
-
-    it('should order by featured first, then by creation date', async () => {
-      const queryBuilder = createMockQueryBuilder(mockVipAccounts, null, 3);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip');
-      await getVips(request);
-
-      expect(queryBuilder.order).toHaveBeenCalledWith('is_featured', { ascending: false });
-      expect(queryBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(response.status).toBe(400);
     });
   });
 
-  describe('Validation Errors', () => {
-    it('should reject invalid limit parameter', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
+  describe('Successful Copy', () => {
+    it('should copy VIP loadout and return result', async () => {
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockResolvedValue(mockCopyResult);
 
-      const request = createRequest('/api/vip', { limit: '100' }); // max is 50
-      const response = await getVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid query parameters');
+      expect(response.status).toBe(200);
+      expect(data.loadoutId).toBe(mockCopyResult.loadoutId);
+      expect(data.loadoutName).toBe(mockCopyResult.loadoutName);
+      expect(data.itemsAdded).toBe(mockCopyResult.itemsAdded);
+      expect(data.wishlistItemsCreated).toBe(mockCopyResult.wishlistItemsCreated);
     });
 
-    it('should reject negative offset', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
+    it('should call copyVipLoadout service with correct ID', async () => {
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockResolvedValue(mockCopyResult);
 
-      const request = createRequest('/api/vip', { offset: '-5' });
-      const response = await getVips(request);
-      const data = await response.json();
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      await copyVipLoadout(request);
 
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid query parameters');
-    });
-
-    it('should reject invalid featured filter value', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip', { featured: 'maybe' });
-      const response = await getVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid query parameters');
+      expect(mockCopyVipLoadout).toHaveBeenCalledWith(mockVipLoadoutId);
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle database errors gracefully', async () => {
-      const queryBuilder = createMockQueryBuilder(null, new Error('Database error'), 0);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip');
-      const response = await getVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch VIPs');
-    });
-
-    it('should return empty array when no VIPs found', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip', { query: 'NonExistentVIP' });
-      const response = await getVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.vips).toHaveLength(0);
-      expect(data.total).toBe(0);
-    });
-  });
-});
-
-// =============================================================================
-// Test Suite: GET /api/vip/featured
-// =============================================================================
-
-describe('GET /api/vip/featured', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-  });
-
-  describe('Successful Requests', () => {
-    it('should return featured VIPs with default limit', async () => {
-      const featuredVips = mockVipAccounts.filter((v) => v.is_featured);
-      const queryBuilder = createMockQueryBuilder(featuredVips, null, 2);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip/featured');
-      const response = await getFeaturedVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.vips).toBeDefined();
-      expect(Array.isArray(data.vips)).toBe(true);
-
-      // Verify all returned VIPs are featured
-      data.vips.forEach((vip: VipWithStats) => {
-        expect(vip.isFeatured).toBe(true);
-      });
-    });
-
-    it('should apply custom limit parameter', async () => {
-      const queryBuilder = createMockQueryBuilder([mockVipAccounts[0]], null, 1);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip/featured', { limit: '3' });
-      const response = await getFeaturedVips(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(queryBuilder.limit).toHaveBeenCalledWith(3);
-    });
-
-    it('should include follow status for authenticated users', async () => {
-      const featuredVips = mockVipAccounts.filter((v) => v.is_featured);
-
-      // Mock authenticated user
-      mockGetUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } },
-        error: null,
-      });
-
-      // First call for VIPs, second for follows
-      const vipQueryBuilder = createMockQueryBuilder(featuredVips, null, 2);
-      const followsQueryBuilder = createMockQueryBuilder(
-        [{ vip_id: 'vip-1' }], // User follows vip-1
-        null,
-        1
+    it('should return 401 for unauthenticated requests', async () => {
+      const { VipAuthenticationError } = await import('@/lib/vip/errors');
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new VipAuthenticationError('Authentication required')
       );
 
-      mockFrom
-        .mockReturnValueOnce(vipQueryBuilder)
-        .mockReturnValueOnce(followsQueryBuilder);
-
-      const request = createRequest('/api/vip/featured');
-      const response = await getFeaturedVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      // isFollowing should be set based on follows query
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Authentication required');
     });
 
-    it('should exclude archived VIPs', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
+    it('should return 404 for non-existent VIP loadout', async () => {
+      const { VipNotFoundError } = await import('@/lib/vip/errors');
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new VipNotFoundError('VIP loadout not found')
+      );
 
-      const request = createRequest('/api/vip/featured');
-      await getFeaturedVips(request);
-
-      expect(queryBuilder.is).toHaveBeenCalledWith('archived_at', null);
-    });
-
-    it('should only return VIPs with published loadouts', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip/featured');
-      await getFeaturedVips(request);
-
-      expect(queryBuilder.eq).toHaveBeenCalledWith('vip_loadouts.status', 'published');
-    });
-  });
-
-  describe('Validation Errors', () => {
-    it('should reject limit above maximum (12)', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
-
-      const request = createRequest('/api/vip/featured', { limit: '20' });
-      const response = await getFeaturedVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid query parameters');
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('VIP loadout not found');
     });
 
-    it('should reject limit below minimum (1)', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
+    it('should return 404 for non-VIP loadout', async () => {
+      const { VipInvalidLoadoutError } = await import('@/lib/vip/errors');
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new VipInvalidLoadoutError('Not a VIP loadout')
+      );
 
-      const request = createRequest('/api/vip/featured', { limit: '0' });
-      const response = await getFeaturedVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid query parameters');
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Not a VIP loadout');
     });
-  });
 
-  describe('Error Handling', () => {
-    it('should handle database errors gracefully', async () => {
-      const queryBuilder = createMockQueryBuilder(null, new Error('Connection failed'), 0);
-      mockFrom.mockReturnValue(queryBuilder);
+    it('should return 500 for unexpected errors', async () => {
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
-      const request = createRequest('/api/vip/featured');
-      const response = await getFeaturedVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch featured VIPs');
+      expect(data.error).toBe('Database connection failed');
     });
+  });
 
-    it('should return empty array when no featured VIPs exist', async () => {
-      const queryBuilder = createMockQueryBuilder([], null, 0);
-      mockFrom.mockReturnValue(queryBuilder);
+  describe('Edge Cases', () => {
+    it('should handle empty loadout (zero items)', async () => {
+      const emptyResult = {
+        ...mockCopyResult,
+        itemsAdded: 0,
+        wishlistItemsCreated: 0,
+      };
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockResolvedValue(emptyResult);
 
-      const request = createRequest('/api/vip/featured');
-      const response = await getFeaturedVips(request);
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.vips).toHaveLength(0);
+      expect(data.itemsAdded).toBe(0);
+      expect(data.wishlistItemsCreated).toBe(0);
     });
-  });
-});
 
-// =============================================================================
-// VIP Data Transformation Tests
-// =============================================================================
+    it('should handle all items already owned (no wishlist items)', async () => {
+      const allOwnedResult = {
+        ...mockCopyResult,
+        wishlistItemsCreated: 0,
+      };
+      (mockCopyVipLoadout as ReturnType<typeof vi.fn>).mockResolvedValue(allOwnedResult);
 
-describe('VIP Data Transformation', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-  });
+      const request = createRequest({ vipLoadoutId: mockVipLoadoutId });
+      const response = await copyVipLoadout(request);
+      const data = await response.json();
 
-  it('should correctly transform database rows to VipWithStats', async () => {
-    const queryBuilder = createMockQueryBuilder([mockVipAccounts[0]], null, 1);
-    mockFrom.mockReturnValue(queryBuilder);
-
-    const request = createRequest('/api/vip');
-    const response = await getVips(request);
-    const data = await response.json();
-
-    const vip = data.vips[0];
-
-    expect(vip.id).toBe('vip-1');
-    expect(vip.name).toBe('Andrew Skurka');
-    expect(vip.slug).toBe('andrew-skurka');
-    expect(vip.bio).toBe('National Geographic Adventurer of the Year. Ultralight backpacker.');
-    expect(vip.avatarUrl).toBe('https://example.com/skurka.jpg');
-    expect(vip.socialLinks).toEqual({ youtube: 'https://youtube.com/skurka' });
-    expect(vip.status).toBe('claimed');
-    expect(vip.isFeatured).toBe(true);
-    expect(vip.claimedByUserId).toBe('user-1');
-    expect(vip.followerCount).toBe(1500);
-    expect(vip.loadoutCount).toBe(12);
-    expect(vip.archivedAt).toBeNull();
-    expect(vip.archiveReason).toBeNull();
-  });
-
-  it('should handle missing counts gracefully', async () => {
-    const vipWithoutCounts = {
-      ...mockVipAccounts[0],
-      vip_follows: undefined,
-      vip_loadouts: undefined,
-    };
-    const queryBuilder = createMockQueryBuilder([vipWithoutCounts], null, 1);
-    mockFrom.mockReturnValue(queryBuilder);
-
-    const request = createRequest('/api/vip');
-    const response = await getVips(request);
-    const data = await response.json();
-
-    const vip = data.vips[0];
-
-    // Should default to 0 when counts are missing
-    expect(vip.followerCount).toBe(0);
-    expect(vip.loadoutCount).toBe(0);
+      expect(response.status).toBe(200);
+      expect(data.wishlistItemsCreated).toBe(0);
+    });
   });
 });

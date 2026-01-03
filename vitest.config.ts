@@ -32,6 +32,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      // Fix ESM resolution for Next.js modules in test environment
+      'next/navigation': path.resolve(__dirname, './__mocks__/next/navigation.ts'),
     },
   },
 });

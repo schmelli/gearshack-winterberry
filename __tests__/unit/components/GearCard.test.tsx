@@ -19,6 +19,7 @@ import type { ViewDensity } from '@/types/inventory';
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
 }));
 
 // Mock i18n navigation
@@ -122,6 +123,36 @@ vi.mock('@/components/wishlist/MoveToInventoryButton', () => ({
 
 vi.mock('@/components/wishlist/CommunityAvailabilityPanel', () => ({
   CommunityAvailabilityPanel: () => <div data-testid="community-availability">Community</div>,
+}));
+
+// Mock wishlist hooks used by TopPricesDisplay
+vi.mock('@/hooks/offers/useWishlistItemOffers', () => ({
+  useWishlistItemOffers: () => ({
+    offers: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+// Mock price results hook used directly in GearCard
+vi.mock('@/hooks/price-tracking/useWishlistPriceResults', () => ({
+  useWishlistPriceResults: () => ({
+    priceResults: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+// Mock TopPricesDisplay to avoid needing full hook setup
+vi.mock('@/components/wishlist/TopPricesDisplay', () => ({
+  TopPricesDisplay: ({ wishlistItemId }: { wishlistItemId: string }) => (
+    <div data-testid="top-prices-display">{wishlistItemId}</div>
+  ),
+}));
+
+// Mock TopRetailPricesDisplay
+vi.mock('@/components/wishlist/TopRetailPricesDisplay', () => ({
+  TopRetailPricesDisplay: () => <div data-testid="top-retail-prices">Retail prices</div>,
 }));
 
 // =============================================================================
@@ -375,16 +406,18 @@ describe('GearCard', () => {
       expect(screen.getByTestId('move-to-inventory')).toBeInTheDocument();
     });
 
-    it('should show price stub indicator in standard wishlist view', () => {
+    it('should show top prices display in standard wishlist view', () => {
       render(<GearCard item={mockItem} viewDensity="standard" context="wishlist" />);
 
-      expect(screen.getByTestId('price-stub')).toBeInTheDocument();
+      expect(screen.getByTestId('top-prices-display')).toBeInTheDocument();
+      expect(screen.getByTestId('top-retail-prices')).toBeInTheDocument();
     });
 
-    it('should show price history in detailed wishlist view', () => {
+    it('should show top prices display in detailed wishlist view', () => {
       render(<GearCard item={mockItem} viewDensity="detailed" context="wishlist" />);
 
-      expect(screen.getByTestId('price-history')).toBeInTheDocument();
+      expect(screen.getByTestId('top-prices-display')).toBeInTheDocument();
+      expect(screen.getByTestId('top-retail-prices')).toBeInTheDocument();
     });
 
     it('should show community availability panel in wishlist context', () => {
