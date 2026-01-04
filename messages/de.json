@@ -230,6 +230,7 @@
   "Inventory": {
     "title": "Mein Inventar",
     "searchPlaceholder": "Ausrüstung suchen...",
+    "noItemsFound": "Keine Gegenstände gefunden",
     "filterCategory": "Kategorie",
     "filterAll": "Alle Kategorien",
     "sortBy": "Sortieren nach",
@@ -352,7 +353,11 @@
   },
   "AIChat": {
     "loginRequired": "Du musst angemeldet sein, um den KI-Assistenten zu nutzen",
-    "noMessageToRetry": "Keine Nachricht zum Wiederholen"
+    "noMessageToRetry": "Keine Nachricht zum Wiederholen",
+    "errors": {
+      "authRequired": "Authentifizierung erforderlich. Bitte melde dich an, um den KI-Assistenten zu nutzen.",
+      "messageTooLong": "Nachricht zu lang. Maximale Länge beträgt 10.000 Zeichen."
+    }
   },
   "LoadoutEditor": {
     "addedItem": "{name} hinzugefügt"
@@ -569,6 +574,10 @@
       "consumables": "Verbrauchsgüter"
     },
     "noActivities": "Keine Aktivitäten angegeben",
+    "backToLoadouts": "Zurück zu Packlisten",
+    "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
+    "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
+    "noWornItemsInCategory": "Keine getragenen Gegenstände in dieser Kategorie",
     "popupBlockedAlert": "Export-Fenster konnte nicht geöffnet werden. Bitte erlaube Popups für diese Seite und versuche es erneut.",
     "addCommentFirst": "Füge einen Kommentar hinzu bevor du sendest",
     "yes": "Ja",
@@ -758,7 +767,12 @@
       "camping": "Camping",
       "climbing": "Klettern",
       "skiing": "Skifahren",
-      "backpacking": "Trekking"
+      "backpacking": "Trekking",
+      "mountaineering": "Bergsteigen",
+      "trail_running": "Trailrunning",
+      "bikepacking": "Bikepacking",
+      "paddling": "Paddeln",
+      "other": "Sonstiges"
     },
     "comments": {
       "title": "Kommentare",
@@ -1324,7 +1338,8 @@
       "viewLoadout": "Vollständiges Loadout anzeigen",
       "loadoutInfo": "Loadout-Info",
       "totalWeight": "Gesamtgewicht",
-      "itemCount": "{count} Artikel"
+      "itemCount": "{count} Artikel",
+      "clickToFeedback": "Klicke auf einen Artikel für spezifisches Feedback"
     },
     "report": {
       "title": "Feedback melden",
