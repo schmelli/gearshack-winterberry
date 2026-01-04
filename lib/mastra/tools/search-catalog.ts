@@ -19,6 +19,58 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 
 // =============================================================================
+// Category Hierarchy Cache
+// =============================================================================
+
+interface CategoryData {
+  id: string;
+  label: string;
+  slug: string;
+  level: number;
+  parent_id: string | null;
+}
+
+interface CategoryCache {
+  data: CategoryData[] | null;
+  timestamp: number | null;
+}
+
+// Cache categories for 5 minutes (categories rarely change)
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const categoryCache: CategoryCache = {
+  data: null,
+  timestamp: null,
+};
+
+async function getCachedCategories() {
+  const now = Date.now();
+
+  // Return cached data if still valid
+  if (
+    categoryCache.data !== null &&
+    categoryCache.timestamp !== null &&
+    now - categoryCache.timestamp < CACHE_TTL_MS
+  ) {
+    return categoryCache.data;
+  }
+
+  // Fetch fresh data
+  const supabase = await createClient();
+  const { data: allCategories } = await supabase
+    .from('categories')
+    .select('id, label, slug, level, parent_id')
+    .order('level');
+
+  if (allCategories) {
+    categoryCache.data = allCategories;
+    categoryCache.timestamp = now;
+    return allCategories;
+  }
+
+  return null;
+}
+
+// =============================================================================
 // Input Schema (Zod)
 // =============================================================================
 
@@ -273,11 +325,8 @@ Examples:
       >();
 
       if (productTypeIds.length > 0) {
-        // Get all categories to build the hierarchy
-        const { data: allCategories } = await supabase
-          .from('categories')
-          .select('id, label, slug, level, parent_id')
-          .order('level');
+        // Get all categories to build the hierarchy (uses cache)
+        const allCategories = await getCachedCategories();
 
         if (allCategories) {
           // Build a lookup map by ID

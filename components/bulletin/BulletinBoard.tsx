@@ -209,6 +209,7 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
               break;
           }
         } else {
+          console.error('[BulletinBoard] Update failed:', error);
           toast.error(t('errors.updateFailed'));
         }
       }
