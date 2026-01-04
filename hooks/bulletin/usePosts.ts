@@ -164,7 +164,7 @@ export function usePosts(): UsePostsReturn {
 }
 
 /**
- * Type guard to check if error is a PostError (rate limit, duplicate, or banned)
+ * Type guard to check if error is a PostError (rate limit, duplicate, banned, or edit window expired)
  */
 export function isPostError(error: unknown): error is PostError {
   return (
@@ -173,6 +173,7 @@ export function isPostError(error: unknown): error is PostError {
     'type' in error &&
     (error.type === 'rate_limit' ||
       error.type === 'duplicate' ||
-      error.type === 'banned')
+      error.type === 'banned' ||
+      error.type === 'edit_window_expired')
   );
 }
