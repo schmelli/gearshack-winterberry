@@ -136,7 +136,22 @@ When user asks about a product type (e.g., "Do I own a tent?", "Do I have a slee
 - **Fuzzy Search for Typos**: If user might have made a typo, use \`search: {column: "name", value: "qilt", fuzzy: true}\` - this will find "quilt" even with spelling mistakes
 - **Categories fuzzy search**: For categories, use \`column: "label"\` (e.g., \`search: {column: "label", value: "stove", fuzzy: true}\`)
 - Use \`searchCatalog\` to discover new products or retrieve catalog information
-- Combine tools for complex queries (e.g., search user inventory first, then suggest catalog alternatives)`,
+- Combine tools for complex queries (e.g., search user inventory first, then suggest catalog alternatives)
+
+**CRITICAL - Brand + Model Searches:**
+When searching for a product with brand+model (e.g., "Durston X-Mid 2", "3F UL Gear Lanshan Pro"):
+1. **Separate brand and model**: The catalog stores brands separately from product names!
+2. **Use filters.brand for brand**: e.g., \`filters: {brand: "Durston"}\`
+3. **Use query for model name**: e.g., \`query: "X-Mid"\`
+4. **Try multiple search variations**: If "X-Mid 2" returns nothing, try "X-Mid"
+5. **Example**: For "Durston X-Mid 2": \`{query: "X-Mid", filters: {brand: "Durston"}}\`
+6. **If no results**: Try searching just the model name without brand filter
+
+**For Product Comparisons (e.g., "compare A vs B"):**
+1. Search each product SEPARATELY (parallel tool calls)
+2. Use \`filters.brand\` + \`query\` split for each
+3. If catalog search returns empty, use \`searchWeb\` as fallback for product info
+4. NEVER say "I can't find this" without trying searchWeb first`,
 
   toolSelectionRules: `**Tool Selection Rules:**
 
@@ -269,7 +284,22 @@ Wenn ein Nutzer nach einem Produkttyp fragt (z.B. "Habe ich ein Zelt?", "Besitze
 - **Fuzzy Search fuer Tippfehler**: Bei moeglichen Tippfehlern verwende \`search: {column: "name", value: "qilt", fuzzy: true}\` - findet "quilt" trotz Rechtschreibfehler
 - **Kategorien Fuzzy Search**: Fuer Kategorien verwende \`column: "label"\` (z.B. \`search: {column: "label", value: "kocher", fuzzy: true}\`)
 - Verwende \`searchCatalog\` um neue Produkte zu entdecken
-- Kombiniere Tools fuer komplexe Abfragen`,
+- Kombiniere Tools fuer komplexe Abfragen
+
+**WICHTIG - Marke + Modell Suchen:**
+Bei Suche nach Produkten mit Marke+Modell (z.B. "Durston X-Mid 2", "3F UL Gear Lanshan Pro"):
+1. **Marke und Modell trennen**: Der Katalog speichert Marken getrennt von Produktnamen!
+2. **Verwende filters.brand fuer Marke**: z.B. \`filters: {brand: "Durston"}\`
+3. **Verwende query fuer Modellnamen**: z.B. \`query: "X-Mid"\`
+4. **Mehrere Suchvarianten versuchen**: Wenn "X-Mid 2" nichts findet, versuche "X-Mid"
+5. **Beispiel**: Fuer "Durston X-Mid 2": \`{query: "X-Mid", filters: {brand: "Durston"}}\`
+6. **Wenn keine Ergebnisse**: Versuche nur den Modellnamen ohne Markenfilter
+
+**Fuer Produktvergleiche (z.B. "vergleiche A mit B"):**
+1. Suche jedes Produkt SEPARAT (parallele Tool-Aufrufe)
+2. Verwende \`filters.brand\` + \`query\` getrennt fuer jedes
+3. Wenn Katalogsuche leer, nutze \`searchWeb\` als Fallback
+4. NIEMALS "Ich kann das nicht finden" sagen ohne searchWeb zu probieren`,
 
   toolSelectionRules: `**Tool-Auswahl Regeln:**
 
