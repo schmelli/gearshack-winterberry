@@ -10,7 +10,7 @@
  * Includes character counter, tag selector, and Ctrl+Enter submit.
  */
 
-import { useState, useCallback, KeyboardEvent } from 'react';
+import { useState, useCallback, useEffect, KeyboardEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +49,12 @@ interface PostComposerProps {
     id: string;
     title: string;
   };
+  /** When provided, the composer opens in edit mode with pre-filled values */
+  editPost?: {
+    id: string;
+    content: string;
+    tag: PostTag | null;
+  };
 }
 
 export function PostComposer({
@@ -57,9 +63,13 @@ export function PostComposer({
   onSubmit,
   isSubmitting = false,
   linkedContent,
+  editPost,
 }: PostComposerProps) {
   const t = useTranslations('bulletin');
-  const [selectedTag, setSelectedTag] = useState<PostTag | undefined>();
+  const isEditMode = !!editPost;
+  const [selectedTag, setSelectedTag] = useState<PostTag | undefined>(
+    editPost?.tag ?? undefined
+  );
 
   const {
     register,
@@ -70,8 +80,8 @@ export function PostComposer({
   } = useForm<CreatePostSchema>({
     resolver: zodResolver(createPostSchema),
     defaultValues: {
-      content: '',
-      tag: undefined,
+      content: editPost?.content ?? '',
+      tag: editPost?.tag ?? undefined,
       linked_content_type: linkedContent?.type,
       linked_content_id: linkedContent?.id,
     },
@@ -81,6 +91,25 @@ export function PostComposer({
   const charCount = content.length;
   const isOverWarning = charCount >= BULLETIN_CONSTANTS.WARNING_THRESHOLD;
   const isAtLimit = charCount >= BULLETIN_CONSTANTS.MAX_POST_LENGTH;
+
+  // Reset form when editPost changes (opening in edit mode)
+  useEffect(() => {
+    if (editPost) {
+      reset({
+        content: editPost.content,
+        tag: editPost.tag ?? undefined,
+      });
+      setSelectedTag(editPost.tag ?? undefined);
+    } else {
+      reset({
+        content: '',
+        tag: undefined,
+        linked_content_type: linkedContent?.type,
+        linked_content_id: linkedContent?.id,
+      });
+      setSelectedTag(undefined);
+    }
+  }, [editPost, reset, linkedContent]);
 
   const handleFormSubmit = async (data: CreatePostSchema) => {
     await onSubmit({
@@ -113,7 +142,9 @@ export function PostComposer({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{t('composer.title')}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? t('composer.editTitle') : t('composer.title')}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
@@ -193,7 +224,13 @@ export function PostComposer({
               {t('composer.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting || isAtLimit}>
-              {isSubmitting ? t('composer.posting') : t('composer.submit')}
+              {isSubmitting
+                ? isEditMode
+                  ? t('composer.saving')
+                  : t('composer.posting')
+                : isEditMode
+                  ? t('composer.save')
+                  : t('composer.submit')}
             </Button>
           </div>
         </form>
