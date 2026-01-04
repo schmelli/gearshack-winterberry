@@ -36,6 +36,8 @@ interface LocalizedContent {
   capabilities: string;
   limitations: string;
   toolBestPractices: string;
+  toolSelectionRules: string;
+  dataValidation: string;
 }
 
 // =============================================================================
@@ -135,6 +137,44 @@ When user asks about a product type (e.g., "Do I own a tent?", "Do I have a slee
 - **Categories fuzzy search**: For categories, use \`column: "label"\` (e.g., \`search: {column: "label", value: "stove", fuzzy: true}\`)
 - Use \`searchCatalog\` to discover new products or retrieve catalog information
 - Combine tools for complex queries (e.g., search user inventory first, then suggest catalog alternatives)`,
+
+  toolSelectionRules: `**Tool Selection Rules:**
+
+| Query Pattern | Primary Tool | sortBy | Notes |
+|---------------|--------------|--------|-------|
+| "lightest [product]" | searchCatalog | weight_asc | Weight data validated |
+| "heaviest [product]" | searchCatalog | weight_desc | Weight data validated |
+| "cheapest [product]" | searchCatalog | price_asc | |
+| "most expensive [product]" | searchCatalog | price_desc | |
+| "do I own a [product]" | queryUserData | relevance | Look up category first |
+| "show my [product]" | queryUserData | relevance | Search user inventory |
+| "optimize under €X" | queryUserData → searchCatalog | weight_asc + priceMax | Multi-step workflow |
+| "compare [A] vs [B]" | searchCatalog (2x) | relevance | Parallel calls |
+| "[product] under Xkg" | searchCatalog | weight_asc | Filter: weightMax |
+| "[product] under €X" | searchCatalog | price_asc | Filter: priceMax |
+
+**CRITICAL for "lightest" queries:**
+1. ALWAYS use sortBy: "weight_asc"
+2. If results show 0g weight, those are INVALID - retry or exclude
+3. NEVER present products with 0g as valid options
+4. NULL weight means "unknown" - acceptable but inform the user`,
+
+  dataValidation: `**Data Quality Validation:**
+
+After each tool call, check results:
+- If weight_grams = 0 → INVALID (no outdoor gear weighs 0g)
+- If weight_grams = null → weight unknown (acceptable but note it)
+- If price_usd = null → price unknown
+- If results empty → try broader search or explain why
+
+**NEVER present invalid data to user.** If all results invalid, say:
+"I couldn't find valid weight data for [category]. Let me search differently..."
+
+**When tool returns empty or invalid results:**
+1. Check if filters were too restrictive
+2. Try broadening category (e.g., "tent" → "shelter")
+3. Try removing one filter at a time
+4. If still empty, explain: "No products match all criteria. Here's what I found with relaxed filters..."`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -230,6 +270,44 @@ Wenn ein Nutzer nach einem Produkttyp fragt (z.B. "Habe ich ein Zelt?", "Besitze
 - **Kategorien Fuzzy Search**: Fuer Kategorien verwende \`column: "label"\` (z.B. \`search: {column: "label", value: "kocher", fuzzy: true}\`)
 - Verwende \`searchCatalog\` um neue Produkte zu entdecken
 - Kombiniere Tools fuer komplexe Abfragen`,
+
+  toolSelectionRules: `**Tool-Auswahl Regeln:**
+
+| Abfrage-Muster | Primaeres Tool | sortBy | Hinweise |
+|----------------|----------------|--------|----------|
+| "leichtestes [Produkt]" | searchCatalog | weight_asc | Gewichtsdaten werden validiert |
+| "schwerste(s) [Produkt]" | searchCatalog | weight_desc | Gewichtsdaten werden validiert |
+| "guenstigstes [Produkt]" | searchCatalog | price_asc | |
+| "teuerstes [Produkt]" | searchCatalog | price_desc | |
+| "habe ich ein [Produkt]" | queryUserData | relevance | Zuerst Kategorie nachschlagen |
+| "mein [Produkt] zeigen" | queryUserData | relevance | Inventar des Nutzers durchsuchen |
+| "optimiere unter €X" | queryUserData → searchCatalog | weight_asc + priceMax | Mehrstufiger Workflow |
+| "vergleiche [A] mit [B]" | searchCatalog (2x) | relevance | Parallele Aufrufe |
+| "[Produkt] unter Xkg" | searchCatalog | weight_asc | Filter: weightMax |
+| "[Produkt] unter €X" | searchCatalog | price_asc | Filter: priceMax |
+
+**WICHTIG fuer "leichtestes" Abfragen:**
+1. IMMER sortBy: "weight_asc" verwenden
+2. Wenn Ergebnisse 0g Gewicht zeigen, diese sind UNGUELTIG - erneut versuchen oder ausschliessen
+3. NIEMALS Produkte mit 0g als gueltige Optionen praesentieren
+4. NULL-Gewicht bedeutet "unbekannt" - akzeptabel, aber dem Nutzer mitteilen`,
+
+  dataValidation: `**Datenqualitaets-Validierung:**
+
+Nach jedem Tool-Aufruf die Ergebnisse pruefen:
+- Wenn weight_grams = 0 → UNGUELTIG (keine Outdoor-Ausruestung wiegt 0g)
+- Wenn weight_grams = null → Gewicht unbekannt (akzeptabel, aber hinweisen)
+- Wenn price_usd = null → Preis unbekannt
+- Wenn Ergebnisse leer → Breitere Suche versuchen oder erklaeren
+
+**NIEMALS ungueltige Daten praesentieren.** Wenn alle Ergebnisse ungueltig sind, sagen:
+"Ich konnte keine gueltigen Gewichtsdaten fuer [Kategorie] finden. Lass mich anders suchen..."
+
+**Bei leeren oder ungueltigen Ergebnissen:**
+1. Pruefen, ob Filter zu restriktiv waren
+2. Kategorie erweitern (z.B. "tent" → "shelter")
+3. Ein Filter nach dem anderen entfernen
+4. Wenn immer noch leer, erklaeren: "Keine Produkte erfuellen alle Kriterien. Mit entspannten Filtern habe ich gefunden..."`,
 };
 
 /**
@@ -394,6 +472,12 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 6. Tool Usage Best Practices
   sections.push(`\n${content.toolBestPractices}`);
+
+  // 7. Tool Selection Rules (new - reliability improvements)
+  sections.push(`\n${content.toolSelectionRules}`);
+
+  // 8. Data Validation Guidelines (new - reliability improvements)
+  sections.push(`\n${content.dataValidation}`);
 
   return sections.join('\n');
 }

@@ -156,6 +156,13 @@ Examples:
       // Track applied filters
       const appliedFilters: Record<string, unknown> = {};
 
+      // CRITICAL FIX: Always filter out invalid weight data (0g = missing/invalid for outdoor gear)
+      // A tent, sleeping bag, or any outdoor gear cannot weigh 0 grams.
+      // This ensures no 0g products are returned regardless of sortBy value.
+      // NULL weights are allowed as they indicate "weight unknown" which is different from "invalid".
+      dbQuery = dbQuery.or('weight_grams.is.null,weight_grams.gt.0');
+      appliedFilters.invalidWeightsFiltered = true;
+
       // Apply text search (only if query provided)
       if (query) {
         dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
@@ -188,11 +195,17 @@ Examples:
       }
 
       // Apply sorting
+      // NOTE: Invalid weights (0g) are already filtered above, so we only need to handle NULL here.
+      // For weight-based sorting, we exclude NULL weights to get meaningful results.
       switch (sortBy) {
         case 'weight_asc':
+          // For "lightest" queries: exclude NULL weights to get actual weight data
+          dbQuery = dbQuery.not('weight_grams', 'is', null);
           dbQuery = dbQuery.order('weight_grams', { ascending: true, nullsFirst: false });
           break;
         case 'weight_desc':
+          // For "heaviest" queries: exclude NULL weights to get actual weight data
+          dbQuery = dbQuery.not('weight_grams', 'is', null);
           dbQuery = dbQuery.order('weight_grams', { ascending: false, nullsFirst: false });
           break;
         case 'price_asc':
@@ -325,8 +338,19 @@ Examples:
         appliedFilters.brand = filters.brand;
       }
 
+      // DEFENSE-IN-DEPTH: Post-processing validation to ensure no invalid weights (0g) slip through
+      // This catches any edge cases where the database filter might not work as expected
+      const preValidationCount = results.length;
+      results = results.filter((p) => p.weightGrams === null || p.weightGrams > 0);
+      const invalidWeightCount = preValidationCount - results.length;
+
+      if (invalidWeightCount > 0) {
+        console.warn(`[searchCatalog] Filtered ${invalidWeightCount} products with invalid weight (0g) in post-processing`);
+        appliedFilters.invalidWeightsRemoved = invalidWeightCount;
+      }
+
       const executionTime = Date.now() - startTime;
-      console.log(`[searchCatalog] Found ${results.length} products in ${executionTime}ms`);
+      console.log(`[searchCatalog] Found ${results.length} products in ${executionTime}ms (filtered ${invalidWeightCount} invalid weights)`);
 
       return {
         success: true,
