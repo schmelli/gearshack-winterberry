@@ -39,6 +39,9 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
   useEffect(() => {
     if (trackingId) {
       fetchHistory();
+    } else {
+      // No tracking ID, nothing to fetch
+      setIsLoading(false);
     }
   }, [trackingId]);
 

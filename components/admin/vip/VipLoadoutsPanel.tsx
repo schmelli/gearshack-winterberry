@@ -8,9 +8,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, FileText, Trash2, Edit, Eye, EyeOff, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useVipLoadoutsAdmin, type VipLoadoutSummary } from '@/hooks/admin/vip';
@@ -28,6 +29,7 @@ interface VipLoadoutsPanelProps {
 }
 
 export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
+  const t = useTranslations('vip.admin');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingLoadout, setEditingLoadout] = useState<VipLoadoutSummary | null>(null);
   const [managingLoadout, setManagingLoadout] = useState<VipLoadoutSummary | null>(null);
@@ -44,15 +46,15 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
 
   // Handle delete
   const handleDelete = async (loadout: VipLoadoutSummary) => {
-    if (!confirm(`Delete "${loadout.name}"? This will remove all ${loadout.itemCount} items.`)) {
+    if (!confirm(t('confirmDeleteLoadoutFull', { name: loadout.name, count: loadout.itemCount }))) {
       return;
     }
 
     try {
       await deleteLoadout(loadout.id);
-      toast.success('Loadout deleted');
+      toast.success(t('loadoutDeletedSuccess'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete');
+      toast.error(err instanceof Error ? err.message : t('deleteFailedError'));
     }
   };
 
@@ -61,17 +63,17 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
     try {
       if (loadout.isVipLoadout) {
         await unpublishLoadout(loadout.id);
-        toast.success('Loadout unpublished');
+        toast.success(t('loadoutUnpublishedSuccess'));
       } else {
         if (loadout.itemCount === 0) {
-          toast.error('Cannot publish loadout with no items');
+          toast.error(t('cannotPublishEmptyError'));
           return;
         }
         await publishLoadout(loadout.id);
-        toast.success('Loadout published');
+        toast.success(t('loadoutPublishedSuccess'));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update');
+      toast.error(err instanceof Error ? err.message : t('updateFailedError'));
     }
   };
 
@@ -89,14 +91,14 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Loadouts for {vipName}</h2>
+          <h2 className="text-2xl font-bold">{t('loadoutsForVip', { name: vipName })}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage gear lists sourced from videos and blog posts
+            {t('loadoutsDescription')}
           </p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Loadout
+          {t('createLoadout')}
         </Button>
       </div>
 
@@ -121,13 +123,13 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No loadouts yet</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('noLoadoutsYet')}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Create the first loadout for this VIP
+              {t('createFirstLoadout')}
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Loadout
+              {t('createLoadout')}
             </Button>
           </CardContent>
         </Card>
@@ -139,13 +141,13 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Total Weight</TableHead>
-                <TableHead>Trip Type</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('tableHeaders.name')}</TableHead>
+                <TableHead>{t('tableHeaders.status')}</TableHead>
+                <TableHead>{t('tableHeaders.items')}</TableHead>
+                <TableHead>{t('tableHeaders.totalWeight')}</TableHead>
+                <TableHead>{t('tableHeaders.tripType')}</TableHead>
+                <TableHead>{t('tableHeaders.source')}</TableHead>
+                <TableHead className="text-right">{t('tableHeaders.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,10 +156,10 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                   <TableCell className="font-medium">{loadout.name}</TableCell>
                   <TableCell>
                     <Badge variant={loadout.isVipLoadout ? 'default' : 'secondary'}>
-                      {loadout.isVipLoadout ? 'Published' : 'Draft'}
+                      {loadout.isVipLoadout ? t('statusPublished') : t('statusDraft')}
                     </Badge>
                   </TableCell>
-                  <TableCell>{loadout.itemCount} items</TableCell>
+                  <TableCell>{t('itemsCount', { count: loadout.itemCount })}</TableCell>
                   <TableCell>{formatWeight(loadout.totalWeightGrams)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {loadout.activityTypes?.join(', ') || loadout.seasons?.join(', ') || '—'}
@@ -170,7 +172,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                       >
-                        View source
+                        {t('viewSource')}
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
@@ -183,7 +185,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setManagingLoadout(loadout)}
-                        title="Manage items"
+                        title={t('manageItems')}
                       >
                         <FileText className="h-4 w-4" />
                       </Button>
@@ -191,7 +193,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setEditingLoadout(loadout)}
-                        title="Edit loadout"
+                        title={t('editLoadout')}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -199,7 +201,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleTogglePublish(loadout)}
-                        title={loadout.isVipLoadout ? 'Unpublish' : 'Publish'}
+                        title={loadout.isVipLoadout ? t('unpublishLoadout') : t('publishLoadout')}
                       >
                         {loadout.isVipLoadout ? (
                           <EyeOff className="h-4 w-4" />
@@ -211,7 +213,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(loadout)}
-                        title="Delete loadout"
+                        title={t('deleteLoadout')}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />

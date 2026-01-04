@@ -16,6 +16,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
 
 // =====================================================
@@ -110,6 +111,8 @@ const DEFAULT_MAX_TOKENS = 2000;
 // =====================================================
 
 export function useMastraChat(): UseMastraChatResult {
+  const t = useTranslations('AIChat');
+
   // State
   const [messages, setMessages] = useState<MastraMessage[]>([]);
   const [state, setState] = useState<ChatState>('idle');
@@ -420,13 +423,13 @@ export function useMastraChat(): UseMastraChatResult {
    */
   const retryLastMessage = useCallback(async () => {
     if (!lastMessageRef.current) {
-      toast.error('No message to retry');
+      toast.error(t('noMessageToRetry'));
       return;
     }
 
     const { text, options } = lastMessageRef.current;
     await sendMessage(text, options);
-  }, [sendMessage]);
+  }, [sendMessage, t]);
 
   // Cleanup on unmount - CRITICAL for preventing memory leaks
   // Aborts in-flight requests when component unmounts

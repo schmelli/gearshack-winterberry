@@ -11,6 +11,19 @@
     "openMenu": "Open menu",
     "messages": "Messages"
   },
+  "Notifications": {
+    "title": "Notifications",
+    "unread": "unread",
+    "noNotifications": "No notifications yet",
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "enrichment": {
+      "updated": "Updated: {fields}",
+      "acceptSuccess": "Gear item updated with GearGraph data",
+      "dismissSuccess": "Suggestion dismissed",
+      "processFailed": "Failed to process suggestion"
+    }
+  },
   "Footer": {
     "logoAlt": "Gearshack Logo",
     "tagline": "Gear management for the obsessed. Track your gear, build loadouts, and explore the great outdoors with confidence.",
@@ -30,14 +43,22 @@
   "Common": {
     "loading": "Loading...",
     "save": "Save",
+    "saving": "Saving...",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deleting": "Deleting...",
     "edit": "Edit",
+    "update": "Update",
+    "create": "Create",
+    "saveChanges": "Save Changes",
+    "name": "Name",
+    "description": "Description",
     "error": "Something went wrong",
     "uncategorized": "Uncategorized",
     "genericUser": "User",
     "unknown": "Unknown",
-    "anonymousUser": "Anonymous User"
+    "anonymousUser": "Anonymous User",
+    "close": "Close"
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
@@ -199,6 +220,11 @@
       "emailInUse": "This email is already registered",
       "weakPassword": "Password is too weak",
       "signInFailed": "Sign in failed"
+    },
+    "admin": {
+      "accessDeniedTitle": "Access Denied",
+      "accessDeniedMessage": "You do not have permission to access this area.",
+      "accessDeniedToast": "Access denied. Admin privileges required."
     }
   },
   "Inventory": {
@@ -283,6 +309,89 @@
       "invalidPrice": "Please enter a valid price"
     }
   },
+  "ProductSearch": {
+    "enterSearchTerm": "Please enter a search term",
+    "noResults": "No images found for \"{query}\". Try different search terms."
+  },
+  "SmartProductSearch": {
+    "minCharacters": "Please enter at least 2 characters to search",
+    "noResults": "No products found for \"{query}\"",
+    "foundResults": "Found {total} results ({details})",
+    "foundResultsWithLimit": "Found {total} results ({details}). {remaining} searches left today.",
+    "catalogResults": "{count} from catalog",
+    "webResults": "{count} from web",
+    "extractSuccess": "Product data extracted successfully",
+    "extractMedium": "Product data extracted (some fields may need verification)",
+    "extractLow": "Limited data extracted - please verify",
+    "extractFailed": "Could not extract product data from this page"
+  },
+  "DuplicateDetection": {
+    "noMatchingItem": "No matching item found",
+    "quantityUpdated": "Updated quantity to {quantity} for \"{name}\"",
+    "updateFailed": "Failed to update quantity"
+  },
+  "LocationSharing": {
+    "signInRequired": "Please sign in to save preferences",
+    "preferenceSaved": "Location preference saved"
+  },
+  "DependencyPrompt": {
+    "addedWithDeps": "Added {name} + {count} selected",
+    "addedItem": "Added {name}"
+  },
+  "FriendRequests": {
+    "loadFailed": "Failed to load friend requests",
+    "sendFailed": "Failed to send friend request",
+    "checkFailed": "Failed to check friend request eligibility"
+  },
+  "ImageUpload": {
+    "unavailable": "Image upload not available",
+    "checkConnection": "Check your internet connection and try again"
+  },
+  "GearDetailModal": {
+    "itemNotFound": "Item not found",
+    "itemNotFoundDesc": "The requested item could not be found"
+  },
+  "AIChat": {
+    "loginRequired": "You must be logged in to use AI Assistant",
+    "noMessageToRetry": "No message to retry"
+  },
+  "LoadoutEditor": {
+    "addedItem": "Added {name}"
+  },
+  "CategoryManagement": {
+    "createFailed": "Failed to create category: {error}",
+    "createSuccess": "Category created successfully",
+    "updateFailed": "Failed to update category: {error}",
+    "updateSuccess": "Category updated successfully",
+    "deleteSuccess": "Category deleted successfully",
+    "moveSuccess": "Category moved {direction}",
+    "indentSuccess": "Category indented (moved down a level)",
+    "outdentSuccess": "Category outdented (moved up a level)"
+  },
+  "CloudinaryUpload": {
+    "invalidFile": "Invalid file",
+    "backgroundRemovalFailed": "Background removal failed",
+    "uploadFailed": "Upload failed",
+    "uploadSuccess": "Image uploaded successfully",
+    "uploadSuccessWithBgRemoval": "Background removed and uploaded to Cloudinary",
+    "uploadSuccessNoBgRemoval": "Uploaded to Cloudinary",
+    "uploadError": "Upload error",
+    "invalidUrl": "Invalid URL",
+    "invalidUrlDescription": "Invalid URL: must start with http:// or https://",
+    "imageFetchFailed": "Image fetch failed",
+    "imageFetchFailedDescription": "Failed to fetch image: {status}",
+    "urlUploadSuccess": "URL uploaded to Cloudinary",
+    "widgetSuccess": "Image saved from Cloudinary Widget"
+  },
+  "LoadoutImageGeneration": {
+    "generateSuccess": "Image generated successfully!",
+    "usingDefault": "Using default image",
+    "generateFailed": "Failed to generate image. Please try again later.",
+    "imageUpdated": "Image updated",
+    "updateFailed": "Failed to update image",
+    "imageDeleted": "Image deleted",
+    "deleteFailed": "Failed to delete image"
+  },
   "GearEditor": {
     "addTitle": "Add New Gear",
     "editTitle": "Edit Gear",
@@ -344,6 +453,27 @@
         "increaseQuantity": "+1 to Existing",
         "saveAsNew": "Save as New"
       }
+    },
+    "cloudImport": {
+      "buttonLabel": "Import from Cloud",
+      "opening": "Opening...",
+      "importSuccess": "Image imported successfully",
+      "importSuccessDescription": "Cloud image has been added to your gear item",
+      "uploadFailed": "Upload failed",
+      "noUrlReceived": "No image URL received from Cloudinary",
+      "invalidResponse": "Invalid response from Cloudinary widget",
+      "importFailed": "Import failed"
+    },
+    "toasts": {
+      "importingImage": "Importing image...",
+      "imageImportSuccess": "Image imported successfully!",
+      "imageImportFailed": "Image import failed: {error}",
+      "itemUpdated": "Item updated successfully!",
+      "addedToWishlist": "Item added to wishlist!",
+      "itemSaved": "Item saved successfully!",
+      "fixErrors": "Please fix errors before saving",
+      "itemDeleted": "Item deleted.",
+      "deleteFailed": "Failed to delete item"
     }
   },
   "GearDetail": {
@@ -386,7 +516,13 @@
       "purchased": "Purchased"
     },
     "badges": {
-      "favourite": "Favourite"
+      "favourite": "Favourite",
+      "favouriteTooltip": "Favourite",
+      "forSaleTooltip": "For Sale",
+      "borrowableTooltip": "Can be Borrowed",
+      "tradeableTooltip": "Up for Trade",
+      "lentTooltip": "Currently Lent",
+      "soldTooltip": "Sold"
     },
     "aria": {
       "favourite": "Marked as favourite",
@@ -396,6 +532,11 @@
       "lent": "Currently lent out",
       "sold": "Item has been sold",
       "edit": "Edit {name}"
+    },
+    "labels": {
+      "description": "Description",
+      "myNotes": "My Notes",
+      "visitWebsite": "Visit website"
     }
   },
   "Loadouts": {
@@ -448,7 +589,44 @@
     },
     "noWornItemsInCategory": "No worn items in this category",
     "lighterAlternative": "Lighter option available",
-    "lighterAlternativeTooltip": "You have a lighter {productType} in your inventory: {itemName} ({weight})"
+    "lighterAlternativeTooltip": "You have a lighter {productType} in your inventory: {itemName} ({weight})",
+    "metadataSheet": {
+      "title": "Edit Loadout",
+      "description": "Update the name, description, season, and trip date for this loadout.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter loadout name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional notes about this loadout",
+      "seasonLabel": "Season",
+      "seasonPlaceholder": "Select a season",
+      "noSeason": "No season",
+      "tripDateLabel": "Trip Date"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Search loadouts...",
+      "searchAriaLabel": "Search loadouts by name",
+      "activityFilterAriaLabel": "Filter by activity",
+      "allActivities": "All Activities",
+      "sortAriaLabel": "Sort loadouts",
+      "clearFilters": "Clear filters",
+      "showingFiltered": "Showing {filtered} of {total} loadouts",
+      "loadoutCount": "{count, plural, one {# loadout} other {# loadouts}}",
+      "sortOptions": {
+        "dateNewest": "Date (Newest)",
+        "dateOldest": "Date (Oldest)",
+        "weightLightest": "Weight (Lightest)",
+        "weightHeaviest": "Weight (Heaviest)"
+      }
+    },
+    "emptyState": {
+      "title": "Your pack is empty",
+      "description": "Browse your gear inventory on the left and click \"Add\" to start building your loadout."
+    },
+    "itemActions": {
+      "markAsWorn": "Mark as worn",
+      "markAsConsumable": "Mark as consumable",
+      "lighterAlternativeAvailable": "Lighter alternative available"
+    }
   },
   "LoadoutCreation": {
     "title": "Create New Loadout",
@@ -479,6 +657,15 @@
       "nameRequired": "Name is required",
       "nameTooLong": "Name must be 100 characters or less",
       "descriptionTooLong": "Description must be 500 characters or less"
+    },
+    "imageGeneration": {
+      "generateSuccess": "Image generated successfully!",
+      "usingDefault": "Using default image",
+      "generateFailed": "Failed to generate image. Please try again later.",
+      "imageUpdated": "Image updated",
+      "updateFailed": "Failed to update image",
+      "imageDeleted": "Image deleted",
+      "deleteFailed": "Failed to delete image"
     }
   },
   "Shakedown": {
@@ -505,7 +692,21 @@
     "manageSharesDescription": "Manage share links for \"{name}\"",
     "loading": "Loading...",
     "noShares": "No share links yet",
-    "noSharesHint": "Create a share link to let others view your loadout"
+    "noSharesHint": "Create a share link to let others view your loadout",
+    "clipboardUnavailable": "Clipboard is unavailable",
+    "toasts": {
+      "mustBeLoggedIn": "You must be logged in to share",
+      "createFailed": "Failed to create share link",
+      "created": "Share link created",
+      "updateFailed": "Failed to update share settings",
+      "updated": "Share settings updated",
+      "deleteFailed": "Failed to delete share",
+      "deleted": "Share link deleted",
+      "passwordSetFailed": "Failed to set password",
+      "passwordSet": "Password set",
+      "passwordRemoveFailed": "Failed to remove password",
+      "passwordRemoved": "Password removed"
+    }
   },
   "SharedLoadout": {
     "heroTitle": "Virtual Gear Shakedown",
@@ -523,6 +724,8 @@
     "addedToWishlist": "Added to wishlist!",
     "addToWishlistError": "Failed to add item to wishlist. Please try again.",
     "importSuccess": "Loadout imported! {count} items added to wishlist.",
+    "importFailed": "Failed to import loadout",
+    "importUnexpectedError": "An unexpected error occurred while importing the loadout",
     "ownerUnavailable": "Owner no longer available",
     "viewProfile": "View Profile",
     "sendMessage": "Send Message",
@@ -540,6 +743,15 @@
     "gearList": "Gear List",
     "gearListDescription": "All items included in this shared loadout",
     "commentsDisabled": "Comments are disabled for this loadout",
+    "baseWeight": "Base Weight",
+    "worn": "Worn",
+    "consumables": "Consumables",
+    "realtime": "Realtime",
+    "loadoutDetails": "Loadout Details",
+    "loadoutDetailsDescription": "A clean, read-only snapshot of the shared setup.",
+    "live": "Live",
+    "noActivitiesTagged": "No activities tagged",
+    "noSeasonsSelected": "No seasons selected",
     "seasonTypes": {
       "spring": "Spring",
       "summer": "Summer",
@@ -561,7 +773,26 @@
     "comments": {
       "title": "Comments",
       "newNotification": "{author} commented on your loadout",
-      "viewComment": "View comment"
+      "viewComment": "View comment",
+      "loadFailed": "Unable to load comments",
+      "minLengthError": "Please share at least a few characters of feedback",
+      "sendFailed": "Failed to send comment",
+      "sendAriaLabel": "Send comment",
+      "guestPlaceholder": "Guest",
+      "messagePlaceholder": "Share your feedback or suggestions...",
+      "signInRequired": "Please sign in to send messages",
+      "conversationStarted": "Conversation with {name} started",
+      "messagingRestricted": "This user has restricted messaging",
+      "conversationFailed": "Failed to start conversation",
+      "nameOptional": "Name (optional)",
+      "itemOptional": "Item (optional)",
+      "generalFeedback": "General feedback",
+      "commentLabel": "Comment",
+      "sending": "Sending...",
+      "sendComment": "Send comment",
+      "liveThread": "Live thread",
+      "noCommentsYet": "No comments yet. Be the first to share feedback.",
+      "itemLabel": "Item"
     },
     "notFoundTitle": "Loadout Not Found",
     "notFoundDescription": "This shared loadout link may have expired or been removed by the owner.",
@@ -718,6 +949,34 @@
       "created": "Created",
       "reviewed": "Reviewed",
       "helpful": "Helpful"
+    },
+    "edit": {
+      "displayNameLabel": "Display Name",
+      "displayNamePlaceholder": "Your name",
+      "displayNameDescription": "2-50 characters",
+      "trailNameLabel": "Trail Name",
+      "trailNamePlaceholder": "Your trail name (optional)",
+      "trailNameDescription": "2-30 characters (optional)",
+      "bioLabel": "Bio",
+      "bioPlaceholder": "Tell us about yourself...",
+      "bioCharCount": "{count}/500 characters",
+      "locationLabel": "Location",
+      "locationPlaceholder": "Search for a city...",
+      "locationDescription": "Search and select your home location",
+      "socialLinksTitle": "Social Links",
+      "instagramLabel": "Instagram",
+      "facebookLabel": "Facebook",
+      "youtubeLabel": "YouTube",
+      "websiteLabel": "Website",
+      "usernameOrUrlPlaceholder": "username or URL",
+      "channelUrlPlaceholder": "channel URL",
+      "websiteUrlPlaceholder": "https://example.com",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes",
+      "profileUpdated": "Profile updated",
+      "profileUpdatedDescription": "Your profile has been saved successfully.",
+      "saveFailed": "Save failed",
+      "saveFailedDefault": "Failed to save profile"
     }
   },
   "SmartSearch": {
@@ -759,6 +1018,45 @@
       "tooltipDisabled": "Enter a product name to search",
       "tooltipRateLimited": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
       "ariaLabel": "Search for product information"
+    }
+  },
+  "Messaging": {
+    "userSearch": {
+      "placeholder": "Search by name or trail name...",
+      "noUsersFound": "No users found matching \"{query}\"",
+      "searchHint": "Search for GearShack members to connect",
+      "minimumCharacters": "Enter at least 2 characters to search",
+      "sendMessage": "Send message",
+      "addFriend": "Add friend",
+      "unknown": "Unknown"
+    },
+    "conversationView": {
+      "sendFailed": "Failed to send message",
+      "reactionFailed": "Failed to update reaction",
+      "deleteForEveryoneSuccess": "Message deleted for everyone",
+      "deleteSuccess": "Message deleted",
+      "deleteFailed": "Failed to delete message",
+      "reportComingSoon": "Report feature coming soon",
+      "copiedToClipboard": "Message copied to clipboard",
+      "viewingGearItem": "Viewing gear item: {id}"
+    },
+    "conversationSettings": {
+      "notificationFailed": "Failed to update notification settings",
+      "archiveFailed": "Failed to update archive status",
+      "leftGroup": "Left the group",
+      "leaveGroupFailed": "Failed to leave group",
+      "settingsAriaLabel": "Conversation settings",
+      "enableNotifications": "Enable Notifications",
+      "muteNotifications": "Mute Notifications",
+      "notificationsEnabled": "Notifications enabled",
+      "notificationsMuted": "Notifications muted",
+      "restoreFromArchive": "Restore from Archive",
+      "archiveConversation": "Archive Conversation",
+      "conversationRestored": "Conversation restored",
+      "conversationArchived": "Conversation archived",
+      "addParticipant": "Add Participant",
+      "leaveGroup": "Leave Group",
+      "reportConversation": "Report Conversation"
     }
   },
   "Social": {
@@ -970,7 +1268,10 @@
       "submitting": "Submitting...",
       "closed": "This shakedown is no longer accepting feedback",
       "generalFeedback": "General Feedback",
-      "itemFeedback": "Item Feedback"
+      "itemFeedback": "Item Feedback",
+      "submitSuccess": "Feedback submitted successfully",
+      "updateSuccess": "Feedback updated successfully",
+      "deleteSuccess": "Feedback deleted"
     },
     "actions": {
       "edit": "Edit Shakedown",
@@ -987,6 +1288,7 @@
       "shareToBulletin": "Share to Bulletin Board",
       "alreadyShared": "Already Shared",
       "copyLink": "Copy Link",
+      "copied": "Copied",
       "linkCopied": "Link copied to clipboard",
       "startSimilar": "Start Similar Shakedown",
       "startSimilarTooltip": "Create your own shakedown inspired by this one",
@@ -995,7 +1297,12 @@
       "deleteShakedown": "Delete Shakedown",
       "deleteShakedownConfirm": "Are you sure you want to delete this shakedown? This action cannot be undone.",
       "deleteFeedback": "Delete Feedback",
-      "deleteFeedbackConfirm": "Are you sure you want to delete this feedback? This action cannot be undone."
+      "deleteFeedbackConfirm": "Are you sure you want to delete this feedback? This action cannot be undone.",
+      "archiveSuccess": "Shakedown archived",
+      "archiveFailed": "Failed to archive shakedown",
+      "deleteSuccess": "Shakedown deleted",
+      "deleteFailed": "Failed to delete shakedown",
+      "reportComingSoon": "Report functionality coming soon"
     },
     "filters": {
       "title": "Filters",
@@ -1565,7 +1872,21 @@
       "accepted": "Accepted",
       "declined": "Declined",
       "expired": "Expired"
-    }
+    },
+    "errors": {
+      "offerNotFound": "Offer not found",
+      "cannotAcceptOffer": "This offer cannot be accepted",
+      "cannotDeclineOffer": "This offer cannot be declined",
+      "signInToBlock": "Please sign in to block merchants",
+      "merchantAlreadyBlocked": "Merchant is already blocked",
+      "merchantNotBlocked": "Merchant is not blocked",
+      "blockFailed": "Failed to block merchant",
+      "unblockFailed": "Failed to unblock merchant"
+    },
+    "acceptSuccess": "Offer accepted! Check your messages to arrange pickup or delivery.",
+    "declineSuccess": "Offer declined",
+    "merchantBlocked": "{merchant} has been blocked",
+    "merchantUnblocked": "{merchant} has been unblocked"
   },
   "MerchantInsights": {
     "pageTitle": "Wishlist Insights",
@@ -1859,7 +2180,262 @@
       "featured": "Featured",
       "notFeatured": "Unfeatured",
       "archiveVip": "Archive VIP",
-      "manageLoadouts": "Manage Loadouts"
+      "manageLoadouts": "Manage Loadouts",
+      "editLoadoutTitle": "Edit Loadout",
+      "createLoadoutTitle": "Create Loadout",
+      "editLoadoutDescription": "Update the loadout details below",
+      "createLoadoutDescription": "Add a new gear list for this VIP from a video or blog post",
+      "sourceUrl": "Source URL",
+      "sourceUrlHint": "YouTube video, blog post, or other source link",
+      "createLoadout": "Create Loadout",
+      "confirmDeleteLoadout": "Are you sure you want to delete this loadout?",
+      "loadoutDeletedSuccess": "Loadout deleted",
+      "deleteFailedError": "Failed to delete",
+      "loadoutUnpublishedSuccess": "Loadout unpublished",
+      "cannotPublishEmptyError": "Cannot publish loadout with no items",
+      "loadoutPublishedSuccess": "Loadout published",
+      "updateFailedError": "Failed to update",
+      "loadoutsDescription": "Manage gear lists sourced from videos and blog posts",
+      "noLoadoutsYet": "No loadouts yet",
+      "createFirstLoadout": "Create the first loadout for this VIP",
+      "loadoutsForVip": "Loadouts for {name}",
+      "confirmDeleteLoadoutFull": "Delete \"{name}\"? This will remove all {count} items.",
+      "loadoutUpdated": "Loadout updated",
+      "loadoutCreated": "Loadout created",
+      "saveLoadoutFailed": "Failed to save loadout",
+      "tableHeaders": {
+        "name": "Name",
+        "status": "Status",
+        "items": "Items",
+        "totalWeight": "Total Weight",
+        "tripType": "Trip Type",
+        "source": "Source",
+        "actions": "Actions"
+      },
+      "statusPublished": "Published",
+      "statusDraft": "Draft",
+      "itemsCount": "{count} items",
+      "viewSource": "View source",
+      "manageItems": "Manage items",
+      "editLoadout": "Edit loadout",
+      "publishLoadout": "Publish",
+      "unpublishLoadout": "Unpublish",
+      "deleteLoadout": "Delete loadout",
+      "vipArchivedSuccess": "VIP archived successfully",
+      "archiveVipFailed": "Failed to archive VIP",
+      "catalogIntegrationPending": "Cannot add items yet - catalog search integration pending",
+      "itemQuantityUpdated": "Item quantity updated",
+      "featuredUpdateFailed": "Failed to update featured status",
+      "vipRestoredSuccess": "VIP restored",
+      "restoreVipFailed": "Failed to restore VIP",
+      "itemDeletedSuccess": "Item deleted",
+      "vipUpdatedSuccess": "VIP updated successfully",
+      "vipCreatedSuccess": "VIP created successfully",
+      "loadoutSaveFailed": "Failed to save loadout",
+      "vipUnfeatured": "VIP unfeatured",
+      "vipFeatured": "VIP featured",
+      "vipRestored": "VIP restored",
+      "noArchivedVips": "No archived VIPs",
+      "noVipsYet": "No VIPs yet",
+      "columnName": "Name",
+      "columnFollowers": "Followers",
+      "columnLoadouts": "Loadouts",
+      "loadoutCountLabel": "{count, plural, one {# loadout} other {# loadouts}}",
+      "restore": "Restore",
+      "form": {
+        "name": "Name",
+        "namePlaceholder": "e.g., Andrew Skurka",
+        "slug": "URL Slug",
+        "slugPlaceholder": "e.g., andrew-skurka",
+        "slugHint": "Used in the VIP profile URL. Only lowercase letters, numbers, and hyphens.",
+        "bio": "Bio",
+        "bioPlaceholder": "Brief description of the VIP...",
+        "avatarUrl": "Avatar URL",
+        "avatarUrlPlaceholder": "https://example.com/avatar.jpg",
+        "socialLinksHint": "Social Links (optional)",
+        "youtube": "YouTube URL",
+        "instagram": "Instagram URL",
+        "website": "Website URL",
+        "twitter": "Twitter/X URL",
+        "isFeatured": "Featured",
+        "isFeaturedHint": "Display this VIP on the Community page",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "editTitle": "Edit VIP",
+        "addTitle": "Add New VIP",
+        "vipUpdated": "VIP updated successfully",
+        "vipCreated": "VIP created successfully",
+        "updateFailed": "Failed to update VIP",
+        "createFailed": "Failed to create VIP"
+      },
+      "loadoutItems": {
+        "catalogSearchPending": "Cannot add items yet - catalog search integration pending",
+        "quantityUpdated": "Item quantity updated",
+        "updateFailed": "Failed to update item",
+        "addItemTitle": "Add VIP Item",
+        "catalogPendingDescription": "Catalog search integration pending",
+        "catalogComingSoon": "Catalog Search Coming Soon",
+        "catalogComingSoonDescription": "Adding VIP items requires catalog integration, which is the next feature to be implemented. For now, items must be added directly to the VIP user's gear inventory first, then added to loadouts.",
+        "editQuantityTitle": "Edit Item Quantity",
+        "editingItem": "Editing: {name} {brand}",
+        "brand": "Brand",
+        "weight": "Weight",
+        "quantity": "Quantity",
+        "itemAdded": "Added {name} to loadout",
+        "addItemFailed": "Failed to add item",
+        "confirmDelete": "Delete \"{name}\"?",
+        "itemDeleted": "Item deleted",
+        "deleteFailed": "Failed to delete",
+        "dialogTitle": "{name} - Items",
+        "dialogDescription": "Manage the gear items in this loadout",
+        "itemCount": "{count, plural, one {# item} other {# items}}",
+        "totalWeight": "Total: {weight}",
+        "adding": "Adding...",
+        "addFromCatalog": "Add Item from Catalog",
+        "noItemsYet": "No items yet. Add the first item to this loadout.",
+        "columnName": "Name",
+        "columnBrand": "Brand",
+        "columnWeight": "Weight",
+        "columnQty": "Qty",
+        "columnTotal": "Total",
+        "columnActions": "Actions"
+      }
+    },
+    "compare": {
+      "searchVipsPlaceholder": "Search VIPs and loadouts...",
+      "searchLoadoutsPlaceholder": "Search loadouts...",
+      "selectVipLoadout": "Select VIP loadout",
+      "selectYourLoadout": "Select your loadout",
+      "noVipsFound": "No VIPs found",
+      "noLoadoutsFound": "No loadouts found",
+      "loadoutItems": "{count} items",
+      "loadoutWeight": "{weight}",
+      "loading": "Loading...",
+      "loadVipDetailsFailed": "Failed to load VIP loadout details",
+      "selectDescription": "Select your loadout and a VIP loadout to see a detailed comparison",
+      "signIn": "Sign In",
+      "createLoadout": "Create Loadout",
+      "addedToWishlist": "Added \"{itemName}\" to wishlist",
+      "compareFailed": "Failed to compare loadouts. Please try again."
     }
+  },
+  "Wishlist": {
+    "communityAvailability": {
+      "title": "Community Availability",
+      "forSale": "For Sale",
+      "lendable": "Lendable",
+      "tradeable": "Tradeable",
+      "viewItem": "View Item",
+      "message": "Message",
+      "checkingCommunity": "Checking community...",
+      "loadingMessage": "Loading community availability matches. Please wait.",
+      "retrying": "Retrying... (attempt {count}/3)",
+      "retryingMessage": "Retrying to load community availability. Attempt {count} of 3.",
+      "loadFailed": "Failed to load community availability",
+      "tryAgain": "Try again",
+      "noMatches": "No community matches found",
+      "beFirst": "Be the first to add this item to your inventory!",
+      "matchCount": "{count, plural, one {# match} other {# matches}}",
+      "matchCountAria": "{count} {count, plural, one {match} other {matches}}",
+      "unableToMessage": "Unable to message this user",
+      "privacyRestricted": "Their privacy settings prevent messages from non-friends.",
+      "conversationFailed": "Failed to start conversation",
+      "tryAgainLater": "Please try again later.",
+      "unexpectedError": "An unexpected error occurred. Please try again."
+    },
+    "actions": {
+      "addedToWishlist": "Added to wishlist!",
+      "alreadyInWishlist": "This item is already in your wishlist",
+      "removedFromWishlist": "Removed from wishlist",
+      "itemUpdated": "Wishlist item updated",
+      "movedToInventory": "{name} moved to inventory!"
+    }
+  },
+  "Admin": {
+    "categories": {
+      "deleteTitle": "Delete Category",
+      "confirmDeleteMessage": "Are you sure you want to delete <strong>{category}</strong>?",
+      "cannotDeleteChildrenWarning": "You must delete all child categories first. Categories with children cannot be deleted.",
+      "deleteWarning": "This action cannot be undone. The category will be permanently removed from the database.",
+      "editTitle": "Edit Category",
+      "createTitle": "Create Category",
+      "editDescription": "Update category information and translations",
+      "createDescription": "Add a new category with English and German translations",
+      "labelLegacy": "Label (Legacy)",
+      "autoGeneratesSlug": "Auto-generates slug",
+      "slugLabel": "Slug (Unique ID)",
+      "englishLabel": "English Label",
+      "germanLabel": "German Label"
+    }
+  },
+  "Search": {
+    "weight": {
+      "enterProductName": "Please enter a product name to search",
+      "foundHighConfidence": "Found weight: {weight}g ({sources} sources){remaining}",
+      "foundMediumConfidence": "Found weight: {weight}g (moderate confidence){remaining}",
+      "foundLowConfidence": "Found weight: {weight}g (low confidence - verify manually){remaining}",
+      "noWeightFound": "No weight found for \"{query}\". Try a more specific search.{remaining}",
+      "searchesRemaining": " ({count} searches left today)"
+    },
+    "product": {
+      "minCharacters": "Please enter at least 2 characters to search",
+      "noProductsFound": "No products found for \"{query}\"",
+      "foundResults": "Found {count} results ({sources}). {remaining} searches left today.",
+      "foundResultsUnlimited": "Found {count} results ({sources})",
+      "extractedSuccess": "Product data extracted successfully",
+      "extractedPartial": "Product data extracted (some fields may need verification)",
+      "extractedLimited": "Limited data extracted - please verify",
+      "extractFailed": "Could not extract product data from this page"
+    },
+    "duplicate": {
+      "noMatchFound": "No matching item found",
+      "updateQuantityFailed": "Failed to update quantity"
+    }
+  },
+  "Merchant": {
+    "common": {
+      "notAuthenticated": "Not authenticated as merchant"
+    },
+    "loadouts": {
+      "created": "Loadout created",
+      "updated": "Loadout updated",
+      "deleted": "Loadout deleted",
+      "submittedForReview": "Submitted for review",
+      "published": "Loadout published",
+      "archived": "Loadout archived",
+      "unpublished": "Loadout unpublished",
+      "itemAdded": "Item added",
+      "itemUpdated": "Item updated",
+      "itemRemoved": "Item removed",
+      "availabilityUpdated": "Availability updated",
+      "changesSaved": "Changes saved",
+      "savedAsDraft": "Loadout saved as draft"
+    },
+    "locations": {
+      "added": "Location added",
+      "updated": "Location updated",
+      "deleted": "Location deleted",
+      "primaryUpdated": "Primary location updated"
+    },
+    "offers": {
+      "priceMustBeLess": "Offer price must be less than regular price",
+      "rateLimitWarning": "Unable to verify rate limits - some offers may be rejected by the database",
+      "allUsersReceivedOffer": "All users have already received an offer for this product in the last 30 days",
+      "usersSkipped": "{count} user(s) skipped - already received offer in last 30 days",
+      "offersSent": "{count, plural, one {# offer} other {# offers}} sent"
+    }
+  },
+  "Store": {
+    "signInToAdd": "Please sign in to add items",
+    "signInToUpdate": "Please sign in to update items",
+    "signInToDelete": "Please sign in to delete items",
+    "signInToCreateLoadout": "Please sign in to create loadouts",
+    "saveItemFailed": "Failed to save item",
+    "updateItemFailed": "Failed to update item",
+    "deleteItemFailed": "Failed to delete item",
+    "saveLoadoutFailed": "Failed to save loadout",
+    "updateLoadoutFailed": "Failed to update loadout",
+    "deleteLoadoutFailed": "Failed to delete loadout"
   }
 }

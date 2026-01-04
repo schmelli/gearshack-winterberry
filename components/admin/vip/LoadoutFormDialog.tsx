@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ export function LoadoutFormDialog({
   onOpenChange,
   onSuccess,
 }: LoadoutFormDialogProps) {
+  const t = useTranslations('vip.admin');
+  const tCommon = useTranslations('Common');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createLoadout, updateLoadout } = useVipLoadoutsAdmin();
 
@@ -83,16 +86,16 @@ export function LoadoutFormDialog({
       if (loadout) {
         // Update existing loadout
         await updateLoadout(loadout.id, data);
-        toast.success('Loadout updated');
+        toast.success(t('loadoutUpdated'));
       } else {
         // Create new loadout
         await createLoadout(vipId, data);
-        toast.success('Loadout created');
+        toast.success(t('loadoutCreated'));
       }
       reset();
       onSuccess();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save loadout');
+      toast.error(err instanceof Error ? err.message : t('loadoutSaveFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -102,11 +105,9 @@ export function LoadoutFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{loadout ? 'Edit Loadout' : 'Create Loadout'}</DialogTitle>
+          <DialogTitle>{loadout ? t('editLoadoutTitle') : t('createLoadoutTitle')}</DialogTitle>
           <DialogDescription>
-            {loadout
-              ? 'Update the loadout details below'
-              : 'Add a new gear list for this VIP from a video or blog post'}
+            {loadout ? t('editLoadoutDescription') : t('createLoadoutDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -114,7 +115,7 @@ export function LoadoutFormDialog({
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+              {tCommon('name')} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
@@ -129,7 +130,7 @@ export function LoadoutFormDialog({
 
           {/* Source URL */}
           <div className="space-y-2">
-            <Label htmlFor="sourceUrl">Source URL</Label>
+            <Label htmlFor="sourceUrl">{t('sourceUrl')}</Label>
             <Input
               id="sourceUrl"
               {...register('sourceUrl')}
@@ -141,13 +142,13 @@ export function LoadoutFormDialog({
               <p className="text-sm text-destructive">{errors.sourceUrl.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              YouTube video, blog post, or other source link
+              {t('sourceUrlHint')}
             </p>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{tCommon('description')}</Label>
             <Textarea
               id="description"
               {...register('description')}
@@ -164,11 +165,11 @@ export function LoadoutFormDialog({
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {loadout ? 'Save Changes' : 'Create Loadout'}
+              {loadout ? tCommon('saveChanges') : t('createLoadout')}
             </Button>
           </DialogFooter>
         </form>

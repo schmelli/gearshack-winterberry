@@ -77,10 +77,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
     setLoadingId(vip.id);
     try {
       await toggleVipFeatured(vip.id, !vip.isFeatured);
-      toast.success(vip.isFeatured ? 'VIP unfeatured' : 'VIP featured');
+      toast.success(vip.isFeatured ? t('vipUnfeatured') : t('vipFeatured'));
       onUpdate();
     } catch (err) {
-      toast.error('Failed to update featured status');
+      toast.error(t('featuredUpdateFailed'));
     } finally {
       setLoadingId(null);
     }
@@ -91,10 +91,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
     setLoadingId(vip.id);
     try {
       await restoreVip(vip.id);
-      toast.success('VIP restored');
+      toast.success(t('vipRestored'));
       onUpdate();
     } catch (err) {
-      toast.error('Failed to restore VIP');
+      toast.error(t('restoreVipFailed'));
     } finally {
       setLoadingId(null);
     }
@@ -105,7 +105,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
       <Card>
         <CardContent className="py-8 text-center">
           <p className="text-muted-foreground">
-            {isArchived ? 'No archived VIPs' : 'No VIPs yet'}
+            {isArchived ? t('noArchivedVips') : t('noVipsYet')}
           </p>
         </CardContent>
       </Card>
@@ -119,10 +119,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
           <TableHeader>
             <TableRow>
               <TableHead className="w-12"></TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>{t('columnName')}</TableHead>
               <TableHead>{t('status')}</TableHead>
-              <TableHead className="text-right">Followers</TableHead>
-              <TableHead className="text-right">Loadouts</TableHead>
+              <TableHead className="text-right">{t('columnFollowers')}</TableHead>
+              <TableHead className="text-right">{t('columnLoadouts')}</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -165,7 +165,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                     {vip.isFeatured && (
                       <Badge variant="outline" className="text-amber-600 border-amber-300">
                         <Star className="h-3 w-3 mr-1" />
-                        Featured
+                        {t('featured')}
                       </Badge>
                     )}
                   </div>
@@ -184,7 +184,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                     onClick={() => setManagingLoadoutsVip(vip)}
                     className="text-primary hover:underline"
                   >
-                    {vip.loadoutCount} loadouts
+                    {t('loadoutCountLabel', { count: vip.loadoutCount })}
                   </Button>
                 </TableCell>
 
@@ -248,7 +248,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                       {isArchived && (
                         <DropdownMenuItem onClick={() => handleRestore(vip)}>
                           <ArchiveRestore className="h-4 w-4 mr-2" />
-                          Restore
+                          {t('restore')}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

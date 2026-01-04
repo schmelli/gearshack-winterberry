@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -70,6 +71,7 @@ export interface UseUserOffersReturn {
 
 export function useUserOffers(): UseUserOffersReturn {
   const { user } = useAuth();
+  const t = useTranslations('UserOffers');
 
   const [offers, setOffers] = useState<UserOffer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<UserOfferDetail | null>(null);
@@ -285,13 +287,13 @@ export function useUserOffers(): UseUserOffersReturn {
 
       const offer = offers.find((o) => o.id === offerId);
       if (!offer) {
-        toast.error('Offer not found');
+        toast.error(t('errors.offerNotFound'));
         return false;
       }
 
       // Validate transition
       if (!canOfferTransitionTo(offer.status, 'accepted')) {
-        toast.error('This offer cannot be accepted');
+        toast.error(t('errors.cannotAcceptOffer'));
         return false;
       }
 
@@ -319,17 +321,17 @@ export function useUserOffers(): UseUserOffersReturn {
           setSelectedOffer((prev) => (prev ? { ...prev, status: 'accepted' as const } : null));
         }
 
-        toast.success('Offer accepted! Check your messages to arrange pickup or delivery.');
+        toast.success(t('acceptSuccess'));
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to accept offer';
+        const message = err instanceof Error ? err.message : t('errors.cannotAcceptOffer');
         toast.error(message);
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    [user?.id, offers, selectedOffer?.id]
+    [user?.id, offers, selectedOffer?.id, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -341,13 +343,13 @@ export function useUserOffers(): UseUserOffersReturn {
 
       const offer = offers.find((o) => o.id === offerId);
       if (!offer) {
-        toast.error('Offer not found');
+        toast.error(t('errors.offerNotFound'));
         return false;
       }
 
       // Validate transition
       if (!canOfferTransitionTo(offer.status, 'declined')) {
-        toast.error('This offer cannot be declined');
+        toast.error(t('errors.cannotDeclineOffer'));
         return false;
       }
 
@@ -375,17 +377,17 @@ export function useUserOffers(): UseUserOffersReturn {
           setSelectedOffer((prev) => (prev ? { ...prev, status: 'declined' as const } : null));
         }
 
-        toast.success('Offer declined');
+        toast.success(t('declineSuccess'));
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to decline offer';
+        const message = err instanceof Error ? err.message : t('errors.cannotDeclineOffer');
         toast.error(message);
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    [user?.id, offers, selectedOffer?.id]
+    [user?.id, offers, selectedOffer?.id, t]
   );
 
   // ---------------------------------------------------------------------------

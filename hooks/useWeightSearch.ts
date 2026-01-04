@@ -16,6 +16,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import {
   searchProductWeightWithRateLimit,
@@ -70,6 +71,7 @@ export interface UseWeightSearchReturn {
  * ```
  */
 export function useWeightSearch(): UseWeightSearchReturn {
+  const t = useTranslations('Search.weight');
   const [status, setStatus] = useState<WeightSearchStatus>('idle');
   const [result, setResult] = useState<WeightSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function useWeightSearch(): UseWeightSearchReturn {
     const trimmedQuery = query.trim();
 
     if (!trimmedQuery) {
-      toast.error('Please enter a product name to search');
+      toast.error(t('enterProductName'));
       return null;
     }
 
@@ -110,16 +112,16 @@ export function useWeightSearch(): UseWeightSearchReturn {
 
         // Build remaining searches message for free tier
         const remainingMsg = !response.rateLimit.isUnlimited
-          ? ` (${response.rateLimit.remaining} searches left today)`
+          ? t('searchesRemaining', { count: response.rateLimit.remaining })
           : '';
 
         // Show confidence-based feedback
         if (response.result.confidence === 'high') {
-          toast.success(`Found weight: ${response.result.weightGrams}g (${response.result.sourceCount} sources)${remainingMsg}`);
+          toast.success(t('foundHighConfidence', { weight: response.result.weightGrams, sources: response.result.sourceCount, remaining: remainingMsg }));
         } else if (response.result.confidence === 'medium') {
-          toast.success(`Found weight: ${response.result.weightGrams}g (moderate confidence)${remainingMsg}`);
+          toast.success(t('foundMediumConfidence', { weight: response.result.weightGrams, remaining: remainingMsg }));
         } else {
-          toast.info(`Found weight: ${response.result.weightGrams}g (low confidence - verify manually)${remainingMsg}`);
+          toast.info(t('foundLowConfidence', { weight: response.result.weightGrams, remaining: remainingMsg }));
         }
 
         return response.result;
@@ -128,10 +130,10 @@ export function useWeightSearch(): UseWeightSearchReturn {
 
         // Build remaining searches message for free tier
         const remainingMsg = !response.rateLimit.isUnlimited
-          ? ` (${response.rateLimit.remaining} searches left today)`
+          ? t('searchesRemaining', { count: response.rateLimit.remaining })
           : '';
 
-        toast.info(`No weight found for "${trimmedQuery}". Try a more specific search.${remainingMsg}`);
+        toast.info(t('noWeightFound', { query: trimmedQuery, remaining: remainingMsg }));
         return null;
       }
     } catch (err) {
@@ -142,7 +144,7 @@ export function useWeightSearch(): UseWeightSearchReturn {
       console.error('[WeightSearch] Search failed:', err);
       return null;
     }
-  }, []);
+  }, [t]);
 
   /**
    * Clear results and reset state

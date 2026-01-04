@@ -143,9 +143,9 @@ export function VipCompareContent() {
       });
     } catch (err) {
       console.error('Failed to fetch VIP loadout details:', err);
-      toast.error('Failed to load VIP loadout details');
+      toast.error(t('loadVipDetailsFailed'));
     }
-  }, [clearComparison]);
+  }, [clearComparison, t]);
 
   // Perform comparison when both loadouts are selected
   const handleCompare = useCallback(() => {
@@ -183,8 +183,8 @@ export function VipCompareContent() {
   // Handle adding VIP item to wishlist
   const handleAddToWishlist = useCallback((itemName: string) => {
     // This would typically call an API to add to wishlist
-    toast.success(`Added "${itemName}" to wishlist`);
-  }, []);
+    toast.success(t('addedToWishlist', { itemName }));
+  }, [t]);
 
   // Loading state
   const isLoading = authLoading || loadoutsLoading || gearLoading;
@@ -204,7 +204,7 @@ export function VipCompareContent() {
           <AlertDescription className="flex items-center justify-between">
             <span>{t('signInRequired')}</span>
             <Button asChild size="sm">
-              <Link href="/auth/login">Sign In</Link>
+              <Link href="/auth/login">{t('signIn')}</Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -227,7 +227,7 @@ export function VipCompareContent() {
             <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">{t('createLoadoutFirst')}</p>
             <Button asChild>
-              <Link href="/loadouts/new">Create Loadout</Link>
+              <Link href="/loadouts/new">{t('createLoadout')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -249,7 +249,7 @@ export function VipCompareContent() {
         <CardHeader>
           <CardTitle className="text-lg">{t('selectBothLoadouts')}</CardTitle>
           <CardDescription>
-            Select your loadout and a VIP loadout to see a detailed comparison
+            {t('selectDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -315,7 +315,7 @@ export function VipCompareContent() {
       {comparisonStatus === 'error' && (
         <Alert variant="destructive">
           <AlertDescription>
-            Failed to compare loadouts. Please try again.
+            {t('compareFailed')}
           </AlertDescription>
         </Alert>
       )}

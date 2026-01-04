@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import type { LocationGranularity } from '@/types/merchant';
 
@@ -94,6 +95,7 @@ async function getUserLocation(): Promise<{
 // =============================================================================
 
 export function useLocationSharing(): UseLocationSharingReturn {
+  const t = useTranslations('LocationSharing');
   const [shares, setShares] = useState<LocationShare[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +171,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          toast.error('Please sign in to save preferences');
+          toast.error(t('signInRequired'));
           return false;
         }
 
@@ -218,7 +220,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
           ];
         });
 
-        toast.success('Location preference saved');
+        toast.success(t('preferenceSaved'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to save preference';
@@ -227,7 +229,7 @@ export function useLocationSharing(): UseLocationSharingReturn {
         return false;
       }
     },
-    []
+    [t]
   );
 
   // Remove location share for a merchant

@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, Trash2, Edit } from 'lucide-react';
 import {
   Dialog,
@@ -42,6 +43,7 @@ export function LoadoutItemsDialog({
   open,
   onOpenChange,
 }: LoadoutItemsDialogProps) {
+  const t = useTranslations('vip.admin.loadoutItems');
   const [showCatalogSearch, setShowCatalogSearch] = useState(false);
   const [editingItem, setEditingItem] = useState<LoadoutItem | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -79,10 +81,10 @@ export function LoadoutItemsDialog({
       // 2. Add gear_item to loadout
       await addItem(gearItem.id, 1);
 
-      toast.success(`Added ${catalogItem.name} to loadout`);
+      toast.success(t('itemAdded', { name: catalogItem.name }));
       await refetch();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add item';
+      const message = err instanceof Error ? err.message : t('addItemFailed');
       toast.error(message);
       console.error('Error adding catalog item:', err);
     } finally {
@@ -92,13 +94,13 @@ export function LoadoutItemsDialog({
 
   // Handle delete
   const handleDelete = async (item: LoadoutItem) => {
-    if (!confirm(`Delete "${item.name}"?`)) return;
+    if (!confirm(t('confirmDelete', { name: item.name }))) return;
 
     try {
       await deleteItem(item.id);
-      toast.success('Item deleted');
+      toast.success(t('itemDeleted'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete');
+      toast.error(err instanceof Error ? err.message : t('deleteFailed'));
     }
   };
 
@@ -121,42 +123,42 @@ export function LoadoutItemsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{loadout.name} - Items</DialogTitle>
+          <DialogTitle>{t('dialogTitle', { name: loadout.name })}</DialogTitle>
           <DialogDescription>
-            Manage the gear items in this loadout
+            {t('dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Summary */}
           <div className="flex items-center gap-4 text-sm">
-            <Badge variant="outline">{items.length} items</Badge>
+            <Badge variant="outline">{t('itemCount', { count: items.length })}</Badge>
             <Badge variant="outline">
-              Total: {formatWeight(totalWeight, 1)}
+              {t('totalWeight', { weight: formatWeight(totalWeight, 1) })}
             </Badge>
           </div>
 
           {/* Add Button */}
           <Button onClick={() => setShowCatalogSearch(true)} size="sm" disabled={isAddingItem}>
             <Plus className="h-4 w-4 mr-2" />
-            {isAddingItem ? 'Adding...' : 'Add Item from Catalog'}
+            {isAddingItem ? t('adding') : t('addFromCatalog')}
           </Button>
 
           {/* Items Table by Category */}
           {items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No items yet. Add the first item to this loadout.
+              {t('noItemsYet')}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead className="text-right">Weight</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('columnName')}</TableHead>
+                  <TableHead>{t('columnBrand')}</TableHead>
+                  <TableHead className="text-right">{t('columnWeight')}</TableHead>
+                  <TableHead className="text-right">{t('columnQty')}</TableHead>
+                  <TableHead className="text-right">{t('columnTotal')}</TableHead>
+                  <TableHead className="text-right">{t('columnActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

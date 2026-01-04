@@ -303,6 +303,7 @@ export function FeedbackSection({
   onFeedbackChange,
 }: FeedbackSectionProps) {
   const t = useTranslations('Shakedowns');
+  const tActions = useTranslations('Shakedowns.actions');
   const { user } = useAuthContext();
 
   // Feedback CRUD operations
@@ -472,8 +473,8 @@ export function FeedbackSection({
   const handleReport = useCallback((feedbackId: string) => {
     // TODO: Implement report modal in separate task
     console.log('Report feedback:', feedbackId);
-    toast.info('Report functionality coming soon');
-  }, []);
+    toast.info(tActions('reportComingSoon'));
+  }, [tActions]);
 
   // ==========================================================================
   // Recursive Render Function

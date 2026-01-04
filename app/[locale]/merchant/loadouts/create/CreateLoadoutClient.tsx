@@ -10,7 +10,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { LoadoutCreationWizard, type WizardSubmitData } from '@/components/merchant/LoadoutCreationWizard';
@@ -23,6 +23,7 @@ import {
 export function CreateLoadoutClient() {
   const locale = useLocale();
   const router = useRouter();
+  const t = useTranslations('Merchant');
 
   // Hooks for data
   const { createLoadout, submitForReview, addItem, setAvailability } = useMerchantLoadouts();
@@ -55,11 +56,11 @@ export function CreateLoadoutClient() {
         await setAvailability(newLoadout.id, avail);
       }
 
-      toast.success('Loadout saved as draft');
+      toast.success(t('loadouts.savedAsDraft'));
       router.push(`/${locale}/merchant/loadouts`);
       return true;
     },
-    [createLoadout, addItem, setAvailability, router, locale]
+    [createLoadout, addItem, setAvailability, router, locale, t]
   );
 
   // Handle submit for review

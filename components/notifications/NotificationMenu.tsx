@@ -13,6 +13,7 @@
 import { useCallback } from 'react';
 import { Bell, Check, X, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -26,6 +27,7 @@ interface NotificationMenuProps {
 }
 
 export function NotificationMenu({ userId, className }: NotificationMenuProps) {
+  const t = useTranslations('Notifications');
   const {
     notifications,
     unreadCount,
@@ -106,19 +108,19 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
 
       if (result.success) {
         if (action === 'accept' && result.updatedFields?.length) {
-          toast.success(`Updated: ${result.updatedFields.join(', ')}`);
+          toast.success(t('enrichment.updated', { fields: result.updatedFields.join(', ') }));
         } else {
           toast.success(
             action === 'accept'
-              ? 'Gear item updated with GearGraph data'
-              : 'Suggestion dismissed'
+              ? t('enrichment.acceptSuccess')
+              : t('enrichment.dismissSuccess')
           );
         }
       } else {
-        toast.error(result.error || 'Failed to process suggestion');
+        toast.error(result.error || t('enrichment.processFailed'));
       }
     },
-    [processEnrichmentAction]
+    [processEnrichmentAction, t]
   );
 
   // Don't render if no user
@@ -152,11 +154,11 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h3 className="font-semibold" id="notifications-heading">
-            Notifications
+            {t('title')}
           </h3>
           {unreadCount > 0 && (
             <span className="text-xs text-muted-foreground">
-              {unreadCount} unread
+              {unreadCount} {t('unread')}
             </span>
           )}
         </div>
@@ -167,7 +169,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
         >
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              No notifications yet
+              {t('noNotifications')}
             </div>
           ) : (
             notifications.map((notification) => {
@@ -238,7 +240,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
                             ) : (
                               <Check className="mr-1 h-3 w-3" />
                             )}
-                            Accept
+                            {t('accept')}
                           </Button>
                           <Button
                             size="sm"
@@ -259,7 +261,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
                             ) : (
                               <X className="mr-1 h-3 w-3" />
                             )}
-                            Dismiss
+                            {t('dismiss')}
                           </Button>
                         </div>
                       )}

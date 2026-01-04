@@ -118,7 +118,8 @@ function transformDbToFeedback(row: FeedbackRow): FeedbackWithAuthor {
 
 export function useFeedback(): UseFeedbackReturn {
   const { user } = useAuthContext();
-  const t = useTranslations('Shakedowns.report');
+  const tReport = useTranslations('Shakedowns.report');
+  const tFeedback = useTranslations('Shakedowns.feedback');
 
   const [state, setState] = useState<MutationState>({
     isSubmitting: false,
@@ -169,7 +170,7 @@ export function useFeedback(): UseFeedbackReturn {
         const feedback = transformDbToFeedback(data.feedback as FeedbackRow);
 
         setState((prev) => ({ ...prev, isSubmitting: false }));
-        toast.success('Feedback submitted successfully');
+        toast.success(tFeedback('submitSuccess'));
         return feedback;
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to create feedback');
@@ -178,7 +179,7 @@ export function useFeedback(): UseFeedbackReturn {
         throw error;
       }
     },
-    [user]
+    [user, tFeedback]
   );
 
   /**
@@ -240,7 +241,7 @@ export function useFeedback(): UseFeedbackReturn {
         const feedback = transformDbToFeedback(data.feedback as FeedbackRow);
 
         setState((prev) => ({ ...prev, isSubmitting: false }));
-        toast.success('Feedback updated successfully');
+        toast.success(tFeedback('updateSuccess'));
         return feedback;
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to update feedback');
@@ -249,7 +250,7 @@ export function useFeedback(): UseFeedbackReturn {
         throw error;
       }
     },
-    [user]
+    [user, tFeedback]
   );
 
   /**
@@ -276,7 +277,7 @@ export function useFeedback(): UseFeedbackReturn {
         }
 
         setState((prev) => ({ ...prev, isSubmitting: false }));
-        toast.success('Feedback deleted');
+        toast.success(tFeedback('deleteSuccess'));
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to delete feedback');
         setState((prev) => ({ ...prev, isSubmitting: false, error }));
@@ -284,7 +285,7 @@ export function useFeedback(): UseFeedbackReturn {
         throw error;
       }
     },
-    [user]
+    [user, tFeedback]
   );
 
   /**
@@ -323,7 +324,7 @@ export function useFeedback(): UseFeedbackReturn {
 
           // Handle duplicate report
           if (response.status === 409) {
-            throw new Error(t('alreadyReported'));
+            throw new Error(tReport('alreadyReported'));
           }
 
           const errorMessage = errorData.error ?? `Failed to report feedback (${response.status})`;
@@ -336,9 +337,9 @@ export function useFeedback(): UseFeedbackReturn {
 
         // Display appropriate success message based on response code
         if (data.code === 'REPORT_SUCCESS_HIDDEN') {
-          toast.success(t('successHidden'));
+          toast.success(tReport('successHidden'));
         } else {
-          toast.success(t('successMessage'));
+          toast.success(tReport('successMessage'));
         }
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to report feedback');
@@ -347,7 +348,7 @@ export function useFeedback(): UseFeedbackReturn {
         throw error;
       }
     },
-    [user]
+    [user, tReport]
   );
 
   return {

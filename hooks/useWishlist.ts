@@ -12,6 +12,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   fetchWishlistItems,
   addWishlistItem,
@@ -64,6 +65,8 @@ function getInitialSortOption(): WishlistSortOption {
 // =============================================================================
 
 export function useWishlist(): UseWishlistReturn {
+  const t = useTranslations('Wishlist.actions');
+
   // ---------------------------------------------------------------------------
   // State: Wishlist Items
   // ---------------------------------------------------------------------------
@@ -131,10 +134,10 @@ export function useWishlist(): UseWishlistReturn {
       try {
         const newItem = await addWishlistItem(item as AddWishlistItemParams);
         setWishlistItems((prev) => [newItem, ...prev]);
-        toast.success('Added to wishlist!');
+        toast.success(t('addedToWishlist'));
       } catch (err) {
         if (err instanceof DuplicateError) {
-          toast.warning('This item is already in your wishlist');
+          toast.warning(t('alreadyInWishlist'));
         } else {
           const message = err instanceof Error ? err.message : 'Failed to add to wishlist';
           toast.error(message);
@@ -142,7 +145,7 @@ export function useWishlist(): UseWishlistReturn {
         throw err;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -152,13 +155,13 @@ export function useWishlist(): UseWishlistReturn {
     try {
       await deleteWishlistItem(itemId);
       setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
-      toast.success('Removed from wishlist');
+      toast.success(t('removedFromWishlist'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to remove item';
       toast.error(message);
       throw err;
     }
-  }, []);
+  }, [t]);
 
   /**
    * Update wishlist item
@@ -168,14 +171,14 @@ export function useWishlist(): UseWishlistReturn {
       try {
         const updatedItem = await updateWishlistItem(itemId, updates as UpdateWishlistItemParams);
         setWishlistItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)));
-        toast.success('Wishlist item updated');
+        toast.success(t('itemUpdated'));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update item';
         toast.error(message);
         throw err;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -200,13 +203,13 @@ export function useWishlist(): UseWishlistReturn {
       // setRemoteGearItems expects an array, not a function updater
       setRemoteGearItems([transformedItem, ...inventoryItems]);
 
-      toast.success(`${itemName} moved to inventory!`);
+      toast.success(t('movedToInventory', { name: itemName }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to move item';
       toast.error(message);
       throw err;
     }
-  }, [wishlistItems, inventoryItems, setRemoteGearItems]);
+  }, [wishlistItems, inventoryItems, setRemoteGearItems, t]);
 
   // ---------------------------------------------------------------------------
   // Duplicate Detection Helper

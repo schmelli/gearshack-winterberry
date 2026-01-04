@@ -12,6 +12,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,8 @@ export function LoadoutItemForm({
   onSuccess,
   onCancel,
 }: LoadoutItemFormProps) {
+  const t = useTranslations('vip.admin.loadoutItems');
+  const tCommon = useTranslations('Common');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { updateItem } = useLoadoutItemsAdmin(loadoutId);
 
@@ -63,7 +66,7 @@ export function LoadoutItemForm({
 
   const onSubmit = async (data: ItemFormData) => {
     if (!item) {
-      toast.error('Cannot add items yet - catalog search integration pending');
+      toast.error(t('catalogSearchPending'));
       return;
     }
 
@@ -71,10 +74,10 @@ export function LoadoutItemForm({
 
     try {
       await updateItem(item.id, data.quantity);
-      toast.success('Item quantity updated');
+      toast.success(t('quantityUpdated'));
       onSuccess();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update item');
+      toast.error(err instanceof Error ? err.message : t('updateFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -85,25 +88,24 @@ export function LoadoutItemForm({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Add VIP Item</CardTitle>
+          <CardTitle>{t('addItemTitle')}</CardTitle>
           <CardDescription>
-            Catalog search integration pending
+            {t('catalogPendingDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-2">Catalog Search Coming Soon</p>
+              <p className="font-medium mb-2">{t('catalogComingSoon')}</p>
               <p className="text-sm text-muted-foreground">
-                Adding VIP items requires catalog integration, which is the next feature to be implemented.
-                For now, items must be added directly to the VIP user's gear inventory first, then added to loadouts.
+                {t('catalogComingSoonDescription')}
               </p>
             </AlertDescription>
           </Alert>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-              Close
+              {tCommon('close')}
             </Button>
           </div>
         </CardContent>
@@ -114,9 +116,9 @@ export function LoadoutItemForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit Item Quantity</CardTitle>
+        <CardTitle>{t('editQuantityTitle')}</CardTitle>
         <CardDescription>
-          Editing: {item.name} {item.brand ? `(${item.brand})` : ''}
+          {t('editingItem', { name: item.name, brand: item.brand || '' })}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -124,18 +126,18 @@ export function LoadoutItemForm({
           {/* Display item details (read-only) */}
           <div className="space-y-2 p-4 bg-muted rounded-md">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Name:</span>
+              <span className="text-muted-foreground">{tCommon('name')}:</span>
               <span className="font-medium">{item.name}</span>
             </div>
             {item.brand && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Brand:</span>
+                <span className="text-muted-foreground">{t('brand')}:</span>
                 <span>{item.brand}</span>
               </div>
             )}
             {item.weightGrams && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Weight:</span>
+                <span className="text-muted-foreground">{t('weight')}:</span>
                 <span>{item.weightGrams}g</span>
               </div>
             )}
@@ -144,7 +146,7 @@ export function LoadoutItemForm({
           {/* Quantity (editable) */}
           <div className="space-y-2">
             <Label htmlFor="quantity">
-              Quantity <span className="text-destructive">*</span>
+              {t('quantity')} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="quantity"
@@ -165,11 +167,11 @@ export function LoadoutItemForm({
               onClick={onCancel}
               disabled={isSubmitting}
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {tCommon('saveChanges')}
             </Button>
           </div>
         </form>

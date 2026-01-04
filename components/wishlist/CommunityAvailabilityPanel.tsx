@@ -21,6 +21,7 @@
 
 import Image from 'next/image';
 import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { DollarSign, HandHeart, ArrowLeftRight, Eye, MessageCircle, Loader2, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,21 +66,36 @@ interface MatchCardProps {
   onMessageUser: (userId: string) => void;
   showSimilarityScore?: boolean;
   variant: 'compact' | 'full';
+  labels: {
+    forSale: string;
+    lendable: string;
+    tradeable: string;
+    viewItem: string;
+    message: string;
+  };
 }
 
 // =============================================================================
 // Availability Badge Component
 // =============================================================================
 
+interface AvailabilityBadgesProps {
+  forSale: boolean;
+  lendable: boolean;
+  tradeable: boolean;
+  labels: {
+    forSale: string;
+    lendable: string;
+    tradeable: string;
+  };
+}
+
 function AvailabilityBadges({
   forSale,
   lendable,
   tradeable,
-}: {
-  forSale: boolean;
-  lendable: boolean;
-  tradeable: boolean;
-}) {
+  labels,
+}: AvailabilityBadgesProps) {
   return (
     <div className="flex flex-wrap gap-1">
       {forSale && (
@@ -88,7 +104,7 @@ function AvailabilityBadges({
           className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] px-1.5 py-0"
         >
           <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-          For Sale
+          {labels.forSale}
         </Badge>
       )}
       {lendable && (
@@ -97,7 +113,7 @@ function AvailabilityBadges({
           className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-[10px] px-1.5 py-0"
         >
           <HandHeart className="h-2.5 w-2.5 mr-0.5" />
-          Lendable
+          {labels.lendable}
         </Badge>
       )}
       {tradeable && (
@@ -106,7 +122,7 @@ function AvailabilityBadges({
           className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-1.5 py-0"
         >
           <ArrowLeftRight className="h-2.5 w-2.5 mr-0.5" />
-          Tradeable
+          {labels.tradeable}
         </Badge>
       )}
     </div>
@@ -123,6 +139,7 @@ function MatchCard({
   onMessageUser,
   showSimilarityScore = false,
   variant,
+  labels,
 }: MatchCardProps) {
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
@@ -201,6 +218,11 @@ function MatchCard({
           forSale={match.forSale}
           lendable={match.lendable}
           tradeable={match.tradeable}
+          labels={{
+            forSale: labels.forSale,
+            lendable: labels.lendable,
+            tradeable: labels.tradeable,
+          }}
         />
 
         {/* Actions - T041, T042, T082 */}
@@ -219,7 +241,7 @@ function MatchCard({
               aria-label={`View ${match.itemBrand ? `${match.itemBrand} ` : ''}${match.itemName} from ${match.ownerDisplayName}`}
             >
               <Eye className="h-3 w-3 mr-1" aria-hidden="true" />
-              View Item
+              {labels.viewItem}
             </Button>
             <Button
               size="sm"
@@ -230,7 +252,7 @@ function MatchCard({
               aria-label={`Send message to ${match.ownerDisplayName}`}
             >
               <MessageCircle className="h-3 w-3 mr-1" aria-hidden="true" />
-              Message
+              {labels.message}
             </Button>
           </div>
         )}
@@ -243,21 +265,26 @@ function MatchCard({
 // Loading State Component - T082
 // =============================================================================
 
-function LoadingState() {
+interface LoadingStateProps {
+  checkingCommunity: string;
+  loadingMessage: string;
+}
+
+function LoadingState({ checkingCommunity, loadingMessage }: LoadingStateProps) {
   return (
     <div
       className="flex items-center justify-center py-4"
       role="status"
       aria-busy="true"
-      aria-label="Loading community availability"
+      aria-label={loadingMessage}
     >
       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" />
       <span className="ml-2 text-xs text-muted-foreground">
-        Checking community...
+        {checkingCommunity}
       </span>
       {/* T084: Screen reader announcement for loading state */}
       <VisuallyHidden aria-live="polite">
-        Loading community availability matches. Please wait.
+        {loadingMessage}
       </VisuallyHidden>
     </div>
   );
@@ -267,20 +294,26 @@ function LoadingState() {
 // T077: Retrying State Component
 // =============================================================================
 
-function RetryingState({ retryCount }: { retryCount: number }) {
+interface RetryingStateProps {
+  retryCount: number;
+  retryingText: string;
+  retryingMessage: string;
+}
+
+function RetryingState({ retryCount, retryingText, retryingMessage }: RetryingStateProps) {
   return (
     <div
       className="flex items-center justify-center py-4"
       role="status"
       aria-busy="true"
-      aria-label={`Retrying community availability, attempt ${retryCount}`}
+      aria-label={retryingMessage}
     >
       <RefreshCw className="h-4 w-4 animate-spin text-amber-500" aria-hidden="true" />
       <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-        Retrying... (attempt {retryCount}/3)
+        {retryingText}
       </span>
       <VisuallyHidden aria-live="polite">
-        Retrying to load community availability. Attempt {retryCount} of 3.
+        {retryingMessage}
       </VisuallyHidden>
     </div>
   );
@@ -290,16 +323,22 @@ function RetryingState({ retryCount }: { retryCount: number }) {
 // T077: Error State Component with Manual Retry
 // =============================================================================
 
-function ErrorState({ onRetry }: { onRetry?: () => void }) {
+interface ErrorStateProps {
+  onRetry?: () => void;
+  loadFailed: string;
+  tryAgain: string;
+}
+
+function ErrorState({ onRetry, loadFailed, tryAgain }: ErrorStateProps) {
   return (
     <div
       className="flex flex-col items-center justify-center py-4 text-center"
       role="alert"
-      aria-label="Failed to load community availability"
+      aria-label={loadFailed}
     >
       <AlertTriangle className="h-5 w-5 text-destructive/70 mb-1.5" aria-hidden="true" />
       <p className="text-xs text-destructive/80">
-        Failed to load community availability
+        {loadFailed}
       </p>
       {onRetry && (
         <Button
@@ -307,10 +346,10 @@ function ErrorState({ onRetry }: { onRetry?: () => void }) {
           size="sm"
           onClick={onRetry}
           className="mt-2 h-7 px-3 text-xs gap-1.5"
-          aria-label="Retry loading community availability"
+          aria-label={tryAgain}
         >
           <RefreshCw className="h-3 w-3" aria-hidden="true" />
-          Try again
+          {tryAgain}
         </Button>
       )}
     </div>
@@ -321,19 +360,24 @@ function ErrorState({ onRetry }: { onRetry?: () => void }) {
 // Empty State Component - T047, T082
 // =============================================================================
 
-function EmptyState() {
+interface EmptyStateProps {
+  noMatches: string;
+  beFirst: string;
+}
+
+function EmptyState({ noMatches, beFirst }: EmptyStateProps) {
   return (
     <div
       className="flex flex-col items-center justify-center py-4 text-center"
       role="status"
-      aria-label="No community matches found"
+      aria-label={noMatches}
     >
       <Users className="h-6 w-6 text-muted-foreground/50 mb-1.5" aria-hidden="true" />
       <p className="text-xs text-muted-foreground">
-        No community matches found
+        {noMatches}
       </p>
       <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-        Be the first to add this item to your inventory!
+        {beFirst}
       </p>
     </div>
   );
@@ -356,6 +400,7 @@ export function CommunityAvailabilityPanel({
   variant = 'full',
 }: CommunityAvailabilityPanelProps) {
   const router = useRouter();
+  const t = useTranslations('Wishlist.communityAvailability');
   const { startDirectConversation } = useConversations();
 
   // Handle message user action - T042
@@ -367,20 +412,29 @@ export function CommunityAvailabilityPanel({
         // Navigate to messages with this conversation
         router.push(`/messages?conversation=${result.conversationId}`);
       } else if (result.error === 'privacy_restricted') {
-        toast.error('Unable to message this user', {
-          description: 'Their privacy settings prevent messages from non-friends.',
+        toast.error(t('unableToMessage'), {
+          description: t('privacyRestricted'),
         });
       } else {
-        toast.error('Failed to start conversation', {
-          description: result.error || 'Please try again later.',
+        toast.error(t('conversationFailed'), {
+          description: result.error || t('tryAgainLater'),
         });
       }
     } catch (err) {
       console.error('Failed to start conversation:', err);
-      toast.error('Failed to start conversation', {
-        description: 'An unexpected error occurred. Please try again.',
+      toast.error(t('conversationFailed'), {
+        description: t('unexpectedError'),
       });
     }
+  };
+
+  // Labels for child components
+  const labels = {
+    forSale: t('forSale'),
+    lendable: t('lendable'),
+    tradeable: t('tradeable'),
+    viewItem: t('viewItem'),
+    message: t('message'),
   };
 
   // T077: Show error state with retry button after max retries exhausted
@@ -395,48 +449,63 @@ export function CommunityAvailabilityPanel({
           className
         )}
         onClick={(e) => e.stopPropagation()}
-        aria-label="Community availability error"
+        aria-label={t('loadFailed')}
       >
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Community Availability
+            {t('title')}
           </h4>
         </div>
-        <ErrorState onRetry={onManualRetry} />
+        <ErrorState
+          onRetry={onManualRetry}
+          loadFailed={t('loadFailed')}
+          tryAgain={t('tryAgain')}
+        />
       </section>
     );
   }
 
   // Generate status message for screen readers
   const getStatusMessage = () => {
-    if (retryStatus === 'retrying') return `Retrying community availability, attempt ${retryCount}`;
-    if (isLoading) return 'Loading community availability';
-    if (!availability || availability.matchCount === 0) return 'No community matches found';
-    return `${availability.matchCount} community ${availability.matchCount === 1 ? 'match' : 'matches'} found`;
+    if (retryStatus === 'retrying') return t('retryingMessage', { count: retryCount });
+    if (isLoading) return t('loadingMessage');
+    if (!availability || availability.matchCount === 0) return t('noMatches');
+    return t('matchCountAria', { count: availability.matchCount });
   };
 
   // Determine which content state to render
   const renderContent = () => {
     // T077: Show retrying state during automatic retries
     if (retryStatus === 'retrying') {
-      return <RetryingState retryCount={retryCount} />;
+      return (
+        <RetryingState
+          retryCount={retryCount}
+          retryingText={t('retrying', { count: retryCount })}
+          retryingMessage={t('retryingMessage', { count: retryCount })}
+        />
+      );
     }
 
     // Standard loading state
     if (isLoading) {
-      return <LoadingState />;
+      return (
+        <LoadingState
+          checkingCommunity={t('checkingCommunity')}
+          loadingMessage={t('loadingMessage')}
+        />
+      );
     }
 
     // Empty state
     if (!availability || availability.matchCount === 0) {
-      return <EmptyState />;
+      return <EmptyState noMatches={t('noMatches')} beFirst={t('beFirst')} />;
     }
 
     // Matches list
     return (
       <ul
         className="space-y-2 max-h-48 overflow-y-auto"
-        aria-label={`${availability.matchCount} community members have this item`}
+        aria-label={t('matchCountAria', { count: availability.matchCount })}
         role="list"
       >
         {availability.matches.map((match) => (
@@ -447,6 +516,7 @@ export function CommunityAvailabilityPanel({
               onMessageUser={handleMessageUser}
               showSimilarityScore={showSimilarityScore}
               variant={variant}
+              labels={labels}
             />
           </li>
         ))}
@@ -464,7 +534,7 @@ export function CommunityAvailabilityPanel({
       )}
       onClick={(e) => e.stopPropagation()} // Prevent card click when interacting with panel
       // T082: Descriptive aria-label for the panel
-      aria-label="Community availability matches"
+      aria-label={t('title')}
       // T082: Indicate loading state
       aria-busy={isLoading || retryStatus === 'retrying'}
     >
@@ -474,15 +544,15 @@ export function CommunityAvailabilityPanel({
           className="text-xs font-semibold text-muted-foreground uppercase tracking-wide"
           id="community-availability-heading"
         >
-          Community Availability
+          {t('title')}
         </h4>
         {availability && availability.matchCount > 0 && (
           <Badge
             variant="secondary"
             className="text-[10px] px-1.5 py-0"
-            aria-label={`${availability.matchCount} ${availability.matchCount === 1 ? 'match' : 'matches'}`}
+            aria-label={t('matchCountAria', { count: availability.matchCount })}
           >
-            {availability.matchCount} match{availability.matchCount !== 1 ? 'es' : ''}
+            {t('matchCount', { count: availability.matchCount })}
           </Badge>
         )}
       </div>

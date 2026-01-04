@@ -11,6 +11,19 @@
     "openMenu": "Menü öffnen",
     "messages": "Nachrichten"
   },
+  "Notifications": {
+    "title": "Benachrichtigungen",
+    "unread": "ungelesen",
+    "noNotifications": "Noch keine Benachrichtigungen",
+    "accept": "Akzeptieren",
+    "dismiss": "Ablehnen",
+    "enrichment": {
+      "updated": "Aktualisiert: {fields}",
+      "acceptSuccess": "Ausrüstung mit GearGraph-Daten aktualisiert",
+      "dismissSuccess": "Vorschlag abgelehnt",
+      "processFailed": "Vorschlag konnte nicht verarbeitet werden"
+    }
+  },
   "Footer": {
     "logoAlt": "Gearshack Logo",
     "tagline": "Ausrüstungsmanagement für Besessene. Verfolge deine Ausrüstung, erstelle Packlisten und erkunde die Natur mit Zuversicht.",
@@ -30,14 +43,22 @@
   "Common": {
     "loading": "Laden...",
     "save": "Speichern",
+    "saving": "Speichern...",
     "cancel": "Abbrechen",
     "delete": "Löschen",
+    "deleting": "Löschen...",
     "edit": "Bearbeiten",
+    "update": "Aktualisieren",
+    "create": "Erstellen",
+    "saveChanges": "Änderungen speichern",
+    "name": "Name",
+    "description": "Beschreibung",
     "error": "Etwas ist schief gelaufen",
     "uncategorized": "Unkategorisiert",
     "genericUser": "Benutzer",
     "unknown": "Unbekannt",
-    "anonymousUser": "Anonymer Benutzer"
+    "anonymousUser": "Anonymer Benutzer",
+    "close": "Schließen"
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
@@ -199,6 +220,11 @@
       "emailInUse": "Diese E-Mail-Adresse ist bereits registriert",
       "weakPassword": "Das Passwort ist zu schwach",
       "signInFailed": "Anmeldung fehlgeschlagen"
+    },
+    "admin": {
+      "accessDeniedTitle": "Zugriff verweigert",
+      "accessDeniedMessage": "Du hast keine Berechtigung, auf diesen Bereich zuzugreifen.",
+      "accessDeniedToast": "Zugriff verweigert. Admin-Rechte erforderlich."
     }
   },
   "Inventory": {
@@ -282,6 +308,89 @@
       "invalidPrice": "Bitte gib einen gültigen Preis ein"
     }
   },
+  "ProductSearch": {
+    "enterSearchTerm": "Bitte gib einen Suchbegriff ein",
+    "noResults": "Keine Bilder für \"{query}\" gefunden. Versuche andere Suchbegriffe."
+  },
+  "SmartProductSearch": {
+    "minCharacters": "Bitte gib mindestens 2 Zeichen ein",
+    "noResults": "Keine Produkte für \"{query}\" gefunden",
+    "foundResults": "{total} Ergebnisse gefunden ({details})",
+    "foundResultsWithLimit": "{total} Ergebnisse gefunden ({details}). Noch {remaining} Suchen heute verfügbar.",
+    "catalogResults": "{count} aus dem Katalog",
+    "webResults": "{count} aus dem Web",
+    "extractSuccess": "Produktdaten erfolgreich extrahiert",
+    "extractMedium": "Produktdaten extrahiert (einige Felder müssen möglicherweise überprüft werden)",
+    "extractLow": "Begrenzte Daten extrahiert - bitte überprüfen",
+    "extractFailed": "Produktdaten konnten von dieser Seite nicht extrahiert werden"
+  },
+  "DuplicateDetection": {
+    "noMatchingItem": "Kein passendes Element gefunden",
+    "quantityUpdated": "Menge auf {quantity} für \"{name}\" aktualisiert",
+    "updateFailed": "Menge konnte nicht aktualisiert werden"
+  },
+  "LocationSharing": {
+    "signInRequired": "Bitte melde dich an, um Einstellungen zu speichern",
+    "preferenceSaved": "Standorteinstellung gespeichert"
+  },
+  "DependencyPrompt": {
+    "addedWithDeps": "{name} + {count} ausgewählt hinzugefügt",
+    "addedItem": "{name} hinzugefügt"
+  },
+  "FriendRequests": {
+    "loadFailed": "Freundschaftsanfragen konnten nicht geladen werden",
+    "sendFailed": "Freundschaftsanfrage konnte nicht gesendet werden",
+    "checkFailed": "Berechtigung für Freundschaftsanfrage konnte nicht überprüft werden"
+  },
+  "ImageUpload": {
+    "unavailable": "Bild-Upload nicht verfügbar",
+    "checkConnection": "Überprüfe deine Internetverbindung und versuche es erneut"
+  },
+  "GearDetailModal": {
+    "itemNotFound": "Element nicht gefunden",
+    "itemNotFoundDesc": "Das angeforderte Element konnte nicht gefunden werden"
+  },
+  "AIChat": {
+    "loginRequired": "Du musst angemeldet sein, um den KI-Assistenten zu nutzen",
+    "noMessageToRetry": "Keine Nachricht zum Wiederholen"
+  },
+  "LoadoutEditor": {
+    "addedItem": "{name} hinzugefügt"
+  },
+  "CategoryManagement": {
+    "createFailed": "Kategorie konnte nicht erstellt werden: {error}",
+    "createSuccess": "Kategorie erfolgreich erstellt",
+    "updateFailed": "Kategorie konnte nicht aktualisiert werden: {error}",
+    "updateSuccess": "Kategorie erfolgreich aktualisiert",
+    "deleteSuccess": "Kategorie erfolgreich gelöscht",
+    "moveSuccess": "Kategorie nach {direction} verschoben",
+    "indentSuccess": "Kategorie eingerückt (eine Ebene tiefer)",
+    "outdentSuccess": "Kategorie ausgerückt (eine Ebene höher)"
+  },
+  "CloudinaryUpload": {
+    "invalidFile": "Ungültige Datei",
+    "backgroundRemovalFailed": "Hintergrundentfernung fehlgeschlagen",
+    "uploadFailed": "Upload fehlgeschlagen",
+    "uploadSuccess": "Bild erfolgreich hochgeladen",
+    "uploadSuccessWithBgRemoval": "Hintergrund entfernt und zu Cloudinary hochgeladen",
+    "uploadSuccessNoBgRemoval": "Zu Cloudinary hochgeladen",
+    "uploadError": "Upload-Fehler",
+    "invalidUrl": "Ungültige URL",
+    "invalidUrlDescription": "Ungültige URL: muss mit http:// oder https:// beginnen",
+    "imageFetchFailed": "Bildabruf fehlgeschlagen",
+    "imageFetchFailedDescription": "Bild konnte nicht abgerufen werden: {status}",
+    "urlUploadSuccess": "URL zu Cloudinary hochgeladen",
+    "widgetSuccess": "Bild vom Cloudinary-Widget gespeichert"
+  },
+  "LoadoutImageGeneration": {
+    "generateSuccess": "Bild erfolgreich generiert!",
+    "usingDefault": "Standardbild wird verwendet",
+    "generateFailed": "Bildgenerierung fehlgeschlagen. Bitte später erneut versuchen.",
+    "imageUpdated": "Bild aktualisiert",
+    "updateFailed": "Bild konnte nicht aktualisiert werden",
+    "imageDeleted": "Bild gelöscht",
+    "deleteFailed": "Bild konnte nicht gelöscht werden"
+  },
   "GearEditor": {
     "addTitle": "Neue Ausrüstung hinzufügen",
     "editTitle": "Ausrüstung bearbeiten",
@@ -343,6 +452,27 @@
         "increaseQuantity": "+1 zum Vorhandenen",
         "saveAsNew": "Als neu speichern"
       }
+    },
+    "cloudImport": {
+      "buttonLabel": "Aus Cloud importieren",
+      "opening": "Öffnen...",
+      "importSuccess": "Bild erfolgreich importiert",
+      "importSuccessDescription": "Cloud-Bild wurde zu deinem Ausrüstungsgegenstand hinzugefügt",
+      "uploadFailed": "Upload fehlgeschlagen",
+      "noUrlReceived": "Keine Bild-URL von Cloudinary erhalten",
+      "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
+      "importFailed": "Import fehlgeschlagen"
+    },
+    "toasts": {
+      "importingImage": "Bild wird importiert...",
+      "imageImportSuccess": "Bild erfolgreich importiert!",
+      "imageImportFailed": "Bildimport fehlgeschlagen: {error}",
+      "itemUpdated": "Artikel erfolgreich aktualisiert!",
+      "addedToWishlist": "Zur Wunschliste hinzugefügt!",
+      "itemSaved": "Artikel erfolgreich gespeichert!",
+      "fixErrors": "Bitte behebe die Fehler vor dem Speichern",
+      "itemDeleted": "Artikel gelöscht.",
+      "deleteFailed": "Löschen fehlgeschlagen"
     }
   },
   "GearDetail": {
@@ -385,7 +515,13 @@
       "purchased": "Gekauft"
     },
     "badges": {
-      "favourite": "Favorit"
+      "favourite": "Favorit",
+      "favouriteTooltip": "Favorit",
+      "forSaleTooltip": "Zu verkaufen",
+      "borrowableTooltip": "Ausleihbar",
+      "tradeableTooltip": "Tauschbar",
+      "lentTooltip": "Derzeit verliehen",
+      "soldTooltip": "Verkauft"
     },
     "aria": {
       "favourite": "Als Favorit markiert",
@@ -395,6 +531,11 @@
       "lent": "Derzeit verliehen",
       "sold": "Artikel wurde verkauft",
       "edit": "{name} bearbeiten"
+    },
+    "labels": {
+      "description": "Beschreibung",
+      "myNotes": "Meine Notizen",
+      "visitWebsite": "Website besuchen"
     }
   },
   "Loadouts": {
@@ -443,7 +584,44 @@
       "baseWeight": "Basisgewicht"
     },
     "lighterAlternative": "Leichtere Option verfügbar",
-    "lighterAlternativeTooltip": "Du hast einen leichteren {productType} im Inventar: {itemName} ({weight})"
+    "lighterAlternativeTooltip": "Du hast einen leichteren {productType} im Inventar: {itemName} ({weight})",
+    "metadataSheet": {
+      "title": "Packliste bearbeiten",
+      "description": "Name, Beschreibung, Jahreszeit und Reisedatum für diese Packliste aktualisieren.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Packlisten-Namen eingeben",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Optionale Notizen zu dieser Packliste",
+      "seasonLabel": "Jahreszeit",
+      "seasonPlaceholder": "Jahreszeit auswählen",
+      "noSeason": "Keine Jahreszeit",
+      "tripDateLabel": "Reisedatum"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Packlisten durchsuchen...",
+      "searchAriaLabel": "Packlisten nach Namen suchen",
+      "activityFilterAriaLabel": "Nach Aktivität filtern",
+      "allActivities": "Alle Aktivitäten",
+      "sortAriaLabel": "Packlisten sortieren",
+      "clearFilters": "Filter löschen",
+      "showingFiltered": "{filtered} von {total} Packlisten",
+      "loadoutCount": "{count, plural, one {# Packliste} other {# Packlisten}}",
+      "sortOptions": {
+        "dateNewest": "Datum (Neueste)",
+        "dateOldest": "Datum (Älteste)",
+        "weightLightest": "Gewicht (Leichteste)",
+        "weightHeaviest": "Gewicht (Schwerste)"
+      }
+    },
+    "emptyState": {
+      "title": "Deine Packliste ist leer",
+      "description": "Durchstöbere links dein Inventar und klicke auf \"Hinzufügen\", um deine Packliste zu erstellen."
+    },
+    "itemActions": {
+      "markAsWorn": "Als getragen markieren",
+      "markAsConsumable": "Als Verbrauchsgut markieren",
+      "lighterAlternativeAvailable": "Leichtere Alternative verfügbar"
+    }
   },
   "LoadoutCreation": {
     "title": "Neue Packliste erstellen",
@@ -474,6 +652,15 @@
       "nameRequired": "Name ist erforderlich",
       "nameTooLong": "Name darf maximal 100 Zeichen lang sein",
       "descriptionTooLong": "Beschreibung darf maximal 500 Zeichen lang sein"
+    },
+    "imageGeneration": {
+      "generateSuccess": "Bild erfolgreich generiert!",
+      "usingDefault": "Standardbild wird verwendet",
+      "generateFailed": "Bildgenerierung fehlgeschlagen. Bitte später erneut versuchen.",
+      "imageUpdated": "Bild aktualisiert",
+      "updateFailed": "Aktualisierung fehlgeschlagen",
+      "imageDeleted": "Bild gelöscht",
+      "deleteFailed": "Löschen fehlgeschlagen"
     }
   },
   "Shakedown": {
@@ -500,7 +687,21 @@
     "manageSharesDescription": "Freigabe-Links für \"{name}\" verwalten",
     "loading": "Laden...",
     "noShares": "Noch keine Freigabe-Links",
-    "noSharesHint": "Erstelle einen Freigabe-Link, damit andere deine Packliste sehen können"
+    "noSharesHint": "Erstelle einen Freigabe-Link, damit andere deine Packliste sehen können",
+    "clipboardUnavailable": "Zwischenablage nicht verfügbar",
+    "toasts": {
+      "mustBeLoggedIn": "Du musst angemeldet sein, um zu teilen",
+      "createFailed": "Freigabe-Link konnte nicht erstellt werden",
+      "created": "Freigabe-Link erstellt",
+      "updateFailed": "Freigabe-Einstellungen konnten nicht aktualisiert werden",
+      "updated": "Freigabe-Einstellungen aktualisiert",
+      "deleteFailed": "Freigabe konnte nicht gelöscht werden",
+      "deleted": "Freigabe-Link gelöscht",
+      "passwordSetFailed": "Passwort konnte nicht gesetzt werden",
+      "passwordSet": "Passwort gesetzt",
+      "passwordRemoveFailed": "Passwort konnte nicht entfernt werden",
+      "passwordRemoved": "Passwort entfernt"
+    }
   },
   "SharedLoadout": {
     "heroTitle": "Virtueller Ausrüstungs-Check",
@@ -518,6 +719,8 @@
     "addedToWishlist": "Zur Wunschliste hinzugefügt!",
     "addToWishlistError": "Fehler beim Hinzufügen zur Wunschliste. Bitte versuche es erneut.",
     "importSuccess": "Packliste importiert! {count} Artikel zur Wunschliste hinzugefügt.",
+    "importFailed": "Packliste konnte nicht importiert werden",
+    "importUnexpectedError": "Beim Importieren der Packliste ist ein unerwarteter Fehler aufgetreten",
     "ownerUnavailable": "Besitzer nicht mehr verfügbar",
     "viewProfile": "Profil ansehen",
     "sendMessage": "Nachricht senden",
@@ -535,6 +738,15 @@
     "gearList": "Ausrüstungsliste",
     "gearListDescription": "Alle Artikel in dieser geteilten Packliste",
     "commentsDisabled": "Kommentare sind für diese Packliste deaktiviert",
+    "baseWeight": "Basisgewicht",
+    "worn": "Getragen",
+    "consumables": "Verbrauchsgüter",
+    "realtime": "Echtzeit",
+    "loadoutDetails": "Packlisten-Details",
+    "loadoutDetailsDescription": "Eine saubere, schreibgeschützte Momentaufnahme der geteilten Ausrüstung.",
+    "live": "Live",
+    "noActivitiesTagged": "Keine Aktivitäten markiert",
+    "noSeasonsSelected": "Keine Jahreszeiten ausgewählt",
     "seasonTypes": {
       "spring": "Frühling",
       "summer": "Sommer",
@@ -551,7 +763,26 @@
     "comments": {
       "title": "Kommentare",
       "newNotification": "{author} hat deine Packliste kommentiert",
-      "viewComment": "Kommentar ansehen"
+      "viewComment": "Kommentar ansehen",
+      "loadFailed": "Kommentare konnten nicht geladen werden",
+      "minLengthError": "Bitte teile mindestens ein paar Zeichen Feedback",
+      "sendFailed": "Kommentar konnte nicht gesendet werden",
+      "sendAriaLabel": "Kommentar senden",
+      "guestPlaceholder": "Gast",
+      "messagePlaceholder": "Teile dein Feedback oder Vorschläge...",
+      "signInRequired": "Bitte melde dich an, um Nachrichten zu senden",
+      "conversationStarted": "Unterhaltung mit {name} gestartet",
+      "messagingRestricted": "Dieser Benutzer hat Nachrichten eingeschränkt",
+      "conversationFailed": "Unterhaltung konnte nicht gestartet werden",
+      "nameOptional": "Name (optional)",
+      "itemOptional": "Artikel (optional)",
+      "generalFeedback": "Allgemeines Feedback",
+      "commentLabel": "Kommentar",
+      "sending": "Wird gesendet...",
+      "sendComment": "Kommentar senden",
+      "liveThread": "Live-Thread",
+      "noCommentsYet": "Noch keine Kommentare. Sei der Erste!",
+      "itemLabel": "Artikel"
     },
     "notFoundTitle": "Packliste nicht gefunden",
     "notFoundDescription": "Dieser geteilte Packlisten-Link ist möglicherweise abgelaufen oder wurde vom Besitzer entfernt.",
@@ -708,6 +939,34 @@
       "created": "Erstellt",
       "reviewed": "Bewertet",
       "helpful": "Hilfreich"
+    },
+    "edit": {
+      "displayNameLabel": "Anzeigename",
+      "displayNamePlaceholder": "Dein Name",
+      "displayNameDescription": "2-50 Zeichen",
+      "trailNameLabel": "Trail-Name",
+      "trailNamePlaceholder": "Dein Trail-Name (optional)",
+      "trailNameDescription": "2-30 Zeichen (optional)",
+      "bioLabel": "Über mich",
+      "bioPlaceholder": "Erzähl uns von dir...",
+      "bioCharCount": "{count}/500 Zeichen",
+      "locationLabel": "Standort",
+      "locationPlaceholder": "Nach einer Stadt suchen...",
+      "locationDescription": "Suche und wähle deinen Heimatort",
+      "socialLinksTitle": "Soziale Netzwerke",
+      "instagramLabel": "Instagram",
+      "facebookLabel": "Facebook",
+      "youtubeLabel": "YouTube",
+      "websiteLabel": "Website",
+      "usernameOrUrlPlaceholder": "Benutzername oder URL",
+      "channelUrlPlaceholder": "Kanal-URL",
+      "websiteUrlPlaceholder": "https://beispiel.de",
+      "cancel": "Abbrechen",
+      "saveChanges": "Änderungen speichern",
+      "profileUpdated": "Profil aktualisiert",
+      "profileUpdatedDescription": "Dein Profil wurde erfolgreich gespeichert.",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "saveFailedDefault": "Profil konnte nicht gespeichert werden"
     }
   },
   "SmartSearch": {
@@ -749,6 +1008,45 @@
       "tooltipDisabled": "Produktnamen eingeben, um zu suchen",
       "tooltipRateLimited": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
       "ariaLabel": "Nach Produktinformationen suchen"
+    }
+  },
+  "Messaging": {
+    "userSearch": {
+      "placeholder": "Nach Name oder Trail-Name suchen...",
+      "noUsersFound": "Keine Benutzer gefunden für \"{query}\"",
+      "searchHint": "Suche nach GearShack-Mitgliedern zum Verbinden",
+      "minimumCharacters": "Mindestens 2 Zeichen eingeben",
+      "sendMessage": "Nachricht senden",
+      "addFriend": "Als Freund hinzufügen",
+      "unknown": "Unbekannt"
+    },
+    "conversationView": {
+      "sendFailed": "Nachricht konnte nicht gesendet werden",
+      "reactionFailed": "Reaktion konnte nicht aktualisiert werden",
+      "deleteForEveryoneSuccess": "Nachricht für alle gelöscht",
+      "deleteSuccess": "Nachricht gelöscht",
+      "deleteFailed": "Nachricht konnte nicht gelöscht werden",
+      "reportComingSoon": "Meldefunktion kommt bald",
+      "copiedToClipboard": "Nachricht in die Zwischenablage kopiert",
+      "viewingGearItem": "Ausrüstung anzeigen: {id}"
+    },
+    "conversationSettings": {
+      "notificationFailed": "Benachrichtigungseinstellungen konnten nicht aktualisiert werden",
+      "archiveFailed": "Archivstatus konnte nicht aktualisiert werden",
+      "leftGroup": "Gruppe verlassen",
+      "leaveGroupFailed": "Gruppe konnte nicht verlassen werden",
+      "settingsAriaLabel": "Unterhaltungseinstellungen",
+      "enableNotifications": "Benachrichtigungen aktivieren",
+      "muteNotifications": "Benachrichtigungen stummschalten",
+      "notificationsEnabled": "Benachrichtigungen aktiviert",
+      "notificationsMuted": "Benachrichtigungen stummgeschaltet",
+      "restoreFromArchive": "Aus dem Archiv wiederherstellen",
+      "archiveConversation": "Unterhaltung archivieren",
+      "conversationRestored": "Unterhaltung wiederhergestellt",
+      "conversationArchived": "Unterhaltung archiviert",
+      "addParticipant": "Teilnehmer hinzufügen",
+      "leaveGroup": "Gruppe verlassen",
+      "reportConversation": "Unterhaltung melden"
     }
   },
   "Social": {
@@ -960,7 +1258,10 @@
       "submitting": "Wird gesendet...",
       "closed": "Dieser Shakedown nimmt kein Feedback mehr an",
       "generalFeedback": "Allgemeines Feedback",
-      "itemFeedback": "Artikel-Feedback"
+      "itemFeedback": "Artikel-Feedback",
+      "submitSuccess": "Feedback erfolgreich gesendet",
+      "updateSuccess": "Feedback erfolgreich aktualisiert",
+      "deleteSuccess": "Feedback gelöscht"
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
@@ -977,6 +1278,7 @@
       "shareToBulletin": "Im Schwarzen Brett teilen",
       "alreadyShared": "Bereits geteilt",
       "copyLink": "Link kopieren",
+      "copied": "Kopiert",
       "linkCopied": "Link in Zwischenablage kopiert",
       "startSimilar": "Ähnlichen Shakedown starten",
       "startSimilarTooltip": "Erstelle deinen eigenen Shakedown nach diesem Vorbild",
@@ -985,7 +1287,12 @@
       "deleteShakedown": "Shakedown löschen",
       "deleteShakedownConfirm": "Bist du sicher, dass du diesen Shakedown löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
       "deleteFeedback": "Feedback löschen",
-      "deleteFeedbackConfirm": "Bist du sicher, dass du dieses Feedback löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+      "deleteFeedbackConfirm": "Bist du sicher, dass du dieses Feedback löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "archiveSuccess": "Shakedown archiviert",
+      "archiveFailed": "Shakedown konnte nicht archiviert werden",
+      "deleteSuccess": "Shakedown gelöscht",
+      "deleteFailed": "Shakedown konnte nicht gelöscht werden",
+      "reportComingSoon": "Meldefunktion kommt bald"
     },
     "filters": {
       "title": "Filter",
@@ -1554,7 +1861,21 @@
       "accepted": "Akzeptiert",
       "declined": "Abgelehnt",
       "expired": "Abgelaufen"
-    }
+    },
+    "errors": {
+      "offerNotFound": "Angebot nicht gefunden",
+      "cannotAcceptOffer": "Dieses Angebot kann nicht angenommen werden",
+      "cannotDeclineOffer": "Dieses Angebot kann nicht abgelehnt werden",
+      "signInToBlock": "Bitte melde dich an, um Händler zu blockieren",
+      "merchantAlreadyBlocked": "Händler ist bereits blockiert",
+      "merchantNotBlocked": "Händler ist nicht blockiert",
+      "blockFailed": "Händler konnte nicht blockiert werden",
+      "unblockFailed": "Händler konnte nicht freigegeben werden"
+    },
+    "acceptSuccess": "Angebot angenommen! Sieh in deinen Nachrichten nach, um Abholung oder Lieferung zu vereinbaren.",
+    "declineSuccess": "Angebot abgelehnt",
+    "merchantBlocked": "{merchant} wurde blockiert",
+    "merchantUnblocked": "{merchant} wurde freigegeben"
   },
   "MerchantInsights": {
     "pageTitle": "Wunschlisten-Einblicke",
@@ -1848,7 +2169,262 @@
       "featured": "Empfohlen",
       "notFeatured": "Nicht empfohlen",
       "archiveVip": "VIP archivieren",
-      "manageLoadouts": "Loadouts verwalten"
+      "manageLoadouts": "Loadouts verwalten",
+      "editLoadoutTitle": "Loadout bearbeiten",
+      "createLoadoutTitle": "Loadout erstellen",
+      "editLoadoutDescription": "Aktualisiere die Loadout-Details unten",
+      "createLoadoutDescription": "Füge eine neue Ausrüstungsliste für diesen VIP von einem Video oder Blogbeitrag hinzu",
+      "sourceUrl": "Quell-URL",
+      "sourceUrlHint": "YouTube-Video, Blogbeitrag oder andere Quellverknüpfung",
+      "createLoadout": "Loadout erstellen",
+      "confirmDeleteLoadout": "Bist du sicher, dass du dieses Loadout löschen möchtest?",
+      "loadoutDeletedSuccess": "Loadout gelöscht",
+      "deleteFailedError": "Löschen fehlgeschlagen",
+      "loadoutUnpublishedSuccess": "Loadout unveröffentlicht",
+      "cannotPublishEmptyError": "Loadout ohne Artikel kann nicht veröffentlicht werden",
+      "loadoutPublishedSuccess": "Loadout veröffentlicht",
+      "updateFailedError": "Aktualisierung fehlgeschlagen",
+      "loadoutsDescription": "Verwalte Ausrüstungslisten aus Videos und Blogbeiträgen",
+      "noLoadoutsYet": "Noch keine Loadouts",
+      "createFirstLoadout": "Erstelle das erste Loadout für diesen VIP",
+      "loadoutsForVip": "Loadouts für {name}",
+      "confirmDeleteLoadoutFull": "\"{name}\" löschen? Dies entfernt alle {count} Artikel.",
+      "loadoutUpdated": "Loadout aktualisiert",
+      "loadoutCreated": "Loadout erstellt",
+      "saveLoadoutFailed": "Loadout konnte nicht gespeichert werden",
+      "tableHeaders": {
+        "name": "Name",
+        "status": "Status",
+        "items": "Artikel",
+        "totalWeight": "Gesamtgewicht",
+        "tripType": "Trip-Typ",
+        "source": "Quelle",
+        "actions": "Aktionen"
+      },
+      "statusPublished": "Veröffentlicht",
+      "statusDraft": "Entwurf",
+      "itemsCount": "{count} Artikel",
+      "viewSource": "Quelle ansehen",
+      "manageItems": "Artikel verwalten",
+      "editLoadout": "Loadout bearbeiten",
+      "publishLoadout": "Veröffentlichen",
+      "unpublishLoadout": "Veröffentlichung zurückziehen",
+      "deleteLoadout": "Loadout löschen",
+      "vipArchivedSuccess": "VIP erfolgreich archiviert",
+      "archiveVipFailed": "VIP konnte nicht archiviert werden",
+      "catalogIntegrationPending": "Artikel können noch nicht hinzugefügt werden - Katalog-Integration steht aus",
+      "itemQuantityUpdated": "Artikelmenge aktualisiert",
+      "featuredUpdateFailed": "Empfohlenen-Status konnte nicht aktualisiert werden",
+      "vipRestoredSuccess": "VIP wiederhergestellt",
+      "restoreVipFailed": "VIP konnte nicht wiederhergestellt werden",
+      "itemDeletedSuccess": "Artikel gelöscht",
+      "vipUpdatedSuccess": "VIP erfolgreich aktualisiert",
+      "vipCreatedSuccess": "VIP erfolgreich erstellt",
+      "loadoutSaveFailed": "Loadout konnte nicht gespeichert werden",
+      "vipUnfeatured": "VIP nicht mehr empfohlen",
+      "vipFeatured": "VIP empfohlen",
+      "vipRestored": "VIP wiederhergestellt",
+      "noArchivedVips": "Keine archivierten VIPs",
+      "noVipsYet": "Noch keine VIPs",
+      "columnName": "Name",
+      "columnFollowers": "Follower",
+      "columnLoadouts": "Loadouts",
+      "loadoutCountLabel": "{count, plural, one {# Loadout} other {# Loadouts}}",
+      "restore": "Wiederherstellen",
+      "form": {
+        "name": "Name",
+        "namePlaceholder": "z.B. Andrew Skurka",
+        "slug": "URL-Slug",
+        "slugPlaceholder": "z.B. andrew-skurka",
+        "slugHint": "Wird in der VIP-Profil-URL verwendet. Nur Kleinbuchstaben, Zahlen und Bindestriche.",
+        "bio": "Biografie",
+        "bioPlaceholder": "Kurze Beschreibung des VIPs...",
+        "avatarUrl": "Avatar-URL",
+        "avatarUrlPlaceholder": "https://example.com/avatar.jpg",
+        "socialLinksHint": "Social-Media-Links (optional)",
+        "youtube": "YouTube-URL",
+        "instagram": "Instagram-URL",
+        "website": "Webseiten-URL",
+        "twitter": "Twitter/X-URL",
+        "isFeatured": "Empfohlen",
+        "isFeaturedHint": "Diesen VIP auf der Community-Seite anzeigen",
+        "cancel": "Abbrechen",
+        "save": "Speichern",
+        "saving": "Speichern...",
+        "editTitle": "VIP bearbeiten",
+        "addTitle": "Neuen VIP hinzufügen",
+        "vipUpdated": "VIP erfolgreich aktualisiert",
+        "vipCreated": "VIP erfolgreich erstellt",
+        "updateFailed": "VIP konnte nicht aktualisiert werden",
+        "createFailed": "VIP konnte nicht erstellt werden"
+      },
+      "loadoutItems": {
+        "catalogSearchPending": "Artikel können noch nicht hinzugefügt werden - Katalog-Integration steht aus",
+        "quantityUpdated": "Artikelmenge aktualisiert",
+        "updateFailed": "Artikel konnte nicht aktualisiert werden",
+        "addItemTitle": "VIP-Artikel hinzufügen",
+        "catalogPendingDescription": "Katalog-Integration steht aus",
+        "catalogComingSoon": "Katalogsuche kommt bald",
+        "catalogComingSoonDescription": "Das Hinzufügen von VIP-Artikeln erfordert eine Katalog-Integration, die als nächstes Feature implementiert wird. Vorerst müssen Artikel direkt zum Ausrüstungsinventar des VIP-Benutzers hinzugefügt und dann zu Loadouts hinzugefügt werden.",
+        "editQuantityTitle": "Artikelmenge bearbeiten",
+        "editingItem": "Bearbeiten: {name} {brand}",
+        "brand": "Marke",
+        "weight": "Gewicht",
+        "quantity": "Menge",
+        "itemAdded": "{name} zum Loadout hinzugefügt",
+        "addItemFailed": "Artikel konnte nicht hinzugefügt werden",
+        "confirmDelete": "\"{name}\" löschen?",
+        "itemDeleted": "Artikel gelöscht",
+        "deleteFailed": "Löschen fehlgeschlagen",
+        "dialogTitle": "{name} - Artikel",
+        "dialogDescription": "Verwalte die Ausrüstungsartikel in diesem Loadout",
+        "itemCount": "{count, plural, one {# Artikel} other {# Artikel}}",
+        "totalWeight": "Gesamt: {weight}",
+        "adding": "Hinzufügen...",
+        "addFromCatalog": "Artikel aus Katalog hinzufügen",
+        "noItemsYet": "Noch keine Artikel. Füge den ersten Artikel zu diesem Loadout hinzu.",
+        "columnName": "Name",
+        "columnBrand": "Marke",
+        "columnWeight": "Gewicht",
+        "columnQty": "Menge",
+        "columnTotal": "Gesamt",
+        "columnActions": "Aktionen"
+      }
+    },
+    "compare": {
+      "searchVipsPlaceholder": "VIPs und Loadouts suchen...",
+      "searchLoadoutsPlaceholder": "Loadouts suchen...",
+      "selectVipLoadout": "VIP-Loadout auswählen",
+      "selectYourLoadout": "Dein Loadout auswählen",
+      "noVipsFound": "Keine VIPs gefunden",
+      "noLoadoutsFound": "Keine Loadouts gefunden",
+      "loadoutItems": "{count} Artikel",
+      "loadoutWeight": "{weight}",
+      "loading": "Laden...",
+      "loadVipDetailsFailed": "VIP-Loadout-Details konnten nicht geladen werden",
+      "selectDescription": "Wähle dein Loadout und ein VIP-Loadout für einen detaillierten Vergleich",
+      "signIn": "Anmelden",
+      "createLoadout": "Loadout erstellen",
+      "addedToWishlist": "\"{itemName}\" zur Wunschliste hinzugefügt",
+      "compareFailed": "Vergleich fehlgeschlagen. Bitte versuche es erneut."
     }
+  },
+  "Wishlist": {
+    "communityAvailability": {
+      "title": "Community-Verfügbarkeit",
+      "forSale": "Zu verkaufen",
+      "lendable": "Verleihbar",
+      "tradeable": "Tauschbar",
+      "viewItem": "Artikel ansehen",
+      "message": "Nachricht",
+      "checkingCommunity": "Community wird geprüft...",
+      "loadingMessage": "Lade Community-Verfügbarkeit. Bitte warten.",
+      "retrying": "Erneuter Versuch... ({count}/3)",
+      "retryingMessage": "Lade Community-Verfügbarkeit erneut. Versuch {count} von 3.",
+      "loadFailed": "Community-Verfügbarkeit konnte nicht geladen werden",
+      "tryAgain": "Erneut versuchen",
+      "noMatches": "Keine Community-Treffer gefunden",
+      "beFirst": "Sei der Erste, der diesen Artikel zu seinem Inventar hinzufügt!",
+      "matchCount": "{count, plural, one {# Treffer} other {# Treffer}}",
+      "matchCountAria": "{count} {count, plural, one {Treffer} other {Treffer}}",
+      "unableToMessage": "Nachricht an diesen Benutzer nicht möglich",
+      "privacyRestricted": "Die Datenschutzeinstellungen erlauben keine Nachrichten von Nicht-Freunden.",
+      "conversationFailed": "Konversation konnte nicht gestartet werden",
+      "tryAgainLater": "Bitte versuche es später erneut.",
+      "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut."
+    },
+    "actions": {
+      "addedToWishlist": "Zur Wunschliste hinzugefügt!",
+      "alreadyInWishlist": "Dieser Artikel ist bereits auf deiner Wunschliste",
+      "removedFromWishlist": "Von Wunschliste entfernt",
+      "itemUpdated": "Wunschlisten-Artikel aktualisiert",
+      "movedToInventory": "{name} ins Inventar verschoben!"
+    }
+  },
+  "Admin": {
+    "categories": {
+      "deleteTitle": "Kategorie löschen",
+      "confirmDeleteMessage": "Bist du sicher, dass du <strong>{category}</strong> löschen möchtest?",
+      "cannotDeleteChildrenWarning": "Du musst zuerst alle Unterkategorien löschen. Kategorien mit Unterkategorien können nicht gelöscht werden.",
+      "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Die Kategorie wird dauerhaft aus der Datenbank entfernt.",
+      "editTitle": "Kategorie bearbeiten",
+      "createTitle": "Kategorie erstellen",
+      "editDescription": "Kategorieinformationen und Übersetzungen aktualisieren",
+      "createDescription": "Neue Kategorie mit englischen und deutschen Übersetzungen hinzufügen",
+      "labelLegacy": "Bezeichnung (Legacy)",
+      "autoGeneratesSlug": "Generiert automatisch den Slug",
+      "slugLabel": "Slug (Eindeutige ID)",
+      "englishLabel": "Englische Bezeichnung",
+      "germanLabel": "Deutsche Bezeichnung"
+    }
+  },
+  "Search": {
+    "weight": {
+      "enterProductName": "Bitte Produktnamen eingeben",
+      "foundHighConfidence": "Gewicht gefunden: {weight}g ({sources} Quellen){remaining}",
+      "foundMediumConfidence": "Gewicht gefunden: {weight}g (mittlere Konfidenz){remaining}",
+      "foundLowConfidence": "Gewicht gefunden: {weight}g (niedrige Konfidenz - bitte überprüfen){remaining}",
+      "noWeightFound": "Kein Gewicht für \"{query}\" gefunden. Versuche eine spezifischere Suche.{remaining}",
+      "searchesRemaining": " ({count} Suchen heute übrig)"
+    },
+    "product": {
+      "minCharacters": "Bitte mindestens 2 Zeichen eingeben",
+      "noProductsFound": "Keine Produkte für \"{query}\" gefunden",
+      "foundResults": "{count} Ergebnisse gefunden ({sources}). {remaining} Suchen heute übrig.",
+      "foundResultsUnlimited": "{count} Ergebnisse gefunden ({sources})",
+      "extractedSuccess": "Produktdaten erfolgreich extrahiert",
+      "extractedPartial": "Produktdaten extrahiert (einige Felder müssen überprüft werden)",
+      "extractedLimited": "Begrenzte Daten extrahiert - bitte überprüfen",
+      "extractFailed": "Produktdaten konnten nicht extrahiert werden"
+    },
+    "duplicate": {
+      "noMatchFound": "Kein passendes Element gefunden",
+      "updateQuantityFailed": "Menge konnte nicht aktualisiert werden"
+    }
+  },
+  "Merchant": {
+    "common": {
+      "notAuthenticated": "Nicht als Händler authentifiziert"
+    },
+    "loadouts": {
+      "created": "Loadout erstellt",
+      "updated": "Loadout aktualisiert",
+      "deleted": "Loadout gelöscht",
+      "submittedForReview": "Zur Prüfung eingereicht",
+      "published": "Loadout veröffentlicht",
+      "archived": "Loadout archiviert",
+      "unpublished": "Loadout unveröffentlicht",
+      "itemAdded": "Artikel hinzugefügt",
+      "itemUpdated": "Artikel aktualisiert",
+      "itemRemoved": "Artikel entfernt",
+      "availabilityUpdated": "Verfügbarkeit aktualisiert",
+      "changesSaved": "Änderungen gespeichert",
+      "savedAsDraft": "Loadout als Entwurf gespeichert"
+    },
+    "locations": {
+      "added": "Standort hinzugefügt",
+      "updated": "Standort aktualisiert",
+      "deleted": "Standort gelöscht",
+      "primaryUpdated": "Hauptstandort aktualisiert"
+    },
+    "offers": {
+      "priceMustBeLess": "Angebotspreis muss niedriger sein als der reguläre Preis",
+      "rateLimitWarning": "Ratenbegrenzung konnte nicht überprüft werden - einige Angebote könnten abgelehnt werden",
+      "allUsersReceivedOffer": "Alle Benutzer haben in den letzten 30 Tagen bereits ein Angebot für dieses Produkt erhalten",
+      "usersSkipped": "{count} Benutzer übersprungen - haben in den letzten 30 Tagen bereits ein Angebot erhalten",
+      "offersSent": "{count, plural, one {# Angebot} other {# Angebote}} gesendet"
+    }
+  },
+  "Store": {
+    "signInToAdd": "Bitte melden Sie sich an, um Artikel hinzuzufügen",
+    "signInToUpdate": "Bitte melden Sie sich an, um Artikel zu aktualisieren",
+    "signInToDelete": "Bitte melden Sie sich an, um Artikel zu löschen",
+    "signInToCreateLoadout": "Bitte melden Sie sich an, um Loadouts zu erstellen",
+    "saveItemFailed": "Artikel konnte nicht gespeichert werden",
+    "updateItemFailed": "Artikel konnte nicht aktualisiert werden",
+    "deleteItemFailed": "Artikel konnte nicht gelöscht werden",
+    "saveLoadoutFailed": "Loadout konnte nicht gespeichert werden",
+    "updateLoadoutFailed": "Loadout konnte nicht aktualisiert werden",
+    "deleteLoadoutFailed": "Loadout konnte nicht gelöscht werden"
   }
 }

@@ -101,10 +101,10 @@ export function SocialShareButtons({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success(t('linkCopied') || 'Link copied');
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy');
+      toast.error(t('copyFailed'));
     }
   };
 
@@ -140,7 +140,7 @@ export function SocialShareButtons({
           className="text-muted-foreground hover:text-foreground"
         >
           <Share2 className="h-4 w-4" />
-          {showLabels && <span className="ml-2">{t('share') || 'Share'}</span>}
+          {showLabels && <span className="ml-2">{t('share')}</span>}
         </Button>
       )}
 
@@ -204,7 +204,7 @@ export function SocialShareButtons({
         className="text-muted-foreground hover:text-foreground"
       >
         {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        {showLabels && <span className="ml-2">{copied ? (t('copied') || 'Copied') : (t('copyLink') || 'Copy')}</span>}
+        {showLabels && <span className="ml-2">{copied ? t('copied') : t('copyLink')}</span>}
       </Button>
     </div>
   );

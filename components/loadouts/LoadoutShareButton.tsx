@@ -191,9 +191,9 @@ export function LoadoutShareButton({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success(t('linkCopied') || 'Link copied');
+      toast.success(t('linkCopied'));
     } catch {
-      toast.error('Clipboard is unavailable');
+      toast.error(t('clipboardUnavailable'));
     }
   };
 

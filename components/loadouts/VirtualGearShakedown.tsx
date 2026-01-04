@@ -57,6 +57,8 @@ export function VirtualGearShakedown({
   owner,
 }: VirtualGearShakedownProps) {
   const t = useTranslations('Loadouts');
+  const tShared = useTranslations('SharedLoadout');
+  const tComments = useTranslations('SharedLoadout.comments');
   const supabase = useMemo(() => createClient(), []);
   const [comments, setComments] = useState<SharedComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
@@ -138,7 +140,7 @@ export function VirtualGearShakedown({
 
       if (error) {
         console.error('[VirtualGearShakedown] Failed to load comments', error);
-        toast.error('Unable to load comments');
+        toast.error(tComments('loadFailed'));
         setComments([]);
       } else {
         setComments((data as SharedComment[]) || []);
@@ -177,7 +179,7 @@ export function VirtualGearShakedown({
       return;
     }
     if (trimmed.length < 3) {
-      toast.error('Please share at least a few characters of feedback');
+      toast.error(tComments('minLengthError'));
       return;
     }
 
@@ -197,7 +199,7 @@ export function VirtualGearShakedown({
       setMessage('');
     } catch (err) {
       console.error('[VirtualGearShakedown] Failed to submit comment', err);
-      toast.error('Failed to send comment');
+      toast.error(tComments('sendFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -207,21 +209,21 @@ export function VirtualGearShakedown({
   const handleSendMessage = useCallback(
     async (ownerId: string, ownerName: string) => {
       if (!isAuthenticated) {
-        toast.error('Please sign in to send messages');
+        toast.error(tComments('signInRequired'));
         return;
       }
 
       const result = await startDirectConversation(ownerId);
       if (result.success) {
-        toast.success(`Conversation with ${ownerName} started`);
+        toast.success(tComments('conversationStarted', { name: ownerName }));
         // Optionally redirect to messages or open messaging modal
       } else if (result.error === 'privacy_restricted') {
-        toast.error('This user has restricted messaging');
+        toast.error(tComments('messagingRestricted'));
       } else {
-        toast.error('Failed to start conversation');
+        toast.error(tComments('conversationFailed'));
       }
     },
-    [isAuthenticated, startDirectConversation]
+    [isAuthenticated, startDirectConversation, tComments]
   );
 
   const renderBadgeList = (items: string[], emptyLabel: string) => {
@@ -319,10 +321,10 @@ export function VirtualGearShakedown({
             ctaSection={
               <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-6 text-center">
                 <p className="mb-4 text-lg text-white">
-                  Want to add this loadout to your collection?
+                  {tShared('signupCta')}
                 </p>
                 <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700" asChild>
-                  <Link href="/login">Sign Up Free</Link>
+                  <Link href="/login">{tShared('signupButton')}</Link>
                 </Button>
               </div>
             }
@@ -333,19 +335,19 @@ export function VirtualGearShakedown({
             <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Total Weight</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('totalWeight')}</p>
                   <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.totalWeight)}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Base Weight</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('baseWeight')}</p>
                   <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.baseWeight)}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Worn</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('worn')}</p>
                   <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.wornWeight)}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Consumables</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('consumables')}</p>
                   <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.consumableWeight)}</p>
                 </div>
               </div>
@@ -364,8 +366,8 @@ export function VirtualGearShakedown({
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Realtime</p>
-                  <h2 className="text-xl font-semibold text-white">Comments</h2>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('realtime')}</p>
+                  <h2 className="text-xl font-semibold text-white">{tComments('title')}</h2>
                 </div>
                 <MessageSquare className="h-5 w-5 text-emerald-200" />
               </div>
@@ -374,11 +376,11 @@ export function VirtualGearShakedown({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="comment-author" className="text-sm text-slate-200">
-                      Name (optional)
+                      {tComments('nameOptional')}
                     </Label>
                     <Input
                       id="comment-author"
-                      placeholder="Guest"
+                      placeholder={tComments('guestPlaceholder')}
                       value={author}
                       onChange={(e) => setAuthor(e.target.value)}
                       className="border-white/10 bg-black/30 text-white placeholder:text-slate-500"
@@ -386,7 +388,7 @@ export function VirtualGearShakedown({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="comment-item" className="text-sm text-slate-200">
-                      Item (optional)
+                      {tComments('itemOptional')}
                     </Label>
                     <select
                       id="comment-item"
@@ -394,7 +396,7 @@ export function VirtualGearShakedown({
                       onChange={(e) => setItemId(e.target.value)}
                       className="w-full rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white"
                     >
-                      <option value="">General feedback</option>
+                      <option value="">{tComments('generalFeedback')}</option>
                       {payload.items.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
@@ -404,13 +406,13 @@ export function VirtualGearShakedown({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="comment-message" className="text-sm text-slate-200">
-                      Comment
+                      {tComments('commentLabel')}
                     </Label>
                     <Textarea
                       id="comment-message"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Share your feedback or suggestions..."
+                      placeholder={tComments('messagePlaceholder')}
                       className="min-h-[96px] border-white/10 bg-black/30 text-white placeholder:text-slate-500"
                     />
                   </div>
@@ -418,36 +420,36 @@ export function VirtualGearShakedown({
                     className="w-full"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    aria-label="Send comment"
+                    aria-label={tComments('sendAriaLabel')}
                   >
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Sending...
+                        {tComments('sending')}
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <Send className="h-4 w-4" />
-                        Send comment
+                        {tComments('sendComment')}
                       </span>
                     )}
                   </Button>
                 </div>
               ) : (
                 <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-                  Comments are disabled for this shakedown.
+                  {tShared('commentsDisabled')}
                 </div>
               )}
 
               <div className="mt-6 space-y-3">
                 <div className="flex items-center justify-between text-sm text-slate-300">
-                  <span>Live thread</span>
+                  <span>{tComments('liveThread')}</span>
                   {isLoadingComments && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
                 </div>
                 <div className="space-y-3">
                   {comments.length === 0 && !isLoadingComments && (
                     <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
-                      No comments yet. Be the first to share feedback.
+                      {tComments('noCommentsYet')}
                     </div>
                   )}
                   {comments.map((comment) => {
@@ -458,14 +460,14 @@ export function VirtualGearShakedown({
                         className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-100"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold">{comment.author || 'Guest'}</span>
+                          <span className="font-semibold">{comment.author || tComments('guestPlaceholder')}</span>
                           <span className="text-xs text-slate-400">
                             {formatTripDate(new Date(comment.created_at)) ?? ''}
                           </span>
                         </div>
                         {target && (
                           <p className="mt-1 text-xs text-emerald-100">
-                            Item: <span className="font-medium text-white">{target.name}</span>
+                            {tComments('itemLabel')}: <span className="font-medium text-white">{target.name}</span>
                           </p>
                         )}
                         <p className="mt-2 whitespace-pre-wrap text-slate-50">{comment.message}</p>
@@ -496,38 +498,38 @@ export function VirtualGearShakedown({
         <header className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Virtual Gear Shakedown</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('heroTitle')}</p>
               <h1 className="text-3xl font-semibold text-white sm:text-4xl">{payload.loadout.name}</h1>
               {payload.loadout.description && (
                 <p className="max-w-3xl text-base text-slate-200">{payload.loadout.description}</p>
               )}
               <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-                <span>Trip date: {tripDateLabel}</span>
+                <span>{tShared('tripDate')}: {tripDateLabel}</span>
                 <span className="text-slate-500">•</span>
-                <span>Created: {createdDateLabel}</span>
+                <span>{tShared('createdOn')}: {createdDateLabel}</span>
               </div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-center text-sm text-slate-100">
-              <p className="text-xs uppercase tracking-wide text-slate-300">Total Items</p>
+              <p className="text-xs uppercase tracking-wide text-slate-300">{tShared('totalItems')}</p>
               <p className="text-2xl font-semibold">{payload.items.length}</p>
             </div>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Total Weight</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('totalWeight')}</p>
               <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.totalWeight)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Base Weight</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('baseWeight')}</p>
               <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.baseWeight)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Worn</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('worn')}</p>
               <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.wornWeight)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Consumables</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('consumables')}</p>
               <p className="mt-2 text-xl font-semibold">{formatWeight(weightSummary.consumableWeight)}</p>
             </div>
           </div>
@@ -537,23 +539,23 @@ export function VirtualGearShakedown({
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-white">Loadout Details</h2>
-                <p className="text-sm text-slate-300">A clean, read-only snapshot of the shared setup.</p>
+                <h2 className="text-xl font-semibold text-white">{tShared('loadoutDetails')}</h2>
+                <p className="text-sm text-slate-300">{tShared('loadoutDetailsDescription')}</p>
               </div>
               <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-100">
-                Live
+                {tShared('live')}
               </Badge>
             </div>
 
             <div className="mt-6 space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Activities</p>
-                  {renderBadgeList(payload.loadout.activityTypes, 'No activities tagged')}
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('activities')}</p>
+                  {renderBadgeList(payload.loadout.activityTypes, tShared('noActivitiesTagged'))}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Seasons</p>
-                  {renderBadgeList(payload.loadout.seasons, 'No seasons selected')}
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('seasons')}</p>
+                  {renderBadgeList(payload.loadout.seasons, tShared('noSeasonsSelected'))}
                 </div>
               </div>
 
@@ -573,8 +575,8 @@ export function VirtualGearShakedown({
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Realtime</p>
-                <h2 className="text-xl font-semibold text-white">Comments</h2>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{tShared('realtime')}</p>
+                <h2 className="text-xl font-semibold text-white">{tComments('title')}</h2>
               </div>
               <MessageSquare className="h-5 w-5 text-emerald-200" />
             </div>
@@ -583,11 +585,11 @@ export function VirtualGearShakedown({
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="comment-author" className="text-sm text-slate-200">
-                    Name (optional)
+                    {tComments('nameOptional')}
                   </Label>
                   <Input
                     id="comment-author"
-                    placeholder="Guest"
+                    placeholder={tComments('guestPlaceholder')}
                     value={author}
                     onChange={(e) => setAuthor(e.target.value)}
                     className="border-white/10 bg-black/30 text-white placeholder:text-slate-500"
@@ -595,7 +597,7 @@ export function VirtualGearShakedown({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="comment-item" className="text-sm text-slate-200">
-                    Item (optional)
+                    {tComments('itemOptional')}
                   </Label>
                   <select
                     id="comment-item"
@@ -603,7 +605,7 @@ export function VirtualGearShakedown({
                     onChange={(e) => setItemId(e.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white"
                   >
-                    <option value="">General feedback</option>
+                    <option value="">{tComments('generalFeedback')}</option>
                     {payload.items.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
@@ -613,13 +615,13 @@ export function VirtualGearShakedown({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="comment-message" className="text-sm text-slate-200">
-                    Comment
+                    {tComments('commentLabel')}
                   </Label>
                   <Textarea
                     id="comment-message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Share your feedback or suggestions..."
+                    placeholder={tComments('messagePlaceholder')}
                     className="min-h-[96px] border-white/10 bg-black/30 text-white placeholder:text-slate-500"
                   />
                 </div>
@@ -627,36 +629,36 @@ export function VirtualGearShakedown({
                   className="w-full"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  aria-label="Send comment"
+                  aria-label={tComments('sendAriaLabel')}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Sending...
+                      {tComments('sending')}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
                       <Send className="h-4 w-4" />
-                      Send comment
+                      {tComments('sendComment')}
                     </span>
                   )}
                 </Button>
               </div>
             ) : (
               <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-                Comments are disabled for this shakedown.
+                {tShared('commentsDisabled')}
               </div>
             )}
 
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-between text-sm text-slate-300">
-                <span>Live thread</span>
+                <span>{tComments('liveThread')}</span>
                 {isLoadingComments && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
               </div>
               <div className="space-y-3">
                 {comments.length === 0 && !isLoadingComments && (
                   <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
-                    No comments yet. Be the first to share feedback.
+                    {tComments('noCommentsYet')}
                   </div>
                 )}
                 {comments.map((comment) => {
@@ -667,14 +669,14 @@ export function VirtualGearShakedown({
                       className="rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-slate-100"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold">{comment.author || 'Guest'}</span>
+                        <span className="font-semibold">{comment.author || tComments('guestPlaceholder')}</span>
                         <span className="text-xs text-slate-400">
                           {formatTripDate(new Date(comment.created_at)) ?? ''}
                         </span>
                       </div>
                       {target && (
                         <p className="mt-1 text-xs text-emerald-100">
-                          Item: <span className="font-medium text-white">{target.name}</span>
+                          {tComments('itemLabel')}: <span className="font-medium text-white">{target.name}</span>
                         </p>
                       )}
                       <p className="mt-2 whitespace-pre-wrap text-slate-50">{comment.message}</p>

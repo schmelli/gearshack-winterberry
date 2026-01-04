@@ -20,7 +20,7 @@ import { sendAIMessage } from '@/app/[locale]/ai-assistant/actions';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useItems } from '@/hooks/useSupabaseStore';
 import type { UserContext } from '@/types/ai-assistant';
 import { processSSEStream, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
@@ -42,6 +42,7 @@ interface UseAIChatResult {
 }
 
 export function useAIChat(): UseAIChatResult {
+  const t = useTranslations('AIChat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +56,8 @@ export function useAIChat(): UseAIChatResult {
       console.log('sendMessage called:', { content, conversationId, userId: user?.uid });
 
       if (!user) {
-        setError('You must be logged in to use AI Assistant');
-        toast.error('You must be logged in to use AI Assistant');
+        setError(t('loginRequired'));
+        toast.error(t('loginRequired'));
         return null;
       }
 
@@ -205,7 +206,7 @@ export function useAIChat(): UseAIChatResult {
         abortControllerRef.current = null;
       }
     },
-    [user, locale, items]
+    [user, locale, items, t]
   );
 
   const clearError = useCallback(() => {

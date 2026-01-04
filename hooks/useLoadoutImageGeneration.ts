@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import type {
   ImageGenerationState,
   GeneratedLoadoutImage,
@@ -63,6 +64,7 @@ export interface UseLoadoutImageGenerationReturn {
 export function useLoadoutImageGeneration(
   params: UseLoadoutImageGenerationParams
 ): UseLoadoutImageGenerationReturn {
+  const t = useTranslations('Loadouts.imageGeneration');
   const {
     loadoutId,
     loadoutTitle,
@@ -212,7 +214,7 @@ export function useLoadoutImageGeneration(
           prompt: prompt.substring(0, 100), // Log first 100 chars
         });
 
-        toast.success('Image generated successfully!');
+        toast.success(t('generateSuccess'));
 
         // Refresh history
         await refreshHistory();
@@ -332,7 +334,7 @@ export function useLoadoutImageGeneration(
         imageId: result.imageId,
       });
 
-      toast.success('Image generated successfully!');
+      toast.success(t('generateSuccess'));
       await refreshHistory();
     },
     [
@@ -344,6 +346,7 @@ export function useLoadoutImageGeneration(
       userId,
       logMetric,
       refreshHistory,
+      t,
     ]
   );
 
@@ -401,7 +404,7 @@ export function useLoadoutImageGeneration(
           setActiveImageState(result.image);
 
           // Silent fallback - don't show error toast
-          toast.info('Using default image');
+          toast.info(t('usingDefault'));
 
           await refreshHistory();
         } else {
@@ -414,10 +417,10 @@ export function useLoadoutImageGeneration(
           error: 'Failed to generate or load fallback image',
         });
 
-        toast.error('Failed to generate image. Please try again later.');
+        toast.error(t('generateFailed'));
       }
     },
-    [loadoutId, loadoutTitle, season, activityTypes, userId, logMetric, refreshHistory]
+    [loadoutId, loadoutTitle, season, activityTypes, userId, logMetric, refreshHistory, t]
   );
 
   const setActiveImageById = useCallback(
@@ -436,17 +439,17 @@ export function useLoadoutImageGeneration(
         });
 
         if (response.ok) {
-          toast.success('Image updated');
+          toast.success(t('imageUpdated'));
           await refreshHistory();
         } else {
           throw new Error('Failed to set active image');
         }
       } catch (error) {
         console.error('[ImageGen] Failed to set active image:', error);
-        toast.error('Failed to update image');
+        toast.error(t('updateFailed'));
       }
     },
-    [loadoutId, userId, refreshHistory]
+    [loadoutId, userId, refreshHistory, t]
   );
 
   const deleteImage = useCallback(
@@ -465,17 +468,17 @@ export function useLoadoutImageGeneration(
         });
 
         if (response.ok) {
-          toast.success('Image deleted');
+          toast.success(t('imageDeleted'));
           await refreshHistory();
         } else {
           throw new Error('Failed to delete image');
         }
       } catch (error) {
         console.error('[ImageGen] Failed to delete image:', error);
-        toast.error('Failed to delete image');
+        toast.error(t('deleteFailed'));
       }
     },
-    [loadoutId, userId, refreshHistory]
+    [loadoutId, userId, refreshHistory, t]
   );
 
   // =============================================================================

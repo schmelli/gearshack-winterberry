@@ -12,7 +12,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
@@ -89,6 +89,8 @@ export interface UseLoadoutEditorReturn {
 // =============================================================================
 
 export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
+  const t = useTranslations('LoadoutEditor');
+
   // Store state
   const loadout = useLoadout(loadoutId);
   const allItems = useItems();
@@ -142,7 +144,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
         await addItemToLoadout(loadoutId, itemId);
         // FR-022: Toast notification when item is added - only after successful save
         if (item) {
-          toast.success(`Added ${item.name}`, {
+          toast.success(t('addedItem', { name: item.name }), {
             description: item.weightGrams ? formatWeight(item.weightGrams) : undefined,
           });
         }
@@ -151,7 +153,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
         console.error('[LoadoutEditor] Failed to add item:', error);
       }
     },
-    [loadoutId, addItemToLoadout, allItems]
+    [loadoutId, addItemToLoadout, allItems, t]
   );
 
   const removeItem = useCallback(

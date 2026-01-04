@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -60,6 +61,7 @@ export interface UseOfferBlockingReturn {
 
 export function useOfferBlocking(): UseOfferBlockingReturn {
   const { user } = useAuth();
+  const t = useTranslations('UserOffers');
 
   const [blockedMerchants, setBlockedMerchants] = useState<BlockedMerchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,12 +138,12 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
   const blockMerchant = useCallback(
     async (merchantId: string, reason?: string): Promise<boolean> => {
       if (!user?.id) {
-        toast.error('Please sign in to block merchants');
+        toast.error(t('errors.signInToBlock'));
         return false;
       }
 
       if (isMerchantBlocked(merchantId)) {
-        toast.error('Merchant is already blocked');
+        toast.error(t('errors.merchantAlreadyBlocked'));
         return false;
       }
 
@@ -181,17 +183,17 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
           ...prev,
         ]);
 
-        toast.success(`${merchantData?.business_name ?? 'Merchant'} has been blocked`);
+        toast.success(t('merchantBlocked', { merchant: merchantData?.business_name ?? 'Merchant' }));
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to block merchant';
+        const message = err instanceof Error ? err.message : t('errors.blockFailed');
         toast.error(message);
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    [user?.id, isMerchantBlocked]
+    [user?.id, isMerchantBlocked, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -203,7 +205,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
 
       const blocked = blockedMerchants.find((b) => b.merchantId === merchantId);
       if (!blocked) {
-        toast.error('Merchant is not blocked');
+        toast.error(t('errors.merchantNotBlocked'));
         return false;
       }
 
@@ -222,17 +224,17 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
         // Update local state
         setBlockedMerchants((prev) => prev.filter((b) => b.merchantId !== merchantId));
 
-        toast.success(`${blocked.merchantName} has been unblocked`);
+        toast.success(t('merchantUnblocked', { merchant: blocked.merchantName }));
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to unblock merchant';
+        const message = err instanceof Error ? err.message : t('errors.unblockFailed');
         toast.error(message);
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    [user?.id, blockedMerchants]
+    [user?.id, blockedMerchants, t]
   );
 
   return {
