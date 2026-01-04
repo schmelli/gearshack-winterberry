@@ -10,7 +10,7 @@
  * loading states, and error handling.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchBulletinPosts } from '@/lib/supabase/bulletin-queries';
 import type {
@@ -45,7 +45,9 @@ interface UseBulletinBoardReturn {
 }
 
 export function useBulletinBoard(): UseBulletinBoardReturn {
-  const supabase = createClient();
+  // Memoize Supabase client to prevent infinite re-renders
+  // (createClient returns a new reference each call, breaking useCallback deps)
+  const supabase = useMemo(() => createClient(), []);
 
   // Board state
   const [state, setState] = useState<BoardState>({

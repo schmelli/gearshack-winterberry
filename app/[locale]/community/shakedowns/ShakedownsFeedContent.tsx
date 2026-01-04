@@ -69,77 +69,87 @@ function PageHeader() {
 // =============================================================================
 
 function ShakedownsFeedPageContent() {
-  // Zustand store for filter state
-  const filters = useShakedownFilters();
+  // Zustand store - use individual selectors to avoid infinite loops
+  const status = useShakedownFilters((state) => state.status);
+  const experienceLevel = useShakedownFilters((state) => state.experienceLevel);
+  const search = useShakedownFilters((state) => state.search);
+  const sort = useShakedownFilters((state) => state.sort);
+  const friendsFirst = useShakedownFilters((state) => state.friendsFirst);
+  const season = useShakedownFilters((state) => state.season);
+  const tripType = useShakedownFilters((state) => state.tripType);
+
+  // Store actions (stable references)
+  const setSearch = useShakedownFilters((state) => state.setSearch);
+  const setSort = useShakedownFilters((state) => state.setSort);
+  const setStatus = useShakedownFilters((state) => state.setStatus);
+  const setExperienceLevel = useShakedownFilters((state) => state.setExperienceLevel);
+  const setSeason = useShakedownFilters((state) => state.setSeason);
+  const setTripType = useShakedownFilters((state) => state.setTripType);
+  const setFriendsFirst = useShakedownFilters((state) => state.setFriendsFirst);
 
   // URL sync hook
-  const { syncFromUrl, updateUrl } = useFilteredShakedownsUrl();
+  const { filterUrl, syncFromUrl, updateUrl } = useFilteredShakedownsUrl();
 
-  // Sync filters from URL on mount
+  // Sync filters from URL on mount only
   useEffect(() => {
     syncFromUrl();
-  }, [syncFromUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
-  // Update URL when filters change (debounced via the store)
+  // Update URL when filters change
   useEffect(() => {
     updateUrl();
-  }, [
-    filters.status,
-    filters.experienceLevel,
-    filters.search,
-    filters.sort,
-    filters.friendsFirst,
-    filters.season,
-    filters.tripType,
-    updateUrl,
-  ]);
+  }, [filterUrl, updateUrl]);
 
   // Handle filter changes from the ShakedownFilters component
   const handleFiltersChange = useCallback(
     (newFilters: ShakedownFilterState) => {
       // Update Zustand store with new filter values
-      if (newFilters.search !== filters.search) {
-        filters.setSearch(newFilters.search);
+      if (newFilters.search !== search) {
+        setSearch(newFilters.search);
       }
-      if (newFilters.sort !== filters.sort) {
-        filters.setSort(newFilters.sort);
+      if (newFilters.sort !== sort) {
+        setSort(newFilters.sort);
       }
-      if (newFilters.status !== filters.status) {
-        filters.setStatus(newFilters.status);
+      if (newFilters.status !== status) {
+        setStatus(newFilters.status);
       }
-      if (newFilters.experience !== filters.experienceLevel) {
-        filters.setExperienceLevel(newFilters.experience);
+      if (newFilters.experience !== experienceLevel) {
+        setExperienceLevel(newFilters.experience);
       }
-      if (newFilters.season !== filters.season) {
-        filters.setSeason(newFilters.season);
+      if (newFilters.season !== season) {
+        setSeason(newFilters.season);
       }
-      if (newFilters.tripType !== filters.tripType) {
-        filters.setTripType(newFilters.tripType);
+      if (newFilters.tripType !== tripType) {
+        setTripType(newFilters.tripType);
       }
-      if (newFilters.friendsFirst !== filters.friendsFirst) {
-        filters.setFriendsFirst(newFilters.friendsFirst);
+      if (newFilters.friendsFirst !== friendsFirst) {
+        setFriendsFirst(newFilters.friendsFirst);
       }
     },
-    [filters]
+    [
+      search, sort, status, experienceLevel, season, tripType, friendsFirst,
+      setSearch, setSort, setStatus, setExperienceLevel, setSeason, setTripType, setFriendsFirst,
+    ]
   );
 
   // Build filters object for ShakedownFeed
   const feedFilters: ShakedownFiltersType = {
-    status: filters.status ?? undefined,
-    experienceLevel: filters.experienceLevel ?? undefined,
-    search: filters.search.trim() || undefined,
-    friendsFirst: filters.friendsFirst || undefined,
+    status: status ?? undefined,
+    experienceLevel: experienceLevel ?? undefined,
+    search: search.trim() || undefined,
+    friendsFirst: friendsFirst || undefined,
   };
 
   // Build initial filters for ShakedownFilters component
   const initialFiltersForComponent: Partial<ShakedownFilterState> = {
-    search: filters.search,
-    sort: filters.sort,
-    status: filters.status,
-    experience: filters.experienceLevel,
-    season: filters.season,
-    tripType: filters.tripType,
-    friendsFirst: filters.friendsFirst,
+    search,
+    sort,
+    status,
+    experience: experienceLevel,
+    season,
+    tripType,
+    friendsFirst,
   };
 
   return (
@@ -158,8 +168,8 @@ function ShakedownsFeedPageContent() {
       {/* Feed */}
       <div className="mt-6">
         <ShakedownFeed
-          key={JSON.stringify(feedFilters) + filters.sort}
-          initialSort={filters.sort}
+          key={JSON.stringify(feedFilters) + sort}
+          initialSort={sort}
           initialFilters={feedFilters}
         />
       </div>

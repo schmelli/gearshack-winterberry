@@ -353,7 +353,11 @@
   },
   "AIChat": {
     "loginRequired": "You must be logged in to use AI Assistant",
-    "noMessageToRetry": "No message to retry"
+    "noMessageToRetry": "No message to retry",
+    "errors": {
+      "authRequired": "Authentication required. Please sign in to use the AI assistant.",
+      "messageTooLong": "Message too long. Maximum length is 10,000 characters."
+    }
   },
   "LoadoutEditor": {
     "addedItem": "Added {name}"
@@ -1062,6 +1066,7 @@
   "Social": {
     "common": {
       "back": "Back",
+      "backToSettings": "Back to Settings",
       "retry": "Try again",
       "loading": "Loading...",
       "refresh": "Refresh",
@@ -1161,21 +1166,34 @@
     "privacy": {
       "title": "Privacy Settings",
       "description": "Control who can see your content and activity",
+      "tabs": {
+        "social": "Social Privacy",
+        "messaging": "Messaging"
+      },
+      "blocked": {
+        "title": "Blocked Users",
+        "description": "Manage users you have blocked. Blocked users cannot message you or find you in search."
+      },
       "presets": {
         "title": "Quick Presets",
-        "onlyMe": "Only Me",
-        "onlyMeDesc": "Maximum privacy - only you can see your content",
-        "friendsOnly": "Friends Only",
-        "friendsOnlyDesc": "Share with your trusted friends",
+        "description": "Choose a preset or customize individual settings below",
+        "only_me": "Only Me",
+        "only_meDesc": "Maximum privacy",
+        "friends_only": "Friends Only",
+        "friends_onlyDesc": "Share with friends",
         "everyone": "Everyone",
-        "everyoneDesc": "Open to the community"
+        "everyoneDesc": "Open to the community",
+        "customMessage": "You have customized settings. Choose a preset to reset."
       },
       "granular": {
         "title": "Fine-tune Settings",
+        "description": "Fine-tune who can see your content and activity",
         "onlineStatus": "Online Status",
         "onlineStatusDesc": "Who can see when you're online",
         "activityFeed": "Activity Feed",
         "activityFeedDesc": "Who can see your activity in their feed",
+        "messaging": "Messaging",
+        "messagingDesc": "Who can start conversations with you",
         "loadouts": "Loadouts",
         "loadoutsDesc": "Who can see your loadouts",
         "discoverable": "Discoverable",
@@ -2437,5 +2455,283 @@
     "saveLoadoutFailed": "Failed to save loadout",
     "updateLoadoutFailed": "Failed to update loadout",
     "deleteLoadoutFailed": "Failed to delete loadout"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account settings and preferences.",
+    "nav": {
+      "appearance": "Appearance",
+      "appearanceDescription": "Theme and display preferences",
+      "regional": "Regional",
+      "regionalDescription": "Language, units, and currency",
+      "notifications": "Notifications",
+      "notificationsDescription": "Manage notification preferences",
+      "privacy": "Privacy",
+      "privacyDescription": "Control who can contact you",
+      "account": "Account",
+      "accountDescription": "Email, password, and subscription",
+      "data": "Data & Sync",
+      "dataDescription": "Export, import, and sync status"
+    },
+    "appearance": {
+      "theme": {
+        "title": "Theme",
+        "description": "Choose how Gearshack looks on your device."
+      },
+      "display": {
+        "title": "Display",
+        "description": "Customize the visual presentation.",
+        "density": {
+          "label": "Display Density",
+          "comfortable": "Comfortable",
+          "compact": "Compact"
+        },
+        "reduceAnimations": {
+          "label": "Reduce Animations",
+          "description": "Minimize motion for accessibility or performance."
+        },
+        "weightBreakdown": {
+          "label": "Show Weight Breakdown",
+          "description": "Display detailed weight breakdown in loadouts."
+        }
+      }
+    },
+    "regional": {
+      "language": {
+        "title": "Language",
+        "description": "Choose your preferred language for the app.",
+        "english": "English",
+        "german": "German",
+        "hint": "The app will reload when you change the language."
+      },
+      "units": {
+        "title": "Units",
+        "description": "Choose how measurements are displayed.",
+        "system": {
+          "label": "Unit System",
+          "metric": "Metric",
+          "imperial": "Imperial",
+          "custom": "Custom"
+        },
+        "presetHint": "Individual units are set by your system preference.",
+        "customHint": "Customize individual units below.",
+        "weight": {
+          "label": "Weight",
+          "g": "Grams (g)",
+          "kg": "Kilograms (kg)",
+          "oz": "Ounces (oz)",
+          "lb": "Pounds (lb)"
+        },
+        "distance": {
+          "label": "Distance",
+          "km": "Kilometers (km)",
+          "mi": "Miles (mi)"
+        },
+        "temperature": {
+          "label": "Temperature",
+          "celsius": "Celsius (\u00B0C)",
+          "fahrenheit": "Fahrenheit (\u00B0F)"
+        },
+        "dimensions": {
+          "label": "Dimensions",
+          "cm": "Centimeters (cm)",
+          "in": "Inches (in)"
+        }
+      },
+      "currency": {
+        "title": "Currency",
+        "description": "Choose your preferred currency for prices.",
+        "select": {
+          "label": "Currency",
+          "description": "Prices will be displayed in this currency."
+        },
+        "position": {
+          "label": "Symbol Position",
+          "before": "Before",
+          "after": "After"
+        },
+        "preview": {
+          "label": "Preview",
+          "withOriginal": "Showing original: {original}"
+        },
+        "autoConvert": {
+          "label": "Auto-Convert Prices",
+          "description": "Automatically convert prices to your preferred currency."
+        },
+        "showOriginal": {
+          "label": "Show Original Price",
+          "description": "Display the original price alongside the converted price."
+        }
+      },
+      "dateTime": {
+        "title": "Date & Time",
+        "description": "Choose your preferred date and time formats.",
+        "dateFormat": {
+          "label": "Date Format"
+        },
+        "timeFormat": {
+          "label": "Time Format",
+          "24h": "24-hour",
+          "12h": "12-hour"
+        },
+        "weekStart": {
+          "label": "Week Starts On",
+          "monday": "Monday",
+          "sunday": "Sunday"
+        },
+        "timezone": {
+          "label": "Timezone",
+          "description": "Detected: {detected}"
+        },
+        "preview": {
+          "label": "Preview"
+        }
+      }
+    },
+    "notifications": {
+      "types": {
+        "title": "Notification Types",
+        "description": "Choose which notifications you receive and how."
+      },
+      "matrix": {
+        "push": "Push",
+        "email": "Email",
+        "inApp": "In-App",
+        "categories": {
+          "priceAlerts": "Price Alerts",
+          "friendActivity": "Friend Activity",
+          "messages": "Messages",
+          "communityUpdates": "Community Updates",
+          "productUpdates": "Product Updates",
+          "marketing": "Marketing"
+        }
+      },
+      "quietHours": {
+        "title": "Quiet Hours",
+        "description": "Pause notifications during specific times.",
+        "enable": {
+          "label": "Enable Quiet Hours",
+          "description": "No notifications during the specified time period."
+        },
+        "from": "From",
+        "to": "to"
+      },
+      "general": {
+        "title": "General",
+        "description": "Other notification settings.",
+        "sound": {
+          "label": "Notification Sound",
+          "description": "Play a sound when notifications arrive."
+        },
+        "badge": {
+          "label": "Badge Count",
+          "description": "Show unread count on the app icon."
+        }
+      }
+    },
+    "account": {
+      "email": {
+        "title": "Email",
+        "description": "Manage your email address.",
+        "current": "Current Email",
+        "changeButton": "Change Email",
+        "comingSoon": "Email change will be available soon."
+      },
+      "password": {
+        "title": "Password",
+        "description": "Change your account password.",
+        "current": "Current Password",
+        "new": "New Password",
+        "confirm": "Confirm New Password",
+        "changeButton": "Change Password",
+        "changing": "Changing...",
+        "mismatch": "Passwords do not match.",
+        "tooShort": "Password must be at least 8 characters.",
+        "success": "Password changed successfully.",
+        "error": "Failed to change password."
+      },
+      "subscription": {
+        "title": "Subscription",
+        "description": "Manage your subscription plan.",
+        "plan": "Current Plan",
+        "free": "Free",
+        "upgrade": "Upgrade to Pro",
+        "comingSoon": "Subscription management will be available soon."
+      },
+      "delete": {
+        "title": "Delete Account",
+        "description": "Permanently delete your account and all data.",
+        "button": "Delete Account",
+        "warning": {
+          "title": "Danger Zone",
+          "description": "This action is irreversible. All your data will be permanently deleted."
+        },
+        "dialog": {
+          "title": "Are you absolutely sure?",
+          "description": "This will permanently delete your account, gear inventory, loadouts, and all associated data. This action cannot be undone.",
+          "instruction": "Type DELETE to confirm:",
+          "cancel": "Cancel",
+          "confirm": "Delete My Account",
+          "deleting": "Deleting..."
+        },
+        "confirmationError": "Please type DELETE to confirm.",
+        "success": "Account deleted successfully.",
+        "error": "Failed to delete account."
+      }
+    },
+    "data": {
+      "export": {
+        "title": "Export Data",
+        "description": "Download a copy of all your data.",
+        "format": {
+          "label": "Export Format"
+        },
+        "includes": "Your export will include:",
+        "items": {
+          "gear": "All gear items and specifications",
+          "loadouts": "All loadouts and configurations",
+          "wishlist": "Wishlist items",
+          "settings": "User preferences and settings"
+        },
+        "button": "Download Export",
+        "exporting": "Exporting...",
+        "success": "Export downloaded successfully.",
+        "error": "Failed to export data."
+      },
+      "import": {
+        "title": "Import Data",
+        "description": "Import data from an export file.",
+        "dropzone": "Drag and drop your export file here, or click to browse.",
+        "button": "Choose File",
+        "comingSoon": "Import functionality will be available soon."
+      },
+      "sync": {
+        "title": "Sync Status",
+        "description": "View and manage data synchronization.",
+        "lastSync": "Last Synced",
+        "forceButton": "Force Sync",
+        "forced": "Sync initiated.",
+        "error": "Failed to sync."
+      },
+      "storage": {
+        "title": "Storage",
+        "description": "View your storage usage.",
+        "used": "{used} MB of {limit} MB used"
+      },
+      "cache": {
+        "title": "Clear Cache",
+        "description": "Clear locally cached data to free up space.",
+        "button": "Clear Local Cache",
+        "dialog": {
+          "title": "Clear local cache?",
+          "description": "This will clear cached data. Your account data stored in the cloud will not be affected.",
+          "cancel": "Cancel",
+          "confirm": "Clear Cache",
+          "clearing": "Clearing..."
+        },
+        "cleared": "Cache cleared successfully.",
+        "error": "Failed to clear cache."
+      }
+    }
   }
 }

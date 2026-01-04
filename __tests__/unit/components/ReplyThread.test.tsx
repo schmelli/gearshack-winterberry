@@ -19,11 +19,12 @@ const mockReplyTree: ReplyNode[] = [];
 const mockLoadReplies = vi.fn();
 const mockCreateReply = vi.fn();
 const mockDeleteReply = vi.fn().mockResolvedValue(true);
+let mockIsLoading = false;
 
 vi.mock('@/hooks/bulletin', () => ({
   useReplies: () => ({
     replyTree: mockReplyTree,
-    isLoading: false,
+    isLoading: mockIsLoading,
     loadReplies: mockLoadReplies,
     createReply: mockCreateReply,
     deleteReply: mockDeleteReply,
@@ -216,6 +217,13 @@ const createMockReply = (overrides: Partial<ReplyNode> = {}): ReplyNode => ({
   ...overrides,
 });
 
+// Mock RichContentRenderer
+vi.mock('@/components/bulletin/RichContentRenderer', () => ({
+  RichContentRenderer: ({ content, className }: { content: string; className?: string }) => (
+    <div data-testid="rich-content" className={className}>{content}</div>
+  ),
+}));
+
 // =============================================================================
 // Tests
 // =============================================================================
@@ -229,6 +237,7 @@ describe('ReplyThread', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReplyTree.length = 0;
+    mockIsLoading = false;
   });
 
   // ===========================================================================
@@ -478,6 +487,221 @@ describe('ReplyThread', () => {
       render(<ReplyThread {...defaultProps} />);
 
       expect(screen.getByTestId('avatar-image')).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Loading State Tests
+  // ===========================================================================
+
+  describe('Loading State', () => {
+    it('should show loading spinner when isLoading is true', () => {
+      mockIsLoading = true;
+      render(<ReplyThread {...defaultProps} />);
+
+      expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    });
+
+    it('should not show reply composer when loading', () => {
+      mockIsLoading = true;
+      render(<ReplyThread {...defaultProps} />);
+
+      expect(screen.queryByTestId('reply-composer')).not.toBeInTheDocument();
+    });
+
+    it('should not show replies when loading', () => {
+      mockIsLoading = true;
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      expect(screen.queryByText('This is a test reply.')).not.toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Error Handling Tests
+  // ===========================================================================
+
+  describe('Error Handling', () => {
+    it('should show rate limit toast on rate_limit error', async () => {
+      const { toast } = await import('sonner');
+      mockCreateReply.mockRejectedValue({ type: 'rate_limit' });
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Rate limited: 50');
+      });
+    });
+
+    it('should show banned toast on banned error', async () => {
+      const { toast } = await import('sonner');
+      mockCreateReply.mockRejectedValue({ type: 'banned' });
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('You are banned');
+      });
+    });
+
+    it('should show generic error toast on unknown error type', async () => {
+      const { toast } = await import('sonner');
+      mockCreateReply.mockRejectedValue({ type: 'unknown_error' });
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Reply failed');
+      });
+    });
+
+    it('should show generic error toast on non-PostError', async () => {
+      const { toast } = await import('sonner');
+      mockCreateReply.mockRejectedValue(new Error('Network error'));
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Reply failed');
+      });
+    });
+  });
+
+  // ===========================================================================
+  // Reply State Tests
+  // ===========================================================================
+
+  describe('Reply State', () => {
+    it('should set replyingTo state when clicking Reply button', () => {
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('Reply'));
+
+      // Check that the placeholder updated to show replying to
+      expect(screen.getByPlaceholderText('Replying to John Doe')).toBeInTheDocument();
+    });
+
+    it('should show cancel button when replying to someone', () => {
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('Reply'));
+
+      expect(screen.getByTestId('cancel-reply')).toBeInTheDocument();
+    });
+
+    it('should clear replyingTo state when clicking cancel', () => {
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      // Click reply to set replyingTo
+      fireEvent.click(screen.getByText('Reply'));
+      expect(screen.getByTestId('cancel-reply')).toBeInTheDocument();
+
+      // Click cancel
+      fireEvent.click(screen.getByTestId('cancel-reply'));
+
+      // Should return to default placeholder
+      expect(screen.getByPlaceholderText('Write a reply...')).toBeInTheDocument();
+    });
+
+    it('should clear replyingTo state after successful reply', async () => {
+      mockCreateReply.mockResolvedValue({ id: 'new-reply' });
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      // Click reply to set replyingTo
+      fireEvent.click(screen.getByText('Reply'));
+      expect(screen.getByPlaceholderText('Replying to John Doe')).toBeInTheDocument();
+
+      // Submit the reply
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        // Should return to default placeholder
+        expect(screen.getByPlaceholderText('Write a reply...')).toBeInTheDocument();
+      });
+    });
+
+    it('should not submit reply when no current user', async () => {
+      render(<ReplyThread {...defaultProps} currentUser={null} />);
+
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(mockCreateReply).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should pass parent_reply_id when replying to a reply', async () => {
+      mockCreateReply.mockResolvedValue({ id: 'new-reply' });
+      mockReplyTree.push(createMockReply());
+      render(<ReplyThread {...defaultProps} />);
+
+      // Click reply to set replyingTo
+      fireEvent.click(screen.getByText('Reply'));
+
+      // Submit the reply
+      fireEvent.click(screen.getByTestId('submit-reply'));
+
+      await waitFor(() => {
+        expect(mockCreateReply).toHaveBeenCalledWith(
+          expect.objectContaining({
+            post_id: 'post-001',
+            parent_reply_id: 'reply-001',
+            content: 'Test reply',
+          }),
+          expect.any(Object)
+        );
+      });
+    });
+  });
+
+  // ===========================================================================
+  // Nested Reply Tests
+  // ===========================================================================
+
+  describe('Nested Replies', () => {
+    it('should not show Reply button for depth 2 replies', () => {
+      mockReplyTree.push(
+        createMockReply({
+          children: [
+            createMockReply({
+              id: 'reply-002',
+              content: 'Nested reply',
+              parent_reply_id: 'reply-001',
+            }),
+          ],
+        })
+      );
+      render(<ReplyThread {...defaultProps} />);
+
+      // Should only have one Reply button (for the parent)
+      const replyButtons = screen.getAllByText('Reply');
+      expect(replyButtons).toHaveLength(1);
+    });
+
+    it('should render deleted nested reply message', () => {
+      mockReplyTree.push(
+        createMockReply({
+          children: [
+            createMockReply({
+              id: 'reply-002',
+              is_deleted: true,
+              parent_reply_id: 'reply-001',
+            }),
+          ],
+        })
+      );
+      render(<ReplyThread {...defaultProps} />);
+
+      expect(screen.getByText('[Deleted]')).toBeInTheDocument();
     });
   });
 });

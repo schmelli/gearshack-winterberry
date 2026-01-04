@@ -146,7 +146,7 @@ export function useMastraChat(): UseMastraChatResult {
       // Validate auth - cookie-based auth, just check user exists
       if (!user) {
         const authError: ChatError = {
-          message: 'Authentication required. Please sign in to use the AI assistant.',
+          message: t('errors.authRequired'),
           code: 'AUTH_REQUIRED',
           retryable: false,
         };
@@ -164,7 +164,7 @@ export function useMastraChat(): UseMastraChatResult {
 
       if (trimmedText.length > 10000) {
         const validationError: ChatError = {
-          message: 'Message too long. Maximum length is 10,000 characters.',
+          message: t('errors.messageTooLong'),
           code: 'VALIDATION_ERROR',
           retryable: false,
         };

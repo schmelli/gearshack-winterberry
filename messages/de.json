@@ -1066,6 +1066,7 @@
   "Social": {
     "common": {
       "back": "Zurück",
+      "backToSettings": "Zurück zu Einstellungen",
       "retry": "Erneut versuchen",
       "loading": "Wird geladen...",
       "refresh": "Aktualisieren",
@@ -1165,21 +1166,34 @@
     "privacy": {
       "title": "Datenschutzeinstellungen",
       "description": "Kontrolliere, wer deine Inhalte und Aktivitäten sehen kann",
+      "tabs": {
+        "social": "Soziale Privatsphäre",
+        "messaging": "Nachrichten"
+      },
+      "blocked": {
+        "title": "Blockierte Benutzer",
+        "description": "Verwalte blockierte Benutzer. Blockierte Benutzer können dir keine Nachrichten senden oder dich finden."
+      },
       "presets": {
         "title": "Schnelleinstellungen",
-        "onlyMe": "Nur ich",
-        "onlyMeDesc": "Maximale Privatsphäre - nur du kannst deine Inhalte sehen",
-        "friendsOnly": "Nur Freunde",
-        "friendsOnlyDesc": "Teile mit deinen vertrauenswürdigen Freunden",
+        "description": "Wähle eine Voreinstellung oder passe einzelne Einstellungen unten an",
+        "only_me": "Nur ich",
+        "only_meDesc": "Maximale Privatsphäre",
+        "friends_only": "Nur Freunde",
+        "friends_onlyDesc": "Teile mit Freunden",
         "everyone": "Alle",
-        "everyoneDesc": "Offen für die Community"
+        "everyoneDesc": "Offen für die Community",
+        "customMessage": "Du hast individuelle Einstellungen. Wähle eine Voreinstellung zum Zurücksetzen."
       },
       "granular": {
         "title": "Feineinstellungen",
+        "description": "Steuere, wer deine Inhalte und Aktivitäten sehen kann",
         "onlineStatus": "Online-Status",
         "onlineStatusDesc": "Wer kann sehen, wenn du online bist",
         "activityFeed": "Aktivitäten",
         "activityFeedDesc": "Wer kann deine Aktivitäten in seinem Feed sehen",
+        "messaging": "Nachrichten",
+        "messagingDesc": "Wer kann Unterhaltungen mit dir starten",
         "loadouts": "Loadouts",
         "loadoutsDesc": "Wer kann deine Loadouts sehen",
         "discoverable": "Auffindbar",
@@ -2441,5 +2455,290 @@
     "saveLoadoutFailed": "Loadout konnte nicht gespeichert werden",
     "updateLoadoutFailed": "Loadout konnte nicht aktualisiert werden",
     "deleteLoadoutFailed": "Loadout konnte nicht gelöscht werden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalten Sie Ihre Kontoeinstellungen und Präferenzen.",
+    "nav": {
+      "appearance": "Darstellung",
+      "appearanceDescription": "Design und Anzeigeeinstellungen",
+      "regional": "Regional",
+      "regionalDescription": "Sprache, Einheiten und Währung",
+      "notifications": "Benachrichtigungen",
+      "notificationsDescription": "Benachrichtigungseinstellungen verwalten",
+      "privacy": "Datenschutz",
+      "privacyDescription": "Kontakteinstellungen steuern",
+      "account": "Konto",
+      "accountDescription": "E-Mail, Passwort und Abonnement",
+      "data": "Daten & Sync",
+      "dataDescription": "Export, Import und Synchronisierungsstatus"
+    },
+    "appearance": {
+      "theme": {
+        "title": "Design",
+        "description": "Wählen Sie, wie Gearshack auf Ihrem Gerät aussieht."
+      },
+      "display": {
+        "title": "Anzeige",
+        "description": "Visuelle Darstellung anpassen.",
+        "density": {
+          "label": "Anzeigedichte",
+          "comfortable": "Komfortabel",
+          "compact": "Kompakt"
+        },
+        "reduceAnimations": {
+          "label": "Animationen reduzieren",
+          "description": "Bewegungen für Barrierefreiheit oder Leistung minimieren."
+        },
+        "weightBreakdown": {
+          "label": "Gewichtsaufschlüsselung anzeigen",
+          "description": "Detaillierte Gewichtsaufschlüsselung in Loadouts anzeigen."
+        }
+      }
+    },
+    "regional": {
+      "language": {
+        "title": "Sprache",
+        "description": "Wählen Sie Ihre bevorzugte App-Sprache.",
+        "english": "Englisch",
+        "german": "Deutsch",
+        "hint": "Die App wird neu geladen, wenn Sie die Sprache ändern."
+      },
+      "units": {
+        "title": "Einheiten",
+        "description": "Wählen Sie, wie Maße angezeigt werden.",
+        "system": {
+          "label": "Einheitensystem",
+          "metric": "Metrisch",
+          "imperial": "Imperial",
+          "custom": "Benutzerdefiniert"
+        },
+        "presetHint": "Einzelne Einheiten werden durch Ihre Systemeinstellung festgelegt.",
+        "customHint": "Passen Sie einzelne Einheiten unten an.",
+        "weight": {
+          "label": "Gewicht",
+          "g": "Gramm (g)",
+          "kg": "Kilogramm (kg)",
+          "oz": "Unzen (oz)",
+          "lb": "Pfund (lb)"
+        },
+        "distance": {
+          "label": "Entfernung",
+          "km": "Kilometer (km)",
+          "mi": "Meilen (mi)"
+        },
+        "temperature": {
+          "label": "Temperatur",
+          "celsius": "Celsius (°C)",
+          "fahrenheit": "Fahrenheit (°F)"
+        },
+        "dimensions": {
+          "label": "Abmessungen",
+          "cm": "Zentimeter (cm)",
+          "in": "Zoll (in)"
+        }
+      },
+      "currency": {
+        "title": "Währung",
+        "description": "Wählen Sie Ihre bevorzugte Währung für Preise.",
+        "select": {
+          "label": "Währung",
+          "description": "Preise werden in dieser Währung angezeigt."
+        },
+        "position": {
+          "label": "Symbolposition",
+          "before": "Davor",
+          "after": "Danach"
+        },
+        "preview": {
+          "label": "Vorschau",
+          "withOriginal": "Original anzeigen: {original}"
+        },
+        "autoConvert": {
+          "label": "Preise automatisch umrechnen",
+          "description": "Preise automatisch in Ihre bevorzugte Währung umrechnen."
+        },
+        "showOriginal": {
+          "label": "Originalpreis anzeigen",
+          "description": "Den Originalpreis neben dem umgerechneten Preis anzeigen."
+        }
+      },
+      "dateTime": {
+        "title": "Datum & Uhrzeit",
+        "description": "Wählen Sie Ihre bevorzugten Datums- und Uhrzeitformate.",
+        "dateFormat": {
+          "label": "Datumsformat"
+        },
+        "timeFormat": {
+          "label": "Uhrzeitformat",
+          "24h": "24-Stunden",
+          "12h": "12-Stunden"
+        },
+        "weekStart": {
+          "label": "Woche beginnt am",
+          "monday": "Montag",
+          "sunday": "Sonntag"
+        },
+        "timezone": {
+          "label": "Zeitzone",
+          "description": "Erkannt: {detected}"
+        },
+        "preview": {
+          "label": "Vorschau"
+        }
+      }
+    },
+    "notifications": {
+      "types": {
+        "title": "Benachrichtigungstypen",
+        "description": "Wählen Sie, welche Benachrichtigungen Sie wie erhalten."
+      },
+      "matrix": {
+        "push": "Push",
+        "email": "E-Mail",
+        "inApp": "In-App",
+        "categories": {
+          "priceAlerts": "Preisbenachrichtigungen",
+          "friendActivity": "Freundesaktivität",
+          "messages": "Nachrichten",
+          "communityUpdates": "Community-Updates",
+          "productUpdates": "Produktupdates",
+          "marketing": "Marketing"
+        }
+      },
+      "quietHours": {
+        "title": "Ruhezeiten",
+        "description": "Benachrichtigungen zu bestimmten Zeiten pausieren.",
+        "enable": {
+          "label": "Ruhezeiten aktivieren",
+          "description": "Keine Benachrichtigungen während des angegebenen Zeitraums."
+        },
+        "from": "Von",
+        "to": "bis"
+      },
+      "general": {
+        "title": "Allgemein",
+        "description": "Weitere Benachrichtigungseinstellungen.",
+        "sound": {
+          "label": "Benachrichtigungston",
+          "description": "Ton abspielen, wenn Benachrichtigungen eintreffen."
+        },
+        "badge": {
+          "label": "Badge-Zähler",
+          "description": "Ungelesene Anzahl auf dem App-Symbol anzeigen."
+        }
+      }
+    },
+    "account": {
+      "email": {
+        "title": "E-Mail",
+        "description": "Verwalten Sie Ihre E-Mail-Adresse.",
+        "current": "Aktuelle E-Mail",
+        "changeButton": "E-Mail ändern",
+        "comingSoon": "E-Mail-Änderung wird bald verfügbar sein."
+      },
+      "password": {
+        "title": "Passwort",
+        "description": "Ändern Sie Ihr Kontopasswort.",
+        "current": "Aktuelles Passwort",
+        "new": "Neues Passwort",
+        "confirm": "Neues Passwort bestätigen",
+        "changeButton": "Passwort ändern",
+        "changing": "Wird geändert...",
+        "mismatch": "Passwörter stimmen nicht überein.",
+        "tooShort": "Passwort muss mindestens 8 Zeichen lang sein.",
+        "success": "Passwort erfolgreich geändert.",
+        "error": "Passwort konnte nicht geändert werden."
+      },
+      "subscription": {
+        "title": "Abonnement",
+        "description": "Verwalten Sie Ihren Abonnementplan.",
+        "plan": "Aktueller Plan",
+        "free": "Kostenlos",
+        "upgrade": "Auf Pro upgraden",
+        "comingSoon": "Upgrade-Optionen bald verfügbar."
+      },
+      "delete": {
+        "title": "Konto löschen",
+        "description": "Löschen Sie Ihr Konto und alle Daten dauerhaft.",
+        "button": "Konto löschen",
+        "confirmationError": "Bitte geben Sie DELETE ein, um zu bestätigen.",
+        "success": "Konto erfolgreich gelöscht.",
+        "error": "Konto konnte nicht gelöscht werden.",
+        "warning": {
+          "title": "Warnung: Irreversible Aktion",
+          "description": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Ihre Daten werden dauerhaft gelöscht."
+        },
+        "dialog": {
+          "title": "Konto löschen bestätigen",
+          "description": "Diese Aktion ist endgültig. Alle Ihre Ausrüstung, Loadouts und Einstellungen werden dauerhaft gelöscht.",
+          "instruction": "Geben Sie DELETE ein, um zu bestätigen:",
+          "cancel": "Abbrechen",
+          "confirm": "Konto dauerhaft löschen",
+          "deleting": "Wird gelöscht..."
+        }
+      }
+    },
+    "data": {
+      "export": {
+        "title": "Daten exportieren",
+        "description": "Laden Sie eine Kopie all Ihrer Daten herunter.",
+        "button": "Exportieren",
+        "exporting": "Wird exportiert...",
+        "format": {
+          "label": "Exportformat"
+        },
+        "includes": "Der Export enthält:",
+        "items": {
+          "gear": "Alle Ausrüstungsgegenstände",
+          "loadouts": "Alle Loadouts",
+          "wishlist": "Wunschliste",
+          "settings": "Benutzereinstellungen"
+        },
+        "success": "Daten erfolgreich exportiert.",
+        "error": "Export fehlgeschlagen."
+      },
+      "import": {
+        "title": "Daten importieren",
+        "description": "Daten aus einer Sicherungsdatei importieren.",
+        "button": "Importieren",
+        "dropzone": "Ziehen Sie eine Sicherungsdatei hierher oder klicken Sie zum Auswählen",
+        "comingSoon": "Import-Funktion bald verfügbar."
+      },
+      "sync": {
+        "title": "Synchronisierungsstatus",
+        "description": "Cloud-Synchronisierungsstatus.",
+        "synced": "Vollständig synchronisiert",
+        "syncing": "Synchronisierung...",
+        "pending": "Änderungen ausstehend",
+        "offline": "Offline",
+        "lastSync": "Letzte Synchronisierung",
+        "forceButton": "Jetzt synchronisieren",
+        "forced": "Synchronisierung gestartet.",
+        "error": "Synchronisierung fehlgeschlagen."
+      },
+      "storage": {
+        "title": "Speicher",
+        "description": "Ihr Cloud-Speicherverbrauch.",
+        "used": "{used} MB von {limit} MB verwendet"
+      },
+      "cache": {
+        "title": "Cache",
+        "description": "Lokal zwischengespeicherte Daten verwalten.",
+        "button": "Cache leeren",
+        "cleared": "Cache wurde geleert.",
+        "error": "Cache konnte nicht geleert werden.",
+        "dialog": {
+          "title": "Cache leeren?",
+          "description": "Lokal gespeicherte Daten werden gelöscht. Sie werden bei Bedarf erneut heruntergeladen.",
+          "cancel": "Abbrechen",
+          "confirm": "Cache leeren",
+          "clearing": "Wird geleert..."
+        }
+      }
+    },
+    "saved": "Einstellungen gespeichert",
+    "error": "Einstellungen konnten nicht gespeichert werden",
+    "loading": "Laden..."
   }
 }

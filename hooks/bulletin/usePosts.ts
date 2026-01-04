@@ -9,7 +9,7 @@
  * Handles post creation, update, and deletion with optimistic updates.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   createBulletinPost,
@@ -46,7 +46,8 @@ interface UsePostsReturn {
 }
 
 export function usePosts(): UsePostsReturn {
-  const supabase = createClient();
+  // Memoize Supabase client to prevent useCallback recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const [operationState, setOperationState] =
     useState<PostOperationState>('idle');
