@@ -98,6 +98,8 @@ export function PostComposer({
       reset({
         content: editPost.content,
         tag: editPost.tag ?? undefined,
+        linked_content_type: linkedContent?.type,
+        linked_content_id: linkedContent?.id,
       });
       setSelectedTag(editPost.tag ?? undefined);
     } else {
@@ -128,8 +130,7 @@ export function PostComposer({
         handleSubmit(handleFormSubmit)();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleSubmit, onSubmit, selectedTag]
+    [handleSubmit, handleFormSubmit]
   );
 
   const handleClose = () => {

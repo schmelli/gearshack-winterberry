@@ -38,9 +38,14 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
   // Users can toggle it off via the speaker button - preference is saved to localStorage
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
     if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem(VOICE_ENABLED_KEY);
-    // Default to true if not set
-    return stored === null ? true : stored === 'true';
+    try {
+      const stored = localStorage.getItem(VOICE_ENABLED_KEY);
+      // Default to true if not set
+      return stored === null ? true : stored === 'true';
+    } catch {
+      // Fallback to default if localStorage is unavailable (incognito/private mode)
+      return true;
+    }
   });
   const lastMessageIdRef = useRef<string | null>(null);
 
@@ -120,7 +125,11 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     const newValue = !voiceEnabled;
     setVoiceEnabled(newValue);
     // Persist preference to localStorage
-    localStorage.setItem(VOICE_ENABLED_KEY, String(newValue));
+    try {
+      localStorage.setItem(VOICE_ENABLED_KEY, String(newValue));
+    } catch {
+      // Silently fail if localStorage is unavailable (incognito/private mode)
+    }
   }, [voiceEnabled, stopSpeaking]);
 
   return (

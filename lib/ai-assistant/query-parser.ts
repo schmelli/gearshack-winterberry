@@ -63,6 +63,17 @@ export interface ParsedQuery {
 // Constants - Pattern Definitions
 // =============================================================================
 
+// Confidence score weights for different pattern types
+const CONFIDENCE_SCORES = {
+  BUDGET_CONSTRAINT: 0.2,
+  WEIGHT_CONSTRAINT: 0.2,
+  SORT_PREFERENCE: 0.1,
+  INTENT_DETECTED: 0.15,
+  TARGET_SPECIFIC: 0.1,
+  CATEGORY_MATCH: 0.15,
+  BRAND_MATCH: 0.1,
+} as const;
+
 // Currency patterns: €300, $500, 300 EUR, 500 USD, etc.
 const CURRENCY_PATTERNS = {
   EUR: [
@@ -202,11 +213,16 @@ const BRAND_PATTERNS = [
 
 /**
  * Parse a number from a string, handling both . and , as decimal separators
+ * @throws Error if the result is not a finite number
  */
 function parseNumber(str: string): number {
   // Handle European notation (comma as decimal separator)
   const normalized = str.replace(',', '.');
-  return parseFloat(normalized);
+  const num = parseFloat(normalized);
+  if (!isFinite(num)) {
+    throw new Error(`Invalid number: "${str}"`);
+  }
+  return num;
 }
 
 /**
@@ -379,57 +395,57 @@ export function parseQuery(query: string): ParsedQuery {
   const budgetConstraints = extractBudget(query);
   if (budgetConstraints.max) {
     detectedPatterns.push(`budget:${budgetConstraints.max.currency}:${budgetConstraints.max.value}`);
-    confidence += 0.2;
+    confidence += CONFIDENCE_SCORES.BUDGET_CONSTRAINT;
   }
   if (budgetConstraints.min) {
     detectedPatterns.push(`budget_min:${budgetConstraints.min.currency}:${budgetConstraints.min.value}`);
-    confidence += 0.2;
+    confidence += CONFIDENCE_SCORES.BUDGET_CONSTRAINT;
   }
 
   // Extract weight constraints
   const weightConstraints = extractWeight(query);
   if (weightConstraints.max) {
     detectedPatterns.push(`weight_max:${weightConstraints.max.value}g`);
-    confidence += 0.2;
+    confidence += CONFIDENCE_SCORES.WEIGHT_CONSTRAINT;
   }
   if (weightConstraints.min) {
     detectedPatterns.push(`weight_min:${weightConstraints.min.value}g`);
-    confidence += 0.2;
+    confidence += CONFIDENCE_SCORES.WEIGHT_CONSTRAINT;
   }
 
   // Detect sort preference
   const sortPreference = detectSortPreference(query);
   if (sortPreference !== 'relevance') {
     detectedPatterns.push(`sort:${sortPreference}`);
-    confidence += 0.1;
+    confidence += CONFIDENCE_SCORES.SORT_PREFERENCE;
   }
 
   // Detect intent
   const intent = detectIntent(query);
   if (intent !== 'unknown') {
     detectedPatterns.push(`intent:${intent}`);
-    confidence += 0.15;
+    confidence += CONFIDENCE_SCORES.INTENT_DETECTED;
   }
 
   // Detect target
   const target = detectTarget(query);
   detectedPatterns.push(`target:${target}`);
   if (target !== 'both') {
-    confidence += 0.1;
+    confidence += CONFIDENCE_SCORES.TARGET_SPECIFIC;
   }
 
   // Extract category
   const category = extractCategory(query);
   if (category) {
     detectedPatterns.push(`category:${category}`);
-    confidence += 0.15;
+    confidence += CONFIDENCE_SCORES.CATEGORY_MATCH;
   }
 
   // Extract brand
   const brand = extractBrand(query);
   if (brand) {
     detectedPatterns.push(`brand:${brand}`);
-    confidence += 0.1;
+    confidence += CONFIDENCE_SCORES.BRAND_MATCH;
   }
 
   // Build constraints object
@@ -633,9 +649,13 @@ export function normalizeToGrams(value: number, unit: string): number {
  * @param value - The currency value
  * @param currency - The currency code ('EUR', 'USD', 'GBP', 'CHF')
  * @returns Value in USD
+ *
+ * NOTE: Exchange rates are approximate and may drift over time.
+ * Last updated: January 2025
+ * For production use, consider integrating a live exchange rate API.
  */
 export function normalizeToUsd(value: number, currency: string): number {
-  // Approximate exchange rates (as of late 2024)
+  // Approximate exchange rates (as of January 2025)
   // These are rough estimates for planning purposes
   const rates: Record<string, number> = {
     USD: 1.0,

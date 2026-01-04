@@ -190,8 +190,27 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
           toast.success(t('success.postUpdated'));
           setEditingPost(null);
         }
-      } catch {
-        toast.error(t('errors.updateFailed'));
+      } catch (error) {
+        // Handle specific error types with appropriate UI feedback
+        if (isPostError(error)) {
+          switch (error.type) {
+            case 'rate_limit':
+              toast.error(
+                t('errors.rateLimitPosts', {
+                  limit: BULLETIN_CONSTANTS.DAILY_POST_LIMIT,
+                })
+              );
+              break;
+            case 'banned':
+              toast.error(t('errors.banned'));
+              break;
+            case 'edit_window_expired':
+              toast.error(t('errors.editWindowExpired'));
+              break;
+          }
+        } else {
+          toast.error(t('errors.updateFailed'));
+        }
       }
     },
     [editingPost, updatePostMutation, updatePost, t]
