@@ -22,7 +22,24 @@
       "acceptSuccess": "Gear item updated with GearGraph data",
       "dismissSuccess": "Suggestion dismissed",
       "processFailed": "Failed to process suggestion"
-    }
+    },
+    "enrichmentModal": {
+      "title": "GearGraph Data Updates",
+      "description": "Review suggested updates for your gear items",
+      "accept": "Accept",
+      "dismiss": "Dismiss",
+      "acceptAll": "Accept All",
+      "dismissAll": "Dismiss All",
+      "close": "Close",
+      "noProposals": "No pending updates",
+      "proposalCount": "{count, plural, =1 {1 update available} other {# updates available}}",
+      "acceptSuccess": "Update applied to {item}",
+      "dismissSuccess": "Dismissed suggestion for {item}",
+      "processFailed": "Failed to process suggestion",
+      "allAccepted": "{count, plural, =1 {1 update applied} other {# updates applied}}",
+      "allDismissed": "{count, plural, =1 {1 suggestion dismissed} other {# suggestions dismissed}}"
+    },
+    "batchEnrichment": "GearGraph found updates for {count, plural, =1 {1 item} other {# items}}"
   },
   "Footer": {
     "logoAlt": "Gearshack Logo",
@@ -1441,156 +1458,36 @@
     }
   },
   "Merchant": {
-    "portal": {
-      "title": "Merchant Portal",
-      "subtitle": "Manage your business",
-      "dashboard": "Dashboard",
-      "loadouts": "Loadouts",
-      "insights": "Wishlist Insights",
-      "offers": "Offers",
-      "analytics": "Analytics",
-      "billing": "Billing",
-      "settings": "Settings"
-    },
-    "nav": {
-      "dashboard": "Dashboard",
-      "loadouts": "Loadouts",
-      "catalog": "Catalog",
-      "insights": "Insights",
-      "offers": "Offers",
-      "billing": "Billing",
-      "settings": "Settings",
-      "backToApp": "Back to App"
-    },
-    "dashboard": {
-      "welcome": "Welcome, {businessName}",
-      "activeLoadouts": "Active Loadouts",
-      "totalViews": "Total Views",
-      "wishlistAdds": "Wishlist Adds",
-      "conversions": "Conversions",
-      "conversionRate": "Conversion Rate",
-      "revenue": "Revenue",
-      "recentActivity": "Recent Activity",
-      "quickActions": "Quick Actions",
-      "createLoadout": "Create Loadout",
-      "viewInsights": "View Insights",
-      "manageOffers": "Manage Offers"
+    "common": {
+      "notAuthenticated": "Not authenticated as merchant"
     },
     "loadouts": {
-      "title": "Your Loadouts",
-      "create": "Create New Loadout",
-      "edit": "Edit Loadout",
-      "delete": "Delete Loadout",
-      "publish": "Publish",
-      "unpublish": "Unpublish",
-      "submitForReview": "Submit for Review",
-      "status": {
-        "draft": "Draft",
-        "pending_review": "Pending Review",
-        "published": "Published",
-        "archived": "Archived"
-      },
-      "wizard": {
-        "step1": "Basics",
-        "step2": "Items",
-        "step3": "Pricing",
-        "step4": "Availability",
-        "name": "Loadout Name",
-        "namePlaceholder": "e.g., PCT Thru-Hike Complete Kit",
-        "description": "Description",
-        "descriptionPlaceholder": "Describe your loadout and who it's for...",
-        "tripType": "Trip Type",
-        "season": "Season",
-        "selectSeason": "Select applicable seasons",
-        "addItem": "Add Item",
-        "searchCatalog": "Search your catalog...",
-        "expertNote": "Expert Note",
-        "expertNotePlaceholder": "Share why you recommend this item...",
-        "quantity": "Quantity",
-        "bundleDiscount": "Bundle Discount",
-        "individualTotal": "Individual Total",
-        "discountAmount": "Discount Amount",
-        "bundlePrice": "Bundle Price",
-        "selectLocations": "Select Store Locations",
-        "inStock": "In Stock",
-        "outOfStock": "Out of Stock",
-        "stockNote": "Stock Note"
-      },
-      "empty": "You haven't created any loadouts yet.",
-      "emptyAction": "Create your first loadout to showcase your curated gear packages."
+      "created": "Loadout created",
+      "updated": "Loadout updated",
+      "deleted": "Loadout deleted",
+      "submittedForReview": "Submitted for review",
+      "published": "Loadout published",
+      "archived": "Loadout archived",
+      "unpublished": "Loadout unpublished",
+      "itemAdded": "Item added",
+      "itemUpdated": "Item updated",
+      "itemRemoved": "Item removed",
+      "availabilityUpdated": "Availability updated",
+      "changesSaved": "Changes saved",
+      "savedAsDraft": "Loadout saved as draft"
     },
-    "insights": {
-      "title": "Wishlist Insights",
-      "subtitle": "See what users near you are looking for",
-      "radiusFilter": "Filter by Radius",
-      "userCount": "{count} users",
-      "within": "within {distance}",
-      "recentlyAdded": "Recently added",
-      "createOffer": "Create Offer",
-      "proximityBreakdown": "Proximity Breakdown",
-      "noData": "No wishlist data available for your products.",
-      "anonymousUser": "User {id}"
+    "locations": {
+      "added": "Location added",
+      "updated": "Location updated",
+      "deleted": "Location deleted",
+      "primaryUpdated": "Primary location updated"
     },
     "offers": {
-      "title": "Your Offers",
-      "create": "Create Offer",
-      "status": {
-        "pending": "Pending",
-        "viewed": "Viewed",
-        "accepted": "Accepted",
-        "declined": "Declined",
-        "expired": "Expired",
-        "converted": "Converted"
-      },
-      "regularPrice": "Regular Price",
-      "offerPrice": "Offer Price",
-      "discount": "{percent}% off",
-      "message": "Personal Message",
-      "messagePlaceholder": "Add a personal message to your offer...",
-      "expiresIn": "Expires in {days} days",
-      "sendToUsers": "Send to {count} users",
-      "offerFee": "Offer Fee",
-      "totalFee": "Total Fee",
-      "sendOffers": "Send Offers",
-      "empty": "You haven't sent any offers yet.",
-      "emptyAction": "Check Wishlist Insights to find potential customers."
-    },
-    "billing": {
-      "title": "Billing & Transactions",
-      "currentCycle": "Current Billing Cycle",
-      "listingFees": "Listing Fees",
-      "offerFees": "Offer Fees",
-      "commissions": "Commissions",
-      "totalDue": "Total Due",
-      "dueDate": "Due Date",
-      "downloadInvoice": "Download Invoice",
-      "transactions": "Transactions",
-      "noTransactions": "No transactions yet."
-    },
-    "settings": {
-      "title": "Merchant Settings",
-      "profile": "Business Profile",
-      "locations": "Store Locations",
-      "businessName": "Business Name",
-      "businessType": "Business Type",
-      "contactEmail": "Contact Email",
-      "contactPhone": "Contact Phone",
-      "website": "Website",
-      "description": "Business Description",
-      "addLocation": "Add Location",
-      "editLocation": "Edit Location",
-      "primaryLocation": "Primary Location",
-      "locationName": "Location Name",
-      "address": "Address",
-      "city": "City",
-      "postalCode": "Postal Code",
-      "operatingHours": "Operating Hours"
-    },
-    "badge": {
-      "verified": "Verified Merchant",
-      "local": "Local Shop",
-      "chain": "Chain Store",
-      "online": "Online Retailer"
+      "priceMustBeLess": "Offer price must be less than regular price",
+      "rateLimitWarning": "Unable to verify rate limits - some offers may be rejected by the database",
+      "allUsersReceivedOffer": "All users have already received an offer for this product in the last 30 days",
+      "usersSkipped": "{count} user(s) skipped - already received offer in last 30 days",
+      "offersSent": "{count, plural, one {# offer} other {# offers}} sent"
     }
   },
   "MerchantLoadouts": {
@@ -1944,7 +1841,14 @@
     "totalOffers": "{count} offers",
     "product": "Product",
     "price": "Price",
-    "status": "Status",
+    "status": {
+      "pending": "Pending",
+      "viewed": "Viewed",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "expired": "Expired",
+      "converted": "Converted"
+    },
     "created": "Created",
     "expires": "Expires",
     "noOffers": "No offers sent yet",
@@ -1976,99 +1880,7 @@
     "error": "Error",
     "cancel": "Cancel",
     "sending": "Sending...",
-    "sendOffers": "Send {count} offer(s)",
-    "status": {
-      "pending": "Pending",
-      "viewed": "Viewed",
-      "accepted": "Accepted",
-      "declined": "Declined",
-      "expired": "Expired",
-      "converted": "Converted"
-    }
-  },
-  "AdminMerchants": {
-    "title": "Merchant Management",
-    "pendingApplications": "Pending Applications",
-    "allMerchants": "All Merchants",
-    "approve": "Approve",
-    "reject": "Reject",
-    "suspend": "Suspend",
-    "rejectReason": "Rejection Reason",
-    "rejectReasonPlaceholder": "Explain why this application was rejected...",
-    "applicationDetails": "Application Details",
-    "verificationStatus": "Verification Status",
-    "loadoutCount": "Loadouts",
-    "catalogItemCount": "Catalog Items"
-  },
-  "MerchantAnalytics": {
-    "pageTitle": "Analytics",
-    "pageDescription": "View conversion rates, trends, and revenue analytics",
-    "title": "Conversion Analytics",
-    "subtitle": "Track your sales performance and conversion metrics",
-    "refresh": "Refresh",
-    "noAccess": "Access Denied",
-    "noAccessDescription": "You need to be a verified merchant to view analytics.",
-    "errorTitle": "Error Loading Analytics",
-    "totalConversions": "Total Conversions",
-    "conversionRate": "Conversion Rate",
-    "totalRevenue": "Total Revenue",
-    "averageOrderValue": "Avg. Order Value",
-    "last30Days": "Last 30 days",
-    "offersToConversions": "Offers to conversions",
-    "perConversion": "Per conversion",
-    "conversionStatus": "Conversion Status",
-    "confirmed": "Confirmed",
-    "disputed": "Disputed",
-    "localPickup": "Local Pickup",
-    "commissionSummary": "Commission Summary",
-    "commissionDescription": "Commission is calculated as a percentage of each sale",
-    "commissionRate": "{rate} of revenue",
-    "topProducts": "Top Selling Products",
-    "sales": "sales",
-    "recentConversions": "Recent Conversions",
-    "perPage": "per page",
-    "noConversions": "No conversions yet. Complete offers to see your sales here.",
-    "product": "Product",
-    "salePrice": "Sale Price",
-    "commission": "Commission",
-    "date": "Date",
-    "status": "Status",
-    "showing": "Showing {from}-{to} of {total}",
-    "previous": "Previous",
-    "next": "Next"
-  },
-  "MerchantBilling": {
-    "pageTitle": "Billing",
-    "pageDescription": "View your billing history and manage payments",
-    "title": "Billing & Payments",
-    "subtitle": "View your fees, commissions, and payment history",
-    "refresh": "Refresh",
-    "noAccess": "Access Denied",
-    "noAccessDescription": "You need to be a verified merchant to view billing.",
-    "errorTitle": "Error Loading Billing",
-    "listingFees": "Listing Fees",
-    "offerFees": "Offer Fees",
-    "commissions": "Commissions",
-    "outstanding": "Outstanding",
-    "billingHistory": "Billing History",
-    "noBillingHistory": "No billing history yet.",
-    "period": "Period",
-    "listing": "Listing",
-    "offers": "Offers",
-    "commission": "Commission",
-    "total": "Total",
-    "status": "Status",
-    "statusPaid": "Paid",
-    "statusOverdue": "Overdue",
-    "statusInvoiced": "Invoiced",
-    "statusPending": "Pending",
-    "monthlyBreakdown": "Monthly Breakdown",
-    "cycleDetail": "Billing Cycle Details",
-    "billingPeriod": "Billing Period",
-    "lineItems": "Line Items",
-    "totalDue": "Total Due",
-    "downloadInvoice": "Download Invoice",
-    "invoiceNotAvailable": "Invoice not yet available"
+    "sendOffers": "Send {count} offer(s)"
   },
   "AdminMerchants": {
     "pageTitle": "Merchant Management",
@@ -2139,6 +1951,76 @@
     "accessDenied": "Access Denied",
     "accessDeniedDesc": "You do not have permission to access this page.",
     "goHome": "Go to Home"
+  },
+  "MerchantAnalytics": {
+    "pageTitle": "Analytics",
+    "pageDescription": "View conversion rates, trends, and revenue analytics",
+    "title": "Conversion Analytics",
+    "subtitle": "Track your sales performance and conversion metrics",
+    "refresh": "Refresh",
+    "noAccess": "Access Denied",
+    "noAccessDescription": "You need to be a verified merchant to view analytics.",
+    "errorTitle": "Error Loading Analytics",
+    "totalConversions": "Total Conversions",
+    "conversionRate": "Conversion Rate",
+    "totalRevenue": "Total Revenue",
+    "averageOrderValue": "Avg. Order Value",
+    "last30Days": "Last 30 days",
+    "offersToConversions": "Offers to conversions",
+    "perConversion": "Per conversion",
+    "conversionStatus": "Conversion Status",
+    "confirmed": "Confirmed",
+    "disputed": "Disputed",
+    "localPickup": "Local Pickup",
+    "commissionSummary": "Commission Summary",
+    "commissionDescription": "Commission is calculated as a percentage of each sale",
+    "commissionRate": "{rate} of revenue",
+    "topProducts": "Top Selling Products",
+    "sales": "sales",
+    "recentConversions": "Recent Conversions",
+    "perPage": "per page",
+    "noConversions": "No conversions yet. Complete offers to see your sales here.",
+    "product": "Product",
+    "salePrice": "Sale Price",
+    "commission": "Commission",
+    "date": "Date",
+    "status": "Status",
+    "showing": "Showing {from}-{to} of {total}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "MerchantBilling": {
+    "pageTitle": "Billing",
+    "pageDescription": "View your billing history and manage payments",
+    "title": "Billing & Payments",
+    "subtitle": "View your fees, commissions, and payment history",
+    "refresh": "Refresh",
+    "noAccess": "Access Denied",
+    "noAccessDescription": "You need to be a verified merchant to view billing.",
+    "errorTitle": "Error Loading Billing",
+    "listingFees": "Listing Fees",
+    "offerFees": "Offer Fees",
+    "commissions": "Commissions",
+    "outstanding": "Outstanding",
+    "billingHistory": "Billing History",
+    "noBillingHistory": "No billing history yet.",
+    "period": "Period",
+    "listing": "Listing",
+    "offers": "Offers",
+    "commission": "Commission",
+    "total": "Total",
+    "status": "Status",
+    "statusPaid": "Paid",
+    "statusOverdue": "Overdue",
+    "statusInvoiced": "Invoiced",
+    "statusPending": "Pending",
+    "monthlyBreakdown": "Monthly Breakdown",
+    "cycleDetail": "Billing Cycle Details",
+    "billingPeriod": "Billing Period",
+    "lineItems": "Line Items",
+    "totalDue": "Total Due",
+    "downloadInvoice": "Download Invoice",
+    "invoiceNotAvailable": "Invoice not yet available"
   },
   "MerchantApplication": {
     "title": "Become a Merchant",
@@ -2411,39 +2293,6 @@
       "updateQuantityFailed": "Failed to update quantity"
     }
   },
-  "Merchant": {
-    "common": {
-      "notAuthenticated": "Not authenticated as merchant"
-    },
-    "loadouts": {
-      "created": "Loadout created",
-      "updated": "Loadout updated",
-      "deleted": "Loadout deleted",
-      "submittedForReview": "Submitted for review",
-      "published": "Loadout published",
-      "archived": "Loadout archived",
-      "unpublished": "Loadout unpublished",
-      "itemAdded": "Item added",
-      "itemUpdated": "Item updated",
-      "itemRemoved": "Item removed",
-      "availabilityUpdated": "Availability updated",
-      "changesSaved": "Changes saved",
-      "savedAsDraft": "Loadout saved as draft"
-    },
-    "locations": {
-      "added": "Location added",
-      "updated": "Location updated",
-      "deleted": "Location deleted",
-      "primaryUpdated": "Primary location updated"
-    },
-    "offers": {
-      "priceMustBeLess": "Offer price must be less than regular price",
-      "rateLimitWarning": "Unable to verify rate limits - some offers may be rejected by the database",
-      "allUsersReceivedOffer": "All users have already received an offer for this product in the last 30 days",
-      "usersSkipped": "{count} user(s) skipped - already received offer in last 30 days",
-      "offersSent": "{count, plural, one {# offer} other {# offers}} sent"
-    }
-  },
   "Store": {
     "signInToAdd": "Please sign in to add items",
     "signInToUpdate": "Please sign in to update items",
@@ -2529,8 +2378,8 @@
         },
         "temperature": {
           "label": "Temperature",
-          "celsius": "Celsius (\u00B0C)",
-          "fahrenheit": "Fahrenheit (\u00B0F)"
+          "celsius": "Celsius (°C)",
+          "fahrenheit": "Fahrenheit (°F)"
         },
         "dimensions": {
           "label": "Dimensions",
@@ -2732,6 +2581,79 @@
         "cleared": "Cache cleared successfully.",
         "error": "Failed to clear cache."
       }
+    }
+  },
+  "Marketplace": {
+    "title": "Marketplace",
+    "description": "Browse and trade outdoor gear with fellow enthusiasts",
+    "filters": {
+      "all": "All Listings",
+      "forSale": "For Sale",
+      "forTrade": "For Trade",
+      "forBorrow": "For Borrow"
+    },
+    "sort": {
+      "label": "Sort by",
+      "date": "Newest",
+      "price": "Price",
+      "name": "Name",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "search": {
+      "placeholder": "Search by name or brand..."
+    },
+    "card": {
+      "forSale": "For Sale",
+      "forTrade": "For Trade",
+      "forBorrow": "Available to Borrow",
+      "condition": "Condition",
+      "messageButton": "Message Seller",
+      "viewProfile": "View Profile"
+    },
+    "empty": "No listings match your filters",
+    "error": "Failed to load listings",
+    "loadMore": "Load more",
+    "loading": "Loading listings..."
+  },
+  "Banner": {
+    "admin": {
+      "title": "Banner Management",
+      "description": "Create and manage promotional banners for the community page",
+      "create": "Create Banner",
+      "edit": "Edit Banner",
+      "delete": "Delete Banner",
+      "confirmDelete": "Are you sure you want to delete this banner?",
+      "fields": {
+        "heroImage": "Hero Image",
+        "heroImageHelp": "Upload a 21:9 aspect ratio image",
+        "ctaText": "Headline Text",
+        "ctaTextHelp": "5-200 characters",
+        "buttonText": "Button Text",
+        "buttonTextHelp": "2-50 characters",
+        "targetUrl": "Target URL",
+        "targetUrlHelp": "Where users go when clicking the button",
+        "visibilityStart": "Start Date",
+        "visibilityEnd": "End Date",
+        "displayOrder": "Display Order",
+        "displayOrderHelp": "Lower numbers appear first",
+        "isActive": "Active"
+      },
+      "status": {
+        "active": "Active",
+        "scheduled": "Scheduled",
+        "expired": "Expired",
+        "disabled": "Disabled"
+      },
+      "empty": "No banners created yet",
+      "saved": "Banner saved successfully",
+      "deleted": "Banner deleted successfully",
+      "error": "Failed to save banner"
+    },
+    "carousel": {
+      "previous": "Previous banner",
+      "next": "Next banner",
+      "goTo": "Go to banner {index}"
     }
   }
 }

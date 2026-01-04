@@ -105,7 +105,8 @@ export async function GET(request: NextRequest) {
       .in('id', userIds);
 
     if (profilesError) {
-      log.warn('Failed to fetch subscription tiers, proceeding without web search', {}, profilesError);
+      log.error('Failed to fetch subscription tiers - cannot determine Trailblazer status', {}, profilesError);
+      return NextResponse.json({ error: 'Failed to fetch subscription tiers' }, { status: 500 });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,9 +123,17 @@ export async function GET(request: NextRequest) {
     let notificationsCreated = 0;
     let webSearchesPerformed = 0;
 
-    // Process each gear item
+    // Track new suggestions per user for aggregated notifications
+    const newSuggestionsByUser = new Map<string, number>();
+
+    // Process each gear item (Trailblazer users only)
     for (const item of gearItems as GearItem[]) {
       try {
+        // Skip non-Trailblazer users - enrichment is a premium feature
+        if (!trailblazerUsers.has(item.user_id)) {
+          continue;
+        }
+
         // Search catalog for matching products
         const matches = await findCatalogMatches(supabase, item);
 
@@ -213,7 +222,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Create enrichment suggestion
-        const { data: suggestion, error: suggestionError } = await (supabase as any)
+        const { error: suggestionError } = await (supabase as any)
           .from('gear_enrichment_suggestions')
           .insert({
             user_id: item.user_id,
@@ -221,9 +230,7 @@ export async function GET(request: NextRequest) {
             catalog_product_id: bestMatch.id,
             match_confidence: bestMatch.score,
             ...enrichmentData,
-          })
-          .select('id')
-          .single();
+          });
 
         if (suggestionError) {
           log.error('Failed to create enrichment suggestion', { gear_item_id: item.id }, suggestionError);
@@ -232,50 +239,79 @@ export async function GET(request: NextRequest) {
 
         suggestionsCreated++;
 
-        // Create notification for user with detailed field information
-        const enrichmentDetails: string[] = [];
-        // Track if weight came from web search for notification message
-        const weightFromWebSearch = enrichmentData.suggested_weight_grams && !bestMatch.weight_grams;
-        if (enrichmentData.suggested_weight_grams) {
-          const weightStr = `${enrichmentData.suggested_weight_grams}g`;
-          enrichmentDetails.push(weightFromWebSearch ? `Weight: ${weightStr} (web)` : `Weight: ${weightStr}`);
-        }
-        if (enrichmentData.suggested_price_usd) {
-          enrichmentDetails.push(`Price: $${enrichmentData.suggested_price_usd.toFixed(2)}`);
-        }
-        if (enrichmentData.suggested_description) {
-          // Truncate long descriptions
-          const descPreview = enrichmentData.suggested_description.length > 50
-            ? enrichmentData.suggested_description.slice(0, 47) + '...'
-            : enrichmentData.suggested_description;
-          enrichmentDetails.push(`Desc: "${descPreview}"`);
-        }
-
-        const message = `"${item.name}" • ${enrichmentDetails.join(' • ')}`;
-
-        const { error: notifError } = await (supabase as any)
-          .from('notifications')
-          .insert({
-            user_id: item.user_id,
-            type: 'gear_enrichment',
-            reference_type: 'gear_enrichment_suggestion',
-            reference_id: suggestion.id,
-            message,
-          });
-
-        if (notifError) {
-          log.error('Failed to create notification', { gear_item_id: item.id }, notifError);
-        } else {
-          notificationsCreated++;
-        }
+        // Track suggestion count per user for aggregated notifications
+        const currentCount = newSuggestionsByUser.get(item.user_id) || 0;
+        newSuggestionsByUser.set(item.user_id, currentCount + 1);
 
         log.info('Created enrichment suggestion', {
           gear_item_id: item.id,
-          fields: enrichmentDetails,
           confidence: bestMatch.score,
         });
       } catch (err) {
         log.error('Failed to process gear item', { gear_item_id: item.id }, err as Error);
+      }
+    }
+
+    // Create or update aggregated notifications per user
+    for (const [userId, newCount] of newSuggestionsByUser) {
+      try {
+        // Check for existing unread batch notification
+        const { data: existingNotif } = await (supabase as any)
+          .from('notifications')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('type', 'gear_enrichment')
+          .eq('reference_type', 'gear_enrichment_batch')
+          .eq('is_read', false)
+          .maybeSingle();
+
+        // Count total pending suggestions for this user
+        const { count: totalPending } = await (supabase as any)
+          .from('gear_enrichment_suggestions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'pending');
+
+        const itemCount = totalPending || newCount;
+        const message = `GearGraph found updates for ${itemCount} ${itemCount === 1 ? 'item' : 'items'} in your inventory`;
+
+        if (existingNotif) {
+          // Update existing notification with new count and bump timestamp
+          const { error: updateError } = await (supabase as any)
+            .from('notifications')
+            .update({
+              message,
+              created_at: new Date().toISOString(),
+              is_read: false, // Ensure it's unread again
+            })
+            .eq('id', existingNotif.id);
+
+          if (updateError) {
+            log.error('Failed to update batch notification', { userId }, updateError);
+          } else {
+            log.info('Updated batch notification', { userId, totalPending: itemCount });
+          }
+        } else {
+          // Create new batch notification
+          const { error: insertError } = await (supabase as any)
+            .from('notifications')
+            .insert({
+              user_id: userId,
+              type: 'gear_enrichment',
+              reference_type: 'gear_enrichment_batch',
+              reference_id: null, // Batch notification has no single reference
+              message,
+            });
+
+          if (insertError) {
+            log.error('Failed to create batch notification', { userId }, insertError);
+          } else {
+            notificationsCreated++;
+            log.info('Created batch notification', { userId, count: itemCount });
+          }
+        }
+      } catch (err) {
+        log.error('Failed to create/update batch notification', { userId }, err as Error);
       }
     }
 
