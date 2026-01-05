@@ -156,6 +156,17 @@ export async function executeSearchCatalog(
     // Track applied filters
     const appliedFilters: Record<string, unknown> = {};
 
+    // SMART WEIGHT FILTERING:
+    // - For weight-sorted queries (lightest/heaviest): Filter out 0g (invalid data)
+    // - For other queries (comparison, price, name): Include all products, flag invalid weights
+    // This ensures "compare X vs Y" finds products even with missing weight data.
+    const isWeightSortedQuery = sortBy === 'weight_asc' || sortBy === 'weight_desc';
+    if (isWeightSortedQuery) {
+      // For weight queries: filter invalid weights (0g = missing data for outdoor gear)
+      dbQuery = dbQuery.or('weight_grams.is.null,weight_grams.gt.0');
+      appliedFilters.invalidWeightsFiltered = true;
+    }
+
     // Apply text search (only if query provided)
     if (query) {
       dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
@@ -188,11 +199,17 @@ export async function executeSearchCatalog(
     }
 
     // Apply sorting
+    // NOTE: For weight-sorted queries, invalid weights (0g) were filtered above.
+    // For weight-based sorting, we also exclude NULL weights to get meaningful results.
     switch (sortBy) {
       case 'weight_asc':
+        // For "lightest" queries: exclude NULL weights to get actual weight data
+        dbQuery = dbQuery.not('weight_grams', 'is', null);
         dbQuery = dbQuery.order('weight_grams', { ascending: true, nullsFirst: false });
         break;
       case 'weight_desc':
+        // For "heaviest" queries: exclude NULL weights to get actual weight data
+        dbQuery = dbQuery.not('weight_grams', 'is', null);
         dbQuery = dbQuery.order('weight_grams', { ascending: false, nullsFirst: false });
         break;
       case 'price_asc':
@@ -327,6 +344,23 @@ export async function executeSearchCatalog(
       appliedFilters.brand = filters.brand;
     }
 
+    // Post-processing weight validation:
+    // - For weight-sorted queries: filter out 0g (defense-in-depth)
+    // - For other queries: flag but KEEP products with 0g (for comparison queries)
+    const productsWithInvalidWeight = results.filter((p) => p.weightGrams === 0);
+    const invalidWeightCount = productsWithInvalidWeight.length;
+
+    if (isWeightSortedQuery && invalidWeightCount > 0) {
+      // For weight queries, remove invalid weights (0g = garbage data)
+      results = results.filter((p) => p.weightGrams === null || p.weightGrams > 0);
+      console.warn(`[searchCatalog] Filtered ${invalidWeightCount} products with invalid weight (0g) for weight-sorted query`);
+      appliedFilters.invalidWeightsRemoved = invalidWeightCount;
+    } else if (invalidWeightCount > 0) {
+      // For non-weight queries, flag but keep products (for comparisons)
+      console.info(`[searchCatalog] Found ${invalidWeightCount} products with missing weight data (0g) - keeping for comparison`);
+      appliedFilters.productsWithMissingWeight = invalidWeightCount;
+    }
+
     const executionTime = Date.now() - startTime;
     console.log(`[searchCatalog] Found ${results.length} products in ${executionTime}ms`);
 
@@ -339,7 +373,7 @@ export async function executeSearchCatalog(
     };
   } catch (error) {
     const executionTime = Date.now() - startTime;
-    console.error('[searchCatalog] Unexpected error:', error);
+    console.error(`[searchCatalog] Unexpected error (${executionTime}ms):`, error);
     return {
       success: false,
       results: [],

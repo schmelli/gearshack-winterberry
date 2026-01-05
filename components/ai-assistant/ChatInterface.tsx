@@ -29,9 +29,24 @@ interface ChatInterfaceProps {
   onClose: () => void;
 }
 
+// LocalStorage key for voice preference
+const VOICE_ENABLED_KEY = 'gearshack:ai-voice-enabled';
+
 export function ChatInterface({ onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  // Voice enabled by default for a more immersive experience
+  // Users can toggle it off via the speaker button - preference is saved to localStorage
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = localStorage.getItem(VOICE_ENABLED_KEY);
+      // Default to true if not set
+      return stored === null ? true : stored === 'true';
+    } catch {
+      // Fallback to default if localStorage is unavailable (incognito/private mode)
+      return true;
+    }
+  });
   const lastMessageIdRef = useRef<string | null>(null);
 
   // Get inventory items for context
@@ -52,7 +67,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     stop: stopSpeaking,
     isPlaying,
   } = useVoiceOutput({
-    voice: 'nova',
+    voice: 'rachel', // ElevenLabs default voice
     autoPlay: true,
   });
 
@@ -102,12 +117,19 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     resetConversation();
   }, [resetConversation, stopSpeaking]);
 
-  // Toggle voice output
+  // Toggle voice output and persist preference
   const toggleVoice = useCallback(() => {
     if (voiceEnabled) {
       stopSpeaking();
     }
-    setVoiceEnabled(!voiceEnabled);
+    const newValue = !voiceEnabled;
+    setVoiceEnabled(newValue);
+    // Persist preference to localStorage
+    try {
+      localStorage.setItem(VOICE_ENABLED_KEY, String(newValue));
+    } catch {
+      // Silently fail if localStorage is unavailable (incognito/private mode)
+    }
   }, [voiceEnabled, stopSpeaking]);
 
   return (

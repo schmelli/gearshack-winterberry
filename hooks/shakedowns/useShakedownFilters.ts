@@ -257,22 +257,31 @@ export const useShakedownFilters = create<ShakedownFilterState>()(
  * ```tsx
  * const { filterUrl, syncFromUrl, updateUrl } = useFilteredShakedownsUrl();
  *
- * // On mount, sync filters from URL
+ * // On mount, sync filters from URL (only once)
  * useEffect(() => {
  *   syncFromUrl();
- * }, [syncFromUrl]);
+ * }, []); // Empty deps - syncFromUrl is stable
  *
  * // Update URL when filters change
  * useEffect(() => {
  *   updateUrl();
- * }, [filters, updateUrl]);
+ * }, [filterUrl, updateUrl]);
  * ```
  */
 export function useFilteredShakedownsUrl() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const filters = useShakedownFilters();
+
+  // Use individual selectors to avoid infinite loops
+  const status = useShakedownFilters((state) => state.status);
+  const experienceLevel = useShakedownFilters((state) => state.experienceLevel);
+  const search = useShakedownFilters((state) => state.search);
+  const sort = useShakedownFilters((state) => state.sort);
+  const friendsFirst = useShakedownFilters((state) => state.friendsFirst);
+  const season = useShakedownFilters((state) => state.season);
+  const tripType = useShakedownFilters((state) => state.tripType);
+  const setFiltersFromUrl = useShakedownFilters((state) => state.setFiltersFromUrl);
 
   /**
    * Build URL with current filter state
@@ -280,52 +289,53 @@ export function useFilteredShakedownsUrl() {
   const filterUrl = useMemo(() => {
     const params = new URLSearchParams();
 
-    if (filters.status) {
-      params.set('status', filters.status);
+    if (status) {
+      params.set('status', status);
     }
 
-    if (filters.experienceLevel) {
-      params.set('experience', filters.experienceLevel);
+    if (experienceLevel) {
+      params.set('experience', experienceLevel);
     }
 
-    if (filters.search.trim()) {
-      params.set('search', filters.search.trim());
+    if (search.trim()) {
+      params.set('search', search.trim());
     }
 
-    if (filters.sort !== 'recent') {
-      params.set('sort', filters.sort);
+    if (sort !== 'recent') {
+      params.set('sort', sort);
     }
 
-    if (filters.friendsFirst) {
+    if (friendsFirst) {
       params.set('friendsFirst', 'true');
     }
 
-    if (filters.season) {
-      params.set('season', filters.season);
+    if (season) {
+      params.set('season', season);
     }
 
-    if (filters.tripType) {
-      params.set('tripType', filters.tripType);
+    if (tripType) {
+      params.set('tripType', tripType);
     }
 
     const queryString = params.toString();
     return queryString ? `${pathname}?${queryString}` : pathname;
   }, [
-    filters.status,
-    filters.experienceLevel,
-    filters.search,
-    filters.sort,
-    filters.friendsFirst,
-    filters.season,
-    filters.tripType,
+    status,
+    experienceLevel,
+    search,
+    sort,
+    friendsFirst,
+    season,
+    tripType,
     pathname,
   ]);
 
   /**
    * Sync filter state from current URL params
+   * Uses stable reference - safe to call without causing infinite loops
    */
   const syncFromUrl = useCallback(() => {
-    filters.setFiltersFromUrl({
+    setFiltersFromUrl({
       status: searchParams.get('status'),
       experience: searchParams.get('experience'),
       search: searchParams.get('search'),
@@ -334,7 +344,7 @@ export function useFilteredShakedownsUrl() {
       season: searchParams.get('season'),
       tripType: searchParams.get('tripType'),
     });
-  }, [searchParams, filters]);
+  }, [searchParams, setFiltersFromUrl]);
 
   /**
    * Update URL with current filter state (shallow navigation)

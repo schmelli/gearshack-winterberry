@@ -314,6 +314,74 @@ describe('MessageBubble', () => {
 
       expect(screen.getByText('Voice message unavailable')).toBeInTheDocument();
     });
+
+    it('should render fallback for location without coordinates', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            message_type: 'location',
+            metadata: null,
+          })}
+          isOwnMessage={false}
+        />
+      );
+
+      expect(screen.getByText('Shared location')).toBeInTheDocument();
+    });
+
+    it('should render fallback for gear_reference without gear_item_id', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            message_type: 'gear_reference',
+            metadata: { name: 'Test Gear' },
+          })}
+          isOwnMessage={false}
+        />
+      );
+
+      expect(screen.getByText('Shared gear item')).toBeInTheDocument();
+    });
+
+    it('should render gear_trade message type', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            message_type: 'gear_trade',
+          })}
+          isOwnMessage={false}
+        />
+      );
+
+      expect(screen.getByText('Gear trade post')).toBeInTheDocument();
+    });
+
+    it('should render trip_invitation message type', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            message_type: 'trip_invitation',
+          })}
+          isOwnMessage={false}
+        />
+      );
+
+      expect(screen.getByText('Trip invitation')).toBeInTheDocument();
+    });
+
+    it('should render default message type', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            message_type: 'unknown_type' as never,
+            content: 'Unknown message content',
+          })}
+          isOwnMessage={false}
+        />
+      );
+
+      expect(screen.getByText('Unknown message content')).toBeInTheDocument();
+    });
   });
 
   // ===========================================================================
@@ -368,6 +436,20 @@ describe('MessageBubble', () => {
       );
 
       expect(screen.queryByTestId('check-icon')).not.toBeInTheDocument();
+    });
+
+    it('should not show icon for unknown delivery status', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage()}
+          isOwnMessage={true}
+          deliveryStatus={'pending' as never}
+        />
+      );
+
+      // Unknown status should not render any icon
+      expect(screen.queryByTestId('check-icon')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('checkcheck-icon')).not.toBeInTheDocument();
     });
   });
 
@@ -512,6 +594,86 @@ describe('MessageBubble', () => {
 
       fireEvent.click(screen.getByText('Report'));
       expect(onReport).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onReact when emoji clicked', () => {
+      const onReact = vi.fn();
+      render(
+        <MessageBubble
+          message={createMockMessage()}
+          isOwnMessage={false}
+          onReact={onReact}
+        />
+      );
+
+      // Find and click thumbs up emoji
+      const thumbsUpButton = screen.getByText('👍');
+      fireEvent.click(thumbsUpButton);
+      expect(onReact).toHaveBeenCalledWith('👍');
+    });
+
+    it('should copy message and call onCopy callback', async () => {
+      // Mock clipboard
+      const mockWriteText = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: { writeText: mockWriteText },
+      });
+
+      const onCopy = vi.fn();
+      render(
+        <MessageBubble
+          message={createMockMessage()}
+          isOwnMessage={true}
+          onCopy={onCopy}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Copy'));
+      expect(mockWriteText).toHaveBeenCalledWith('Hello, this is a test message!');
+      expect(onCopy).toHaveBeenCalled();
+    });
+
+    it('should not show copy option when message has no content', () => {
+      render(
+        <MessageBubble
+          message={createMockMessage({
+            content: null,
+            message_type: 'image',
+            media_url: 'https://example.com/image.jpg',
+          })}
+          isOwnMessage={true}
+        />
+      );
+
+      expect(screen.queryByText('Copy')).not.toBeInTheDocument();
+    });
+
+    it('should show actions on mouse enter', () => {
+      const { container } = render(
+        <MessageBubble message={createMockMessage()} isOwnMessage={true} />
+      );
+
+      // Find the bubble wrapper div
+      const wrapper = container.firstChild as Element;
+      fireEvent.mouseEnter(wrapper);
+
+      // Actions dropdown should be visible (opacity-100)
+      const actionsDiv = container.querySelector('.opacity-100');
+      expect(actionsDiv).toBeInTheDocument();
+    });
+
+    it('should hide actions on mouse leave', () => {
+      const { container } = render(
+        <MessageBubble message={createMockMessage()} isOwnMessage={true} />
+      );
+
+      const wrapper = container.firstChild as Element;
+      fireEvent.mouseEnter(wrapper);
+      fireEvent.mouseLeave(wrapper);
+
+      // Actions should be hidden (opacity-0)
+      const actionsDiv = container.querySelector('.opacity-0');
+      expect(actionsDiv).toBeInTheDocument();
     });
   });
 

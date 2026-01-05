@@ -41,6 +41,7 @@ interface UseNotificationsResult {
     suggestionId: string,
     action: 'accept' | 'dismiss'
   ) => Promise<EnrichmentActionResult>;
+  deleteAllEnrichmentNotifications: () => Promise<void>;
 }
 
 /**
@@ -101,7 +102,7 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
   }, [fetchNotifications]);
 
   /**
-   * Realtime subscription for new notifications
+   * Realtime subscription for new notifications (INSERT and DELETE events)
    */
   useEffect(() => {
     if (!userId) return;
@@ -130,6 +131,20 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
           });
 
           setNotifications((prev) => [newNotification, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          // Remove deleted notification from local state
+          const deletedId = (payload.old as { id: string }).id;
+          setNotifications((prev) => prev.filter((n) => n.id !== deletedId));
         }
       )
       .subscribe();
@@ -169,7 +184,7 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
 
   /**
    * Processes an enrichment action (accept or dismiss).
-   * Encapsulates the API call and state management.
+   * Uses optimistic updates for immediate UI feedback with rollback on error.
    */
   const processEnrichmentAction = useCallback(
     async (
@@ -178,6 +193,10 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
       action: 'accept' | 'dismiss'
     ): Promise<EnrichmentActionResult> => {
       setProcessingEnrichmentId(suggestionId);
+
+      // Optimistic removal - save current state for potential rollback
+      const previousNotifications = notifications;
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
 
       try {
         const response = await fetch('/api/gear-items/apply-enrichment', {
@@ -193,18 +212,22 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
         const data = await response.json();
 
         if (!response.ok) {
+          // Rollback on error - restore the notification
+          setNotifications(previousNotifications);
           const errorMsg = data.error || 'Failed to process enrichment';
           return { success: false, error: errorMsg };
         }
 
-        // Refresh notifications list (notification was deleted by API)
-        await fetchNotifications();
+        // Success - optimistic removal was correct, no need to refetch
+        // The realtime DELETE subscription will also trigger but filter finds nothing (already removed)
 
         return {
           success: true,
           updatedFields: data.updated_fields,
         };
       } catch (error) {
+        // Rollback on network/unexpected error
+        setNotifications(previousNotifications);
         console.error('[useNotifications] Enrichment action error:', error);
         return {
           success: false,
@@ -214,8 +237,43 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
         setProcessingEnrichmentId(null);
       }
     },
-    [fetchNotifications]
+    [notifications]
   );
+
+  /**
+   * Deletes all enrichment notifications for the current user.
+   * Used when all enrichment suggestions have been processed in the modal.
+   */
+  const deleteAllEnrichmentNotifications = useCallback(async () => {
+    if (!userId) return;
+
+    // Optimistically remove all enrichment notifications from local state
+    const enrichmentIds = notifications
+      .filter((n) => n.type === 'gear_enrichment')
+      .map((n) => n.id);
+
+    if (enrichmentIds.length === 0) return;
+
+    setNotifications((prev) => prev.filter((n) => n.type !== 'gear_enrichment'));
+
+    try {
+      // Delete all enrichment notifications from database
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .eq('type', 'gear_enrichment');
+
+      if (error) {
+        console.error('[useNotifications] Failed to delete enrichment notifications:', error);
+        // Refetch to restore correct state
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error('[useNotifications] Error deleting enrichment notifications:', error);
+      await fetchNotifications();
+    }
+  }, [userId, notifications, supabase, fetchNotifications]);
 
   return {
     notifications,
@@ -225,5 +283,6 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
     markAsRead,
     refetch: fetchNotifications,
     processEnrichmentAction,
+    deleteAllEnrichmentNotifications,
   };
 }

@@ -231,7 +231,7 @@ export function PrivacySettingsPanel({
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{t('privacy.presets.title')}</CardTitle>
             <CardDescription>
-              Choose a preset or customize individual settings below
+              {t('privacy.presets.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -260,7 +260,7 @@ export function PrivacySettingsPanel({
               <div className="mt-4 flex items-center gap-2 rounded-lg bg-muted/50 p-3">
                 <Settings className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  You have customized settings. Choose a preset to reset.
+                  {t('privacy.presets.customMessage')}
                 </p>
               </div>
             )}
@@ -274,7 +274,7 @@ export function PrivacySettingsPanel({
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{t('privacy.granular.title')}</CardTitle>
             <CardDescription>
-              Fine-tune who can see your content and activity
+              {t('privacy.granular.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="divide-y divide-border">
@@ -300,8 +300,8 @@ export function PrivacySettingsPanel({
 
             {/* Messaging */}
             <GranularControl
-              label="Messaging"
-              description="Who can start conversations with you"
+              label={t('privacy.granular.messaging')}
+              description={t('privacy.granular.messagingDesc')}
               value={settings.messaging_privacy}
               onChange={(v) => handleSettingChange('messaging_privacy', v as VisibilityLevel)}
               options={visibilityOptions}

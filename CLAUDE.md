@@ -57,6 +57,34 @@ Use `@/*` for absolute imports (configured in tsconfig.json).
 - Icons: lucide-react
 - CSS variables enabled
 
+## Internationalization (i18n) Rules
+
+This project uses `next-intl` for internationalization. **ALL user-visible text must be internationalized.**
+
+### Required Practices
+
+1. **Use `useTranslations` hook** in components:
+   ```tsx
+   const t = useTranslations('Namespace');
+   return <p>{t('key')}</p>;
+   ```
+
+2. **Never hardcode visible text** in TSX files:
+   - ❌ `<p>Hello World</p>`
+   - ✅ `<p>{t('greeting')}</p>`
+
+3. **Translation files location**: `messages/en.json` and `messages/de.json`
+
+4. **Namespace convention**: Use PascalCase for top-level namespaces (`Social`, `Settings`, `Messaging`)
+
+### Automated i18n Audit
+
+A Claude Code hook (`.claude/hooks/i18n-audit.sh`) automatically runs after editing TSX files and warns about potential hardcoded strings. The hook checks for:
+- Text content after `>` that starts with uppercase letters
+- Hardcoded `title=`, `description=`, `label=` attributes
+
+If the hook reports issues, add the missing translations to both `en.json` and `de.json`.
+
 ## Coding Workflow
 
 Before writing code:

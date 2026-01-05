@@ -18,6 +18,7 @@ import {
   Settings,
   ArrowLeft,
   Shield,
+  UsersRound,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/categories', label: 'Categories', icon: FolderTree },
+  { href: '/admin/vip', label: 'VIPs', icon: UsersRound },
   { href: '/admin/moderation', label: 'Moderation', icon: Shield },
   { href: '/admin/users', label: 'Users', icon: Users, disabled: true },
   { href: '/admin/prompts', label: 'Prompts', icon: MessageSquare, disabled: true },

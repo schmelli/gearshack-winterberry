@@ -51,7 +51,7 @@ export function PendingImportHandler({ isAuthenticated }: PendingImportHandlerPr
           );
         } else {
           // Show generic error if import failed
-          toast.error(result.error || 'Failed to import loadout');
+          toast.error(result.error || t('importFailed'));
 
           // If there was an error, restore the token so user can retry
           if (result.error) {
@@ -60,7 +60,7 @@ export function PendingImportHandler({ isAuthenticated }: PendingImportHandlerPr
         }
       } catch (error) {
         console.error('[PendingImportHandler] Unexpected error:', error);
-        toast.error('An unexpected error occurred while importing the loadout');
+        toast.error(t('importUnexpectedError'));
       } finally {
         setIsProcessing(false);
       }

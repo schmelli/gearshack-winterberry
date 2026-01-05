@@ -13,12 +13,15 @@
 
   "composer": {
     "title": "Create Post",
+    "editTitle": "Edit Post",
     "placeholder": "What's on your mind? Ask a question, share an update, or connect with fellow outdoor enthusiasts...",
     "tagLabel": "Category (optional)",
     "selectTag": "Select a category",
     "submit": "Post",
+    "save": "Save",
     "cancel": "Cancel",
     "posting": "Posting...",
+    "saving": "Saving...",
     "charCount": "{count}/{max}",
     "linkedContent": "Linked: {title}"
   },

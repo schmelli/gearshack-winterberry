@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import type { GearItem, GearItemFormData } from '@/types/gear';
 import { DEFAULT_GEAR_ITEM_FORM } from '@/types/gear';
@@ -118,6 +119,7 @@ export function useGearEditor(
   const router = useRouter();
   const { user } = useAuthContext();
   const { uploadUrl: uploadToCloudinary } = useCloudinaryUpload();
+  const t = useTranslations('GearEditor');
   const isEditing = Boolean(initialItem);
   const isWishlistMode = mode === 'wishlist';
 
@@ -179,7 +181,7 @@ export function useGearEditor(
 
           // FR-006: Show loading feedback during import
           setIsUploading(true);
-          toast.info('Importing image...');
+          toast.info(t('toasts.importingImage'));
 
           try {
             // Upload external URL directly to Cloudinary (server-side fetch bypasses CORS)
@@ -201,7 +203,7 @@ export function useGearEditor(
 
             // Update the form data with the Cloudinary URL
             data.primaryImageUrl = cloudinaryUrl;
-            toast.success('Image imported successfully!');
+            toast.success(t('toasts.imageImportSuccess'));
           } catch (importError) {
             // FR-007: Handle proxy failures gracefully - show detailed error
             console.error('[GearEditor] ====== IMAGE IMPORT FAILED ======');
@@ -218,7 +220,7 @@ export function useGearEditor(
               }
             }
 
-            toast.error(`Image import failed: ${errorMessage}`);
+            toast.error(t('toasts.imageImportFailed', { error: errorMessage }));
             return; // Don't proceed with save if import fails
           } finally {
             setIsUploading(false);
@@ -243,7 +245,7 @@ export function useGearEditor(
             updatedAt: new Date(),
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item updated successfully!');
+          toast.success(t('toasts.itemUpdated'));
         } else if (isWishlistMode) {
           // Feature 049: Add new item to wishlist instead of inventory
           await addToWishlist(itemData);
@@ -255,7 +257,7 @@ export function useGearEditor(
             ...itemData,
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item added to wishlist!');
+          toast.success(t('toasts.addedToWishlist'));
         } else {
           // Add new item to store (now async with optimistic update)
           const newId = await addItem(itemData);
@@ -267,7 +269,7 @@ export function useGearEditor(
             ...itemData,
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item saved successfully!');
+          toast.success(t('toasts.itemSaved'));
         }
 
         // Navigate to inventory (item already visible via optimistic update)
@@ -298,7 +300,7 @@ export function useGearEditor(
         setIsUploading(false);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t]
   );
 
   // Wrapped submit handler with validation and duplicate detection
@@ -310,7 +312,7 @@ export function useGearEditor(
       const isValid = await form.trigger();
 
       if (!isValid) {
-        toast.error('Please fix errors before saving');
+        toast.error(t('toasts.fixErrors'));
         return;
       }
 
@@ -331,7 +333,7 @@ export function useGearEditor(
       // No duplicates, proceed with submission
       await rhfHandleSubmit(onSubmit)(e);
     },
-    [form, rhfHandleSubmit, onSubmit, duplicateDetection, initialItem?.id]
+    [form, rhfHandleSubmit, onSubmit, duplicateDetection, initialItem?.id, t]
   );
 
   // Handle confirmed save after user dismisses duplicate warning
@@ -346,13 +348,11 @@ export function useGearEditor(
   // Cancel handler with dirty check
   const handleCancel = useCallback(() => {
     if (isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave?'
-      );
+      const confirmed = window.confirm(t('unsavedChangesConfirm'));
       if (!confirmed) return;
     }
     router.push(redirectPath);
-  }, [isDirty, router, redirectPath]);
+  }, [isDirty, router, redirectPath, t]);
 
   // Reset form to initial values
   const resetForm = useCallback(() => {
@@ -366,15 +366,15 @@ export function useGearEditor(
     setIsDeleting(true);
     try {
       await deleteItemFromStore(initialItem.id);
-      toast.success('Item deleted.');
+      toast.success(t('toasts.itemDeleted'));
       router.push('/inventory');
     } catch (error) {
-      toast.error('Failed to delete item');
+      toast.error(t('toasts.deleteFailed'));
       console.error('Delete failed:', error);
     } finally {
       setIsDeleting(false);
     }
-  }, [initialItem, deleteItemFromStore, router]);
+  }, [initialItem, deleteItemFromStore, router, t]);
 
   // Unsaved changes warning (T027 - implemented early for safety)
   useEffect(() => {

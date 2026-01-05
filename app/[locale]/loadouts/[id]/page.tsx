@@ -117,8 +117,8 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     [loadoutItems, sortBy, sortFilterCategoryId, categories]
   );
 
-  // Item state for worn/consumable tracking (US4)
-  const { isWorn, isConsumable, toggleWorn, toggleConsumable } = useLoadoutItemState(id);
+  // Item state for worn/consumable tracking (US4) and quantity validation (Feature: 013)
+  const { isWorn, isConsumable, toggleWorn, toggleConsumable, canAddItem } = useLoadoutItemState(id);
 
   // Lighter alternatives detection (Feature: loadout-ux-enhancements)
   const { getLighterAlternative } = useLighterAlternatives(loadoutItems);
@@ -144,8 +144,14 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     notFound();
   }
 
-  // Wrapper for addItem with dependency check (Feature: 037-gear-dependencies)
+  // Wrapper for addItem with dependency check (Feature: 037-gear-dependencies) and quantity validation (Feature: 013)
   const handleAddItem = (itemId: string) => {
+    // Feature: 013-gear-quantity-tracking - Check quantity availability
+    if (!canAddItem(itemId)) {
+      // Error toast already shown by canAddItem
+      return;
+    }
+
     // Check for dependencies - if modal is shown, it handles the add flow
     const hasPrompt = dependencyPrompt.triggerCheck(itemId);
     if (!hasPrompt) {

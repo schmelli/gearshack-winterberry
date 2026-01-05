@@ -16,6 +16,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { getTranslation } from '@/lib/translations';
+
+// Create translator for store messages (runs outside React context)
+const t = getTranslation('Store');
 import {
   gearItemToDbInsert,
   gearItemToDbUpdate,
@@ -127,7 +131,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const { userId } = get();
         console.log('[SupabaseStore] addItem called, userId:', userId);
         if (!userId) {
-          toast.error('Please sign in to add items');
+          toast.error(t('signInToAdd'));
           throw new Error('User not authenticated');
         }
 
@@ -184,7 +188,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to save item');
+          toast.error(t('saveItemFailed'));
           console.error('[SupabaseStore] addItem error:', error);
           throw error;
         }
@@ -193,7 +197,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       updateItem: async (id, updates) => {
         const { userId } = get();
         if (!userId) {
-          toast.error('Please sign in to update items');
+          toast.error(t('signInToUpdate'));
           return;
         }
 
@@ -243,7 +247,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to update item');
+          toast.error(t('updateItemFailed'));
           console.error('[SupabaseStore] updateItem error:', error);
         }
       },
@@ -251,7 +255,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       deleteItem: async (id) => {
         const { userId } = get();
         if (!userId) {
-          toast.error('Please sign in to delete items');
+          toast.error(t('signInToDelete'));
           return;
         }
 
@@ -303,7 +307,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to delete item');
+          toast.error(t('deleteItemFailed'));
           console.error('[SupabaseStore] deleteItem error:', error);
         }
       },
@@ -312,7 +316,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
       createLoadout: async (name, tripDate = null, options = {}) => {
         const { userId } = get();
         if (!userId) {
-          toast.error('Please sign in to create loadouts');
+          toast.error(t('signInToCreateLoadout'));
           throw new Error('User not authenticated');
         }
 
@@ -396,7 +400,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               pendingOperations: Math.max(0, state.syncState.pendingOperations - 1),
             },
           }));
-          toast.error('Failed to save loadout');
+          toast.error(t('saveLoadoutFailed'));
           console.error('[SupabaseStore] createLoadout error:', error);
           throw error;
         }
@@ -441,7 +445,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               loadout.id === id ? previousLoadout : loadout
             ),
           }));
-          toast.error('Failed to update loadout');
+          toast.error(t('updateLoadoutFailed'));
           console.error('[SupabaseStore] updateLoadout error:', error);
         }
       },
@@ -474,7 +478,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
               (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
             ),
           }));
-          toast.error('Failed to delete loadout');
+          toast.error(t('deleteLoadoutFailed'));
           console.error('[SupabaseStore] deleteLoadout error:', error);
         }
       },

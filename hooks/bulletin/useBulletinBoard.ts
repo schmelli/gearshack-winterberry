@@ -8,11 +8,15 @@
  *
  * Manages the main board state including posts, pagination,
  * loading states, and error handling.
+ *
+ * Updated in Feature 056 (T046) to integrate with useBulletinFilters
+ * for URL-synced filter state.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchBulletinPosts } from '@/lib/supabase/bulletin-queries';
+import { useBulletinFilters } from './useBulletinFilters';
 import type {
   BulletinPostWithAuthor,
   PostTag,
@@ -45,17 +49,26 @@ interface UseBulletinBoardReturn {
 }
 
 export function useBulletinBoard(): UseBulletinBoardReturn {
-  const supabase = createClient();
+  // Memoize Supabase client to prevent infinite re-renders
+  // (createClient returns a new reference each call, breaking useCallback deps)
+  const supabase = useMemo(() => createClient(), []);
 
-  // Board state
-  const [state, setState] = useState<BoardState>({
+  // URL-synced filter state
+  const {
+    activeTag,
+    searchQuery,
+    setActiveTag: setUrlActiveTag,
+    setSearchQuery: setUrlSearchQuery,
+    clearFilters: clearUrlFilters,
+  } = useBulletinFilters();
+
+  // Board state (without filters - they come from URL)
+  const [state, setState] = useState<Omit<BoardState, 'activeTag' | 'searchQuery'>>({
     posts: [],
     hasMore: true,
     nextCursor: null,
     loadingState: 'idle',
     error: null,
-    activeTag: null,
-    searchQuery: '',
   });
 
   /**
@@ -65,10 +78,6 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     setState((prev) => ({ ...prev, loadingState: 'loading', error: null }));
 
     try {
-      // Capture current filter values to avoid stale closure issues
-      const activeTag = state.activeTag;
-      const searchQuery = state.searchQuery;
-
       const result = await fetchBulletinPosts(supabase, {
         tag: activeTag ?? undefined,
         search: searchQuery || undefined,
@@ -91,7 +100,7 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
         error: message,
       }));
     }
-  }, [supabase, state.activeTag, state.searchQuery]);
+  }, [supabase, activeTag, searchQuery]);
 
   /**
    * Load more posts (infinite scroll)
@@ -105,8 +114,8 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
 
     try {
       const result = await fetchBulletinPosts(supabase, {
-        tag: state.activeTag ?? undefined,
-        search: state.searchQuery || undefined,
+        tag: activeTag ?? undefined,
+        search: searchQuery || undefined,
         cursor: state.nextCursor,
         limit: BULLETIN_CONSTANTS.POSTS_PER_PAGE,
       });
@@ -132,8 +141,8 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     state.loadingState,
     state.hasMore,
     state.nextCursor,
-    state.activeTag,
-    state.searchQuery,
+    activeTag,
+    searchQuery,
   ]);
 
   /**
@@ -150,44 +159,43 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
   }, [loadPosts]);
 
   /**
-   * Set active tag filter
+   * Set active tag filter (updates URL and resets posts)
    */
   const setActiveTag = useCallback((tag: PostTag | null) => {
     setState((prev) => ({
       ...prev,
-      activeTag: tag,
       posts: [],
       nextCursor: null,
       hasMore: true,
     }));
-  }, []);
+    setUrlActiveTag(tag);
+  }, [setUrlActiveTag]);
 
   /**
-   * Set search query
+   * Set search query (updates URL and resets posts)
    */
   const setSearchQuery = useCallback((query: string) => {
     setState((prev) => ({
       ...prev,
-      searchQuery: query,
       posts: [],
       nextCursor: null,
       hasMore: true,
     }));
-  }, []);
+    setUrlSearchQuery(query);
+  }, [setUrlSearchQuery]);
 
   /**
-   * Clear all filters
+   * Clear all filters (updates URL and resets posts)
    */
   const clearFilters = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      activeTag: null,
-      searchQuery: '',
       posts: [],
       nextCursor: null,
       hasMore: true,
     }));
-  }, []);
+    clearUrlFilters();
+  }, [clearUrlFilters]);
 
   /**
    * Add a post optimistically (for immediate UI feedback)
@@ -238,8 +246,8 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     hasMore: state.hasMore,
     loadingState: state.loadingState,
     error: state.error,
-    activeTag: state.activeTag,
-    searchQuery: state.searchQuery,
+    activeTag,
+    searchQuery,
 
     // Actions
     loadPosts,

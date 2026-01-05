@@ -22,6 +22,7 @@ import {
   StarOff,
   ExternalLink,
   Loader2,
+  List,
 } from 'lucide-react';
 import {
   Table,
@@ -41,8 +42,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { VipFormDialog } from './VipFormDialog';
 import { VipArchiveDialog } from './VipArchiveDialog';
+import { VipLoadoutsPanel } from './VipLoadoutsPanel';
 import { toggleVipFeatured, restoreVip } from '@/lib/vip/vip-admin-service';
 import { toast } from 'sonner';
 import type { VipWithStats } from '@/types/vip';
@@ -66,6 +69,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
   const t = useTranslations('vip.admin');
   const [editingVip, setEditingVip] = useState<VipWithStats | null>(null);
   const [archivingVip, setArchivingVip] = useState<VipWithStats | null>(null);
+  const [managingLoadoutsVip, setManagingLoadoutsVip] = useState<VipWithStats | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   // Handle toggle featured
@@ -73,10 +77,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
     setLoadingId(vip.id);
     try {
       await toggleVipFeatured(vip.id, !vip.isFeatured);
-      toast.success(vip.isFeatured ? 'VIP unfeatured' : 'VIP featured');
+      toast.success(vip.isFeatured ? t('vipUnfeatured') : t('vipFeatured'));
       onUpdate();
     } catch (err) {
-      toast.error('Failed to update featured status');
+      toast.error(t('featuredUpdateFailed'));
     } finally {
       setLoadingId(null);
     }
@@ -87,10 +91,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
     setLoadingId(vip.id);
     try {
       await restoreVip(vip.id);
-      toast.success('VIP restored');
+      toast.success(t('vipRestored'));
       onUpdate();
     } catch (err) {
-      toast.error('Failed to restore VIP');
+      toast.error(t('restoreVipFailed'));
     } finally {
       setLoadingId(null);
     }
@@ -101,7 +105,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
       <Card>
         <CardContent className="py-8 text-center">
           <p className="text-muted-foreground">
-            {isArchived ? 'No archived VIPs' : 'No VIPs yet'}
+            {isArchived ? t('noArchivedVips') : t('noVipsYet')}
           </p>
         </CardContent>
       </Card>
@@ -115,10 +119,10 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
           <TableHeader>
             <TableRow>
               <TableHead className="w-12"></TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>{t('columnName')}</TableHead>
               <TableHead>{t('status')}</TableHead>
-              <TableHead className="text-right">Followers</TableHead>
-              <TableHead className="text-right">Loadouts</TableHead>
+              <TableHead className="text-right">{t('columnFollowers')}</TableHead>
+              <TableHead className="text-right">{t('columnLoadouts')}</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -161,7 +165,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                     {vip.isFeatured && (
                       <Badge variant="outline" className="text-amber-600 border-amber-300">
                         <Star className="h-3 w-3 mr-1" />
-                        Featured
+                        {t('featured')}
                       </Badge>
                     )}
                   </div>
@@ -173,7 +177,16 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                 </TableCell>
 
                 {/* Loadout Count */}
-                <TableCell className="text-right">{vip.loadoutCount}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setManagingLoadoutsVip(vip)}
+                    className="text-primary hover:underline"
+                  >
+                    {t('loadoutCountLabel', { count: vip.loadoutCount })}
+                  </Button>
+                </TableCell>
 
                 {/* Actions */}
                 <TableCell>
@@ -194,6 +207,13 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                     <DropdownMenuContent align="end">
                       {!isArchived && (
                         <>
+                          <DropdownMenuItem onClick={() => setManagingLoadoutsVip(vip)}>
+                            <List className="h-4 w-4 mr-2" />
+                            {t('manageLoadouts')}
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
                           <DropdownMenuItem onClick={() => setEditingVip(vip)}>
                             <Edit className="h-4 w-4 mr-2" />
                             {t('editVip')}
@@ -228,7 +248,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
                       {isArchived && (
                         <DropdownMenuItem onClick={() => handleRestore(vip)}>
                           <ArchiveRestore className="h-4 w-4 mr-2" />
-                          Restore
+                          {t('restore')}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -261,6 +281,21 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
           onUpdate();
         }}
       />
+
+      {/* Loadouts Management Dialog */}
+      {managingLoadoutsVip && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => !open && setManagingLoadoutsVip(null)}
+        >
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <VipLoadoutsPanel
+              vipId={managingLoadoutsVip.id}
+              vipName={managingLoadoutsVip.name}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

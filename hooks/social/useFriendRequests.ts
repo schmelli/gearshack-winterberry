@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   fetchFriendRequests,
@@ -32,6 +33,7 @@ import type {
 } from '@/types/social';
 
 export function useFriendRequests(): UseFriendRequestsReturn {
+  const t = useTranslations('FriendRequests');
   const { user } = useAuthContext();
   const [pendingIncoming, setPendingIncoming] = useState<FriendRequestWithProfile[]>([]);
   const [pendingOutgoing, setPendingOutgoing] = useState<FriendRequestWithProfile[]>([]);
@@ -59,12 +61,11 @@ export function useFriendRequests(): UseFriendRequestsReturn {
       const message = err instanceof Error ? err.message : 'Failed to load friend requests';
       setError(message);
       console.error('Error loading friend requests:', err);
-      // FIXED: Added user-facing error toast
-      toast.error('Failed to load friend requests');
+      toast.error(t('loadFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, t]);
 
   /**
    * Sends a friend request to another user.
@@ -92,12 +93,11 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return response;
       } catch (err) {
         console.error('Error sending friend request:', err);
-        // FIXED: Added user-facing error toast
-        toast.error('Failed to send friend request');
+        toast.error(t('sendFailed'));
         return { success: false, error: 'request_already_sent' };
       }
     },
-    [user?.uid, loadRequests]
+    [user?.uid, loadRequests, t]
   );
 
   /**
@@ -193,12 +193,11 @@ export function useFriendRequests(): UseFriendRequestsReturn {
         return await canSendFriendRequest(recipientId);
       } catch (err) {
         console.error('Error checking friend request eligibility:', err);
-        // FIXED: Added user-facing error toast
-        toast.error('Failed to check friend request eligibility');
+        toast.error(t('checkFailed'));
         return { canSend: false, reason: 'blocked' };
       }
     },
-    [user?.uid]
+    [user?.uid, t]
   );
 
   /**

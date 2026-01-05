@@ -572,11 +572,11 @@ describe('useSupabaseAuth', () => {
         authStateChangeCallback?.('SIGNED_IN', mockSession as Session);
       });
 
+      // Wait for both user and session to be updated
       await waitFor(() => {
         expect(result.current.user?.id).toBe('user-123-uuid');
+        expect(result.current.session?.access_token).toBe('mock-access-token');
       });
-
-      expect(result.current.session?.access_token).toBe('mock-access-token');
     });
 
     it('should clear user when auth state changes to signed out', async () => {

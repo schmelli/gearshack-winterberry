@@ -129,14 +129,14 @@ export function VipFormDialog({
     try {
       if (isEditing && vip) {
         await updateVip(vip.id, data);
-        toast.success('VIP updated successfully');
+        toast.success(t('vipUpdated'));
       } else {
         await createVip({ ...data, slug: data.slug! });
-        toast.success('VIP created successfully');
+        toast.success(t('vipCreated'));
       }
       onSuccess();
     } catch (err) {
-      toast.error(isEditing ? 'Failed to update VIP' : 'Failed to create VIP');
+      toast.error(isEditing ? t('updateFailed') : t('createFailed'));
     }
   };
 
@@ -144,7 +144,7 @@ export function VipFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit VIP' : 'Add New VIP'}</DialogTitle>
+          <DialogTitle>{isEditing ? t('editTitle') : t('addTitle')}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -280,9 +280,9 @@ export function VipFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Featured</FormLabel>
+                    <FormLabel>{t('isFeatured')}</FormLabel>
                     <FormDescription>
-                      Display this VIP on the Community page
+                      {t('isFeaturedHint')}
                     </FormDescription>
                   </div>
                   <FormControl>

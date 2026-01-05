@@ -3,20 +3,21 @@
  *
  * Feature: Community Hub Enhancement
  *
- * Main layout wrapper for the Community page:
+ * Main layout wrapper for the Community Bulletin Board page:
  * - Announcements banner at top
- * - Navigation tabs (Board, Shakedowns, VIP Loadouts, Marketplace)
  * - Two-column layout: Main content (2/3) + Sidebar (1/3)
  * - Responsive: single column on mobile
+ *
+ * Note: Navigation tabs are now in the shared community layout (layout.tsx)
  */
 
 'use client';
 
-import { cn } from '@/lib/utils';
 import { AnnouncementsBanner } from '@/components/community/AnnouncementsBanner';
-import { CommunityNavTabs } from '@/components/community/CommunityNavTabs';
+import { BannerCarousel } from '@/components/community/BannerCarousel';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
-import type { CommunityHubProps, CommunityAnnouncement } from '@/types/community';
+import { DashboardSummaryCards } from '@/components/community/DashboardSummaryCards';
+import type { CommunityHubProps } from '@/types/community';
 
 interface CommunityHubLayoutProps extends CommunityHubProps {
   children: React.ReactNode;
@@ -27,18 +28,20 @@ export function CommunityHub({
   initialAnnouncements,
 }: CommunityHubLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Announcements Banner */}
+    <>
+      {/* Banner Carousel */}
       <div className="container mx-auto px-4 pt-4">
+        <BannerCarousel />
+      </div>
+
+      {/* Announcements Banner */}
+      <div className="container mx-auto px-4 pt-2">
         <AnnouncementsBanner announcements={initialAnnouncements} />
       </div>
 
-      {/* Navigation Tabs */}
-      {/* z-40 is correct: tabs appear below main header (z-50) per CLAUDE.md hierarchy */}
-      <div className="sticky top-0 z-40 mt-4">
-        <div className="container mx-auto px-4">
-          <CommunityNavTabs />
-        </div>
+      {/* Dashboard Summary Cards */}
+      <div className="container mx-auto px-4 pt-4">
+        <DashboardSummaryCards />
       </div>
 
       {/* Main Content Area */}
@@ -58,7 +61,7 @@ export function CommunityHub({
           </aside>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

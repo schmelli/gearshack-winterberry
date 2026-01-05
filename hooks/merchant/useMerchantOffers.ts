@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useMerchantAuth } from './useMerchantAuth';
 
@@ -86,6 +87,7 @@ const DEFAULT_LIMIT = 20;
 // =============================================================================
 
 export function useMerchantOffers(): UseMerchantOffersReturn {
+  const t = useTranslations('Merchant');
   const { merchant } = useMerchantAuth();
 
   const [offers, setOffers] = useState<MerchantOfferView[]>([]);
@@ -218,7 +220,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
   const createOffers = useCallback(
     async (input: CreateOffersInput): Promise<boolean> => {
       if (!merchant?.id) {
-        toast.error('Not authenticated as merchant');
+        toast.error(t('common.notAuthenticated'));
         return false;
       }
 
@@ -242,7 +244,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
 
         // Validate offer price
         if (!regularPrice || input.offerPrice >= regularPrice) {
-          toast.error('Offer price must be less than regular price');
+          toast.error(t('offers.priceMustBeLess'));
           return false;
         }
 
@@ -261,7 +263,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
 
         if (rateCheckError) {
           console.error('Rate limit check error:', rateCheckError);
-          toast.warning('Unable to verify rate limits - some offers may be rejected by the database');
+          toast.warning(t('offers.rateLimitWarning'));
           // Continue anyway - database unique constraint will enforce
         } else if (recentOffers && recentOffers.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,14 +271,12 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
           const remainingUserIds = input.userIds.filter((id) => !blockedUserIds.has(id));
 
           if (remainingUserIds.length === 0) {
-            toast.error('All users have already received an offer for this product in the last 30 days');
+            toast.error(t('offers.allUsersReceivedOffer'));
             return false;
           }
 
           if (remainingUserIds.length < input.userIds.length) {
-            toast.warning(
-              `${blockedUserIds.size} user(s) skipped - already received offer in last 30 days`
-            );
+            toast.warning(t('offers.usersSkipped', { count: blockedUserIds.size }));
           }
 
           // Use remaining users after rate limit filter
@@ -335,7 +335,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
           billing_cycle_end: billingCycleEnd.toISOString().split('T')[0],
         });
 
-        toast.success(`${offersToCreate.length} offer${offersToCreate.length > 1 ? 's' : ''} sent`);
+        toast.success(t('offers.offersSent', { count: offersToCreate.length }));
         await fetchOffers();
         return true;
       } catch (err) {

@@ -995,7 +995,7 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
     } finally {
       setIsSharing(false);
     }
-  }, [shakedown, user, authProfile, createPost, t, tActions]);
+  }, [shakedown, user, authProfile, createPost, t, tActions, tCommon]);
 
   // Handle item click to open feedback modal
   const handleItemClick = useCallback((item: SelectedGearItem) => {
@@ -1043,14 +1043,14 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to archive shakedown');
-      toast.success('Shakedown archived');
+      toast.success(tActions('archiveSuccess'));
       refresh();
     } catch {
-      toast.error('Failed to archive shakedown');
+      toast.error(tActions('archiveFailed'));
     } finally {
       setIsProcessing(false);
     }
-  }, [shakedown, refresh]);
+  }, [shakedown, refresh, tActions]);
 
   const handleDelete = useCallback(async () => {
     if (!shakedown) return;
@@ -1060,13 +1060,13 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete shakedown');
-      toast.success('Shakedown deleted');
+      toast.success(tActions('deleteSuccess'));
       router.push('/community/shakedowns');
     } catch {
-      toast.error('Failed to delete shakedown');
+      toast.error(tActions('deleteFailed'));
       setIsProcessing(false);
     }
-  }, [shakedown, router]);
+  }, [shakedown, router, tActions]);
 
   // Loading state
   if (isLoading) {

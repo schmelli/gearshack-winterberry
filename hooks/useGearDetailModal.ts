@@ -16,6 +16,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 // =============================================================================
 // Types
@@ -109,6 +110,7 @@ export function useMediaQuery(query: string): boolean {
 export function useGearDetailModal(
   onItemNotFound?: () => void
 ): UseGearDetailModalReturn {
+  const t = useTranslations('GearDetailModal');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -141,12 +143,12 @@ export function useGearDetailModal(
 
   // Handle deleted item detection (T017b)
   const handleItemNotFound = useCallback(() => {
-    toast.error('Item not found', {
-      description: 'This gear item may have been deleted.',
+    toast.error(t('itemNotFound'), {
+      description: t('itemNotFoundDesc'),
     });
     close();
     onItemNotFound?.();
-  }, [close, onItemNotFound]);
+  }, [close, onItemNotFound, t]);
 
   return {
     isOpen,

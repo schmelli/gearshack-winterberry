@@ -177,7 +177,12 @@ export interface BannedError {
   message: string;
 }
 
-export type PostError = RateLimitError | DuplicateError | BannedError;
+export interface EditWindowExpiredError {
+  type: 'edit_window_expired';
+  message: string;
+}
+
+export type PostError = RateLimitError | DuplicateError | BannedError | EditWindowExpiredError;
 
 // ============================================================================
 // Reply Tree Types (for client-side nesting)

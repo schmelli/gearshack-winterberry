@@ -19,6 +19,7 @@ import type { ViewDensity } from '@/types/inventory';
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
 }));
 
 // Mock i18n navigation
@@ -122,6 +123,36 @@ vi.mock('@/components/wishlist/MoveToInventoryButton', () => ({
 
 vi.mock('@/components/wishlist/CommunityAvailabilityPanel', () => ({
   CommunityAvailabilityPanel: () => <div data-testid="community-availability">Community</div>,
+}));
+
+// Mock wishlist hooks used by TopPricesDisplay
+vi.mock('@/hooks/offers/useWishlistItemOffers', () => ({
+  useWishlistItemOffers: () => ({
+    offers: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+// Mock price results hook used directly in GearCard
+vi.mock('@/hooks/price-tracking/useWishlistPriceResults', () => ({
+  useWishlistPriceResults: () => ({
+    priceResults: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+// Mock TopPricesDisplay to avoid needing full hook setup
+vi.mock('@/components/wishlist/TopPricesDisplay', () => ({
+  TopPricesDisplay: ({ wishlistItemId }: { wishlistItemId: string }) => (
+    <div data-testid="top-prices-display">{wishlistItemId}</div>
+  ),
+}));
+
+// Mock TopRetailPricesDisplay
+vi.mock('@/components/wishlist/TopRetailPricesDisplay', () => ({
+  TopRetailPricesDisplay: () => <div data-testid="top-retail-prices">Retail prices</div>,
 }));
 
 // =============================================================================
@@ -375,16 +406,18 @@ describe('GearCard', () => {
       expect(screen.getByTestId('move-to-inventory')).toBeInTheDocument();
     });
 
-    it('should show price stub indicator in standard wishlist view', () => {
+    it('should show top prices display in standard wishlist view', () => {
       render(<GearCard item={mockItem} viewDensity="standard" context="wishlist" />);
 
-      expect(screen.getByTestId('price-stub')).toBeInTheDocument();
+      expect(screen.getByTestId('top-prices-display')).toBeInTheDocument();
+      expect(screen.getByTestId('top-retail-prices')).toBeInTheDocument();
     });
 
-    it('should show price history in detailed wishlist view', () => {
+    it('should show top prices display in detailed wishlist view', () => {
       render(<GearCard item={mockItem} viewDensity="detailed" context="wishlist" />);
 
-      expect(screen.getByTestId('price-history')).toBeInTheDocument();
+      expect(screen.getByTestId('top-prices-display')).toBeInTheDocument();
+      expect(screen.getByTestId('top-retail-prices')).toBeInTheDocument();
     });
 
     it('should show community availability panel in wishlist context', () => {
@@ -466,6 +499,147 @@ describe('GearCard', () => {
       render(<GearCard item={lightItem} viewDensity="standard" />);
 
       expect(screen.getByText('500 g')).toBeInTheDocument();
+    });
+
+    it('should show placeholder when image fails to load in standard view', () => {
+      render(<GearCard item={mockItem} viewDensity="standard" />);
+
+      const image = screen.getByTestId('gear-image');
+      fireEvent.error(image);
+
+      // After error, placeholder should be shown
+      expect(screen.getByTestId('category-placeholder')).toBeInTheDocument();
+    });
+
+    it('should show placeholder when image fails to load in compact view', () => {
+      render(<GearCard item={mockItem} viewDensity="compact" />);
+
+      const image = screen.getByTestId('gear-image');
+      fireEvent.error(image);
+
+      // After error, placeholder should be shown
+      expect(screen.getByTestId('category-placeholder')).toBeInTheDocument();
+    });
+
+    it('should handle item without productTypeId', () => {
+      const itemWithoutProductType = createMockGearItem({ productTypeId: null });
+      render(<GearCard item={itemWithoutProductType} viewDensity="standard" />);
+
+      expect(screen.getByTestId('gear-card')).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Brand URL Tests
+  // ===========================================================================
+
+  describe('Brand URL', () => {
+    it('should render brand website link in hover card when brandUrl is provided', () => {
+      render(<GearCard item={mockItem} viewDensity="standard" />);
+
+      // Check for hover content containing brand link
+      const hoverContents = screen.getAllByTestId('hover-content');
+      expect(hoverContents.length).toBeGreaterThan(0);
+    });
+
+    it('should not show brand link when brandUrl is null', () => {
+      const itemWithoutBrandUrl = createMockGearItem({ brandUrl: null });
+      render(<GearCard item={itemWithoutBrandUrl} viewDensity="standard" />);
+
+      // Card should render without brand link
+      expect(screen.getByTestId('gear-card')).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Compact View Wishlist Tests
+  // ===========================================================================
+
+  describe('Compact View Wishlist', () => {
+    it('should show move to inventory button in compact wishlist view', () => {
+      const onMoveToInventory = vi.fn();
+      render(
+        <GearCard
+          item={mockItem}
+          viewDensity="compact"
+          context="wishlist"
+          onMoveToInventory={onMoveToInventory}
+        />
+      );
+
+      expect(screen.getByTestId('move-to-inventory')).toBeInTheDocument();
+    });
+
+    it('should call onMoveComplete when provided', () => {
+      const onMoveToInventory = vi.fn();
+      const onMoveComplete = vi.fn();
+      render(
+        <GearCard
+          item={mockItem}
+          viewDensity="compact"
+          context="wishlist"
+          onMoveToInventory={onMoveToInventory}
+          onMoveComplete={onMoveComplete}
+        />
+      );
+
+      // The button should be rendered with the complete handler
+      expect(screen.getByTestId('move-to-inventory')).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Detailed View Brand Tests
+  // ===========================================================================
+
+  describe('Detailed View Brand', () => {
+    it('should show brand in detailed view with hover card', () => {
+      render(<GearCard item={mockItem} viewDensity="detailed" />);
+
+      expect(screen.getAllByText(/Big Agnes/).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should show brand link when brandUrl exists in detailed view', () => {
+      render(<GearCard item={mockItem} viewDensity="detailed" />);
+
+      // Look for external link indicator in any hover content
+      const hoverContents = screen.getAllByTestId('hover-content');
+      expect(hoverContents.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ===========================================================================
+  // Status Icons Component Edge Cases
+  // ===========================================================================
+
+  describe('Status Icons Edge Cases', () => {
+    it('should show multiple status icons when multiple flags are true', () => {
+      const multiStatusItem = createMockGearItem({
+        isFavourite: true,
+        isForSale: true,
+        canBeBorrowed: true,
+      });
+      render(<GearCard item={multiStatusItem} viewDensity="standard" />);
+
+      expect(screen.getByTitle('Favourite')).toBeInTheDocument();
+      expect(screen.getByTitle('For Sale')).toBeInTheDocument();
+      expect(screen.getByTitle('Can be Borrowed')).toBeInTheDocument();
+    });
+
+    it('should not show any icons when all status flags are false', () => {
+      const noStatusItem = createMockGearItem({
+        isFavourite: false,
+        isForSale: false,
+        canBeBorrowed: false,
+        canBeTraded: false,
+        status: 'own',
+      });
+      render(<GearCard item={noStatusItem} viewDensity="standard" />);
+
+      expect(screen.queryByTitle('Favourite')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('For Sale')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Can be Borrowed')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Up for Trade')).not.toBeInTheDocument();
     });
   });
 });

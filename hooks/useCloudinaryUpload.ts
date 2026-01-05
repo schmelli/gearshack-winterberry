@@ -10,6 +10,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import type {
   CloudinaryUploadStatus,
   CloudinaryUploadResult,
@@ -65,6 +66,7 @@ export interface UseCloudinaryUploadReturn {
  * ```
  */
 export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
+  const t = useTranslations('CloudinaryUpload');
   const [status, setStatus] = useState<CloudinaryUploadStatus>('idle');
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
         if (validationError) {
           setError(validationError);
           setStatus('error');
-          toast.error('Invalid file', {
+          toast.error(t('invalidFile'), {
             description: validationError,
           });
           return null;
@@ -120,7 +122,7 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
                 : 'Failed to process image';
             setError(errorMessage);
             setStatus('error');
-            toast.error('Background removal failed', {
+            toast.error(t('backgroundRemovalFailed'), {
               description: errorMessage,
             });
             return null;
@@ -162,7 +164,7 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
 
           setError(errorMessage);
           setStatus('error');
-          toast.error('Upload failed', {
+          toast.error(t('uploadFailed'), {
             description: errorMessage,
           });
           return null;
@@ -173,10 +175,10 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
         // Step 4: Success
         setProgress(100);
         setStatus('success');
-        toast.success('Image uploaded successfully', {
+        toast.success(t('uploadSuccess'), {
           description: shouldRemoveBackground
-            ? 'Background removed and uploaded to Cloudinary'
-            : 'Uploaded to Cloudinary',
+            ? t('uploadSuccessWithBgRemoval')
+            : t('uploadSuccessNoBgRemoval'),
         });
 
         return result.secure_url;
@@ -185,13 +187,13 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
           err instanceof Error ? err.message : 'An unexpected error occurred';
         setError(errorMessage);
         setStatus('error');
-        toast.error('Upload error', {
+        toast.error(t('uploadError'), {
           description: errorMessage,
         });
         return null;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -219,10 +221,10 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
 
         // Step 1: Validate URL format
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          const errorMessage = 'Invalid URL: must start with http:// or https://';
+          const errorMessage = t('invalidUrlDescription');
           setError(errorMessage);
           setStatus('error');
-          toast.error('Invalid URL', {
+          toast.error(t('invalidUrl'), {
             description: errorMessage,
           });
           return null;
@@ -236,10 +238,10 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
         const fetchResponse = await fetch(proxyUrl);
 
         if (!fetchResponse.ok) {
-          const errorMessage = `Failed to fetch image: ${fetchResponse.status}`;
+          const errorMessage = t('imageFetchFailedDescription', { status: fetchResponse.status });
           setError(errorMessage);
           setStatus('error');
-          toast.error('Image fetch failed', {
+          toast.error(t('imageFetchFailed'), {
             description: errorMessage,
           });
           return null;
@@ -267,7 +269,7 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
                 : 'Failed to process image';
             setError(errorMessage);
             setStatus('error');
-            toast.error('Background removal failed', {
+            toast.error(t('backgroundRemovalFailed'), {
               description: errorMessage,
             });
             return null;
@@ -309,7 +311,7 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
 
           setError(errorMessage);
           setStatus('error');
-          toast.error('Upload failed', {
+          toast.error(t('uploadFailed'), {
             description: errorMessage,
           });
           return null;
@@ -320,10 +322,10 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
         // Step 5: Success
         setProgress(100);
         setStatus('success');
-        toast.success('Image uploaded successfully', {
+        toast.success(t('uploadSuccess'), {
           description: shouldRemoveBackground
-            ? 'Background removed and uploaded to Cloudinary'
-            : 'URL uploaded to Cloudinary',
+            ? t('uploadSuccessWithBgRemoval')
+            : t('urlUploadSuccess'),
         });
 
         return result.secure_url;
@@ -332,13 +334,13 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
           err instanceof Error ? err.message : 'An unexpected error occurred';
         setError(errorMessage);
         setStatus('error');
-        toast.error('Upload error', {
+        toast.error(t('uploadError'), {
           description: errorMessage,
         });
         return null;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -353,10 +355,10 @@ export function useCloudinaryUpload(): UseCloudinaryUploadReturn {
     setStatus('success');
     setProgress(100);
     setError(null);
-    toast.success('Image uploaded successfully', {
-      description: 'Image saved from Cloudinary Widget',
+    toast.success(t('uploadSuccess'), {
+      description: t('widgetSuccess'),
     });
-  }, []);
+  }, [t]);
 
   /**
    * Reset all state to idle

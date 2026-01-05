@@ -22,8 +22,8 @@ import type { CommunityTabId, CommunityNavTabsProps, CommunityTab } from '@/type
 const TABS: CommunityTab[] = [
   { id: 'board', translationKey: 'tabs.board', href: '/community', enabled: true },
   { id: 'shakedowns', translationKey: 'tabs.shakedowns', href: '/community/shakedowns', enabled: true },
-  { id: 'vip-loadouts', translationKey: 'tabs.vipLoadouts', href: '/community/vip-loadouts', enabled: true },
-  { id: 'marketplace', translationKey: 'tabs.marketplace', href: '/community/marketplace', enabled: false },
+  { id: 'vip-loadouts', translationKey: 'tabs.vipLoadouts', href: '/community/merchant-loadouts', enabled: true },
+  { id: 'marketplace', translationKey: 'tabs.marketplace', href: '/community/marketplace', enabled: true },
 ];
 
 const TAB_ICONS: Record<CommunityTabId, React.ComponentType<{ className?: string }>> = {
@@ -108,7 +108,8 @@ function detectActiveTab(pathname: string): CommunityTabId {
   if (pathWithoutLocale.startsWith('/community/shakedowns')) {
     return 'shakedowns';
   }
-  if (pathWithoutLocale.startsWith('/community/vip-loadouts')) {
+  if (pathWithoutLocale.startsWith('/community/merchant-loadouts') ||
+      pathWithoutLocale.startsWith('/community/vip-loadouts')) {
     return 'vip-loadouts';
   }
   if (pathWithoutLocale.startsWith('/community/marketplace')) {

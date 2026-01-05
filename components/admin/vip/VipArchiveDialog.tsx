@@ -48,7 +48,7 @@ export function VipArchiveDialog({
   vip,
   onSuccess,
 }: VipArchiveDialogProps) {
-  const t = useTranslations('vip.admin.archive');
+  const t = useTranslations('vip.admin');
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,11 +58,11 @@ export function VipArchiveDialog({
     setIsLoading(true);
     try {
       await archiveVip(vip.id, reason || undefined);
-      toast.success('VIP archived successfully');
+      toast.success(t('vipArchivedSuccess'));
       setReason('');
       onSuccess();
-    } catch (err) {
-      toast.error('Failed to archive VIP');
+    } catch {
+      toast.error(t('archiveVipFailed'));
     } finally {
       setIsLoading(false);
     }

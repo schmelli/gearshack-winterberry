@@ -51,7 +51,8 @@ interface UseRepliesReturn {
 }
 
 export function useReplies(): UseRepliesReturn {
-  const supabase = createClient();
+  // Memoize Supabase client to prevent useCallback recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const [replies, setReplies] = useState<BulletinReplyWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(false);

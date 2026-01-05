@@ -10,7 +10,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -33,6 +33,7 @@ interface EditLoadoutClientProps {
 export function EditLoadoutClient({ loadoutId }: EditLoadoutClientProps) {
   const locale = useLocale();
   const router = useRouter();
+  const t = useTranslations('Merchant');
 
   // Hooks for data
   const {
@@ -147,7 +148,7 @@ export function EditLoadoutClient({ loadoutId }: EditLoadoutClientProps) {
         await setAvailability(loadoutId, avail);
       }
 
-      toast.success('Changes saved');
+      toast.success(t('loadouts.changesSaved'));
       router.push(`/${locale}/merchant/loadouts`);
       return true;
     },
@@ -162,6 +163,7 @@ export function EditLoadoutClient({ loadoutId }: EditLoadoutClientProps) {
       removeAvailability,
       router,
       locale,
+      t,
     ]
   );
 

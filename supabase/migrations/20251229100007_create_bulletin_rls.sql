@@ -39,7 +39,7 @@ CREATE POLICY "bulletin_posts_insert"
     AND NOT is_user_bulletin_banned(auth.uid())
   );
 
--- Authors can update their own posts within edit window
+-- Authors can update their own posts anytime
 CREATE POLICY "bulletin_posts_update_own"
   ON bulletin_posts
   FOR UPDATE
@@ -47,13 +47,6 @@ CREATE POLICY "bulletin_posts_update_own"
   USING (author_id = auth.uid())
   WITH CHECK (
     author_id = auth.uid()
-    AND (
-      -- Allow setting is_deleted (soft delete, always allowed)
-      is_deleted = true
-      OR
-      -- Allow content/tag updates within 15-min window
-      created_at > now() - INTERVAL '15 minutes'
-    )
   );
 
 -- ============================================================================
@@ -119,4 +112,4 @@ CREATE POLICY "bulletin_bans_read_own"
 COMMENT ON POLICY "bulletin_posts_read_active" ON bulletin_posts IS 'Read active posts for feed';
 COMMENT ON POLICY "bulletin_posts_read_by_id" ON bulletin_posts IS 'Read any non-deleted post by ID (for direct links)';
 COMMENT ON POLICY "bulletin_posts_insert" ON bulletin_posts IS 'Create posts if not banned';
-COMMENT ON POLICY "bulletin_posts_update_own" ON bulletin_posts IS 'Edit own posts within 15-min window or soft-delete';
+COMMENT ON POLICY "bulletin_posts_update_own" ON bulletin_posts IS 'Edit own posts anytime';

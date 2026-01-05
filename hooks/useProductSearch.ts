@@ -18,6 +18,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import { searchGearImages } from '@/app/actions/image-search';
 import type { ImageSearchResult } from '@/app/actions/image-search';
@@ -80,6 +81,8 @@ export interface UseProductSearchReturn {
  * @returns Complete search state and actions
  */
 export function useProductSearch(): UseProductSearchReturn {
+  const t = useTranslations('ProductSearch');
+
   // State management
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ImageSearchResult[]>([]);
@@ -102,7 +105,7 @@ export function useProductSearch(): UseProductSearchReturn {
     // Edge Case 1: Empty query validation
     const trimmedQuery = searchQuery.trim();
     if (!trimmedQuery) {
-      toast.error('Please enter a search term');
+      toast.error(t('enterSearchTerm'));
       return;
     }
 
@@ -122,7 +125,7 @@ export function useProductSearch(): UseProductSearchReturn {
 
       // Edge Case 2: No results found (informational, not an error)
       if (searchResults.length === 0) {
-        toast.info(`No images found for "${trimmedQuery}". Try different search terms.`);
+        toast.info(t('noResults', { query: trimmedQuery }));
       }
     } catch (err) {
       // Edge Case 3 & 4: API failure and network errors
@@ -133,7 +136,7 @@ export function useProductSearch(): UseProductSearchReturn {
       toast.error(errorMessage);
       console.error('[ProductSearch] Search execution failed:', err);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Execute search with current query (with 300ms debounce)
@@ -147,7 +150,7 @@ export function useProductSearch(): UseProductSearchReturn {
 
     const trimmedQuery = query.trim();
     if (!trimmedQuery) {
-      toast.error('Please enter a search term');
+      toast.error(t('enterSearchTerm'));
       return;
     }
 
@@ -155,7 +158,7 @@ export function useProductSearch(): UseProductSearchReturn {
     debounceTimerRef.current = setTimeout(() => {
       executeSearch(trimmedQuery);
     }, 300);
-  }, [query, executeSearch]);
+  }, [query, executeSearch, t]);
 
   /**
    * Execute search with a specific query (no debounce)

@@ -197,16 +197,28 @@ export interface WeightSummary {
 
 /**
  * Calculate a weight summary with all values in grams
+ *
+ * @param totalGrams - Total weight in grams
+ * @param wornGrams - Weight of worn items in grams
+ * @param consumableGrams - Weight of consumable items in grams
+ * @param quantity - Quantity multiplier (default: 1) - Feature 013: Gear Quantity Tracking
+ * @returns Weight summary with all values adjusted by quantity
  */
 export function calculateWeightSummary(
   totalGrams: number,
   wornGrams: number,
-  consumableGrams: number
+  consumableGrams: number,
+  quantity: number = 1
 ): WeightSummary {
+  // Multiply all weights by quantity
+  const adjustedTotal = totalGrams * quantity;
+  const adjustedWorn = wornGrams * quantity;
+  const adjustedConsumable = consumableGrams * quantity;
+
   return {
-    totalWeight: totalGrams,
-    baseWeight: totalGrams - wornGrams - consumableGrams,
-    wornWeight: wornGrams,
-    consumableWeight: consumableGrams,
+    totalWeight: adjustedTotal,
+    baseWeight: adjustedTotal - adjustedWorn - adjustedConsumable,
+    wornWeight: adjustedWorn,
+    consumableWeight: adjustedConsumable,
   };
 }
