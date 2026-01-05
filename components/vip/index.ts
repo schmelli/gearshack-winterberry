@@ -37,3 +37,7 @@ export { SavedVipLoadoutsSection } from './SavedVipLoadoutsSection';
 
 // Claim Components
 export { VipClaimContent } from './VipClaimContent';
+
+// Modal Components
+export { VipProfileModal } from './VipProfileModal';
+export { VipFeaturedVideos } from './VipFeaturedVideos';

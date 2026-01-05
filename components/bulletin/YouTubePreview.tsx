@@ -88,7 +88,7 @@ export function YouTubePreview({ videoId, url }: YouTubePreviewProps) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow max-h-[300px]">
       <a href={url} target="_blank" rel="noopener noreferrer" className="block">
         <AspectRatio ratio={16 / 9} className="relative bg-muted">
           <img

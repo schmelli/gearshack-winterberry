@@ -14,6 +14,7 @@
 'use client';
 
 import { AnnouncementsBanner } from '@/components/community/AnnouncementsBanner';
+import { BannerCarousel } from '@/components/community/BannerCarousel';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
 import type { CommunityHubProps } from '@/types/community';
 
@@ -27,8 +28,13 @@ export function CommunityHub({
 }: CommunityHubLayoutProps) {
   return (
     <>
-      {/* Announcements Banner */}
+      {/* Banner Carousel */}
       <div className="container mx-auto px-4 pt-4">
+        <BannerCarousel />
+      </div>
+
+      {/* Announcements Banner */}
+      <div className="container mx-auto px-4 pt-2">
         <AnnouncementsBanner announcements={initialAnnouncements} />
       </div>
 

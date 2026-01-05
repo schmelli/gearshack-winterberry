@@ -23,7 +23,7 @@ const TABS: CommunityTab[] = [
   { id: 'board', translationKey: 'tabs.board', href: '/community', enabled: true },
   { id: 'shakedowns', translationKey: 'tabs.shakedowns', href: '/community/shakedowns', enabled: true },
   { id: 'vip-loadouts', translationKey: 'tabs.vipLoadouts', href: '/community/merchant-loadouts', enabled: true },
-  { id: 'marketplace', translationKey: 'tabs.marketplace', href: '/community/marketplace', enabled: false },
+  { id: 'marketplace', translationKey: 'tabs.marketplace', href: '/community/marketplace', enabled: true },
 ];
 
 const TAB_ICONS: Record<CommunityTabId, React.ComponentType<{ className?: string }>> = {

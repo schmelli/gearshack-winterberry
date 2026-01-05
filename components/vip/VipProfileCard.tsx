@@ -8,14 +8,15 @@
  *
  * Card component for displaying VIP in lists/grids.
  * Shows avatar, name, bio preview, follower count, and loadout count.
+ * Clicking opens VIP profile modal instead of navigating to page.
  */
 
-import Link from 'next/link';
 import Image from 'next/image';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Users, Backpack, BadgeCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useVipModal } from '@/hooks/vip/useVipModal';
 import type { VipWithStats } from '@/types/vip';
 
 // =============================================================================
@@ -32,14 +33,26 @@ interface VipProfileCardProps {
 // =============================================================================
 
 export function VipProfileCard({ vip, showBadge = true }: VipProfileCardProps) {
-  const locale = useLocale();
   const t = useTranslations('vip');
+  const { open: openVipModal } = useVipModal();
 
-  const profileUrl = `/${locale}/vip/${vip.slug}`;
+  const handleClick = () => {
+    openVipModal(vip.slug);
+  };
 
   return (
-    <Link href={profileUrl}>
-      <Card className="group h-full cursor-pointer transition-all hover:shadow-lg hover:border-primary/50">
+    <Card
+      className="group h-full cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+    >
         <CardContent className="p-4">
           {/* Avatar and Name Row */}
           <div className="flex items-start gap-3">
@@ -93,8 +106,7 @@ export function VipProfileCard({ vip, showBadge = true }: VipProfileCardProps) {
             </div>
           )}
         </CardContent>
-      </Card>
-    </Link>
+    </Card>
   );
 }
 

@@ -26,3 +26,6 @@ export { useUserBookmarks } from './useUserBookmarks';
 
 // Admin Hooks
 export { useAdminVips } from './useAdminVips';
+
+// Modal State
+export { useVipModal } from './useVipModal';

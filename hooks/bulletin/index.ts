@@ -6,6 +6,7 @@
  */
 
 export { useBulletinBoard } from './useBulletinBoard';
+export { useBulletinFilters } from './useBulletinFilters';
 export { usePosts, isPostError } from './usePosts';
 export { useReplies } from './useReplies';
 export { useModerationReports } from './useModerationReports';

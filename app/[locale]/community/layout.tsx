@@ -13,6 +13,7 @@
  */
 
 import { CommunityNavTabs } from '@/components/community/CommunityNavTabs';
+import { VipProfileModal } from '@/components/vip/VipProfileModal';
 
 interface CommunityLayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,9 @@ export default function CommunityLayout({ children }: CommunityLayoutProps) {
 
       {/* Page Content */}
       {children}
+
+      {/* VIP Profile Modal - rendered globally for community pages */}
+      <VipProfileModal />
     </div>
   );
 }

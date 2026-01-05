@@ -240,6 +240,8 @@ export interface CategoryBreakdown {
  */
 export interface VipProfile extends VipWithStats {
   loadouts: VipLoadoutSummary[];
+  /** Featured video URLs (YouTube/Vimeo) for VIP profile */
+  featuredVideoUrls?: string[];
 }
 
 // =============================================================================

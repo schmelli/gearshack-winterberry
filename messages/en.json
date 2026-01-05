@@ -1551,6 +1551,11 @@
       "someSkipped": "{count} items were already in your wishlist",
       "someErrors": "Some items could not be added"
     },
+    "tabs": {
+      "vipLoadouts": "VIP Loadouts",
+      "resellerLoadouts": "Reseller Loadouts",
+      "soon": "Soon"
+    },
     "wizard": {
       "createTitle": "Create New Loadout",
       "editTitle": "Edit Loadout",
@@ -2218,6 +2223,26 @@
       "createLoadout": "Create Loadout",
       "addedToWishlist": "Added \"{itemName}\" to wishlist",
       "compareFailed": "Failed to compare loadouts. Please try again."
+    },
+    "profile": {
+      "title": "VIP Profile",
+      "curatedBanner": "{name}'s profile is maintained by the GearShack community",
+      "verifiedBadge": "Verified",
+      "followers": "{count, plural, one {follower} other {followers}}",
+      "loadouts": "{count, plural, one {loadout} other {loadouts}}",
+      "socialLinks": "Social Links",
+      "errorTitle": "Failed to load profile",
+      "notFound": "Profile not found",
+      "following": "Following",
+      "follow": "Follow",
+      "loadoutsTitle": "Loadouts",
+      "noLoadouts": "No loadouts available",
+      "featuredVideos": "Featured Videos"
+    },
+    "common": {
+      "retry": "Try Again",
+      "following": "Following",
+      "follow": "Follow"
     }
   },
   "Wishlist": {
