@@ -462,6 +462,19 @@
     "noOptions": "No options available",
     "weightLabel": "Weight",
     "weightPlaceholder": "Enter weight",
+    "weightSpecsTitle": "Weight & Specifications",
+    "weightDescription": "Weight is stored in grams internally for consistency.",
+    "weightUnits": {
+      "grams": "Grams (g)",
+      "ounces": "Ounces (oz)",
+      "pounds": "Pounds (lb)"
+    },
+    "dimensions": {
+      "title": "Dimensions (cm)",
+      "length": "Length",
+      "width": "Width",
+      "height": "Height"
+    },
     "priceLabel": "Price",
     "pricePlaceholder": "Enter price",
     "quantityLabel": "Quantity",
@@ -1028,6 +1041,17 @@
       "created": "Created",
       "reviewed": "Reviewed",
       "helpful": "Helpful"
+    },
+    "weightUnit": {
+      "title": "Weight Unit Preference",
+      "description": "Choose your preferred unit for displaying weight across the app",
+      "grams": "Grams",
+      "ounces": "Ounces",
+      "pounds": "Pounds",
+      "gramsAbbr": "g",
+      "ouncesAbbr": "oz",
+      "poundsAbbr": "lb",
+      "successMessage": "Weight unit preference updated"
     },
     "edit": {
       "displayNameLabel": "Display Name",

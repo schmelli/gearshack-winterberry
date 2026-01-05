@@ -14,7 +14,7 @@
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { formatWeight } from '@/lib/loadout-utils';
+import { WeightDisplay } from '@/components/ui/weight-display';
 import type { GearItem } from '@/types/gear';
 import type { LoadoutItemState } from '@/types/loadout';
 
@@ -90,7 +90,7 @@ export function WeightSummaryTable({
           <tr className="border-b">
             <td className="px-4 py-2.5 font-medium">{t('weightSummary.total')}</td>
             <td className="px-4 py-2.5 text-right tabular-nums">
-              {formatWeight(weightSummary.totalWeight)}
+              <WeightDisplay value={weightSummary.totalWeight} showToggle />
             </td>
           </tr>
 
@@ -98,7 +98,7 @@ export function WeightSummaryTable({
           <tr className="border-b bg-muted/30">
             <td className="px-4 py-2 text-muted-foreground">{t('weightSummary.worn')}</td>
             <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
-              − {formatWeight(weightSummary.wornWeight)}
+              − <WeightDisplay value={weightSummary.wornWeight} />
             </td>
           </tr>
 
@@ -106,7 +106,7 @@ export function WeightSummaryTable({
           <tr className="border-b bg-muted/30">
             <td className="px-4 py-2 text-muted-foreground">{t('weightSummary.consumable')}</td>
             <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
-              − {formatWeight(weightSummary.consumableWeight)}
+              − <WeightDisplay value={weightSummary.consumableWeight} />
             </td>
           </tr>
 
@@ -114,7 +114,7 @@ export function WeightSummaryTable({
           <tr className="bg-primary/5">
             <td className="px-4 py-2.5 font-semibold text-primary">{t('weightSummary.baseWeight')}</td>
             <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-primary">
-              {formatWeight(weightSummary.baseWeight)}
+              <WeightDisplay value={weightSummary.baseWeight} showToggle />
             </td>
           </tr>
         </tbody>

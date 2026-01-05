@@ -15,11 +15,11 @@ import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeleteLoadoutDialog } from '@/components/loadouts/DeleteLoadoutDialog';
 import { useStore } from '@/hooks/useSupabaseStore';
+import { WeightDisplay } from '@/components/ui/weight-display';
 import type { Loadout } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import {
   calculateTotalWeight,
-  formatWeight,
   formatTripDate,
   getWeightCategory,
   getWeightCategoryColor,
@@ -94,7 +94,7 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
                 {/* Total Weight */}
                 <div className={cn('flex items-center gap-2 text-sm font-medium', weightColorClass)}>
                   <Scale className="h-4 w-4" />
-                  <span>{formatWeight(totalWeight)}</span>
+                  <WeightDisplay value={totalWeight} showToggle />
                 </div>
               </div>
             </div>
