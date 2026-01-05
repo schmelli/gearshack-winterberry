@@ -706,8 +706,16 @@
     }
   },
   "Shakedown": {
+    "shareLoadoutTitle": "Packliste teilen",
+    "shareLoadoutDescription": "Erstelle einen Link, um diese Packliste mit anderen zu teilen. Sie können deine Ausrüstung ansehen, aber nicht ändern.",
+    "getShareLink": "Link erstellen",
+    "generateNewLink": "Neuen Link erstellen",
+    "share": "Teilen",
+    "shareOn": "Teilen auf:",
     "linkCopied": "Link kopiert",
     "copyFailed": "Kopieren fehlgeschlagen",
+    "copyShareLink": "Link kopieren",
+    "generating": "Wird erstellt...",
     "createdAgo": "Erstellt {time}",
     "expired": "Abgelaufen",
     "views": "Aufrufe",

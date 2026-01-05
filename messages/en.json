@@ -706,8 +706,16 @@
     }
   },
   "Shakedown": {
+    "shareLoadoutTitle": "Share Loadout",
+    "shareLoadoutDescription": "Generate a link to share this loadout with others. They can view your gear list but cannot modify it.",
+    "getShareLink": "Get Share Link",
+    "generateNewLink": "Generate New Link",
+    "share": "Share",
+    "shareOn": "Share on:",
     "linkCopied": "Link copied",
     "copyFailed": "Failed to copy",
+    "copyShareLink": "Copy share link",
+    "generating": "Generating...",
     "createdAgo": "Created {time}",
     "expired": "Expired",
     "views": "Views",
