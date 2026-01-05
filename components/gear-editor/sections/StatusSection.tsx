@@ -19,6 +19,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { Heart, DollarSign, HandHelping, ArrowLeftRight } from 'lucide-react';
 import {
   FormField,
@@ -47,6 +48,7 @@ import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 
 export function StatusSection() {
   const form = useFormContext<GearItemFormData>();
+  const t = useTranslations('GearEditor');
 
   const conditions: GearCondition[] = ['new', 'used', 'worn'];
   const statuses: GearStatus[] = ['own', 'wishlist', 'sold', 'lent', 'retired'];
@@ -116,24 +118,24 @@ export function StatusSection() {
         />
       </div>
 
-      {/* Quantity */}
+      {/* Quantity - Feature 013 */}
       <FormField
         control={form.control}
         name="quantity"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Quantity</FormLabel>
+            <FormLabel>{t('quantityLabel')}</FormLabel>
             <FormControl>
               <Input
                 type="number"
                 min="1"
                 step="1"
-                placeholder="1"
+                placeholder={t('quantityPlaceholder')}
                 {...field}
               />
             </FormControl>
             <FormDescription>
-              How many of this item do you own? (default: 1)
+              {t('quantityDescription')}
             </FormDescription>
             <FormMessage />
           </FormItem>

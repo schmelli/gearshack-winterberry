@@ -111,10 +111,10 @@ export function useLoadoutItemState(loadoutId: string): UseLoadoutItemStateRetur
       const isInLoadout = loadout?.itemIds.includes(itemId) ?? false;
 
       if (isInLoadout) {
-        // Item already in loadout - current system doesn't support quantity increment
-        // Show error that all available quantity is already in use
-        toast.error(t('quantityExceeded'), {
-          description: t('quantityExceededDescription', { available: gearItem.quantity }),
+        // Item already in loadout - current system doesn't support adding the same item twice
+        // Show clear error message about this limitation
+        toast.error(t('itemAlreadyInLoadout'), {
+          description: t('itemAlreadyInLoadoutDescription'),
         });
         return false;
       }

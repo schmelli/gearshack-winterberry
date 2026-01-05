@@ -312,12 +312,18 @@
     "weightPlaceholder": "Gewicht eingeben",
     "priceLabel": "Preis",
     "pricePlaceholder": "Preis eingeben",
+    "quantityLabel": "Menge",
+    "quantityPlaceholder": "Menge eingeben",
+    "quantityDescription": "Wie viele dieses Gegenstands besitzt du?",
     "descriptionLabel": "Beschreibung",
     "descriptionPlaceholder": "Notizen zu diesem Gegenstand hinzufügen...",
     "validation": {
       "nameRequired": "Name ist erforderlich",
       "weightInvalid": "Bitte gib ein gültiges Gewicht ein",
-      "priceInvalid": "Bitte gib einen gültigen Preis ein"
+      "priceInvalid": "Bitte gib einen gültigen Preis ein",
+      "quantityRequired": "Menge ist erforderlich",
+      "quantityMin": "Menge muss mindestens 1 sein",
+      "quantityInvalid": "Bitte gib eine gültige Menge ein"
     },
     "saveItem": "Speichern",
     "saveChanges": "Änderungen speichern",
@@ -406,7 +412,14 @@
       "removeItemFailed": "Gegenstand konnte nicht aus der Packliste entfernt werden",
       "updateMetadataFailed": "Packlisten-Metadaten konnten nicht aktualisiert werden",
       "updateWornStateFailed": "Getragen-Status konnte nicht aktualisiert werden",
-      "updateConsumableStateFailed": "Verbrauchsgut-Status konnte nicht aktualisiert werden"
+      "updateConsumableStateFailed": "Verbrauchsgut-Status konnte nicht aktualisiert werden",
+      "itemNotFound": "Gegenstand nicht im Inventar gefunden",
+      "quantityExceeded": "Keine weiteren Gegenstände hinzufügbar",
+      "quantityExceededDescription": "Dieser Gegenstand ist bereits in der Packliste. Nur {available} im Inventar verfügbar.",
+      "itemAlreadyInLoadout": "Gegenstand bereits in Packliste",
+      "itemAlreadyInLoadoutDescription": "Dieser Gegenstand ist bereits Teil dieser Packliste. Jeder Gegenstand kann nur einmal hinzugefügt werden.",
+      "noQuantityAvailable": "Keine Gegenstände verfügbar",
+      "noQuantityAvailableDescription": "Dieser Gegenstand hat keine verfügbare Menge im Inventar."
     },
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "exportOptions": "Export-Optionen",

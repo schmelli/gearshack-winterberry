@@ -316,6 +316,7 @@
     "pricePlaceholder": "Enter price",
     "quantityLabel": "Quantity",
     "quantityPlaceholder": "Enter quantity",
+    "quantityDescription": "How many of this item do you own?",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Add notes about this item...",
     "validation": {
@@ -420,6 +421,8 @@
       "itemNotFound": "Item not found in inventory",
       "quantityExceeded": "Cannot add more items",
       "quantityExceededDescription": "This item is already in the loadout. Only {available} available in inventory.",
+      "itemAlreadyInLoadout": "Item already in loadout",
+      "itemAlreadyInLoadoutDescription": "This item is already part of this loadout. Each item can only be added once.",
       "noQuantityAvailable": "No items available",
       "noQuantityAvailableDescription": "This item has no available quantity in inventory."
     },

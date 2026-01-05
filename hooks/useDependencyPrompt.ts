@@ -52,6 +52,14 @@ export interface UseDependencyPromptOptions {
   currentLoadoutItemIds: string[];
   /** All available gear items (for dependency resolution) */
   allItems: GearItem[];
+  /**
+   * Optional validation function to check if an item can be added
+   * Feature: 013-gear-quantity-tracking
+   * Used to validate quantity availability before adding items
+   * @param itemId - ID of the item to validate
+   * @returns true if item can be added, false otherwise
+   */
+  canAddItem?: (itemId: string) => boolean;
 }
 
 /**
@@ -93,7 +101,7 @@ export interface UseDependencyPromptReturn {
 export function useDependencyPrompt(
   options: UseDependencyPromptOptions
 ): UseDependencyPromptReturn {
-  const { loadoutId, addItemToLoadout, currentLoadoutItemIds, allItems } =
+  const { loadoutId, addItemToLoadout, currentLoadoutItemIds, allItems, canAddItem } =
     options;
 
   // Create items map for efficient lookup
@@ -202,17 +210,39 @@ export function useDependencyPrompt(
   }, []);
 
   /**
+   * Helper to safely add an item with quantity validation
+   * Feature: 013-gear-quantity-tracking
+   */
+  const safeAddItem = useCallback(
+    (itemId: string): boolean => {
+      // If canAddItem is provided, validate first
+      if (canAddItem && !canAddItem(itemId)) {
+        return false;
+      }
+      addItemToLoadout(loadoutId, itemId);
+      return true;
+    },
+    [canAddItem, addItemToLoadout, loadoutId]
+  );
+
+  /**
    * Add all pending dependencies to the loadout and close modal
    */
   const onAddAll = useCallback(() => {
     if (!triggeringItem) return;
 
-    // Add the triggering item first
-    addItemToLoadout(loadoutId, triggeringItem.id);
+    // Add the triggering item first (with validation)
+    if (!safeAddItem(triggeringItem.id)) {
+      closeModal();
+      return;
+    }
 
-    // Add all dependencies
+    // Add all dependencies (with validation)
+    let addedCount = 0;
     for (const dep of pendingDependencies) {
-      addItemToLoadout(loadoutId, dep.item.id);
+      if (safeAddItem(dep.item.id)) {
+        addedCount++;
+      }
     }
 
     // Calculate total weight of added items
@@ -224,7 +254,7 @@ export function useDependencyPrompt(
       );
 
     toast.success(
-      `Added ${triggeringItem.name} + ${pendingDependencies.length} accessories`,
+      `Added ${triggeringItem.name} + ${addedCount} accessories`,
       {
         description: totalWeight > 0 ? formatWeightForDisplay(totalWeight) : undefined,
       }
@@ -234,8 +264,7 @@ export function useDependencyPrompt(
   }, [
     triggeringItem,
     pendingDependencies,
-    loadoutId,
-    addItemToLoadout,
+    safeAddItem,
     closeModal,
   ]);
 
@@ -245,13 +274,19 @@ export function useDependencyPrompt(
   const onAddSelected = useCallback(() => {
     if (!triggeringItem) return;
 
-    // Add the triggering item first
-    addItemToLoadout(loadoutId, triggeringItem.id);
+    // Add the triggering item first (with validation)
+    if (!safeAddItem(triggeringItem.id)) {
+      closeModal();
+      return;
+    }
 
-    // Add selected dependencies only
+    // Add selected dependencies only (with validation)
     const selectedDeps = pendingDependencies.filter((d) => d.isSelected);
+    let addedCount = 0;
     for (const dep of selectedDeps) {
-      addItemToLoadout(loadoutId, dep.item.id);
+      if (safeAddItem(dep.item.id)) {
+        addedCount++;
+      }
     }
 
     // Calculate total weight of added items
@@ -259,9 +294,9 @@ export function useDependencyPrompt(
       (triggeringItem.weightGrams ?? 0) +
       selectedDeps.reduce((sum, dep) => sum + (dep.item.weightGrams ?? 0), 0);
 
-    if (selectedDeps.length > 0) {
+    if (addedCount > 0) {
       toast.success(
-        `Added ${triggeringItem.name} + ${selectedDeps.length} selected`,
+        `Added ${triggeringItem.name} + ${addedCount} selected`,
         {
           description: totalWeight > 0 ? formatWeightForDisplay(totalWeight) : undefined,
         }
@@ -279,8 +314,7 @@ export function useDependencyPrompt(
   }, [
     triggeringItem,
     pendingDependencies,
-    loadoutId,
-    addItemToLoadout,
+    safeAddItem,
     closeModal,
   ]);
 
@@ -290,8 +324,11 @@ export function useDependencyPrompt(
   const onSkip = useCallback(() => {
     if (!triggeringItem) return;
 
-    // Add only the triggering item
-    addItemToLoadout(loadoutId, triggeringItem.id);
+    // Add only the triggering item (with validation)
+    if (!safeAddItem(triggeringItem.id)) {
+      closeModal();
+      return;
+    }
 
     toast.success(`Added ${triggeringItem.name}`, {
       description: triggeringItem.weightGrams
@@ -300,7 +337,7 @@ export function useDependencyPrompt(
     });
 
     closeModal();
-  }, [triggeringItem, loadoutId, addItemToLoadout, closeModal]);
+  }, [triggeringItem, safeAddItem, closeModal]);
 
   /**
    * Cancel the operation entirely (don't add anything)
