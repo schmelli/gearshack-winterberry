@@ -14,6 +14,7 @@
 'use client';
 
 import { ChevronRight, Shield } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Card,
   CardContent,
@@ -36,6 +37,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences';
 import type { WeightUnit } from '@/types/gear';
 
 function SettingsContent() {
+  const t = useTranslations('Settings');
   const { user } = useAuth();
   const { preferredWeightUnit, setPreferredWeightUnit } = useUserPreferences(user?.id ?? null);
 
@@ -45,16 +47,16 @@ function SettingsContent() {
 
   return (
     <main className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
       <p className="mt-1 text-muted-foreground">
-        Manage your account settings and preferences.
+        {t('description')}
       </p>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
+          <CardTitle>{t('appearance.title')}</CardTitle>
           <CardDescription>
-            Customize how Gearshack looks on your device.
+            {t('appearance.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -64,15 +66,15 @@ function SettingsContent() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Units</CardTitle>
+          <CardTitle>{t('units.title')}</CardTitle>
           <CardDescription>
-            Choose your preferred units for weight measurements.
+            {t('units.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             <label htmlFor="weight-unit" className="text-sm font-medium">
-              Weight Unit
+              {t('units.weightUnitLabel')}
             </label>
             <Select
               value={preferredWeightUnit}
@@ -82,9 +84,9 @@ function SettingsContent() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="g">Grams (g)</SelectItem>
-                <SelectItem value="oz">Ounces (oz)</SelectItem>
-                <SelectItem value="lb">Pounds (lb)</SelectItem>
+                <SelectItem value="g">{t('units.grams')}</SelectItem>
+                <SelectItem value="oz">{t('units.ounces')}</SelectItem>
+                <SelectItem value="lb">{t('units.pounds')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -100,9 +102,9 @@ function SettingsContent() {
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Privacy</CardTitle>
+                  <CardTitle className="text-base">{t('privacy.title')}</CardTitle>
                   <CardDescription>
-                    Control who can contact you and see your activity
+                    {t('privacy.description')}
                   </CardDescription>
                 </div>
               </div>

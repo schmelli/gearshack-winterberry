@@ -55,6 +55,8 @@ export interface WeightInputProps {
   'aria-label'?: string;
   /** ARIA invalid state */
   'aria-invalid'?: boolean;
+  /** i18n labels for weight units (falls back to WEIGHT_UNIT_LABELS if not provided) */
+  labels?: Record<WeightUnit, string>;
 }
 
 // =============================================================================
@@ -100,9 +102,12 @@ export const WeightInput = React.forwardRef<HTMLInputElement, WeightInputProps>(
       selectClassName,
       'aria-label': ariaLabel,
       'aria-invalid': ariaInvalid,
+      labels,
     },
     ref
   ) => {
+    // Use provided labels or fall back to default English labels
+    const unitLabels = labels ?? WEIGHT_UNIT_LABELS;
     return (
       <div className={cn('flex items-center gap-2', className)} data-slot="weight-input">
         {/* Weight Value Input */}
@@ -134,7 +139,7 @@ export const WeightInput = React.forwardRef<HTMLInputElement, WeightInputProps>(
           <SelectContent>
             {WEIGHT_UNITS.map((weightUnit) => (
               <SelectItem key={weightUnit} value={weightUnit}>
-                {WEIGHT_UNIT_LABELS[weightUnit]}
+                {unitLabels[weightUnit]}
               </SelectItem>
             ))}
           </SelectContent>

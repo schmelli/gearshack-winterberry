@@ -56,7 +56,10 @@ export function useUserPreferences(userId: string | null): UseUserPreferencesRet
   const { profile, isLoading, error, updateProfile, refreshProfile } = useSupabaseProfile(userId);
 
   // Extract preferred weight unit from profile (default to 'g')
-  const preferredWeightUnit: WeightUnit = profile?.preferred_weight_unit as WeightUnit ?? 'g';
+  // Note: preferred_weight_unit column may not exist in all database schemas
+  // Using type assertion to handle potential schema differences
+  const profileData = profile as Record<string, unknown> | null;
+  const preferredWeightUnit: WeightUnit = (profileData?.preferred_weight_unit as WeightUnit) ?? 'g';
 
   // Update preferred weight unit in Supabase
   const setPreferredWeightUnit = useCallback(
@@ -71,9 +74,11 @@ export function useUserPreferences(userId: string | null): UseUserPreferencesRet
       }
 
       // Update profile with new weight unit preference
+      // Note: preferred_weight_unit column may not exist in all database schemas
+      // Using type assertion to handle potential schema differences
       const result = await updateProfile({
         preferred_weight_unit: unit,
-      });
+      } as unknown as Parameters<typeof updateProfile>[0]);
 
       return result;
     },

@@ -13,6 +13,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -23,18 +24,26 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { WeightInput } from '@/components/ui/weight-input';
-import type { GearItemFormData } from '@/types/gear';
+import type { GearItemFormData, WeightUnit } from '@/types/gear';
 
 // =============================================================================
 // Component
 // =============================================================================
 
 export function WeightSpecsSection() {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
+
+  // Build translated weight unit labels for WeightInput
+  const weightUnitLabels: Record<WeightUnit, string> = {
+    g: t('weightUnits.grams'),
+    oz: t('weightUnits.ounces'),
+    lb: t('weightUnits.pounds'),
+  };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Weight & Specifications</h3>
+      <h3 className="text-lg font-medium">{t('weightSpecsTitle')}</h3>
 
       {/* Weight with Unit - Using WeightInput compound component */}
       <FormField
@@ -46,7 +55,7 @@ export function WeightSpecsSection() {
             name="weightDisplayUnit"
             render={({ field: unitField }) => (
               <FormItem>
-                <FormLabel>Weight</FormLabel>
+                <FormLabel>{t('weightLabel')}</FormLabel>
                 <FormControl>
                   <WeightInput
                     value={valueField.value}
@@ -56,11 +65,12 @@ export function WeightSpecsSection() {
                     onBlur={valueField.onBlur}
                     name={valueField.name}
                     aria-invalid={!!form.formState.errors.weightValue}
+                    labels={weightUnitLabels}
                   />
                 </FormControl>
                 <FormMessage />
                 <FormDescription>
-                  Weight is stored in grams internally for consistency.
+                  {t('weightDescription')}
                 </FormDescription>
               </FormItem>
             )}
@@ -70,7 +80,7 @@ export function WeightSpecsSection() {
 
       {/* Dimensions */}
       <div className="space-y-2">
-        <FormLabel className="text-base">Dimensions (cm)</FormLabel>
+        <FormLabel className="text-base">{t('dimensions.title')}</FormLabel>
         <div className="grid grid-cols-3 gap-4">
           {/* Length */}
           <FormField
@@ -79,7 +89,7 @@ export function WeightSpecsSection() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm text-muted-foreground">
-                  Length
+                  {t('dimensions.length')}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -102,7 +112,7 @@ export function WeightSpecsSection() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm text-muted-foreground">
-                  Width
+                  {t('dimensions.width')}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -125,7 +135,7 @@ export function WeightSpecsSection() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm text-muted-foreground">
-                  Height
+                  {t('dimensions.height')}
                 </FormLabel>
                 <FormControl>
                   <Input

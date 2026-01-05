@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useWeightConversion } from "@/hooks/useWeightConversion"
+import { useAuth } from "@/hooks/useAuth"
 import type { WeightUnit } from "@/types/gear"
 
 // =============================================================================
@@ -52,7 +53,8 @@ export function WeightDisplay({
   showToggle = false,
   className,
 }: WeightDisplayProps) {
-  const { preferredUnit, formatForDisplay } = useWeightConversion(null)
+  const { user } = useAuth()
+  const { preferredUnit, formatForDisplay } = useWeightConversion(user?.id ?? null)
 
   // Local state for current display unit (resets to preference on reload)
   const [displayUnit, setDisplayUnit] = React.useState<WeightUnit>(preferredUnit)

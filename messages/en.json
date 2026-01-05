@@ -311,6 +311,19 @@
     "noOptions": "No options available",
     "weightLabel": "Weight",
     "weightPlaceholder": "Enter weight",
+    "weightSpecsTitle": "Weight & Specifications",
+    "weightDescription": "Weight is stored in grams internally for consistency.",
+    "weightUnits": {
+      "grams": "Grams (g)",
+      "ounces": "Ounces (oz)",
+      "pounds": "Pounds (lb)"
+    },
+    "dimensions": {
+      "title": "Dimensions (cm)",
+      "length": "Length",
+      "width": "Width",
+      "height": "Height"
+    },
     "priceLabel": "Price",
     "pricePlaceholder": "Enter price",
     "descriptionLabel": "Description",
@@ -729,6 +742,26 @@
       "ouncesAbbr": "oz",
       "poundsAbbr": "lb",
       "successMessage": "Weight unit preference updated"
+    }
+  },
+  "Settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences.",
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how Gearshack looks on your device."
+    },
+    "units": {
+      "title": "Units",
+      "description": "Choose your preferred units for weight measurements.",
+      "weightUnitLabel": "Weight Unit",
+      "grams": "Grams (g)",
+      "ounces": "Ounces (oz)",
+      "pounds": "Pounds (lb)"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "description": "Control who can contact you and see your activity"
     }
   },
   "SmartSearch": {

@@ -310,6 +310,19 @@
     "noOptions": "Keine Optionen verfügbar",
     "weightLabel": "Gewicht",
     "weightPlaceholder": "Gewicht eingeben",
+    "weightSpecsTitle": "Gewicht & Spezifikationen",
+    "weightDescription": "Gewicht wird intern in Gramm gespeichert für Konsistenz.",
+    "weightUnits": {
+      "grams": "Gramm (g)",
+      "ounces": "Unzen (oz)",
+      "pounds": "Pfund (lb)"
+    },
+    "dimensions": {
+      "title": "Maße (cm)",
+      "length": "Länge",
+      "width": "Breite",
+      "height": "Höhe"
+    },
     "priceLabel": "Preis",
     "pricePlaceholder": "Preis eingeben",
     "descriptionLabel": "Beschreibung",
@@ -719,6 +732,26 @@
       "ouncesAbbr": "oz",
       "poundsAbbr": "lb",
       "successMessage": "Gewichtseinheit-Präferenz aktualisiert"
+    }
+  },
+  "Settings": {
+    "title": "Einstellungen",
+    "description": "Verwalte deine Kontoeinstellungen und Präferenzen.",
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "description": "Passe an, wie Gearshack auf deinem Gerät aussieht."
+    },
+    "units": {
+      "title": "Einheiten",
+      "description": "Wähle deine bevorzugten Einheiten für Gewichtsmessungen.",
+      "weightUnitLabel": "Gewichtseinheit",
+      "grams": "Gramm (g)",
+      "ounces": "Unzen (oz)",
+      "pounds": "Pfund (lb)"
+    },
+    "privacy": {
+      "title": "Privatsphäre",
+      "description": "Kontrolliere, wer dich kontaktieren und deine Aktivitäten sehen kann"
     }
   },
   "SmartSearch": {
