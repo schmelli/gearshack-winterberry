@@ -852,7 +852,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       conversation_memory: {
@@ -1058,6 +1058,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversions_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
@@ -1093,6 +1100,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          expires_at: string
+          fetched_at: string
+          id: string
+          rates: Json
+        }
+        Insert: {
+          base_currency?: string
+          expires_at: string
+          fetched_at?: string
+          id?: string
+          rates: Json
+        }
+        Update: {
+          base_currency?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          rates?: Json
+        }
+        Relationships: []
       }
       friend_activities: {
         Row: {
@@ -1312,6 +1343,13 @@ export type Database = {
             columns: ["gear_item_id"]
             isOneToOne: false
             referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_enrichment_suggestions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
           {
@@ -1630,6 +1668,13 @@ export type Database = {
             referencedRelation: "gear_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "insight_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
+            referencedColumns: ["id"]
+          },
         ]
       }
       loadout_availability: {
@@ -1757,6 +1802,13 @@ export type Database = {
             columns: ["gear_item_id"]
             isOneToOne: false
             referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loadout_items_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
           {
@@ -2264,6 +2316,13 @@ export type Database = {
             columns: ["wishlist_item_id"]
             isOneToOne: false
             referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_offers_wishlist_item_id_fkey"
+            columns: ["wishlist_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
         ]
@@ -2925,15 +2984,26 @@ export type Database = {
             referencedRelation: "gear_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "price_tracking_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"] | null
+          auto_convert_prices: boolean | null
           avatar_url: string | null
           bio: string | null
           created_at: string
+          currency_position: string | null
+          date_format: string | null
           discoverable: boolean | null
+          display_density: string | null
           display_name: string | null
           email: string
           facebook: string | null
@@ -2946,28 +3016,46 @@ export type Database = {
           messaging_privacy:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          notification_preferences: Json | null
           online_status_privacy:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          preferred_currency: string | null
+          preferred_dimension_unit: string | null
+          preferred_distance_unit: string | null
+          preferred_locale: string | null
+          preferred_temperature_unit: string | null
+          preferred_weight_unit: string | null
           privacy_preset: Database["public"]["Enums"]["privacy_preset"] | null
           read_receipts_enabled: boolean | null
+          reduce_animations: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           shakedown_helpful_received: number
           shakedowns_created: number
           shakedowns_reviewed: number
+          show_original_price: boolean | null
+          show_weight_breakdown: boolean | null
           start_page: string | null
           subscription_tier: string | null
+          time_format: string | null
+          timezone: string | null
           trail_name: string | null
+          unit_system: string | null
           updated_at: string
           website: string | null
+          week_starts_on: string | null
           youtube: string | null
         }
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"] | null
+          auto_convert_prices?: boolean | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          currency_position?: string | null
+          date_format?: string | null
           discoverable?: boolean | null
+          display_density?: string | null
           display_name?: string | null
           email: string
           facebook?: string | null
@@ -2980,28 +3068,46 @@ export type Database = {
           messaging_privacy?:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          notification_preferences?: Json | null
           online_status_privacy?:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          preferred_currency?: string | null
+          preferred_dimension_unit?: string | null
+          preferred_distance_unit?: string | null
+          preferred_locale?: string | null
+          preferred_temperature_unit?: string | null
+          preferred_weight_unit?: string | null
           privacy_preset?: Database["public"]["Enums"]["privacy_preset"] | null
           read_receipts_enabled?: boolean | null
+          reduce_animations?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           shakedown_helpful_received?: number
           shakedowns_created?: number
           shakedowns_reviewed?: number
+          show_original_price?: boolean | null
+          show_weight_breakdown?: boolean | null
           start_page?: string | null
           subscription_tier?: string | null
+          time_format?: string | null
+          timezone?: string | null
           trail_name?: string | null
+          unit_system?: string | null
           updated_at?: string
           website?: string | null
+          week_starts_on?: string | null
           youtube?: string | null
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"] | null
+          auto_convert_prices?: boolean | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          currency_position?: string | null
+          date_format?: string | null
           discoverable?: boolean | null
+          display_density?: string | null
           display_name?: string | null
           email?: string
           facebook?: string | null
@@ -3014,20 +3120,34 @@ export type Database = {
           messaging_privacy?:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          notification_preferences?: Json | null
           online_status_privacy?:
             | Database["public"]["Enums"]["messaging_privacy"]
             | null
+          preferred_currency?: string | null
+          preferred_dimension_unit?: string | null
+          preferred_distance_unit?: string | null
+          preferred_locale?: string | null
+          preferred_temperature_unit?: string | null
+          preferred_weight_unit?: string | null
           privacy_preset?: Database["public"]["Enums"]["privacy_preset"] | null
           read_receipts_enabled?: boolean | null
+          reduce_animations?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           shakedown_helpful_received?: number
           shakedowns_created?: number
           shakedowns_reviewed?: number
+          show_original_price?: boolean | null
+          show_weight_breakdown?: boolean | null
           start_page?: string | null
           subscription_tier?: string | null
+          time_format?: string | null
+          timezone?: string | null
           trail_name?: string | null
+          unit_system?: string | null
           updated_at?: string
           website?: string | null
+          week_starts_on?: string | null
           youtube?: string | null
         }
         Relationships: []
@@ -3209,6 +3329,13 @@ export type Database = {
             columns: ["gear_item_id"]
             isOneToOne: false
             referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shakedown_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
           {
@@ -3696,6 +3823,7 @@ export type Database = {
           bio: string
           claimed_by_user_id: string | null
           created_at: string
+          featured_video_urls: string[]
           id: string
           is_featured: boolean
           name: string
@@ -3711,6 +3839,7 @@ export type Database = {
           bio: string
           claimed_by_user_id?: string | null
           created_at?: string
+          featured_video_urls?: string[]
           id?: string
           is_featured?: boolean
           name: string
@@ -3726,6 +3855,7 @@ export type Database = {
           bio?: string
           claimed_by_user_id?: string | null
           created_at?: string
+          featured_video_urls?: string[]
           id?: string
           is_featured?: boolean
           name?: string
@@ -3850,6 +3980,261 @@ export type Database = {
           },
         ]
       }
+      wiki_categories: {
+        Row: {
+          created_at: string | null
+          description_de: string | null
+          description_en: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name_de: string
+          name_en: string
+          parent_id: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description_de?: string | null
+          description_en?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_de: string
+          name_en: string
+          parent_id?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description_de?: string | null
+          description_en?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_de?: string
+          name_en?: string
+          parent_id?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wiki_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wiki_page_reports: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          page_id: string
+          reason: string
+          reporter_id: string
+          resolution_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["wiki_report_status"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          page_id: string
+          reason: string
+          reporter_id: string
+          resolution_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["wiki_report_status"] | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          page_id?: string
+          reason?: string
+          reporter_id?: string
+          resolution_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["wiki_report_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wiki_page_reports_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wiki_page_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wiki_page_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wiki_pages: {
+        Row: {
+          author_id: string
+          category_id: string | null
+          content_de: string
+          content_en: string
+          content_html_de: string | null
+          content_html_en: string | null
+          created_at: string | null
+          id: string
+          is_featured: boolean | null
+          is_locked: boolean | null
+          locked_reason: string | null
+          published_at: string | null
+          revision_number: number | null
+          search_vector_de: unknown
+          search_vector_en: unknown
+          slug: string
+          status: Database["public"]["Enums"]["wiki_page_status"] | null
+          title_de: string
+          title_en: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id: string
+          category_id?: string | null
+          content_de?: string
+          content_en?: string
+          content_html_de?: string | null
+          content_html_en?: string | null
+          created_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_locked?: boolean | null
+          locked_reason?: string | null
+          published_at?: string | null
+          revision_number?: number | null
+          search_vector_de?: unknown
+          search_vector_en?: unknown
+          slug: string
+          status?: Database["public"]["Enums"]["wiki_page_status"] | null
+          title_de: string
+          title_en: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          category_id?: string | null
+          content_de?: string
+          content_en?: string
+          content_html_de?: string | null
+          content_html_en?: string | null
+          created_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_locked?: boolean | null
+          locked_reason?: string | null
+          published_at?: string | null
+          revision_number?: number | null
+          search_vector_de?: unknown
+          search_vector_en?: unknown
+          slug?: string
+          status?: Database["public"]["Enums"]["wiki_page_status"] | null
+          title_de?: string
+          title_en?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wiki_pages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wiki_pages_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wiki_revisions: {
+        Row: {
+          content_de: string
+          content_en: string
+          created_at: string | null
+          edit_summary: string | null
+          editor_id: string
+          id: string
+          page_id: string
+          revision_number: number
+          title_de: string
+          title_en: string
+        }
+        Insert: {
+          content_de: string
+          content_en: string
+          created_at?: string | null
+          edit_summary?: string | null
+          editor_id: string
+          id?: string
+          page_id: string
+          revision_number: number
+          title_de: string
+          title_en: string
+        }
+        Update: {
+          content_de?: string
+          content_en?: string
+          created_at?: string | null
+          edit_summary?: string | null
+          editor_id?: string
+          id?: string
+          page_id?: string
+          revision_number?: number
+          title_de?: string
+          title_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wiki_revisions_editor_id_fkey"
+            columns: ["editor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wiki_revisions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_executions: {
         Row: {
           completed_at: string | null
@@ -3899,25 +4284,6 @@ export type Database = {
           max_price: number | null
           min_price: number | null
           user_count: number | null
-        }
-        Relationships: []
-      }
-      v_marketplace_listings: {
-        Row: {
-          brand: string | null
-          can_be_borrowed: boolean
-          can_be_traded: boolean
-          condition: string
-          currency: string | null
-          id: string
-          is_for_sale: boolean
-          listed_at: string
-          name: string
-          price_paid: number | null
-          primary_image_url: string | null
-          seller_avatar: string | null
-          seller_id: string
-          seller_name: string
         }
         Relationships: []
       }
@@ -4097,6 +4463,25 @@ export type Database = {
         }
         Relationships: []
       }
+      v_marketplace_listings: {
+        Row: {
+          brand: string | null
+          can_be_borrowed: boolean | null
+          can_be_traded: boolean | null
+          condition: Database["public"]["Enums"]["gear_condition"] | null
+          currency: string | null
+          id: string | null
+          is_for_sale: boolean | null
+          listed_at: string | null
+          name: string | null
+          price_paid: number | null
+          primary_image_url: string | null
+          seller_avatar: string | null
+          seller_id: string | null
+          seller_name: string | null
+        }
+        Relationships: []
+      }
       v_shakedown_feedback_with_author: {
         Row: {
           author_avatar: string | null
@@ -4137,6 +4522,13 @@ export type Database = {
             columns: ["gear_item_id"]
             isOneToOne: false
             referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shakedown_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
           {
@@ -5682,6 +6074,8 @@ export type Database = {
       shakedown_status: "open" | "completed" | "archived"
       user_role: "user" | "admin"
       weight_unit: "g" | "oz" | "lb"
+      wiki_page_status: "draft" | "published" | "archived"
+      wiki_report_status: "pending" | "reviewed" | "resolved" | "dismissed"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -5870,6 +6264,8 @@ export const Constants = {
       shakedown_status: ["open", "completed", "archived"],
       user_role: ["user", "admin"],
       weight_unit: ["g", "oz", "lb"],
+      wiki_page_status: ["draft", "published", "archived"],
+      wiki_report_status: ["pending", "reviewed", "resolved", "dismissed"],
     },
   },
 } as const

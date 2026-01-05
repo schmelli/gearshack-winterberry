@@ -67,19 +67,19 @@ function escapeILikePattern(pattern: string): string {
  */
 function transformListing(row: MarketplaceView): MarketplaceListing {
   return {
-    id: row.id,
-    name: row.name,
+    id: row.id ?? '',
+    name: row.name ?? '',
     brand: row.brand,
     primaryImageUrl: row.primary_image_url,
-    condition: row.condition,
+    condition: row.condition ?? '',
     pricePaid: row.price_paid,
     currency: row.currency,
-    isForSale: row.is_for_sale,
-    canBeTraded: row.can_be_traded,
-    canBeBorrowed: row.can_be_borrowed,
-    listedAt: row.listed_at,
-    sellerId: row.seller_id,
-    sellerName: row.seller_name,
+    isForSale: row.is_for_sale ?? false,
+    canBeTraded: row.can_be_traded ?? false,
+    canBeBorrowed: row.can_be_borrowed ?? false,
+    listedAt: row.listed_at ?? '',
+    sellerId: row.seller_id ?? '',
+    sellerName: row.seller_name ?? '',
     sellerAvatar: row.seller_avatar,
   };
 }

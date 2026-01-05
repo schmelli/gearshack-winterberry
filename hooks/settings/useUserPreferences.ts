@@ -155,7 +155,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           throw fetchError;
         }
       } else if (data) {
-        const parsed = rowToPreferences(data as Partial<UserPreferencesRow>);
+        const parsed = rowToPreferences(data as unknown as Partial<UserPreferencesRow>);
         setPreferences({
           ...DEFAULT_USER_PREFERENCES,
           ...Object.fromEntries(
