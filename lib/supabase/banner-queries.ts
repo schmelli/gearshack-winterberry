@@ -94,9 +94,7 @@ export async function fetchActiveBanners(
 ): Promise<ActiveBannersResponse> {
   const now = new Date().toISOString();
 
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('community_banners')
     .select('*')
     .eq('is_active', true)
@@ -109,8 +107,8 @@ export async function fetchActiveBanners(
     throw new Error(`Failed to fetch active banners: ${error.message}`);
   }
 
-  const banners = ((data ?? []) as Record<string, unknown>[]).map((row) =>
-    transformBanner(row)
+  const banners = (data ?? []).map((row) =>
+    transformBanner(row as unknown as Record<string, unknown>)
   );
 
   return { banners };
@@ -128,9 +126,7 @@ export async function fetchAllBanners(
   supabase: SupabaseClientType,
   includeExpired = true
 ): Promise<CommunityBanner[]> {
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query = (supabase as any)
+  let query = supabase
     .from('community_banners')
     .select('*')
     .order('display_order', { ascending: true })
@@ -147,8 +143,8 @@ export async function fetchAllBanners(
     throw new Error(`Failed to fetch banners: ${error.message}`);
   }
 
-  return ((data ?? []) as Record<string, unknown>[]).map((row) =>
-    transformBanner(row)
+  return (data ?? []).map((row) =>
+    transformBanner(row as unknown as Record<string, unknown>)
   );
 }
 
@@ -159,9 +155,7 @@ export async function getBanner(
   supabase: SupabaseClientType,
   id: string
 ): Promise<CommunityBanner | null> {
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('community_banners')
     .select('*')
     .eq('id', id)
@@ -174,7 +168,7 @@ export async function getBanner(
     throw new Error(`Failed to fetch banner: ${error.message}`);
   }
 
-  return transformBanner(data as Record<string, unknown>);
+  return transformBanner(data as unknown as Record<string, unknown>);
 }
 
 // ============================================================================
@@ -191,11 +185,9 @@ export async function createBanner(
 ): Promise<CommunityBanner> {
   const dbData = transformToDbFormat(input);
 
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('community_banners')
-    .insert(dbData)
+    .insert(dbData as any)
     .select()
     .single();
 
@@ -209,7 +201,7 @@ export async function createBanner(
     throw new Error(`Failed to create banner: ${error.message}`);
   }
 
-  return transformBanner(data as Record<string, unknown>);
+  return transformBanner(data as unknown as Record<string, unknown>);
 }
 
 /**
@@ -223,11 +215,9 @@ export async function updateBanner(
 ): Promise<CommunityBanner> {
   const dbData = transformToDbFormat(input);
 
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('community_banners')
-    .update(dbData)
+    .update(dbData as any)
     .eq('id', id)
     .select()
     .single();
@@ -245,7 +235,7 @@ export async function updateBanner(
     throw new Error(`Failed to update banner: ${error.message}`);
   }
 
-  return transformBanner(data as Record<string, unknown>);
+  return transformBanner(data as unknown as Record<string, unknown>);
 }
 
 /**
@@ -256,9 +246,7 @@ export async function deleteBanner(
   supabase: SupabaseClientType,
   id: string
 ): Promise<{ success: boolean }> {
-  // Note: Type assertion needed until community_banners table is added to database types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('community_banners')
     .delete()
     .eq('id', id);

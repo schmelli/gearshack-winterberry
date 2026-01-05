@@ -123,7 +123,7 @@ export function MarketplaceGrid({
           {t('empty')}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Try adjusting your filters or check back later.
+          {t('emptyHint')}
         </p>
       </div>
     );
@@ -166,7 +166,7 @@ export function MarketplaceGrid({
 
         {!hasMore && listings.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            You&apos;ve reached the end of the listings
+            {t('endOfListings')}
           </p>
         )}
       </div>

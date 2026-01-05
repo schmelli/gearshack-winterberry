@@ -802,6 +802,59 @@ export type Database = {
         }
         Relationships: []
       }
+      community_banners: {
+        Row: {
+          button_text: string
+          created_at: string
+          created_by: string | null
+          cta_text: string
+          display_order: number
+          hero_image_url: string
+          id: string
+          is_active: boolean
+          target_url: string
+          updated_at: string
+          visibility_end: string
+          visibility_start: string
+        }
+        Insert: {
+          button_text: string
+          created_at?: string
+          created_by?: string | null
+          cta_text: string
+          display_order?: number
+          hero_image_url: string
+          id?: string
+          is_active?: boolean
+          target_url: string
+          updated_at?: string
+          visibility_end: string
+          visibility_start: string
+        }
+        Update: {
+          button_text?: string
+          created_at?: string
+          created_by?: string | null
+          cta_text?: string
+          display_order?: number
+          hero_image_url?: string
+          id?: string
+          is_active?: boolean
+          target_url?: string
+          updated_at?: string
+          visibility_end?: string
+          visibility_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       conversation_memory: {
         Row: {
           conversation_id: string
@@ -3843,6 +3896,25 @@ export type Database = {
           max_price: number | null
           min_price: number | null
           user_count: number | null
+        }
+        Relationships: []
+      }
+      v_marketplace_listings: {
+        Row: {
+          brand: string | null
+          can_be_borrowed: boolean
+          can_be_traded: boolean
+          condition: string
+          currency: string | null
+          id: string
+          is_for_sale: boolean
+          listed_at: string
+          name: string
+          price_paid: number | null
+          primary_image_url: string | null
+          seller_avatar: string | null
+          seller_id: string
+          seller_name: string
         }
         Relationships: []
       }

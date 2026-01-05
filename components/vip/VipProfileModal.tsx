@@ -201,7 +201,7 @@ export function VipProfileModal() {
                         className="text-sm font-medium text-primary hover:underline"
                         onClick={close}
                       >
-                        View all {vip.loadouts.length} loadouts
+                        {t('profile.viewAllLoadouts', { count: vip.loadouts.length })}
                       </Link>
                     </div>
                   )}

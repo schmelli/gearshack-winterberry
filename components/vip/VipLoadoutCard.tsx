@@ -45,7 +45,13 @@ export function VipLoadoutCard({
   const locale = useLocale();
   const t = useTranslations('vip');
 
-  // TODO: Update when VipLoadoutSummary type is updated with new schema
+  /**
+   * TECH DEBT: VipLoadoutSummary type migration in progress
+   * - loadout.slug field pending schema migration from Feature 052
+   * - sourceUrl structure may vary (sourceUrl vs source_attribution.url)
+   * - Type assertions are temporary until VIP schema finalization
+   * - Safe to use: both patterns are backwards compatible
+   */
   const loadoutSlug = (loadout as any).slug || loadout.id;
   const sourceUrl = (loadout as any).sourceUrl || (loadout as any).source_attribution?.url || '';
 
@@ -74,8 +80,12 @@ export function VipLoadoutCard({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {/* TODO: Update to use activityTypes from new schema */}
-          {/* Trip Type - DEPRECATED fields removed */}
+          {/**
+           * TECH DEBT: activityTypes field from Feature 047 not yet in VipLoadoutSummary
+           * - Legacy tripType field was removed in Feature 052
+           * - activityTypes array support pending type definition update
+           * - For now, stats (weight/items) provide sufficient loadout preview
+           */}
 
           {/* Stats Row */}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">

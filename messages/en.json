@@ -2237,7 +2237,8 @@
       "follow": "Follow",
       "loadoutsTitle": "Loadouts",
       "noLoadouts": "No loadouts available",
-      "featuredVideos": "Featured Videos"
+      "featuredVideos": "Featured Videos",
+      "viewAllLoadouts": "View all {count} loadouts"
     },
     "common": {
       "retry": "Try Again",
@@ -2637,9 +2638,11 @@
       "viewProfile": "View Profile"
     },
     "empty": "No listings match your filters",
+    "emptyHint": "Try adjusting your filters or check back later.",
     "error": "Failed to load listings",
     "loadMore": "Load more",
-    "loading": "Loading listings..."
+    "loading": "Loading listings...",
+    "endOfListings": "You've reached the end of the listings"
   },
   "Banner": {
     "admin": {

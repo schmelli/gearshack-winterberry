@@ -91,9 +91,7 @@ export async function fetchMarketplaceListings(
   } = options;
 
   // Build query using the marketplace view
-  // Note: Type assertion needed - view may not be in generated types yet
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query = (supabase as any)
+  let query = supabase
     .from('v_marketplace_listings')
     .select('*')
     .order(sortFieldToColumn[sortBy] || 'listed_at', {
@@ -137,7 +135,7 @@ export async function fetchMarketplaceListings(
     throw new Error(`Failed to fetch marketplace listings: ${error.message}`);
   }
 
-  const rawListings = (data ?? []) as Record<string, unknown>[];
+  const rawListings = data ?? [];
   const hasMore = rawListings.length > limit;
 
   // Remove the extra item used for hasMore detection
@@ -145,7 +143,9 @@ export async function fetchMarketplaceListings(
     rawListings.pop();
   }
 
-  const listings = rawListings.map(transformListing);
+  const listings = rawListings.map((row) =>
+    transformListing(row as unknown as Record<string, unknown>)
+  );
 
   // Compute next cursor from last item
   const nextCursor =
@@ -165,9 +165,7 @@ export async function getMarketplaceListing(
   supabase: SupabaseClientType,
   id: string
 ): Promise<MarketplaceListing | null> {
-  // Note: Type assertion needed - view may not be in generated types yet
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('v_marketplace_listings')
     .select('*')
     .eq('id', id)
@@ -181,5 +179,5 @@ export async function getMarketplaceListing(
     throw new Error(`Failed to fetch listing: ${error.message}`);
   }
 
-  return transformListing(data as Record<string, unknown>);
+  return transformListing(data as unknown as Record<string, unknown>);
 }

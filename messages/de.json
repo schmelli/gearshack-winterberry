@@ -2237,7 +2237,8 @@
       "follow": "Folgen",
       "loadoutsTitle": "Loadouts",
       "noLoadouts": "Keine Loadouts verfügbar",
-      "featuredVideos": "Empfohlene Videos"
+      "featuredVideos": "Empfohlene Videos",
+      "viewAllLoadouts": "Alle {count} Loadouts anzeigen"
     },
     "common": {
       "retry": "Erneut versuchen",
@@ -2644,9 +2645,11 @@
       "viewProfile": "Profil ansehen"
     },
     "empty": "Keine Angebote gefunden",
+    "emptyHint": "Passe deine Filter an oder schau später noch einmal vorbei.",
     "error": "Angebote konnten nicht geladen werden",
     "loadMore": "Mehr laden",
-    "loading": "Lade Angebote..."
+    "loading": "Lade Angebote...",
+    "endOfListings": "Du hast das Ende der Angebote erreicht"
   },
   "Banner": {
     "admin": {
