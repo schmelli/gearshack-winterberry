@@ -14,6 +14,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 // =============================================================================
 // Types
@@ -41,6 +42,7 @@ export interface UseImageUploadReturn {
  * This hook no longer works as Firebase Storage has been removed.
  */
 export function useImageUpload(): UseImageUploadReturn {
+  const t = useTranslations('ImageUpload');
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -50,12 +52,12 @@ export function useImageUpload(): UseImageUploadReturn {
       console.error('[useImageUpload]', errorMessage);
       setError(errorMessage);
       setStatus('error');
-      toast.error('Image upload not available', {
-        description: 'Please use the new image upload component.',
+      toast.error(t('unavailable'), {
+        description: t('checkConnection'),
       });
       return null;
     },
-    []
+    [t]
   );
 
   const reset = useCallback(() => {

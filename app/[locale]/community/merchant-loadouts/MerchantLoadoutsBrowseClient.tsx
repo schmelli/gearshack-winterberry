@@ -5,15 +5,20 @@
  * Task: T025
  *
  * Client-side interactive browsing for merchant loadouts.
+ * Includes tab navigation for VIP Loadouts and Reseller Loadouts.
  */
 
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Store, Sparkles } from 'lucide-react';
+import { Store, Sparkles, Star, ShoppingBag, Users } from 'lucide-react';
 import { useMerchantLoadoutsPublic, useFeaturedLoadouts } from '@/hooks/merchant';
 import { MerchantLoadoutGrid } from '@/components/merchant/MerchantLoadoutGrid';
 import { MerchantLoadoutCard, MerchantLoadoutCardSkeleton } from '@/components/merchant/MerchantLoadoutCard';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Carousel,
   CarouselContent,
@@ -53,6 +58,29 @@ export function MerchantLoadoutsBrowseClient() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           {t('pageDescription')}
         </p>
+      </div>
+
+      {/* Loadout Type Tabs */}
+      <div className="flex justify-center">
+        <Tabs defaultValue="vip" className="w-auto">
+          <TabsList className="grid grid-cols-2 w-auto">
+            <TabsTrigger value="vip" className="flex items-center gap-2 px-6">
+              <Star className="h-4 w-4" />
+              {t('tabs.vipLoadouts')}
+            </TabsTrigger>
+            <TabsTrigger
+              value="reseller"
+              disabled
+              className="flex items-center gap-2 px-6 cursor-not-allowed"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {t('tabs.resellerLoadouts')}
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {t('tabs.soon')}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Featured Loadouts Carousel */}

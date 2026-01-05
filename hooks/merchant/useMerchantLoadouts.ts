@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   fetchMerchantLoadouts,
   fetchLoadoutById,
@@ -86,6 +87,7 @@ export interface UseMerchantLoadoutsReturn {
 // =============================================================================
 
 export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
+  const t = useTranslations('Merchant');
   const { merchant } = useMerchantAuth();
 
   // State
@@ -141,7 +143,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
   const createLoadout = useCallback(
     async (input: MerchantLoadoutInput): Promise<MerchantLoadout | null> => {
       if (!merchant?.id) {
-        toast.error('Not authenticated as merchant');
+        toast.error(t('common.notAuthenticated'));
         return null;
       }
 
@@ -149,7 +151,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
       try {
         const newLoadout = await createMerchantLoadout(merchant.id, input);
         setLoadouts((prev) => [newLoadout, ...prev]);
-        toast.success('Loadout created');
+        toast.success(t('loadouts.created'));
         return newLoadout;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to create loadout';
@@ -184,7 +186,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           );
         }
 
-        toast.success('Loadout updated');
+        toast.success(t('loadouts.updated'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update loadout';
@@ -210,7 +212,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           setCurrentLoadout(null);
         }
 
-        toast.success('Loadout deleted');
+        toast.success(t('loadouts.deleted'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to delete loadout';
@@ -256,23 +258,23 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
   );
 
   const submitForReview = useCallback(
-    (loadoutId: string) => changeStatus(loadoutId, 'pending_review', 'Submitted for review'),
-    [changeStatus]
+    (loadoutId: string) => changeStatus(loadoutId, 'pending_review', t('loadouts.submittedForReview')),
+    [changeStatus, t]
   );
 
   const publish = useCallback(
-    (loadoutId: string) => changeStatus(loadoutId, 'published', 'Loadout published'),
-    [changeStatus]
+    (loadoutId: string) => changeStatus(loadoutId, 'published', t('loadouts.published')),
+    [changeStatus, t]
   );
 
   const archive = useCallback(
-    (loadoutId: string) => changeStatus(loadoutId, 'archived', 'Loadout archived'),
-    [changeStatus]
+    (loadoutId: string) => changeStatus(loadoutId, 'archived', t('loadouts.archived')),
+    [changeStatus, t]
   );
 
   const unpublish = useCallback(
-    (loadoutId: string) => changeStatus(loadoutId, 'draft', 'Loadout unpublished'),
-    [changeStatus]
+    (loadoutId: string) => changeStatus(loadoutId, 'draft', t('loadouts.unpublished')),
+    [changeStatus, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -293,7 +295,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           if (refreshed) setCurrentLoadout(refreshed);
         }
 
-        toast.success('Item added');
+        toast.success(t('loadouts.itemAdded'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to add item';
@@ -322,7 +324,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           if (refreshed) setCurrentLoadout(refreshed);
         }
 
-        toast.success('Item updated');
+        toast.success(t('loadouts.itemUpdated'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update item';
@@ -347,7 +349,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           if (refreshed) setCurrentLoadout(refreshed);
         }
 
-        toast.success('Item removed');
+        toast.success(t('loadouts.itemRemoved'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to remove item';
@@ -376,7 +378,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
           if (refreshed) setCurrentLoadout(refreshed);
         }
 
-        toast.success('Availability updated');
+        toast.success(t('loadouts.availabilityUpdated'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update availability';

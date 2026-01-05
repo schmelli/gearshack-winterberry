@@ -1,139 +1,57 @@
 /**
- * API Route: Copy VIP Loadout
+ * Copy VIP Loadout API Route
  *
- * Feature: 052-vip-loadouts
- * Task: T055 (US3 Copy)
- *
- * POST /api/vip/copy-loadout - Copy VIP loadout to user's account
+ * POST /api/vip/copy-loadout
+ * Copies a VIP loadout to the authenticated user's account
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import type { CopyLoadoutResponse } from '@/types/vip';
+import { copyVipLoadout } from '@/lib/vip/vip-service';
+import {
+  VipAuthenticationError,
+  VipNotFoundError,
+  VipInvalidLoadoutError
+} from '@/lib/vip/errors';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-interface ErrorResponse {
-  error: string;
-}
-
-// =============================================================================
-// Request Schema
-// =============================================================================
-
-const copyLoadoutSchema = z.object({
-  vipLoadoutId: z.string().uuid(),
+const requestSchema = z.object({
+  vipLoadoutId: z.string().uuid('Invalid UUID format for vipLoadoutId'),
 });
 
-// =============================================================================
-// POST Handler
-// =============================================================================
-
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse<CopyLoadoutResponse | ErrorResponse>> {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Parse and validate request body
     const body = await request.json();
-    const validation = copyLoadoutSchema.safeParse(body);
+
+    // Validate request body with Zod
+    const validation = requestSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request' },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
 
     const { vipLoadoutId } = validation.data;
 
-    // Get VIP loadout with items
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: vipLoadout, error: loadoutError } = await (supabase as any)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from('vip_loadouts')
-      .select(`
-        *,
-        vip_accounts (name),
-        vip_loadout_items (*)
-      `)
-      .eq('id', vipLoadoutId)
-      .eq('status', 'published')
-      .single();
+    // Copy loadout using the new unified schema
+    const result = await copyVipLoadout(vipLoadoutId);
 
-    if (loadoutError || !vipLoadout) {
-      return NextResponse.json(
-        { error: 'VIP loadout not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create user loadout
-    const loadoutName = `${vipLoadout.vip_accounts?.name}'s ${vipLoadout.name} - Copy`;
-
-    const { data: newLoadout, error: createError } = await (supabase as any)
-      .from('loadouts')
-      .insert({
-        user_id: user.id,
-        name: loadoutName,
-        description: `Copied from VIP loadout: ${vipLoadout.name}`,
-        source_vip_loadout_id: vipLoadoutId,
-      })
-      .select()
-      .single();
-
-    if (createError || !newLoadout) {
-      console.error('[API] Failed to create loadout:', createError);
-      return NextResponse.json(
-        { error: 'Failed to create loadout' },
-        { status: 500 }
-      );
-    }
-
-    // Copy items as wishlist status
-    const itemsToInsert = (vipLoadout.vip_loadout_items || []).map((item: Record<string, unknown>) => ({
-      loadout_id: newLoadout.id,
-      gear_item_id: item.gear_item_id || null,
-      name: item.name,
-      brand: item.brand,
-      weight_grams: item.weight_grams,
-      quantity: item.quantity,
-      category: item.category,
-      status: 'wishlist',
-      notes: item.notes,
-    }));
-
-    if (itemsToInsert.length > 0) {
-      const { error: itemsError } = await (supabase as any)
-        .from('loadout_items')
-        .insert(itemsToInsert);
-
-      if (itemsError) {
-        console.error('[API] Failed to copy items:', itemsError);
-        // Don't fail the whole operation - loadout was created
-      }
-    }
-
-    return NextResponse.json({
-      loadoutId: newLoadout.id,
-      loadoutName,
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('[API] Copy loadout error:', error);
+    console.error('Error copying VIP loadout:', error);
+
+    // Handle specific error classes instead of string matching
+    if (error instanceof VipAuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+
+    if (error instanceof VipNotFoundError || error instanceof VipInvalidLoadoutError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to copy loadout';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

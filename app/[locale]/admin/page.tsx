@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-import { FolderTree, Users, MessageSquare, ArrowRight } from 'lucide-react';
+import { FolderTree, Users, MessageSquare, ArrowRight, Image } from 'lucide-react';
 
 // This will be client component when we fetch real stats
 export default function AdminDashboard() {
@@ -77,6 +77,15 @@ export default function AdminDashboard() {
           <Link href="/admin/categories">
             <Button variant="outline" className="w-full justify-between">
               Manage Categories
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/admin/banners">
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Manage Banners
+              </span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

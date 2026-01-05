@@ -37,8 +37,8 @@ import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
-// T021: Import LanguageSwitcher
-import { LanguageSwitcher } from './LanguageSwitcher';
+// Feature: settings-update - Language indicator (read-only, links to settings)
+import { LanguageIndicator } from './LanguageIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
@@ -185,10 +185,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
 
-          {/* T021: Language switcher - toggle between EN/DE */}
-          {/* Issue #77: Hidden on small screens, accessible via settings */}
+          {/* Feature: settings-update - Language indicator links to regional settings */}
+          {/* Issue #77: Hidden on small screens, accessible via mobile settings */}
           <div className="hidden md:flex">
-            <LanguageSwitcher />
+            <LanguageIndicator />
           </div>
 
           {/* T012: Messaging icon with unread badge - only show when authenticated */}

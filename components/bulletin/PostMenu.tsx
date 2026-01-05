@@ -7,7 +7,7 @@
  * Task: T032
  *
  * Three-dot dropdown menu with Edit/Delete/Report options.
- * Edit is disabled after 15-minute window.
+ * Authors can edit their posts at any time.
  */
 
 import { useTranslations } from 'next-intl';
@@ -54,13 +54,9 @@ export function PostMenu({
         {/* Author actions */}
         {isAuthor && (
           <>
-            <DropdownMenuItem
-              onClick={onEdit}
-              disabled={!canEdit}
-              className="gap-2"
-            >
+            <DropdownMenuItem onClick={onEdit} className="gap-2">
               <Pencil className="h-4 w-4" />
-              {canEdit ? t('menu.edit') : t('menu.editWindowExpired')}
+              {t('menu.edit')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={onDelete}

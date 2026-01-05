@@ -12,6 +12,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import {
   smartProductSearch,
@@ -95,6 +96,7 @@ export interface UseSmartProductSearchReturn {
  * ```
  */
 export function useSmartProductSearch(): UseSmartProductSearchReturn {
+  const t = useTranslations('SmartProductSearch');
   const [status, setStatus] = useState<SmartSearchStatus>('idle');
   const [catalogResults, setCatalogResults] = useState<CatalogProductResult[]>([]);
   const [internetResults, setInternetResults] = useState<InternetProductResult[]>([]);
@@ -111,7 +113,7 @@ export function useSmartProductSearch(): UseSmartProductSearchReturn {
     const trimmedQuery = query.trim();
 
     if (!trimmedQuery || trimmedQuery.length < 2) {
-      toast.error('Please enter at least 2 characters to search');
+      toast.error(t('minCharacters'));
       return;
     }
 
@@ -140,21 +142,21 @@ export function useSmartProductSearch(): UseSmartProductSearchReturn {
       // Show appropriate feedback
       const totalResults = response.catalogResults.length + response.internetResults.length;
       if (totalResults === 0) {
-        toast.info(`No products found for "${trimmedQuery}"`);
+        toast.info(t('noResults', { query: trimmedQuery }));
       } else {
         const catalogMsg = response.catalogResults.length > 0
-          ? `${response.catalogResults.length} from catalog`
+          ? t('catalogResults', { count: response.catalogResults.length })
           : '';
         const internetMsg = response.internetResults.length > 0
-          ? `${response.internetResults.length} from web`
+          ? t('webResults', { count: response.internetResults.length })
           : '';
-        const combined = [catalogMsg, internetMsg].filter(Boolean).join(', ');
+        const details = [catalogMsg, internetMsg].filter(Boolean).join(', ');
 
         // Show remaining searches for free tier
         if (!response.rateLimit.isUnlimited && response.showInternetResults) {
-          toast.success(`Found ${totalResults} results (${combined}). ${response.rateLimit.remaining} searches left today.`);
+          toast.success(t('foundResultsWithLimit', { total: totalResults, details, remaining: response.rateLimit.remaining }));
         } else {
-          toast.success(`Found ${totalResults} results (${combined})`);
+          toast.success(t('foundResults', { total: totalResults, details }));
         }
       }
 
@@ -166,7 +168,7 @@ export function useSmartProductSearch(): UseSmartProductSearchReturn {
       toast.error(errorMessage);
       console.error('[SmartSearch] Search failed:', err);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Select a catalog result
@@ -203,16 +205,16 @@ export function useSmartProductSearch(): UseSmartProductSearchReturn {
 
         // Show confidence feedback
         if (response.data.confidence === 'high') {
-          toast.success('Product data extracted successfully');
+          toast.success(t('extractSuccess'));
         } else if (response.data.confidence === 'medium') {
-          toast.info('Product data extracted (some fields may need verification)');
+          toast.info(t('extractMedium'));
         } else {
-          toast.warning('Limited data extracted - please verify');
+          toast.warning(t('extractLow'));
         }
 
         setStatus('success');
       } else {
-        toast.error('Could not extract product data from this page');
+        toast.error(t('extractFailed'));
         setError('Extraction returned no data');
         setStatus('error');
       }
@@ -223,7 +225,7 @@ export function useSmartProductSearch(): UseSmartProductSearchReturn {
       toast.error(errorMessage);
       console.error('[SmartSearch] Extraction failed:', err);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Confirm extracted data and return it

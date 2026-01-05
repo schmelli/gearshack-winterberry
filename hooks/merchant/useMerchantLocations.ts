@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useMerchantAuth } from './useMerchantAuth';
 
@@ -51,6 +52,7 @@ export interface UseMerchantLocationsReturn {
 // =============================================================================
 
 export function useMerchantLocations(): UseMerchantLocationsReturn {
+  const t = useTranslations('Merchant');
   const { merchant } = useMerchantAuth();
   const [locations, setLocations] = useState<MerchantLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +123,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
   const addLocation = useCallback(
     async (input: MerchantLocationInput): Promise<MerchantLocation | null> => {
       if (!merchant?.id) {
-        toast.error('Not authenticated as merchant');
+        toast.error(t('common.notAuthenticated'));
         return null;
       }
 
@@ -187,7 +189,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
           return [...prev, newLocation];
         });
 
-        toast.success('Location added');
+        toast.success(t('locations.added'));
         return newLocation;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to add location';
@@ -251,7 +253,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
           )
         );
 
-        toast.success('Location updated');
+        toast.success(t('locations.updated'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update location';
@@ -304,7 +306,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
           setLocations((prev) => prev.filter((l) => l.id !== locationId));
         }
 
-        toast.success('Location deleted');
+        toast.success(t('locations.deleted'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to delete location';
@@ -350,7 +352,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
           }))
         );
 
-        toast.success('Primary location updated');
+        toast.success(t('locations.primaryUpdated'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update primary location';

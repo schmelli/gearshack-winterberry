@@ -3,20 +3,21 @@
  *
  * Feature: Share Management
  *
- * Provides share creation and management for loadouts:
- * - Generate new share links
- * - Configure share settings (comments, expiry)
- * - Manage existing shares
+ * Provides simple URL sharing for loadouts:
+ * - Generate shareable links
+ * - Copy to clipboard
  * - Social sharing buttons
+ *
+ * Note: Community Shakedown (with comments/collaboration) is a separate feature
+ * accessible via the Users icon in the loadout header.
  */
 
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Share2, Clipboard, Check, Settings2 } from 'lucide-react';
+import { Share2, Clipboard, Check, Settings2, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { addDays } from 'date-fns';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { VariantProps } from 'class-variance-authority';
@@ -30,15 +31,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useShareManagement } from '@/hooks/useShareManagement';
 import { useStore } from '@/hooks/useSupabaseStore';
 import { SocialShareButtons } from '@/components/loadouts/SocialShareButtons';
@@ -63,18 +55,6 @@ interface LoadoutShareButtonProps {
   size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
 }
-
-// =============================================================================
-// Expiry Options
-// =============================================================================
-
-const EXPIRY_OPTIONS = [
-  { value: 'never', label: 'Never', days: null },
-  { value: '1d', label: '1 day', days: 1 },
-  { value: '7d', label: '7 days', days: 7 },
-  { value: '30d', label: '30 days', days: 30 },
-  { value: '90d', label: '90 days', days: 90 },
-];
 
 // =============================================================================
 // Component
@@ -109,9 +89,7 @@ export function LoadoutShareButton({
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
 
-  // Create share form state
-  const [allowComments, setAllowComments] = useState(true);
-  const [expiryOption, setExpiryOption] = useState('never');
+  // Share creation state (simplified - no comments/expiry options)
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -151,20 +129,17 @@ export function LoadoutShareButton({
     };
   }, [activityTypes, itemStates, items, loadout, seasons, categories]);
 
-  // Generate new share link
+  // Generate new share link (simplified - no comments, no expiry)
   const generateLink = async () => {
     setIsGenerating(true);
     setCopied(false);
     setShareUrl(null);
 
     try {
-      // Calculate expiry date
-      const expiryDays = EXPIRY_OPTIONS.find((opt) => opt.value === expiryOption)?.days;
-      const expiresAt = expiryDays ? addDays(new Date(), expiryDays).toISOString() : null;
-
+      // Create share with comments disabled and no expiry (simple URL sharing)
       const result = await createNewShare(payload, {
-        allowComments,
-        expiresAt,
+        allowComments: false,
+        expiresAt: null,
       });
 
       if (result) {
@@ -175,6 +150,7 @@ export function LoadoutShareButton({
           try {
             await navigator.clipboard.writeText(result.url);
             setCopied(true);
+            toast.success(t('linkCopied'));
           } catch {
             // Clipboard failed, user can manually copy
           }
@@ -191,9 +167,9 @@ export function LoadoutShareButton({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success(t('linkCopied') || 'Link copied');
+      toast.success(t('linkCopied'));
     } catch {
-      toast.error('Clipboard is unavailable');
+      toast.error(t('clipboardUnavailable'));
     }
   };
 
@@ -204,8 +180,6 @@ export function LoadoutShareButton({
       // Reset form state when closing
       setShareUrl(null);
       setCopied(false);
-      setAllowComments(true);
-      setExpiryOption('never');
     }
   };
 
@@ -228,81 +202,45 @@ export function LoadoutShareButton({
               {showLabel && (t('share') || 'Share')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{t('virtualGearShakedown') || 'Virtual Gear Shakedown'}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5" />
+                {t('shareLoadoutTitle')}
+              </DialogTitle>
               <DialogDescription>
-                {t('shareDescription') ||
-                  'Create a shareable link so others can view your loadout. Enable live comments to let friends leave feedback in real time.'}
+                {t('shareLoadoutDescription')}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              {/* Allow Comments Toggle */}
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-1">
-                  <Label htmlFor="allow-comments">{t('allowComments') || 'Allow comments'}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('allowCommentsHint') ||
-                      'Viewers with the link can collaborate via realtime comments.'}
-                  </p>
-                </div>
-                <Switch
-                  id="allow-comments"
-                  checked={allowComments}
-                  onCheckedChange={setAllowComments}
-                  aria-label={t('allowComments') || 'Allow comments'}
-                />
-              </div>
-
-              {/* Expiry Selection */}
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-1">
-                  <Label htmlFor="expiry">{t('linkExpiry') || 'Link expiry'}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('linkExpiryHint') || 'Set when this share link will expire.'}
-                  </p>
-                </div>
-                <Select value={expiryOption} onValueChange={setExpiryOption}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPIRY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <DialogFooter className="flex-col gap-3 sm:flex-col">
-              <Button onClick={generateLink} disabled={isGenerating} className="w-full">
-                {isGenerating
-                  ? (t('generating') || 'Generating…')
-                  : (t('generateShareLink') || 'Generate share link')}
-              </Button>
-
-              {shareUrl && (
+              {!shareUrl ? (
+                <Button onClick={generateLink} disabled={isGenerating} className="w-full">
+                  {isGenerating ? t('generating') : t('getShareLink')}
+                </Button>
+              ) : (
                 <>
+                  {/* Generated URL with copy button */}
                   <div className="flex w-full items-center gap-2">
                     <Input value={shareUrl} readOnly className="text-sm font-mono" />
                     <Button
                       variant="secondary"
                       size="icon"
                       onClick={handleCopy}
-                      aria-label={t('copyShareLink') || 'Copy share link'}
+                      aria-label={t('copyShareLink')}
                     >
-                      {copied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Clipboard className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
 
                   {/* Social Share Buttons */}
-                  <div className="w-full pt-2 border-t">
+                  <div className="w-full pt-3 border-t">
                     <p className="text-sm text-muted-foreground mb-2">
-                      {t('shareOn') || 'Share on:'}
+                      {t('shareOn')}
                     </p>
                     <SocialShareButtons
                       url={shareUrl}
@@ -310,6 +248,17 @@ export function LoadoutShareButton({
                       description={loadout.description ?? undefined}
                     />
                   </div>
+
+                  {/* Generate new link option */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateLink}
+                    disabled={isGenerating}
+                    className="w-full"
+                  >
+                    {t('generateNewLink')}
+                  </Button>
                 </>
               )}
             </DialogFooter>

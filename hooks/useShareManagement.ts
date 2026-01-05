@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import {
   getSharesForLoadout,
@@ -80,6 +80,7 @@ export function useShareManagement(
 ): UseShareManagementReturn {
   const supabase = useMemo(() => createClient(), []);
   const locale = useLocale();
+  const t = useTranslations('Shakedown.toasts');
 
   const [shares, setShares] = useState<ShareListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,7 +130,7 @@ export function useShareManagement(
       settings?: { allowComments?: boolean; expiresAt?: string | null }
     ): Promise<{ url: string; shareToken: string } | null> => {
       if (!userId) {
-        toast.error('You must be logged in to share');
+        toast.error(t('mustBeLoggedIn'));
         return null;
       }
 
@@ -144,7 +145,7 @@ export function useShareManagement(
         const shareToken = await createShare(supabase, input, userId);
 
         if (!shareToken) {
-          toast.error('Failed to create share link');
+          toast.error(t('createFailed'));
           return null;
         }
 
@@ -163,7 +164,7 @@ export function useShareManagement(
         setShares((prev) => [newShare, ...prev]);
 
         const url = getShareUrl(shareToken);
-        toast.success('Share link created');
+        toast.success(t('created'));
 
         return { url, shareToken };
       } catch (err) {
@@ -173,7 +174,7 @@ export function useShareManagement(
         return null;
       }
     },
-    [supabase, loadoutId, userId, getShareUrl]
+    [supabase, loadoutId, userId, getShareUrl, t]
   );
 
   // Update share settings
@@ -197,11 +198,11 @@ export function useShareManagement(
         if (!success) {
           // Revert on failure
           await refresh();
-          toast.error('Failed to update share settings');
+          toast.error(t('updateFailed'));
           return false;
         }
 
-        toast.success('Share settings updated');
+        toast.success(t('updated'));
         return true;
       } catch (err) {
         // Revert on error
@@ -212,7 +213,7 @@ export function useShareManagement(
         return false;
       }
     },
-    [supabase, refresh]
+    [supabase, refresh, t]
   );
 
   // Delete a share
@@ -230,11 +231,11 @@ export function useShareManagement(
         if (!success) {
           // Revert on failure
           setShares(previousShares);
-          toast.error('Failed to delete share');
+          toast.error(t('deleteFailed'));
           return false;
         }
 
-        toast.success('Share link deleted');
+        toast.success(t('deleted'));
         return true;
       } catch (err) {
         // Revert on error
@@ -245,7 +246,7 @@ export function useShareManagement(
         return false;
       }
     },
-    [supabase, shares]
+    [supabase, shares, t]
   );
 
   // Set password via API (requires server-side hashing)
@@ -260,7 +261,7 @@ export function useShareManagement(
 
         if (!response.ok) {
           const data = await response.json();
-          toast.error(data.error || 'Failed to set password');
+          toast.error(data.error || t('passwordSetFailed'));
           return false;
         }
 
@@ -271,7 +272,7 @@ export function useShareManagement(
           )
         );
 
-        toast.success('Password set');
+        toast.success(t('passwordSet'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to set password';
@@ -280,7 +281,7 @@ export function useShareManagement(
         return false;
       }
     },
-    []
+    [t]
   );
 
   // Remove password via API
@@ -293,7 +294,7 @@ export function useShareManagement(
 
         if (!response.ok) {
           const data = await response.json();
-          toast.error(data.error || 'Failed to remove password');
+          toast.error(data.error || t('passwordRemoveFailed'));
           return false;
         }
 
@@ -304,7 +305,7 @@ export function useShareManagement(
           )
         );
 
-        toast.success('Password removed');
+        toast.success(t('passwordRemoved'));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to remove password';
@@ -313,7 +314,7 @@ export function useShareManagement(
         return false;
       }
     },
-    []
+    [t]
   );
 
   return {

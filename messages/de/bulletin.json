@@ -13,12 +13,15 @@
 
   "composer": {
     "title": "Beitrag erstellen",
+    "editTitle": "Beitrag bearbeiten",
     "placeholder": "Was beschäftigt dich? Stelle eine Frage, teile ein Update oder verbinde dich mit anderen Outdoor-Enthusiasten...",
     "tagLabel": "Kategorie (optional)",
     "selectTag": "Kategorie auswählen",
     "submit": "Veröffentlichen",
+    "save": "Speichern",
     "cancel": "Abbrechen",
     "posting": "Wird veröffentlicht...",
+    "saving": "Wird gespeichert...",
     "charCount": "{count}/{max}",
     "linkedContent": "Verknüpft: {title}"
   },

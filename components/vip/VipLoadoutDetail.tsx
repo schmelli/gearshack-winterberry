@@ -192,12 +192,8 @@ export function VipLoadoutDetail({
               <p className="text-muted-foreground">
                 {t('loadout.byVip', { name: loadout.vip.name })}
               </p>
-              {loadout.tripType && (
-                <p className="text-sm text-muted-foreground">
-                  {loadout.tripType}
-                  {loadout.dateRange && ` • ${loadout.dateRange}`}
-                </p>
-              )}
+              {/* TODO: Update to use activityTypes/seasons from new schema */}
+              {/* Trip Type/Date Range - DEPRECATED fields removed */}
             </div>
 
             {/* Action Buttons */}
@@ -256,9 +252,10 @@ export function VipLoadoutDetail({
           <Separator />
 
           {/* Source Attribution */}
+          {/* TODO: Update VipSourceAttribution component to use new schema */}
           <VipSourceAttribution
-            sourceUrl={loadout.sourceUrl}
-            isSourceAvailable={loadout.isSourceAvailable}
+            sourceUrl={(loadout as any).sourceUrl || (loadout as any).source_attribution?.url || ''}
+            isSourceAvailable={!!(loadout as any).sourceUrl || !!(loadout as any).source_attribution?.url}
           />
         </CardContent>
       </Card>

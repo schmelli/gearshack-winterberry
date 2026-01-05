@@ -604,6 +604,46 @@ describe('useLoadouts', () => {
       expect(updatedItem?.quantity).toBe(2);
       expect(updatedItem?.isWorn).toBe(true);
     });
+
+    it('should update isConsumable field', async () => {
+      const updatedItemDb = {
+        id: 'li-001',
+        loadout_id: 'loadout-001',
+        gear_item_id: 'gear-001',
+        quantity: 1,
+        is_worn: false,
+        is_consumable: true,
+        created_at: '2024-01-15T00:00:00Z',
+      };
+
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({ data: updatedItemDb, error: null });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedItem;
+      await act(async () => {
+        updatedItem = await result.current.updateItemState('loadout-001', 'gear-001', {
+          isConsumable: true,
+        });
+      });
+
+      expect(updatedItem).not.toBeNull();
+      expect(updatedItem?.isConsumable).toBe(true);
+    });
   });
 
   // ===========================================================================
@@ -704,6 +744,633 @@ describe('useLoadouts', () => {
 
       const loadout = result.current.getLoadout('non-existent-id');
       expect(loadout).toBeUndefined();
+    });
+  });
+
+  // ===========================================================================
+  // Error Handling Tests
+  // ===========================================================================
+
+  describe('Error Handling', () => {
+    it('should continue without items when loadout items fetch fails', async () => {
+      let callCount = 0;
+      const queryBuilder = createMockQueryBuilder();
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: fetch loadouts succeeds
+          return resolve({ data: mockLoadoutDbRows, error: null });
+        } else {
+          // Second call: fetch loadout items fails
+          return resolve({ data: null, error: { message: 'Items fetch failed' } });
+        }
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Should have loadouts but with empty items
+      expect(result.current.loadouts).toHaveLength(3);
+      expect(result.current.loadouts[0].items).toHaveLength(0);
+    });
+
+    it('should handle unexpected error during fetch', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      queryBuilder.then = vi.fn(() => {
+        throw new Error('Unexpected fetch error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('Unexpected fetch error');
+    });
+
+    it('should handle non-Error thrown during fetch', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      queryBuilder.then = vi.fn(() => {
+        throw 'String error';
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('Failed to fetch loadouts');
+    });
+
+    it('should handle unexpected error during create', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        return resolve({ data: callCount === 1 ? mockLoadoutDbRows : [], error: null });
+      });
+      queryBuilder.single = vi.fn(() => {
+        throw new Error('Unexpected create error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createdLoadout;
+      await act(async () => {
+        createdLoadout = await result.current.createLoadout({ name: 'Test' });
+      });
+
+      expect(createdLoadout).toBeNull();
+      expect(result.current.error).toBe('Unexpected create error');
+    });
+
+    it('should handle update error gracefully', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: [], error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Update failed' },
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedLoadout;
+      await act(async () => {
+        updatedLoadout = await result.current.updateLoadout('loadout-001', { name: 'Test' });
+      });
+
+      expect(updatedLoadout).toBeNull();
+      expect(result.current.error).toBe('Update failed');
+    });
+
+    it('should handle unexpected error during update', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: [], error: null });
+      });
+      queryBuilder.single = vi.fn(() => {
+        throw new Error('Unexpected update error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedLoadout;
+      await act(async () => {
+        updatedLoadout = await result.current.updateLoadout('loadout-001', { name: 'Test' });
+      });
+
+      expect(updatedLoadout).toBeNull();
+      expect(result.current.error).toBe('Unexpected update error');
+    });
+
+    it('should handle delete error gracefully', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: { message: 'Delete failed' } });
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let deleteSuccess;
+      await act(async () => {
+        deleteSuccess = await result.current.deleteLoadout('loadout-001');
+      });
+
+      expect(deleteSuccess).toBe(false);
+      expect(result.current.error).toBe('Delete failed');
+    });
+
+    it('should handle unexpected error during delete', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        throw new Error('Unexpected delete error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let deleteSuccess;
+      await act(async () => {
+        deleteSuccess = await result.current.deleteLoadout('loadout-001');
+      });
+
+      expect(deleteSuccess).toBe(false);
+      expect(result.current.error).toBe('Unexpected delete error');
+    });
+
+    it('should handle addItem error gracefully', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Insert item failed' },
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let newItem;
+      await act(async () => {
+        newItem = await result.current.addItem('loadout-001', { gearItemId: 'gear-999' });
+      });
+
+      expect(newItem).toBeNull();
+      expect(result.current.error).toBe('Insert item failed');
+    });
+
+    it('should handle unexpected error during addItem', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: null });
+      });
+      queryBuilder.single = vi.fn(() => {
+        throw new Error('Unexpected addItem error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let newItem;
+      await act(async () => {
+        newItem = await result.current.addItem('loadout-001', { gearItemId: 'gear-999' });
+      });
+
+      expect(newItem).toBeNull();
+      expect(result.current.error).toBe('Unexpected addItem error');
+    });
+
+    it('should handle removeItem error gracefully', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: { message: 'Remove item failed' } });
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let removeSuccess;
+      await act(async () => {
+        removeSuccess = await result.current.removeItem('loadout-001', 'gear-001');
+      });
+
+      expect(removeSuccess).toBe(false);
+      expect(result.current.error).toBe('Remove item failed');
+    });
+
+    it('should handle unexpected error during removeItem', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        throw new Error('Unexpected removeItem error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let removeSuccess;
+      await act(async () => {
+        removeSuccess = await result.current.removeItem('loadout-001', 'gear-001');
+      });
+
+      expect(removeSuccess).toBe(false);
+      expect(result.current.error).toBe('Unexpected removeItem error');
+    });
+
+    it('should handle updateItemState error gracefully', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Update item state failed' },
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedItem;
+      await act(async () => {
+        updatedItem = await result.current.updateItemState('loadout-001', 'gear-001', { quantity: 5 });
+      });
+
+      expect(updatedItem).toBeNull();
+      expect(result.current.error).toBe('Update item state failed');
+    });
+
+    it('should handle unexpected error during updateItemState', async () => {
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: null, error: null });
+      });
+      queryBuilder.single = vi.fn(() => {
+        throw new Error('Unexpected updateItemState error');
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedItem;
+      await act(async () => {
+        updatedItem = await result.current.updateItemState('loadout-001', 'gear-001', { quantity: 5 });
+      });
+
+      expect(updatedItem).toBeNull();
+      expect(result.current.error).toBe('Unexpected updateItemState error');
+    });
+  });
+
+  // ===========================================================================
+  // Update Loadout Branch Coverage Tests
+  // ===========================================================================
+
+  describe('updateLoadout Branch Coverage', () => {
+    it('should update all optional fields including tripDate', async () => {
+      const updatedLoadoutDb = {
+        ...mockLoadoutDbRows[0],
+        name: 'Updated Name',
+        description: 'Updated Description',
+        trip_date: '2024-07-01',
+        activity_types: ['camping', 'fishing'],
+        seasons: ['summer'],
+        updated_at: '2024-03-15T00:00:00Z',
+      };
+
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: [], error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({ data: updatedLoadoutDb, error: null });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedLoadout;
+      await act(async () => {
+        updatedLoadout = await result.current.updateLoadout('loadout-001', {
+          name: 'Updated Name',
+          description: 'Updated Description',
+          tripDate: new Date('2024-07-01'),
+          activityTypes: ['camping', 'fishing'],
+          seasons: ['summer'],
+        });
+      });
+
+      expect(updatedLoadout?.name).toBe('Updated Name');
+      expect(updatedLoadout?.description).toBe('Updated Description');
+      expect(updatedLoadout?.activityTypes).toEqual(['camping', 'fishing']);
+      expect(updatedLoadout?.seasons).toEqual(['summer']);
+    });
+
+    it('should handle clearing tripDate (null)', async () => {
+      const updatedLoadoutDb = {
+        ...mockLoadoutDbRows[0],
+        trip_date: null,
+        updated_at: '2024-03-15T00:00:00Z',
+      };
+
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: [], error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({ data: updatedLoadoutDb, error: null });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updatedLoadout;
+      await act(async () => {
+        updatedLoadout = await result.current.updateLoadout('loadout-001', {
+          tripDate: undefined,
+        });
+      });
+
+      expect(updatedLoadout?.tripDate).toBeNull();
+    });
+
+    it('should preserve items when updating loadout that exists in local state', async () => {
+      const updatedLoadoutDb = {
+        ...mockLoadoutDbRows[0],
+        name: 'Updated With Items',
+        updated_at: '2024-03-15T00:00:00Z',
+      };
+
+      const queryBuilder = createMockQueryBuilder();
+      let callCount = 0;
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount <= 2) {
+          return resolve({ data: callCount === 1 ? mockLoadoutDbRows : mockLoadoutItemsDbRows, error: null });
+        }
+        return resolve({ data: [], error: null });
+      });
+      queryBuilder.single = vi.fn().mockResolvedValue({ data: updatedLoadoutDb, error: null });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const originalItemCount = result.current.loadouts[0].items.length;
+      expect(originalItemCount).toBeGreaterThan(0);
+
+      let updatedLoadout;
+      await act(async () => {
+        updatedLoadout = await result.current.updateLoadout('loadout-001', {
+          name: 'Updated With Items',
+        });
+      });
+
+      // Items should be preserved from existing loadout
+      expect(updatedLoadout?.items).toHaveLength(originalItemCount);
+    });
+  });
+
+  // ===========================================================================
+  // Weight Calculation Branch Coverage
+  // ===========================================================================
+
+  describe('calculateWeight Branch Coverage', () => {
+    it('should calculate consumable weight correctly', async () => {
+      // Create loadout items with consumables
+      const itemsWithConsumables = [
+        ...mockLoadoutItemsDbRows,
+        {
+          id: 'li-005',
+          loadout_id: 'loadout-001',
+          gear_item_id: 'gear-food',
+          quantity: 2,
+          is_worn: false,
+          is_consumable: true,
+          created_at: '2024-01-15T00:00:00Z',
+        },
+      ];
+
+      let callCount = 0;
+      const queryBuilder = createMockQueryBuilder();
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          return resolve({ data: mockLoadoutDbRows, error: null });
+        } else {
+          return resolve({ data: itemsWithConsumables, error: null });
+        }
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const gearItems = new Map<string, number>([
+        ['gear-001', 1000],
+        ['gear-002', 500],
+        ['gear-003', 300],
+        ['gear-food', 250],
+      ]);
+
+      const summary = result.current.calculateWeight('loadout-001', gearItems);
+
+      // gear-003 is worn (300g), gear-food is consumable (500g = 250g * 2 quantity)
+      expect(summary.consumableWeight).toBe(500);
+      expect(summary.wornWeight).toBe(300);
+      expect(summary.totalWeight).toBe(2300); // 1000 + 500 + 300 + 500
+    });
+
+    it('should handle multiple worn and consumable items', async () => {
+      const complexItems = [
+        {
+          id: 'li-a',
+          loadout_id: 'loadout-001',
+          gear_item_id: 'gear-a',
+          quantity: 1,
+          is_worn: true,
+          is_consumable: false,
+          created_at: '2024-01-15T00:00:00Z',
+        },
+        {
+          id: 'li-b',
+          loadout_id: 'loadout-001',
+          gear_item_id: 'gear-b',
+          quantity: 3,
+          is_worn: false,
+          is_consumable: true,
+          created_at: '2024-01-15T00:00:00Z',
+        },
+        {
+          id: 'li-c',
+          loadout_id: 'loadout-001',
+          gear_item_id: 'gear-c',
+          quantity: 2,
+          is_worn: true,
+          is_consumable: true, // Both worn and consumable
+          created_at: '2024-01-15T00:00:00Z',
+        },
+      ];
+
+      let callCount = 0;
+      const queryBuilder = createMockQueryBuilder();
+      queryBuilder.then = vi.fn((resolve) => {
+        callCount++;
+        if (callCount === 1) {
+          return resolve({ data: mockLoadoutDbRows, error: null });
+        } else {
+          return resolve({ data: complexItems, error: null });
+        }
+      });
+      mockSupabaseClient.from.mockReturnValue(queryBuilder);
+
+      const { result } = renderHook(() => useLoadouts('user-123-uuid'));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const gearItems = new Map<string, number>([
+        ['gear-a', 100], // worn
+        ['gear-b', 50],  // consumable
+        ['gear-c', 75],  // worn + consumable
+      ]);
+
+      const summary = result.current.calculateWeight('loadout-001', gearItems);
+
+      // Total: 100 + 150 (50*3) + 150 (75*2) = 400
+      expect(summary.totalWeight).toBe(400);
+      // Worn: 100 + 150 = 250
+      expect(summary.wornWeight).toBe(250);
+      // Consumable: 150 (gear-b) + 150 (gear-c) = 300
+      expect(summary.consumableWeight).toBe(300);
     });
   });
 });

@@ -395,9 +395,11 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   }
 
   // Format catalog results
+  // NOTE: Treat weight_grams = 0 as invalid/missing data (no outdoor gear weighs 0g)
   const formattedProducts = products.map((product) => {
     const brand = product.catalog_brands ? `${product.catalog_brands.name} ` : '';
-    const weight = product.weight_grams ? ` - ${product.weight_grams}g` : '';
+    // Only show weight if > 0 (0 is invalid data, same as null)
+    const weight = product.weight_grams && product.weight_grams > 0 ? ` - ${product.weight_grams}g` : '';
     const price = product.price_usd ? ` - $${product.price_usd}` : '';
     const category = product.product_type || 'Uncategorized';
     const description = product.description ? `\n    ${product.description.substring(0, 150)}${product.description.length > 150 ? '...' : ''}` : '';

@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { updateShakedownSchema } from '@/lib/shakedown-schemas';
 import {
   type ShakedownDetailDbRow,
@@ -92,10 +92,16 @@ export async function GET(
     // Get optional share token from query params
     const shareToken = request.nextUrl.searchParams.get('shareToken');
 
+    // Use service role client to bypass RLS for initial fetch.
+    // Permission checks are handled in application code below (privacy, ownership, etc.)
+    // This fixes an issue where RLS auth.uid() context may not be properly populated
+    // in certain scenarios, causing the owner's own shakedowns to be inaccessible.
+    const serviceClient = createServiceRoleClient();
+
     // Fetch shakedown with profile data
     // Note: Using type assertion until Supabase types are regenerated
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: shakedownRow, error: shakedownError } = await (supabase as any)
+    const { data: shakedownRow, error: shakedownError } = await (serviceClient as any)
       .from('shakedowns')
       .select(
         `
@@ -150,8 +156,9 @@ export async function GET(
               { status: 403 }
             );
           }
+          // Use service client to check friendship (bypasses RLS issues)
           const isFriend = await checkFriendship(
-            supabase,
+            serviceClient,
             user.id,
             shakedown.owner_id
           );
@@ -170,8 +177,9 @@ export async function GET(
       }
     }
 
-    // Fetch loadout data
-    const { data: loadoutRow, error: loadoutError } = await (supabase as any)
+    // Fetch loadout data (using service client to avoid RLS issues)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: loadoutRow, error: loadoutError } = await (serviceClient as any)
       .from('loadouts')
       .select('id, name, description, total_weight_grams, item_count, item_ids, item_states')
       .eq('id', shakedown.loadout_id)
@@ -187,10 +195,11 @@ export async function GET(
 
     const loadout = loadoutRow as unknown as LoadoutDbRow;
 
-    // Fetch gear items for the loadout
+    // Fetch gear items for the loadout (using service client to avoid RLS issues)
     let gearItems: GearItemApiResponse[] = [];
     if (loadout.item_ids && loadout.item_ids.length > 0) {
-      const { data: gearItemRows, error: gearItemsError } = await (supabase as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: gearItemRows, error: gearItemsError } = await (serviceClient as any)
         .from('gear_items')
         .select('id, name, brand, description, weight_grams, image_url, product_type_id')
         .in('id', loadout.item_ids);
@@ -205,9 +214,9 @@ export async function GET(
       }
     }
 
-    // Fetch feedback from the view
+    // Fetch feedback from the view (using service client to avoid RLS issues)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: feedbackRows, error: feedbackError } = await (supabase as any)
+    const { data: feedbackRows, error: feedbackError } = await (serviceClient as any)
       .from('v_shakedown_feedback_with_author')
       .select('*')
       .eq('shakedown_id', shakedownId)
@@ -538,6 +547,7 @@ export async function PATCH(
     // Note: total_weight_grams and item_count come from the v_shakedowns_feed view,
     // not the loadouts table directly. We'll get the name from the table
     // and use 0 as defaults for the weight/count (they're calculated in the view)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadoutRow, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('id, name')

@@ -70,9 +70,17 @@ function QuantityBadge({ quantity, className }: QuantityBadgeProps) {
 interface StatusIconsProps {
   item: GearItem;
   className?: string;
+  translations: {
+    favourite: string;
+    forSale: string;
+    borrowable: string;
+    tradeable: string;
+    lent: string;
+    sold: string;
+  };
 }
 
-function StatusIcons({ item, className }: StatusIconsProps) {
+function StatusIcons({ item, className, translations }: StatusIconsProps) {
   const icons: React.ReactNode[] = [];
 
   // Heart icon for favourites
@@ -81,7 +89,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="favourite"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm"
-        title="Favourite"
+        title={translations.favourite}
       >
         <Heart className="h-3.5 w-3.5 text-white fill-white" />
       </div>
@@ -94,7 +102,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="for-sale"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm"
-        title="For Sale"
+        title={translations.forSale}
       >
         <DollarSign className="h-3.5 w-3.5 text-white" />
       </div>
@@ -107,7 +115,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="borrowable"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm"
-        title="Can be Borrowed"
+        title={translations.borrowable}
       >
         <HandHeart className="h-3.5 w-3.5 text-white" />
       </div>
@@ -120,7 +128,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="tradeable"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm"
-        title="Up for Trade"
+        title={translations.tradeable}
       >
         <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
       </div>
@@ -133,7 +141,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="lent"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm"
-        title="Currently Lent"
+        title={translations.lent}
       >
         <Recycle className="h-3.5 w-3.5 text-white" />
       </div>
@@ -146,7 +154,7 @@ function StatusIcons({ item, className }: StatusIconsProps) {
       <div
         key="sold"
         className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm"
-        title="Sold"
+        title={translations.sold}
       >
         <Tag className="h-3.5 w-3.5 text-white" />
       </div>
@@ -202,7 +210,18 @@ export function GearCard({
   communityAvailabilityLoading = false,
   onViewCommunityItem,
 }: GearCardProps) {
+  const t = useTranslations('GearDetail');
   const [imageError, setImageError] = useState(false);
+
+  // Prepare translations for StatusIcons
+  const statusTranslations = {
+    favourite: t('badges.favouriteTooltip'),
+    forSale: t('badges.forSaleTooltip'),
+    borrowable: t('badges.borrowableTooltip'),
+    tradeable: t('badges.tradeableTooltip'),
+    lent: t('badges.lentTooltip'),
+    sold: t('badges.soldTooltip'),
+  };
 
   // Feature 019: Use optimized image with Cloudinary transformations
   // Different widths for different view densities
@@ -268,7 +287,7 @@ export function GearCard({
             />
           )}
           {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
-          {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />}
+          {showAvailabilityMarkers && <StatusIcons item={item} translations={statusTranslations} className="absolute top-1 left-1 scale-75 origin-top-left" />}
           {/* Quantity Badge (Overlay top-right) - Feature 013 */}
           <QuantityBadge quantity={item.quantity} className="absolute top-1 right-1 scale-75 origin-top-right" />
         </div>
@@ -377,7 +396,7 @@ export function GearCard({
         )}
 
         {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
-        {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-2 left-2" />}
+        {showAvailabilityMarkers && <StatusIcons item={item} translations={statusTranslations} className="absolute top-2 left-2" />}
 
         {/* Quantity Badge (Overlay top-right) - Feature 013 */}
         <QuantityBadge quantity={item.quantity} className="absolute top-2 right-2" />
@@ -434,7 +453,7 @@ export function GearCard({
                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                      onClick={(e) => e.stopPropagation()}
                    >
-                     Visit website
+                     {t('labels.visitWebsite')}
                      <ExternalLink className="h-3 w-3" />
                    </a>
                  )}
@@ -514,7 +533,7 @@ export function GearCard({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-3.5 w-3.5" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Description</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">{t('labels.description')}</span>
                 </div>
                 {/* Fallback div if ScrollArea is missing, but prefer ScrollArea */}
                 <div className="h-24 overflow-y-auto pr-2 text-sm text-muted-foreground leading-relaxed custom-scrollbar">
@@ -528,7 +547,7 @@ export function GearCard({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
                   <StickyNote className="h-3.5 w-3.5" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">My Notes</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">{t('labels.myNotes')}</span>
                 </div>
                 <div className="max-h-20 overflow-y-auto pr-2 text-sm italic text-emerald-800 dark:text-emerald-300/80 bg-emerald-50/50 dark:bg-emerald-900/10 p-2 rounded-md border border-emerald-100 dark:border-emerald-900/20">
                   {item.notes}

@@ -10,6 +10,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Lock } from 'lucide-react';
@@ -32,6 +33,7 @@ interface ConversationViewProps {
  * Displays the message thread for a conversation.
  */
 export function ConversationView({ conversation }: ConversationViewProps) {
+  const t = useTranslations('Messaging.conversationView');
   const { user } = useSupabaseAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -70,10 +72,10 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       try {
         await send(content);
       } catch {
-        toast.error('Failed to send message');
+        toast.error(t('sendFailed'));
       }
     },
-    [send]
+    [send, t]
   );
 
   const handleSendWithMedia = useCallback(
@@ -86,16 +88,16 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       try {
         await sendWithMedia(content, messageType, mediaUrl, metadata);
       } catch {
-        toast.error('Failed to send message');
+        toast.error(t('sendFailed'));
       }
     },
-    [sendWithMedia]
+    [sendWithMedia, t]
   );
 
   const handleViewGear = useCallback((gearItemId: string) => {
     // TODO: Open gear detail modal
-    toast.info('Viewing gear item: ' + gearItemId);
-  }, []);
+    toast.info(t('viewingGearItem', { id: gearItemId }));
+  }, [t]);
 
   const handleReact = useCallback(
     async (messageId: string, emoji: ReactionEmoji) => {
@@ -115,10 +117,10 @@ export function ConversationView({ conversation }: ConversationViewProps) {
           await addReaction(messageId, userId, emoji);
         }
       } catch {
-        toast.error('Failed to update reaction');
+        toast.error(t('reactionFailed'));
       }
     },
-    [user, messages]
+    [user, messages, t]
   );
 
   const handleDelete = useCallback(
@@ -126,27 +128,27 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       try {
         if (forAll) {
           await deleteForAll(messageId);
-          toast.success('Message deleted for everyone');
+          toast.success(t('deleteForEveryoneSuccess'));
         } else {
           await deleteForMe(messageId);
-          toast.success('Message deleted');
+          toast.success(t('deleteSuccess'));
         }
       } catch {
-        toast.error('Failed to delete message');
+        toast.error(t('deleteFailed'));
       }
     },
-    [deleteForAll, deleteForMe]
+    [deleteForAll, deleteForMe, t]
   );
 
   const handleReport = useCallback((messageId: string) => {
     // TODO: Open report dialog
-    toast.info('Report feature coming soon');
+    toast.info(t('reportComingSoon'));
     console.log('Report message:', messageId);
-  }, []);
+  }, [t]);
 
   const handleCopy = useCallback(() => {
-    toast.success('Message copied to clipboard');
-  }, []);
+    toast.success(t('copiedToClipboard'));
+  }, [t]);
 
   // Check if conversation is blocked or privacy restricted
   const isPrivacyBlocked = false; // TODO: Check against privacy settings

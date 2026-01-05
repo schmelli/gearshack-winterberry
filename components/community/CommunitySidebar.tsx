@@ -67,7 +67,7 @@ export function CommunitySidebar({ className, collapsedOnMobile = true }: Commun
   const t = useTranslations('Community');
 
   return (
-    <aside className={cn('space-y-4', className)}>
+    <aside className={cn('space-y-6', className)}>
       {collapsedOnMobile ? (
         <>
           <CollapsibleSection title={t('panels.friends.title')} defaultOpen={true}>

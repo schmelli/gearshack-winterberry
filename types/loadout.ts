@@ -133,6 +133,19 @@ export interface Loadout {
   /** Per-item state for worn/consumable tracking (Feature: 007) */
   itemStates: LoadoutItemState[];
 
+  /** Whether this is a VIP curated loadout (visible to all users) - Feature: 052-vip-loadouts */
+  isVipLoadout?: boolean;
+
+  /** Source attribution for VIP loadouts - Feature: 052-vip-loadouts */
+  sourceAttribution?: {
+    /** Type of source (e.g., 'vip_curated') */
+    type: string;
+    /** Source URL (e.g., YouTube video link where VIP showed this loadout) */
+    url?: string;
+    /** When the source was last checked/verified */
+    checkedAt?: string;
+  } | null;
+
   /** Timestamp when loadout was created */
   createdAt: Date;
 

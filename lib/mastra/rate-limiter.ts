@@ -419,6 +419,17 @@ export async function checkAndIncrementRateLimit(
   userId: string,
   operationType: string
 ): Promise<RateLimitCheckResult> {
+  // TESTING: Bypass rate limiting if disabled via environment variable
+  if (process.env.DISABLE_RATE_LIMITING === 'true') {
+    console.log('[RATE LIMITER] BYPASSED - DISABLE_RATE_LIMITING=true');
+    return {
+      allowed: true,
+      limit: null,
+      remaining: null,
+      resetAt: calculateResetTime(), // Provide proper Date object
+    };
+  }
+
   const resetAt = calculateResetTime();
 
   // Validate operation type

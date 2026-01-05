@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import type { GearItem } from '@/types/gear';
 import {
   createItemsMap,
@@ -101,6 +102,7 @@ export interface UseDependencyPromptReturn {
 export function useDependencyPrompt(
   options: UseDependencyPromptOptions
 ): UseDependencyPromptReturn {
+  const t = useTranslations('DependencyPrompt');
   const { loadoutId, addItemToLoadout, currentLoadoutItemIds, allItems, canAddItem } =
     options;
 
@@ -296,13 +298,13 @@ export function useDependencyPrompt(
 
     if (addedCount > 0) {
       toast.success(
-        `Added ${triggeringItem.name} + ${addedCount} selected`,
+        t('addedWithDeps', { name: triggeringItem.name, count: addedCount }),
         {
           description: totalWeight > 0 ? formatWeightForDisplay(totalWeight) : undefined,
         }
       );
     } else {
-      toast.success(`Added ${triggeringItem.name}`, {
+      toast.success(t('addedItem', { name: triggeringItem.name }), {
         description:
           triggeringItem.weightGrams
             ? formatWeightForDisplay(triggeringItem.weightGrams)
@@ -316,6 +318,7 @@ export function useDependencyPrompt(
     pendingDependencies,
     safeAddItem,
     closeModal,
+    t,
   ]);
 
   /**
@@ -330,14 +333,14 @@ export function useDependencyPrompt(
       return;
     }
 
-    toast.success(`Added ${triggeringItem.name}`, {
+    toast.success(t('addedItem', { name: triggeringItem.name }), {
       description: triggeringItem.weightGrams
         ? formatWeightForDisplay(triggeringItem.weightGrams)
         : undefined,
     });
 
     closeModal();
-  }, [triggeringItem, safeAddItem, closeModal]);
+  }, [triggeringItem, safeAddItem, closeModal, t]);
 
   /**
    * Cancel the operation entirely (don't add anything)

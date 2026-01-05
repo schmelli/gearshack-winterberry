@@ -142,16 +142,15 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================================
--- Check Edit Window
+-- Check Edit Permissions
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION can_edit_bulletin_post(p_post_id UUID, p_user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
   v_author_id UUID;
-  v_created_at TIMESTAMPTZ;
 BEGIN
-  SELECT author_id, created_at INTO v_author_id, v_created_at
+  SELECT author_id INTO v_author_id
   FROM bulletin_posts
   WHERE id = p_post_id AND is_deleted = false;
 
@@ -159,9 +158,8 @@ BEGIN
     RETURN false; -- Post not found or deleted
   END IF;
 
-  -- Must be author and within 15-minute window
-  RETURN v_author_id = p_user_id
-    AND v_created_at > now() - INTERVAL '15 minutes';
+  -- Must be author (no time restriction)
+  RETURN v_author_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -170,4 +168,4 @@ COMMENT ON FUNCTION check_bulletin_rate_limit IS 'Atomic rate limit check for po
 COMMENT ON FUNCTION check_duplicate_bulletin_post IS 'Detect duplicate posts within 1 hour';
 COMMENT ON FUNCTION archive_old_bulletin_posts IS 'Nightly job to archive posts older than 90 days';
 COMMENT ON FUNCTION get_bulletin_rate_limit_status IS 'Get current rate limit usage for UI display';
-COMMENT ON FUNCTION can_edit_bulletin_post IS 'Check if user can edit post (15-min window)';
+COMMENT ON FUNCTION can_edit_bulletin_post IS 'Check if user can edit post (author check only)';

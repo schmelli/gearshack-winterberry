@@ -9,6 +9,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ export function ConversationSettings({
   onAddParticipant,
   onReport,
 }: ConversationSettingsProps) {
+  const t = useTranslations('Messaging.conversationSettings');
   const { muteConversation, archiveConversation, leaveGroup } = useConversations();
 
   const isGroup = conversation.conversation.type === 'group';
@@ -56,18 +58,18 @@ export function ConversationSettings({
   const handleMute = async () => {
     try {
       await muteConversation(conversation.conversation.id, !isMuted);
-      toast.success(isMuted ? 'Notifications enabled' : 'Notifications muted');
+      toast.success(isMuted ? t('notificationsEnabled') : t('notificationsMuted'));
     } catch {
-      toast.error('Failed to update notification settings');
+      toast.error(t('notificationFailed'));
     }
   };
 
   const handleArchive = async () => {
     try {
       await archiveConversation(conversation.conversation.id, !isArchived);
-      toast.success(isArchived ? 'Conversation restored' : 'Conversation archived');
+      toast.success(isArchived ? t('conversationRestored') : t('conversationArchived'));
     } catch {
-      toast.error('Failed to update archive status');
+      toast.error(t('archiveFailed'));
     }
   };
 
@@ -76,9 +78,9 @@ export function ConversationSettings({
 
     try {
       await leaveGroup(conversation.conversation.id);
-      toast.success('Left the group');
+      toast.success(t('leftGroup'));
     } catch {
-      toast.error('Failed to leave group');
+      toast.error(t('leaveGroupFailed'));
     }
   };
 
@@ -87,7 +89,7 @@ export function ConversationSettings({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
           <Settings className="h-4 w-4" />
-          <span className="sr-only">Conversation settings</span>
+          <span className="sr-only">{t('settingsAriaLabel')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -96,12 +98,12 @@ export function ConversationSettings({
           {isMuted ? (
             <>
               <Bell className="mr-2 h-4 w-4" />
-              Enable Notifications
+              {t('enableNotifications')}
             </>
           ) : (
             <>
               <BellOff className="mr-2 h-4 w-4" />
-              Mute Notifications
+              {t('muteNotifications')}
             </>
           )}
         </DropdownMenuItem>
@@ -111,12 +113,12 @@ export function ConversationSettings({
           {isArchived ? (
             <>
               <ArchiveRestore className="mr-2 h-4 w-4" />
-              Restore from Archive
+              {t('restoreFromArchive')}
             </>
           ) : (
             <>
               <Archive className="mr-2 h-4 w-4" />
-              Archive Conversation
+              {t('archiveConversation')}
             </>
           )}
         </DropdownMenuItem>
@@ -128,7 +130,7 @@ export function ConversationSettings({
             {isConversationAdmin && onAddParticipant && (
               <DropdownMenuItem onClick={onAddParticipant}>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Add Participant
+                {t('addParticipant')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -136,7 +138,7 @@ export function ConversationSettings({
               className="text-destructive focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Leave Group
+              {t('leaveGroup')}
             </DropdownMenuItem>
           </>
         )}
@@ -149,7 +151,7 @@ export function ConversationSettings({
             className="text-destructive focus:text-destructive"
           >
             <Flag className="mr-2 h-4 w-4" />
-            Report Conversation
+            {t('reportConversation')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

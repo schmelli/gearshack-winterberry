@@ -48,7 +48,8 @@ export const productPayloadSchema = z.object({
   product_type_id: z.string().uuid('product_type_id must be a valid UUID').nullable().optional(),
   description: z.string().max(5000, 'description must be max 5000 characters').nullable().optional(),
   price_usd: z.number().min(0).nullable().optional(),
-  weight_grams: z.number().min(0).nullable().optional(),
+  // Weight must be > 0 if provided (0g is invalid for outdoor gear, use null for unknown weight)
+  weight_grams: z.number().positive('weight_grams must be greater than 0 (use null for unknown)').nullable().optional(),
 });
 
 /**

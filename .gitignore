@@ -63,3 +63,6 @@ firebase-service-account.json
 # IDE
 .vscode/
 .idea/
+
+# Auto Claude data directory
+.auto-claude/

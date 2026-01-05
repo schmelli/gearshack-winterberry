@@ -25,10 +25,11 @@ export type VoiceOutputState =
   | 'paused'
   | 'error';
 
-export type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+// ElevenLabs voices (matching server validation)
+export type TTSVoice = 'rachel' | 'domi' | 'bella' | 'antoni' | 'josh' | 'adam';
 
 export interface VoiceOutputOptions {
-  /** Voice to use (default: 'nova') */
+  /** Voice to use (default: 'rachel') */
   voice?: TTSVoice;
   /** Playback speed 0.5-2.0 (default: 1.0) */
   speed?: number;
@@ -75,7 +76,7 @@ export interface UseVoiceOutputReturn {
 
 export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutputReturn {
   const {
-    voice = 'nova',
+    voice = 'rachel', // Default ElevenLabs voice (calm and warm)
     speed = 1.0,
     volume: initialVolume = 1.0,
     autoPlay = true,
@@ -151,17 +152,18 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
       setError(null);
       setState('loading');
 
-      // Fetch audio from TTS API
+      // Fetch audio from TTS API (ElevenLabs with streaming)
       const response = await fetch('/api/mastra/voice/synthesize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text,
-          voice,
-          model: 'tts-1', // Use fast model for lower latency
-          format: 'mp3',
-          speed,
-          stream: false, // Get full audio for better playback control
+          voice: voice || 'rachel', // Default to rachel if not specified
+          model: 'eleven_turbo_v2_5', // Fast ElevenLabs model for low latency
+          format: 'mp3_44100_128', // High quality MP3
+          stability: 0.5, // Balanced stability (0 = more expressive, 1 = more stable)
+          similarityBoost: 0.75, // Voice similarity boost
+          stream: true, // Enable streaming for near-real-time playback
         }),
       });
 
@@ -170,8 +172,34 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
         throw new Error(errorData.message || errorData.error || 'TTS synthesis failed');
       }
 
-      // Get audio blob
-      const audioBlob = await response.blob();
+      // Stream audio chunks for low-latency playback
+      // Read the stream and collect chunks
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      const chunks: Uint8Array[] = [];
+      let totalLength = 0;
+
+      // Read all chunks from the stream
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        totalLength += value.length;
+      }
+
+      // Combine chunks into a single blob
+      const audioData = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        audioData.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       objectUrlRef.current = audioUrl;
 

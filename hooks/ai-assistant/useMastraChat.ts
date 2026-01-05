@@ -16,6 +16,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
 
 // =====================================================
@@ -110,6 +111,8 @@ const DEFAULT_MAX_TOKENS = 2000;
 // =====================================================
 
 export function useMastraChat(): UseMastraChatResult {
+  const t = useTranslations('AIChat');
+
   // State
   const [messages, setMessages] = useState<MastraMessage[]>([]);
   const [state, setState] = useState<ChatState>('idle');
@@ -143,7 +146,7 @@ export function useMastraChat(): UseMastraChatResult {
       // Validate auth - cookie-based auth, just check user exists
       if (!user) {
         const authError: ChatError = {
-          message: 'Authentication required. Please sign in to use the AI assistant.',
+          message: t('errors.authRequired'),
           code: 'AUTH_REQUIRED',
           retryable: false,
         };
@@ -161,7 +164,7 @@ export function useMastraChat(): UseMastraChatResult {
 
       if (trimmedText.length > 10000) {
         const validationError: ChatError = {
-          message: 'Message too long. Maximum length is 10,000 characters.',
+          message: t('errors.messageTooLong'),
           code: 'VALIDATION_ERROR',
           retryable: false,
         };
@@ -218,6 +221,7 @@ export function useMastraChat(): UseMastraChatResult {
           message: trimmedText,
           conversationId,
           context: options?.context,
+          enableTools: true, // CRITICAL: Enable tool calling (queryUserData, searchCatalog, etc.)
           options: {
             stream: true,
             includeMemory: options?.includeMemory ?? true,
@@ -229,6 +233,7 @@ export function useMastraChat(): UseMastraChatResult {
           userId: user.uid,
           conversationId,
           messageLength: trimmedText.length,
+          enableTools: requestBody.enableTools,
         });
 
         // Make streaming request - uses cookie-based auth (credentials: 'include')
@@ -418,13 +423,13 @@ export function useMastraChat(): UseMastraChatResult {
    */
   const retryLastMessage = useCallback(async () => {
     if (!lastMessageRef.current) {
-      toast.error('No message to retry');
+      toast.error(t('noMessageToRetry'));
       return;
     }
 
     const { text, options } = lastMessageRef.current;
     await sendMessage(text, options);
-  }, [sendMessage]);
+  }, [sendMessage, t]);
 
   // Cleanup on unmount - CRITICAL for preventing memory leaks
   // Aborts in-flight requests when component unmounts

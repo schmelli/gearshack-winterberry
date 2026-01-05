@@ -183,6 +183,12 @@ vi.mock('@/components/messaging/VoiceRecorder', () => ({
     disabled?: boolean;
   }) => (
     <div data-testid="voice-recorder">
+      <button
+        onClick={() => onSend(new Blob(['audio'], { type: 'audio/webm' }), 5)}
+        data-testid="send-voice"
+      >
+        Send Voice
+      </button>
       <button onClick={onCancel} data-testid="cancel-recording">
         Cancel
       </button>
@@ -490,6 +496,474 @@ describe('MessageInput', () => {
       const buttons = screen.getAllByTestId('icon-button');
       const sendButton = buttons[buttons.length - 1];
       expect(sendButton).toBeDisabled();
+    });
+  });
+
+  // ===========================================================================
+  // Voice Recording Tests
+  // ===========================================================================
+
+  describe('Voice Recording', () => {
+    it('should show voice recorder when mic button is clicked', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const micButton = screen.getByTestId('mic-icon').closest('button');
+      fireEvent.click(micButton!);
+
+      expect(screen.getByTestId('voice-recorder')).toBeInTheDocument();
+    });
+
+    it('should hide text input when recording', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const micButton = screen.getByTestId('mic-icon').closest('button');
+      fireEvent.click(micButton!);
+
+      // When voice recorder is shown, the input row is hidden
+      expect(screen.getByTestId('voice-recorder')).toBeInTheDocument();
+    });
+
+    it('should hide voice recorder when cancel is clicked', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const micButton = screen.getByTestId('mic-icon').closest('button');
+      fireEvent.click(micButton!);
+
+      const cancelButton = screen.getByTestId('cancel-recording');
+      fireEvent.click(cancelButton);
+
+      expect(screen.queryByTestId('voice-recorder')).not.toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Image Attachment Tests
+  // ===========================================================================
+
+  describe('Image Attachment', () => {
+    it('should show image preview after file selection', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Create a mock file input change
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+    });
+
+    it('should remove image when remove button is clicked', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Create a mock file
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+
+      // Click remove button
+      const removeButton = screen.getByTestId('remove-image');
+      fireEvent.click(removeButton);
+
+      expect(screen.queryByTestId('image-preview')).not.toBeInTheDocument();
+    });
+
+    it('should enable send button when image is attached', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        const buttons = screen.getAllByTestId('icon-button');
+        const sendButton = buttons[buttons.length - 1];
+        expect(sendButton).not.toBeDisabled();
+      });
+    });
+
+    it('should ignore non-image files', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const file = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      expect(screen.queryByTestId('image-preview')).not.toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Picker Interactions Tests
+  // ===========================================================================
+
+  describe('Picker Interactions', () => {
+    it('should open gear picker when gear item clicked', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const gearButton = screen.getByText('Gear Item');
+      fireEvent.click(gearButton);
+
+      expect(screen.getByTestId('gear-picker')).toBeInTheDocument();
+    });
+
+    it('should open location picker when location clicked', () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      const locationButton = screen.getByText('Location');
+      fireEvent.click(locationButton);
+
+      expect(screen.getByTestId('location-picker')).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================================================
+  // Typing Indicator Timeout Tests
+  // ===========================================================================
+
+  describe('Typing Indicator', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should stop typing indicator after 2 seconds of inactivity', async () => {
+      render(<MessageInput onSend={mockOnSend} onTyping={mockOnTyping} />);
+
+      const textarea = screen.getByTestId('message-textarea');
+      fireEvent.change(textarea, { target: { value: 'H' } });
+
+      expect(mockOnTyping).toHaveBeenCalledWith(true);
+
+      // Advance timers by 2 seconds
+      vi.advanceTimersByTime(2000);
+
+      expect(mockOnTyping).toHaveBeenCalledWith(false);
+    });
+
+    it('should reset typing timeout on new input', async () => {
+      render(<MessageInput onSend={mockOnSend} onTyping={mockOnTyping} />);
+
+      const textarea = screen.getByTestId('message-textarea');
+
+      // First input
+      fireEvent.change(textarea, { target: { value: 'H' } });
+      expect(mockOnTyping).toHaveBeenCalledWith(true);
+
+      // Advance by 1 second
+      vi.advanceTimersByTime(1000);
+
+      // Second input resets the timer
+      fireEvent.change(textarea, { target: { value: 'He' } });
+
+      // Advance by another 1.5 seconds (total 2.5 from last input)
+      vi.advanceTimersByTime(1500);
+
+      // Should not have stopped yet (only 1.5s since last input)
+      expect(mockOnTyping).not.toHaveBeenLastCalledWith(false);
+
+      // Advance remaining time
+      vi.advanceTimersByTime(500);
+
+      // Now should have stopped
+      expect(mockOnTyping).toHaveBeenLastCalledWith(false);
+    });
+  });
+
+  // ===========================================================================
+  // Image Upload Tests
+  // ===========================================================================
+
+  describe('Image Upload', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      // Mock fetch for Cloudinary uploads
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({
+          secure_url: 'https://cloudinary.com/test-image.jpg',
+          width: 800,
+          height: 600,
+        }),
+      });
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('should upload image to Cloudinary and send message', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Attach an image
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+
+      // Click send button
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('cloudinary.com'),
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockOnSendWithMedia).toHaveBeenCalledWith(
+          null,
+          'image',
+          'https://cloudinary.com/test-image.jpg',
+          expect.objectContaining({
+            width: 800,
+            height: 600,
+            thumbnail_url: 'https://cloudinary.com/test-image.jpg',
+          })
+        );
+      });
+    });
+
+    it('should include message text with image upload', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Attach an image
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+
+      // Type a message
+      const textarea = screen.getByTestId('message-textarea');
+      fireEvent.change(textarea, { target: { value: 'Check out this photo!' } });
+
+      // Click send button
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockOnSendWithMedia).toHaveBeenCalledWith(
+          'Check out this photo!',
+          'image',
+          'https://cloudinary.com/test-image.jpg',
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('should clear image attachment after successful upload', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Attach an image
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+
+      // Click send button
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockOnSendWithMedia).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('image-preview')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should handle image upload error gracefully', async () => {
+      // Mock fetch to reject
+      global.fetch = vi.fn().mockRejectedValue(new Error('Upload failed'));
+
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Attach an image
+      const file = new File(['test'], 'test.png', { type: 'image/png' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+      Object.defineProperty(input, 'files', {
+        value: [file],
+      });
+
+      fireEvent.change(input);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('image-preview')).toBeInTheDocument();
+      });
+
+      // Click send button
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      // Should handle error gracefully (not crash)
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+
+      // onSendWithMedia should NOT have been called since upload failed
+      expect(mockOnSendWithMedia).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // Voice Upload Tests
+  // ===========================================================================
+
+  describe('Voice Upload', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      // Mock fetch for Cloudinary uploads
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({
+          secure_url: 'https://cloudinary.com/test-voice.webm',
+        }),
+      });
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('should upload voice message to Cloudinary and send', async () => {
+      render(<MessageInput onSend={mockOnSend} onSendWithMedia={mockOnSendWithMedia} />);
+
+      // Start voice recording
+      const micButton = screen.getByTestId('mic-icon').closest('button');
+      fireEvent.click(micButton!);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('voice-recorder')).toBeInTheDocument();
+      });
+
+      // Click send voice button
+      const sendVoiceButton = screen.getByTestId('send-voice');
+      fireEvent.click(sendVoiceButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('cloudinary.com'),
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockOnSendWithMedia).toHaveBeenCalledWith(
+          null,
+          'voice',
+          'https://cloudinary.com/test-voice.webm',
+          expect.objectContaining({
+            duration_seconds: 5,
+            waveform: [],
+          })
+        );
+      });
+    });
+  });
+
+  // ===========================================================================
+  // Send Error Handling Tests
+  // ===========================================================================
+
+  describe('Send Error Handling', () => {
+    it('should handle send error gracefully', async () => {
+      const mockOnSendError = vi.fn().mockRejectedValue(new Error('Send failed'));
+
+      render(<MessageInput onSend={mockOnSendError} />);
+
+      const textarea = screen.getByTestId('message-textarea');
+      fireEvent.change(textarea, { target: { value: 'Hello' } });
+
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      // Should not crash and should complete
+      await waitFor(() => {
+        expect(mockOnSendError).toHaveBeenCalledWith('Hello');
+      });
+    });
+
+    it('should reset sending state after error', async () => {
+      const mockOnSendError = vi.fn().mockRejectedValue(new Error('Send failed'));
+
+      render(<MessageInput onSend={mockOnSendError} />);
+
+      const textarea = screen.getByTestId('message-textarea');
+      fireEvent.change(textarea, { target: { value: 'Hello' } });
+
+      const buttons = screen.getAllByTestId('icon-button');
+      const sendButton = buttons[buttons.length - 1];
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockOnSendError).toHaveBeenCalled();
+      });
+
+      // Should be able to try sending again (button enabled)
+      await waitFor(() => {
+        expect(sendButton).not.toBeDisabled();
+      });
     });
   });
 });

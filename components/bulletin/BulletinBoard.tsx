@@ -59,10 +59,15 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
   const hasActiveFilters = activeTag !== null || searchQuery.length > 0;
 
   // Post operations
-  const { createPost, deletePost, operationState } = usePosts();
+  const { createPost, updatePost: updatePostMutation, deletePost, operationState } = usePosts();
 
   // UI state
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<{
+    id: string;
+    content: string;
+    tag: import('@/types/bulletin').PostTag | null;
+  } | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<{
     id: string;
@@ -164,8 +169,90 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
     [createPost, currentUser, addPostOptimistically, t]
   );
 
+  // Handle post update
+  const handleUpdatePost = useCallback(
+    async (data: CreatePostSchema) => {
+      if (!editingPost) return;
+
+      try {
+        const updated = await updatePostMutation(editingPost.id, {
+          content: data.content,
+          tag: data.tag,
+        });
+
+        if (updated) {
+          // Update local state with new content
+          updatePost(editingPost.id, {
+            content: updated.content,
+            tag: updated.tag,
+            updated_at: updated.updated_at,
+          });
+          toast.success(t('success.postUpdated'));
+          setEditingPost(null);
+        }
+      } catch (error) {
+        // Handle specific error types with appropriate UI feedback
+        if (isPostError(error)) {
+          switch (error.type) {
+            case 'rate_limit':
+              toast.error(
+                t('errors.rateLimitPosts', {
+                  limit: BULLETIN_CONSTANTS.DAILY_POST_LIMIT,
+                })
+              );
+              break;
+            case 'banned':
+              toast.error(t('errors.banned'));
+              break;
+            case 'edit_window_expired':
+              toast.error(t('errors.editWindowExpired'));
+              break;
+          }
+        } else {
+          toast.error(t('errors.updateFailed'));
+        }
+      }
+    },
+    [editingPost, updatePostMutation, updatePost, t]
+  );
+
+  // Combined submit handler for create/update
+  const handleComposerSubmit = useCallback(
+    async (data: CreatePostSchema) => {
+      if (editingPost) {
+        await handleUpdatePost(data);
+      } else {
+        await handleCreatePost(data);
+      }
+    },
+    [editingPost, handleUpdatePost, handleCreatePost]
+  );
+
+  // Handle composer close
+  const handleComposerClose = useCallback(() => {
+    setIsComposerOpen(false);
+    setEditingPost(null);
+  }, []);
+
   // Display posts (use initial if available and no local state yet)
   const displayPosts = posts.length > 0 ? posts : initialPosts ?? [];
+
+  // Handle post edit request (opens composer in edit mode)
+  const handleEditRequest = useCallback(
+    (postId: string) => {
+      const allPosts = posts.length > 0 ? posts : initialPosts ?? [];
+      const post = allPosts.find((p) => p.id === postId);
+      if (post) {
+        setEditingPost({
+          id: post.id,
+          content: post.content,
+          tag: post.tag,
+        });
+        setIsComposerOpen(true);
+      }
+    },
+    [posts, initialPosts]
+  );
 
   // Handle post deletion request (shows confirmation)
   const handleDeleteRequest = useCallback(
@@ -268,10 +355,7 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
               key={post.id}
               post={post}
               currentUserId={currentUser?.id}
-              onEdit={(id) => {
-                // TODO: Implement edit modal
-                console.log('Edit post:', id);
-              }}
+              onEdit={handleEditRequest}
               onDelete={handleDeleteRequest}
               onReport={(id) => setReportTarget({ id, type: 'post' })}
               onToggleReplies={handleToggleReplies}
@@ -313,9 +397,10 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
       {/* Post composer modal */}
       <PostComposer
         isOpen={isComposerOpen}
-        onClose={() => setIsComposerOpen(false)}
-        onSubmit={handleCreatePost}
+        onClose={handleComposerClose}
+        onSubmit={handleComposerSubmit}
         isSubmitting={operationState === 'loading'}
+        editPost={editingPost ?? undefined}
       />
 
       {/* Report modal */}

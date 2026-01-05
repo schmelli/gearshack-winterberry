@@ -706,4 +706,340 @@ describe('useWishlist', () => {
       expect(mockFetchWishlistItems).toHaveBeenCalledTimes(2);
     });
   });
+
+  // ===========================================================================
+  // Additional Sort Option Tests
+  // ===========================================================================
+
+  describe('Additional Sort Options', () => {
+    it('should sort items by name Z-A (nameDesc)', async () => {
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setSortOption('nameDesc');
+      });
+
+      // Should be sorted Z-A
+      expect(result.current.filteredItems[0].name).toBe('Zpacks Duplex');
+      expect(result.current.filteredItems[1].name).toBe('Nemo Tensor Insulated');
+      expect(result.current.filteredItems[2].name).toBe('Katabatic Palisade 15');
+    });
+
+    it('should sort items by category', async () => {
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setSortOption('category');
+      });
+
+      // Items should be sorted by category label
+      // This will use the mock getParentCategoryIds which returns the first part before '-'
+      expect(result.current.filteredItems.length).toBe(3);
+      // Categories are: shelter, sleep, sleep - should be sorted alphabetically
+      expect(result.current.filteredItems[0].productTypeId?.startsWith('shelter')).toBe(true);
+    });
+
+    it('should sort items by dateAddedOldest', async () => {
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setSortOption('dateAddedOldest');
+      });
+
+      // Should be sorted oldest first
+      expect(result.current.filteredItems[0].id).toBe('wish-003'); // Feb 15
+      expect(result.current.filteredItems[1].id).toBe('wish-001'); // Mar 1
+      expect(result.current.filteredItems[2].id).toBe('wish-002'); // Mar 2
+    });
+
+    it('should load sort option from sessionStorage', async () => {
+      mockSessionStorage['gearshack-wishlist-sort-option'] = 'weight';
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.sortOption).toBe('weight');
+    });
+
+    it('should handle weight sort with null values', async () => {
+      // Add an item with null weight
+      const itemsWithNullWeight = [
+        ...mockWishlistItems,
+        {
+          ...mockWishlistItems[0],
+          id: 'wish-004',
+          name: 'Unknown Weight Item',
+          weightGrams: null,
+          createdAt: new Date('2024-03-03T00:00:00Z'),
+          updatedAt: new Date('2024-03-03T00:00:00Z'),
+        },
+      ];
+      mockFetchWishlistItems.mockResolvedValue(itemsWithNullWeight);
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setSortOption('weight');
+      });
+
+      // Null weight items should be sorted last
+      expect(result.current.filteredItems[result.current.filteredItems.length - 1].weightGrams).toBeNull();
+    });
+
+    it('should handle weight sort with both items having null weight', async () => {
+      const itemsWithNullWeights = [
+        {
+          ...mockWishlistItems[0],
+          id: 'wish-a',
+          name: 'Item A',
+          weightGrams: null,
+        },
+        {
+          ...mockWishlistItems[0],
+          id: 'wish-b',
+          name: 'Item B',
+          weightGrams: null,
+        },
+      ];
+      mockFetchWishlistItems.mockResolvedValue(itemsWithNullWeights);
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setSortOption('weight');
+      });
+
+      // Both null - should maintain relative order
+      expect(result.current.filteredItems).toHaveLength(2);
+    });
+  });
+
+  // ===========================================================================
+  // Error Handling Tests
+  // ===========================================================================
+
+  describe('Error Handling', () => {
+    it('should handle removeFromWishlist error', async () => {
+      mockDeleteWishlistItem.mockRejectedValue(new Error('Delete failed'));
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.removeFromWishlist('wish-001');
+        })
+      ).rejects.toThrow('Delete failed');
+    });
+
+    it('should handle updateWishlistItem error', async () => {
+      mockUpdateWishlistItem.mockRejectedValue(new Error('Update failed'));
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.updateWishlistItem('wish-001', { name: 'Updated' });
+        })
+      ).rejects.toThrow('Update failed');
+    });
+
+    it('should handle moveToInventory error', async () => {
+      mockMoveWishlistItemToInventory.mockRejectedValue(new Error('Move failed'));
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.moveToInventory('wish-001');
+        })
+      ).rejects.toThrow('Move failed');
+    });
+
+    it('should handle non-Error thrown during fetch', async () => {
+      mockFetchWishlistItems.mockRejectedValue('String error');
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('Failed to load wishlist');
+    });
+
+    it('should handle non-Error thrown during add', async () => {
+      mockAddWishlistItem.mockRejectedValue('String error');
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.addToWishlist({
+            name: 'Test',
+            brand: null,
+            modelNumber: null,
+            description: null,
+            brandUrl: null,
+            productUrl: null,
+            productTypeId: null,
+            weightGrams: null,
+            weightDisplayUnit: 'g',
+            lengthCm: null,
+            widthCm: null,
+            heightCm: null,
+            size: null,
+            color: null,
+            volumeLiters: null,
+            materials: null,
+            tentConstruction: null,
+            pricePaid: null,
+            currency: null,
+            purchaseDate: null,
+            retailer: null,
+            retailerUrl: null,
+            primaryImageUrl: null,
+            galleryImageUrls: [],
+            condition: 'new',
+            notes: null,
+            quantity: 1,
+            isFavourite: false,
+            isForSale: false,
+            canBeBorrowed: false,
+            canBeTraded: false,
+            dependencyIds: [],
+          });
+        })
+      ).rejects.toBe('String error');
+    });
+
+    it('should handle non-Error thrown during remove', async () => {
+      mockDeleteWishlistItem.mockRejectedValue('String error');
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.removeFromWishlist('wish-001');
+        })
+      ).rejects.toBe('String error');
+    });
+
+    it('should handle non-Error thrown during update', async () => {
+      mockUpdateWishlistItem.mockRejectedValue('String error');
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.updateWishlistItem('wish-001', { name: 'Updated' });
+        })
+      ).rejects.toBe('String error');
+    });
+
+    it('should handle non-Error thrown during move', async () => {
+      mockMoveWishlistItemToInventory.mockRejectedValue('String error');
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.moveToInventory('wish-001');
+        })
+      ).rejects.toBe('String error');
+    });
+
+    it('should handle moveToInventory when item not found in local state', async () => {
+      mockMoveWishlistItemToInventory.mockResolvedValue({
+        ...mockWishlistItems[0],
+        status: 'own',
+      });
+
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Try to move an item that doesn't exist
+      await act(async () => {
+        await result.current.moveToInventory('non-existent-id');
+      });
+
+      // Should still complete without error, using 'Item' as default name
+      expect(mockMoveWishlistItemToInventory).toHaveBeenCalledWith('non-existent-id');
+    });
+  });
+
+  // ===========================================================================
+  // Category Filter Tests
+  // ===========================================================================
+
+  describe('Category Filtering', () => {
+    it('should filter items by category', async () => {
+      const { result } = renderHook(() => useWishlist());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      act(() => {
+        result.current.setCategoryFilter('shelter');
+      });
+
+      // Should only show shelter items (our mock derives category from productTypeId)
+      expect(result.current.filteredItems).toHaveLength(1);
+      expect(result.current.filteredItems[0].productTypeId).toBe('shelter-tent');
+    });
+  });
 });

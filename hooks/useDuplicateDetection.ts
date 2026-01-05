@@ -13,6 +13,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import type { GearItemFormData } from '@/types/gear';
 import {
@@ -79,6 +80,7 @@ export function useDuplicateDetection(
   options: UseDuplicateDetectionOptions = {}
 ): UseDuplicateDetectionReturn {
   const { redirectPath = '/inventory' } = options;
+  const t = useTranslations('DuplicateDetection');
 
   const router = useRouter();
   const allItems = useStore((state) => state.items);
@@ -152,7 +154,7 @@ export function useDuplicateDetection(
    */
   const onIncreaseQuantity = useCallback(async () => {
     if (!bestMatch) {
-      toast.error('No matching item found');
+      toast.error(t('noMatchingItem'));
       return;
     }
 
@@ -169,18 +171,18 @@ export function useDuplicateDetection(
       });
 
       toast.success(
-        `Updated quantity to ${newQuantity} for "${existingItem.name}"`
+        t('quantityUpdated', { quantity: newQuantity, name: existingItem.name })
       );
 
       closeDialog();
       router.push(redirectPath);
     } catch (error) {
       console.error('Failed to increase quantity:', error);
-      toast.error('Failed to update quantity');
+      toast.error(t('updateFailed'));
     } finally {
       setIsIncreasingQuantity(false);
     }
-  }, [bestMatch, updateItem, closeDialog, router, redirectPath]);
+  }, [bestMatch, updateItem, closeDialog, router, redirectPath, t]);
 
   /**
    * Reset the proceed flag after the parent has handled it

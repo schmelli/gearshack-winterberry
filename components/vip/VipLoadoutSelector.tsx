@@ -120,7 +120,7 @@ export function VipLoadoutSelector({
         <div className="flex items-center border-b px-3">
           <Search className="h-4 w-4 text-muted-foreground mr-2" />
           <Input
-            placeholder="Search VIPs and loadouts..."
+            placeholder={t('searchVipsPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -136,7 +136,7 @@ export function VipLoadoutSelector({
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <Backpack className="h-8 w-8 text-muted-foreground/50 mb-2" />
               <p className="text-sm text-muted-foreground">
-                No loadouts found
+                {t('noVipsFound')}
               </p>
             </div>
           ) : (

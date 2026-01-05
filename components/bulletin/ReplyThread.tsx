@@ -12,7 +12,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
 import { Loader2, Reply, MoreHorizontal, Trash2, Flag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useReplies, isPostError } from '@/hooks/bulletin';
 import { ReplyComposer } from './ReplyComposer';
+import { RichContentRenderer } from './RichContentRenderer';
 import { BULLETIN_CONSTANTS, type ReplyNode } from '@/types/bulletin';
 
 interface ReplyThreadProps {
@@ -192,25 +192,8 @@ function ReplyItem({
             <span className="text-xs text-muted-foreground">{timeAgo}</span>
           </div>
 
-          <div className="mt-1 text-sm prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              allowedElements={['p', 'strong', 'em', 'a']}
-              unwrapDisallowed
-              components={{
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {reply.content}
-            </ReactMarkdown>
+          <div className="mt-1">
+            <RichContentRenderer content={reply.content} className="text-sm" />
           </div>
 
           {/* Actions */}

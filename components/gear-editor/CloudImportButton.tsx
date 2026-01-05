@@ -15,6 +15,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CldUploadWidget } from 'next-cloudinary';
 import type { CloudinaryUploadWidgetResults } from 'next-cloudinary';
 import { Cloud, Loader2 } from 'lucide-react';
@@ -46,6 +47,7 @@ export function CloudImportButton({
   itemId,
   disabled = false,
 }: CloudImportButtonProps) {
+  const t = useTranslations('GearEditor.cloudImport');
   // Track loading state for widget operations
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,19 +67,19 @@ export function CloudImportButton({
         onUpload(secureUrl);
 
         // Show success toast
-        toast.success('Image imported successfully', {
-          description: 'Cloud image has been added to your gear item',
+        toast.success(t('importSuccess'), {
+          description: t('importSuccessDescription'),
         });
       } else {
         // Edge case: info object exists but no secure_url
-        toast.error('Upload failed', {
-          description: 'No image URL received from Cloudinary',
+        toast.error(t('uploadFailed'), {
+          description: t('noUrlReceived'),
         });
       }
     } else {
       // Edge case: result.info is missing or invalid
-      toast.error('Upload failed', {
-        description: 'Invalid response from Cloudinary widget',
+      toast.error(t('uploadFailed'), {
+        description: t('invalidResponse'),
       });
     }
   };
@@ -98,7 +100,7 @@ export function CloudImportButton({
     }
 
     // Show error toast
-    toast.error('Import failed', {
+    toast.error(t('importFailed'), {
       description: errorMessage,
     });
 
@@ -155,12 +157,12 @@ export function CloudImportButton({
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Opening...
+              {t('opening')}
             </>
           ) : (
             <>
               <Cloud className="w-4 h-4 mr-2" />
-              Import from Cloud
+              {t('buttonLabel')}
             </>
           )}
         </Button>

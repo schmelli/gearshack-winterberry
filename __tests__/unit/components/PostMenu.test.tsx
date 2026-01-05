@@ -260,17 +260,21 @@ describe('PostMenu', () => {
       expect(editButton).not.toBeDisabled();
     });
 
-    it('should disable edit when canEdit is false', () => {
+    it('should render edit button regardless of canEdit prop (unlimited edit window)', () => {
+      // Component design: "Authors can edit their posts at any time"
       render(<PostMenu {...defaultProps} isAuthor={true} canEdit={false} />);
 
-      const editButton = screen.getByText('Edit (expired)').closest('button');
-      expect(editButton).toBeDisabled();
+      // Edit is always available - no disabled state
+      const editButton = screen.getByText('Edit');
+      expect(editButton).toBeInTheDocument();
     });
 
-    it('should show expired text when edit window passed', () => {
+    it('should always show regular Edit text (no expiry state)', () => {
+      // The component doesn't implement edit expiry
       render(<PostMenu {...defaultProps} isAuthor={true} canEdit={false} />);
 
-      expect(screen.getByText('Edit (expired)')).toBeInTheDocument();
+      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.queryByText('Edit (expired)')).not.toBeInTheDocument();
     });
   });
 
@@ -306,15 +310,16 @@ describe('PostMenu', () => {
       expect(onReport).toHaveBeenCalledTimes(1);
     });
 
-    it('should not call onEdit when disabled', () => {
+    it('should call onEdit even when canEdit is false (unlimited edit)', () => {
+      // Component design: Authors can always edit, canEdit doesn't disable the button
       const onEdit = vi.fn();
       render(<PostMenu {...defaultProps} isAuthor={true} canEdit={false} onEdit={onEdit} />);
 
-      const editButton = screen.getByText('Edit (expired)').closest('button');
+      const editButton = screen.getByText('Edit').closest('button');
       if (editButton) fireEvent.click(editButton);
 
-      // Disabled buttons don't trigger onClick
-      expect(onEdit).not.toHaveBeenCalled();
+      // Edit is always clickable
+      expect(onEdit).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -330,11 +335,12 @@ describe('PostMenu', () => {
       expect(screen.getByText('Open menu')).toHaveClass('sr-only');
     });
 
-    it('should have aria-disabled on disabled edit', () => {
+    it('should not have aria-disabled on edit (always editable)', () => {
+      // Component design: Authors can always edit, no disabled state
       render(<PostMenu {...defaultProps} isAuthor={true} canEdit={false} />);
 
-      const editButton = screen.getByText('Edit (expired)').closest('button');
-      expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      const editButton = screen.getByText('Edit').closest('button');
+      expect(editButton).not.toHaveAttribute('aria-disabled');
     });
 
     it('should align dropdown to end', () => {

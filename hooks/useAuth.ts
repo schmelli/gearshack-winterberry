@@ -9,6 +9,7 @@
 
 import { useSupabaseAuth } from './useSupabaseAuth';
 import type { User } from '@supabase/supabase-js';
+import type { SignOutResult } from './useSupabaseAuth';
 
 // =============================================================================
 // Types
@@ -18,6 +19,7 @@ export interface UseAuthReturn {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  signOut: () => Promise<SignOutResult>;
 }
 
 // =============================================================================
@@ -25,12 +27,13 @@ export interface UseAuthReturn {
 // =============================================================================
 
 export function useAuth(): UseAuthReturn {
-  const { user, isLoading } = useSupabaseAuth();
+  const { user, isLoading, signOut } = useSupabaseAuth();
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
+    signOut,
   };
 }
 

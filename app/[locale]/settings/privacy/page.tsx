@@ -30,7 +30,7 @@ function PrivacySettingsContent() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/settings" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Back to Settings
+            {t('common.backToSettings')}
           </Link>
         </Button>
       </div>
@@ -42,8 +42,8 @@ function PrivacySettingsContent() {
 
       <Tabs defaultValue="social" className="mt-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="social">Social Privacy</TabsTrigger>
-          <TabsTrigger value="messaging">Messaging</TabsTrigger>
+          <TabsTrigger value="social">{t('privacy.tabs.social')}</TabsTrigger>
+          <TabsTrigger value="messaging">{t('privacy.tabs.messaging')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="social" className="mt-4">
@@ -55,9 +55,9 @@ function PrivacySettingsContent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Blocked Users</CardTitle>
+              <CardTitle>{t('privacy.blocked.title')}</CardTitle>
               <CardDescription>
-                Manage users you have blocked. Blocked users cannot message you or find you in search.
+                {t('privacy.blocked.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>

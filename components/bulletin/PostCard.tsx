@@ -10,7 +10,7 @@
  * content, tag badge, reply count, and actions menu.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
@@ -21,7 +21,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PostMenu } from './PostMenu';
 import { LinkedContentPreview } from './LinkedContentPreview';
+import { RichContentRenderer } from './RichContentRenderer';
 import type { BulletinPostWithAuthor, PostTag } from '@/types/bulletin';
+import { POST_TAGS } from '@/types/bulletin';
 
 interface PostCardProps {
   post: BulletinPostWithAuthor;
@@ -62,29 +64,7 @@ export function PostCard({
     addSuffix: true,
   });
   const isEdited = post.updated_at !== post.created_at;
-
-  // Check if within edit window (15 minutes)
-  const [canEdit, setCanEdit] = useState(() => {
-    if (!isAuthor) return false;
-    const createdAt = new Date(post.created_at).getTime();
-    const editWindowMs = 15 * 60 * 1000;
-    const postAge = Date.now() - createdAt;
-    return postAge < editWindowMs;
-  });
-
-  // Re-check periodically in case window expires while viewing
-  useEffect(() => {
-    if (!isAuthor) return;
-    const createdAt = new Date(post.created_at).getTime();
-    const editWindowMs = 15 * 60 * 1000;
-    const interval = setInterval(() => {
-      const postAge = Date.now() - createdAt;
-      if (postAge >= editWindowMs) {
-        setCanEdit(false);
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [isAuthor, post.created_at]);
+  const canEdit = isAuthor; // Authors can edit their posts anytime
 
   if (post.is_deleted) {
     return (
@@ -135,16 +115,17 @@ export function PostCard({
               variant="secondary"
               className={cn('text-xs', TAG_COLORS[post.tag])}
             >
-              {t(`tags.${post.tag.replace('_', '')}`)}
+              {t(POST_TAGS.find((tag) => tag.value === post.tag)?.labelKey ?? 'tags.other')}
             </Badge>
           </div>
         )}
 
         {/* Content */}
         <div className="mt-3">
-          <div className="max-h-32 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
-            {post.content}
-          </div>
+          <RichContentRenderer
+            content={post.content}
+            className="max-h-48 overflow-y-auto text-sm leading-relaxed"
+          />
         </div>
 
         {/* Linked content preview */}

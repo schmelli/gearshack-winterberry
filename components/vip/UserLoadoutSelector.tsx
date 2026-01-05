@@ -123,7 +123,7 @@ export function UserLoadoutSelector({
         <div className="flex items-center border-b px-3">
           <Search className="h-4 w-4 text-muted-foreground mr-2" />
           <Input
-            placeholder="Search loadouts..."
+            placeholder={t('searchLoadoutsPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -141,7 +141,7 @@ export function UserLoadoutSelector({
               <p className="text-sm text-muted-foreground">
                 {loadouts.length === 0
                   ? t('noLoadouts')
-                  : 'No loadouts match your search'}
+                  : t('noLoadoutsFound')}
               </p>
             </div>
           ) : (

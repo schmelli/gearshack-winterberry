@@ -9,7 +9,7 @@
  * Handles post creation, update, and deletion with optimistic updates.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   createBulletinPost,
@@ -46,7 +46,8 @@ interface UsePostsReturn {
 }
 
 export function usePosts(): UsePostsReturn {
-  const supabase = createClient();
+  // Memoize Supabase client to prevent useCallback recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const [operationState, setOperationState] =
     useState<PostOperationState>('idle');
@@ -164,7 +165,7 @@ export function usePosts(): UsePostsReturn {
 }
 
 /**
- * Type guard to check if error is a PostError (rate limit, duplicate, or banned)
+ * Type guard to check if error is a PostError (rate limit, duplicate, banned, or edit window expired)
  */
 export function isPostError(error: unknown): error is PostError {
   return (
@@ -173,6 +174,7 @@ export function isPostError(error: unknown): error is PostError {
     'type' in error &&
     (error.type === 'rate_limit' ||
       error.type === 'duplicate' ||
-      error.type === 'banned')
+      error.type === 'banned' ||
+      error.type === 'edit_window_expired')
   );
 }

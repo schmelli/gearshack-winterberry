@@ -7,6 +7,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,29 +43,34 @@ export function CategoryDeleteDialog({
   onConfirm,
   isLoading,
 }: CategoryDeleteDialogProps) {
+  const t = useTranslations('Admin.categories');
+  const tCommon = useTranslations('Common');
+
   if (!category) return null;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Category</AlertDialogTitle>
+          <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
-            <p>
-              Are you sure you want to delete <strong>{category.label}</strong>?
-            </p>
+            <p
+              dangerouslySetInnerHTML={{
+                __html: t('confirmDeleteMessage', { category: category.label }),
+              }}
+            />
             {category.level < 3 && (
               <p className="text-destructive">
-                ⚠️ You must delete all child categories first. Categories with children cannot be deleted.
+                ⚠️ {t('cannotDeleteChildrenWarning')}
               </p>
             )}
             <p className="text-sm text-muted-foreground">
-              This action cannot be undone. The category will be permanently removed from the database.
+              {t('deleteWarning')}
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{tCommon('cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -73,7 +79,7 @@ export function CategoryDeleteDialog({
             disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isLoading ? 'Deleting...' : 'Delete'}
+            {isLoading ? tCommon('deleting') : tCommon('delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

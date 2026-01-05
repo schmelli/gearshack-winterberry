@@ -114,12 +114,12 @@ export function LoadoutList({
     return (
       <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8">
         <Package className="mb-4 h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-medium">Your pack is empty</p>
+        <p className="text-lg font-medium">{t('emptyState.title')}</p>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Browse your gear inventory on the left and click &quot;Add&quot; to start building your loadout.
+          {t('emptyState.description')}
         </p>
         <p className="mt-4 hidden text-center text-xs text-muted-foreground md:block">
-          Tip: Click the donut chart segments to filter by category
+          {t('clickToDrillDown')}
         </p>
       </div>
     );
@@ -300,7 +300,7 @@ function LoadoutListItem({
                   className="shrink-0 text-amber-500"
                   onClick={(e) => e.stopPropagation()}
                   role="img"
-                  aria-label="Lighter alternative available"
+                  aria-label={t('itemActions.lighterAlternativeAvailable')}
                 >
                   <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 </span>
@@ -354,12 +354,13 @@ interface WornToggleProps {
 }
 
 function WornToggle({ pressed, onPressedChange }: WornToggleProps) {
+  const t = useTranslations('Loadouts.itemActions');
   return (
     <Toggle
       pressed={pressed}
       onPressedChange={onPressedChange}
       size="sm"
-      aria-label="Mark as worn"
+      aria-label={t('markAsWorn')}
       className={cn(
         'h-8 w-8 data-[state=on]:bg-primary/20 data-[state=on]:text-primary',
         'hover:bg-muted'
@@ -380,12 +381,13 @@ interface ConsumableToggleProps {
 }
 
 function ConsumableToggle({ pressed, onPressedChange }: ConsumableToggleProps) {
+  const t = useTranslations('Loadouts.itemActions');
   return (
     <Toggle
       pressed={pressed}
       onPressedChange={onPressedChange}
       size="sm"
-      aria-label="Mark as consumable"
+      aria-label={t('markAsConsumable')}
       className={cn(
         'h-8 w-8 data-[state=on]:bg-accent/20 data-[state=on]:text-accent',
         'hover:bg-muted'
