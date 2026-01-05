@@ -32,7 +32,7 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
     notifications,
     unreadCount,
     markAsRead,
-    refetch,
+    deleteAllEnrichmentNotifications,
   } = useNotifications(userId);
   const router = useRouter();
 
@@ -104,13 +104,12 @@ export function NotificationMenu({ userId, className }: NotificationMenuProps) {
 
   /**
    * Handle when all enrichment proposals are resolved
-   * Deletes all enrichment notifications and refetches
+   * Deletes all enrichment notifications from the database and local state
    */
   const handleAllEnrichmentResolved = useCallback(async () => {
-    // Refetch to update the notification list
-    // The individual notifications should have been deleted by the API
-    await refetch();
-  }, [refetch]);
+    // Delete all enrichment notifications when all suggestions are resolved
+    await deleteAllEnrichmentNotifications();
+  }, [deleteAllEnrichmentNotifications]);
 
   // Don't render if no user
   if (!userId) {

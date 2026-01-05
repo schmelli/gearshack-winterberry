@@ -41,6 +41,7 @@ interface UseNotificationsResult {
     suggestionId: string,
     action: 'accept' | 'dismiss'
   ) => Promise<EnrichmentActionResult>;
+  deleteAllEnrichmentNotifications: () => Promise<void>;
 }
 
 /**
@@ -239,6 +240,41 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
     [notifications]
   );
 
+  /**
+   * Deletes all enrichment notifications for the current user.
+   * Used when all enrichment suggestions have been processed in the modal.
+   */
+  const deleteAllEnrichmentNotifications = useCallback(async () => {
+    if (!userId) return;
+
+    // Optimistically remove all enrichment notifications from local state
+    const enrichmentIds = notifications
+      .filter((n) => n.type === 'gear_enrichment')
+      .map((n) => n.id);
+
+    if (enrichmentIds.length === 0) return;
+
+    setNotifications((prev) => prev.filter((n) => n.type !== 'gear_enrichment'));
+
+    try {
+      // Delete all enrichment notifications from database
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .eq('type', 'gear_enrichment');
+
+      if (error) {
+        console.error('[useNotifications] Failed to delete enrichment notifications:', error);
+        // Refetch to restore correct state
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error('[useNotifications] Error deleting enrichment notifications:', error);
+      await fetchNotifications();
+    }
+  }, [userId, notifications, supabase, fetchNotifications]);
+
   return {
     notifications,
     unreadCount,
@@ -247,5 +283,6 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
     markAsRead,
     refetch: fetchNotifications,
     processEnrichmentAction,
+    deleteAllEnrichmentNotifications,
   };
 }
