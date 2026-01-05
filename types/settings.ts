@@ -85,6 +85,20 @@ export interface DisplayPreferences {
 }
 
 // =============================================================================
+// Navigation Preferences
+// =============================================================================
+
+/**
+ * Start page options for after-login redirect
+ * Community Section Restructure
+ */
+export type StartPage = 'inventory' | 'loadouts' | 'community';
+
+export interface NavigationPreferences {
+  startPage: StartPage;
+}
+
+// =============================================================================
 // Notification Preferences
 // =============================================================================
 
@@ -154,6 +168,9 @@ export interface UserPreferences {
   reduceAnimations: boolean;
   showWeightBreakdown: boolean;
 
+  // Navigation (Community Section Restructure)
+  startPage: StartPage;
+
   // Notifications
   notificationPreferences: NotificationPreferences;
 }
@@ -180,6 +197,7 @@ export interface UserPreferencesRow {
   display_density: DisplayDensity;
   reduce_animations: boolean;
   show_weight_breakdown: boolean;
+  start_page: StartPage;
   notification_preferences: NotificationPreferences;
 }
 
@@ -244,6 +262,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   displayDensity: 'comfortable',
   reduceAnimations: false,
   showWeightBreakdown: true,
+  startPage: 'inventory',
   notificationPreferences: {
     push: {
       price_alerts: true,

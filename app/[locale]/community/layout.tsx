@@ -4,15 +4,17 @@
  * Feature: Community Hub Enhancement
  *
  * Shared layout for all community pages:
- * - Board (Bulletin Board)
+ * - Dashboard (Bulletin Board)
  * - Shakedowns
  * - VIP Loadouts (Merchant Loadouts)
  * - Marketplace
+ * - Wiki
  *
- * Provides consistent navigation tabs across all community sub-sections.
+ * Community Section Restructure:
+ * - Navigation tabs removed - navigation now handled by header dropdown menu
+ * - Provides consistent styling and global modals for community sub-sections
  */
 
-import { CommunityNavTabs } from '@/components/community/CommunityNavTabs';
 import { VipProfileModal } from '@/components/vip/VipProfileModal';
 
 interface CommunityLayoutProps {
@@ -22,14 +24,6 @@ interface CommunityLayoutProps {
 export default function CommunityLayout({ children }: CommunityLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Tabs - sticky below main header */}
-      {/* z-40 is correct: tabs appear below main header (z-50) per CLAUDE.md hierarchy */}
-      <div className="sticky top-0 z-40">
-        <div className="container mx-auto px-4">
-          <CommunityNavTabs />
-        </div>
-      </div>
-
       {/* Page Content */}
       {children}
 

@@ -1,5 +1,8 @@
 /**
  * Navigation types for the App Shell components.
+ *
+ * Community Section Restructure
+ * - Added NavItemWithChildren for dropdown menus
  */
 
 /**
@@ -24,6 +27,15 @@ export interface NavItem {
 
   /** Optional icon component (lucide-react) */
   icon?: React.ComponentType<{ className?: string }>;
+}
+
+/**
+ * Represents a navigation item that can have child items for dropdowns.
+ * Extends NavItem with optional children array for sub-navigation.
+ */
+export interface NavItemWithChildren extends NavItem {
+  /** Optional child navigation items for dropdown menus */
+  children?: NavItem[];
 }
 
 /**

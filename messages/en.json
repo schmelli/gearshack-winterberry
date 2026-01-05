@@ -3,7 +3,11 @@
     "inventory": "Inventory",
     "loadouts": "Loadouts",
     "community": "Community",
+    "communityDashboard": "Dashboard",
     "shakedowns": "Shakedowns",
+    "vipLoadouts": "VIP Loadouts",
+    "marketplace": "Marketplace",
+    "wiki": "Wiki",
     "login": "Login",
     "signOut": "Sign out",
     "profile": "Profile",
@@ -717,6 +721,22 @@
       "updateFailed": "Failed to update image",
       "imageDeleted": "Image deleted",
       "deleteFailed": "Failed to delete image"
+    }
+  },
+  "Community": {
+    "dashboard": {
+      "recentShakedowns": {
+        "title": "Recent Shakedowns",
+        "description": "New in the last 7 days"
+      },
+      "newListings": {
+        "title": "New Listings",
+        "description": "Marketplace activity this week"
+      },
+      "wikiUpdates": {
+        "title": "Wiki Updates",
+        "description": "Recent edits and additions"
+      }
     }
   },
   "Shakedown": {
@@ -2406,6 +2426,17 @@
         "weightBreakdown": {
           "label": "Show Weight Breakdown",
           "description": "Display detailed weight breakdown in loadouts."
+        }
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "Customize your navigation experience.",
+        "startPage": {
+          "label": "Start Page",
+          "description": "Choose which page to show after logging in.",
+          "inventory": "Inventory",
+          "loadouts": "Loadouts",
+          "community": "Community"
         }
       }
     },

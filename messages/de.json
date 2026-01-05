@@ -3,7 +3,11 @@
     "inventory": "Inventar",
     "loadouts": "Packlisten",
     "community": "Community",
+    "communityDashboard": "Dashboard",
     "shakedowns": "Shakedowns",
+    "vipLoadouts": "VIP Packlisten",
+    "marketplace": "Marktplatz",
+    "wiki": "Wiki",
     "login": "Anmelden",
     "signOut": "Abmelden",
     "profile": "Profil",
@@ -717,6 +721,22 @@
       "updateFailed": "Aktualisierung fehlgeschlagen",
       "imageDeleted": "Bild gelöscht",
       "deleteFailed": "Löschen fehlgeschlagen"
+    }
+  },
+  "Community": {
+    "dashboard": {
+      "recentShakedowns": {
+        "title": "Aktuelle Shakedowns",
+        "description": "Neu in den letzten 7 Tagen"
+      },
+      "newListings": {
+        "title": "Neue Angebote",
+        "description": "Marktplatz-Aktivität diese Woche"
+      },
+      "wikiUpdates": {
+        "title": "Wiki-Updates",
+        "description": "Letzte Bearbeitungen und Ergänzungen"
+      }
     }
   },
   "Shakedown": {
@@ -2406,6 +2426,17 @@
         "weightBreakdown": {
           "label": "Gewichtsaufschlüsselung anzeigen",
           "description": "Detaillierte Gewichtsaufschlüsselung in Loadouts anzeigen."
+        }
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "Passen Sie Ihre Navigationserfahrung an.",
+        "startPage": {
+          "label": "Startseite",
+          "description": "Wählen Sie die Seite, die nach der Anmeldung angezeigt wird.",
+          "inventory": "Inventar",
+          "loadouts": "Packlisten",
+          "community": "Community"
         }
       }
     },

@@ -4,6 +4,9 @@
  * Feature: settings-update
  * Provides appearance settings including theme, display density, and animations.
  * This is the default settings page shown when navigating to /settings.
+ *
+ * Community Section Restructure:
+ * Added start page navigation preference.
  */
 
 'use client';
@@ -16,7 +19,7 @@ import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingItem } from '@/components/settings/SettingItem';
 import { useUserPreferences } from '@/hooks/settings/useUserPreferences';
-import type { DisplayDensity } from '@/types/settings';
+import type { DisplayDensity, StartPage } from '@/types/settings';
 
 export default function SettingsAppearancePage() {
   const t = useTranslations('settings.appearance');
@@ -32,6 +35,10 @@ export default function SettingsAppearancePage() {
 
   const handleWeightBreakdownChange = (checked: boolean) => {
     updatePreference('showWeightBreakdown', checked);
+  };
+
+  const handleStartPageChange = (value: string) => {
+    updatePreference('startPage', value as StartPage);
   };
 
   return (
@@ -92,6 +99,40 @@ export default function SettingsAppearancePage() {
             disabled={isLoading}
           />
         </SettingItem>
+      </SettingsSection>
+
+      {/* Navigation Section - Community Section Restructure */}
+      <SettingsSection title={t('navigation.title')} description={t('navigation.description')}>
+        {/* Start Page */}
+        <div className="space-y-3">
+          <Label>{t('navigation.startPage.label')}</Label>
+          <p className="text-sm text-muted-foreground">{t('navigation.startPage.description')}</p>
+          <RadioGroup
+            value={preferences.startPage}
+            onValueChange={handleStartPageChange}
+            className="flex flex-col gap-3"
+            disabled={isLoading}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="inventory" id="start-inventory" />
+              <Label htmlFor="start-inventory" className="font-normal cursor-pointer">
+                {t('navigation.startPage.inventory')}
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="loadouts" id="start-loadouts" />
+              <Label htmlFor="start-loadouts" className="font-normal cursor-pointer">
+                {t('navigation.startPage.loadouts')}
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="community" id="start-community" />
+              <Label htmlFor="start-community" className="font-normal cursor-pointer">
+                {t('navigation.startPage.community')}
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
       </SettingsSection>
     </div>
   );

@@ -16,6 +16,7 @@
 import { AnnouncementsBanner } from '@/components/community/AnnouncementsBanner';
 import { BannerCarousel } from '@/components/community/BannerCarousel';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
+import { DashboardSummaryCards } from '@/components/community/DashboardSummaryCards';
 import type { CommunityHubProps } from '@/types/community';
 
 interface CommunityHubLayoutProps extends CommunityHubProps {
@@ -36,6 +37,11 @@ export function CommunityHub({
       {/* Announcements Banner */}
       <div className="container mx-auto px-4 pt-2">
         <AnnouncementsBanner announcements={initialAnnouncements} />
+      </div>
+
+      {/* Dashboard Summary Cards */}
+      <div className="container mx-auto px-4 pt-4">
+        <DashboardSummaryCards />
       </div>
 
       {/* Main Content Area */}

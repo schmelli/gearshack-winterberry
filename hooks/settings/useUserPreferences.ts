@@ -61,6 +61,7 @@ function rowToPreferences(row: Partial<UserPreferencesRow>): Partial<UserPrefere
     displayDensity: row.display_density,
     reduceAnimations: row.reduce_animations,
     showWeightBreakdown: row.show_weight_breakdown,
+    startPage: row.start_page,
     notificationPreferences: row.notification_preferences,
   };
 }
@@ -87,6 +88,7 @@ function keyToColumn(key: keyof UserPreferences): string {
     displayDensity: 'display_density',
     reduceAnimations: 'reduce_animations',
     showWeightBreakdown: 'show_weight_breakdown',
+    startPage: 'start_page',
     notificationPreferences: 'notification_preferences',
   };
   return mapping[key];
@@ -138,6 +140,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           display_density,
           reduce_animations,
           show_weight_breakdown,
+          start_page,
           notification_preferences
         `
         )

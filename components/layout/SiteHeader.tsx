@@ -28,12 +28,19 @@
 // T025: Replace next/link with locale-aware Link from i18n/navigation
 import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Mail } from 'lucide-react';
+import { Mail, ChevronDown } from 'lucide-react';
 // T022: Import useTranslations hook
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
+import type { NavItemWithChildren } from '@/types/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
@@ -153,9 +160,58 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
         {/* Desktop navigation (right side) - FR-021: baseline alignment via items-baseline */}
         {/* T005: Larger nav font (text-lg font-bold) */}
+        {/* Community Section Restructure: Items with children render as dropdown menus */}
         <nav className="ml-auto hidden items-baseline gap-8 md:flex">
-          {MAIN_NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+          {MAIN_NAV_ITEMS.map((item: NavItemWithChildren) => {
+            const isActive = pathname === item.href ||
+              (item.children && item.children.some(child => pathname.startsWith(child.href)));
+
+            // Items with children render as dropdown
+            if (item.children && item.children.length > 0) {
+              return (
+                <DropdownMenu key={item.href}>
+                  <DropdownMenuTrigger
+                    className={cn(
+                      'flex items-center gap-1 text-lg font-bold text-white transition-colors hover:text-white/80 focus:outline-none',
+                      item.enabled
+                        ? isActive
+                          ? 'border-b-2 border-white'
+                          : ''
+                        : 'pointer-events-none opacity-50'
+                    )}
+                    disabled={!item.enabled}
+                  >
+                    {t(item.translationKey as keyof IntlMessages['Navigation'])}
+                    <ChevronDown className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {item.children.map((child) => {
+                      const Icon = child.icon;
+                      const isChildActive = pathname === child.href ||
+                        (child.href !== '/community' && pathname.startsWith(child.href));
+                      return (
+                        <DropdownMenuItem
+                          key={child.href}
+                          asChild
+                          className={cn(
+                            'cursor-pointer',
+                            isChildActive && 'bg-accent'
+                          )}
+                          disabled={!child.enabled}
+                        >
+                          <Link href={child.href} className="flex items-center gap-2">
+                            {Icon && <Icon className="h-4 w-4" />}
+                            {t(child.translationKey as keyof IntlMessages['Navigation'])}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+
+            // Regular nav items without children
             return (
               <Link
                 key={item.href}
