@@ -52,7 +52,9 @@ function formatPrice(
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(price);
-  } catch {
+  } catch (error) {
+    // Log error for debugging but gracefully fallback
+    console.warn(`Failed to format price ${price} with currency ${currency}:`, error);
     // Fallback for invalid currency codes
     return `${currency || '$'}${price.toFixed(2)}`;
   }

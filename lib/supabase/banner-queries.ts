@@ -17,6 +17,9 @@ import type {
 } from '@/types/banner';
 
 type SupabaseClientType = SupabaseClient<Database>;
+type BannerRow = Database['public']['Tables']['community_banners']['Row'];
+type BannerInsert = Database['public']['Tables']['community_banners']['Insert'];
+type BannerUpdate = Database['public']['Tables']['community_banners']['Update'];
 
 // ============================================================================
 // Transform Functions
@@ -26,54 +29,69 @@ type SupabaseClientType = SupabaseClient<Database>;
  * Transform database row to CommunityBanner type
  * Handles snake_case to camelCase conversion
  */
-function transformBanner(row: Record<string, unknown>): CommunityBanner {
+function transformBanner(row: BannerRow): CommunityBanner {
   return {
-    id: row.id as string,
-    heroImageUrl: row.hero_image_url as string,
-    ctaText: row.cta_text as string,
-    buttonText: row.button_text as string,
-    targetUrl: row.target_url as string,
-    visibilityStart: row.visibility_start as string,
-    visibilityEnd: row.visibility_end as string,
-    displayOrder: row.display_order as number,
-    isActive: row.is_active as boolean,
-    createdBy: row.created_by as string | null,
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
+    id: row.id,
+    heroImageUrl: row.hero_image_url,
+    ctaText: row.cta_text,
+    buttonText: row.button_text,
+    targetUrl: row.target_url,
+    visibilityStart: row.visibility_start,
+    visibilityEnd: row.visibility_end,
+    displayOrder: row.display_order,
+    isActive: row.is_active,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
 /**
- * Transform CommunityBanner input to database row format
+ * Transform CreateBannerInput to database insert format
  * Handles camelCase to snake_case conversion
  */
-function transformToDbFormat(
-  input: CreateBannerInput | UpdateBannerInput
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+function transformToInsertFormat(input: CreateBannerInput): BannerInsert {
+  return {
+    hero_image_url: input.heroImageUrl,
+    cta_text: input.ctaText,
+    button_text: input.buttonText,
+    target_url: input.targetUrl,
+    visibility_start: input.visibilityStart,
+    visibility_end: input.visibilityEnd,
+    display_order: input.displayOrder ?? 0,
+    is_active: input.isActive ?? true,
+  };
+}
 
-  if ('heroImageUrl' in input && input.heroImageUrl !== undefined) {
+/**
+ * Transform UpdateBannerInput to database update format
+ * Handles camelCase to snake_case conversion with partial updates
+ */
+function transformToUpdateFormat(input: UpdateBannerInput): BannerUpdate {
+  const result: BannerUpdate = {};
+
+  if (input.heroImageUrl !== undefined) {
     result.hero_image_url = input.heroImageUrl;
   }
-  if ('ctaText' in input && input.ctaText !== undefined) {
+  if (input.ctaText !== undefined) {
     result.cta_text = input.ctaText;
   }
-  if ('buttonText' in input && input.buttonText !== undefined) {
+  if (input.buttonText !== undefined) {
     result.button_text = input.buttonText;
   }
-  if ('targetUrl' in input && input.targetUrl !== undefined) {
+  if (input.targetUrl !== undefined) {
     result.target_url = input.targetUrl;
   }
-  if ('visibilityStart' in input && input.visibilityStart !== undefined) {
+  if (input.visibilityStart !== undefined) {
     result.visibility_start = input.visibilityStart;
   }
-  if ('visibilityEnd' in input && input.visibilityEnd !== undefined) {
+  if (input.visibilityEnd !== undefined) {
     result.visibility_end = input.visibilityEnd;
   }
-  if ('displayOrder' in input && input.displayOrder !== undefined) {
+  if (input.displayOrder !== undefined) {
     result.display_order = input.displayOrder;
   }
-  if ('isActive' in input && input.isActive !== undefined) {
+  if (input.isActive !== undefined) {
     result.is_active = input.isActive;
   }
 
@@ -107,9 +125,7 @@ export async function fetchActiveBanners(
     throw new Error(`Failed to fetch active banners: ${error.message}`);
   }
 
-  const banners = (data ?? []).map((row) =>
-    transformBanner(row as unknown as Record<string, unknown>)
-  );
+  const banners = (data ?? []).map(transformBanner);
 
   return { banners };
 }
@@ -143,9 +159,7 @@ export async function fetchAllBanners(
     throw new Error(`Failed to fetch banners: ${error.message}`);
   }
 
-  return (data ?? []).map((row) =>
-    transformBanner(row as unknown as Record<string, unknown>)
-  );
+  return (data ?? []).map(transformBanner);
 }
 
 /**
@@ -168,7 +182,7 @@ export async function getBanner(
     throw new Error(`Failed to fetch banner: ${error.message}`);
   }
 
-  return transformBanner(data as unknown as Record<string, unknown>);
+  return transformBanner(data);
 }
 
 // ============================================================================
@@ -183,11 +197,11 @@ export async function createBanner(
   supabase: SupabaseClientType,
   input: CreateBannerInput
 ): Promise<CommunityBanner> {
-  const dbData = transformToDbFormat(input);
+  const dbData = transformToInsertFormat(input);
 
   const { data, error } = await supabase
     .from('community_banners')
-    .insert(dbData as any)
+    .insert(dbData)
     .select()
     .single();
 
@@ -201,7 +215,7 @@ export async function createBanner(
     throw new Error(`Failed to create banner: ${error.message}`);
   }
 
-  return transformBanner(data as unknown as Record<string, unknown>);
+  return transformBanner(data);
 }
 
 /**
@@ -213,11 +227,11 @@ export async function updateBanner(
   id: string,
   input: UpdateBannerInput
 ): Promise<CommunityBanner> {
-  const dbData = transformToDbFormat(input);
+  const dbData = transformToUpdateFormat(input);
 
   const { data, error } = await supabase
     .from('community_banners')
-    .update(dbData as any)
+    .update(dbData)
     .eq('id', id)
     .select()
     .single();
@@ -235,7 +249,7 @@ export async function updateBanner(
     throw new Error(`Failed to update banner: ${error.message}`);
   }
 
-  return transformBanner(data as unknown as Record<string, unknown>);
+  return transformBanner(data);
 }
 
 /**

@@ -63,6 +63,10 @@ export function MarketplaceGrid({
   );
 
   // Set up IntersectionObserver for infinite scroll
+  // Dependencies: loadingState, hasMore, onLoadMore
+  // - loadingState: recreate observer when transitioning back to 'idle' state
+  // - hasMore: stop observing when no more items to load
+  // - onLoadMore: callback function to trigger loading (should be stable)
   useEffect(() => {
     // Disconnect existing observer
     if (observerRef.current) {

@@ -137,7 +137,7 @@ export function BannerCarousel() {
                 {/* Background image */}
                 <Image
                   src={banner.heroImageUrl}
-                  alt={banner.ctaText}
+                  alt={`${banner.ctaText} - ${banner.buttonText}`}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 1200px) 100vw, 1200px"

@@ -18,6 +18,7 @@ import type {
 import { MARKETPLACE_CONSTANTS } from '@/types/marketplace';
 
 type SupabaseClientType = SupabaseClient<Database>;
+type MarketplaceView = Database['public']['Views']['v_marketplace_listings']['Row'];
 
 // ============================================================================
 // Type Mapping
@@ -42,6 +43,21 @@ const sortFieldToColumn: Record<string, string> = {
 };
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Escape special characters in ILIKE pattern to prevent SQL injection
+ * Escapes: % (wildcard), _ (single char wildcard), \ (escape char)
+ */
+function escapeILikePattern(pattern: string): string {
+  return pattern
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/%/g, '\\%')   // Escape % wildcards
+    .replace(/_/g, '\\_');  // Escape _ wildcards
+}
+
+// ============================================================================
 // Transform Functions
 // ============================================================================
 
@@ -49,22 +65,22 @@ const sortFieldToColumn: Record<string, string> = {
  * Transform database row to MarketplaceListing type
  * Handles snake_case to camelCase conversion
  */
-function transformListing(row: Record<string, unknown>): MarketplaceListing {
+function transformListing(row: MarketplaceView): MarketplaceListing {
   return {
-    id: row.id as string,
-    name: row.name as string,
-    brand: row.brand as string | null,
-    primaryImageUrl: row.primary_image_url as string | null,
-    condition: row.condition as string,
-    pricePaid: row.price_paid as number | null,
-    currency: row.currency as string | null,
-    isForSale: row.is_for_sale as boolean,
-    canBeTraded: row.can_be_traded as boolean,
-    canBeBorrowed: row.can_be_borrowed as boolean,
-    listedAt: row.listed_at as string,
-    sellerId: row.seller_id as string,
-    sellerName: row.seller_name as string,
-    sellerAvatar: row.seller_avatar as string | null,
+    id: row.id,
+    name: row.name,
+    brand: row.brand,
+    primaryImageUrl: row.primary_image_url,
+    condition: row.condition,
+    pricePaid: row.price_paid,
+    currency: row.currency,
+    isForSale: row.is_for_sale,
+    canBeTraded: row.can_be_traded,
+    canBeBorrowed: row.can_be_borrowed,
+    listedAt: row.listed_at,
+    sellerId: row.seller_id,
+    sellerName: row.seller_name,
+    sellerAvatar: row.seller_avatar,
   };
 }
 
@@ -114,7 +130,7 @@ export async function fetchMarketplaceListings(
 
   // Apply search filter
   if (search && search.trim()) {
-    const searchTerm = search.trim();
+    const searchTerm = escapeILikePattern(search.trim());
     query = query.or(`name.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`);
   }
 
@@ -143,9 +159,7 @@ export async function fetchMarketplaceListings(
     rawListings.pop();
   }
 
-  const listings = rawListings.map((row) =>
-    transformListing(row as unknown as Record<string, unknown>)
-  );
+  const listings = rawListings.map(transformListing);
 
   // Compute next cursor from last item
   const nextCursor =
@@ -179,5 +193,5 @@ export async function getMarketplaceListing(
     throw new Error(`Failed to fetch listing: ${error.message}`);
   }
 
-  return transformListing(data as unknown as Record<string, unknown>);
+  return transformListing(data);
 }

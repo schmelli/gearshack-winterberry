@@ -188,7 +188,9 @@ export function getNumberFormat(locale: string, currency: CurrencyCode): Intl.Nu
 export function formatPriceLocale(amount: number, currency: CurrencyCode, locale = 'en'): string {
   try {
     return getNumberFormat(locale, currency).format(amount);
-  } catch {
+  } catch (error) {
+    // Log error for debugging but gracefully fallback
+    console.warn(`Failed to format price with locale ${locale} and currency ${currency}:`, error);
     // Fallback to simple formatting
     return formatPrice(amount, currency);
   }
