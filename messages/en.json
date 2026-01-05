@@ -11,6 +11,22 @@
     "openMenu": "Open menu",
     "messages": "Messages"
   },
+  "Messages": {
+    "title": "Messages",
+    "description": "Your conversations with other users",
+    "empty": {
+      "title": "No conversations yet",
+      "description": "Start a conversation from the marketplace or user profiles."
+    },
+    "unnamedGroup": "Unnamed Group",
+    "unknownUser": "Unknown User",
+    "muted": "Muted",
+    "mediaMessage": "Media message",
+    "conversation": {
+      "noMessages": "No messages yet. Send the first message!",
+      "placeholder": "Type a message..."
+    }
+  },
   "Notifications": {
     "title": "Notifications",
     "unread": "unread",
@@ -2637,9 +2653,14 @@
       "messageButton": "Message Seller",
       "viewProfile": "View Profile"
     },
+    "modal": {
+      "listed": "Listed",
+      "seller": "Seller"
+    },
     "empty": "No listings match your filters",
     "emptyHint": "Try adjusting your filters or check back later.",
     "error": "Failed to load listings",
+    "retry": "Try again",
     "loadMore": "Load more",
     "loading": "Loading listings...",
     "endOfListings": "You've reached the end of the listings"

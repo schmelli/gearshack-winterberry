@@ -33,6 +33,7 @@ interface MarketplaceGridProps {
   hasMore: boolean;
   onLoadMore: () => void;
   onMessageSeller: (listing: MarketplaceListing) => void;
+  onCardClick?: (listing: MarketplaceListing) => void;
   locale?: string;
 }
 
@@ -47,6 +48,7 @@ export function MarketplaceGrid({
   hasMore,
   onLoadMore,
   onMessageSeller,
+  onCardClick,
   locale = 'en',
 }: MarketplaceGridProps) {
   const t = useTranslations('Marketplace');
@@ -143,6 +145,7 @@ export function MarketplaceGrid({
             listing={listing}
             onMessageSeller={onMessageSeller}
             onSellerClick={handleSellerClick}
+            onCardClick={onCardClick}
             locale={locale}
           />
         ))}
@@ -163,7 +166,7 @@ export function MarketplaceGrid({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
             <Button variant="outline" size="sm" onClick={onLoadMore}>
-              Try again
+              {t('retry')}
             </Button>
           </div>
         )}

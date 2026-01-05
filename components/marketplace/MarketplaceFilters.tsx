@@ -90,7 +90,7 @@ export function MarketplaceFilters({
               type === option && 'bg-primary text-primary-foreground'
             )}
           >
-            {t(`filters.${option === 'all' ? 'all' : option.replace('for_', 'for')}`)}
+            {t(`filters.${option === 'all' ? 'all' : option === 'for_sale' ? 'forSale' : option === 'for_trade' ? 'forTrade' : 'forBorrow'}`)}
           </Button>
         ))}
       </div>

@@ -8,4 +8,5 @@
 export { MarketplaceCard } from './MarketplaceCard';
 export { MarketplaceFilters } from './MarketplaceFilters';
 export { MarketplaceGrid } from './MarketplaceGrid';
+export { MarketplaceItemModal } from './MarketplaceItemModal';
 export { MarketplaceSkeleton } from './MarketplaceSkeleton';

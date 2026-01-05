@@ -9,15 +9,17 @@
 
 'use client';
 
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
 import { useMarketplace } from '@/hooks/marketplace';
 import { useConversations } from '@/hooks/messaging/useConversations';
+import { useMediaQuery } from '@/hooks/useGearDetailModal';
 import {
   MarketplaceFilters,
   MarketplaceGrid,
+  MarketplaceItemModal,
 } from '@/components/marketplace';
 import type { MarketplaceListing } from '@/types/marketplace';
 
@@ -42,6 +44,11 @@ function MarketplaceContent() {
   const locale = useLocale();
   const router = useRouter();
   const { startDirectConversation } = useConversations();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  // Modal state
+  const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     listings,
@@ -53,11 +60,31 @@ function MarketplaceContent() {
   } = useMarketplace();
 
   /**
+   * Handle card click - opens detail modal
+   */
+  const handleCardClick = useCallback((listing: MarketplaceListing) => {
+    setSelectedListing(listing);
+    setIsModalOpen(true);
+  }, []);
+
+  /**
+   * Handle seller click - navigates to seller profile
+   */
+  const handleSellerClick = useCallback(
+    (sellerId: string) => {
+      setIsModalOpen(false);
+      router.push(`/profile/${sellerId}`);
+    },
+    [router]
+  );
+
+  /**
    * Handle messaging a seller
    * Opens or creates a conversation with gear item context
    */
   const handleMessageSeller = useCallback(
     async (listing: MarketplaceListing) => {
+      setIsModalOpen(false);
       try {
         const result = await startDirectConversation(listing.sellerId);
 
@@ -101,6 +128,18 @@ function MarketplaceContent() {
         hasMore={hasMore}
         onLoadMore={loadMore}
         onMessageSeller={handleMessageSeller}
+        onCardClick={handleCardClick}
+        locale={locale}
+      />
+
+      {/* Listing detail modal */}
+      <MarketplaceItemModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        listing={selectedListing}
+        isMobile={isMobile}
+        onMessageSeller={handleMessageSeller}
+        onSellerClick={handleSellerClick}
         locale={locale}
       />
     </>

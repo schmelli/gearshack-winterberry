@@ -28,6 +28,7 @@ interface MarketplaceCardProps {
   listing: MarketplaceListing;
   onMessageSeller: (listing: MarketplaceListing) => void;
   onSellerClick: (sellerId: string) => void;
+  onCardClick?: (listing: MarketplaceListing) => void;
   locale?: string;
 }
 
@@ -79,6 +80,7 @@ export function MarketplaceCard({
   listing,
   onMessageSeller,
   onSellerClick,
+  onCardClick,
   locale = 'en',
 }: MarketplaceCardProps) {
   const t = useTranslations('Marketplace');
@@ -87,7 +89,10 @@ export function MarketplaceCard({
   const typeBadges = getListingTypeBadges(listing);
 
   return (
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
+    <Card
+      className="group cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
+      onClick={() => onCardClick?.(listing)}
+    >
       {/* Image container */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         {listing.primaryImageUrl ? (
@@ -152,7 +157,10 @@ export function MarketplaceCard({
 
         {/* Seller info */}
         <button
-          onClick={() => onSellerClick(listing.sellerId)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSellerClick(listing.sellerId);
+          }}
           className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-muted"
         >
           <Avatar className="h-7 w-7">
@@ -173,7 +181,10 @@ export function MarketplaceCard({
           variant="outline"
           size="sm"
           className="w-full gap-2"
-          onClick={() => onMessageSeller(listing)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMessageSeller(listing);
+          }}
         >
           <MessageCircle className="h-4 w-4" />
           {t('card.messageButton')}

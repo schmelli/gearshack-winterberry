@@ -11,6 +11,22 @@
     "openMenu": "Menü öffnen",
     "messages": "Nachrichten"
   },
+  "Messages": {
+    "title": "Nachrichten",
+    "description": "Deine Unterhaltungen mit anderen Nutzern",
+    "empty": {
+      "title": "Noch keine Unterhaltungen",
+      "description": "Starte eine Unterhaltung vom Marktplatz oder Nutzerprofilen aus."
+    },
+    "unnamedGroup": "Unbenannte Gruppe",
+    "unknownUser": "Unbekannter Nutzer",
+    "muted": "Stumm",
+    "mediaMessage": "Mediennachricht",
+    "conversation": {
+      "noMessages": "Noch keine Nachrichten. Schreibe die erste Nachricht!",
+      "placeholder": "Nachricht eingeben..."
+    }
+  },
   "Notifications": {
     "title": "Benachrichtigungen",
     "unread": "ungelesen",
@@ -2644,9 +2660,14 @@
       "messageButton": "Nachricht senden",
       "viewProfile": "Profil ansehen"
     },
+    "modal": {
+      "listed": "Eingestellt",
+      "seller": "Verkäufer"
+    },
     "empty": "Keine Angebote gefunden",
     "emptyHint": "Passe deine Filter an oder schau später noch einmal vorbei.",
     "error": "Angebote konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
     "loadMore": "Mehr laden",
     "loading": "Lade Angebote...",
     "endOfListings": "Du hast das Ende der Angebote erreicht"
