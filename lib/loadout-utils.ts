@@ -205,14 +205,23 @@ export function getWeightCategoryBgColor(category: WeightCategory): string {
 /**
  * Calculate total weight of gear items in grams
  * Items with null weight contribute 0g
+ *
+ * Feature 013: Gear Quantity Tracking
+ * Now multiplies each item's weight by its quantity for accurate totals
  */
 export function calculateTotalWeight(items: GearItem[]): number {
-  return items.reduce((total, item) => total + (item.weightGrams ?? 0), 0);
+  return items.reduce((total, item) => {
+    const quantity = item.quantity ?? 1;
+    return total + (item.weightGrams ?? 0) * quantity;
+  }, 0);
 }
 
 /**
  * Calculate weight summary with worn/consumable breakdown (Feature: 007)
  * Base Weight = Total Weight - (Worn + Consumable), without double-subtracting
+ *
+ * Feature 013: Gear Quantity Tracking
+ * Now multiplies each item's weight by its quantity for accurate totals
  */
 export function calculateWeightSummary(
   items: GearItem[],
@@ -223,7 +232,9 @@ export function calculateWeightSummary(
   let consumableWeight = 0;
 
   for (const item of items) {
-    const weight = item.weightGrams ?? 0;
+    // Feature 013: Multiply weight by quantity (default to 1 for backward compatibility)
+    const quantity = item.quantity ?? 1;
+    const weight = (item.weightGrams ?? 0) * quantity;
     totalWeight += weight;
 
     const state = itemStates.find(s => s.itemId === item.id);
@@ -237,10 +248,12 @@ export function calculateWeightSummary(
 
   // Base Weight excludes worn and consumable, but don't double-subtract
   // An item that is both worn AND consumable is only excluded once
+  // Feature 013: Also apply quantity multiplier here
   const excludedWeight = items.reduce((sum, item) => {
     const state = itemStates.find(s => s.itemId === item.id);
     const isExcluded = state?.isWorn || state?.isConsumable;
-    return isExcluded ? sum + (item.weightGrams ?? 0) : sum;
+    const quantity = item.quantity ?? 1;
+    return isExcluded ? sum + (item.weightGrams ?? 0) * quantity : sum;
   }, 0);
 
   return {
@@ -259,6 +272,7 @@ export function calculateCategoryWeights(items: GearItem[], categories: Category
   const totalWeight = calculateTotalWeight(items);
 
   // Group items by category
+  // Feature 013: Include quantity in weight calculation
   const categoryMap = new Map<string, { items: GearItem[]; weight: number }>();
 
   for (const item of items) {
@@ -266,7 +280,8 @@ export function calculateCategoryWeights(items: GearItem[], categories: Category
     const catId = categoryId ?? 'miscellaneous';
     const existing = categoryMap.get(catId) ?? { items: [], weight: 0 };
     existing.items.push(item);
-    existing.weight += item.weightGrams ?? 0;
+    const quantity = item.quantity ?? 1;
+    existing.weight += (item.weightGrams ?? 0) * quantity;
     categoryMap.set(catId, existing);
   }
 

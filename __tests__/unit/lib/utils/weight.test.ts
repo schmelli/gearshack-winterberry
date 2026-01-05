@@ -389,6 +389,125 @@ describe('Weight Utilities', () => {
   });
 
   // ===========================================================================
+  // Feature 013: Gear Quantity Tracking - Weight with Quantity
+  // ===========================================================================
+
+  describe('calculateWeightSummary with quantity parameter', () => {
+    it('should multiply all weights by quantity (200g × 3 = 600g)', () => {
+      // Test case from spec: 200g × 3 = 600g
+      const total = 200;
+      const worn = 0;
+      const consumable = 0;
+      const quantity = 3;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.totalWeight).toBe(600); // 200 × 3
+      expect(summary.baseWeight).toBe(600);  // 600 - 0 - 0
+      expect(summary.wornWeight).toBe(0);
+      expect(summary.consumableWeight).toBe(0);
+    });
+
+    it('should default to quantity=1 when not provided', () => {
+      const total = 500;
+      const worn = 100;
+      const consumable = 50;
+
+      // Call without quantity parameter
+      const summary = calculateWeightSummary(total, worn, consumable);
+
+      // Should behave as if quantity=1
+      expect(summary.totalWeight).toBe(500);
+      expect(summary.wornWeight).toBe(100);
+      expect(summary.consumableWeight).toBe(50);
+      expect(summary.baseWeight).toBe(350); // 500 - 100 - 50
+    });
+
+    it('should handle realistic scenario: 3 fuel canisters at 110g each', () => {
+      // Realistic scenario: User has 3 identical fuel canisters
+      // Each canister: 110g total, all consumable
+      const total = 110;
+      const worn = 0;
+      const consumable = 110;
+      const quantity = 3;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.totalWeight).toBe(330);      // 110 × 3
+      expect(summary.consumableWeight).toBe(330); // 110 × 3
+      expect(summary.wornWeight).toBe(0);
+      expect(summary.baseWeight).toBe(0);         // All consumable, no base weight
+    });
+
+    it('should correctly multiply worn weight by quantity', () => {
+      // Scenario: 2 pairs of socks (worn weight)
+      const total = 50;
+      const worn = 50;
+      const consumable = 0;
+      const quantity = 2;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.totalWeight).toBe(100);  // 50 × 2
+      expect(summary.wornWeight).toBe(100);   // 50 × 2
+      expect(summary.baseWeight).toBe(0);     // 100 - 100 - 0
+    });
+
+    it('should handle complex multi-category weights with quantity', () => {
+      // Realistic: 4 freeze-dried meals
+      // Each meal: 150g total (120g consumable food, 30g packaging)
+      const total = 150;
+      const worn = 0;
+      const consumable = 120;
+      const quantity = 4;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.totalWeight).toBe(600);        // 150 × 4
+      expect(summary.consumableWeight).toBe(480);   // 120 × 4
+      expect(summary.baseWeight).toBe(120);         // 600 - 0 - 480 = 120 (packaging)
+    });
+
+    it('should handle quantity=1 explicitly (same as default)', () => {
+      const total = 300;
+      const worn = 50;
+      const consumable = 100;
+
+      const withDefault = calculateWeightSummary(total, worn, consumable);
+      const withOne = calculateWeightSummary(total, worn, consumable, 1);
+
+      expect(withOne).toEqual(withDefault);
+    });
+
+    it('should handle large quantities (e.g., water purification tabs)', () => {
+      // 50 water purification tablets at 5g each
+      const total = 5;
+      const worn = 0;
+      const consumable = 5;
+      const quantity = 50;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.totalWeight).toBe(250);      // 5 × 50
+      expect(summary.consumableWeight).toBe(250);
+    });
+
+    it('should maintain baseWeight calculation with quantity', () => {
+      // Scenario: 3 stuff sacks (base weight items)
+      // Each: 20g total, no worn/consumable
+      const total = 20;
+      const worn = 0;
+      const consumable = 0;
+      const quantity = 3;
+
+      const summary = calculateWeightSummary(total, worn, consumable, quantity);
+
+      expect(summary.baseWeight).toBe(60);  // (20 × 3) - 0 - 0
+      expect(summary.totalWeight).toBe(60);
+    });
+  });
+
+  // ===========================================================================
   // Edge Cases
   // ===========================================================================
 

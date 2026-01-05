@@ -1,13 +1,14 @@
 /**
  * StatusSection Component
  *
- * Feature: 001-gear-item-editor, 041-loadout-ux-profile, 045-gear-editor-tabs-marketplace
+ * Feature: 001-gear-item-editor, 041-loadout-ux-profile, 045-gear-editor-tabs-marketplace, 013-gear-quantity-tracking
  * Task: T018
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for status and condition:
  * - Condition (new, used, worn)
  * - Status (active, wishlist, sold)
+ * - Quantity (Feature 013)
  * - Favourite toggle (Feature 041)
  * - For Sale toggle (Feature 045)
  * - Can be Borrowed toggle (Feature 045)
@@ -18,6 +19,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { Heart, DollarSign, HandHelping, ArrowLeftRight } from 'lucide-react';
 import {
   FormField,
@@ -34,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import type { GearItemFormData, GearCondition, GearStatus } from '@/types/gear';
@@ -45,6 +48,7 @@ import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 
 export function StatusSection() {
   const form = useFormContext<GearItemFormData>();
+  const t = useTranslations('GearEditor');
 
   const conditions: GearCondition[] = ['new', 'used', 'worn'];
   const statuses: GearStatus[] = ['own', 'wishlist', 'sold', 'lent', 'retired'];
@@ -113,6 +117,30 @@ export function StatusSection() {
           )}
         />
       </div>
+
+      {/* Quantity - Feature 013 */}
+      <FormField
+        control={form.control}
+        name="quantity"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('quantityLabel')}</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder={t('quantityPlaceholder')}
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              {t('quantityDescription')}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       {/* Toggles Section */}
       <div className="space-y-3">
