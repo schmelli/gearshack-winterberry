@@ -62,31 +62,31 @@ function SummaryCard({
 }
 
 export function DashboardSummaryCards() {
-  const t = useTranslations('Community.dashboard');
+  const t = useTranslations('Community');
   const { summary, isLoading } = useDashboardSummary();
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <SummaryCard
-        title={t('recentShakedowns.title')}
+        title={t('dashboard.recentShakedowns.title')}
         count={summary.recentShakedowns}
-        description={t('recentShakedowns.description')}
+        description={t('dashboard.recentShakedowns.description')}
         href="/community/shakedowns"
         icon={<Scale className="h-5 w-5" />}
         isLoading={isLoading}
       />
       <SummaryCard
-        title={t('newListings.title')}
+        title={t('dashboard.newListings.title')}
         count={summary.newListings}
-        description={t('newListings.description')}
+        description={t('dashboard.newListings.description')}
         href="/community/marketplace"
         icon={<ShoppingBag className="h-5 w-5" />}
         isLoading={isLoading}
       />
       <SummaryCard
-        title={t('wikiUpdates.title')}
+        title={t('dashboard.wikiUpdates.title')}
         count={summary.wikiUpdates}
-        description={t('wikiUpdates.description')}
+        description={t('dashboard.wikiUpdates.description')}
         href="/community/wiki"
         icon={<BookOpen className="h-5 w-5" />}
         isLoading={isLoading}
