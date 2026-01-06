@@ -98,31 +98,46 @@ export async function GET(
     // in certain scenarios, causing the owner's own shakedowns to be inaccessible.
     const serviceClient = createServiceRoleClient();
 
-    // Fetch shakedown with profile data
-    // Note: Using type assertion until Supabase types are regenerated
+    // Fetch shakedown first (without relationship to avoid PostgREST FK issues)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: shakedownRow, error: shakedownError } = await (serviceClient as any)
+    const { data: shakedownData, error: shakedownError } = await (serviceClient as any)
       .from('shakedowns')
-      .select(
-        `
-        *,
-        profiles!owner_id (
-          display_name,
-          avatar_url
-        )
-      `
-      )
+      .select('*')
       .eq('id', shakedownId)
       .single();
 
-    if (shakedownError || !shakedownRow) {
+    if (shakedownError) {
+      console.error('[API] Shakedown fetch error:', shakedownError);
       return NextResponse.json(
         { error: 'Shakedown not found' },
         { status: 404 }
       );
     }
 
-    const shakedown = shakedownRow as ShakedownDetailDbRow;
+    if (!shakedownData) {
+      return NextResponse.json(
+        { error: 'Shakedown not found' },
+        { status: 404 }
+      );
+    }
+
+    // Fetch profile separately to avoid embedded relationship issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profileData, error: profileError } = await (serviceClient as any)
+      .from('profiles')
+      .select('display_name, avatar_url')
+      .eq('id', shakedownData.owner_id)
+      .single();
+
+    if (profileError) {
+      console.error('[API] Profile fetch error:', profileError);
+    }
+
+    // Combine shakedown with profile data
+    const shakedown: ShakedownDetailDbRow = {
+      ...shakedownData,
+      profiles: profileData || { display_name: 'Unknown User', avatar_url: null },
+    };
 
     // Check if shakedown is hidden
     if (shakedown.is_hidden) {
