@@ -1,16 +1,16 @@
 /**
  * Vercel AI Client for Image Generation
  * Feature: 048-ai-loadout-image-gen
- * Constitution: Server-side only - uses Vercel AI SDK with Google Gemini
+ * Constitution: Server-side only - uses Vercel AI Gateway
  *
- * Uses generateText with Google's Gemini 2.5 Flash Image model.
+ * Uses generateText with Gemini 2.5 Flash Image via AI Gateway.
  * Images are returned in result.files array.
  *
- * @see https://sdk.vercel.ai/docs/guides/google-gemini-image-generation
+ * @see https://sdk.vercel.ai/providers/ai-sdk-providers/ai-gateway
  */
 
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import {
   CLOUDINARY_GENERATED_IMAGES_FOLDER,
@@ -23,14 +23,25 @@ import {
 /**
  * AI Model Configuration
  *
- * Uses Google Gemini 2.5 Flash Image (Nano Banana) for image generation
- * This is Google's state-of-the-art image generation model.
+ * Uses Google Gemini 2.5 Flash Image (Nano Banana) via Vercel AI Gateway.
+ * The gateway handles authentication and routing to Google's API.
  *
  * Requires:
- * - GOOGLE_GENERATIVE_AI_API_KEY environment variable
+ * - AI_GATEWAY_API_KEY environment variable (Vercel AI Gateway key)
  * - AI_GENERATION_ENABLED=true
  */
-const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
+
+/**
+ * Create AI Gateway instance for routing to various providers
+ */
+function getGateway() {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!apiKey) {
+    throw new Error('AI_GATEWAY_API_KEY is required for image generation');
+  }
+  return createGateway({ apiKey });
+}
 
 // =============================================================================
 // Validation Schemas
@@ -116,7 +127,7 @@ export async function generateAIImage(
     if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) missingVars.push('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME');
     if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
     if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) missingVars.push('GOOGLE_GENERATIVE_AI_API_KEY');
+    if (!process.env.AI_GATEWAY_API_KEY) missingVars.push('AI_GATEWAY_API_KEY');
     if (process.env.AI_GENERATION_ENABLED !== 'true') missingVars.push('AI_GENERATION_ENABLED');
 
     throw new AIGenerationError(
@@ -127,14 +138,17 @@ export async function generateAIImage(
   }
 
   try {
-    console.log('[VercelAI] Generating image with Gemini 2.5 Flash Image');
+    console.log('[VercelAI] Generating image with Gemini 2.5 Flash Image via AI Gateway');
     console.log('[VercelAI] Prompt:', validatedRequest.prompt.substring(0, 100));
     console.log('[VercelAI] Model:', AI_IMAGE_MODEL);
 
-    // Generate image using Gemini 2.5 Flash Image via generateText
+    // Get gateway instance
+    const gateway = getGateway();
+
+    // Generate image using Gemini 2.5 Flash Image via AI Gateway
     // The model returns images in result.files array
     const result = await generateText({
-      model: google(AI_IMAGE_MODEL),
+      model: gateway(AI_IMAGE_MODEL),
       prompt: validatedRequest.prompt,
     });
 
@@ -336,11 +350,11 @@ export async function getOptimizedImageUrl(
  * - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: Cloudinary cloud name
  * - CLOUDINARY_API_KEY: Cloudinary API key
  * - CLOUDINARY_API_SECRET: Cloudinary API secret
- * - GOOGLE_GENERATIVE_AI_API_KEY: Google AI API key for Imagen
+ * - AI_GATEWAY_API_KEY: Vercel AI Gateway API key
  * - AI_GENERATION_ENABLED: Must be 'true'
  *
  * Optional:
- * - AI_IMAGE_MODEL: Model identifier (defaults to imagen-4.0-generate-001)
+ * - AI_IMAGE_MODEL: Model identifier (defaults to google/gemini-2.5-flash-image)
  *
  * @returns true if AI generation is properly configured
  */
@@ -349,7 +363,7 @@ export function isAIConfigured(): boolean {
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET &&
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY &&
+    process.env.AI_GATEWAY_API_KEY &&
     process.env.AI_GENERATION_ENABLED === 'true'
   );
 }
