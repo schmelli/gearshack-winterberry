@@ -11,6 +11,7 @@ import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { SupabaseAuthProvider } from "@/components/auth/SupabaseAuthProvider";
+import { ScreenContextProvider } from "@/components/context/ScreenContextProvider";
 import { Shell } from "@/components/layout/Shell";
 import { Toaster } from "sonner";
 import { NextIntlClientProvider } from 'next-intl';
@@ -68,7 +69,10 @@ export default async function RootLayout({ children, params }: Props) {
           {/* Feature 040: Supabase auth provider replaces Firebase */}
           <ThemeProvider>
             <SupabaseAuthProvider>
-              <Shell>{children}</Shell>
+              {/* AI Agent Context-Awareness: Track current screen/loadout */}
+              <ScreenContextProvider>
+                <Shell>{children}</Shell>
+              </ScreenContextProvider>
               <Toaster richColors position="bottom-right" />
             </SupabaseAuthProvider>
           </ThemeProvider>

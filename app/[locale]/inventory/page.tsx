@@ -21,10 +21,11 @@
 
 'use client';
 
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { Plus, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { useScreenContext } from '@/components/context/ScreenContextProvider';
 import { Link } from '@/i18n/navigation';
 import { useInventory } from '@/hooks/useInventory';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -62,6 +63,18 @@ function InventoryWithModal() {
   const { user } = useSupabaseAuth();
   // Feature 049: View mode state (inventory vs wishlist)
   const { viewMode, setViewMode } = useInventoryView();
+
+  // AI Agent Context-Awareness: Set screen context for AI assistant
+  const { setScreen, clearContext } = useScreenContext();
+
+  useEffect(() => {
+    // Set screen based on current view mode (inventory or wishlist)
+    setScreen(viewMode === 'wishlist' ? 'wishlist' : 'inventory');
+
+    return () => {
+      clearContext();
+    };
+  }, [viewMode, setScreen, clearContext]);
 
   // Feature 049 T084: Screen reader announcement state
   const [announcement, setAnnouncement] = useState<{

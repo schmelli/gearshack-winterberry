@@ -13,10 +13,12 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { AnnouncementsBanner } from '@/components/community/AnnouncementsBanner';
 import { BannerCarousel } from '@/components/community/BannerCarousel';
 import { CommunitySidebar } from '@/components/community/CommunitySidebar';
 import { DashboardSummaryCards } from '@/components/community/DashboardSummaryCards';
+import { useScreenContext } from '@/components/context/ScreenContextProvider';
 import type { CommunityHubProps } from '@/types/community';
 
 interface CommunityHubLayoutProps extends CommunityHubProps {
@@ -27,6 +29,17 @@ export function CommunityHub({
   children,
   initialAnnouncements,
 }: CommunityHubLayoutProps) {
+  // AI Agent Context-Awareness: Set screen context for AI assistant
+  const { setScreen, clearContext } = useScreenContext();
+
+  useEffect(() => {
+    setScreen('community-hub');
+
+    return () => {
+      clearContext();
+    };
+  }, [setScreen, clearContext]);
+
   return (
     <>
       {/* Banner Carousel */}

@@ -12,7 +12,7 @@
 
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus, Pencil, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -54,6 +54,7 @@ import {
 import type { Season, ActivityType } from '@/types/loadout';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
+import { useScreenContext } from '@/components/context/ScreenContextProvider';
 
 // =============================================================================
 // Types
@@ -79,6 +80,22 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const updateLoadout = useStore((state) => state.updateLoadout);
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
+
+  // AI Agent Context-Awareness: Set screen context for AI assistant
+  const { setScreen, setCurrentLoadout, clearContext } = useScreenContext();
+
+  // Set screen context when loadout is loaded
+  useEffect(() => {
+    if (loadout) {
+      setScreen('loadout-detail');
+      setCurrentLoadout(id, loadout.name);
+    }
+
+    // Cleanup: Clear context when leaving the page
+    return () => {
+      clearContext();
+    };
+  }, [id, loadout?.name, setScreen, setCurrentLoadout, clearContext]);
 
   // Editor state and actions
   const {

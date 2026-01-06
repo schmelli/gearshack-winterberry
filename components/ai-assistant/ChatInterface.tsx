@@ -17,7 +17,8 @@ import { ChatInput } from './ChatInput';
 import { useMastraChat } from '@/hooks/ai-assistant/useMastraChat';
 import { useVoiceOutput } from '@/hooks/ai-assistant/useVoiceOutput';
 import { useItems } from '@/hooks/useSupabaseStore';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { useScreenContext } from '@/components/context/ScreenContextProvider';
 import {
   Tooltip,
   TooltipContent,
@@ -34,6 +35,11 @@ const VOICE_ENABLED_KEY = 'gearshack:ai-voice-enabled';
 
 export function ChatInterface({ onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
+  const locale = useLocale();
+
+  // AI Agent Context-Awareness: Get current screen/loadout context
+  const screenContext = useScreenContext();
+
   // Voice enabled by default for a more immersive experience
   // Users can toggle it off via the speaker button - preference is saved to localStorage
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
@@ -102,14 +108,20 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       stopSpeaking();
     }
 
-    // Pass inventory count in context
+    // AI Agent Context-Awareness: Pass full screen context to AI
+    // This enables the AI to know which page/loadout/item the user is viewing
     await sendMessage(content, {
       context: {
+        screen: screenContext.screen,
+        currentLoadoutId: screenContext.currentLoadoutId,
+        currentLoadoutName: screenContext.currentLoadoutName,
+        currentGearItemId: screenContext.currentGearItemId,
+        currentGearItemName: screenContext.currentGearItemName,
         inventoryCount: items.length,
-        screen: 'inventory',
+        locale,
       },
     });
-  }, [sendMessage, isPlaying, stopSpeaking, items.length]);
+  }, [sendMessage, isPlaying, stopSpeaking, items.length, screenContext, locale]);
 
   // T102: Start new conversation
   const handleNewConversation = useCallback(() => {
