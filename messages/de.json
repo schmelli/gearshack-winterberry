@@ -2417,6 +2417,19 @@
       "removedFromWishlist": "Von Wunschliste entfernt",
       "itemUpdated": "Wunschlisten-Artikel aktualisiert",
       "movedToInventory": "{name} ins Inventar verschoben!"
+    },
+    "viewOffer": "Angebot ansehen",
+    "priceComparison": "Preisvergleich",
+    "results": "Ergebnisse",
+    "offerPreview": {
+      "title": "Angebotsdetails",
+      "description": "Überprüfe dieses Angebot, bevor du den Händler besuchst",
+      "exclusiveOffer": "Exklusives Angebot",
+      "off": "Rabatt",
+      "validUntil": "Gültig bis",
+      "youWillVisit": "Du wirst besuchen:",
+      "cancel": "Abbrechen",
+      "openInBrowser": "Im Browser öffnen"
     }
   },
   "Admin": {

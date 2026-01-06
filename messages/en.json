@@ -2417,6 +2417,19 @@
       "removedFromWishlist": "Removed from wishlist",
       "itemUpdated": "Wishlist item updated",
       "movedToInventory": "{name} moved to inventory!"
+    },
+    "viewOffer": "View Offer",
+    "priceComparison": "Price Comparison",
+    "results": "results",
+    "offerPreview": {
+      "title": "Offer Details",
+      "description": "Review this offer before visiting the retailer",
+      "exclusiveOffer": "Exclusive Offer",
+      "off": "off",
+      "validUntil": "Valid until",
+      "youWillVisit": "You will visit:",
+      "cancel": "Cancel",
+      "openInBrowser": "Open in Browser"
     }
   },
   "Admin": {

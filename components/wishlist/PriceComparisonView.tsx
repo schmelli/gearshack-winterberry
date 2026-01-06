@@ -6,12 +6,15 @@
 
 'use client';
 
+import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, ExternalLink, X } from 'lucide-react';
 import { PriceResultItem } from './PriceResultItem';
 import { PersonalOfferBadge } from './PersonalOfferBadge';
+import { OfferPreviewDialog } from './OfferPreviewDialog';
 import type { PriceSearchResults, PersonalOffer } from '@/types/price-tracking';
 
 // Extended type for PersonalOffer with joined partner_retailers data
@@ -34,6 +37,11 @@ export function PriceComparisonView({
   personalOffers = [],
   onDismissOffer,
 }: PriceComparisonViewProps) {
+  const t = useTranslations('Wishlist');
+
+  // State for offer preview dialog
+  const [selectedOffer, setSelectedOffer] = useState<PersonalOfferWithPartner | null>(null);
+
   if (isLoading) {
     return (
       <Card>
@@ -49,7 +57,7 @@ export function PriceComparisonView({
     return null;
   }
 
-  const { results, failed_sources, status } = searchResults;
+  const { results, failed_sources } = searchResults;
 
   const formatPrice = (amount: number, currency: string = 'EUR') => {
     return new Intl.NumberFormat('de-DE', {
@@ -108,17 +116,11 @@ export function PriceComparisonView({
                     </div>
 
                     <Button
-                      asChild
                       className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
+                      onClick={() => setSelectedOffer(offer)}
                     >
-                      <a
-                        href={offer.product_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View Offer
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
+                      {t('viewOffer')}
+                      <ExternalLink className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
 
@@ -164,7 +166,7 @@ export function PriceComparisonView({
         <Card>
           <CardHeader>
             <CardTitle>
-              Price Comparison ({results.length} results)
+              {t('priceComparison')} ({results.length} {t('results')})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -177,6 +179,22 @@ export function PriceComparisonView({
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Offer Preview Dialog */}
+      {selectedOffer && (
+        <OfferPreviewDialog
+          open={!!selectedOffer}
+          onOpenChange={(open) => !open && setSelectedOffer(null)}
+          productName={selectedOffer.product_name}
+          merchantName={selectedOffer.partner_retailers.name}
+          price={selectedOffer.offer_price}
+          currency={selectedOffer.offer_currency}
+          originalPrice={selectedOffer.original_price ?? undefined}
+          offerUrl={selectedOffer.product_url}
+          expiresAt={selectedOffer.expires_at}
+          isPersonalOffer
+        />
       )}
     </div>
   );
