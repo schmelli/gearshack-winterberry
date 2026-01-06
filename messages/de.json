@@ -2430,6 +2430,17 @@
       "youWillVisit": "Du wirst besuchen:",
       "cancel": "Abbrechen",
       "openInBrowser": "Im Browser öffnen"
+    },
+    "msrp": {
+      "label": "UVP",
+      "tooltip": "Unverbindliche Preisempfehlung des Herstellers",
+      "notAvailable": "UVP nicht verfügbar"
+    },
+    "topPrices": {
+      "title": "Beste Preise",
+      "retailPrices": "Händlerpreise",
+      "noPricesYet": "Noch keine Preise erfasst",
+      "enableTracking": "Aktiviere Preisverfolgung, um Angebote zu sehen"
     }
   },
   "Admin": {

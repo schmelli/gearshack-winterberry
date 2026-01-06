@@ -2430,6 +2430,17 @@
       "youWillVisit": "You will visit:",
       "cancel": "Cancel",
       "openInBrowser": "Open in Browser"
+    },
+    "msrp": {
+      "label": "MSRP",
+      "tooltip": "Manufacturer's Suggested Retail Price",
+      "notAvailable": "MSRP not available"
+    },
+    "topPrices": {
+      "title": "Best Prices",
+      "retailPrices": "Retail Prices",
+      "noPricesYet": "No prices tracked yet",
+      "enableTracking": "Enable price tracking to see offers"
     }
   },
   "Admin": {

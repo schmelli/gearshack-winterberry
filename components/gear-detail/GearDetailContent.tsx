@@ -43,8 +43,12 @@ import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
+import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
+import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
+import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 
 // =============================================================================
 // Types
@@ -214,6 +218,18 @@ export function GearDetailContent({
     return sections;
   }, [item.description, item.notes]);
 
+  // Fetch top 3 prices for wishlist items (shown outside accordion)
+  const { priceResults, isLoading: priceResultsLoading } = useWishlistPriceResults(
+    isWishlistItem ? item.id : ''
+  );
+
+  // Fetch MSRP for wishlist items
+  const { msrp, isLoading: msrpLoading } = useMsrpPrice(
+    isWishlistItem ? item.name : null,
+    isWishlistItem ? item.brand : null,
+    isWishlistItem
+  );
+
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
       <div className="space-y-6 p-6">
@@ -311,6 +327,25 @@ export function GearDetailContent({
             sourceMerchantId={item.sourceMerchantId}
             sourceLoadoutId={item.sourceLoadoutId}
           />
+        )}
+
+        {/* Wishlist Price Overview - Always visible (not in accordion) */}
+        {isWishlistItem && (
+          <div className="space-y-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/10 p-4">
+            {/* MSRP Display */}
+            <MsrpPriceDisplay
+              msrpAmount={msrp?.expectedPriceUsd ?? null}
+              isLoading={msrpLoading}
+              variant="inline"
+            />
+
+            {/* Top 3 Retail Prices */}
+            <TopRetailPricesDisplay
+              priceResults={priceResults}
+              isLoading={priceResultsLoading}
+              variant="full"
+            />
+          </div>
         )}
 
         {/* Collapsible Sections */}

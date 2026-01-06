@@ -9,7 +9,6 @@ import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   HoverCard,
   HoverCardContent,
@@ -20,9 +19,8 @@ import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import { TopPricesDisplay } from '@/components/wishlist/TopPricesDisplay';
-import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
-import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
 import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
+import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
 import type { WishlistItemAvailability } from '@/types/wishlist';
@@ -30,6 +28,7 @@ import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
+import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 
 // =============================================================================
 // Quantity Badge Component - Feature 013
@@ -242,6 +241,13 @@ export function GearCard({
   // Issue #142: Fetch retail prices for wishlist items
   const { priceResults, isLoading: priceResultsLoading } = useWishlistPriceResults(
     isWishlistContext ? item.id : ''
+  );
+
+  // Fetch MSRP (Manufacturer's Suggested Retail Price) for wishlist items
+  const { msrp, isLoading: msrpLoading } = useMsrpPrice(
+    isWishlistContext ? item.name : null,
+    isWishlistContext ? item.brand : null,
+    isWishlistContext
   );
 
   // Cascading Category Refactor (Phase 4): Use breadcrumb hook instead of prop
@@ -510,6 +516,15 @@ export function GearCard({
           )}
         </div>
 
+        {/* MSRP Display for standard (medium) wishlist view */}
+        {isStandard && isWishlistContext && (
+          <MsrpPriceDisplay
+            msrpAmount={msrp?.expectedPriceUsd ?? null}
+            isLoading={msrpLoading}
+            variant="badge"
+            className="mb-2"
+          />
+        )}
         {/* Feature 142: Top Prices Display for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
           <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
@@ -555,6 +570,15 @@ export function GearCard({
               </div>
             )}
 
+            {/* MSRP Display for detailed (large) wishlist view */}
+            {isWishlistContext && (
+              <MsrpPriceDisplay
+                msrpAmount={msrp?.expectedPriceUsd ?? null}
+                isLoading={msrpLoading}
+                variant="inline"
+                className="mb-3"
+              />
+            )}
             {/* Feature 142: Top Prices Display for detailed (large) wishlist view */}
             {isWishlistContext && (
               <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
