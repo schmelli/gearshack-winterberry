@@ -14,7 +14,8 @@
 
 import { use, useState, useMemo } from 'react';
 import { notFound } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { useLoadout, useStore, useItems } from '@/hooks/useSupabaseStore';
 import { formatWeightForDisplay } from '@/lib/gear-utils';
@@ -25,6 +26,7 @@ import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { useCategories } from '@/hooks/useCategories';
 import { useLighterAlternatives } from '@/hooks/useLighterAlternatives';
+import { Link } from '@/i18n/navigation';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
@@ -33,6 +35,10 @@ import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDi
 import { WeightBar } from '@/components/loadouts/WeightBar';
 import { LoadoutSortFilter, type SortOption } from '@/components/loadouts/LoadoutSortFilter';
 import { sortAndFilterItems } from '@/lib/loadout-utils';
+import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
+import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
+import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
+import { Badge } from '@/components/ui/badge';
 
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
@@ -45,7 +51,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import type { Season } from '@/types/loadout';
+import type { Season, ActivityType } from '@/types/loadout';
+import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
 
 // =============================================================================
@@ -62,6 +69,8 @@ interface LoadoutEditorPageProps {
 
 export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
+  const t = useTranslations('Loadouts');
+  const tShakedowns = useTranslations('Shakedowns');
   const loadout = useLoadout(id);
   const allItems = useItems();
   const userId = useStore((state) => state.userId);
@@ -179,21 +188,112 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     await updateLoadout(id, { description });
   };
 
+  // Build action buttons for hero overlay
+  const heroActionButtons = (
+    <>
+      {/* Edit Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setMetadataDialogOpen(true)}
+        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+        aria-label="Edit loadout metadata"
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+      {/* Share Button */}
+      <LoadoutShareButton
+        loadout={loadout}
+        items={loadoutItems}
+        itemStates={itemStates}
+        activityTypes={activityTypes}
+        seasons={seasons}
+        variant="ghost"
+        size="icon"
+        showLabel={false}
+        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+      />
+      {/* Export Menu */}
+      <LoadoutExportMenu
+        loadout={loadout}
+        items={loadoutItems}
+        itemStates={itemStates}
+        activityTypes={activityTypes}
+        seasons={seasons}
+        totalWeight={totalWeight}
+        baseWeight={baseWeight}
+        iconOnly
+        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+      />
+      {/* Compare to VIP */}
+      {userId && (
+        <CompareToVipButton
+          loadoutId={loadout.id}
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+        />
+      )}
+      {/* Request Shakedown */}
+      {userId && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
+          aria-label={tShakedowns('actions.requestShakedown')}
+          asChild
+        >
+          <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
+            <Users className="h-4 w-4" />
+          </Link>
+        </Button>
+      )}
+    </>
+  );
+
+  // Build badges for hero overlay
+  const heroBadges = (
+    <>
+      {/* Activity badges */}
+      {activityTypes.map((activity: ActivityType) => (
+        <Badge
+          key={activity}
+          variant="secondary"
+          className="bg-white/20 text-white backdrop-blur-sm"
+        >
+          {ACTIVITY_TYPE_LABELS[activity]}
+        </Badge>
+      ))}
+      {/* Season badges */}
+      {seasons.map((season: Season) => (
+        <Badge
+          key={season}
+          variant="secondary"
+          className="bg-white/20 text-white backdrop-blur-sm"
+        >
+          {SEASON_LABELS[season]}
+        </Badge>
+      ))}
+    </>
+  );
+
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      {/* Hero Image Section (Feature 048) */}
+      {/* Hero Image Section - Full Width (Feature 048) */}
       {userId && (
-        <div className="container max-w-4xl px-4 pt-6 sm:px-6">
-          <LoadoutHeroImageSection
-            loadout={loadout}
-            userId={userId}
-            totalWeight={formatWeightForDisplay(totalWeight)}
-            itemCount={loadoutItems.length}
-          />
-        </div>
+        <LoadoutHeroImageSection
+          loadout={loadout}
+          userId={userId}
+          totalWeight={formatWeightForDisplay(totalWeight)}
+          itemCount={loadoutItems.length}
+          backHref="/loadouts"
+          backLabel={t('backToLoadouts')}
+          actionButtons={heroActionButtons}
+          badges={heroBadges}
+        />
       )}
 
-      {/* Enhanced Header with sans-serif title, badges, weight summary */}
+      {/* Editing section: Description, badges, weight summary */}
       <LoadoutHeader
         loadout={loadout}
         items={loadoutItems}
@@ -204,11 +304,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
         onSegmentClick={(categoryId, _level) => toggleCategory(categoryId)}
-        onEdit={() => setMetadataDialogOpen(true)}
         onDescriptionChange={handleDescriptionChange}
-        showShakedownButton={!!userId}
-        totalWeight={totalWeight}
-        baseWeight={baseWeight}
       />
 
       {/* Metadata Edit Dialog (US5) */}

@@ -3,13 +3,16 @@
  * Feature: 048-ai-loadout-image-gen
  * Constitution: Uses custom hook for logic, stateless UI components
  *
+ * Premium layout with full-width hero, integrated navigation,
+ * action buttons, and badges overlay.
+ *
  * Simplified UX: Auto-generates image when no image exists.
  * Single regenerate button in corner for generating new images.
  */
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { useLoadoutImageGeneration } from '@/hooks/useLoadoutImageGeneration';
 import { LoadoutHeroImage } from '@/components/loadout/LoadoutHeroImage';
 import type { Loadout } from '@/types/loadout';
@@ -19,6 +22,14 @@ export interface LoadoutHeroImageSectionProps {
   userId: string;
   totalWeight?: string;
   itemCount?: number;
+  /** Back link URL */
+  backHref?: string;
+  /** Back link label */
+  backLabel?: string;
+  /** Action buttons to display in top-right (edit, share, export, etc.) */
+  actionButtons?: ReactNode;
+  /** Badges to display (activity types, seasons) */
+  badges?: ReactNode;
 }
 
 export function LoadoutHeroImageSection({
@@ -26,6 +37,10 @@ export function LoadoutHeroImageSection({
   userId,
   totalWeight,
   itemCount,
+  backHref = '/loadouts',
+  backLabel,
+  actionButtons,
+  badges,
 }: LoadoutHeroImageSectionProps) {
   const {
     state,
@@ -81,6 +96,10 @@ export function LoadoutHeroImageSection({
       isGenerating={isGenerating}
       errorMessage={state.status === 'error' ? state.error : undefined}
       onRegenerate={handleRegenerate}
+      backHref={backHref}
+      backLabel={backLabel}
+      actionButtons={actionButtons}
+      badges={badges}
     />
   );
 }

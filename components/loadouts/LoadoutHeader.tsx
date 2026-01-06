@@ -1,5 +1,5 @@
 /**
- * LoadoutHeader - Enhanced header with sans-serif title, badges, and weight progress
+ * LoadoutHeader - Editing section below the hero image
  *
  * Feature: 006-ui-makeover
  * FR-007: Interactive activity badges
@@ -11,17 +11,17 @@
  * US4: Display Total Weight and Base Weight
  *
  * Feature: 009-grand-visual-polish
- * FR-012: Loadout title in sans-serif font (not Rock Salt)
- * FR-013: Description positioned in header right-side
+ * FR-013: Description positioned in header
  * FR-014: Inline description editing (no modal)
+ *
+ * Note: Title, back link, and action buttons have moved to LoadoutHeroImage.
+ * This component now focuses on interactive editing (badges, description).
  */
 
 'use client';
 
-import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Calendar, Pencil, Check, X, Users, Download } from 'lucide-react';
+import { Calendar, Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ToggleBadge } from '@/components/ui/toggle-badge';
 import { EnhancedWeightDonut } from '@/components/loadouts/EnhancedWeightDonut';
@@ -29,9 +29,6 @@ import { WeightSummaryTable } from '@/components/loadouts/WeightSummaryTable';
 import { Textarea } from '@/components/ui/textarea';
 import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
-import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
-import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
-import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
 import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
@@ -54,16 +51,8 @@ interface LoadoutHeaderProps {
   selectedCategoryId?: string | null;
   /** Callback when chart segment is clicked (includes level for drill-down) */
   onSegmentClick?: (categoryId: string, level: 'category' | 'subcategory') => void;
-  /** Callback when edit button is clicked (US5) */
-  onEdit?: () => void;
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
-  /** Whether to show the "Request Community Shakedown" button (only for owner) */
-  showShakedownButton?: boolean;
-  /** Total weight for export menu */
-  totalWeight: number;
-  /** Base weight for export menu */
-  baseWeight: number;
 }
 
 // =============================================================================
@@ -87,13 +76,8 @@ export function LoadoutHeader({
   onToggleSeason,
   selectedCategoryId,
   onSegmentClick,
-  onEdit,
   onDescriptionChange,
-  showShakedownButton = false,
-  totalWeight,
-  baseWeight,
 }: LoadoutHeaderProps) {
-  const t = useTranslations('Shakedowns');
   const tLoadouts = useTranslations('Loadouts');
   const tCommon = useTranslations('Common');
   // Inline description editing state (FR-014, Constitution Principle I)
@@ -117,78 +101,9 @@ export function LoadoutHeader({
   return (
     <div className="border-b bg-background">
       <div className="container max-w-6xl py-6">
-        {/* Back Link */}
-        <Link
-          href="/loadouts"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {tLoadouts('backToLoadouts')}
-        </Link>
-
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          {/* Left: Title, Date, and Badges */}
+          {/* Left: Description, Date, and Badges */}
           <div className="flex-1 space-y-4">
-            {/* Title in sans-serif font with edit and share icons (Feature: 009-grand-visual-polish FR-012) */}
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold leading-relaxed">
-                {loadout.name}
-              </h1>
-              <div className="flex items-center gap-1">
-                {onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onEdit}
-                    className="h-8 w-8 shrink-0"
-                    aria-label="Edit loadout metadata"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                )}
-                <LoadoutShareButton
-                  loadout={loadout}
-                  items={items}
-                  itemStates={itemStates}
-                  activityTypes={activityTypes}
-                  seasons={seasons}
-                  variant="ghost"
-                  size="icon"
-                  showLabel={false}
-                />
-                <LoadoutExportMenu
-                  loadout={loadout}
-                  items={items}
-                  itemStates={itemStates}
-                  activityTypes={activityTypes}
-                  seasons={seasons}
-                  totalWeight={totalWeight}
-                  baseWeight={baseWeight}
-                  iconOnly
-                />
-                {showShakedownButton && (
-                  <>
-                    <CompareToVipButton
-                      loadoutId={loadout.id}
-                      variant="ghost"
-                      size="icon"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      aria-label={t('actions.requestShakedown')}
-                      asChild
-                    >
-                      <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
-                        <Users className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-
             {/* Trip Date */}
             {loadout.tripDate && (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -197,7 +112,7 @@ export function LoadoutHeader({
               </div>
             )}
 
-            {/* Description with Inline Editing (moved from right side for better flow) */}
+            {/* Description with Inline Editing */}
             <div className="max-w-lg">
               {isEditing ? (
                 <div className="space-y-2">
