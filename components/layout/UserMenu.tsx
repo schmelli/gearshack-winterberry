@@ -18,7 +18,7 @@
 import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
-import { User, Settings, LogOut, LogIn } from 'lucide-react';
+import { User, Settings, LogOut, LogIn, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,6 +118,16 @@ export function UserMenu() {
               {t('settings')}
             </Link>
           </DropdownMenuItem>
+
+          {/* Admin - Only visible to admin users */}
+          {mergedUser?.isAdmin && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="cursor-pointer">
+                <Shield className="mr-2 h-4 w-4" />
+                {t('admin')}
+              </Link>
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuSeparator />
 
