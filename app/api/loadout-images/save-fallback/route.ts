@@ -11,9 +11,12 @@ import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 
 const SaveFallbackRequestSchema = z.object({
   loadoutId: z.string().uuid(),
-  fallbackImageUrl: z.string().url(),
+  // Allow both relative paths (/fallback-images/...) and full URLs
+  fallbackImageUrl: z.string().min(1),
   fallbackImageId: z.string(),
   altText: z.string(),
+  // userId is sent by client but not used (we get it from auth)
+  userId: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
