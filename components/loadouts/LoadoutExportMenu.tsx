@@ -36,6 +36,8 @@ interface LoadoutExportMenuProps {
   baseWeight: number;
   /** Show as icon button (for header) instead of labeled button */
   iconOnly?: boolean;
+  /** Additional CSS classes for the trigger button */
+  className?: string;
 }
 
 /** HTML escape helper to prevent injection in generated markup. */
@@ -308,6 +310,7 @@ export function LoadoutExportMenu({
   totalWeight,
   baseWeight,
   iconOnly = false,
+  className,
 }: LoadoutExportMenuProps) {
   const t = useTranslations('Loadouts');
   const tCommon = useTranslations('Common');
@@ -447,11 +450,11 @@ export function LoadoutExportMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {iconOnly ? (
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={t('export')}>
+          <Button variant="ghost" size="icon" className={className ?? "h-8 w-8 shrink-0"} aria-label={t('export')}>
             <Download className="h-4 w-4" />
           </Button>
         ) : (
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className={className}>
             <Download className="mr-2 h-4 w-4" />
             {t('export')}
           </Button>

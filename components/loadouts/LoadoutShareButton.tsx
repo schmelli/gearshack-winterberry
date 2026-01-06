@@ -54,6 +54,8 @@ interface LoadoutShareButtonProps {
   variant?: VariantProps<typeof buttonVariants>['variant'];
   size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
+  /** Additional CSS classes for the button */
+  className?: string;
 }
 
 // =============================================================================
@@ -69,6 +71,7 @@ export function LoadoutShareButton({
   variant = 'outline',
   size = 'sm',
   showLabel = true,
+  className,
 }: LoadoutShareButtonProps) {
   const t = useTranslations('Shakedown');
   const userId = useStore((state) => state.userId);
@@ -195,7 +198,7 @@ export function LoadoutShareButton({
             <Button
               variant={variant}
               size={size}
-              className="flex items-center gap-2"
+              className={className ?? "flex items-center gap-2"}
               aria-label={showLabel ? undefined : t('shareLoadout') || 'Share loadout'}
             >
               <Share2 className="h-4 w-4" />
