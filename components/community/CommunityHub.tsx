@@ -44,16 +44,16 @@ export function CommunityHub({
         <DashboardSummaryCards />
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Grid aligned with stat tiles */}
       <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main Content - 2/3 on desktop */}
-          <main className="flex-1 min-w-0 lg:max-w-[66.666%]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Main Content - spans 2 columns on desktop */}
+          <main className="lg:col-span-2 min-w-0">
             {children}
           </main>
 
-          {/* Sidebar - 1/3 on desktop, below content on mobile */}
-          <aside className="w-full lg:w-[320px] lg:flex-shrink-0">
+          {/* Sidebar - spans 1 column on desktop, aligns with wiki stat tile */}
+          <aside className="w-full">
             {/* On mobile, show sidebar panels at bottom */}
             <div className="lg:sticky lg:top-20">
               <CommunitySidebar collapsedOnMobile />

@@ -28,6 +28,66 @@ export interface AnnouncementDismissal {
   dismissedAt: number;
 }
 
+// ===== Announcement Admin Types =====
+export type AnnouncementStatus = 'scheduled' | 'active' | 'expired' | 'disabled';
+
+export const ANNOUNCEMENT_STATUS_LABELS: Record<AnnouncementStatus, string> = {
+  scheduled: 'Scheduled',
+  active: 'Active',
+  expired: 'Expired',
+  disabled: 'Disabled',
+};
+
+export const ANNOUNCEMENT_TYPE_LABELS: Record<AnnouncementType, string> = {
+  info: 'Info',
+  warning: 'Warning',
+  success: 'Success',
+  promo: 'Promo',
+};
+
+export interface CreateAnnouncementInput {
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  priority: number;
+  link_url: string | null;
+  link_text: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  is_active: boolean;
+}
+
+export type UpdateAnnouncementInput = Partial<CreateAnnouncementInput>;
+
+export interface CommunityAnnouncementWithStatus extends CommunityAnnouncement {
+  status: AnnouncementStatus;
+}
+
+/**
+ * Compute announcement status based on current time and visibility window
+ */
+export function computeAnnouncementStatus(announcement: CommunityAnnouncement): AnnouncementStatus {
+  if (!announcement.is_active) {
+    return 'disabled';
+  }
+
+  const now = new Date();
+  const start = new Date(announcement.starts_at);
+
+  if (now < start) {
+    return 'scheduled';
+  }
+
+  if (announcement.ends_at) {
+    const end = new Date(announcement.ends_at);
+    if (now > end) {
+      return 'expired';
+    }
+  }
+
+  return 'active';
+}
+
 // ===== Community Navigation =====
 export type CommunityTabId = 'board' | 'shakedowns' | 'vip-loadouts' | 'marketplace';
 

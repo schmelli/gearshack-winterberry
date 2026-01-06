@@ -2814,6 +2814,44 @@
     "loading": "Loading listings...",
     "endOfListings": "You've reached the end of the listings"
   },
+  "Announcement": {
+    "admin": {
+      "title": "Announcement Management",
+      "description": "Create and manage dismissible announcements for the community page",
+      "create": "Create Announcement",
+      "edit": "Edit Announcement",
+      "delete": "Delete Announcement",
+      "confirmDelete": "Are you sure you want to delete this announcement?",
+      "fields": {
+        "title": "Title",
+        "titleHelp": "Short headline for the announcement",
+        "message": "Message",
+        "messageHelp": "The main content of the announcement",
+        "type": "Type",
+        "typeHelp": "Determines the color and icon",
+        "linkUrl": "Link URL (optional)",
+        "linkUrlHelp": "Optional link for more information",
+        "linkText": "Link Text",
+        "linkTextHelp": "Text to display for the link",
+        "startsAt": "Start Date",
+        "endsAt": "End Date (optional)",
+        "endsAtHelp": "Leave empty for no end date",
+        "priority": "Priority",
+        "priorityHelp": "Higher numbers appear first",
+        "isActive": "Active"
+      },
+      "status": {
+        "active": "Active",
+        "scheduled": "Scheduled",
+        "expired": "Expired",
+        "disabled": "Disabled"
+      },
+      "empty": "No announcements created yet",
+      "saved": "Announcement saved successfully",
+      "deleted": "Announcement deleted successfully",
+      "error": "Failed to save announcement"
+    }
+  },
   "Banner": {
     "admin": {
       "title": "Banner Management",

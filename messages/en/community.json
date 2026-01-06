@@ -11,6 +11,21 @@
     "comingSoon": "Soon"
   },
 
+  "dashboard": {
+    "recentShakedowns": {
+      "title": "Recent Shakedowns",
+      "description": "New in the last 7 days"
+    },
+    "newListings": {
+      "title": "New Listings",
+      "description": "New in the last 7 days"
+    },
+    "wikiUpdates": {
+      "title": "Wiki Updates",
+      "description": "Recent articles"
+    }
+  },
+
   "panels": {
     "friends": {
       "title": "Friends",

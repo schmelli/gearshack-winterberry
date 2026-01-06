@@ -11,6 +11,21 @@
     "comingSoon": "Bald"
   },
 
+  "dashboard": {
+    "recentShakedowns": {
+      "title": "Aktuelle Shakedowns",
+      "description": "Neu in den letzten 7 Tagen"
+    },
+    "newListings": {
+      "title": "Neue Angebote",
+      "description": "Neu in den letzten 7 Tagen"
+    },
+    "wikiUpdates": {
+      "title": "Wiki-Updates",
+      "description": "Aktuelle Artikel"
+    }
+  },
+
   "panels": {
     "friends": {
       "title": "Freunde",

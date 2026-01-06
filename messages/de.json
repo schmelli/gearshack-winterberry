@@ -2821,6 +2821,44 @@
     "loading": "Lade Angebote...",
     "endOfListings": "Du hast das Ende der Angebote erreicht"
   },
+  "Announcement": {
+    "admin": {
+      "title": "Ankündigungs-Verwaltung",
+      "description": "Schließbare Ankündigungen für die Community-Seite erstellen und verwalten",
+      "create": "Ankündigung erstellen",
+      "edit": "Ankündigung bearbeiten",
+      "delete": "Ankündigung löschen",
+      "confirmDelete": "Möchten Sie diese Ankündigung wirklich löschen?",
+      "fields": {
+        "title": "Titel",
+        "titleHelp": "Kurze Überschrift für die Ankündigung",
+        "message": "Nachricht",
+        "messageHelp": "Der Hauptinhalt der Ankündigung",
+        "type": "Typ",
+        "typeHelp": "Bestimmt die Farbe und das Symbol",
+        "linkUrl": "Link-URL (optional)",
+        "linkUrlHelp": "Optionaler Link für weitere Informationen",
+        "linkText": "Link-Text",
+        "linkTextHelp": "Anzeigetext für den Link",
+        "startsAt": "Startdatum",
+        "endsAt": "Enddatum (optional)",
+        "endsAtHelp": "Leer lassen für kein Enddatum",
+        "priority": "Priorität",
+        "priorityHelp": "Höhere Zahlen werden zuerst angezeigt",
+        "isActive": "Aktiv"
+      },
+      "status": {
+        "active": "Aktiv",
+        "scheduled": "Geplant",
+        "expired": "Abgelaufen",
+        "disabled": "Deaktiviert"
+      },
+      "empty": "Noch keine Ankündigungen erstellt",
+      "saved": "Ankündigung erfolgreich gespeichert",
+      "deleted": "Ankündigung erfolgreich gelöscht",
+      "error": "Ankündigung konnte nicht gespeichert werden"
+    }
+  },
   "Banner": {
     "admin": {
       "title": "Banner-Verwaltung",

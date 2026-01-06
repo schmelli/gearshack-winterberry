@@ -117,11 +117,14 @@ export function RichContentRenderer({ content, className }: RichContentRendererP
   const parsedSegments = useMemo(() => parseContent(content), [content]);
 
   return (
-    <div className={className}>
+    <div className={`${className} overflow-hidden`}>
       {parsedSegments.map((segment, index) => {
         if (segment.type === 'youtube' && segment.metadata?.videoId) {
           return (
-            <div key={index} className="my-3">
+            <div
+              key={index}
+              className="my-3 clear-left sm:float-left sm:w-[50%] sm:max-w-[50%] sm:mr-4 sm:mb-2"
+            >
               <YouTubePreview videoId={segment.metadata.videoId} url={segment.content} />
             </div>
           );
