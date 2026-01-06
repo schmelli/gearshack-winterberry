@@ -1,14 +1,15 @@
 /**
  * Vercel AI Client for Image Generation
  * Feature: 048-ai-loadout-image-gen
- * Constitution: Server-side only - uses Vercel AI SDK with Google Imagen
+ * Constitution: Server-side only - uses Vercel AI SDK with Google Gemini
  *
- * Uses generateImage with Google's Imagen model for image generation.
+ * Uses generateText with Google's Gemini 2.5 Flash Image model.
+ * Images are returned in result.files array.
  *
- * @see https://sdk.vercel.ai/docs/ai-sdk-core/image-generation
+ * @see https://sdk.vercel.ai/docs/guides/google-gemini-image-generation
  */
 
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import {
@@ -22,14 +23,14 @@ import {
 /**
  * AI Model Configuration
  *
- * Uses Google Imagen for image generation via @ai-sdk/google
- * Model: imagen-4.0-generate-001 (Google's latest Imagen model)
+ * Uses Google Gemini 2.5 Flash Image (Nano Banana) for image generation
+ * This is Google's state-of-the-art image generation model.
  *
  * Requires:
- * - GOOGLE_GENERATIVE_AI_API_KEY environment variable (for Google AI)
+ * - GOOGLE_GENERATIVE_AI_API_KEY environment variable
  * - AI_GENERATION_ENABLED=true
  */
-const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'imagen-4.0-generate-001';
+const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 
 // =============================================================================
 // Validation Schemas
@@ -94,7 +95,10 @@ function isRateLimitError(statusCode: number): boolean {
 // =============================================================================
 
 /**
- * Generate AI image using Vercel AI SDK with Google Imagen
+ * Generate AI image using Vercel AI SDK with Google Gemini 2.5 Flash Image
+ *
+ * Gemini 2.5 Flash Image (Nano Banana) generates images via generateText.
+ * Images are returned in result.files array with base64/uint8Array data.
  *
  * @param request - Generation parameters including prompt and style options
  * @returns Image response with URL and metadata
@@ -123,28 +127,42 @@ export async function generateAIImage(
   }
 
   try {
-    console.log('[VercelAI] Generating image with prompt:', validatedRequest.prompt.substring(0, 100));
-    console.log('[VercelAI] Using model:', AI_IMAGE_MODEL);
+    console.log('[VercelAI] Generating image with Gemini 2.5 Flash Image');
+    console.log('[VercelAI] Prompt:', validatedRequest.prompt.substring(0, 100));
+    console.log('[VercelAI] Model:', AI_IMAGE_MODEL);
 
-    // Generate image using Google Imagen via AI SDK
-    const { image } = await generateImage({
-      model: google.image(AI_IMAGE_MODEL),
+    // Generate image using Gemini 2.5 Flash Image via generateText
+    // The model returns images in result.files array
+    const result = await generateText({
+      model: google(AI_IMAGE_MODEL),
       prompt: validatedRequest.prompt,
-      aspectRatio: validatedRequest.aspectRatio,
-      providerOptions: {
-        google: {
-          // Don't allow person generation for outdoor scenes
-          personGeneration: 'dont_allow',
-        },
-      },
     });
 
-    console.log('[VercelAI] Image generated, uploading to Cloudinary...');
+    console.log('[VercelAI] Generation complete, checking for images...');
+    console.log('[VercelAI] Files returned:', result.files?.length || 0);
 
-    // Convert image to base64 for Cloudinary upload
+    // Extract image from result.files
+    const imageFile = result.files?.find(file =>
+      file.mediaType?.startsWith('image/')
+    );
+
+    if (!imageFile) {
+      console.error('[VercelAI] No image found in response');
+      console.error('[VercelAI] Response text:', result.text?.substring(0, 200));
+      throw new AIGenerationError(
+        'Gemini did not return an image. The model may have returned text instead.',
+        500,
+        true
+      );
+    }
+
+    console.log('[VercelAI] Image found, mediaType:', imageFile.mediaType);
+    console.log('[VercelAI] Uploading to Cloudinary...');
+
+    // Convert to base64 for Cloudinary upload
     const imageData = {
-      base64: image.base64,
-      mediaType: image.mediaType || 'image/png',
+      base64: imageFile.base64,
+      mediaType: imageFile.mediaType || 'image/png',
     };
 
     // Upload to Cloudinary CDN
@@ -152,8 +170,8 @@ export async function generateAIImage(
 
     const response: AIImageResponse = {
       url: imageUrl,
-      width: validatedRequest.aspectRatio === '16:9' ? 1024 : 1024,
-      height: validatedRequest.aspectRatio === '16:9' ? 576 : 1024,
+      width: 1024,
+      height: 1024,
       contentType: imageData.mediaType,
     };
 
@@ -173,6 +191,11 @@ export async function generateAIImage(
         504,
         true // Retry timeout errors
       );
+    }
+
+    // Re-throw AIGenerationError as-is
+    if (error instanceof AIGenerationError) {
+      throw error;
     }
 
     // Handle API errors with status codes
