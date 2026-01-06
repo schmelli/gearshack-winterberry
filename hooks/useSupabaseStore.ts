@@ -41,6 +41,8 @@ interface LoadoutLocal {
   activityTypes: ActivityType[];
   seasons: Season[];
   itemStates: ItemState[];
+  /** Hero image URL from AI generation (Feature 048) */
+  heroImageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -335,6 +337,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
           activityTypes,
           seasons,
           itemStates: [],
+          heroImageUrl: null, // New loadouts don't have hero images yet
           createdAt: now,
           updatedAt: now,
         };

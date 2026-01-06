@@ -133,6 +133,9 @@ export interface Loadout {
   /** Per-item state for worn/consumable tracking (Feature: 007) */
   itemStates: LoadoutItemState[];
 
+  /** Hero image URL from AI generation (Feature 048) */
+  heroImageUrl?: string | null;
+
   /** Whether this is a VIP curated loadout (visible to all users) - Feature: 052-vip-loadouts */
   isVipLoadout?: boolean;
 

@@ -122,9 +122,15 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
 
     const fetchLoadouts = async () => {
       const supabase = createClient();
+      // Join with generated_images to get the hero image URL (Feature 048)
       const { data, error } = await supabase
         .from('loadouts')
-        .select('*')
+        .select(`
+          *,
+          generated_images!loadouts_hero_image_id_fkey (
+            cloudinary_url
+          )
+        `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -133,7 +139,11 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
         return;
       }
 
-      const typedLoadoutData = (data || []) as Tables<'loadouts'>[];
+      // Type the response with the joined generated_images
+      type LoadoutWithImage = Tables<'loadouts'> & {
+        generated_images: { cloudinary_url: string } | null;
+      };
+      const typedLoadoutData = (data || []) as LoadoutWithImage[];
 
       if (typedLoadoutData.length === 0) {
         setRemoteLoadouts([]);
@@ -176,6 +186,8 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
             isWorn: item.is_worn,
             isConsumable: item.is_consumable,
           })),
+          // Feature 048: Include hero image URL from joined generated_images
+          heroImageUrl: row.generated_images?.cloudinary_url ?? null,
           createdAt: new Date(row.created_at),
           updatedAt: new Date(row.updated_at),
         };
