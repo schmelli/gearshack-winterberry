@@ -21,6 +21,35 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/**
+ * Optimize Cloudinary URLs with automatic format and quality
+ * Adds f_auto (WebP for supported browsers), q_auto, and width limit
+ */
+function optimizeCloudinaryUrl(url: string, width = 1200): string {
+  // Only process Cloudinary URLs
+  if (!url.includes('res.cloudinary.com')) {
+    return url;
+  }
+
+  // Check if transformations already exist
+  if (url.includes('/f_auto') || url.includes('/q_auto')) {
+    return url;
+  }
+
+  // Cloudinary URL format: https://res.cloudinary.com/{cloud}/image/upload/{transformations}/{public_id}
+  // Insert transformations after 'upload/'
+  const uploadIndex = url.indexOf('/upload/');
+  if (uploadIndex === -1) {
+    return url;
+  }
+
+  const before = url.slice(0, uploadIndex + 8); // includes '/upload/'
+  const after = url.slice(uploadIndex + 8);
+
+  // Add optimizations: auto format, auto quality, width limit
+  return `${before}f_auto,q_auto,w_${width}/${after}`;
+}
+
 export interface LoadoutHeroImageProps {
   /** Cloudinary image URL (null if no image) */
   imageUrl: string | null;
@@ -121,9 +150,9 @@ export function LoadoutHeroImage({
         {/* Image or Placeholder */}
         {hasImage && !isGenerating ? (
           <>
-            {/* Background Image */}
+            {/* Background Image - optimized via Cloudinary transformations */}
             <Image
-              src={imageUrl}
+              src={optimizeCloudinaryUrl(imageUrl!)}
               alt={altText}
               fill
               className="object-cover"

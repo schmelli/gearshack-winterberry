@@ -28,6 +28,20 @@ import {
 } from '@/lib/loadout-utils';
 import { cn } from '@/lib/utils';
 
+/**
+ * Optimize Cloudinary URLs with automatic format and quality
+ */
+function optimizeCloudinaryUrl(url: string, width = 600): string {
+  if (!url.includes('res.cloudinary.com') || url.includes('/f_auto')) {
+    return url;
+  }
+  const uploadIndex = url.indexOf('/upload/');
+  if (uploadIndex === -1) return url;
+  const before = url.slice(0, uploadIndex + 8);
+  const after = url.slice(uploadIndex + 8);
+  return `${before}f_auto,q_auto,w_${width}/${after}`;
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -73,11 +87,11 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
           'relative overflow-hidden transition-all hover:border-primary/50',
           hasHeroImage ? 'min-h-[200px]' : 'hover:bg-muted/50'
         )}>
-          {/* Hero Image Background (Feature 048) */}
+          {/* Hero Image Background (Feature 048) - optimized via Cloudinary */}
           {hasHeroImage && (
             <>
               <Image
-                src={loadout.heroImageUrl!}
+                src={optimizeCloudinaryUrl(loadout.heroImageUrl!)}
                 alt={`${loadout.name} hero image`}
                 fill
                 className="object-cover"
