@@ -12,6 +12,18 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { ProductPriceReference } from '@/lib/services/price-validation-service';
 
+/**
+ * Explicit type for catalog product query result.
+ * Using explicit typing to avoid Supabase type inference issues with joins.
+ */
+interface CatalogProductResult {
+  id: string;
+  name: string;
+  price_usd: number | null;
+  product_type: string | null;
+  brand: { name: string } | null;
+}
+
 interface UseMsrpPriceResult {
   msrp: ProductPriceReference | null;
   isLoading: boolean;
@@ -55,18 +67,21 @@ export function useMsrpPrice(
           : itemName;
 
         // Search catalog for matching product
+        // Note: catalog_products doesn't have category_main column
+        // category info would need to be derived from product_type_id -> categories
+        // Using explicit type cast to avoid Supabase type inference issues with joins
         const { data, error: searchError } = await supabase
           .from('catalog_products')
           .select(`
             id,
             name,
             price_usd,
-            category_main,
             product_type,
             brand:catalog_brands(name)
           `)
           .textSearch('name', searchQuery, { type: 'websearch' })
-          .limit(5);
+          .limit(5)
+          .returns<CatalogProductResult[]>();
 
         if (searchError) {
           // Fallback: try ilike search if full-text search fails
@@ -76,12 +91,12 @@ export function useMsrpPrice(
               id,
               name,
               price_usd,
-              category_main,
               product_type,
               brand:catalog_brands(name)
             `)
             .ilike('name', `%${itemName}%`)
-            .limit(5);
+            .limit(5)
+            .returns<CatalogProductResult[]>();
 
           if (fallbackError) {
             throw new Error(`Failed to search catalog: ${fallbackError.message}`);
@@ -96,7 +111,7 @@ export function useMsrpPrice(
           let bestMatch = fallbackData[0];
           if (brandName) {
             const brandMatch = fallbackData.find((p) => {
-              const pBrand = (p.brand as { name: string } | null)?.name?.toLowerCase() || '';
+              const pBrand = p.brand?.name?.toLowerCase() || '';
               return pBrand.includes(brandName.toLowerCase());
             });
             if (brandMatch) {
@@ -108,9 +123,9 @@ export function useMsrpPrice(
             setMsrp({
               catalogProductId: bestMatch.id,
               catalogProductName: bestMatch.name,
-              brandName: (bestMatch.brand as { name: string } | null)?.name || null,
+              brandName: bestMatch.brand?.name || null,
               expectedPriceUsd: bestMatch.price_usd,
-              categoryMain: bestMatch.category_main,
+              categoryMain: null, // catalog_products doesn't have this column
               productType: bestMatch.product_type,
             });
           }
@@ -126,7 +141,7 @@ export function useMsrpPrice(
         let bestMatch = data[0];
         if (brandName) {
           const brandMatch = data.find((p) => {
-            const pBrand = (p.brand as { name: string } | null)?.name?.toLowerCase() || '';
+            const pBrand = p.brand?.name?.toLowerCase() || '';
             return pBrand.includes(brandName.toLowerCase());
           });
           if (brandMatch) {
@@ -138,9 +153,9 @@ export function useMsrpPrice(
           setMsrp({
             catalogProductId: bestMatch.id,
             catalogProductName: bestMatch.name,
-            brandName: (bestMatch.brand as { name: string } | null)?.name || null,
+            brandName: bestMatch.brand?.name || null,
             expectedPriceUsd: bestMatch.price_usd,
-            categoryMain: bestMatch.category_main,
+            categoryMain: null, // catalog_products doesn't have this column
             productType: bestMatch.product_type,
           });
         } else {
