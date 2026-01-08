@@ -212,13 +212,27 @@ export interface WikiGenerationInput {
   targetCategoryId?: string;
 }
 
+export interface SimilarWikiArticle {
+  id: string;
+  slug: string;
+  title_en: string;
+  title_de: string;
+  status: string;
+  similarity: number;
+  matchReason: string;
+}
+
 export interface WikiGenerationResult {
   title_en: string;
   title_de: string;
   content_en: string;
   content_de: string;
   suggestedCategory?: string;
+  keyTopics?: string[];
   sourceSummary?: string;
+  // Duplicate detection
+  similarArticles?: SimilarWikiArticle[];
+  hasPotentialDuplicates?: boolean;
 }
 
 export type WikiGenerationStatus =

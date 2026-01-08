@@ -30,23 +30,52 @@ const RequestSchema = z.object({
 // DeepSeek is preferred for wiki generation - fast, cost-effective, and good at structured output
 const AI_WIKI_MODEL = process.env.AI_WIKI_MODEL || process.env.AI_TEXT_MODEL || 'deepseek/deepseek-v3';
 
-const WIKI_GENERATION_PROMPT = `You are a wiki article writer for GearShack, an outdoor gear community.
+// Similarity threshold for duplicate detection (0-1, higher = stricter)
+const DUPLICATE_SIMILARITY_THRESHOLD = 0.4;
 
-Create a bilingual wiki article (English and German) based on the source content below.
+const WIKI_GENERATION_PROMPT = `You are an expert wiki editor for GearShack, an outdoor gear community.
 
-CRITICAL: Return ONLY a valid JSON object. No markdown code blocks, no explanations, no text before or after.
+Your task: EXTRACT the key insights and practical information from the source, then write an ORIGINAL wiki article in your own words. DO NOT paraphrase or summarize the source - instead, distill the knowledge and present it fresh.
 
-Required JSON structure:
-{"title_en":"English title","title_de":"German title","content_en":"English article in markdown","content_de":"German article in markdown","suggestedCategory":"gear-guides|hiking-tips|maintenance|safety|destinations"}
+IMPORTANT RULES:
+1. Extract FACTS and INSIGHTS, not sentences
+2. Reorganize information logically for GearShack readers
+3. Add practical tips from your knowledge where relevant
+4. Use GearShack's friendly, experienced hiker voice
+5. Never copy phrases or sentence structures from the source
+6. Focus on actionable advice outdoor enthusiasts can use
 
-Guidelines:
-- Use markdown in content fields (##, ###, bullets, **bold**)
-- German should be natural, not machine-translated
-- Articles: 300-1500 words, practical tips, safety info if relevant
-- Escape quotes inside strings with backslash
+CRITICAL: Return ONLY a valid JSON object. No markdown code blocks, no explanations.
 
-SOURCE CONTENT:
+JSON structure:
+{"title_en":"Concise title (3-7 words)","title_de":"German title","content_en":"Original article in markdown","content_de":"German article (natural, not translated)","suggestedCategory":"gear-guides|hiking-tips|maintenance|safety|destinations","keyTopics":["topic1","topic2","topic3"]}
+
+Content guidelines:
+- Start with a brief intro explaining why this matters
+- Use ## for main sections, ### for subsections
+- Include bullet points for lists and tips
+- Bold **key terms** on first use
+- 400-1200 words, focused and practical
+- Add a "Key Takeaways" section at the end
+
+The keyTopics array should contain 3-5 main topics/keywords for duplicate detection.
+
+SOURCE TO EXTRACT INSIGHTS FROM:
 `;
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface SimilarArticle {
+  id: string;
+  slug: string;
+  title_en: string;
+  title_de: string;
+  status: string;
+  similarity: number;
+  matchReason: string;
+}
 
 // =============================================================================
 // Helpers
@@ -169,6 +198,111 @@ function parseJsonFromResponse(text: string): Record<string, unknown> | null {
   return null;
 }
 
+/**
+ * Find similar existing wiki articles based on title and keywords
+ *
+ * Uses multiple matching strategies:
+ * 1. Trigram similarity on title (pg_trgm extension)
+ * 2. Keyword/topic overlap
+ * 3. Full-text search on content
+ */
+async function findSimilarArticles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  title: string,
+  keyTopics: string[]
+): Promise<SimilarArticle[]> {
+  const similarArticles: SimilarArticle[] = [];
+
+  try {
+    // Normalize title for comparison
+    const normalizedTitle = title.toLowerCase().trim();
+    const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 3);
+
+    // Strategy 1: Search by title similarity using ILIKE patterns
+    const titlePatterns = titleWords.slice(0, 3).map(word => `%${word}%`);
+
+    if (titlePatterns.length > 0) {
+      const { data: titleMatches } = await supabase
+        .from('wiki_pages')
+        .select('id, slug, title_en, title_de, status')
+        .or(titlePatterns.map(p => `title_en.ilike.${p}`).join(','))
+        .limit(10);
+
+      if (titleMatches) {
+        for (const match of titleMatches) {
+          // Calculate word overlap similarity
+          const matchWords = match.title_en.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
+          const overlap = titleWords.filter(w => matchWords.includes(w)).length;
+          const similarity = overlap / Math.max(titleWords.length, matchWords.length);
+
+          if (similarity >= DUPLICATE_SIMILARITY_THRESHOLD) {
+            similarArticles.push({
+              id: match.id,
+              slug: match.slug,
+              title_en: match.title_en,
+              title_de: match.title_de,
+              status: match.status,
+              similarity: Math.round(similarity * 100) / 100,
+              matchReason: `Title similarity: ${Math.round(similarity * 100)}% word overlap`,
+            });
+          }
+        }
+      }
+    }
+
+    // Strategy 2: Search by keyword/topic overlap
+    if (keyTopics && keyTopics.length > 0) {
+      const topicPatterns = keyTopics.slice(0, 5).map(topic =>
+        `%${topic.toLowerCase()}%`
+      );
+
+      const { data: topicMatches } = await supabase
+        .from('wiki_pages')
+        .select('id, slug, title_en, title_de, status, content_en')
+        .or([
+          ...topicPatterns.map(p => `title_en.ilike.${p}`),
+          ...topicPatterns.map(p => `content_en.ilike.${p}`),
+        ].join(','))
+        .limit(10);
+
+      if (topicMatches) {
+        for (const match of topicMatches) {
+          // Skip if already found by title
+          if (similarArticles.some(a => a.id === match.id)) continue;
+
+          // Count how many topics match
+          const content = `${match.title_en} ${match.content_en}`.toLowerCase();
+          const matchingTopics = keyTopics.filter(topic =>
+            content.includes(topic.toLowerCase())
+          );
+
+          if (matchingTopics.length >= 2) {
+            const similarity = matchingTopics.length / keyTopics.length;
+            similarArticles.push({
+              id: match.id,
+              slug: match.slug,
+              title_en: match.title_en,
+              title_de: match.title_de,
+              status: match.status,
+              similarity: Math.round(similarity * 100) / 100,
+              matchReason: `Topic match: ${matchingTopics.join(', ')}`,
+            });
+          }
+        }
+      }
+    }
+
+    // Sort by similarity descending
+    similarArticles.sort((a, b) => b.similarity - a.similarity);
+
+    // Return top 5 matches
+    return similarArticles.slice(0, 5);
+  } catch (error) {
+    console.error('[Wiki Generate] Error finding similar articles:', error);
+    return [];
+  }
+}
+
 // =============================================================================
 // Route Handler
 // =============================================================================
@@ -275,6 +409,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract keyTopics for duplicate detection
+    const keyTopics = Array.isArray(wikiContent.keyTopics)
+      ? (wikiContent.keyTopics as string[])
+      : [];
+
+    console.log('[Wiki Generate] Key topics:', keyTopics);
+
+    // Find similar existing articles
+    const similarArticles = await findSimilarArticles(
+      supabase,
+      wikiContent.title_en as string,
+      keyTopics
+    );
+
+    if (similarArticles.length > 0) {
+      console.log('[Wiki Generate] Found similar articles:', similarArticles.length);
+    }
+
     return NextResponse.json({
       success: true,
       title_en: wikiContent.title_en,
@@ -282,7 +434,11 @@ export async function POST(request: NextRequest) {
       content_en: wikiContent.content_en,
       content_de: wikiContent.content_de,
       suggestedCategory: wikiContent.suggestedCategory || null,
+      keyTopics,
       sourceSummary: truncatedContent.substring(0, 200) + '...',
+      // Duplicate detection results
+      similarArticles,
+      hasPotentialDuplicates: similarArticles.length > 0,
     });
   } catch (error) {
     console.error('[Wiki Generate] Error:', error);

@@ -59,7 +59,11 @@ export function useWikiGenerator(): UseWikiGeneratorReturn {
         content_en: data.content_en,
         content_de: data.content_de,
         suggestedCategory: data.suggestedCategory,
+        keyTopics: data.keyTopics,
         sourceSummary: data.sourceSummary,
+        // Duplicate detection results
+        similarArticles: data.similarArticles,
+        hasPotentialDuplicates: data.hasPotentialDuplicates,
       });
       setStatus('success');
     } catch (err) {

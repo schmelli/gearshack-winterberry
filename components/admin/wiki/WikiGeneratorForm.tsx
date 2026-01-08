@@ -11,7 +11,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { Sparkles, Loader2, ExternalLink, Check, FileText } from 'lucide-react';
+import { Sparkles, Loader2, ExternalLink, Check, FileText, AlertTriangle, Link2, Merge } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { WikiGenerationResult } from '@/types/admin';
+import type { WikiGenerationResult, SimilarWikiArticle } from '@/types/admin';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // ============================================================================
 // Types
@@ -243,7 +244,16 @@ export function WikiGeneratorForm({ onArticleCreated }: WikiGeneratorFormProps) 
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Duplicate Warning */}
+            {result.hasPotentialDuplicates && result.similarArticles && result.similarArticles.length > 0 && (
+              <DuplicateWarning
+                similarArticles={result.similarArticles}
+                onViewArticle={(slug) => router.push(`/community/wiki/${slug}`)}
+                onEditArticle={(slug) => router.push(`/community/wiki/${slug}/edit`)}
+              />
+            )}
+
             <Tabs
               value={previewTab}
               onValueChange={(v) => setPreviewTab(v as 'en' | 'de')}
@@ -291,6 +301,72 @@ export function WikiGeneratorForm({ onArticleCreated }: WikiGeneratorFormProps) 
         </Card>
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// Duplicate Warning Component
+// ============================================================================
+
+interface DuplicateWarningProps {
+  similarArticles: SimilarWikiArticle[];
+  onViewArticle: (slug: string) => void;
+  onEditArticle: (slug: string) => void;
+}
+
+function DuplicateWarning({ similarArticles, onViewArticle, onEditArticle }: DuplicateWarningProps) {
+  return (
+    <Alert variant="destructive" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+      <AlertTriangle className="h-5 w-5 text-amber-600" />
+      <AlertTitle className="text-amber-800 dark:text-amber-200">
+        Potential Duplicate Detected
+      </AlertTitle>
+      <AlertDescription className="mt-2">
+        <p className="mb-3 text-amber-700 dark:text-amber-300">
+          Similar articles already exist. Consider updating an existing article instead of creating a duplicate.
+        </p>
+        <div className="space-y-2">
+          {similarArticles.map((article) => (
+            <div
+              key={article.id}
+              className="flex items-center justify-between gap-2 rounded-md bg-amber-100 dark:bg-amber-900 p-2"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-amber-900 dark:text-amber-100 truncate">
+                  {article.title_en}
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {article.matchReason} • Status: {article.status}
+                </p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs border-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800"
+                  onClick={() => onViewArticle(article.slug)}
+                >
+                  <Link2 className="h-3 w-3 mr-1" />
+                  View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs border-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800"
+                  onClick={() => onEditArticle(article.slug)}
+                >
+                  <Merge className="h-3 w-3 mr-1" />
+                  Edit & Merge
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+          You can still save as new article if the content is sufficiently different.
+        </p>
+      </AlertDescription>
+    </Alert>
   );
 }
 
