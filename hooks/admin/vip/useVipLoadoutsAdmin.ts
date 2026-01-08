@@ -83,12 +83,34 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
     setState((prev) => ({ ...prev, status: 'loading', error: null }));
 
     try {
-      // Query regular loadouts table filtered by VIP account type
-      let query = supabase
+      // If userId provided, just fetch loadouts for that user
+      // Otherwise, first get VIP user IDs then fetch their loadouts
+      let targetUserIds: string[] = [];
+
+      if (userId) {
+        targetUserIds = [userId];
+      } else {
+        // Get all VIP user IDs first
+        const { data: vipProfiles, error: vipError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('account_type', 'vip');
+
+        if (vipError) throw vipError;
+        targetUserIds = (vipProfiles || []).map((p) => p.id);
+      }
+
+      if (targetUserIds.length === 0) {
+        setState({ status: 'success', loadouts: [], error: null });
+        return;
+      }
+
+      // Query loadouts for VIP users
+      const { data, error } = await supabase
         .from('loadouts')
         .select(`
           *,
-          profiles!inner(
+          profiles(
             id,
             display_name,
             avatar_url,
@@ -98,16 +120,8 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
             count
           )
         `)
-        .eq('profiles.account_type', 'vip')
-        .eq('is_vip_loadout', true)
+        .in('user_id', targetUserIds)
         .order('created_at', { ascending: false });
-
-      // Filter by specific VIP user if provided
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 

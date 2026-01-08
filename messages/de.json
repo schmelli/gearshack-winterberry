@@ -2221,6 +2221,8 @@
   },
   "vip": {
     "admin": {
+      "title": "VIP-Verwaltung",
+      "addNewVip": "Neuen VIP hinzufügen",
       "status": "Status",
       "editVip": "VIP bearbeiten",
       "featured": "Empfohlen",

@@ -10,7 +10,6 @@
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  Conversation,
   ConversationListItem,
   Message,
   MessageWithSender,
@@ -369,10 +368,10 @@ export async function fetchMessages(
       id: row.id,
       conversation_id: row.conversation_id,
       sender_id: row.sender_id,
-      content: row.content,
+      content: row.content ?? null,
       message_type: row.message_type,
-      media_url: row.media_url,
-      metadata: row.metadata,
+      media_url: row.media_url ?? null,
+      metadata: row.metadata ?? {},
       deletion_state: row.deletion_state,
       created_at: row.created_at,
       updated_at: row.updated_at,

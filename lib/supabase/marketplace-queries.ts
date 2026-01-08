@@ -69,18 +69,18 @@ function transformListing(row: MarketplaceView): MarketplaceListing {
   return {
     id: row.id ?? '',
     name: row.name ?? '',
-    brand: row.brand,
-    primaryImageUrl: row.primary_image_url,
+    brand: row.brand ?? null,
+    primaryImageUrl: row.primary_image_url ?? null,
     condition: row.condition ?? '',
-    pricePaid: row.price_paid,
-    currency: row.currency,
+    pricePaid: row.price_paid ?? null,
+    currency: row.currency ?? null,
     isForSale: row.is_for_sale ?? false,
     canBeTraded: row.can_be_traded ?? false,
     canBeBorrowed: row.can_be_borrowed ?? false,
     listedAt: row.listed_at ?? '',
     sellerId: row.seller_id ?? '',
     sellerName: row.seller_name ?? '',
-    sellerAvatar: row.seller_avatar,
+    sellerAvatar: row.seller_avatar ?? null,
   };
 }
 

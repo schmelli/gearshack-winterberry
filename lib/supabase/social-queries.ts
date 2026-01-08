@@ -82,7 +82,7 @@ export async function fetchFollowing(userId: string): Promise<FollowInfo[]> {
     return {
       id: profile.id,
       display_name: profile.display_name ?? 'Unknown',
-      avatar_url: profile.avatar_url,
+      avatar_url: profile.avatar_url ?? null,
       following_since: row.created_at,
       is_vip: profile.account_type === 'vip',
     };
@@ -141,7 +141,7 @@ export async function fetchFollowers(userId: string): Promise<FollowInfo[] | nul
     return {
       id: followerProfile.id,
       display_name: followerProfile.display_name ?? 'Unknown',
-      avatar_url: followerProfile.avatar_url,
+      avatar_url: followerProfile.avatar_url ?? null,
       following_since: row.created_at,
       is_vip: followerProfile.account_type === 'vip',
     };
@@ -600,7 +600,7 @@ export async function fetchFriendActivities(
         id: row.id,
         user_id: row.user_id,
         display_name: row.display_name ?? 'Unknown',
-        avatar_url: row.avatar_url,
+        avatar_url: row.avatar_url ?? null,
         activity_type: row.activity_type as ActivityType,
         reference_type: row.reference_type,
         reference_id: row.reference_id,
@@ -623,7 +623,7 @@ export async function fetchFriendActivities(
     id: row.id,
     user_id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
-    avatar_url: row.avatar_url,
+    avatar_url: row.avatar_url ?? null,
     activity_type: row.activity_type as ActivityType,
     reference_type: row.reference_type,
     reference_id: row.reference_id,
