@@ -46,14 +46,14 @@ export function useWikiEditor(): UseWikiEditorReturn {
       let slug = generateSlug(data.title_en);
       let slugSuffix = 0;
 
-      // Check for existing slugs
+      // Check for existing slugs - use maybeSingle() to avoid 406 when no row exists
       while (true) {
         const testSlug = slugSuffix > 0 ? `${slug}-${slugSuffix}` : slug;
         const { data: existing } = await supabase
           .from('wiki_pages')
           .select('id')
           .eq('slug', testSlug)
-          .single();
+          .maybeSingle();
 
         if (!existing) {
           slug = testSlug;
