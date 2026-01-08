@@ -27,36 +27,23 @@ const RequestSchema = z.object({
 // Constants
 // =============================================================================
 
-const AI_TEXT_MODEL = process.env.AI_TEXT_MODEL || 'anthropic/claude-3-5-sonnet-20241022';
+// DeepSeek is preferred for wiki generation - fast, cost-effective, and good at structured output
+const AI_WIKI_MODEL = process.env.AI_WIKI_MODEL || process.env.AI_TEXT_MODEL || 'deepseek/deepseek-v3';
 
-const WIKI_GENERATION_PROMPT = `You are a professional wiki article writer for an outdoor gear and hiking community called GearShack.
+const WIKI_GENERATION_PROMPT = `You are a wiki article writer for GearShack, an outdoor gear community.
 
-Your task is to create a comprehensive, well-structured wiki article based on the source content provided.
+Create a bilingual wiki article (English and German) based on the source content below.
 
-## Requirements:
-1. **Structure**: Use markdown formatting with clear headers (##), subheaders (###), and bullet points
-2. **Content**: Extract key information and organize it logically for outdoor enthusiasts
-3. **Tone**: Informative but approachable, like an experienced hiker sharing knowledge
-4. **Practical**: Include practical tips, recommendations, and actionable advice
-5. **Safety**: If relevant, include safety considerations
-6. **Bilingual**: Create both English and German versions
+CRITICAL: Return ONLY a valid JSON object. No markdown code blocks, no explanations, no text before or after.
 
-## Output Format (IMPORTANT - Return valid JSON only):
-Return a JSON object with these exact keys:
-{
-  "title_en": "English title (concise, 3-8 words)",
-  "title_de": "German title (natural translation, not machine-translated)",
-  "content_en": "Full English article in markdown",
-  "content_de": "Full German article in markdown (natural German, preserve markdown formatting)",
-  "suggestedCategory": "One of: gear-guides, hiking-tips, maintenance, safety, destinations"
-}
+Required JSON structure:
+{"title_en":"English title","title_de":"German title","content_en":"English article in markdown","content_de":"German article in markdown","suggestedCategory":"gear-guides|hiking-tips|maintenance|safety|destinations"}
 
-## Important:
-- The German version should read naturally, not like a direct translation
-- Use proper markdown: headers, lists, bold for key terms, links where appropriate
-- Keep articles between 300-1500 words
-- Focus on value for outdoor enthusiasts
-- Do NOT include any text outside the JSON object
+Guidelines:
+- Use markdown in content fields (##, ###, bullets, **bold**)
+- German should be natural, not machine-translated
+- Articles: 300-1500 words, practical tips, safety info if relevant
+- Escape quotes inside strings with backslash
 
 SOURCE CONTENT:
 `;
@@ -105,33 +92,80 @@ function extractTextFromHtml(html: string): string {
 }
 
 /**
- * Parse JSON from AI response (handles markdown code blocks)
+ * Parse JSON from AI response (handles markdown code blocks and various formats)
+ *
+ * DeepSeek and other models may return JSON in various formats:
+ * 1. Raw JSON object
+ * 2. JSON wrapped in ```json ... ``` code blocks
+ * 3. JSON with preamble/postamble text
+ * 4. JSON with unescaped newlines in strings
  */
 function parseJsonFromResponse(text: string): Record<string, unknown> | null {
+  // Clean the text
+  const cleanedText = text.trim();
+
   // Try direct JSON parse first
   try {
-    return JSON.parse(text);
+    return JSON.parse(cleanedText);
   } catch {
-    // Try to extract JSON from markdown code block
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[1].trim());
-      } catch {
-        // Continue to next attempt
-      }
-    }
+    // Continue to extraction methods
+  }
 
-    // Try to find JSON object in text
-    const objectMatch = text.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
-      try {
-        return JSON.parse(objectMatch[0]);
-      } catch {
-        // Give up
-      }
+  // Try to extract JSON from markdown code block (```json ... ``` or ``` ... ```)
+  const codeBlockMatch = cleanedText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch {
+      // Continue to next attempt
     }
   }
+
+  // Try to find the outermost JSON object - find first { and last }
+  const firstBrace = cleanedText.indexOf('{');
+  const lastBrace = cleanedText.lastIndexOf('}');
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const jsonCandidate = cleanedText.substring(firstBrace, lastBrace + 1);
+
+    // Try direct parse
+    try {
+      return JSON.parse(jsonCandidate);
+    } catch {
+      // Try to fix common issues
+    }
+
+    // Fix unescaped newlines within strings (common AI issue)
+    // This regex finds strings and replaces unescaped newlines with \n
+    try {
+      const fixedJson = jsonCandidate
+        .replace(/:\s*"([^"]*?)(?<!\\)"/g, (match, content) => {
+          // Replace actual newlines with escaped newlines
+          const fixed = content
+            .replace(/\r?\n/g, '\\n')
+            .replace(/\t/g, '\\t');
+          return `: "${fixed}"`;
+        });
+      return JSON.parse(fixedJson);
+    } catch {
+      // Continue
+    }
+
+    // Try removing control characters
+    try {
+      const sanitized = jsonCandidate
+        .replace(/[\x00-\x1F\x7F]/g, (char) => {
+          if (char === '\n') return '\\n';
+          if (char === '\r') return '';
+          if (char === '\t') return '\\t';
+          return '';
+        });
+      return JSON.parse(sanitized);
+    } catch {
+      // Give up
+    }
+  }
+
   return null;
 }
 
@@ -198,22 +232,31 @@ export async function POST(request: NextRequest) {
     // Generate wiki content using AI
     const gateway = getGateway();
 
-    console.log('[Wiki Generate] Generating article with:', AI_TEXT_MODEL);
+    console.log('[Wiki Generate] Generating article with:', AI_WIKI_MODEL);
 
     const result = await generateText({
-      model: gateway(AI_TEXT_MODEL),
+      model: gateway(AI_WIKI_MODEL),
       prompt: WIKI_GENERATION_PROMPT + truncatedContent,
     });
 
-    console.log('[Wiki Generate] AI response received');
+    console.log('[Wiki Generate] AI response received, length:', result.text.length);
+    console.log('[Wiki Generate] Response preview:', result.text.substring(0, 300));
 
     // Parse JSON from response
     const wikiContent = parseJsonFromResponse(result.text);
 
     if (!wikiContent) {
-      console.error('[Wiki Generate] Failed to parse AI response:', result.text.substring(0, 500));
+      console.error('[Wiki Generate] Failed to parse AI response as JSON');
+      console.error('[Wiki Generate] Full response:', result.text);
       return NextResponse.json(
-        { error: 'Failed to parse AI response as JSON' },
+        {
+          error: 'Failed to parse AI response as JSON',
+          debug: {
+            model: AI_WIKI_MODEL,
+            responseLength: result.text.length,
+            responsePreview: result.text.substring(0, 500),
+          },
+        },
         { status: 500 }
       );
     }
