@@ -2367,6 +2367,8 @@
     },
     "profile": {
       "title": "VIP Profile",
+      "metaTitle": "{name} - VIP Profile | GearShack",
+      "metaDescription": "Explore {name}'s gear loadouts and outdoor expertise on GearShack",
       "curatedBanner": "{name}'s profile is maintained by the GearShack community",
       "verifiedBadge": "Verified",
       "followers": "{count, plural, one {follower} other {followers}}",
@@ -2458,6 +2460,216 @@
       "slugLabel": "Slug (Unique ID)",
       "englishLabel": "English Label",
       "germanLabel": "German Label"
+    },
+    "wiki": {
+      "pageTitle": "Wiki Management",
+      "title": "Wiki Management",
+      "description": "View wiki analytics and generate AI-powered articles",
+      "tabs": {
+        "analytics": "Analytics",
+        "generate": "Generate Article"
+      },
+      "stats": {
+        "totalPages": "Total Pages",
+        "totalViews": "Total Views",
+        "revisions": "Revisions",
+        "pendingReports": "Pending Reports",
+        "published": "published",
+        "drafts": "drafts",
+        "acrossAllPages": "across all pages",
+        "lockedPages": "locked pages",
+        "needsAttention": "needs attention",
+        "allClear": "all clear"
+      },
+      "mostViewed": "Most Viewed Pages",
+      "recentActivity": "Recent Activity",
+      "categoryBreakdown": "Pages by Category",
+      "noPages": "No wiki pages yet",
+      "noActivity": "No recent activity",
+      "noCategories": "No categories found",
+      "pages": "pages",
+      "views": "views",
+      "edited": "edited",
+      "generator": {
+        "title": "AI Article Generator",
+        "description": "Generate wiki articles from external URLs using AI",
+        "urlLabel": "Source URL",
+        "urlPlaceholder": "https://example.com/article",
+        "urlRequired": "Please enter a valid URL",
+        "categoryLabel": "Target Category",
+        "categoryPlaceholder": "Select a category (optional)",
+        "generateButton": "Generate Article",
+        "fetching": "Fetching content...",
+        "generating": "Generating article...",
+        "preview": "Generated Article Preview",
+        "suggestedCategory": "Suggested category",
+        "titleLabel": "Title",
+        "contentLabel": "Content",
+        "reset": "Reset",
+        "saveToWiki": "Save as Draft",
+        "savedToDraft": "Article saved as draft",
+        "saveFailed": "Failed to save article"
+      }
+    },
+    "gardener": {
+      "pageTitle": "Graph Gardener",
+      "title": "Graph Gardener",
+      "description": "Chat with the GearGraph AI assistant for graph maintenance and analysis",
+      "chatTitle": "Head Gardener Chat",
+      "refreshStatus": "Refresh status",
+      "clearHistory": "Clear History",
+      "clearConfirmTitle": "Clear Chat History",
+      "clearConfirmDescription": "Are you sure you want to clear the conversation history? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Clear",
+      "emptyStateTitle": "Start a conversation",
+      "emptyStateDescription": "Ask the Head Gardener about graph status, run maintenance tasks, or get insights about the GearGraph",
+      "suggestedQuestions": "Suggested questions:",
+      "inputPlaceholder": "Ask the Head Gardener...",
+      "metrics": {
+        "nodes": "Nodes",
+        "relationships": "Relationships",
+        "orphans": "Orphans",
+        "duplicates": "Duplicates",
+        "pendingApprovals": "Pending"
+      }
+    },
+    "users": {
+      "pageTitle": "User Management",
+      "title": "User Management",
+      "description": "Manage users, roles, and account status",
+      "searchPlaceholder": "Search by name or email...",
+      "filters": {
+        "role": "Role",
+        "status": "Status",
+        "tier": "Tier",
+        "allRoles": "All Roles",
+        "allStatuses": "All Statuses",
+        "allTiers": "All Tiers"
+      },
+      "table": {
+        "user": "User",
+        "email": "Email",
+        "role": "Role",
+        "tier": "Tier",
+        "status": "Status",
+        "joined": "Joined",
+        "actions": "Actions",
+        "noUsers": "No users found"
+      },
+      "roles": {
+        "user": "User",
+        "admin": "Admin"
+      },
+      "tiers": {
+        "standard": "Standard",
+        "trailblazer": "Trailblazer"
+      },
+      "statuses": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "banned": "Banned"
+      },
+      "actions": {
+        "viewDetails": "View Details",
+        "changeRole": "Change Role",
+        "changeTier": "Change Tier",
+        "suspend": "Suspend",
+        "unsuspend": "Unsuspend",
+        "ban": "Ban",
+        "unban": "Unban"
+      },
+      "detail": {
+        "title": "User Details",
+        "profile": "Profile",
+        "activity": "Activity",
+        "gearItems": "Gear Items",
+        "loadouts": "Loadouts",
+        "memberSince": "Member since",
+        "lastActive": "Last active",
+        "suspendedAt": "Suspended at",
+        "suspendedUntil": "Suspended until",
+        "suspensionReason": "Reason"
+      },
+      "suspend": {
+        "title": "Suspend User",
+        "description": "Temporarily restrict access for {name}",
+        "reason": "Reason for suspension",
+        "reasonPlaceholder": "Enter the reason for this suspension...",
+        "duration": "Duration",
+        "durations": {
+          "1d": "1 Day",
+          "3d": "3 Days",
+          "7d": "1 Week",
+          "30d": "30 Days",
+          "90d": "90 Days",
+          "permanent": "Permanent"
+        },
+        "confirm": "Suspend User",
+        "success": "User suspended successfully",
+        "error": "Failed to suspend user"
+      },
+      "unsuspend": {
+        "success": "User unsuspended successfully",
+        "error": "Failed to unsuspend user"
+      },
+      "ban": {
+        "title": "Ban User",
+        "description": "Permanently ban {name} from the platform",
+        "reason": "Reason for ban",
+        "reasonPlaceholder": "Enter the reason for this ban...",
+        "warning": "This action is severe and should only be used for serious violations.",
+        "confirm": "Ban User",
+        "success": "User banned successfully",
+        "error": "Failed to ban user"
+      },
+      "unban": {
+        "success": "User unbanned successfully",
+        "error": "Failed to unban user"
+      },
+      "roleChange": {
+        "success": "Role updated successfully",
+        "error": "Failed to update role"
+      },
+      "tierChange": {
+        "success": "Tier updated successfully",
+        "error": "Failed to update tier"
+      }
+    },
+    "dashboard": {
+      "pageTitle": "Admin Dashboard",
+      "title": "Admin Dashboard",
+      "description": "Platform statistics and quick actions",
+      "sections": {
+        "users": "User Statistics",
+        "userBreakdown": "User Breakdown",
+        "content": "Content Statistics",
+        "engagement": "Engagement Metrics"
+      },
+      "stats": {
+        "totalUsers": "Total Users",
+        "allRegistered": "all registered users",
+        "newUsers7d": "New Users (7d)",
+        "newUsers30d": "New Users (30d)",
+        "last7Days": "in the last 7 days",
+        "last30Days": "in the last 30 days",
+        "activeUsers": "Active Users",
+        "admins": "Admins",
+        "trailblazers": "Trailblazers",
+        "vips": "VIPs",
+        "merchants": "Merchants",
+        "suspended": "Suspended/Banned",
+        "includingBanned": "including {count} banned",
+        "gearItems": "Gear Items",
+        "loadouts": "Loadouts",
+        "wikiPages": "Wiki Pages",
+        "bulletinPosts": "Bulletin Posts",
+        "shakedowns": "Shakedowns",
+        "newItems": "+{count} this week",
+        "avgGearPerUser": "Avg. Gear/User",
+        "avgLoadoutsPerUser": "Avg. Loadouts/User",
+        "perActiveUser": "per active user"
+      }
     }
   },
   "Search": {

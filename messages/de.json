@@ -2367,6 +2367,8 @@
     },
     "profile": {
       "title": "VIP-Profil",
+      "metaTitle": "{name} - VIP-Profil | GearShack",
+      "metaDescription": "Entdecke {name}s Ausrüstungs-Loadouts und Outdoor-Expertise auf GearShack",
       "curatedBanner": "{name}s Profil wird von der GearShack-Community gepflegt",
       "verifiedBadge": "Verifiziert",
       "followers": "{count, plural, one {Follower} other {Follower}}",
@@ -2458,6 +2460,216 @@
       "slugLabel": "Slug (Eindeutige ID)",
       "englishLabel": "Englische Bezeichnung",
       "germanLabel": "Deutsche Bezeichnung"
+    },
+    "wiki": {
+      "pageTitle": "Wiki-Verwaltung",
+      "title": "Wiki-Verwaltung",
+      "description": "Wiki-Analysen ansehen und KI-gestützte Artikel erstellen",
+      "tabs": {
+        "analytics": "Analysen",
+        "generate": "Artikel erstellen"
+      },
+      "stats": {
+        "totalPages": "Seiten gesamt",
+        "totalViews": "Aufrufe gesamt",
+        "revisions": "Revisionen",
+        "pendingReports": "Offene Meldungen",
+        "published": "veröffentlicht",
+        "drafts": "Entwürfe",
+        "acrossAllPages": "über alle Seiten",
+        "lockedPages": "gesperrte Seiten",
+        "needsAttention": "erfordert Aufmerksamkeit",
+        "allClear": "alles in Ordnung"
+      },
+      "mostViewed": "Meistgelesene Seiten",
+      "recentActivity": "Letzte Aktivität",
+      "categoryBreakdown": "Seiten nach Kategorie",
+      "noPages": "Noch keine Wiki-Seiten",
+      "noActivity": "Keine kürzliche Aktivität",
+      "noCategories": "Keine Kategorien gefunden",
+      "pages": "Seiten",
+      "views": "Aufrufe",
+      "edited": "bearbeitete",
+      "generator": {
+        "title": "KI-Artikelgenerator",
+        "description": "Wiki-Artikel aus externen URLs mit KI erstellen",
+        "urlLabel": "Quell-URL",
+        "urlPlaceholder": "https://beispiel.de/artikel",
+        "urlRequired": "Bitte gültige URL eingeben",
+        "categoryLabel": "Zielkategorie",
+        "categoryPlaceholder": "Kategorie auswählen (optional)",
+        "generateButton": "Artikel generieren",
+        "fetching": "Inhalt wird abgerufen...",
+        "generating": "Artikel wird erstellt...",
+        "preview": "Vorschau des generierten Artikels",
+        "suggestedCategory": "Vorgeschlagene Kategorie",
+        "titleLabel": "Titel",
+        "contentLabel": "Inhalt",
+        "reset": "Zurücksetzen",
+        "saveToWiki": "Als Entwurf speichern",
+        "savedToDraft": "Artikel als Entwurf gespeichert",
+        "saveFailed": "Artikel konnte nicht gespeichert werden"
+      }
+    },
+    "gardener": {
+      "pageTitle": "Graph Gärtner",
+      "title": "Graph Gärtner",
+      "description": "Chat mit dem GearGraph KI-Assistenten für Graph-Wartung und Analyse",
+      "chatTitle": "Chefgärtner Chat",
+      "refreshStatus": "Status aktualisieren",
+      "clearHistory": "Verlauf löschen",
+      "clearConfirmTitle": "Chatverlauf löschen",
+      "clearConfirmDescription": "Möchten Sie den Gesprächsverlauf wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "Löschen",
+      "emptyStateTitle": "Gespräch starten",
+      "emptyStateDescription": "Fragen Sie den Chefgärtner nach dem Graph-Status, starten Sie Wartungsaufgaben oder erhalten Sie Einblicke in den GearGraph",
+      "suggestedQuestions": "Vorgeschlagene Fragen:",
+      "inputPlaceholder": "Fragen Sie den Chefgärtner...",
+      "metrics": {
+        "nodes": "Knoten",
+        "relationships": "Beziehungen",
+        "orphans": "Verwaiste",
+        "duplicates": "Duplikate",
+        "pendingApprovals": "Ausstehend"
+      }
+    },
+    "users": {
+      "pageTitle": "Benutzerverwaltung",
+      "title": "Benutzerverwaltung",
+      "description": "Benutzer, Rollen und Kontostatus verwalten",
+      "searchPlaceholder": "Nach Name oder E-Mail suchen...",
+      "filters": {
+        "role": "Rolle",
+        "status": "Status",
+        "tier": "Stufe",
+        "allRoles": "Alle Rollen",
+        "allStatuses": "Alle Status",
+        "allTiers": "Alle Stufen"
+      },
+      "table": {
+        "user": "Benutzer",
+        "email": "E-Mail",
+        "role": "Rolle",
+        "tier": "Stufe",
+        "status": "Status",
+        "joined": "Beigetreten",
+        "actions": "Aktionen",
+        "noUsers": "Keine Benutzer gefunden"
+      },
+      "roles": {
+        "user": "Benutzer",
+        "admin": "Admin"
+      },
+      "tiers": {
+        "standard": "Standard",
+        "trailblazer": "Trailblazer"
+      },
+      "statuses": {
+        "active": "Aktiv",
+        "suspended": "Gesperrt",
+        "banned": "Gebannt"
+      },
+      "actions": {
+        "viewDetails": "Details anzeigen",
+        "changeRole": "Rolle ändern",
+        "changeTier": "Stufe ändern",
+        "suspend": "Sperren",
+        "unsuspend": "Entsperren",
+        "ban": "Bannen",
+        "unban": "Entbannen"
+      },
+      "detail": {
+        "title": "Benutzerdetails",
+        "profile": "Profil",
+        "activity": "Aktivität",
+        "gearItems": "Ausrüstung",
+        "loadouts": "Loadouts",
+        "memberSince": "Mitglied seit",
+        "lastActive": "Zuletzt aktiv",
+        "suspendedAt": "Gesperrt am",
+        "suspendedUntil": "Gesperrt bis",
+        "suspensionReason": "Grund"
+      },
+      "suspend": {
+        "title": "Benutzer sperren",
+        "description": "Zugriff für {name} vorübergehend einschränken",
+        "reason": "Grund für die Sperrung",
+        "reasonPlaceholder": "Grund für diese Sperrung eingeben...",
+        "duration": "Dauer",
+        "durations": {
+          "1d": "1 Tag",
+          "3d": "3 Tage",
+          "7d": "1 Woche",
+          "30d": "30 Tage",
+          "90d": "90 Tage",
+          "permanent": "Dauerhaft"
+        },
+        "confirm": "Benutzer sperren",
+        "success": "Benutzer erfolgreich gesperrt",
+        "error": "Benutzer konnte nicht gesperrt werden"
+      },
+      "unsuspend": {
+        "success": "Benutzer erfolgreich entsperrt",
+        "error": "Benutzer konnte nicht entsperrt werden"
+      },
+      "ban": {
+        "title": "Benutzer bannen",
+        "description": "{name} dauerhaft von der Plattform ausschließen",
+        "reason": "Grund für den Bann",
+        "reasonPlaceholder": "Grund für diesen Bann eingeben...",
+        "warning": "Diese Aktion ist schwerwiegend und sollte nur bei ernsthaften Verstößen verwendet werden.",
+        "confirm": "Benutzer bannen",
+        "success": "Benutzer erfolgreich gebannt",
+        "error": "Benutzer konnte nicht gebannt werden"
+      },
+      "unban": {
+        "success": "Benutzer erfolgreich entbannt",
+        "error": "Benutzer konnte nicht entbannt werden"
+      },
+      "roleChange": {
+        "success": "Rolle erfolgreich aktualisiert",
+        "error": "Rolle konnte nicht aktualisiert werden"
+      },
+      "tierChange": {
+        "success": "Stufe erfolgreich aktualisiert",
+        "error": "Stufe konnte nicht aktualisiert werden"
+      }
+    },
+    "dashboard": {
+      "pageTitle": "Admin-Dashboard",
+      "title": "Admin-Dashboard",
+      "description": "Plattformstatistiken und Schnellaktionen",
+      "sections": {
+        "users": "Benutzerstatistiken",
+        "userBreakdown": "Benutzeraufteilung",
+        "content": "Inhaltsstatistiken",
+        "engagement": "Engagement-Metriken"
+      },
+      "stats": {
+        "totalUsers": "Benutzer gesamt",
+        "allRegistered": "alle registrierten Benutzer",
+        "newUsers7d": "Neue Benutzer (7T)",
+        "newUsers30d": "Neue Benutzer (30T)",
+        "last7Days": "in den letzten 7 Tagen",
+        "last30Days": "in den letzten 30 Tagen",
+        "activeUsers": "Aktive Benutzer",
+        "admins": "Admins",
+        "trailblazers": "Trailblazers",
+        "vips": "VIPs",
+        "merchants": "Händler",
+        "suspended": "Gesperrt/Gebannt",
+        "includingBanned": "inkl. {count} gebannt",
+        "gearItems": "Ausrüstung",
+        "loadouts": "Loadouts",
+        "wikiPages": "Wiki-Seiten",
+        "bulletinPosts": "Pinnwand-Beiträge",
+        "shakedowns": "Shakedowns",
+        "newItems": "+{count} diese Woche",
+        "avgGearPerUser": "Ø Ausrüstung/Benutzer",
+        "avgLoadoutsPerUser": "Ø Loadouts/Benutzer",
+        "perActiveUser": "pro aktivem Benutzer"
+      }
     }
   },
   "Search": {
