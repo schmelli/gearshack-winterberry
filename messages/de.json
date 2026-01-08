@@ -1602,6 +1602,15 @@
     "common": {
       "notAuthenticated": "Nicht als Händler authentifiziert"
     },
+    "nav": {
+      "dashboard": "Dashboard",
+      "loadouts": "Loadouts",
+      "catalog": "Katalog",
+      "insights": "Einblicke",
+      "offers": "Angebote",
+      "billing": "Abrechnung",
+      "settings": "Einstellungen"
+    },
     "loadouts": {
       "created": "Loadout erstellt",
       "updated": "Loadout aktualisiert",
@@ -2350,6 +2359,25 @@
         "columnQty": "Menge",
         "columnTotal": "Gesamt",
         "columnActions": "Aktionen"
+      },
+      "claim": {
+        "invitationSent": "Einladung gesendet",
+        "invitationSentDescription": "Eine Einladungs-E-Mail wurde an {email} gesendet",
+        "sendInvitation": "Einladung senden",
+        "inviteTitle": "VIP zur Profilübernahme einladen",
+        "inviteDescription": "Sende eine Einladungs-E-Mail an {name}, damit sie ihr Profil übernehmen können.",
+        "emailLabel": "E-Mail-Adresse",
+        "emailPlaceholder": "vip@beispiel.de",
+        "emailHint": "Der VIP erhält einen Einladungslink zur Übernahme seines Profils",
+        "cancel": "Abbrechen",
+        "sending": "Wird gesendet...",
+        "send": "Einladung senden",
+        "errors": {
+          "invalidEmail": "Ungültige E-Mail-Adresse",
+          "alreadySent": "An diese E-Mail-Adresse wurde bereits eine Einladung gesendet",
+          "sendFailed": "Einladung konnte nicht gesendet werden",
+          "genericError": "Etwas ist schiefgelaufen"
+        }
       }
     },
     "compare": {
@@ -2390,7 +2418,56 @@
     "common": {
       "retry": "Erneut versuchen",
       "following": "Folgst du",
-      "follow": "Folgen"
+      "follow": "Folgen",
+      "loading": "Laden..."
+    },
+    "bookmark": {
+      "signInToBookmark": "Melde dich an, um Loadouts zu speichern",
+      "unbookmarkedNotification": "Loadout aus Lesezeichen entfernt",
+      "bookmarkedNotification": "Loadout zu Lesezeichen hinzugefügt",
+      "bookmark": "Merken",
+      "bookmarked": "Gemerkt",
+      "removeBookmark": "Lesezeichen entfernen"
+    },
+    "claim": {
+      "loading": "Einladung wird geladen...",
+      "errors": {
+        "invalidToken": "Ungültiger Einladungstoken",
+        "expired": "Diese Einladung ist abgelaufen",
+        "alreadyClaimed": "Dieses VIP-Profil wurde bereits beansprucht",
+        "loadFailed": "Einladung konnte nicht geladen werden",
+        "claimFailed": "Profil konnte nicht übernommen werden",
+        "invalidTitle": "Ungültige Einladung",
+        "expiredTitle": "Einladung abgelaufen",
+        "errorTitle": "Fehler",
+        "alreadyClaimedTitle": "Bereits beansprucht",
+        "genericError": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      },
+      "claimSuccess": "Profil erfolgreich übernommen!",
+      "claimSuccessDescription": "Willkommen, {name}! Dein VIP-Profil gehört jetzt dir.",
+      "backToHome": "Zurück zur Startseite",
+      "browseVips": "VIPs durchsuchen",
+      "successTitle": "Profil übernommen!",
+      "successDescription": "Willkommen, {name}! Du hast jetzt die volle Kontrolle über dein VIP-Profil.",
+      "redirecting": "Weiterleitung zu deinem Profil...",
+      "claimTitle": "{name}s Profil übernehmen",
+      "claimDescription": "Bestätige diese Einladung, um die Kontrolle über dein VIP-Profil auf GearShack zu übernehmen.",
+      "benefits": {
+        "title": "Du wirst in der Lage sein:",
+        "manageLoadouts": "Deine Ausrüstungs-Loadouts verwalten und veröffentlichen",
+        "verifiedBadge": "Ein Verifiziert-Abzeichen auf deinem Profil anzeigen",
+        "directMessages": "Direktnachrichten von Fans erhalten"
+      },
+      "signInRequired": "Anmeldung erforderlich",
+      "signInDescription": "Du musst dich anmelden, um dieses Profil zu übernehmen.",
+      "claiming": "Wird übernommen...",
+      "claimAccount": "Dieses Profil übernehmen",
+      "signInToClaim": "Anmelden zum Übernehmen",
+      "expiresNotice": "Diese Einladung läuft am {date} ab"
+    },
+    "search": {
+      "placeholder": "VIPs suchen...",
+      "clearSearch": "Suche löschen"
     }
   },
   "Wishlist": {
@@ -3160,6 +3237,144 @@
       "previous": "Vorheriges Banner",
       "next": "Nächstes Banner",
       "goTo": "Zu Banner {index}"
+    }
+  },
+  "bulletin": {
+    "title": "Community Bulletin",
+    "subtitle": "Teile Tipps, stelle Fragen und vernetze dich mit anderen Outdoor-Enthusiasten",
+    "newPost": "Neuer Beitrag",
+    "loadingMore": "Lade weitere...",
+    "loading": "Laden...",
+    "common": {
+      "defaultUser": "Anonymer Benutzer",
+      "cancel": "Abbrechen"
+    },
+    "success": {
+      "postCreated": "Beitrag erfolgreich erstellt",
+      "postUpdated": "Beitrag erfolgreich aktualisiert",
+      "postDeleted": "Beitrag erfolgreich gelöscht",
+      "reportSubmitted": "Meldung eingereicht. Danke, dass du hilfst, unsere Community sicher zu halten."
+    },
+    "errors": {
+      "rateLimitPosts": "Du kannst nur {limit} Beiträge pro Stunde erstellen. Bitte warte einen Moment.",
+      "rateLimitReplies": "Du kannst nur {limit} Antworten pro Stunde schreiben. Bitte warte einen Moment.",
+      "duplicatePost": "Dies scheint ein doppelter Beitrag zu sein",
+      "banned": "Dein Konto wurde vom Posten ausgeschlossen",
+      "createFailed": "Beitrag konnte nicht erstellt werden",
+      "updateFailed": "Beitrag konnte nicht aktualisiert werden",
+      "deleteFailed": "Beitrag konnte nicht gelöscht werden",
+      "replyFailed": "Antwort konnte nicht gepostet werden",
+      "editWindowExpired": "Bearbeitungszeitraum abgelaufen",
+      "duplicateReport": "Du hast diesen Inhalt bereits gemeldet",
+      "reportFailed": "Meldung konnte nicht eingereicht werden"
+    },
+    "composer": {
+      "title": "Beitrag erstellen",
+      "editTitle": "Beitrag bearbeiten",
+      "linkedContent": "Verknüpft: {title}",
+      "placeholder": "Teile deine Gedanken, Tipps oder Fragen...",
+      "charCount": "{count} / {max}",
+      "tagLabel": "Tag",
+      "selectTag": "Tag auswählen",
+      "cancel": "Abbrechen",
+      "posting": "Wird gepostet...",
+      "saving": "Wird gespeichert...",
+      "submit": "Posten",
+      "save": "Speichern"
+    },
+    "menu": {
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "report": "Melden"
+    },
+    "linkedContent": {
+      "loadFailed": "Verknüpfter Inhalt konnte nicht geladen werden",
+      "notFound": "Inhalt nicht gefunden",
+      "baseWeight": "Basisgewicht: {weight}",
+      "items": "{count} Artikel"
+    },
+    "reply": {
+      "placeholder": "Antwort schreiben...",
+      "markdownHint": "Markdown unterstützt",
+      "submit": "Antworten",
+      "replyTo": "Antwort an {name}",
+      "deleted": "[gelöscht]"
+    },
+    "noResults": {
+      "title": "Keine Beiträge gefunden",
+      "subtitle": "Versuche deine Suche oder Filter anzupassen",
+      "clearFilters": "Filter zurücksetzen"
+    },
+    "empty": {
+      "title": "Noch keine Beiträge",
+      "subtitle": "Sei der Erste, der etwas mit der Community teilt!",
+      "cta": "Beitrag erstellen"
+    },
+    "search": {
+      "placeholder": "Beiträge suchen...",
+      "clear": "Suche löschen"
+    },
+    "moderation": {
+      "title": "Moderations-Warteschlange",
+      "noReports": "Keine ausstehenden Meldungen",
+      "noReportsSubtitle": "Die Community ist in gutem Zustand!",
+      "pendingCount": "{count, plural, one {# ausstehende Meldung} other {# ausstehende Meldungen}}",
+      "reportCount": "{count, plural, one {# Meldung} other {# Meldungen}}",
+      "reportedBy": "Gemeldet von {name}",
+      "targetPost": "Beitrag",
+      "targetReply": "Antwort",
+      "contentBy": "Inhalt von {name}",
+      "additionalDetails": "Zusätzliche Details vom Melder",
+      "takeAction": "Maßnahme ergreifen",
+      "deleteContent": "Inhalt löschen",
+      "warnUser": "Benutzer warnen",
+      "ban1Day": "1 Tag sperren",
+      "ban7Days": "7 Tage sperren",
+      "banPermanent": "Permanent sperren",
+      "dismiss": "Meldung ablehnen",
+      "actionSuccess": "Maßnahme erfolgreich ergriffen",
+      "actionFailed": "Maßnahme konnte nicht ergriffen werden",
+      "dismissed": "Meldung abgelehnt"
+    },
+    "delete": {
+      "title": "Beitrag löschen",
+      "titleReply": "Antwort löschen",
+      "confirmWithReplies": "Dieser Beitrag hat Antworten. Bist du sicher, dass du ihn löschen möchtest?",
+      "confirmPost": "Bist du sicher, dass du diesen Beitrag löschen möchtest?",
+      "confirmReply": "Bist du sicher, dass du diese Antwort löschen möchtest?",
+      "cancel": "Abbrechen",
+      "confirm": "Löschen"
+    },
+    "post": {
+      "deleted": "[Dieser Beitrag wurde gelöscht]",
+      "editedLabel": "(bearbeitet)",
+      "archived": "Archiviert",
+      "replies": "{count, plural, one {# Antwort} other {# Antworten}}"
+    },
+    "tags": {
+      "all": "Alle",
+      "gear_advice": "Ausrüstungstipps",
+      "trip_report": "Reisebericht",
+      "question": "Frage",
+      "tip": "Tipp",
+      "discussion": "Diskussion",
+      "gearadvice": "Ausrüstungstipps",
+      "tripreport": "Reisebericht"
+    },
+    "filter": {
+      "activeFilter": "Gefiltert nach: {tag}",
+      "clearFilter": "Filter löschen"
+    },
+    "report": {
+      "title": "Inhalt melden",
+      "subtitle": "Hilf uns, eine sichere und respektvolle Community zu erhalten",
+      "reasonLabel": "Grund",
+      "selectReason": "Grund auswählen",
+      "detailsLabel": "Zusätzliche Details (optional)",
+      "detailsPlaceholder": "Gib zusätzlichen Kontext an...",
+      "cancel": "Abbrechen",
+      "submitting": "Wird eingereicht...",
+      "submit": "Meldung einreichen"
     }
   }
 }

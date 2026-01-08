@@ -1602,6 +1602,15 @@
     "common": {
       "notAuthenticated": "Not authenticated as merchant"
     },
+    "nav": {
+      "dashboard": "Dashboard",
+      "loadouts": "Loadouts",
+      "catalog": "Catalog",
+      "insights": "Insights",
+      "offers": "Offers",
+      "billing": "Billing",
+      "settings": "Settings"
+    },
     "loadouts": {
       "created": "Loadout created",
       "updated": "Loadout updated",
@@ -2350,6 +2359,25 @@
         "columnQty": "Qty",
         "columnTotal": "Total",
         "columnActions": "Actions"
+      },
+      "claim": {
+        "invitationSent": "Invitation sent",
+        "invitationSentDescription": "An invitation email has been sent to {email}",
+        "sendInvitation": "Send Invitation",
+        "inviteTitle": "Invite VIP to Claim Profile",
+        "inviteDescription": "Send an invitation email to {name} so they can claim their profile.",
+        "emailLabel": "Email Address",
+        "emailPlaceholder": "vip@example.com",
+        "emailHint": "The VIP will receive an invitation link to claim their profile",
+        "cancel": "Cancel",
+        "sending": "Sending...",
+        "send": "Send Invitation",
+        "errors": {
+          "invalidEmail": "Invalid email address",
+          "alreadySent": "An invitation has already been sent to this email",
+          "sendFailed": "Failed to send invitation",
+          "genericError": "Something went wrong"
+        }
       }
     },
     "compare": {
@@ -2390,7 +2418,56 @@
     "common": {
       "retry": "Try Again",
       "following": "Following",
-      "follow": "Follow"
+      "follow": "Follow",
+      "loading": "Loading..."
+    },
+    "bookmark": {
+      "signInToBookmark": "Sign in to bookmark loadouts",
+      "unbookmarkedNotification": "Loadout removed from bookmarks",
+      "bookmarkedNotification": "Loadout added to bookmarks",
+      "bookmark": "Bookmark",
+      "bookmarked": "Bookmarked",
+      "removeBookmark": "Remove bookmark"
+    },
+    "claim": {
+      "loading": "Loading claim invitation...",
+      "errors": {
+        "invalidToken": "Invalid invitation token",
+        "expired": "This invitation has expired",
+        "alreadyClaimed": "This VIP profile has already been claimed",
+        "loadFailed": "Failed to load invitation",
+        "claimFailed": "Failed to claim profile",
+        "invalidTitle": "Invalid Invitation",
+        "expiredTitle": "Invitation Expired",
+        "errorTitle": "Error",
+        "alreadyClaimedTitle": "Already Claimed",
+        "genericError": "Something went wrong. Please try again."
+      },
+      "claimSuccess": "Profile claimed successfully!",
+      "claimSuccessDescription": "Welcome, {name}! Your VIP profile is now yours.",
+      "backToHome": "Back to Home",
+      "browseVips": "Browse VIPs",
+      "successTitle": "Profile Claimed!",
+      "successDescription": "Welcome, {name}! You now have full control of your VIP profile.",
+      "redirecting": "Redirecting to your profile...",
+      "claimTitle": "Claim {name}'s Profile",
+      "claimDescription": "Verify this invitation to take control of your VIP profile on GearShack.",
+      "benefits": {
+        "title": "You'll be able to:",
+        "manageLoadouts": "Manage and publish your gear loadouts",
+        "verifiedBadge": "Display a verified badge on your profile",
+        "directMessages": "Receive direct messages from fans"
+      },
+      "signInRequired": "Sign in required",
+      "signInDescription": "You need to sign in to claim this profile.",
+      "claiming": "Claiming...",
+      "claimAccount": "Claim This Profile",
+      "signInToClaim": "Sign in to claim",
+      "expiresNotice": "This invitation expires on {date}"
+    },
+    "search": {
+      "placeholder": "Search VIPs...",
+      "clearSearch": "Clear search"
     }
   },
   "Wishlist": {
@@ -3153,6 +3230,144 @@
       "previous": "Previous banner",
       "next": "Next banner",
       "goTo": "Go to banner {index}"
+    }
+  },
+  "bulletin": {
+    "title": "Community Bulletin",
+    "subtitle": "Share tips, ask questions, and connect with fellow outdoor enthusiasts",
+    "newPost": "New Post",
+    "loadingMore": "Loading more...",
+    "loading": "Loading...",
+    "common": {
+      "defaultUser": "Anonymous User",
+      "cancel": "Cancel"
+    },
+    "success": {
+      "postCreated": "Post created successfully",
+      "postUpdated": "Post updated successfully",
+      "postDeleted": "Post deleted successfully",
+      "reportSubmitted": "Report submitted. Thank you for helping keep our community safe."
+    },
+    "errors": {
+      "rateLimitPosts": "You can only post {limit} times per hour. Please wait a moment.",
+      "rateLimitReplies": "You can only reply {limit} times per hour. Please wait a moment.",
+      "duplicatePost": "This looks like a duplicate post",
+      "banned": "Your account has been restricted from posting",
+      "createFailed": "Failed to create post",
+      "updateFailed": "Failed to update post",
+      "deleteFailed": "Failed to delete post",
+      "replyFailed": "Failed to post reply",
+      "editWindowExpired": "Edit window has expired",
+      "duplicateReport": "You've already reported this content",
+      "reportFailed": "Failed to submit report"
+    },
+    "composer": {
+      "title": "Create Post",
+      "editTitle": "Edit Post",
+      "linkedContent": "Linked: {title}",
+      "placeholder": "Share your thoughts, tips, or questions...",
+      "charCount": "{count} / {max}",
+      "tagLabel": "Tag",
+      "selectTag": "Select a tag",
+      "cancel": "Cancel",
+      "posting": "Posting...",
+      "saving": "Saving...",
+      "submit": "Post",
+      "save": "Save"
+    },
+    "menu": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "report": "Report"
+    },
+    "linkedContent": {
+      "loadFailed": "Failed to load linked content",
+      "notFound": "Content not found",
+      "baseWeight": "Base Weight: {weight}",
+      "items": "{count} items"
+    },
+    "reply": {
+      "placeholder": "Write a reply...",
+      "markdownHint": "Markdown supported",
+      "submit": "Reply",
+      "replyTo": "Replying to {name}",
+      "deleted": "[deleted]"
+    },
+    "noResults": {
+      "title": "No posts found",
+      "subtitle": "Try adjusting your search or filters",
+      "clearFilters": "Clear filters"
+    },
+    "empty": {
+      "title": "No posts yet",
+      "subtitle": "Be the first to share something with the community!",
+      "cta": "Create Post"
+    },
+    "search": {
+      "placeholder": "Search posts...",
+      "clear": "Clear search"
+    },
+    "moderation": {
+      "title": "Moderation Queue",
+      "noReports": "No pending reports",
+      "noReportsSubtitle": "The community is in good shape!",
+      "pendingCount": "{count, plural, one {# pending report} other {# pending reports}}",
+      "reportCount": "{count, plural, one {# report} other {# reports}}",
+      "reportedBy": "Reported by {name}",
+      "targetPost": "Post",
+      "targetReply": "Reply",
+      "contentBy": "Content by {name}",
+      "additionalDetails": "Additional details from reporter",
+      "takeAction": "Take Action",
+      "deleteContent": "Delete Content",
+      "warnUser": "Warn User",
+      "ban1Day": "Ban 1 Day",
+      "ban7Days": "Ban 7 Days",
+      "banPermanent": "Ban Permanently",
+      "dismiss": "Dismiss Report",
+      "actionSuccess": "Action taken successfully",
+      "actionFailed": "Failed to take action",
+      "dismissed": "Report dismissed"
+    },
+    "delete": {
+      "title": "Delete Post",
+      "titleReply": "Delete Reply",
+      "confirmWithReplies": "This post has replies. Are you sure you want to delete it?",
+      "confirmPost": "Are you sure you want to delete this post?",
+      "confirmReply": "Are you sure you want to delete this reply?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "post": {
+      "deleted": "[This post has been deleted]",
+      "editedLabel": "(edited)",
+      "archived": "Archived",
+      "replies": "{count, plural, one {# reply} other {# replies}}"
+    },
+    "tags": {
+      "all": "All",
+      "gear_advice": "Gear Advice",
+      "trip_report": "Trip Report",
+      "question": "Question",
+      "tip": "Tip",
+      "discussion": "Discussion",
+      "gearadvice": "Gear Advice",
+      "tripreport": "Trip Report"
+    },
+    "filter": {
+      "activeFilter": "Filtered by: {tag}",
+      "clearFilter": "Clear filter"
+    },
+    "report": {
+      "title": "Report Content",
+      "subtitle": "Help us maintain a safe and respectful community",
+      "reasonLabel": "Reason",
+      "selectReason": "Select a reason",
+      "detailsLabel": "Additional Details (optional)",
+      "detailsPlaceholder": "Provide any additional context...",
+      "cancel": "Cancel",
+      "submitting": "Submitting...",
+      "submit": "Submit Report"
     }
   }
 }
