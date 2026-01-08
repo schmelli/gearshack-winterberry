@@ -24,16 +24,18 @@ import { toast } from 'sonner';
 // =============================================================================
 
 interface VipLoadoutsPanelProps {
-  vipId: string;
+  vipId: string; // VIP account ID (from vip_accounts table)
   vipName: string;
+  claimedByUserId: string | null; // User ID for loadouts (from profiles table)
 }
 
-export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
+export function VipLoadoutsPanel({ vipId, vipName, claimedByUserId }: VipLoadoutsPanelProps) {
   const t = useTranslations('vip.admin');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingLoadout, setEditingLoadout] = useState<VipLoadoutSummary | null>(null);
   const [managingLoadout, setManagingLoadout] = useState<VipLoadoutSummary | null>(null);
 
+  // Use claimedByUserId if available, otherwise undefined (hook will handle)
   const {
     loadouts,
     status,
@@ -42,7 +44,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
     deleteLoadout,
     publishLoadout,
     unpublishLoadout,
-  } = useVipLoadoutsAdmin(vipId);
+  } = useVipLoadoutsAdmin(claimedByUserId ?? undefined);
 
   // Handle delete
   const handleDelete = async (loadout: VipLoadoutSummary) => {
@@ -96,11 +98,26 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
             {t('loadoutsDescription')}
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
+        <Button
+          onClick={() => setShowCreateDialog(true)}
+          disabled={!claimedByUserId}
+          title={!claimedByUserId ? t('vipMustBeClaimedFirst') : undefined}
+        >
           <Plus className="h-4 w-4 mr-2" />
           {t('createLoadout')}
         </Button>
       </div>
+
+      {/* Unclaimed VIP Warning */}
+      {!claimedByUserId && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
+          <CardContent className="py-4">
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              {t('vipNotClaimedWarning')}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Loading State */}
       {status === 'loading' && (
@@ -119,7 +136,7 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
       )}
 
       {/* Empty State */}
-      {status === 'success' && loadouts.length === 0 && (
+      {status === 'success' && loadouts.length === 0 && claimedByUserId && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -227,21 +244,23 @@ export function VipLoadoutsPanel({ vipId, vipName }: VipLoadoutsPanelProps) {
         </Card>
       )}
 
-      {/* Create Dialog */}
-      <LoadoutFormDialog
-        vipId={vipId}
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSuccess={() => {
-          setShowCreateDialog(false);
-          refetch();
-        }}
-      />
+      {/* Create Dialog - only show if VIP has claimed their account */}
+      {claimedByUserId && (
+        <LoadoutFormDialog
+          userId={claimedByUserId}
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSuccess={() => {
+            setShowCreateDialog(false);
+            refetch();
+          }}
+        />
+      )}
 
       {/* Edit Dialog */}
-      {editingLoadout && (
+      {editingLoadout && claimedByUserId && (
         <LoadoutFormDialog
-          vipId={vipId}
+          userId={claimedByUserId}
           loadout={editingLoadout}
           open={true}
           onOpenChange={(open) => !open && setEditingLoadout(null)}

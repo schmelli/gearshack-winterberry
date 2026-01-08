@@ -161,8 +161,8 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
             updatedAt: loadout.updated_at,
             totalWeightGrams,
             itemCount,
-            vipDisplayName: loadout.profiles.display_name || 'Unknown VIP',
-            vipAvatarUrl: loadout.profiles.avatar_url,
+            vipDisplayName: loadout.profiles?.display_name || 'Unknown VIP',
+            vipAvatarUrl: loadout.profiles?.avatar_url ?? null,
           };
         })
       );

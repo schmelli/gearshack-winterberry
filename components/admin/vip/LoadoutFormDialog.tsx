@@ -44,7 +44,7 @@ type LoadoutFormData = z.infer<typeof loadoutFormSchema>;
 // =============================================================================
 
 interface LoadoutFormDialogProps {
-  vipId: string;
+  userId: string; // User ID from profiles table (claimedByUserId)
   loadout?: VipLoadoutSummary;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,7 +52,7 @@ interface LoadoutFormDialogProps {
 }
 
 export function LoadoutFormDialog({
-  vipId,
+  userId,
   loadout,
   open,
   onOpenChange,
@@ -89,7 +89,7 @@ export function LoadoutFormDialog({
         toast.success(t('loadoutUpdated'));
       } else {
         // Create new loadout
-        await createLoadout(vipId, data);
+        await createLoadout(userId, data);
         toast.success(t('loadoutCreated'));
       }
       reset();

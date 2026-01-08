@@ -2290,6 +2290,8 @@
       "columnLoadouts": "Loadouts",
       "loadoutCountLabel": "{count, plural, one {# Loadout} other {# Loadouts}}",
       "restore": "Wiederherstellen",
+      "vipMustBeClaimedFirst": "VIP muss ihr Konto beanspruchen, bevor Loadouts erstellt werden können",
+      "vipNotClaimedWarning": "Dieser VIP hat sein Konto noch nicht beansprucht. Sobald das Konto beansprucht wurde, können Sie Loadouts für ihn erstellen und verwalten.",
       "form": {
         "name": "Name",
         "namePlaceholder": "z.B. Andrew Skurka",

@@ -292,6 +292,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
             <VipLoadoutsPanel
               vipId={managingLoadoutsVip.id}
               vipName={managingLoadoutsVip.name}
+              claimedByUserId={managingLoadoutsVip.claimedByUserId}
             />
           </DialogContent>
         </Dialog>

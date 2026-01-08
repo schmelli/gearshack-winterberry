@@ -2290,6 +2290,8 @@
       "columnLoadouts": "Loadouts",
       "loadoutCountLabel": "{count, plural, one {# loadout} other {# loadouts}}",
       "restore": "Restore",
+      "vipMustBeClaimedFirst": "VIP must claim their account before loadouts can be created",
+      "vipNotClaimedWarning": "This VIP has not claimed their account yet. Once they claim their account, you can create and manage loadouts for them.",
       "form": {
         "name": "Name",
         "namePlaceholder": "e.g., Andrew Skurka",
