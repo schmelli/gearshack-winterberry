@@ -241,7 +241,7 @@ async function findSimilarArticles(
               slug: match.slug,
               title_en: match.title_en,
               title_de: match.title_de,
-              status: match.status,
+              status: match.status || 'draft',
               similarity: Math.round(similarity * 100) / 100,
               matchReason: `Title similarity: ${Math.round(similarity * 100)}% word overlap`,
             });
@@ -283,7 +283,7 @@ async function findSimilarArticles(
               slug: match.slug,
               title_en: match.title_en,
               title_de: match.title_de,
-              status: match.status,
+              status: match.status || 'draft',
               similarity: Math.round(similarity * 100) / 100,
               matchReason: `Topic match: ${matchingTopics.join(', ')}`,
             });
