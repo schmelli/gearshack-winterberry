@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useGardenerChat } from '@/hooks/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,8 +91,18 @@ function ChatMessage({ message, isStreaming }: { message: GardenerChatMessage; i
           isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
         }`}
       >
-        <div className="whitespace-pre-wrap text-sm">
-          {message.content}
+        <div className="text-sm">
+          {isUser ? (
+            // User messages: plain text
+            <span className="whitespace-pre-wrap">{message.content}</span>
+          ) : (
+            // Assistant messages: render markdown
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-pre:my-2 prose-code:bg-black/10 dark:prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
           {isStreaming && !message.content && (
             <span className="inline-flex items-center">
               <Loader2 className="h-3 w-3 animate-spin" />
