@@ -249,9 +249,9 @@ export function GardenerChatClient() {
           </div>
         </CardHeader>
 
-        <CardContent className="flex flex-1 flex-col overflow-hidden p-0">
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          {/* Messages - h-0 + flex-1 forces scroll calculation in flex context */}
+          <ScrollArea className="h-0 flex-1 p-4">
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
                 <Bot className="mb-4 h-12 w-12 opacity-50" />
