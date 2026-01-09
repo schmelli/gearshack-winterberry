@@ -286,13 +286,34 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
       },
     });
     if (result.error) {
-      throw new Error(result.error.message);
+      // Provide user-friendly error messages for common signup errors
+      let message = result.error.message;
+      if (message.includes('User already registered') || message.includes('already been registered')) {
+        message = 'An account with this email already exists. Please sign in instead.';
+      } else if (message.includes('Password should be')) {
+        message = 'Password must be at least 6 characters long.';
+      } else if (message.includes('Invalid email')) {
+        message = 'Please enter a valid email address.';
+      }
+      throw new Error(message);
     }
 
-    // Check if email confirmation is required (session is null but user exists)
+    // Supabase returns user but null session when:
+    // 1. Email confirmation is required (desired behavior - throw CONFIRMATION_REQUIRED)
+    // 2. User already exists but has unconfirmed email (Supabase silently returns fake success)
+    // We need to detect case 2 and show proper error
     if (result.user && !result.session) {
-      // User created but needs to confirm email
-      throw new Error('CONFIRMATION_REQUIRED');
+      // Check if this is a new signup (identities array is populated) or existing user
+      // Supabase returns empty identities array for existing unconfirmed users
+      const isNewUser = result.user.identities && result.user.identities.length > 0;
+
+      if (isNewUser) {
+        // User created but needs to confirm email
+        throw new Error('CONFIRMATION_REQUIRED');
+      } else {
+        // User already exists - Supabase returns fake success for security
+        throw new Error('An account with this email already exists. Please sign in or check your email for the confirmation link.');
+      }
     }
   }, [supabaseAuth]);
 

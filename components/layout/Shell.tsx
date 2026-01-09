@@ -18,11 +18,25 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 // Constants
 // =============================================================================
 
-/** Routes that should not show header/footer (immersive auth experience) */
-const AUTH_ROUTES = ['/login', '/register'];
+/** Route patterns that should not show header/footer (immersive auth experience) */
+const AUTH_ROUTE_PATTERNS = ['/login', '/register'];
 
 /** Routes that should show footer but no header (landing page) */
 const LANDING_ROUTES = ['/', '/en', '/de'];
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Check if pathname matches an auth route pattern (handles i18n prefixes)
+ * Matches: /login, /en/login, /de/login, etc.
+ */
+function isAuthRoutePath(pathname: string): boolean {
+  return AUTH_ROUTE_PATTERNS.some(
+    (route) => pathname === route || pathname.endsWith(route)
+  );
+}
 
 // =============================================================================
 // Component
@@ -34,7 +48,7 @@ interface ShellProps {
 
 export function Shell({ children }: ShellProps) {
   const pathname = usePathname();
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+  const isAuthRoute = isAuthRoutePath(pathname);
   const isLandingRoute = LANDING_ROUTES.includes(pathname);
 
   // Auth routes: render only children (no header/footer)
