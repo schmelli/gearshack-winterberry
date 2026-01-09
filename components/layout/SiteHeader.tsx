@@ -44,8 +44,6 @@ import type { NavItemWithChildren } from '@/types/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
-// Feature: settings-update - Language indicator (read-only, links to settings)
-import { LanguageIndicator } from './LanguageIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
@@ -240,12 +238,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         <div className="flex items-center gap-1 md:gap-2">
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
-
-          {/* Feature: settings-update - Language indicator links to regional settings */}
-          {/* Issue #77: Hidden on small screens, accessible via mobile settings */}
-          <div className="hidden md:flex">
-            <LanguageIndicator />
-          </div>
 
           {/* T012: Messaging icon with unread badge - only show when authenticated */}
           {user && (

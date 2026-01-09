@@ -17,7 +17,7 @@ import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { User, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Sheet,
@@ -263,6 +263,18 @@ export function MobileNav({
                 <Settings className="h-5 w-5" />
                 {t('settings')}
               </Link>
+
+              {/* Admin - Only visible to admin users */}
+              {mergedUser?.isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={handleNavigate}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Shield className="h-5 w-5" />
+                  {t('admin')}
+                </Link>
+              )}
 
               <Separator className="my-2" />
 
