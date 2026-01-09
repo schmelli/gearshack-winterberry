@@ -138,11 +138,12 @@ export async function GET(request: NextRequest) {
       // Escape SQL wildcards to prevent unintended pattern matching
       const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
 
-      // Query for distinct brand names using database function for optimal performance
-      // This pushes deduplication to PostgreSQL using DISTINCT
-      // Use type assertion since get_distinct_user_brands is a custom function
-      // not in the generated Supabase types
-      const { data: userBrands, error: userBrandsError } = await (supabase.rpc as CallableFunction)(
+      // Try RPC function first, fall back to direct query if function doesn't exist
+      let userBrands: { brand: string }[] | null = null;
+      let userBrandsError: { message: string } | null = null;
+
+      // Attempt RPC function (optimal performance with DISTINCT in DB)
+      const rpcResult = await (supabase.rpc as CallableFunction)(
         'get_distinct_user_brands',
         {
           p_user_id: user.id,
@@ -150,14 +151,42 @@ export async function GET(request: NextRequest) {
         }
       ) as { data: { brand: string }[] | null; error: { message: string } | null };
 
+      if (rpcResult.error) {
+        // RPC function may not exist - fallback to direct query
+        console.log('RPC get_distinct_user_brands unavailable, using direct query fallback');
+
+        // Direct query fallback - query gear_items table directly
+        const { data: directBrands, error: directError } = await supabase
+          .from('gear_items')
+          .select('brand')
+          .eq('user_id', user.id)
+          .not('brand', 'is', null)
+          .ilike('brand', `%${escapedQuery}%`)
+          .limit(50);
+
+        if (directError) {
+          console.error('User brands direct query error:', directError);
+          userBrandsError = directError;
+        } else {
+          userBrands = directBrands;
+        }
+      } else {
+        userBrands = rpcResult.data;
+      }
+
       if (userBrandsError) {
         console.error('User brands search error:', userBrandsError);
         // Continue with empty inventoryResults - this is not a fatal error
       } else if (userBrands) {
-        // Brand names are already distinct from the database function
+        // Deduplicate brand names (direct query may return duplicates)
+        const uniqueBrandsSet = new Set<string>();
         const uniqueBrands = userBrands
           .map(item => item.brand)
-          .filter((b): b is string => b !== null);
+          .filter((b): b is string => {
+            if (b === null || uniqueBrandsSet.has(b.toLowerCase())) return false;
+            uniqueBrandsSet.add(b.toLowerCase());
+            return true;
+          });
 
         // Calculate similarity scores for user brands
         inventoryResults = uniqueBrands.map((brandName) => {

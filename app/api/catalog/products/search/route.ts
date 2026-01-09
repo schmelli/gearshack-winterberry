@@ -6,10 +6,14 @@
  * Uses the catalog_products table synced from GearGraph.
  * Category hierarchy (categoryMain, subcategory, productType) is derived from
  * the categories table via product_type_id FK.
+ *
+ * If catalog_products table is empty or unavailable, falls back to searching
+ * the user's own gear_items for product name suggestions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/database';
 
 // Public endpoint - no authentication required
@@ -106,12 +110,91 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await queryBuilder;
 
-    if (error) {
-      console.error('Product search error:', error);
-      return NextResponse.json(
-        { error: 'Search failed', details: error.message, code: error.code },
-        { status: 500 }
-      );
+    // If catalog search fails (table doesn't exist) or returns empty,
+    // fall back to searching user's own gear_items
+    if (error || !data || data.length === 0) {
+      if (error) {
+        console.log('Catalog products unavailable, falling back to user inventory search');
+      }
+
+      // Try to get authenticated user for inventory fallback
+      const authSupabase = await createServerClient();
+      const { data: { user } } = await authSupabase.auth.getUser();
+
+      if (user) {
+        // Search user's gear_items for matching product names
+        const { data: inventoryItems, error: invError } = await authSupabase
+          .from('gear_items')
+          .select(`
+            id,
+            name,
+            brand,
+            weight_grams,
+            product_type_id,
+            description
+          `)
+          .eq('user_id', user.id)
+          .not('name', 'is', null)
+          .ilike('name', `%${normalizedQuery}%`)
+          .limit(limit);
+
+        if (!invError && inventoryItems && inventoryItems.length > 0) {
+          // Deduplicate by name (keep first occurrence)
+          const seenNames = new Set<string>();
+          const uniqueItems = inventoryItems.filter((item) => {
+            const nameLower = item.name?.toLowerCase() || '';
+            if (seenNames.has(nameLower)) return false;
+            seenNames.add(nameLower);
+            return true;
+          });
+
+          const inventoryResults: ProductSearchResult[] = uniqueItems.map((item) => {
+            const nameLower = (item.name || '').toLowerCase();
+            const matchIndex = nameLower.indexOf(normalizedQuery);
+            const score =
+              matchIndex === 0
+                ? 0.9 + 0.1 * (normalizedQuery.length / nameLower.length)
+                : matchIndex > 0
+                  ? 0.5 + 0.3 * (normalizedQuery.length / nameLower.length)
+                  : 0.3;
+
+            return {
+              id: `inventory-${item.id}`,
+              name: item.name || '',
+              brand: item.brand ? { id: `inv-brand-${item.brand}`, name: item.brand } : null,
+              categoryMain: null,
+              subcategory: null,
+              productType: null,
+              productTypeId: item.product_type_id || null,
+              weightGrams: item.weight_grams || null,
+              priceUsd: null,
+              description: item.description || null,
+              score: Math.round(score * 100) / 100,
+            };
+          });
+
+          inventoryResults.sort((a, b) => b.score - a.score);
+
+          return NextResponse.json({
+            results: inventoryResults,
+            query: q,
+            count: inventoryResults.length,
+            source: 'inventory',
+          });
+        }
+      }
+
+      // No catalog and no inventory results
+      if (error) {
+        console.error('Product search error:', error);
+      }
+
+      // Return empty results rather than error (graceful degradation)
+      return NextResponse.json({
+        results: [],
+        query: q,
+        count: 0,
+      });
     }
 
     // Collect all product_type_ids to fetch category hierarchy in batch
