@@ -45,24 +45,7 @@ export function YouTubeCarousel({
   onRetry,
   className,
 }: YouTubeCarouselProps) {
-  // T039: Loading skeleton state
-  if (isLoading) {
-    return (
-      <div className={cn('space-y-3', className)}>
-        <div className="flex gap-3 overflow-hidden">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="w-48 shrink-0 space-y-2">
-              <Skeleton className="aspect-video w-full rounded-md" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-3 w-2/3" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // T041: Error state with retry button
+  // T041: Error state with retry button (check first to handle error + null videos case)
   if (error) {
     return (
       <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
@@ -78,8 +61,25 @@ export function YouTubeCarousel({
     );
   }
 
-  // T040: Empty state when no videos found
-  if (!videos || videos.length === 0) {
+  // T039: Loading skeleton state - also show when videos is null (not yet loaded)
+  if (isLoading || videos === null) {
+    return (
+      <div className={cn('space-y-3', className)}>
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-48 shrink-0 space-y-2">
+              <Skeleton className="aspect-video w-full rounded-md" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // T040: Empty state when no videos found (only when videos is an empty array, not null)
+  if (videos.length === 0) {
     return (
       <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
         <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
