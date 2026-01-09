@@ -257,7 +257,7 @@ export const MerchantLoadoutGrid = memo(function MerchantLoadoutGrid({
   columns = 3,
   className,
 }: MerchantLoadoutGridProps) {
-  const t = useTranslations('MerchantLoadouts');
+  const _t = useTranslations('MerchantLoadouts');
 
   // Count active filters
   const activeFilterCount = [

@@ -9,6 +9,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
@@ -49,6 +50,10 @@ interface CloudinaryResult {
 // Component
 // ============================================================================
 
+// Compute default dates once at module load time to avoid calling Date.now() during render
+const getDefaultVisibilityEnd = () =>
+  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
 export function BannerForm({
   banner,
   onSubmit,
@@ -57,20 +62,24 @@ export function BannerForm({
 }: BannerFormProps) {
   const t = useTranslations('Banner.admin');
 
-  const form = useForm<CreateBannerInput>({
-    resolver: zodResolver(createBannerSchema),
-    defaultValues: {
+  // Use useMemo to compute default values only once per banner prop change
+  const defaultValues = React.useMemo(
+    () => ({
       heroImageUrl: banner?.heroImageUrl ?? '',
       ctaText: banner?.ctaText ?? '',
       buttonText: banner?.buttonText ?? '',
       targetUrl: banner?.targetUrl ?? '',
       visibilityStart: banner?.visibilityStart ?? new Date().toISOString(),
-      visibilityEnd:
-        banner?.visibilityEnd ??
-        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      visibilityEnd: banner?.visibilityEnd ?? getDefaultVisibilityEnd(),
       displayOrder: banner?.displayOrder ?? 0,
       isActive: banner?.isActive ?? true,
-    },
+    }),
+    [banner]
+  );
+
+  const form = useForm<CreateBannerInput>({
+    resolver: zodResolver(createBannerSchema),
+    defaultValues,
   });
 
   const handleSubmit = async (data: CreateBannerInput) => {

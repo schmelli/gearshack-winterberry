@@ -157,7 +157,7 @@ export function RichContentRenderer({ content, className }: RichContentRendererP
                     <ReactMarkdown
                       components={{
                         // Customize link rendering to open in new tab
-                        a: ({ node, ...props }) => (
+                        a: ({ node: _node, ...props }) => (
                           <a
                             {...props}
                             className="text-primary hover:underline"
@@ -166,7 +166,7 @@ export function RichContentRenderer({ content, className }: RichContentRendererP
                           />
                         ),
                         // Customize paragraph spacing
-                        p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
+                        p: ({ node: _node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
                       }}
                     >
                       {part}

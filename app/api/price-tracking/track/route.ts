@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/server';
 import {
   enableTrackingSchema,
   validateRequestBody,
-  type EnableTrackingRequest,
 } from '@/lib/validation/price-tracking';
 
 export async function POST(request: NextRequest) {

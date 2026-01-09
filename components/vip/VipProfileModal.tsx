@@ -19,7 +19,6 @@ import {
   Backpack,
   ExternalLink,
   UserPlus,
-  UserMinus,
   Check,
 } from 'lucide-react';
 import {

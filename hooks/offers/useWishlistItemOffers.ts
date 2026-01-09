@@ -149,19 +149,19 @@ export function useWishlistItemOffers(
   // Fetch on mount and dependency change
   // Race condition cleanup: Track mount state to prevent updates after unmount
   useEffect(() => {
-    let isMounted = true;
+    let _isMounted = true;
 
     // Wrap fetchOffers to check mount state before state updates
     const safeFetch = async () => {
       await fetchOffers();
       // Note: fetchOffers already updates state, but this pattern
-      // can be enhanced in the future to check isMounted before each setState
+      // can be enhanced in the future to check _isMounted before each setState
     };
 
     safeFetch();
 
     return () => {
-      isMounted = false;
+      _isMounted = false;
     };
   }, [fetchOffers]);
 

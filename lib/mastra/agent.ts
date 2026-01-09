@@ -12,7 +12,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { mastraAgentConfig, buildMastraSystemPrompt, type PromptContext } from './config';
 import { SupabaseMemoryAdapter, createMemoryAdapter } from './memory-adapter';
-import { SupabaseAuthProvider, createAuthProvider, type SupabaseAuthUser } from './auth-adapter';
+import { SupabaseAuthProvider, createAuthProvider } from './auth-adapter';
 import { logInfo, logError, logDebug, setLogContext, clearLogContext, createTimer } from './logging';
 import { recordChatRequest, recordAgentLatency, recordChatError, classifyQuery, recordTokenUsage } from './metrics';
 import { traceWorkflowStep, addSpanAttributes, getTraceId } from './tracing';

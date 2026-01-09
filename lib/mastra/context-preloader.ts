@@ -12,7 +12,6 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/types/supabase';
 import { logDebug, logError, logInfo } from '@/lib/mastra/logging';
 
 // =============================================================================

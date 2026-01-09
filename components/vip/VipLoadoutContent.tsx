@@ -73,7 +73,7 @@ export function VipLoadoutContent({ vipSlug, loadoutSlug }: VipLoadoutContentPro
           onClick: () => router.push(`/${locale}/loadouts/${data.loadoutId}`),
         },
       });
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('loadout.copyError'));
     } finally {
       setIsCopying(false);

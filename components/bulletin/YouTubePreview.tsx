@@ -27,7 +27,7 @@ interface VideoMetadata {
 }
 
 export function YouTubePreview({ videoId, url }: YouTubePreviewProps) {
-  const t = useTranslations('bulletin');
+  const _t = useTranslations('bulletin');
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

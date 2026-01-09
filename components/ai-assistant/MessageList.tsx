@@ -72,7 +72,7 @@ export function MessageList({
                 key={i}
                 className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs"
               >
-                "{suggestion}"
+                &ldquo;{suggestion}&rdquo;
               </div>
             ))}
           </div>

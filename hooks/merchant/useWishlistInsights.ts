@@ -132,7 +132,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
       if (rpcError) throw rpcError;
 
       // Transform RPC results to WishlistInsight format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const insightResults: WishlistInsight[] = (insightsData ?? [])
         .map((row: any) => ({
           catalogItemId: row.catalog_item_id as string,

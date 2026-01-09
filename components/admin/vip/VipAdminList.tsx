@@ -79,7 +79,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
       await toggleVipFeatured(vip.id, !vip.isFeatured);
       toast.success(vip.isFeatured ? t('vipUnfeatured') : t('vipFeatured'));
       onUpdate();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('featuredUpdateFailed'));
     } finally {
       setLoadingId(null);
@@ -93,7 +93,7 @@ export function VipAdminList({ vips, onUpdate, isArchived = false }: VipAdminLis
       await restoreVip(vip.id);
       toast.success(t('vipRestored'));
       onUpdate();
-    } catch (err) {
+    } catch (_err) {
       toast.error(t('restoreVipFailed'));
     } finally {
       setLoadingId(null);

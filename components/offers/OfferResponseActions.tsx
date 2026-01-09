@@ -64,8 +64,8 @@ export interface OfferResponseActionsProps {
 // =============================================================================
 
 export const OfferResponseActions = memo(function OfferResponseActions({
-  offerId,
-  merchantId,
+  offerId: _offerId,
+  merchantId: _merchantId,
   merchantName,
   onAccept,
   onDecline,

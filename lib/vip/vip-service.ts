@@ -30,8 +30,6 @@ import type {
   VipFollowResponse,
   VipBookmarkResponse,
   CopyVipLoadoutResult,
-  CreateVipRequest,
-  UpdateVipRequest,
   // CreateVipLoadoutRequest, // REMOVED - use regular loadout types
   // UpdateVipLoadoutRequest, // REMOVED - use regular loadout types
   CategoryBreakdown,
@@ -903,7 +901,7 @@ function transformVipAccount(data: Record<string, unknown>) {
   };
 }
 
-function transformVipLoadout(data: Record<string, unknown>) {
+function _transformVipLoadout(data: Record<string, unknown>) {
   return {
     id: data.id as string,
     vipId: data.vip_id as string,
@@ -947,7 +945,7 @@ function transformUnifiedLoadout(data: Record<string, unknown>, vipId: string) {
   };
 }
 
-function transformVipLoadoutItem(data: Record<string, unknown>) {
+function _transformVipLoadoutItem(data: Record<string, unknown>) {
   return {
     id: data.id as string,
     vipLoadoutId: data.vip_loadout_id as string,

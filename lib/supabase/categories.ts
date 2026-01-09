@@ -32,7 +32,6 @@ function transformCategory(row: CategoryRow): Category {
     label: row.label,
     slug: row.slug,
     i18n,
-    // @ts-ignore - sort_order will exist after admin migration
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
   };

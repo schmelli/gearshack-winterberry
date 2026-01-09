@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Price comparison and drop detection service
  * Feature: 050-price-tracking (US2)
@@ -6,7 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { PriceResult, PriceHistoryEntry } from '@/types/price-tracking';
+import type { PriceResult } from '@/types/price-tracking';
 
 /**
  * Compare current prices with historical data to detect drops
@@ -56,9 +55,10 @@ export async function recordPriceSnapshot(
   const prices = results.map(r => r.total_price);
 
   // Use database function for atomic insert of history + results
-  const { error } = await supabase.rpc('record_price_snapshot', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc('record_price_snapshot', {
     p_tracking_id: trackingId,
-    p_results: results as any,
+    p_results: results,
     p_lowest_price: Math.min(...prices),
     p_highest_price: Math.max(...prices),
     p_average_price: prices.reduce((a, b) => a + b, 0) / prices.length,

@@ -19,7 +19,7 @@ import {
   recordWebSearchUsage,
   type RateLimitResult,
 } from './rate-limiter';
-import { validateWebSearchConfig, isWebSearchAvailable } from '@/lib/env';
+import { validateWebSearchConfig } from '@/lib/env';
 
 // =============================================================================
 // Types

@@ -38,7 +38,7 @@ interface CategoryTreeProps {
 
 interface CategoryNodeProps {
   category: Category;
-  children: Category[];
+  childCategories: Category[];
   allCategories: Category[];
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
@@ -69,7 +69,7 @@ const levelBadgeStyles = {
 
 function CategoryNode({
   category,
-  children,
+  childCategories,
   allCategories,
   onEdit,
   onDelete,
@@ -84,7 +84,7 @@ function CategoryNode({
   isLast,
 }: CategoryNodeProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const hasChildren = children.length > 0;
+  const hasChildren = childCategories.length > 0;
   const hasIssue = issueIds.has(category.id);
 
   return (
@@ -223,13 +223,13 @@ function CategoryNode({
         {hasChildren && (
           <CollapsibleContent>
             <div className="ml-6 mt-3 space-y-2 border-l-2 pl-4">
-              {children.map((child, index) => {
+              {childCategories.map((child, index) => {
                 const grandchildren = allCategories.filter((c) => c.parentId === child.id);
                 return (
                   <CategoryNode
                     key={child.id}
                     category={child}
-                    children={grandchildren}
+                    childCategories={grandchildren}
                     allCategories={allCategories}
                     onEdit={onEdit}
                     onDelete={onDelete}
@@ -241,7 +241,7 @@ function CategoryNode({
                     highlightIssues={highlightIssues}
                     issueIds={issueIds}
                     isFirst={index === 0}
-                    isLast={index === children.length - 1}
+                    isLast={index === childCategories.length - 1}
                   />
                 );
               })}
@@ -283,12 +283,12 @@ export function CategoryTree({
   return (
     <div className="space-y-3">
       {level1Categories.map((cat, index) => {
-        const children = categories.filter((c) => c.parentId === cat.id);
+        const catChildren = categories.filter((c) => c.parentId === cat.id);
         return (
           <CategoryNode
             key={cat.id}
             category={cat}
-            children={children}
+            childCategories={catChildren}
             allCategories={categories}
             onEdit={onEdit}
             onDelete={onDelete}

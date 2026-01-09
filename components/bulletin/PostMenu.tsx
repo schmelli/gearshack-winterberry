@@ -35,7 +35,7 @@ export function PostMenu({
   isOpen,
   onOpenChange,
   isAuthor,
-  canEdit,
+  canEdit: _canEdit,
   onEdit,
   onDelete,
   onReport,

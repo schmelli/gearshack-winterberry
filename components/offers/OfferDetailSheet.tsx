@@ -18,7 +18,6 @@ import {
   Tag,
   MapPin,
   MessageSquare,
-  ExternalLink,
   Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

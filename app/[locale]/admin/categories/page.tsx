@@ -36,7 +36,7 @@ export default function CategoriesPage() {
     isCreating,
     isUpdating,
     isDeleting,
-    isMoving,
+    isMoving: _isMoving,
     isLoadingIssues,
   } = useCategoryManagement();
 

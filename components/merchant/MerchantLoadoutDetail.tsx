@@ -21,9 +21,7 @@ import {
   Weight,
   MapPin,
   Star,
-  ShoppingBag,
   Heart,
-  ExternalLink,
   Check,
   X,
   ChevronDown,
@@ -36,12 +34,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import {
   Tooltip,
   TooltipContent,
@@ -204,7 +196,7 @@ const LoadoutItemCard = memo(function LoadoutItemCard({
       {item.expertNote && expanded && (
         <div className="px-4 pb-4">
           <div className="rounded-lg bg-muted/50 p-3 text-sm italic">
-            "{item.expertNote}"
+            &ldquo;{item.expertNote}&rdquo;
           </div>
         </div>
       )}

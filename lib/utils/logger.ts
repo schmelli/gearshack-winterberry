@@ -54,7 +54,7 @@ class Logger {
       return JSON.stringify(entry);
     } else {
       // Human-readable format for development
-      const { timestamp, level, message, context, error } = entry;
+      const { timestamp: _timestamp, level, message, context, error } = entry;
       const levelEmoji = {
         debug: '🔍',
         info: 'ℹ️',
@@ -66,7 +66,7 @@ class Logger {
 
       if (context) {
         const contextStr = Object.entries(context)
-          .filter(([_, value]) => value !== undefined)
+          .filter(([_key, value]) => value !== undefined)
           .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
           .join(' ');
         if (contextStr) {

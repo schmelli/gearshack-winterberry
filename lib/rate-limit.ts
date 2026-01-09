@@ -154,7 +154,7 @@ export function checkRateLimit(userId: string): {
   };
 
   if (!result.allowed) {
-    const resetDate = new Date(result.resetAt);
+    const _resetDate = new Date(result.resetAt);
     const minutesUntilReset = Math.ceil((result.resetAt - Date.now()) / (60 * 1000));
 
     return {

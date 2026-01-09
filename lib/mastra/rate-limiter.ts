@@ -326,7 +326,7 @@ export async function checkRateLimit(
  * @param operationType - The type of operation ('simple_query', 'workflow', 'voice')
  * @returns RateLimitIncrementResult indicating success or failure
  */
-async function incrementRateLimit(
+async function _incrementRateLimit(
   userId: string,
   operationType: string
 ): Promise<RateLimitIncrementResult> {

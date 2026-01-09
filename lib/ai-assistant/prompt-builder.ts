@@ -35,7 +35,7 @@ export async function buildSystemPrompt(
     locale,
     inventoryCount,
     currentLoadoutId,
-    subscriptionTier,
+    subscriptionTier: _subscriptionTier,
   } = context;
 
   const isGerman = locale === 'de';
@@ -66,8 +66,8 @@ export async function buildSystemPrompt(
     }
   }
 
-  // T096: Language detection
-  const languageName = locale === 'de' ? 'German' : 'English';
+  // T096: Language detection (kept for potential future logging/analytics)
+  const _languageName = locale === 'de' ? 'German' : 'English';
 
   // 1. Core Identity and Role (T095: Enforce language consistency)
   sections.push(

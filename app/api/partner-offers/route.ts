@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * API route: Partner retailers submit personal offers
  * Feature: 050-price-tracking (US5)
@@ -11,7 +10,6 @@ import { RATE_LIMITING, SEARCH_CONFIG } from '@/lib/constants/price-tracking';
 import {
   partnerOfferSchema,
   validateRequestBody,
-  type PartnerOfferRequest,
 } from '@/lib/validation/price-tracking';
 import type { FuzzySearchResult } from '@/types/database-helpers';
 
@@ -49,14 +47,13 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Verify API key belongs to an active partner (Review fix #2)
-    const { data: partnerRaw, error: authError } = await (supabase as any)
+    const { data: partnerRaw, error: authError } = await supabase
       .from('partner_retailers')
-      // @ts-ignore - Price tracking table, types will be regenerated after migrations
       .select('id, name, is_active, rate_limit_per_hour')
       .eq('api_key', apiKey)
       .maybeSingle();
 
-    const partner = partnerRaw as any;
+    const partner = partnerRaw as { id: string; name: string; is_active: boolean; rate_limit_per_hour: number } | null;
     if (authError || !partner) {
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -105,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Get tracking records for matched gear items
     const gearItemIds = (fuzzyMatches as FuzzySearchResult[]).map((match) => match.gear_item_id);
-    const { data: trackingRecords } = await (supabase as any)
+    const { data: trackingRecords } = await supabase
       .from('price_tracking')
       .select('id, user_id, gear_item_id')
       .in('gear_item_id', gearItemIds)
@@ -140,6 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert personal offers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: createdOffers, error: offerError } = await (supabase as any)
       .from('personal_offers')
       .insert(offers)

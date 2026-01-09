@@ -16,14 +16,12 @@ import {
   Backpack,
   Scale,
   ChevronLeft,
-  ExternalLink,
   Bookmark,
   BookmarkCheck,
   Copy,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { formatWeightFromGrams } from '@/lib/utils/weight';
 import type { VipLoadoutWithItems, CategoryBreakdown } from '@/types/vip';
@@ -94,7 +92,7 @@ function WeightBreakdownChart({ breakdown }: { breakdown: CategoryBreakdown[] })
 }
 
 function LoadoutItemsList({ loadout }: { loadout: VipLoadoutWithItems }) {
-  const t = useTranslations('vip');
+  const _t = useTranslations('vip');
 
   // Group items by category
   const itemsByCategory = loadout.items.reduce(

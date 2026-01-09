@@ -8,15 +8,6 @@
   "noVips": "No VIPs found",
   "noLoadouts": "No loadouts yet",
 
-  "profile": {
-    "curatedBanner": "This is a curated account featuring content from {name}",
-    "verifiedBadge": "Verified VIP",
-    "followers": "{count, plural, =0 {No followers} =1 {1 follower} other {# followers}}",
-    "loadouts": "{count, plural, =0 {No loadouts} =1 {1 loadout} other {# loadouts}}",
-    "joined": "Joined {date}",
-    "socialLinks": "Social Links"
-  },
-
   "follow": {
     "follow": "Follow",
     "following": "Following",
@@ -24,30 +15,6 @@
     "signInToFollow": "Sign in to follow",
     "followedNotification": "You are now following {name}",
     "unfollowedNotification": "You unfollowed {name}"
-  },
-
-  "loadout": {
-    "sourceAttribution": "Based on",
-    "watchVideo": "Watch Original Video",
-    "viewSource": "View Original",
-    "sourceUnavailable": "Source unavailable",
-    "totalWeight": "Total Weight",
-    "itemCount": "{count, plural, =1 {1 item} other {# items}}",
-    "publishedDate": "Published {date}",
-    "tripType": "Trip Type",
-    "dateRange": "Date Range",
-    "gearList": "Gear List",
-    "categories": {
-      "shelter": "Shelter",
-      "sleep": "Sleep System",
-      "pack": "Pack",
-      "kitchen": "Kitchen",
-      "clothing": "Clothing",
-      "electronics": "Electronics",
-      "hygiene": "Hygiene",
-      "firstAid": "First Aid",
-      "misc": "Miscellaneous"
-    }
   },
 
   "copy": {
@@ -284,6 +251,7 @@
   },
 
   "profile": {
+    "title": "VIP Profile",
     "curatedBanner": "This is a curated account featuring content from {name}",
     "verifiedBadge": "Verified VIP",
     "followers": "{count, plural, =0 {No followers} =1 {1 follower} other {# followers}}",
@@ -296,6 +264,8 @@
     "noLoadouts": "No loadouts published yet",
     "errorTitle": "Failed to load profile",
     "notFound": "VIP not found",
+    "featuredVideos": "Featured Videos",
+    "viewAllLoadouts": "View all {count} loadouts",
     "metaTitle": "{name} | VIP Loadouts | GearShack",
     "metaDescription": "Explore {name}'s curated gear setups and loadouts on GearShack"
   },

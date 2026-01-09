@@ -23,7 +23,7 @@ function loadEnv(filename: string) {
       }
     });
     console.log(`✅ Loaded env from ${filename}`);
-  } catch (e) {
+  } catch (_e) {
     console.warn(`⚠️ Could not load ${filename}`);
   }
 }
@@ -90,7 +90,7 @@ async function seedOntology() {
       // Convert Object (Map) to Array of entries
       for (const [slug, details] of Object.entries(items)) {
         // Extract basic info
-        const { en, de, ...rest } = details;
+        const { en, de, ..._ } = details;
         const i18n = { en, de };
         const label = en || slug; // Default label to English
         

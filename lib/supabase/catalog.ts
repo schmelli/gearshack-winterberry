@@ -279,7 +279,7 @@ export async function fuzzyProductSearch(
     .filter(product => product.hasMatch)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ hasMatch, ...product }) => product); // Remove hasMatch flag
+    .map(({ hasMatch: _hasMatch, ...product }) => product); // Remove hasMatch flag
 
   return scoredProducts;
 }

@@ -10,7 +10,7 @@
 
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { Edit, History, Calendar, Eye, User, FolderOpen, Flag } from 'lucide-react';
+import { Edit, History, Calendar, Eye, FolderOpen, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

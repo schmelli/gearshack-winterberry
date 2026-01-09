@@ -312,7 +312,7 @@ export function EnhancedWeightDonut({
               animationDuration={400}
               animationEasing="ease-out"
             >
-              {currentData.map((entry, index) => {
+              {currentData.map((entry, _index) => {
                 const isSelected = selectedId === entry.id;
                 const isOtherSelected = selectedId && !isSelected;
 

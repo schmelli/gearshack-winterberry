@@ -10,6 +10,7 @@
 'use client';
 
 import { useCallback, memo } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMerchantOffers } from '@/hooks/merchant';
@@ -108,12 +109,14 @@ const OfferRow = memo(function OfferRow({
     >
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+          <div className="relative w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden">
             {offer.catalogItem.imageUrl ? (
-              <img
+              <Image
                 src={offer.catalogItem.imageUrl}
                 alt={offer.catalogItem.name}
-                className="w-full h-full object-cover rounded"
+                fill
+                sizes="40px"
+                className="object-cover rounded"
               />
             ) : (
               <Package className="h-5 w-5 text-muted-foreground" />

@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert, TablesUpdate } from '@/types/supabase';
+import type { Tables, TablesUpdate } from '@/types/supabase';
 
 // Type aliases for profiles table
 type Profile = Tables<'profiles'>;

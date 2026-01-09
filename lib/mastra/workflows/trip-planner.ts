@@ -18,13 +18,11 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { z } from 'zod';
-
-import { WorkflowExecutor, createWorkflowExecutor, type StepHandler } from './base';
+import { WorkflowExecutor as _WorkflowExecutor, createWorkflowExecutor as _createWorkflowExecutor, type StepHandler as _StepHandler } from './base';
 import { getWeatherData, type WeatherData, type WeatherSeason } from '@/lib/external-apis/weather';
 import { logInfo, logError, logDebug, createTimer } from '@/lib/mastra/logging';
 import { traceWorkflowStep } from '@/lib/mastra/tracing';
-import type { WorkflowDefinition, WorkflowStep, WorkflowContext } from '@/types/mastra';
+import type { WorkflowDefinition } from '@/types/mastra';
 import type { Database } from '@/types/supabase';
 
 // Type assertion helper for tables not yet in generated Supabase types
@@ -456,7 +454,7 @@ function analyzeGaps(
 async function queryRecommendations(
   supabase: SupabaseClient<Database>,
   gaps: GapAnalysis,
-  intent: TripIntent
+  _intent: TripIntent
 ): Promise<CatalogRecommendations> {
   const products: CatalogRecommendations['products'] = [];
   let totalCost = 0;

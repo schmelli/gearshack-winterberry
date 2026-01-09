@@ -25,7 +25,6 @@ function getMerchantClient(): any {
   return createClient();
 }
 import type {
-  MerchantOffer,
   MerchantOfferView,
   MerchantOfferDetail,
   OfferAnalytics,

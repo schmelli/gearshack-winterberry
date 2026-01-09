@@ -33,7 +33,7 @@ interface ChatInterfaceProps {
 // LocalStorage key for voice preference
 const VOICE_ENABLED_KEY = 'gearshack:ai-voice-enabled';
 
-export function ChatInterface({ onClose }: ChatInterfaceProps) {
+export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
   const locale = useLocale();
 

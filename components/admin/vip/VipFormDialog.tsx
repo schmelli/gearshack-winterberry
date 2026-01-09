@@ -135,7 +135,7 @@ export function VipFormDialog({
         toast.success(t('vipCreated'));
       }
       onSuccess();
-    } catch (err) {
+    } catch (_err) {
       toast.error(isEditing ? t('updateFailed') : t('createFailed'));
     }
   };

@@ -80,22 +80,25 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function getActivityIcon(type: ActivityType) {
+/**
+ * Renders the activity icon directly to avoid creating components during render
+ */
+function renderActivityIcon(type: ActivityType, className: string): React.ReactNode {
   switch (type) {
     case 'new_loadout':
-      return Backpack;
+      return <Backpack className={className} />;
     case 'loadout_shared':
-      return Share2;
+      return <Share2 className={className} />;
     case 'marketplace_listing':
-      return Tag;
+      return <Tag className={className} />;
     case 'gear_added':
-      return Package;
+      return <Package className={className} />;
     case 'friend_added':
-      return Users;
+      return <Users className={className} />;
     case 'profile_updated':
-      return User;
+      return <User className={className} />;
     default:
-      return Activity;
+      return <Activity className={className} />;
   }
 }
 
@@ -121,7 +124,6 @@ function getActivityColor(type: ActivityType): string {
 function ActivityCard({ activity }: ActivityCardProps) {
   const t = useTranslations('Social');
   const tCommunity = useTranslations('Community');
-  const Icon = getActivityIcon(activity.activity_type);
   const iconColor = getActivityColor(activity.activity_type);
   const activityInfo = getActivityTypeInfo(activity.activity_type);
 
@@ -139,8 +141,8 @@ function ActivityCard({ activity }: ActivityCardProps) {
     }
   };
 
-  // Get activity description
-  const getActivityDescription = (): string => {
+  // Get activity description - currently using activityInfo.label instead
+  const _getActivityDescription = (): string => {
     const name = activity.display_name;
     switch (activity.activity_type) {
       case 'new_loadout':
@@ -177,7 +179,7 @@ function ActivityCard({ activity }: ActivityCardProps) {
     <div className="flex gap-3 py-3">
       {/* Activity icon */}
       <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', iconColor)}>
-        <Icon className="h-5 w-5" />
+        {renderActivityIcon(activity.activity_type, 'h-5 w-5')}
       </div>
 
       {/* Content */}

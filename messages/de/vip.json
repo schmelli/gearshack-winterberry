@@ -8,15 +8,6 @@
   "noVips": "Keine VIPs gefunden",
   "noLoadouts": "Noch keine Packlisten",
 
-  "profile": {
-    "curatedBanner": "Dies ist ein kuratiertes Profil mit Inhalten von {name}",
-    "verifiedBadge": "Verifizierter VIP",
-    "followers": "{count, plural, =0 {Keine Follower} =1 {1 Follower} other {# Follower}}",
-    "loadouts": "{count, plural, =0 {Keine Packlisten} =1 {1 Packliste} other {# Packlisten}}",
-    "joined": "Beigetreten {date}",
-    "socialLinks": "Soziale Links"
-  },
-
   "follow": {
     "follow": "Folgen",
     "following": "Folge ich",
@@ -24,30 +15,6 @@
     "signInToFollow": "Anmelden zum Folgen",
     "followedNotification": "Du folgst jetzt {name}",
     "unfollowedNotification": "Du folgst {name} nicht mehr"
-  },
-
-  "loadout": {
-    "sourceAttribution": "Basierend auf",
-    "watchVideo": "Originalvideo ansehen",
-    "viewSource": "Original ansehen",
-    "sourceUnavailable": "Quelle nicht verfügbar",
-    "totalWeight": "Gesamtgewicht",
-    "itemCount": "{count, plural, =1 {1 Teil} other {# Teile}}",
-    "publishedDate": "Veröffentlicht {date}",
-    "tripType": "Reiseart",
-    "dateRange": "Zeitraum",
-    "gearList": "Ausrüstungsliste",
-    "categories": {
-      "shelter": "Unterkunft",
-      "sleep": "Schlafsystem",
-      "pack": "Rucksack",
-      "kitchen": "Küche",
-      "clothing": "Kleidung",
-      "electronics": "Elektronik",
-      "hygiene": "Hygiene",
-      "firstAid": "Erste Hilfe",
-      "misc": "Sonstiges"
-    }
   },
 
   "copy": {
@@ -284,6 +251,7 @@
   },
 
   "profile": {
+    "title": "VIP-Profil",
     "curatedBanner": "Dies ist ein kuratiertes Profil mit Inhalten von {name}",
     "verifiedBadge": "Verifizierter VIP",
     "followers": "{count, plural, =0 {Keine Follower} =1 {1 Follower} other {# Follower}}",
@@ -296,6 +264,8 @@
     "noLoadouts": "Noch keine Packlisten veröffentlicht",
     "errorTitle": "Profil konnte nicht geladen werden",
     "notFound": "VIP nicht gefunden",
+    "featuredVideos": "Empfohlene Videos",
+    "viewAllLoadouts": "Alle {count} Packlisten anzeigen",
     "metaTitle": "{name} | VIP-Packlisten | GearShack",
     "metaDescription": "Erkunde {name}'s kuratierte Ausrüstungs-Setups und Packlisten auf GearShack"
   },

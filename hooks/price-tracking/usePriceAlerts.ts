@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Custom hook for price alerts
  * Feature: 050-price-tracking (US2)
@@ -39,7 +38,8 @@ export function usePriceAlerts(): UsePriceAlertsResult {
         .limit(50);
 
       if (alertsError) throw alertsError;
-      setAlerts(data || []);
+      // Cast through unknown as DB schema may differ from client type
+      setAlerts((data || []) as unknown as PriceAlert[]);
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -54,7 +54,8 @@ export function usePriceAlerts(): UsePriceAlertsResult {
   const markAsRead = async (alertId: string) => {
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('price_alerts')
         .update({ opened_at: new Date().toISOString() })
         .eq('id', alertId)
@@ -70,7 +71,8 @@ export function usePriceAlerts(): UsePriceAlertsResult {
   const markAsClicked = async (alertId: string) => {
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('price_alerts')
         .update({ clicked_at: new Date().toISOString() })
         .eq('id', alertId)

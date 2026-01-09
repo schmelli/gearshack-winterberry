@@ -16,7 +16,6 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { sendAIMessage } from '@/app/[locale]/ai-assistant/actions';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';

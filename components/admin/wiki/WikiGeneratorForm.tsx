@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { WikiGenerationResult, SimilarWikiArticle } from '@/types/admin';
+import type { SimilarWikiArticle } from '@/types/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // ============================================================================

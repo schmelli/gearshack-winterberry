@@ -20,7 +20,7 @@ async function verifyTables() {
   const tables = ['friend_requests', 'friendships', 'user_follows', 'friend_activities'];
 
   for (const table of tables) {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from(table)
       .select('*')
       .limit(0);

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { ConfirmMatchRequest, PriceTracking } from '@/types/price-tracking';
+import type { ConfirmMatchRequest } from '@/types/price-tracking';
 
 export async function POST(request: NextRequest) {
   try {

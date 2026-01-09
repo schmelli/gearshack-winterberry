@@ -48,7 +48,7 @@ export async function getAllVips(): Promise<VipWithStats[]> {
     .filter((vip: Record<string, unknown>) => vip.claimed_by_user_id)
     .map((vip: Record<string, unknown>) => vip.claimed_by_user_id as string);
 
-  let loadoutCountMap: Map<string, number> = new Map();
+  const loadoutCountMap: Map<string, number> = new Map();
 
   if (claimedUserIds.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

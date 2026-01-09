@@ -9,7 +9,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, MapPin } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { PriceResult } from '@/types/price-tracking';
 
 interface PriceResultItemProps {

@@ -13,7 +13,7 @@
 
 import pino from 'pino';
 import type { LogEntry } from '@/types/mastra';
-import { sanitizePII, type SanitizationResult } from './log-sanitizer';
+import { sanitizePII } from './log-sanitizer';
 
 // ==================== Type Definitions ====================
 

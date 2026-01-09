@@ -7,7 +7,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import type { CachedResponse } from '@/types/ai-assistant';
 
 // =====================================================
 // Supported Locales
@@ -24,7 +23,7 @@ type SupportedLocale = typeof SUPPORTED_LOCALES[number];
  * Get the appropriate locale column name for database query
  * Falls back to 'en' if locale is not supported
  */
-function getLocaleColumn(locale: string): string {
+function _getLocaleColumn(locale: string): string {
   const normalizedLocale = locale.toLowerCase().split('-')[0]; // 'en-US' -> 'en'
 
   if (SUPPORTED_LOCALES.includes(normalizedLocale as SupportedLocale)) {

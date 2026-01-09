@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useSocialPrivacy, getPresetInfo } from '@/hooks/social/useSocialPrivacy';
+import { useSocialPrivacy } from '@/hooks/social/useSocialPrivacy';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import type { PrivacyPreset, SocialPrivacySettings } from '@/types/social';

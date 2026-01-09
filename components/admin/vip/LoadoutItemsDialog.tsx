@@ -48,7 +48,7 @@ export function LoadoutItemsDialog({
   const [editingItem, setEditingItem] = useState<LoadoutItem | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
 
-  const { items, status, addItem, deleteItem, refetch } = useLoadoutItemsAdmin(loadout.id);
+  const { items, status: _status, addItem, deleteItem, refetch } = useLoadoutItemsAdmin(loadout.id);
   const supabase = createClient();
 
   // Handle catalog item selection

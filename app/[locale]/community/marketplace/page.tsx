@@ -40,7 +40,7 @@ function MarketplaceLoading() {
 // ============================================================================
 
 function MarketplaceContent() {
-  const t = useTranslations('Marketplace');
+  const _t = useTranslations('Marketplace');
   const locale = useLocale();
   const router = useRouter();
   const { startDirectConversation } = useConversations();

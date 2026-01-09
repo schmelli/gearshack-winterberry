@@ -13,7 +13,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Database } from '@/types/supabase';
 import {
   ANNOUNCEMENTS_DISMISSALS_STORAGE_KEY,
   ANNOUNCEMENT_DISMISSAL_TTL_MS,

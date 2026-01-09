@@ -11,7 +11,7 @@ import type { AlertPreferences } from '@/types/price-tracking';
 /**
  * GET: Fetch user's alert preferences
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -25,15 +25,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Get or create preferences
-    let { data: prefs, error: prefsError } = await (supabase as any)
+    const { data: existingPrefs, error: prefsError } = await supabase
       .from('alert_preferences')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
 
+    if (prefsError) {
+      console.error('Failed to fetch preferences:', prefsError);
+      return NextResponse.json(
+        { error: 'Failed to fetch preferences' },
+        { status: 500 }
+      );
+    }
+
     // Create default preferences if none exist
-    if (!prefs && !prefsError) {
-      const { data: newPrefs, error: createError } = await (supabase as any)
+    if (!existingPrefs) {
+      const { data: newPrefs, error: createError } = await supabase
         .from('alert_preferences')
         .insert({
           user_id: user.id,
@@ -55,18 +63,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      prefs = newPrefs;
+      return NextResponse.json(newPrefs);
     }
 
-    if (prefsError) {
-      console.error('Failed to fetch preferences:', prefsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch preferences' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(prefs);
+    return NextResponse.json(existingPrefs);
   } catch (error) {
     console.error('GET preferences error:', error);
     return NextResponse.json(
@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest) {
     const body: Partial<AlertPreferences> = await request.json();
 
     // Remove fields that shouldn't be updated
-    const { id, user_id, created_at, updated_at, ...updates } = body as any;
+    const { id: _id, user_id: _userId, created_at: _createdAt, updated_at: _updatedAt, ...updates } = body as Record<string, unknown>;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update preferences
-    const { data: updatedPrefs, error: updateError } = await (supabase as any)
+    const { data: updatedPrefs, error: updateError } = await supabase
       .from('alert_preferences')
       .update(updates)
       .eq('user_id', user.id)

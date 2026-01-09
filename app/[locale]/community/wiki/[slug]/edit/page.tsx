@@ -18,7 +18,7 @@ interface WikiPageEditProps {
 export default async function WikiPageEditPage({ params }: WikiPageEditProps) {
   const supabase = await createClient();
   const { slug } = await params;
-  const t = await getTranslations('Wiki');
+  const _t = await getTranslations('Wiki');
 
   // Check authentication
   const {

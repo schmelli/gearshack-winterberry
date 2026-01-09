@@ -28,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import type { WishlistInsightDetail as InsightDetailType, ProximityBucket } from '@/types/merchant-offer';
 
 // =============================================================================
@@ -206,6 +205,32 @@ export const WishlistInsightDetail = memo(function WishlistInsightDetail({
     onCreateOffer(Array.from(selectedUsers));
   }, [onCreateOffer, selectedUsers]);
 
+  // Calculate proximity groups (must be before early returns per rules-of-hooks)
+  type UserEntry = InsightDetailType['users'][number];
+  const proximityGroups = useMemo(() => {
+    const emptyGroups: Record<ProximityBucket, UserEntry[]> = {
+      '5km': [],
+      '10km': [],
+      '25km': [],
+      '50km': [],
+      '100km+': [],
+    };
+    if (!detail?.users) {
+      return emptyGroups;
+    }
+    const groups: Record<ProximityBucket, UserEntry[]> = {
+      '5km': [],
+      '10km': [],
+      '25km': [],
+      '50km': [],
+      '100km+': [],
+    };
+    for (const user of detail.users) {
+      groups[user.proximityBucket].push(user);
+    }
+    return groups;
+  }, [detail?.users]);
+
   if (isLoading) {
     return (
       <div className={cn('space-y-4', className)}>
@@ -233,20 +258,6 @@ export const WishlistInsightDetail = memo(function WishlistInsightDetail({
       </div>
     );
   }
-
-  const proximityGroups = useMemo(() => {
-    const groups: Record<ProximityBucket, typeof detail.users> = {
-      '5km': [],
-      '10km': [],
-      '25km': [],
-      '50km': [],
-      '100km+': [],
-    };
-    for (const user of detail.users) {
-      groups[user.proximityBucket].push(user);
-    }
-    return groups;
-  }, [detail.users]);
 
   return (
     <div className={cn('space-y-4', className)}>

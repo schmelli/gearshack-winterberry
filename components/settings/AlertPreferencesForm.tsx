@@ -213,7 +213,7 @@ export function AlertPreferencesForm({
             Quiet Hours
           </CardTitle>
           <CardDescription>
-            Coming soon: Set hours when you don't want to receive notifications
+            Coming soon: Set hours when you don&apos;t want to receive notifications
           </CardDescription>
         </CardHeader>
         <CardContent>

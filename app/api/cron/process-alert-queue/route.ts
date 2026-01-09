@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceRoleClient();
 
     // Get next batch of deliveries to process
-    const { data: tasksRaw, error: fetchError } = await supabase.rpc(
-      // @ts-ignore - Price tracking RPC function, types will be regenerated after migrations are applied
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: tasksRaw, error: fetchError } = await (supabase as any).rpc(
       'get_next_delivery_batch',
       { p_batch_size: RATE_LIMITING.MAX_CONCURRENT_SEARCHES }
     );
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch batch' }, { status: 500 });
     }
 
-    const tasks = tasksRaw as any[];
+    const tasks = tasksRaw as unknown as DeliveryTask[];
     if (!tasks || tasks.length === 0) {
       return NextResponse.json({
         success: true,
@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
     // Clean up old records (if this is the first run of the hour)
     const now = new Date();
     if (now.getMinutes() < 2) {
-      // @ts-ignore - Price tracking RPC function
-      const { data: cleanupCount } = await supabase.rpc('cleanup_delivery_queue');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cleanupCount } = await (supabase as any).rpc('cleanup_delivery_queue');
       console.log(`Cleaned up ${cleanupCount} old delivery records`);
     }
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 /**
  * Process a single delivery task
  */
-async function processDelivery(task: DeliveryTask, supabase: any): Promise<void> {
+async function processDelivery(task: DeliveryTask, supabase: ReturnType<typeof createServiceRoleClient>): Promise<void> {
   try {
     if (task.delivery_channel === 'push') {
       await sendPushNotification(task);
@@ -93,7 +93,8 @@ async function processDelivery(task: DeliveryTask, supabase: any): Promise<void>
     }
 
     // Mark as successful
-    await supabase.rpc('mark_delivery_success', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).rpc('mark_delivery_success', {
       p_queue_id: task.queue_id,
     });
 
@@ -102,7 +103,8 @@ async function processDelivery(task: DeliveryTask, supabase: any): Promise<void>
     // Mark as failed (will retry if attempts remaining)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    await supabase.rpc('mark_delivery_failed', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).rpc('mark_delivery_failed', {
       p_queue_id: task.queue_id,
       p_error_message: errorMessage,
     });

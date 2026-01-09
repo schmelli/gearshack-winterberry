@@ -13,7 +13,6 @@ import { enrichWithDistance, sortByDistance } from '@/lib/services/geolocation-s
 import {
   getCatalogPriceReference,
   filterAndRankResults,
-  type ProductPriceReference,
 } from '@/lib/services/price-validation-service';
 import { buildSearchQueries, type ProductCategoryInfo } from './search-query-builder';
 import type { PriceResult, PriceSearchResults, FailedSource } from '@/types/price-tracking';
@@ -55,7 +54,7 @@ export async function searchAllSources(
 
   // STEP 3: Execute multi-stage search
   // Try queries in order until we get sufficient results (minimum 3)
-  let allResults: PriceResult[] = [];
+  const allResults: PriceResult[] = [];
   let failedSources: FailedSource[] = [];
   let successfulStage: number = 3;
   const stageErrors: Array<{ stage: number; strategy: string; failures: FailedSource[] }> = [];

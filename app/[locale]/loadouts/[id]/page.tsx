@@ -84,18 +84,21 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   // AI Agent Context-Awareness: Set screen context for AI assistant
   const { setScreen, setCurrentLoadout, clearContext } = useScreenContext();
 
+  // Extract loadout name to use as dependency (avoids exhaustive-deps warning)
+  const loadoutName = loadout?.name;
+
   // Set screen context when loadout is loaded
   useEffect(() => {
-    if (loadout) {
+    if (loadoutName) {
       setScreen('loadout-detail');
-      setCurrentLoadout(id, loadout.name);
+      setCurrentLoadout(id, loadoutName);
     }
 
     // Cleanup: Clear context when leaving the page
     return () => {
       clearContext();
     };
-  }, [id, loadout?.name, setScreen, setCurrentLoadout, clearContext]);
+  }, [id, loadoutName, setScreen, setCurrentLoadout, clearContext]);
 
   // Editor state and actions
   const {
@@ -107,7 +110,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     removeItem,
     totalWeight,
     baseWeight,
-    categoryWeights,
+    categoryWeights: _categoryWeights,
     itemStates,
   } = useLoadoutEditor(id);
 

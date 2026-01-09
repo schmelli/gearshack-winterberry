@@ -54,7 +54,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useShakedownMutations } from '@/hooks/shakedowns';
-import type { Shakedown, ExperienceLevel, ShakedownPrivacy } from '@/types/shakedown';
+import type { Shakedown } from '@/types/shakedown';
 import { EXPERIENCE_LEVELS, PRIVACY_OPTIONS } from '@/types/shakedown';
 
 // =============================================================================

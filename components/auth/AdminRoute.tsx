@@ -7,20 +7,17 @@
 
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { type ReactNode } from 'react';
 import { Loader2, ShieldAlert } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface AdminRouteProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-function LoadingSpinner() {
+// TEMPORARY: Prefixed with _ because authentication is disabled for testing
+// TODO: Remove _ prefix when re-enabling authentication
+function _LoadingSpinner() {
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -28,7 +25,9 @@ function LoadingSpinner() {
   );
 }
 
-function AccessDenied({ title, message }: { title: string; message: string }) {
+// TEMPORARY: Prefixed with _ because authentication is disabled for testing
+// TODO: Remove _ prefix when re-enabling authentication
+function _AccessDenied({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
       <ShieldAlert className="h-16 w-16 text-destructive" />
@@ -38,7 +37,7 @@ function AccessDenied({ title, message }: { title: string; message: string }) {
   );
 }
 
-export function AdminRoute({ children, fallback }: AdminRouteProps) {
+export function AdminRoute({ children, fallback: _fallback }: AdminRouteProps) {
   // TEMPORARY: Authentication disabled for testing
   // TODO: Re-enable authentication once admin access is working
   console.log('[AdminRoute] ⚠️  AUTHENTICATION DISABLED - ALLOW ALL ACCESS');

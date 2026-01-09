@@ -11,7 +11,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { CommunityAvailabilityMatch } from '@/types/wishlist';
 import { communityAvailabilityMatchSchema } from '@/lib/validations/wishlist-schema';
-import { z } from 'zod';
 
 // =============================================================================
 // RPC Response Type

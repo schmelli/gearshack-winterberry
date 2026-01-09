@@ -33,10 +33,10 @@ interface SavedVipLoadoutsSectionProps {
 
 function BookmarkedLoadoutCard({ bookmark }: { bookmark: BookmarkedLoadout }) {
   const locale = useLocale();
-  const t = useTranslations('vip');
+  const _t = useTranslations('vip');
 
   const loadoutUrl = `/${locale}/vip/${bookmark.loadout.vip.slug}/${bookmark.loadout.slug}`;
-  const vipUrl = `/${locale}/vip/${bookmark.loadout.vip.slug}`;
+  const _vipUrl = `/${locale}/vip/${bookmark.loadout.vip.slug}`;
 
   return (
     <Card className="group h-full transition-all hover:shadow-md hover:border-primary/50">

@@ -14,7 +14,7 @@ import { memo, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Users, MapPin, TrendingUp, Filter, RefreshCw, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
@@ -64,7 +64,7 @@ const RADIUS_OPTIONS = [
   { value: 100000, label: '100 km' },
 ];
 
-function getProximityColor(bucket: string): string {
+function _getProximityColor(bucket: string): string {
   switch (bucket) {
     case '5km':
       return 'bg-green-500';

@@ -131,9 +131,6 @@ export function EditLoadoutClient({ loadoutId }: EditLoadoutClientProps) {
       }
 
       // Sync availability
-      const existingLocationIds = new Set(
-        currentLoadout.availability.map((a) => a.locationId)
-      );
       const newLocationIds = new Set(data.availability.map((a) => a.locationId));
 
       // Remove locations no longer present

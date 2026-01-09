@@ -7,7 +7,6 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { validateWebSearchConfig } from '@/lib/env';
 
 // =============================================================================
@@ -22,7 +21,7 @@ import { validateWebSearchConfig } from '@/lib/env';
  * haven't been applied or types haven't been regenerated. We use type
  * assertions through 'unknown' to safely access this table.
  */
-interface WebSearchUsageRow {
+interface _WebSearchUsageRow {
   id: string;
   user_id: string;
   conversation_id: string | null;

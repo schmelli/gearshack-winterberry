@@ -16,9 +16,6 @@ import type { Database } from '@/types/database';
 // Types
 // =============================================================================
 
-type LoadoutRow = Database['public']['Tables']['loadouts']['Row'];
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-
 export interface VipLoadoutSummary {
   id: string;
   userId: string; // VIP user ID

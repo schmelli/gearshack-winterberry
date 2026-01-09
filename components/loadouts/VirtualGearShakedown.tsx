@@ -80,7 +80,7 @@ export function VirtualGearShakedown({
   const { checkOwned } = useOwnedItemsCheck(isAuthenticated ? userId : null);
 
   // Use Supabase categories for correct category display
-  const { getLabelById } = useCategories();
+  const { getLabelById: _getLabelById } = useCategories();
 
   // Detect mobile viewport
   useEffect(() => {

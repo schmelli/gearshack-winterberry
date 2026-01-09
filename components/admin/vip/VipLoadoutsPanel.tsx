@@ -29,7 +29,7 @@ interface VipLoadoutsPanelProps {
   claimedByUserId: string | null; // User ID for loadouts (from profiles table)
 }
 
-export function VipLoadoutsPanel({ vipId, vipName, claimedByUserId }: VipLoadoutsPanelProps) {
+export function VipLoadoutsPanel({ vipId: _vipId, vipName, claimedByUserId }: VipLoadoutsPanelProps) {
   const t = useTranslations('vip.admin');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingLoadout, setEditingLoadout] = useState<VipLoadoutSummary | null>(null);

@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMerchantAuth } from './useMerchantAuth';
 import {
   fetchMerchantCatalog,

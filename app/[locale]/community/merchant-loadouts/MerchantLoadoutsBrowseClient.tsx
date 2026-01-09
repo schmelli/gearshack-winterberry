@@ -10,14 +10,12 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Store, Sparkles, Star, ShoppingBag, Users } from 'lucide-react';
+import { Store, Sparkles, Star, ShoppingBag } from 'lucide-react';
 import { useMerchantLoadoutsPublic, useFeaturedLoadouts } from '@/hooks/merchant';
 import { MerchantLoadoutGrid } from '@/components/merchant/MerchantLoadoutGrid';
 import { MerchantLoadoutCard, MerchantLoadoutCardSkeleton } from '@/components/merchant/MerchantLoadoutCard';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Carousel,

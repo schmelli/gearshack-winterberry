@@ -20,7 +20,6 @@ function categoryFromDb(row: DbCategory): Category {
     label: row.label,
     slug: row.slug,
     i18n: row.i18n as { en: string; de?: string },
-    // @ts-ignore - sort_order will exist after migration
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
   };
@@ -52,7 +51,6 @@ export async function createCategory(data: {
 
   const { data: siblings } = await query;
 
-  // @ts-ignore - sort_order will exist after migration
   const nextSortOrder = siblings?.[0]?.sort_order ? siblings[0].sort_order + 1 : 1;
 
   const { data: newCategory, error } = await supabase
@@ -63,7 +61,6 @@ export async function createCategory(data: {
       label: data.label,
       slug: data.slug,
       i18n: data.i18n,
-      // @ts-ignore - sort_order will exist after migration
       sort_order: nextSortOrder,
     })
     .select()
@@ -176,7 +173,6 @@ export async function indentCategory(id: string): Promise<{ error: string | null
     .update({
       parent_id: newParent.id,
       level: (current.level + 1) as 1 | 2 | 3,
-      // @ts-ignore - sort_order exists
       sort_order: 1, // First child of new parent
     })
     .eq('id', id);
@@ -217,7 +213,6 @@ export async function outdentCategory(id: string): Promise<{ error: string | nul
     .update({
       parent_id: parent.parent_id, // Grandparent (could be null for L1)
       level: (current.level - 1) as 1 | 2 | 3,
-      // @ts-ignore - sort_order exists
       sort_order: 999, // Move to end of siblings
     })
     .eq('id', id);
@@ -268,21 +263,17 @@ export async function moveCategory(
 
   if (!adjacent) return { error: 'No adjacent sibling to swap with' };
 
-  // @ts-ignore - sort_order will exist after migration
   const currentSortOrder = current.sort_order;
-  // @ts-ignore - sort_order will exist after migration
   const adjacentSortOrder = adjacent.sort_order;
 
   // Swap sort_order values
   const { error: error1 } = await supabase
     .from('categories')
-    // @ts-ignore - sort_order will exist after migration
     .update({ sort_order: adjacentSortOrder })
     .eq('id', current.id);
 
   const { error: error2 } = await supabase
     .from('categories')
-    // @ts-ignore - sort_order will exist after migration
     .update({ sort_order: currentSortOrder })
     .eq('id', adjacent.id);
 

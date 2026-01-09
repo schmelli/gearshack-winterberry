@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import type {
   LoadoutComparison,
   CategoryComparison,

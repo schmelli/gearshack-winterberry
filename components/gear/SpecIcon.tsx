@@ -123,23 +123,29 @@ function getIconPath(type: SpecIconType, categoryId?: string): string | null {
 }
 
 /**
- * Maps spec icon types to their Lucide icon components
+ * Renders the appropriate Lucide icon for a spec type
  * Returns null if no Lucide icon is available (falls back to SVG or HelpCircle)
  */
-function getLucideIcon(type: SpecIconType): React.ComponentType<{ className?: string; style?: React.CSSProperties; 'aria-label'?: string }> | null {
+function renderLucideIcon(
+  type: SpecIconType,
+  className: string,
+  style: React.CSSProperties,
+  ariaLabel: string
+): React.ReactNode | null {
+  const iconProps = { className, style, 'aria-label': ariaLabel };
   switch (type) {
     case 'size':
-      return Ruler;
+      return <Ruler {...iconProps} />;
     case 'color':
-      return Palette;
+      return <Palette {...iconProps} />;
     case 'volume':
-      return Box;
+      return <Box {...iconProps} />;
     case 'materials':
-      return Layers;
+      return <Layers {...iconProps} />;
     case 'construction':
-      return Tent;
+      return <Tent {...iconProps} />;
     case 'quantity':
-      return Hash;
+      return <Hash {...iconProps} />;
     default:
       return null;
   }
@@ -158,20 +164,19 @@ export function SpecIcon({
 }: SpecIconProps) {
   const [hasError, setHasError] = useState(false);
   const iconPath = getIconPath(type, categoryId);
-  const LucideIcon = getLucideIcon(type);
 
   // Stable error handler to avoid creating new functions on every render
   const handleError = useCallback(() => setHasError(true), []);
 
   // If a Lucide icon is available, use it directly
-  if (LucideIcon) {
-    return (
-      <LucideIcon
-        className={cn('text-muted-foreground', className)}
-        style={{ width: size, height: size }}
-        aria-label={alt || `${type} icon`}
-      />
-    );
+  const lucideIcon = renderLucideIcon(
+    type,
+    cn('text-muted-foreground', className),
+    { width: size, height: size },
+    alt || `${type} icon`
+  );
+  if (lucideIcon) {
+    return lucideIcon;
   }
 
   // Fallback to placeholder if no icon found or if image fails to load

@@ -57,13 +57,13 @@ function sanitizeFileName(name: string): string {
 }
 
 /** Resolve a human-readable category label with fallback. */
-function buildCategoryLabel(categoryId: string | null): string {
+function _buildCategoryLabel(categoryId: string | null): string {
   if (!categoryId) return 'Uncategorized';
   return CATEGORY_LABELS[categoryId] || categoryId;
 }
 
 /** Map boolean flags to human-readable strings. */
-function formatBoolean(value: boolean | undefined): string {
+function _formatBoolean(value: boolean | undefined): string {
   return value ? 'Yes' : 'No';
 }
 

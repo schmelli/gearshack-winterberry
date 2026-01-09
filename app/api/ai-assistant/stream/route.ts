@@ -69,7 +69,8 @@ export async function POST(request: Request) {
     }
 
     // 2. Check if rate limiting is disabled (for testing)
-    const aiConfig = validateAIConfig();
+    // Validate AI config (throws if invalid) - result intentionally unused
+    validateAIConfig();
     const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
 
     if (!rateLimitingDisabled) {

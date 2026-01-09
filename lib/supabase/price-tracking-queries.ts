@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Supabase query functions for price tracking
  * Feature: 050-price-tracking
@@ -37,7 +36,8 @@ export async function enablePriceTracking(
     .single();
 
   if (error) throw new Error(`Failed to enable tracking: ${error.message}`);
-  return data;
+  // Cast through unknown as DB schema nullable fields may differ from client type
+  return data as unknown as PriceTracking;
 }
 
 /**
@@ -77,7 +77,7 @@ export async function getPriceTrackingStatus(
     .maybeSingle();
 
   if (error) throw new Error(`Failed to get tracking status: ${error.message}`);
-  return data;
+  return data as unknown as PriceTracking | null;
 }
 
 /**
@@ -99,7 +99,7 @@ export async function confirmProductMatch(
     .single();
 
   if (error) throw new Error(`Failed to confirm match: ${error.message}`);
-  return data;
+  return data as unknown as PriceTracking;
 }
 
 /**
@@ -116,7 +116,7 @@ export async function getPriceResults(trackingId: string): Promise<PriceResult[]
     .order('total_price', { ascending: true });
 
   if (error) throw new Error(`Failed to get price results: ${error.message}`);
-  return data || [];
+  return (data || []) as unknown as PriceResult[];
 }
 
 /**
@@ -139,7 +139,7 @@ export async function getPriceHistory(
     .order('recorded_at', { ascending: true });
 
   if (error) throw new Error(`Failed to get price history: ${error.message}`);
-  return data || [];
+  return (data || []) as unknown as PriceHistoryEntry[];
 }
 
 /**
@@ -183,7 +183,7 @@ export async function toggleAlerts(
     .single();
 
   if (error) throw new Error(`Failed to toggle alerts: ${error.message}`);
-  return data;
+  return data as unknown as PriceTracking;
 }
 
 /**
@@ -201,5 +201,5 @@ export async function getCommunityAvailability(
     .maybeSingle();
 
   if (error) throw new Error(`Failed to get community availability: ${error.message}`);
-  return data;
+  return data as unknown as CommunityAvailability | null;
 }

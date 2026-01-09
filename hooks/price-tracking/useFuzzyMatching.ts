@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { confirmProductMatch } from '@/lib/supabase/price-tracking-queries';
-import type { FuzzyMatch, ConfirmMatchRequest } from '@/types/price-tracking';
+import type { ConfirmMatchRequest } from '@/types/price-tracking';
 
 interface UseFuzzyMatchingResult {
   isConfirming: boolean;

@@ -7,7 +7,6 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/types/supabase';
 import type { CommunityAnnouncement } from '@/types/community';
 
 /**

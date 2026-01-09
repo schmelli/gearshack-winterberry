@@ -300,7 +300,7 @@ interface RetryingStateProps {
   retryingMessage: string;
 }
 
-function RetryingState({ retryCount, retryingText, retryingMessage }: RetryingStateProps) {
+function RetryingState({ retryCount: _retryCount, retryingText, retryingMessage }: RetryingStateProps) {
   return (
     <div
       className="flex items-center justify-center py-4"

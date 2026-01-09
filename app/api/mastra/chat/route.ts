@@ -51,7 +51,7 @@ import {
   classifyQuery,
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
-import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
+// Rate limiting is handled by middleware - imports removed
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 // MIGRATED TO MASTRA AGENT: import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
@@ -73,7 +73,6 @@ import {
   formatContextForPrompt,
   extractPreferencesFromConversation,
   type UserContext as MastraUserContext,
-  type UserPreferences,
 } from '@/lib/mastra/user-context';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';

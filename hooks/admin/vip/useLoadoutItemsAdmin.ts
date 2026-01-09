@@ -15,9 +15,6 @@ import type { Database } from '@/types/database';
 // Types
 // =============================================================================
 
-type LoadoutItemRow = Database['public']['Tables']['loadout_items']['Row'];
-type GearItemRow = Database['public']['Tables']['gear_items']['Row'];
-
 export interface LoadoutItem {
   id: string;
   loadoutId: string;

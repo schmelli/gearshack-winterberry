@@ -13,7 +13,7 @@ import { sendPersonalOfferAlert } from '@/lib/services/alert-service';
 import { batchCreatePriceAlerts, batchCheckConversions } from '@/lib/services/batch-operations';
 import { RATE_LIMITING } from '@/lib/constants/price-tracking';
 import { createModuleLogger } from '@/lib/utils/logger';
-import type { PriceTrackingWithGearItem, PersonalOfferWithPartner } from '@/types/database-helpers';
+import type { PriceTrackingWithGearItem } from '@/types/database-helpers';
 import PQueue from 'p-queue';
 
 const log = createModuleLogger('cron:check-prices');

@@ -173,7 +173,7 @@ export async function notifyVipArchived(
 export function getVipNotificationMessage(
   type: VipNotificationType,
   data: VipNotificationData,
-  locale: string = 'en'
+  _locale: string = 'en'
 ): string {
   // These would typically come from translation files
   // For now, using English strings

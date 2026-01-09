@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Batch operations to prevent N+1 queries
  * Feature: 050-price-tracking (Review fix #12)
@@ -145,7 +144,8 @@ export async function batchCreatePriceAlerts(
     // Enqueue all delivery tasks in parallel
     await Promise.allSettled(
       deliveryTasks.map((task) =>
-        supabase.rpc('enqueue_alert_delivery', task)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).rpc('enqueue_alert_delivery', task)
       )
     );
   }

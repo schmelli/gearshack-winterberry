@@ -68,7 +68,7 @@ export function SharedLoadoutAppView({
   const { isOnWishlist, addToWishlist, addingItems } = useWishlistActions(userId, shareToken);
 
   // Use Supabase categories for correct category display
-  const { getLabelById } = useCategories();
+  const { getLabelById: _getLabelById } = useCategories();
 
   // Handler for sending message to owner
   const handleSendMessage = useCallback((ownerId: string) => {

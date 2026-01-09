@@ -34,7 +34,6 @@ import type {
   LoadoutItemInput,
   LoadoutAvailabilityInput,
   LoadoutStatus,
-  VALID_LOADOUT_TRANSITIONS,
 } from '@/types/merchant-loadout';
 
 // =============================================================================

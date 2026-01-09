@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch subscription tiers' }, { status: 500 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const trailblazerUsers = new Set(
       profiles?.filter((p: any) => p.subscription_tier === 'trailblazer').map((p: any) => p.id) || []
     );

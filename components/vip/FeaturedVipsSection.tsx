@@ -12,7 +12,7 @@
 
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { ArrowRight, Star, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Star, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VipProfileCard } from './VipProfileCard';

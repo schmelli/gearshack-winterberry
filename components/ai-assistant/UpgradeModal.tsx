@@ -90,7 +90,7 @@ export function UpgradeModal({ open, onClose, onUpgrade }: UpgradeModalProps) {
                   key={index}
                   className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm"
                 >
-                  "{t(questionKey)}"
+                  &ldquo;{t(questionKey)}&rdquo;
                 </div>
               ))}
             </div>

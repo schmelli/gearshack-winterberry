@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from '@/i18n/navigation';
 import { useAuthContext as useAuth } from '@/components/auth/SupabaseAuthProvider';
-import { useLoadouts, type Loadout as UserLoadout } from '@/hooks/useLoadouts';
+import { useLoadouts } from '@/hooks/useLoadouts';
 import { useGearItems } from '@/hooks/useGearItems';
 import { useVipComparison } from '@/hooks/vip/useVipComparison';
 import { UserLoadoutSelector, type LoadoutWithWeight } from './UserLoadoutSelector';

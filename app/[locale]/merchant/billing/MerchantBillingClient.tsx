@@ -32,7 +32,6 @@ import {
 import { CreditCard, RefreshCw, AlertCircle, Download, Receipt } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import type { BillingCycleDetail } from '@/types/conversion';
 
 // =============================================================================
 // Helper Functions
