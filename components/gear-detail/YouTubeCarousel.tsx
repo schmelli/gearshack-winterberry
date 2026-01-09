@@ -28,6 +28,8 @@ interface YouTubeCarouselProps {
   isLoading: boolean;
   /** Error message if fetch failed */
   error: string | null;
+  /** Whether quota is exhausted (retry won't help) */
+  isQuotaExhausted?: boolean;
   /** Callback to retry fetch */
   onRetry?: () => void;
   /** Optional class name */
@@ -42,6 +44,7 @@ export function YouTubeCarousel({
   videos,
   isLoading,
   error,
+  isQuotaExhausted = false,
   onRetry,
   className,
 }: YouTubeCarouselProps) {
@@ -50,8 +53,13 @@ export function YouTubeCarousel({
     return (
       <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
         <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{error}</p>
-        {onRetry && (
+        <p className="text-sm text-muted-foreground">
+          {isQuotaExhausted
+            ? 'Video reviews temporarily unavailable (quota reset at midnight PT)'
+            : error}
+        </p>
+        {/* Hide retry button when quota exhausted - retrying won't help */}
+        {onRetry && !isQuotaExhausted && (
           <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
             <RotateCcw className="mr-2 h-3 w-3" />
             Try again

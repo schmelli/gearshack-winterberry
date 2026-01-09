@@ -172,6 +172,7 @@ function InventoryWithModal() {
     videos: youtubeVideos,
     isLoading: youtubeLoading,
     error: youtubeError,
+    isQuotaExhausted: youtubeQuotaExhausted,
     retry: retryYouTube,
   } = useYouTubeReviews({
     brand: selectedItem?.brand,
@@ -228,6 +229,7 @@ function InventoryWithModal() {
     youtubeVideos={youtubeVideos}
     youtubeLoading={youtubeLoading}
     youtubeError={youtubeError}
+    youtubeQuotaExhausted={youtubeQuotaExhausted}
     retryYouTube={retryYouTube}
     insights={insights}
     insightsLoading={insightsLoading}
@@ -279,6 +281,7 @@ interface InventoryContentProps {
   youtubeVideos: YouTubeVideo[] | null;
   youtubeLoading: boolean;
   youtubeError: string | null;
+  youtubeQuotaExhausted: boolean;
   retryYouTube: () => void;
   insights: GearInsight[] | null;
   insightsLoading: boolean;
@@ -329,6 +332,7 @@ function InventoryContent({
   youtubeVideos,
   youtubeLoading,
   youtubeError,
+  youtubeQuotaExhausted,
   retryYouTube,
   insights,
   insightsLoading,
@@ -503,6 +507,7 @@ function InventoryContent({
         youtubeVideos={youtubeVideos}
         youtubeLoading={youtubeLoading}
         youtubeError={youtubeError}
+        youtubeQuotaExhausted={youtubeQuotaExhausted}
         onRetryYouTube={retryYouTube}
         insights={insights}
         insightsLoading={insightsLoading}

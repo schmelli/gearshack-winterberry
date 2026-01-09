@@ -63,6 +63,8 @@ interface GearDetailContentProps {
   youtubeLoading: boolean;
   /** YouTube error message (if any) */
   youtubeError: string | null;
+  /** Whether YouTube quota is exhausted (retry won't help) */
+  youtubeQuotaExhausted?: boolean;
   /** Callback to retry YouTube fetch */
   onRetryYouTube?: () => void;
   /** GearGraph insights (null = loading, empty array = no results) */
@@ -188,6 +190,7 @@ export function GearDetailContent({
   youtubeVideos,
   youtubeLoading,
   youtubeError,
+  youtubeQuotaExhausted = false,
   onRetryYouTube,
   insights,
   insightsLoading,
@@ -522,6 +525,7 @@ export function GearDetailContent({
                   videos={youtubeVideos}
                   isLoading={youtubeLoading}
                   error={youtubeError}
+                  isQuotaExhausted={youtubeQuotaExhausted}
                   onRetry={onRetryYouTube}
                 />
               )}

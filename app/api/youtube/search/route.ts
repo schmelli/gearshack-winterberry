@@ -131,9 +131,15 @@ export async function GET(request: NextRequest) {
 
     // T032: Handle API errors (quota, unavailable)
     if (apiData.error) {
-      console.error('YouTube API error:', apiData.error);
+      console.error('YouTube API error:', JSON.stringify(apiData.error, null, 2));
+      // Provide more specific error messages for debugging
+      const errorMessage = apiData.error.code === 403
+        ? 'YouTube API quota exceeded or API key invalid'
+        : apiData.error.code === 400
+        ? 'Invalid YouTube API request'
+        : 'Unable to load reviews';
       return NextResponse.json(
-        { error: 'SERVICE_UNAVAILABLE', message: 'Unable to load reviews' },
+        { error: 'SERVICE_UNAVAILABLE', message: errorMessage },
         { status: 503 }
       );
     }

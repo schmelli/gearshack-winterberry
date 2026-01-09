@@ -35,6 +35,8 @@ interface UseYouTubeReviewsReturn {
   isLoading: boolean;
   /** Error message if fetch failed */
   error: string | null;
+  /** Whether quota is exhausted (retry won't help until tomorrow) */
+  isQuotaExhausted: boolean;
   /** Whether the response was cached */
   cached: boolean;
   /** Cache expiration date */
@@ -57,6 +59,7 @@ export function useYouTubeReviews({
   const [videos, setVideos] = useState<YouTubeVideo[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isQuotaExhausted, setIsQuotaExhausted] = useState(false);
   const [cached, setCached] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
@@ -103,7 +106,10 @@ export function useYouTubeReviews({
       setLastFetchParams(fetchKey);
     } catch (err) {
       console.error('YouTube fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Unable to load reviews');
+      const errorMessage = err instanceof Error ? err.message : 'Unable to load reviews';
+      setError(errorMessage);
+      // Detect quota exhaustion from error message (retry won't help until quota resets)
+      setIsQuotaExhausted(errorMessage.toLowerCase().includes('quota'));
       setVideos(null);
     } finally {
       setIsLoading(false);
@@ -128,6 +134,7 @@ export function useYouTubeReviews({
     videos,
     isLoading,
     error,
+    isQuotaExhausted,
     cached,
     expiresAt,
     retry,
