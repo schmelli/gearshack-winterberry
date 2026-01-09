@@ -536,6 +536,56 @@
       "fixErrors": "Please fix errors before saving",
       "itemDeleted": "Item deleted.",
       "deleteFailed": "Failed to delete item"
+    },
+    "classification": {
+      "title": "Classification",
+      "description": "Classify your gear to help organize your inventory and enable better filtering and search.",
+      "productTypeLabel": "Product Type"
+    },
+    "categorySpecs": {
+      "unitLabel": "Unit",
+      "unitPlaceholder": "Select unit",
+      "sizeLabel": "Size",
+      "sizePlaceholder": "e.g., M, L, 42, 10.5",
+      "colorLabel": "Color",
+      "colorPlaceholder": "e.g., Blue, Red/Black",
+      "volumeLabel": "Volume (Liters)",
+      "volumePlaceholder": "e.g., 65",
+      "volumeDescription": "For packs and bags",
+      "tentConstructionLabel": "Tent Construction",
+      "tentConstructionPlaceholder": "Select type",
+      "tentConstructionDescription": "For tents and shelters",
+      "materialsLabel": "Materials",
+      "materialsPlaceholder": "e.g., Dyneema, Silnylon, Cuben Fiber, etc.",
+      "materialsDescription": "Materials and fabrics used (for tents, packs, clothing)",
+      "tentTypes": {
+        "freestanding": "Freestanding",
+        "semiFreestanding": "Semi-freestanding",
+        "nonFreestanding": "Non-freestanding",
+        "tunnel": "Tunnel",
+        "dome": "Dome",
+        "pyramid": "Pyramid",
+        "tarp": "Tarp",
+        "aFrame": "A-Frame"
+      }
+    },
+    "purchase": {
+      "title": "Purchase Details",
+      "pricePaidLabel": "Price Paid",
+      "pricePaidPlaceholder": "0.00",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "Select currency",
+      "purchaseDateLabel": "Purchase Date",
+      "retailerLabel": "Retailer",
+      "retailerPlaceholder": "e.g., REI, Amazon",
+      "retailerWebsiteLabel": "Retailer Website",
+      "retailerWebsitePlaceholder": "https://www.rei.com/product/..."
+    },
+    "weightSearch": {
+      "rateLimited": "Daily limit reached. Upgrade to Trailblazer for unlimited searches.",
+      "enterBrandName": "Enter brand/name to search weight",
+      "searchFor": "Search weight for \"{query}\"",
+      "searchForWithLimit": "Search weight for \"{query}\" ({remaining} of {limit} left today)"
     }
   },
   "GearDetail": {

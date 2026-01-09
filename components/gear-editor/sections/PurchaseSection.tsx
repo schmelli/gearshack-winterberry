@@ -15,6 +15,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -57,13 +58,14 @@ const CURRENCIES = [
 // =============================================================================
 
 export function PurchaseSection() {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
 
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="purchase">
         <AccordionTrigger className="text-lg font-medium">
-          Purchase Details
+          {t('purchase.title')}
         </AccordionTrigger>
         <AccordionContent className="space-y-4 pt-2">
           {/* Price and Currency */}
@@ -74,13 +76,13 @@ export function PurchaseSection() {
           name="pricePaid"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price Paid</FormLabel>
+              <FormLabel>{t('purchase.pricePaidLabel')}</FormLabel>
               <FormControl>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={t('purchase.pricePaidPlaceholder')}
                   {...field}
                 />
               </FormControl>
@@ -95,11 +97,11 @@ export function PurchaseSection() {
           name="currency"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Currency</FormLabel>
+              <FormLabel>{t('purchase.currencyLabel')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select currency" />
+                    <SelectValue placeholder={t('purchase.currencyPlaceholder')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -122,7 +124,7 @@ export function PurchaseSection() {
         name="purchaseDate"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Purchase Date</FormLabel>
+            <FormLabel>{t('purchase.purchaseDateLabel')}</FormLabel>
             <FormControl>
               <Input type="date" {...field} />
             </FormControl>
@@ -137,9 +139,9 @@ export function PurchaseSection() {
         name="retailer"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Retailer</FormLabel>
+            <FormLabel>{t('purchase.retailerLabel')}</FormLabel>
             <FormControl>
-              <Input placeholder="e.g., REI, Amazon" {...field} />
+              <Input placeholder={t('purchase.retailerPlaceholder')} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -152,11 +154,11 @@ export function PurchaseSection() {
         name="retailerUrl"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Retailer Website</FormLabel>
+            <FormLabel>{t('purchase.retailerWebsiteLabel')}</FormLabel>
             <FormControl>
               <Input
                 type="url"
-                placeholder="https://www.rei.com/product/..."
+                placeholder={t('purchase.retailerWebsitePlaceholder')}
                 {...field}
               />
             </FormControl>

@@ -536,6 +536,56 @@
       "fixErrors": "Bitte behebe die Fehler vor dem Speichern",
       "itemDeleted": "Artikel gelöscht.",
       "deleteFailed": "Löschen fehlgeschlagen"
+    },
+    "classification": {
+      "title": "Klassifizierung",
+      "description": "Klassifiziere deine Ausrüstung, um dein Inventar besser zu organisieren und Suche und Filter zu verbessern.",
+      "productTypeLabel": "Produkttyp"
+    },
+    "categorySpecs": {
+      "unitLabel": "Einheit",
+      "unitPlaceholder": "Einheit auswählen",
+      "sizeLabel": "Größe",
+      "sizePlaceholder": "z.B. M, L, 42, 10.5",
+      "colorLabel": "Farbe",
+      "colorPlaceholder": "z.B. Blau, Rot/Schwarz",
+      "volumeLabel": "Volumen (Liter)",
+      "volumePlaceholder": "z.B. 65",
+      "volumeDescription": "Für Rucksäcke und Taschen",
+      "tentConstructionLabel": "Zeltkonstruktion",
+      "tentConstructionPlaceholder": "Typ auswählen",
+      "tentConstructionDescription": "Für Zelte und Unterstände",
+      "materialsLabel": "Materialien",
+      "materialsPlaceholder": "z.B. Dyneema, Silnylon, Cuben Fiber, etc.",
+      "materialsDescription": "Verwendete Materialien und Stoffe (für Zelte, Rucksäcke, Kleidung)",
+      "tentTypes": {
+        "freestanding": "Freistehend",
+        "semiFreestanding": "Teilweise freistehend",
+        "nonFreestanding": "Nicht freistehend",
+        "tunnel": "Tunnel",
+        "dome": "Kuppel",
+        "pyramid": "Pyramide",
+        "tarp": "Tarp",
+        "aFrame": "A-Rahmen"
+      }
+    },
+    "purchase": {
+      "title": "Kaufdetails",
+      "pricePaidLabel": "Bezahlter Preis",
+      "pricePaidPlaceholder": "0,00",
+      "currencyLabel": "Währung",
+      "currencyPlaceholder": "Währung auswählen",
+      "purchaseDateLabel": "Kaufdatum",
+      "retailerLabel": "Händler",
+      "retailerPlaceholder": "z.B. Globetrotter, Amazon",
+      "retailerWebsiteLabel": "Händler-Website",
+      "retailerWebsitePlaceholder": "https://www.globetrotter.de/produkt/..."
+    },
+    "weightSearch": {
+      "rateLimited": "Tageslimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "enterBrandName": "Marke/Name eingeben um Gewicht zu suchen",
+      "searchFor": "Gewicht suchen für \"{query}\"",
+      "searchForWithLimit": "Gewicht suchen für \"{query}\" ({remaining} von {limit} heute übrig)"
     }
   },
   "GearDetail": {

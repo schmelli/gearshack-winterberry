@@ -15,6 +15,7 @@
 'use client';
 
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { Search, Loader2 } from 'lucide-react';
 import {
   FormField,
@@ -50,13 +51,13 @@ import { ProgressiveCategorySelect } from '@/components/gear-editor/ProgressiveC
 import { useWeightSearch } from '@/hooks/useWeightSearch';
 import { useCategoryFields } from '@/hooks/useCategoryFields';
 import type { GearItemFormData, WeightUnit } from '@/types/gear';
-import { WEIGHT_UNIT_LABELS } from '@/types/gear';
 
 // =============================================================================
 // Component
 // =============================================================================
 
 export function CategorySpecsSection() {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
   const productTypeId = useWatch({ control: form.control, name: 'productTypeId' });
 
@@ -79,15 +80,19 @@ export function CategorySpecsSection() {
   // Build tooltip message based on rate limit status
   const getWeightSearchTooltip = (): string => {
     if (weightSearch.isRateLimited) {
-      return 'Daily limit reached. Upgrade to Trailblazer for unlimited searches.';
+      return t('weightSearch.rateLimited');
     }
     if (!searchQuery || searchQuery.length < 3) {
-      return 'Enter brand/name to search weight';
+      return t('weightSearch.enterBrandName');
     }
     if (weightSearch.rateLimit && !weightSearch.rateLimit.isUnlimited) {
-      return `Search weight for "${searchQuery}" (${weightSearch.rateLimit.remaining} of ${weightSearch.rateLimit.limit} left today)`;
+      return t('weightSearch.searchForWithLimit', {
+        query: searchQuery,
+        remaining: weightSearch.rateLimit.remaining,
+        limit: weightSearch.rateLimit.limit,
+      });
     }
-    return `Search weight for "${searchQuery}"`;
+    return t('weightSearch.searchFor', { query: searchQuery });
   };
 
   // Handle weight search
@@ -107,12 +112,11 @@ export function CategorySpecsSection() {
       {/* Classification Section */}
       <AccordionItem value="classification">
         <AccordionTrigger className="text-lg font-medium">
-          Classification
+          {t('classification.title')}
         </AccordionTrigger>
         <AccordionContent className="space-y-4 pt-2">
           <p className="text-muted-foreground text-sm">
-            Classify your gear to help organize your inventory and enable better
-            filtering and search.
+            {t('classification.description')}
           </p>
 
           {/* Progressive category selection - now ONE dropdown instead of three */}
@@ -121,7 +125,7 @@ export function CategorySpecsSection() {
             name="productTypeId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Product Type *</FormLabel>
+                <FormLabel>{t('classification.productTypeLabel')} *</FormLabel>
                 <ProgressiveCategorySelect
                   initialProductTypeId={field.value || undefined}
                   onComplete={(id) => field.onChange(id)}
@@ -136,7 +140,7 @@ export function CategorySpecsSection() {
       {/* Weight & Specifications Section */}
       <AccordionItem value="specifications">
         <AccordionTrigger className="text-lg font-medium">
-          Weight & Specifications
+          {t('weightSpecsTitle')}
         </AccordionTrigger>
         <AccordionContent className="space-y-6 pt-2">
 
@@ -148,7 +152,7 @@ export function CategorySpecsSection() {
             name="weightValue"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Weight</FormLabel>
+                <FormLabel>{t('weightLabel')}</FormLabel>
                 <div className="flex gap-2">
                   <FormControl>
                     <Input
@@ -195,17 +199,17 @@ export function CategorySpecsSection() {
             name="weightDisplayUnit"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unit</FormLabel>
+                <FormLabel>{t('categorySpecs.unitLabel')}</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select unit" />
+                      <SelectValue placeholder={t('categorySpecs.unitPlaceholder')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {weightUnits.map((unit) => (
                       <SelectItem key={unit} value={unit}>
-                        {WEIGHT_UNIT_LABELS[unit]}
+                        {t(`weightUnits.${unit === 'g' ? 'grams' : unit === 'oz' ? 'ounces' : 'pounds'}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -217,7 +221,7 @@ export function CategorySpecsSection() {
         </div>
 
         <FormDescription className="mb-6">
-          Weight is stored in grams internally for consistency.
+          {t('weightDescription')}
         </FormDescription>
 
         {/* Category-Specific Specifications - Conditional rendering based on category (Issue #89) */}
@@ -230,9 +234,9 @@ export function CategorySpecsSection() {
                 name="size"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Size</FormLabel>
+                    <FormLabel>{t('categorySpecs.sizeLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., M, L, 42, 10.5" {...field} />
+                      <Input placeholder={t('categorySpecs.sizePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,9 +251,9 @@ export function CategorySpecsSection() {
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Color</FormLabel>
+                    <FormLabel>{t('categorySpecs.colorLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Blue, Red/Black" {...field} />
+                      <Input placeholder={t('categorySpecs.colorPlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -269,17 +273,17 @@ export function CategorySpecsSection() {
                 name="volumeLiters"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Volume (Liters)</FormLabel>
+                    <FormLabel>{t('categorySpecs.volumeLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min="0"
                         step="any"
-                        placeholder="e.g., 65"
+                        placeholder={t('categorySpecs.volumePlaceholder')}
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>For packs and bags</FormDescription>
+                    <FormDescription>{t('categorySpecs.volumeDescription')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -293,25 +297,25 @@ export function CategorySpecsSection() {
                 name="tentConstruction"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tent Construction</FormLabel>
+                    <FormLabel>{t('categorySpecs.tentConstructionLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue placeholder={t('categorySpecs.tentConstructionPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="freestanding">Freestanding</SelectItem>
-                        <SelectItem value="semi-freestanding">Semi-freestanding</SelectItem>
-                        <SelectItem value="non-freestanding">Non-freestanding</SelectItem>
-                        <SelectItem value="tunnel">Tunnel</SelectItem>
-                        <SelectItem value="dome">Dome</SelectItem>
-                        <SelectItem value="pyramid">Pyramid</SelectItem>
-                        <SelectItem value="tarp">Tarp</SelectItem>
-                        <SelectItem value="a-frame">A-Frame</SelectItem>
+                        <SelectItem value="freestanding">{t('categorySpecs.tentTypes.freestanding')}</SelectItem>
+                        <SelectItem value="semi-freestanding">{t('categorySpecs.tentTypes.semiFreestanding')}</SelectItem>
+                        <SelectItem value="non-freestanding">{t('categorySpecs.tentTypes.nonFreestanding')}</SelectItem>
+                        <SelectItem value="tunnel">{t('categorySpecs.tentTypes.tunnel')}</SelectItem>
+                        <SelectItem value="dome">{t('categorySpecs.tentTypes.dome')}</SelectItem>
+                        <SelectItem value="pyramid">{t('categorySpecs.tentTypes.pyramid')}</SelectItem>
+                        <SelectItem value="tarp">{t('categorySpecs.tentTypes.tarp')}</SelectItem>
+                        <SelectItem value="a-frame">{t('categorySpecs.tentTypes.aFrame')}</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>For tents and shelters</FormDescription>
+                    <FormDescription>{t('categorySpecs.tentConstructionDescription')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -327,17 +331,17 @@ export function CategorySpecsSection() {
             name="materials"
             render={({ field }) => (
               <FormItem className="mb-6">
-                <FormLabel>Materials</FormLabel>
+                <FormLabel>{t('categorySpecs.materialsLabel')}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="e.g., Dyneema, Silnylon, Cuben Fiber, etc."
+                    placeholder={t('categorySpecs.materialsPlaceholder')}
                     className="resize-none"
                     rows={2}
                     {...field}
                   />
                 </FormControl>
                 <FormDescription>
-                  Materials and fabrics used (for tents, packs, clothing)
+                  {t('categorySpecs.materialsDescription')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -348,7 +352,7 @@ export function CategorySpecsSection() {
         {/* Dimensions */}
         {fields.showDimensions && (
           <div className="space-y-2">
-            <FormLabel className="text-base">Dimensions (cm)</FormLabel>
+            <FormLabel className="text-base">{t('dimensions.title')}</FormLabel>
             <div className="grid grid-cols-3 gap-4">
               {/* Length */}
               <FormField
@@ -357,7 +361,7 @@ export function CategorySpecsSection() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm text-muted-foreground">
-                      Length
+                      {t('dimensions.length')}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -380,7 +384,7 @@ export function CategorySpecsSection() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm text-muted-foreground">
-                      Width
+                      {t('dimensions.width')}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -403,7 +407,7 @@ export function CategorySpecsSection() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm text-muted-foreground">
-                      Height
+                      {t('dimensions.height')}
                     </FormLabel>
                     <FormControl>
                       <Input
