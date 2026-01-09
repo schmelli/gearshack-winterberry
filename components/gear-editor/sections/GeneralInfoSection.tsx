@@ -253,6 +253,7 @@ export function GeneralInfoSection({
         <div className="flex-1">
           <ProductAutocompleteInput
             brandId={selectedBrandId}
+            brandName={watchedBrand || undefined}
             onProductSelect={handleProductSelect}
           />
         </div>

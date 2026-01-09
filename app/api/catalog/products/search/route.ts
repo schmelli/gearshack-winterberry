@@ -54,9 +54,34 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const q = searchParams.get('q') || '';
-    const brandId = searchParams.get('brand_id') || undefined;
+    const brandIdParam = searchParams.get('brand_id') || undefined;
+    const brandNameParam = searchParams.get('brand_name') || undefined;
     const limitParam = searchParams.get('limit') || '8';
     const limit = Math.min(Math.max(parseInt(limitParam, 10) || 8, 1), 20);
+
+    // Determine brand filtering strategy:
+    // 1. If brand_name is provided, use it for ILIKE filtering (most reliable)
+    // 2. If brand_id is a catalog UUID (not starting with 'inventory-'), use exact match
+    // 3. If brand_id is an inventory format, try to extract brand name as fallback
+    let catalogBrandId: string | undefined;
+    let brandNameFilter: string | undefined;
+
+    if (brandNameParam) {
+      // Preferred: use explicit brand name for ILIKE filtering
+      brandNameFilter = brandNameParam.toLowerCase().trim();
+    } else if (brandIdParam) {
+      if (brandIdParam.startsWith('inventory-')) {
+        // Extract brand name from inventory format: inventory-{userId}-{brandName}
+        const parts = brandIdParam.split('-');
+        if (parts.length >= 3) {
+          // Skip 'inventory' and userId, join remaining parts with spaces
+          brandNameFilter = parts.slice(2).join(' ');
+        }
+      } else {
+        // Catalog UUID - use for exact match on brand_id FK
+        catalogBrandId = brandIdParam;
+      }
+    }
 
     // Require minimum query length
     if (q.length < 2) {
@@ -103,9 +128,9 @@ export async function GET(request: NextRequest) {
       .ilike('name', `%${normalizedQuery}%`)
       .limit(limit);
 
-    // Filter by brand if provided
-    if (brandId) {
-      queryBuilder = queryBuilder.eq('brand_id', brandId);
+    // Filter by brand if a catalog brand ID was provided (UUID format)
+    if (catalogBrandId) {
+      queryBuilder = queryBuilder.eq('brand_id', catalogBrandId);
     }
 
     const { data, error } = await queryBuilder;
@@ -122,8 +147,8 @@ export async function GET(request: NextRequest) {
       const { data: { user } } = await authSupabase.auth.getUser();
 
       if (user) {
-        // Search user's gear_items for matching product names
-        const { data: inventoryItems, error: invError } = await authSupabase
+        // Build inventory query with optional brand filtering
+        let inventoryQuery = authSupabase
           .from('gear_items')
           .select(`
             id,
@@ -135,8 +160,14 @@ export async function GET(request: NextRequest) {
           `)
           .eq('user_id', user.id)
           .not('name', 'is', null)
-          .ilike('name', `%${normalizedQuery}%`)
-          .limit(limit);
+          .ilike('name', `%${normalizedQuery}%`);
+
+        // Filter by brand name if we have a brand name filter
+        if (brandNameFilter) {
+          inventoryQuery = inventoryQuery.ilike('brand', `%${brandNameFilter}%`);
+        }
+
+        const { data: inventoryItems, error: invError } = await inventoryQuery.limit(limit);
 
         if (!invError && inventoryItems && inventoryItems.length > 0) {
           // Deduplicate by name (keep first occurrence)

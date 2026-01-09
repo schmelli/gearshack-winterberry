@@ -40,6 +40,8 @@ interface ProductAutocompleteInputProps {
   onProductSelect?: (product: ProductSuggestion) => void;
   /** Optional brand ID to filter products */
   brandId?: string;
+  /** Optional brand name to filter products (more reliable than ID) */
+  brandName?: string;
 }
 
 // =============================================================================
@@ -49,10 +51,12 @@ interface ProductAutocompleteInputProps {
 export function ProductAutocompleteInput({
   onProductSelect,
   brandId,
+  brandName,
 }: ProductAutocompleteInputProps) {
   const form = useFormContext<GearItemFormData>();
   const { suggestions, isLoading, search, clear } = useProductAutocomplete({
     brandId,
+    brandName,
   });
 
   // Cascading Category Refactor (Phase 6): Get categories for auto-fill
