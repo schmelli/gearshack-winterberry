@@ -8,7 +8,7 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { GardenerChatClient } from './GardenerChatClient';
+import { GardenerTabs } from './GardenerTabs';
 
 export async function generateMetadata({
   params,
@@ -44,5 +44,5 @@ export default async function GardenerPage() {
     redirect('/');
   }
 
-  return <GardenerChatClient />;
+  return <GardenerTabs />;
 }

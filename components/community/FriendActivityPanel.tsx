@@ -32,9 +32,9 @@ import { getInitials } from '@/lib/utils/formatting';
 import { DEFAULT_FRIEND_ACTIVITY_PANEL_LIMIT } from '@/lib/constants/community';
 import { useFriendActivity, formatActivityTime } from '@/hooks/social/useFriendActivity';
 import type { FriendActivityPanelProps } from '@/types/community';
-import type { FriendActivityWithProfile, ActivityType } from '@/types/social';
+import type { FriendActivityWithProfile, SocialActivityType } from '@/types/social';
 
-const ACTIVITY_ICONS: Record<ActivityType, typeof Activity> = {
+const ACTIVITY_ICONS: Record<SocialActivityType, typeof Activity> = {
   new_loadout: Backpack,
   loadout_shared: Share2,
   marketplace_listing: Tag,

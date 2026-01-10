@@ -23,15 +23,15 @@ import {
 import type {
   UseFriendActivityReturn,
   FriendActivityWithProfile,
-  ActivityType,
-  ActivityTypeFilter,
+  SocialActivityType,
+  SocialActivityTypeFilter,
 } from '@/types/social';
 
 const PAGE_SIZE = 20;
 const MAX_ACTIVITIES = 50; // Maximum activities to display
 
 export function useFriendActivity(
-  activityTypeFilter?: ActivityTypeFilter
+  activityTypeFilter?: SocialActivityTypeFilter
 ): UseFriendActivityReturn {
   const { user } = useAuthContext();
   const [activities, setActivities] = useState<FriendActivityWithProfile[]>([]);
@@ -58,7 +58,7 @@ export function useFriendActivity(
       setError(null);
       setOffset(0);
 
-      const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as ActivityType | undefined;
+      const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as SocialActivityType | undefined;
       const data = await fetchFriendActivities(PAGE_SIZE, 0, filterType);
 
       setActivities(data);
@@ -87,7 +87,7 @@ export function useFriendActivity(
         return;
       }
 
-      const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as ActivityType | undefined;
+      const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as SocialActivityType | undefined;
       const data = await fetchFriendActivities(PAGE_SIZE, newOffset, filterType);
 
       setActivities((prev) => [...prev, ...data]);
@@ -182,7 +182,7 @@ export function useFriendActivity(
 /**
  * Gets display info for an activity type.
  */
-export function getActivityTypeInfo(type: ActivityType): {
+export function getSocialActivityTypeInfo(type: SocialActivityType): {
   icon: string;
   label: string;
   color: string;

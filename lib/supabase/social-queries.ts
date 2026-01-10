@@ -23,7 +23,7 @@ import type {
   SendFriendRequestResponse,
   RespondToFriendRequestResponse,
   CanSendFriendRequestResponse,
-  ActivityType,
+  SocialActivityType,
 } from '@/types/social';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -570,7 +570,7 @@ export async function getMutualFriendsCount(
 export async function fetchFriendActivities(
   limit = 20,
   offset = 0,
-  activityTypeFilter?: ActivityType
+  activityTypeFilter?: SocialActivityType
 ): Promise<FriendActivityWithProfile[]> {
   const supabase = getSocialClient();
 
@@ -601,7 +601,7 @@ export async function fetchFriendActivities(
         user_id: row.user_id,
         display_name: row.display_name ?? 'Unknown',
         avatar_url: row.avatar_url ?? null,
-        activity_type: row.activity_type as ActivityType,
+        activity_type: row.activity_type as SocialActivityType,
         reference_type: row.reference_type,
         reference_id: row.reference_id,
         metadata: row.metadata ?? {},
@@ -624,7 +624,7 @@ export async function fetchFriendActivities(
     user_id: row.user_id,
     display_name: row.display_name ?? 'Unknown',
     avatar_url: row.avatar_url ?? null,
-    activity_type: row.activity_type as ActivityType,
+    activity_type: row.activity_type as SocialActivityType,
     reference_type: row.reference_type,
     reference_id: row.reference_id,
     metadata: row.metadata ?? {},
@@ -638,7 +638,7 @@ export async function fetchFriendActivities(
  */
 export async function createActivity(
   userId: string,
-  activityType: ActivityType,
+  activityType: SocialActivityType,
   referenceType: string,
   referenceId: string,
   metadata: Record<string, unknown> = {},

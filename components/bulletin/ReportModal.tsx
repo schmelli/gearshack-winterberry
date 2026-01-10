@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import { createBulletinReport } from '@/lib/supabase/bulletin-queries';
-import { REPORT_REASONS, type ReportReason } from '@/types/bulletin';
+import { BULLETIN_REPORT_REASONS, type BulletinReportReason } from '@/types/bulletin';
 import { isPostError } from '@/hooks/bulletin';
 
 interface ReportModalProps {
@@ -50,7 +50,7 @@ export function ReportModal({
   const t = useTranslations('bulletin');
   const supabase = createClient();
 
-  const [reason, setReason] = useState<ReportReason | ''>('');
+  const [reason, setReason] = useState<BulletinReportReason | ''>('');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,7 +62,7 @@ export function ReportModal({
       await createBulletinReport(supabase, {
         target_type: targetType,
         target_id: targetId,
-        reason: reason as ReportReason,
+        reason: reason as BulletinReportReason,
         details: details.trim() || undefined,
       });
 
@@ -100,14 +100,14 @@ export function ReportModal({
             <Label htmlFor="reason">{t('report.reasonLabel')}</Label>
             <Select
               value={reason}
-              onValueChange={(value) => setReason(value as ReportReason)}
+              onValueChange={(value) => setReason(value as BulletinReportReason)}
               disabled={isSubmitting}
             >
               <SelectTrigger id="reason">
                 <SelectValue placeholder={t('report.selectReason')} />
               </SelectTrigger>
               <SelectContent>
-                {REPORT_REASONS.map((r) => (
+                {BULLETIN_REPORT_REASONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
                     {t(r.labelKey)}
                   </SelectItem>

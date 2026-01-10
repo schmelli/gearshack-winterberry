@@ -4,6 +4,16 @@
  */
 
 // ============================================================================
+// Shared Types
+// ============================================================================
+
+/** Relationship direction type used across approval and review contexts */
+export type GardenerRelationshipDirection = 'incoming' | 'outgoing';
+
+/** Decision type used for approval and review actions */
+export type GardenerDecision = 'approve' | 'reject';
+
+// ============================================================================
 // Chat Types
 // ============================================================================
 
@@ -136,7 +146,8 @@ export interface GardenerWorkflowTriggerResponse {
 
 export type GardenerApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type GardenerProposedAction = 'merge' | 'delete' | 'enrich';
-export type GardenerApprovalDecision = 'approve' | 'reject';
+/** @deprecated Use GardenerDecision instead */
+export type GardenerApprovalDecision = GardenerDecision;
 
 export interface GardenerApprovalCandidate {
   nodeId: string;
@@ -147,7 +158,7 @@ export interface GardenerApprovalCandidate {
 
 export interface GardenerCandidateRelationship {
   type: string;
-  direction: 'incoming' | 'outgoing';
+  direction: GardenerRelationshipDirection;
   targetId: string;
   targetName: string;
 }
@@ -282,8 +293,115 @@ export type GardenerErrorCode =
   | 'INTERNAL_ERROR';
 
 // ============================================================================
+// Interactive Review Types
+// ============================================================================
+
+export type GardenerReviewItemType = 'GearItem' | 'Brand' | 'Category' | 'ProductFamily' | 'Technology' | 'UsageScenario' | 'Insight';
+/** @deprecated Use GardenerDecision instead */
+export type GardenerReviewDecision = GardenerDecision;
+
+export interface GardenerReviewRelationship {
+  type: string;
+  targetName: string;
+  direction: GardenerRelationshipDirection;
+}
+
+export interface GardenerReviewItemData {
+  brand?: string;
+  category?: string;
+  relationshipCount: number;
+  relationships: GardenerReviewRelationship[];
+  properties?: Record<string, unknown>;
+}
+
+export interface GardenerReviewItem {
+  approvalId: string;
+  name: string;
+  nodeType: GardenerReviewItemType;
+  problem: string;
+  currentData: GardenerReviewItemData;
+  suggestedResolution: string;
+  confidence: number;
+  createdAt: string;
+}
+
+export interface GardenerReviewQueueResponse {
+  item: GardenerReviewItem | null;
+  position: number;
+  total: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface GardenerReviewListResponse {
+  items: GardenerReviewItem[];
+  total: number;
+  pagination: GardenerPagination;
+  filters: {
+    nodeTypes: GardenerReviewItemType[];
+    problems: string[];
+  };
+}
+
+export interface GardenerReviewDecisionRequest {
+  approvalId: string;
+  decision: GardenerReviewDecision;
+  notes?: string;
+}
+
+export interface GardenerReviewDecisionResponse {
+  success: boolean;
+  message: string;
+  remainingItems: number;
+  nextItem?: GardenerReviewItem;
+}
+
+export interface GardenerBatchReviewRequest {
+  decision: GardenerReviewDecision;
+  nodeType?: GardenerReviewItemType;
+  limit?: number;
+  dryRun?: boolean;
+  notes?: string;
+}
+
+export interface GardenerBatchReviewResponse {
+  success: boolean;
+  processedCount: number;
+  dryRun: boolean;
+  affectedItems?: { approvalId: string; name: string }[];
+  message: string;
+}
+
+// ============================================================================
 // Hook Types
 // ============================================================================
+
+export interface UseGardenerReviewState {
+  currentItem: GardenerReviewItem | null;
+  position: number;
+  total: number;
+  isLoading: boolean;
+  isProcessing: boolean;
+  error: string | null;
+  filters: {
+    nodeType?: GardenerReviewItemType;
+    problem?: string;
+  };
+}
+
+export interface UseGardenerReviewActions {
+  fetchCurrentItem: () => Promise<void>;
+  goToNext: () => Promise<void>;
+  goToPrevious: () => Promise<void>;
+  goToPosition: (position: number) => Promise<void>;
+  approve: (notes?: string) => Promise<void>;
+  reject: (notes?: string) => Promise<void>;
+  batchApprove: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
+  setFilter: (key: 'nodeType' | 'problem', value: string | undefined) => void;
+  refresh: () => Promise<void>;
+}
+
+export type UseGardenerReviewReturn = UseGardenerReviewState & UseGardenerReviewActions;
 
 export interface UseGardenerChatState {
   messages: GardenerChatMessage[];

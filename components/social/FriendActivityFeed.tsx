@@ -43,10 +43,10 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { useFriendActivity, formatActivityTime, getActivityTypeInfo } from '@/hooks/social/useFriendActivity';
+import { useFriendActivity, formatActivityTime, getSocialActivityTypeInfo } from '@/hooks/social/useFriendActivity';
 import { EmptyStateCard } from '@/components/social/EmptyStateCard';
 import { useTranslations } from 'next-intl';
-import type { FriendActivityWithProfile, ActivityType, ActivityTypeFilter } from '@/types/social';
+import type { FriendActivityWithProfile, SocialActivityType, SocialActivityTypeFilter } from '@/types/social';
 
 // =============================================================================
 // Types
@@ -83,7 +83,7 @@ function getInitials(name: string): string {
 /**
  * Renders the activity icon directly to avoid creating components during render
  */
-function renderActivityIcon(type: ActivityType, className: string): React.ReactNode {
+function renderActivityIcon(type: SocialActivityType, className: string): React.ReactNode {
   switch (type) {
     case 'new_loadout':
       return <Backpack className={className} />;
@@ -102,7 +102,7 @@ function renderActivityIcon(type: ActivityType, className: string): React.ReactN
   }
 }
 
-function getActivityColor(type: ActivityType): string {
+function getActivityColor(type: SocialActivityType): string {
   switch (type) {
     case 'new_loadout':
       return 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400';
@@ -125,7 +125,7 @@ function ActivityCard({ activity }: ActivityCardProps) {
   const t = useTranslations('Social');
   const tCommunity = useTranslations('Community');
   const iconColor = getActivityColor(activity.activity_type);
-  const activityInfo = getActivityTypeInfo(activity.activity_type);
+  const activityInfo = getSocialActivityTypeInfo(activity.activity_type);
 
   // Get activity-specific link
   const getActivityLink = (): string => {
@@ -257,7 +257,7 @@ function ActivityFeedSkeleton({ count = 5 }: { count?: number }) {
 // Filter Options
 // =============================================================================
 
-const FILTER_OPTIONS: { value: ActivityTypeFilter; label: string }[] = [
+const FILTER_OPTIONS: { value: SocialActivityTypeFilter; label: string }[] = [
   { value: 'all', label: 'All Activity' },
   { value: 'new_loadout', label: 'New Loadouts' },
   { value: 'loadout_shared', label: 'Shared Loadouts' },
@@ -277,7 +277,7 @@ export function FriendActivityFeed({
   className,
 }: FriendActivityFeedProps) {
   const t = useTranslations('Social');
-  const [filter, setFilter] = useState<ActivityTypeFilter>('all');
+  const [filter, setFilter] = useState<SocialActivityTypeFilter>('all');
 
   const {
     activities,
