@@ -16,9 +16,8 @@ import { Link } from '@/i18n/navigation';
 import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
 import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
 import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
-import type { Loadout } from '@/types/loadout';
+import type { Loadout, LoadoutItemState, Season, ActivityType } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
-import type { Season, ActivityType } from '@/types/loadout';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 
 // =============================================================================
@@ -28,7 +27,7 @@ import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 export interface LoadoutHeroActionsProps {
   loadout: Loadout;
   items: GearItem[];
-  itemStates: Map<string, { isWorn: boolean; isConsumable: boolean }>;
+  itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
   totalWeight: number;

@@ -43,7 +43,7 @@ const ACTIVITY_ICONS: Record<SocialActivityType, typeof Activity> = {
   profile_updated: User,
 };
 
-const ACTIVITY_COLORS: Record<ActivityType, string> = {
+const ACTIVITY_COLORS: Record<SocialActivityType, string> = {
   new_loadout: 'text-blue-500',
   loadout_shared: 'text-green-500',
   marketplace_listing: 'text-amber-500',

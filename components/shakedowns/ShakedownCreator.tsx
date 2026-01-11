@@ -140,7 +140,7 @@ export function ShakedownCreator({
 
   // Handle form submission
   const handleSubmit = async (values: FormValues) => {
-    const { shakedown, error } = await createShakedown({
+    const { data: shakedown, error } = await createShakedown({
       loadoutId: values.loadoutId,
       tripName: values.tripName,
       tripStartDate: values.tripStartDate,
