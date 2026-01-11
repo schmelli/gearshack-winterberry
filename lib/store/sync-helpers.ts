@@ -28,7 +28,18 @@ export const DEFAULT_SYNC_STATE: SyncState = {
 // =============================================================================
 
 /**
- * Creates sync state for starting an operation
+ * Updates sync state when starting a new operation.
+ * Increments pending operations counter and sets status to 'syncing'.
+ *
+ * @param current - Current sync state
+ * @returns Updated sync state with incremented pending operations
+ *
+ * @example
+ * ```ts
+ * set((state) => ({
+ *   syncState: startSyncOperation(state.syncState)
+ * }));
+ * ```
  */
 export function startSyncOperation(current: SyncState): SyncState {
   return {
@@ -39,7 +50,19 @@ export function startSyncOperation(current: SyncState): SyncState {
 }
 
 /**
- * Creates sync state for completing an operation successfully
+ * Updates sync state when completing an operation successfully.
+ * Decrements pending operations counter, sets status to 'idle' if no pending ops remain,
+ * and records the sync timestamp.
+ *
+ * @param current - Current sync state
+ * @returns Updated sync state with decremented pending operations and sync timestamp
+ *
+ * @example
+ * ```ts
+ * set((state) => ({
+ *   syncState: completeSyncOperation(state.syncState)
+ * }));
+ * ```
  */
 export function completeSyncOperation(current: SyncState): SyncState {
   return {
@@ -51,7 +74,20 @@ export function completeSyncOperation(current: SyncState): SyncState {
 }
 
 /**
- * Creates sync state for a failed operation
+ * Updates sync state when an operation fails.
+ * Decrements pending operations counter, sets status to 'error',
+ * and stores the error message.
+ *
+ * @param current - Current sync state
+ * @param errorMessage - Error message describing the failure
+ * @returns Updated sync state with error information
+ *
+ * @example
+ * ```ts
+ * set((state) => ({
+ *   syncState: failSyncOperation(state.syncState, 'Failed to save item')
+ * }));
+ * ```
  */
 export function failSyncOperation(current: SyncState, errorMessage: string): SyncState {
   return {
@@ -67,7 +103,22 @@ export function failSyncOperation(current: SyncState, errorMessage: string): Syn
 // =============================================================================
 
 /**
- * Extracts error message from unknown error
+ * Extracts error message from unknown error type.
+ * Safely handles errors of any type by checking if it's an Error instance.
+ *
+ * @param error - Unknown error object (from try-catch)
+ * @param fallback - Fallback message to use if error is not an Error instance
+ * @returns Error message string
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await dangerousOperation();
+ * } catch (error) {
+ *   const message = getErrorMessage(error, 'Operation failed');
+ *   console.error(message);
+ * }
+ * ```
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {

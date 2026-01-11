@@ -147,12 +147,12 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
       try {
         const supabase = createClient();
         const result = await fetchBulletinPosts(supabase, { limit: 50 });
-        const alreadyShared = result.posts.some(
+        const alreadyShared = result?.posts?.some(
           (post) =>
             post.linked_content_type === 'shakedown' &&
             post.linked_content_id === shakedown.id &&
             post.author_id === user.uid
-        );
+        ) ?? false;
         setIsAlreadyShared(alreadyShared);
       } catch {
         setIsAlreadyShared(false);

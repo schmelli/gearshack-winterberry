@@ -154,7 +154,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
             .eq('id', id).eq('user_id', userId);
           if (error) throw error;
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
-        } catch {
+        } catch (error) {
+          console.error('Failed to update item:', error);
           set((state) => ({
             items: state.items.map((item) => item.id === id ? previousItem : item),
             syncState: failSyncOperation(state.syncState, 'Failed to update item'),
@@ -182,7 +183,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
           const { error } = await supabase.from('gear_items').delete().eq('id', id).eq('user_id', userId);
           if (error) throw error;
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
-        } catch {
+        } catch (error) {
+          console.error('Failed to delete item:', error);
           set((state) => ({
             items: [...state.items, deletedItem].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
             loadouts: previousLoadouts,
@@ -240,7 +242,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
           const { error } = await supabase.from('loadouts').update(updateData).eq('id', id).eq('user_id', userId);
           if (error) throw error;
-        } catch {
+        } catch (error) {
+          console.error('Failed to update loadout:', error);
           set((state) => ({ loadouts: state.loadouts.map((l) => l.id === id ? previousLoadout : l) }));
           toast.error(t('updateLoadoutFailed'));
         }
@@ -259,7 +262,8 @@ export const useSupabaseStore = create<SupabaseStore>()(
         try {
           const { error } = await supabase.from('loadouts').delete().eq('id', id).eq('user_id', userId);
           if (error) throw error;
-        } catch {
+        } catch (error) {
+          console.error('Failed to delete loadout:', error);
           set((state) => ({ loadouts: [...state.loadouts, deletedLoadout].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()) }));
           toast.error(t('deleteLoadoutFailed'));
         }
@@ -484,15 +488,33 @@ export function useSupabaseSyncState(): SyncState {
 }
 
 // Compatibility exports
-/** @deprecated Use useSupabaseStore directly */
+/**
+ * @deprecated Use useSupabaseStore directly. This export will be removed in February 2026.
+ * @see useSupabaseStore
+ */
 export const useStore = useSupabaseStore;
-/** @deprecated Use useSupabaseItems */
+/**
+ * @deprecated Use useSupabaseItems instead. This export will be removed in February 2026.
+ * @see useSupabaseItems
+ */
 export const useItems = useSupabaseItems;
-/** @deprecated Use useSupabaseLoadouts */
+/**
+ * @deprecated Use useSupabaseLoadouts instead. This export will be removed in February 2026.
+ * @see useSupabaseLoadouts
+ */
 export const useLoadouts = useSupabaseLoadouts;
-/** @deprecated Use useSupabaseLoadout */
+/**
+ * @deprecated Use useSupabaseLoadout instead. This export will be removed in February 2026.
+ * @see useSupabaseLoadout
+ */
 export const useLoadout = useSupabaseLoadout;
-/** @deprecated Use useSupabaseLoadoutItems */
+/**
+ * @deprecated Use useSupabaseLoadoutItems instead. This export will be removed in February 2026.
+ * @see useSupabaseLoadoutItems
+ */
 export const useLoadoutItems = useSupabaseLoadoutItems;
-/** @deprecated Use useSupabaseSyncState */
+/**
+ * @deprecated Use useSupabaseSyncState instead. This export will be removed in February 2026.
+ * @see useSupabaseSyncState
+ */
 export const useSyncState = useSupabaseSyncState;

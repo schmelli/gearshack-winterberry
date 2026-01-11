@@ -95,7 +95,7 @@ export function OwnerActions({
             ) : (
               <MoreHorizontal className="size-4" />
             )}
-            Actions
+            {t('actionsButton')}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -144,7 +144,7 @@ export function OwnerActions({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onArchive}>
                 <Archive className="size-4" />
-                Archive
+                {t('archive')}
               </DropdownMenuItem>
             </>
           )}

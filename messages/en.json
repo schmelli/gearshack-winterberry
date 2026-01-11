@@ -1501,6 +1501,8 @@
     },
     "actions": {
       "edit": "Edit Shakedown",
+      "actionsButton": "Actions",
+      "archive": "Archive",
       "complete": "Mark as Complete",
       "completeDescription": "Thank your reviewers and close this shakedown for new feedback",
       "reopen": "Reopen",

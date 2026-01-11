@@ -1501,6 +1501,8 @@
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
+      "actionsButton": "Aktionen",
+      "archive": "Archivieren",
       "complete": "Als abgeschlossen markieren",
       "completeDescription": "Bedanke dich bei den Reviewern und schließe diesen Shakedown für neues Feedback",
       "reopen": "Wieder öffnen",
