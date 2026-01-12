@@ -167,8 +167,9 @@ export async function GET(request: NextRequest) {
         if (directError) {
           console.error('User brands direct query error:', directError);
           userBrandsError = directError;
-        } else {
-          userBrands = directBrands;
+        } else if (directBrands) {
+          // Filter out null brands (TypeScript type narrowing)
+          userBrands = directBrands.filter((item): item is { brand: string } => item.brand !== null);
         }
       } else {
         userBrands = rpcResult.data;

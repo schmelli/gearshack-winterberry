@@ -14,7 +14,7 @@
 
 import { use, useState, useMemo, useEffect } from 'react';
 import { notFound } from 'next/navigation';
-import { Plus, Pencil, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useLoadout, useStore, useItems } from '@/hooks/useSupabaseStore';
@@ -26,7 +26,6 @@ import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { useCategories } from '@/hooks/useCategories';
 import { useLighterAlternatives } from '@/hooks/useLighterAlternatives';
-import { Link } from '@/i18n/navigation';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
@@ -35,10 +34,10 @@ import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDi
 import { WeightBar } from '@/components/loadouts/WeightBar';
 import { LoadoutSortFilter, type SortOption } from '@/components/loadouts/LoadoutSortFilter';
 import { sortAndFilterItems } from '@/lib/loadout-utils';
-import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
-import { CompareToVipButton } from '@/components/loadouts/CompareToVipButton';
-import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
-import { Badge } from '@/components/ui/badge';
+import {
+  LoadoutHeroActionButtons,
+  LoadoutHeroBadges,
+} from '@/components/loadouts/LoadoutHeroActions';
 
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
@@ -51,8 +50,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import type { Season, ActivityType } from '@/types/loadout';
-import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
+import type { Season } from '@/types/loadout';
 import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
 import { useScreenContext } from '@/components/context/ScreenContextProvider';
 
@@ -71,7 +69,6 @@ interface LoadoutEditorPageProps {
 export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
   const t = useTranslations('Loadouts');
-  const tShakedowns = useTranslations('Shakedowns');
   const loadout = useLoadout(id);
   const allItems = useItems();
   const userId = useStore((state) => state.userId);
@@ -81,23 +78,16 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
 
-  // AI Agent Context-Awareness: Set screen context for AI assistant
+  // AI Agent Context-Awareness: Set screen context
   const { setScreen, setCurrentLoadout, clearContext } = useScreenContext();
-
-  // Extract loadout name to use as dependency (avoids exhaustive-deps warning)
   const loadoutName = loadout?.name;
 
-  // Set screen context when loadout is loaded
   useEffect(() => {
     if (loadoutName) {
       setScreen('loadout-detail');
       setCurrentLoadout(id, loadoutName);
     }
-
-    // Cleanup: Clear context when leaving the page
-    return () => {
-      clearContext();
-    };
+    return () => clearContext();
   }, [id, loadoutName, setScreen, setCurrentLoadout, clearContext]);
 
   // Editor state and actions
@@ -110,11 +100,10 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     removeItem,
     totalWeight,
     baseWeight,
-    categoryWeights: _categoryWeights,
     itemStates,
   } = useLoadoutEditor(id);
 
-  // Dependency prompt (Feature: 037-gear-dependencies)
+  // Dependency prompt (Feature: 037)
   const dependencyPrompt = useDependencyPrompt({
     loadoutId: id,
     addItemToLoadout,
@@ -122,184 +111,82 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     allItems,
   });
 
-  // Metadata state (activity types, seasons)
+  // Metadata state
   const { activityTypes, seasons, toggleActivity, toggleSeason } =
     useLoadoutMetadata(id);
 
-  // Chart filter state (FR-012: filter list by chart segment click)
+  // Chart filter state
   const { selectedCategoryId, toggleCategory, clearFilter } = useChartFilter();
 
-  // Sort and filter state for both panels
+  // Sort and filter state
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const [sortFilterCategoryId, setSortFilterCategoryId] = useState<string | null>(null);
   const { categories } = useCategories();
 
-  // Apply sorting and filtering to picker items
   const sortedFilteredPickerItems = useMemo(
     () => sortAndFilterItems(filteredPickerItems, sortBy, sortFilterCategoryId, categories),
     [filteredPickerItems, sortBy, sortFilterCategoryId, categories]
   );
 
-  // Apply sorting and filtering to loadout items
   const sortedFilteredLoadoutItems = useMemo(
     () => sortAndFilterItems(loadoutItems, sortBy, sortFilterCategoryId, categories),
     [loadoutItems, sortBy, sortFilterCategoryId, categories]
   );
 
-  // Item state for worn/consumable tracking (US4) and quantity validation (Feature: 013)
-  const { isWorn, isConsumable, toggleWorn, toggleConsumable, canAddItem } = useLoadoutItemState(id);
+  // Item state tracking
+  const { isWorn, isConsumable, toggleWorn, toggleConsumable, canAddItem } =
+    useLoadoutItemState(id);
 
-  // Lighter alternatives detection (Feature: loadout-ux-enhancements)
+  // Lighter alternatives
   const { getLighterAlternative } = useLighterAlternatives(loadoutItems);
 
-  // Feature 045: Gear detail modal state
+  // Gear detail modal
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
   const [gearModalOpen, setGearModalOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // Find selected gear item
   const selectedGearItem = selectedGearId
     ? loadoutItems.find((item) => item.id === selectedGearId) ?? null
     : null;
 
-  // Open gear detail modal
-  const handleGearClick = (itemId: string) => {
+  function handleGearClick(itemId: string): void {
     setSelectedGearId(itemId);
     setGearModalOpen(true);
-  };
+  }
 
-  // Handle not found
   if (!loadout) {
     notFound();
   }
 
-  // Wrapper for addItem with dependency check (Feature: 037-gear-dependencies) and quantity validation (Feature: 013)
-  const handleAddItem = (itemId: string) => {
-    // Feature: 013-gear-quantity-tracking - Check quantity availability
-    if (!canAddItem(itemId)) {
-      // Error toast already shown by canAddItem
-      return;
-    }
-
-    // Check for dependencies - if modal is shown, it handles the add flow
+  function handleAddItem(itemId: string): void {
+    if (!canAddItem(itemId)) return;
     const hasPrompt = dependencyPrompt.triggerCheck(itemId);
     if (!hasPrompt) {
-      // No dependencies, add item directly
       addItem(itemId);
     }
-  };
+  }
 
-  // Handle metadata save (US5)
-  const handleMetadataSave = async (data: { name: string; description: string | null; season: Season | null; tripDate: Date | null }) => {
+  async function handleMetadataSave(data: {
+    name: string;
+    description: string | null;
+    season: Season | null;
+    tripDate: Date | null;
+  }): Promise<void> {
     await updateLoadout(id, {
       name: data.name,
       description: data.description,
       tripDate: data.tripDate,
     });
-    if (data.season) {
-      updateLoadoutMetadata(id, { seasons: [data.season] });
-    } else {
-      updateLoadoutMetadata(id, { seasons: [] });
-    }
-  };
+    updateLoadoutMetadata(id, { seasons: data.season ? [data.season] : [] });
+  }
 
-  // Handle inline description change (FR-014)
-  const handleDescriptionChange = async (description: string | null) => {
+  async function handleDescriptionChange(description: string | null): Promise<void> {
     await updateLoadout(id, { description });
-  };
-
-  // Build action buttons for hero overlay
-  const heroActionButtons = (
-    <>
-      {/* Edit Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setMetadataDialogOpen(true)}
-        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-        aria-label="Edit loadout metadata"
-      >
-        <Pencil className="h-4 w-4" />
-      </Button>
-      {/* Share Button */}
-      <LoadoutShareButton
-        loadout={loadout}
-        items={loadoutItems}
-        itemStates={itemStates}
-        activityTypes={activityTypes}
-        seasons={seasons}
-        variant="ghost"
-        size="icon"
-        showLabel={false}
-        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-      />
-      {/* Export Menu */}
-      <LoadoutExportMenu
-        loadout={loadout}
-        items={loadoutItems}
-        itemStates={itemStates}
-        activityTypes={activityTypes}
-        seasons={seasons}
-        totalWeight={totalWeight}
-        baseWeight={baseWeight}
-        iconOnly
-        className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-      />
-      {/* Compare to VIP */}
-      {userId && (
-        <CompareToVipButton
-          loadoutId={loadout.id}
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-        />
-      )}
-      {/* Request Shakedown */}
-      {userId && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30"
-          aria-label={tShakedowns('actions.requestShakedown')}
-          asChild
-        >
-          <Link href={`/community/shakedowns/new?loadoutId=${loadout.id}`}>
-            <Users className="h-4 w-4" />
-          </Link>
-        </Button>
-      )}
-    </>
-  );
-
-  // Build badges for hero overlay
-  const heroBadges = (
-    <>
-      {/* Activity badges */}
-      {activityTypes.map((activity: ActivityType) => (
-        <Badge
-          key={activity}
-          variant="secondary"
-          className="bg-white/20 text-white backdrop-blur-sm"
-        >
-          {ACTIVITY_TYPE_LABELS[activity]}
-        </Badge>
-      ))}
-      {/* Season badges */}
-      {seasons.map((season: Season) => (
-        <Badge
-          key={season}
-          variant="secondary"
-          className="bg-white/20 text-white backdrop-blur-sm"
-        >
-          {SEASON_LABELS[season]}
-        </Badge>
-      ))}
-    </>
-  );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      {/* Hero Image Section - Full Width (Feature 048) */}
+      {/* Hero Image Section */}
       {userId && (
         <LoadoutHeroImageSection
           loadout={loadout}
@@ -308,12 +195,29 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
           itemCount={loadoutItems.length}
           backHref="/loadouts"
           backLabel={t('backToLoadouts')}
-          actionButtons={heroActionButtons}
-          badges={heroBadges}
+          actionButtons={
+            <LoadoutHeroActionButtons
+              loadout={loadout}
+              items={loadoutItems}
+              itemStates={itemStates}
+              activityTypes={activityTypes}
+              seasons={seasons}
+              totalWeight={totalWeight}
+              baseWeight={baseWeight}
+              userId={userId}
+              onEditClick={() => setMetadataDialogOpen(true)}
+            />
+          }
+          badges={
+            <LoadoutHeroBadges
+              activityTypes={activityTypes}
+              seasons={seasons}
+            />
+          }
         />
       )}
 
-      {/* Editing section: Description, badges, weight summary */}
+      {/* Header with description and weight chart */}
       <LoadoutHeader
         loadout={loadout}
         items={loadoutItems}
@@ -323,11 +227,11 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onToggleActivity={toggleActivity}
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
-        onSegmentClick={(categoryId, _level) => toggleCategory(categoryId)}
+        onSegmentClick={(categoryId) => toggleCategory(categoryId)}
         onDescriptionChange={handleDescriptionChange}
       />
 
-      {/* Metadata Edit Dialog (US5) */}
+      {/* Metadata Dialog */}
       <LoadoutMetadataDialog
         loadout={loadout}
         open={metadataDialogOpen}
@@ -335,9 +239,9 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onSave={handleMetadataSave}
       />
 
-      {/* Two-Column Layout - FR-001, FR-002, FR-003 */}
+      {/* Two-Column Layout */}
       <div className="container max-w-6xl flex-1 px-4 py-6 sm:px-6">
-        {/* Sort/Filter Controls (shared across both panels) */}
+        {/* Sort/Filter Controls (desktop) */}
         <div className="mb-4 hidden md:block">
           <LoadoutSortFilter
             sortBy={sortBy}
@@ -348,7 +252,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         </div>
 
         <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-          {/* Left: Item Picker (hidden on mobile, shown in sheet) - FR-002 */}
+          {/* Left: Item Picker (desktop) */}
           <div className="hidden space-y-4 md:block">
             <h2 className="text-lg font-semibold">Add from Inventory</h2>
             <LoadoutPicker
@@ -361,7 +265,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
             />
           </div>
 
-          {/* Right: Loadout List with sticky positioning - FR-003, FR-009 (header buffer) */}
+          {/* Right: Loadout List */}
           <div className="space-y-4 md:sticky md:top-28 md:self-start">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">Loadout Items</h2>
@@ -390,7 +294,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         </div>
       </div>
 
-      {/* Mobile: Add Items Button - FR-004, FR-005 */}
+      {/* Mobile: Add Items Sheet */}
       <div className="fixed bottom-20 left-0 right-0 p-4 md:hidden">
         <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
           <SheetTrigger asChild>
@@ -428,7 +332,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
       {/* Sticky Weight Bar */}
       <WeightBar totalWeight={totalWeight} itemCount={loadoutItems.length} />
 
-      {/* Dependency Prompt Dialog (Feature: 037-gear-dependencies) */}
+      {/* Dependency Prompt Dialog */}
       <DependencyPromptDialog
         isOpen={dependencyPrompt.isOpen}
         pendingDependencies={dependencyPrompt.pendingDependencies}
@@ -444,7 +348,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onCancel={dependencyPrompt.onCancel}
       />
 
-      {/* Feature 045: Gear Detail Modal */}
+      {/* Gear Detail Modal */}
       <GearDetailModal
         open={gearModalOpen}
         onOpenChange={setGearModalOpen}

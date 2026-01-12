@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { ReportStatus, ModerationAction } from '@/types/bulletin';
+import type { BulletinReportStatus, ModerationAction } from '@/types/bulletin';
 
 export interface ModerationReport {
   id: string;
@@ -17,7 +17,7 @@ export interface ModerationReport {
   target_id: string;
   reason: string;
   details: string | null;
-  status: ReportStatus;
+  status: BulletinReportStatus;
   report_count: number;
   created_at: string;
   reporter_name: string;
@@ -81,7 +81,7 @@ export function useModerationReports() {
         const { error: reportError } = await (supabase as any)
           .from('bulletin_reports')
           .update({
-            status: 'resolved' as ReportStatus,
+            status: 'resolved' as BulletinReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
             action_taken: action,
@@ -167,7 +167,7 @@ export function useModerationReports() {
         const { error } = await (supabase as any)
           .from('bulletin_reports')
           .update({
-            status: 'dismissed' as ReportStatus,
+            status: 'dismissed' as BulletinReportStatus,
             resolved_by: (await supabase.auth.getUser()).data.user?.id,
             resolved_at: new Date().toISOString(),
             action_taken: 'dismiss',

@@ -8,6 +8,12 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { validateWebSearchConfig } from '@/lib/env';
+import {
+  getTodayStart,
+  getTodayEnd,
+  getMonthStart,
+  getMonthEnd,
+} from '@/lib/utils/date';
 
 // =============================================================================
 // Type Definitions
@@ -96,49 +102,6 @@ function getRateLimitsFromEnv() {
     perDay: config.limits.daily,
     perMonth: config.limits.monthly,
   };
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Get the start of today in ISO format
- */
-function getTodayStart(): string {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now.toISOString();
-}
-
-/**
- * Get the end of today in ISO format
- */
-function getTodayEnd(): string {
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  return now.toISOString();
-}
-
-/**
- * Get the start of this month in ISO format
- */
-function getMonthStart(): string {
-  const now = new Date();
-  now.setDate(1);
-  now.setHours(0, 0, 0, 0);
-  return now.toISOString();
-}
-
-/**
- * Get the end of this month in ISO format
- */
-function getMonthEnd(): string {
-  const now = new Date();
-  now.setMonth(now.getMonth() + 1);
-  now.setDate(0); // Last day of current month
-  now.setHours(23, 59, 59, 999);
-  return now.toISOString();
 }
 
 // =============================================================================

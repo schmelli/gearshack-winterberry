@@ -25,13 +25,13 @@ export type ConversationType = 'direct' | 'group';
 
 export type ParticipantRole = 'member' | 'admin';
 
-export type ReportReason =
+export type MessageReportReason =
   | 'spam'
   | 'harassment'
   | 'inappropriate_content'
   | 'other';
 
-export type ReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+export type MessageReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 
 export type MessageDeliveryStatus = 'sent' | 'delivered' | 'read';
 
@@ -107,9 +107,9 @@ export interface UserReport {
   reporter_id: string;
   reported_user_id: string;
   message_id: string | null;
-  reason: ReportReason;
+  reason: MessageReportReason;
   details: string | null;
-  status: ReportStatus;
+  status: MessageReportStatus;
   created_at: string;
   updated_at: string;
 }
@@ -227,7 +227,7 @@ export interface UserInfo {
   avatar_url: string | null;
 }
 
-export interface FriendInfo extends UserInfo {
+export interface MessagingFriendInfo extends UserInfo {
   created_at: string;
 }
 
@@ -288,7 +288,7 @@ export interface MessageSearchResponse {
 export interface ReportRequest {
   reportedUserId: string;
   messageId?: string;
-  reason: ReportReason;
+  reason: MessageReportReason;
   details?: string;
 }
 

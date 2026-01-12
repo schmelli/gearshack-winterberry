@@ -15,7 +15,7 @@ import type {
   MessageWithSender,
   MessageReaction,
   UserInfo,
-  FriendInfo,
+  MessagingFriendInfo,
   BlockedUserInfo,
   SearchableUser,
   MessagingPrivacySettings,
@@ -472,7 +472,7 @@ export async function deleteMessage(
 /**
  * Fetches user's friends list with profile info.
  */
-export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
+export async function fetchFriends(userId: string): Promise<MessagingFriendInfo[]> {
   const supabase = getMessagingClient();
 
   const { data, error } = await supabase

@@ -25,3 +25,6 @@ export {
 
 // Gardener Chat (GearGraph AI)
 export { useGardenerChat } from './useGardenerChat';
+
+// Gardener Review Queue
+export { useGardenerReview } from './useGardenerReview';

@@ -4,21 +4,7 @@
  * useShakedownMutations Hook
  *
  * Feature: 001-community-shakedowns
- * Tasks: T017, T050
- *
- * Provides mutation functions for shakedowns:
- * - createShakedown: Create a new shakedown request
- * - updateShakedown: Update an existing shakedown
- * - deleteShakedown: Soft-delete a shakedown (marks as hidden)
- * - completeShakedown: Mark a shakedown as completed, optionally batch-marking feedback as helpful
- * - reopenShakedown: Reopen a completed shakedown to accept new feedback
- *
- * Follows the callback-based pattern from bulletin mutations
- * with optimistic update helpers for UI responsiveness.
- *
- * NOTE: The 'shakedowns' table types will be available after the DB migration
- * is applied and types are regenerated with `npx supabase gen types typescript`.
- * Until then, we use type assertions to work around the missing types.
+ * Provides mutation functions for shakedowns with optimistic update helpers.
  */
 
 import { useState, useCallback } from 'react';
@@ -46,54 +32,7 @@ interface MutationState {
   error: string | null;
 }
 
-interface CreateResult {
-  shakedown: Shakedown | null;
-  error: string | null;
-}
-
-interface UpdateResult {
-  shakedown: Shakedown | null;
-  error: string | null;
-}
-
-interface DeleteResult {
-  success: boolean;
-  error: string | null;
-}
-
-interface CompleteResult {
-  shakedown: Shakedown | null;
-  error: string | null;
-}
-
-interface ReopenResult {
-  shakedown: Shakedown | null;
-  error: string | null;
-}
-
-export interface UseShakedownMutationsReturn {
-  // State
-  isCreating: boolean;
-  isUpdating: boolean;
-  isDeleting: boolean;
-  isCompleting: boolean;
-  isReopening: boolean;
-  error: string | null;
-
-  // Mutations
-  createShakedown: (input: CreateShakedownInput) => Promise<CreateResult>;
-  updateShakedown: (id: string, input: UpdateShakedownInput) => Promise<UpdateResult>;
-  deleteShakedown: (id: string) => Promise<DeleteResult>;
-  completeShakedown: (id: string, helpfulFeedbackIds?: string[]) => Promise<CompleteResult>;
-  reopenShakedown: (id: string) => Promise<ReopenResult>;
-
-  // Helpers
-  clearError: () => void;
-}
-
-// =============================================================================
-// Database row type (snake_case)
-// =============================================================================
+type MutationResult<T> = { data: T; error: null } | { data: null; error: string };
 
 interface ShakedownRow {
   id: string;
@@ -116,8 +55,23 @@ interface ShakedownRow {
   archived_at: string | null;
 }
 
+export interface UseShakedownMutationsReturn {
+  isCreating: boolean;
+  isUpdating: boolean;
+  isDeleting: boolean;
+  isCompleting: boolean;
+  isReopening: boolean;
+  error: string | null;
+  createShakedown: (input: CreateShakedownInput) => Promise<MutationResult<Shakedown>>;
+  updateShakedown: (id: string, input: UpdateShakedownInput) => Promise<MutationResult<Shakedown>>;
+  deleteShakedown: (id: string) => Promise<MutationResult<boolean>>;
+  completeShakedown: (id: string, helpfulFeedbackIds?: string[]) => Promise<MutationResult<Shakedown>>;
+  reopenShakedown: (id: string) => Promise<MutationResult<Shakedown>>;
+  clearError: () => void;
+}
+
 // =============================================================================
-// Transform helper
+// Helpers
 // =============================================================================
 
 function transformDbToShakedown(row: ShakedownRow): Shakedown {
@@ -143,14 +97,21 @@ function transformDbToShakedown(row: ShakedownRow): Shakedown {
   };
 }
 
+function getErrorMsg(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSupabase(): any {
+  return createClient();
+}
+
 // =============================================================================
 // Hook Implementation
 // =============================================================================
 
 export function useShakedownMutations(): UseShakedownMutationsReturn {
   const { user } = useAuthContext();
-  const supabase = createClient();
-
   const [state, setState] = useState<MutationState>({
     isCreating: false,
     isUpdating: false,
@@ -160,25 +121,24 @@ export function useShakedownMutations(): UseShakedownMutationsReturn {
     error: null,
   });
 
-  /**
-   * Creates a new shakedown request
-   * Generates a share token for public shakedowns
-   */
-  const createShakedown = useCallback(
-    async (input: CreateShakedownInput): Promise<CreateResult> => {
-      const userId = user?.uid;
-      if (!userId) {
-        return { shakedown: null, error: 'Must be logged in to create a shakedown' };
-      }
+  const setLoading = (key: keyof Omit<MutationState, 'error'>, value: boolean) => {
+    setState((prev) => ({ ...prev, [key]: value, error: value ? null : prev.error }));
+  };
 
-      setState((prev) => ({ ...prev, isCreating: true, error: null }));
+  const setError = (key: keyof Omit<MutationState, 'error'>, error: string) => {
+    setState((prev) => ({ ...prev, [key]: false, error }));
+  };
 
-      try {
-        // Determine privacy and generate share token if public
-        const privacy = input.privacy ?? 'public';
-        const shareToken = privacy === 'public' ? generateShareToken() : null;
+  const createShakedown = useCallback(async (input: CreateShakedownInput): Promise<MutationResult<Shakedown>> => {
+    const userId = user?.uid;
+    if (!userId) return { data: null, error: 'Must be logged in to create a shakedown' };
 
-        const insertData = {
+    setLoading('isCreating', true);
+    try {
+      const privacy = input.privacy ?? 'public';
+      const { data, error } = await getSupabase()
+        .from('shakedowns')
+        .insert({
           owner_id: userId,
           loadout_id: input.loadoutId,
           trip_name: input.tripName,
@@ -187,340 +147,166 @@ export function useShakedownMutations(): UseShakedownMutationsReturn {
           experience_level: input.experienceLevel,
           concerns: input.concerns ?? null,
           privacy,
-          share_token: shareToken,
+          share_token: privacy === 'public' ? generateShareToken() : null,
           status: 'open',
           feedback_count: 0,
           helpful_count: 0,
           is_hidden: false,
-        };
+        })
+        .select()
+        .single();
 
-        // TODO: Remove type assertions after regenerating Supabase types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error: insertError } = await (supabase as any)
-          .from('shakedowns')
-          .insert(insertData)
-          .select()
-          .single();
+      if (error) { setError('isCreating', error.message); return { data: null, error: error.message }; }
+      setState((prev) => ({ ...prev, isCreating: false }));
+      return { data: transformDbToShakedown(data as ShakedownRow), error: null };
+    } catch (err) {
+      const msg = getErrorMsg(err, 'Failed to create shakedown');
+      setError('isCreating', msg);
+      return { data: null, error: msg };
+    }
+  }, [user]);
 
-        if (insertError) {
-          const errorMessage = insertError.message || 'Failed to create shakedown';
-          setState((prev) => ({ ...prev, isCreating: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
+  const updateShakedown = useCallback(async (id: string, input: UpdateShakedownInput): Promise<MutationResult<Shakedown>> => {
+    const userId = user?.uid;
+    if (!userId) return { data: null, error: 'Must be logged in to update a shakedown' };
 
-        const shakedown = transformDbToShakedown(data as ShakedownRow);
-        setState((prev) => ({ ...prev, isCreating: false }));
-        return { shakedown, error: null };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to create shakedown';
-        setState((prev) => ({ ...prev, isCreating: false, error: errorMessage }));
-        return { shakedown: null, error: errorMessage };
-      }
-    },
-    [user, supabase]
-  );
-
-  /**
-   * Updates an existing shakedown
-   * Only the owner can update their shakedown
-   * Generates/clears share token based on privacy change
-   */
-  const updateShakedown = useCallback(
-    async (id: string, input: UpdateShakedownInput): Promise<UpdateResult> => {
-      const userId = user?.uid;
-      if (!userId) {
-        return { shakedown: null, error: 'Must be logged in to update a shakedown' };
+    setLoading('isUpdating', true);
+    try {
+      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (input.tripName !== undefined) updateData.trip_name = input.tripName;
+      if (input.tripStartDate !== undefined) updateData.trip_start_date = input.tripStartDate;
+      if (input.tripEndDate !== undefined) updateData.trip_end_date = input.tripEndDate;
+      if (input.experienceLevel !== undefined) updateData.experience_level = input.experienceLevel;
+      if (input.concerns !== undefined) updateData.concerns = input.concerns;
+      if (input.privacy !== undefined) {
+        updateData.privacy = input.privacy;
+        updateData.share_token = input.privacy === 'public' ? generateShareToken() : null;
       }
 
-      setState((prev) => ({ ...prev, isUpdating: true, error: null }));
+      const { data, error } = await getSupabase()
+        .from('shakedowns')
+        .update(updateData)
+        .eq('id', id)
+        .eq('owner_id', userId)
+        .select()
+        .single();
 
-      try {
-        // Build update object with only provided fields
-        const updateData: Record<string, unknown> = {};
+      if (error) { setError('isUpdating', error.message); return { data: null, error: error.message }; }
+      if (!data) { setError('isUpdating', 'Shakedown not found or no permission'); return { data: null, error: 'Shakedown not found or no permission' }; }
+      setState((prev) => ({ ...prev, isUpdating: false }));
+      return { data: transformDbToShakedown(data as ShakedownRow), error: null };
+    } catch (err) {
+      const msg = getErrorMsg(err, 'Failed to update shakedown');
+      setError('isUpdating', msg);
+      return { data: null, error: msg };
+    }
+  }, [user]);
 
-        if (input.tripName !== undefined) {
-          updateData.trip_name = input.tripName;
-        }
-        if (input.tripStartDate !== undefined) {
-          updateData.trip_start_date = input.tripStartDate;
-        }
-        if (input.tripEndDate !== undefined) {
-          updateData.trip_end_date = input.tripEndDate;
-        }
-        if (input.experienceLevel !== undefined) {
-          updateData.experience_level = input.experienceLevel;
-        }
-        if (input.concerns !== undefined) {
-          updateData.concerns = input.concerns;
-        }
-        if (input.privacy !== undefined) {
-          updateData.privacy = input.privacy;
-          // Handle share token based on privacy change
-          if (input.privacy === 'public') {
-            // Generate new token if changing to public
-            updateData.share_token = generateShareToken();
-          } else {
-            // Clear token if changing to non-public
-            updateData.share_token = null;
-          }
-        }
+  const deleteShakedown = useCallback(async (id: string): Promise<MutationResult<boolean>> => {
+    const userId = user?.uid;
+    if (!userId) return { data: null, error: 'Must be logged in to delete a shakedown' };
 
-        // Always update the updated_at timestamp
-        updateData.updated_at = new Date().toISOString();
+    setLoading('isDeleting', true);
+    try {
+      const { error } = await getSupabase()
+        .from('shakedowns')
+        .update({ is_hidden: true, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('owner_id', userId);
 
-        // TODO: Remove type assertions after regenerating Supabase types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error: updateError } = await (supabase as any)
-          .from('shakedowns')
-          .update(updateData)
-          .eq('id', id)
-          .eq('owner_id', userId) // Ensure only owner can update
-          .select()
-          .single();
+      if (error) { setError('isDeleting', error.message); return { data: null, error: error.message }; }
+      setState((prev) => ({ ...prev, isDeleting: false }));
+      return { data: true, error: null };
+    } catch (err) {
+      const msg = getErrorMsg(err, 'Failed to delete shakedown');
+      setError('isDeleting', msg);
+      return { data: null, error: msg };
+    }
+  }, [user]);
 
-        if (updateError) {
-          const errorMessage = updateError.message || 'Failed to update shakedown';
-          setState((prev) => ({ ...prev, isUpdating: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
+  const completeShakedown = useCallback(async (id: string, helpfulFeedbackIds?: string[]): Promise<MutationResult<Shakedown>> => {
+    const userId = user?.uid;
+    if (!userId) return { data: null, error: 'Must be logged in to complete a shakedown' };
 
-        if (!data) {
-          const errorMessage = 'Shakedown not found or you do not have permission to update it';
-          setState((prev) => ({ ...prev, isUpdating: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
+    setLoading('isCompleting', true);
+    try {
+      const now = new Date().toISOString();
+      const supabase = getSupabase();
 
-        const shakedown = transformDbToShakedown(data as ShakedownRow);
-        setState((prev) => ({ ...prev, isUpdating: false }));
-        return { shakedown, error: null };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to update shakedown';
-        setState((prev) => ({ ...prev, isUpdating: false, error: errorMessage }));
-        return { shakedown: null, error: errorMessage };
-      }
-    },
-    [user, supabase]
-  );
+      const { data, error } = await supabase
+        .from('shakedowns')
+        .update({ status: 'completed', completed_at: now, updated_at: now })
+        .eq('id', id)
+        .eq('owner_id', userId)
+        .neq('status', 'archived')
+        .select()
+        .single();
 
-  /**
-   * Soft-deletes a shakedown by setting is_hidden to true
-   * Only the owner can delete their shakedown
-   */
-  const deleteShakedown = useCallback(
-    async (id: string): Promise<DeleteResult> => {
-      const userId = user?.uid;
-      if (!userId) {
-        return { success: false, error: 'Must be logged in to delete a shakedown' };
+      if (error) { setError('isCompleting', error.message); return { data: null, error: error.message }; }
+      if (!data) { setError('isCompleting', 'Shakedown not found or archived'); return { data: null, error: 'Shakedown not found or archived' }; }
+
+      if (helpfulFeedbackIds?.length) {
+        await supabase.from('shakedown_feedback').update({ is_helpful: true, updated_at: now }).in('id', helpfulFeedbackIds).eq('shakedown_id', id);
+        await supabase.from('shakedowns').update({ helpful_count: helpfulFeedbackIds.length }).eq('id', id);
       }
 
-      setState((prev) => ({ ...prev, isDeleting: true, error: null }));
+      setState((prev) => ({ ...prev, isCompleting: false }));
+      return { data: transformDbToShakedown(data as ShakedownRow), error: null };
+    } catch (err) {
+      const msg = getErrorMsg(err, 'Failed to complete shakedown');
+      setError('isCompleting', msg);
+      return { data: null, error: msg };
+    }
+  }, [user]);
 
-      try {
-        // TODO: Remove type assertions after regenerating Supabase types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: deleteError } = await (supabase as any)
-          .from('shakedowns')
-          .update({
-            is_hidden: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', id)
-          .eq('owner_id', userId); // Ensure only owner can delete
+  const reopenShakedown = useCallback(async (id: string): Promise<MutationResult<Shakedown>> => {
+    const userId = user?.uid;
+    if (!userId) return { data: null, error: 'Must be logged in to reopen a shakedown' };
 
-        if (deleteError) {
-          const errorMessage = deleteError.message || 'Failed to delete shakedown';
-          setState((prev) => ({ ...prev, isDeleting: false, error: errorMessage }));
-          return { success: false, error: errorMessage };
-        }
+    setLoading('isReopening', true);
+    try {
+      const now = new Date().toISOString();
+      const supabase = getSupabase();
 
-        setState((prev) => ({ ...prev, isDeleting: false }));
-        return { success: true, error: null };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete shakedown';
-        setState((prev) => ({ ...prev, isDeleting: false, error: errorMessage }));
-        return { success: false, error: errorMessage };
-      }
-    },
-    [user, supabase]
-  );
+      const { data: current } = await supabase.from('shakedowns').select('status').eq('id', id).eq('owner_id', userId).single();
+      if (current?.status === 'archived') { setError('isReopening', 'Archived shakedowns cannot be reopened'); return { data: null, error: 'Archived shakedowns cannot be reopened' }; }
+      if (current?.status === 'open') { setError('isReopening', 'Shakedown is already open'); return { data: null, error: 'Shakedown is already open' }; }
 
-  /**
-   * Completes a shakedown and optionally marks feedback as helpful
-   * Only the owner can complete their shakedown
-   * Sets status to 'completed' and records completed_at timestamp
-   */
-  const completeShakedown = useCallback(
-    async (id: string, helpfulFeedbackIds?: string[]): Promise<CompleteResult> => {
-      const userId = user?.uid;
-      if (!userId) {
-        return { shakedown: null, error: 'Must be logged in to complete a shakedown' };
-      }
+      const { data, error } = await supabase
+        .from('shakedowns')
+        .update({ status: 'open', completed_at: null, updated_at: now })
+        .eq('id', id)
+        .eq('owner_id', userId)
+        .eq('status', 'completed')
+        .select()
+        .single();
 
-      setState((prev) => ({ ...prev, isCompleting: true, error: null }));
+      if (error) { setError('isReopening', error.message); return { data: null, error: error.message }; }
+      if (!data) { setError('isReopening', 'Shakedown not found or cannot be reopened'); return { data: null, error: 'Shakedown not found or cannot be reopened' }; }
 
-      try {
-        const now = new Date().toISOString();
+      setState((prev) => ({ ...prev, isReopening: false }));
+      return { data: transformDbToShakedown(data as ShakedownRow), error: null };
+    } catch (err) {
+      const msg = getErrorMsg(err, 'Failed to reopen shakedown');
+      setError('isReopening', msg);
+      return { data: null, error: msg };
+    }
+  }, [user]);
 
-        // Update shakedown status to completed
-        // TODO: Remove type assertions after regenerating Supabase types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error: completeError } = await (supabase as any)
-          .from('shakedowns')
-          .update({
-            status: 'completed',
-            completed_at: now,
-            updated_at: now,
-          })
-          .eq('id', id)
-          .eq('owner_id', userId) // Ensure only owner can complete
-          .neq('status', 'archived') // Cannot complete archived shakedowns
-          .select()
-          .single();
-
-        if (completeError) {
-          const errorMessage = completeError.message || 'Failed to complete shakedown';
-          setState((prev) => ({ ...prev, isCompleting: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        if (!data) {
-          const errorMessage = 'Shakedown not found, already archived, or you do not have permission';
-          setState((prev) => ({ ...prev, isCompleting: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        // Batch mark feedback as helpful if provided
-        if (helpfulFeedbackIds && helpfulFeedbackIds.length > 0) {
-          // TODO: Remove type assertions after regenerating Supabase types
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase as any)
-            .from('shakedown_feedback')
-            .update({ is_helpful: true, updated_at: now })
-            .in('id', helpfulFeedbackIds)
-            .eq('shakedown_id', id);
-
-          // Update helpful_count on the shakedown
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase as any)
-            .from('shakedowns')
-            .update({ helpful_count: helpfulFeedbackIds.length })
-            .eq('id', id);
-        }
-
-        const shakedown = transformDbToShakedown(data as ShakedownRow);
-        setState((prev) => ({ ...prev, isCompleting: false }));
-        return { shakedown, error: null };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to complete shakedown';
-        setState((prev) => ({ ...prev, isCompleting: false, error: errorMessage }));
-        return { shakedown: null, error: errorMessage };
-      }
-    },
-    [user, supabase]
-  );
-
-  /**
-   * Reopens a completed shakedown to accept new feedback
-   * Only the owner can reopen their shakedown
-   * Only allowed for 'completed' status (not 'archived')
-   */
-  const reopenShakedown = useCallback(
-    async (id: string): Promise<ReopenResult> => {
-      const userId = user?.uid;
-      if (!userId) {
-        return { shakedown: null, error: 'Must be logged in to reopen a shakedown' };
-      }
-
-      setState((prev) => ({ ...prev, isReopening: true, error: null }));
-
-      try {
-        const now = new Date().toISOString();
-
-        // First check current status to provide appropriate error
-        // TODO: Remove type assertions after regenerating Supabase types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: current } = await (supabase as any)
-          .from('shakedowns')
-          .select('status')
-          .eq('id', id)
-          .eq('owner_id', userId)
-          .single();
-
-        if (current?.status === 'archived') {
-          const errorMessage = 'Archived shakedowns cannot be reopened';
-          setState((prev) => ({ ...prev, isReopening: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        if (current?.status === 'open') {
-          const errorMessage = 'Shakedown is already open';
-          setState((prev) => ({ ...prev, isReopening: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        // Update shakedown status back to open
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error: reopenError } = await (supabase as any)
-          .from('shakedowns')
-          .update({
-            status: 'open',
-            completed_at: null, // Clear completion timestamp
-            updated_at: now,
-          })
-          .eq('id', id)
-          .eq('owner_id', userId) // Ensure only owner can reopen
-          .eq('status', 'completed') // Only reopen completed shakedowns
-          .select()
-          .single();
-
-        if (reopenError) {
-          const errorMessage = reopenError.message || 'Failed to reopen shakedown';
-          setState((prev) => ({ ...prev, isReopening: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        if (!data) {
-          const errorMessage = 'Shakedown not found or cannot be reopened';
-          setState((prev) => ({ ...prev, isReopening: false, error: errorMessage }));
-          return { shakedown: null, error: errorMessage };
-        }
-
-        const shakedown = transformDbToShakedown(data as ShakedownRow);
-        setState((prev) => ({ ...prev, isReopening: false }));
-        return { shakedown, error: null };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to reopen shakedown';
-        setState((prev) => ({ ...prev, isReopening: false, error: errorMessage }));
-        return { shakedown: null, error: errorMessage };
-      }
-    },
-    [user, supabase]
-  );
-
-  /**
-   * Clears the current error state
-   */
-  const clearError = useCallback(() => {
-    setState((prev) => ({ ...prev, error: null }));
-  }, []);
+  const clearError = useCallback(() => setState((prev) => ({ ...prev, error: null })), []);
 
   return {
-    // State
     isCreating: state.isCreating,
     isUpdating: state.isUpdating,
     isDeleting: state.isDeleting,
     isCompleting: state.isCompleting,
     isReopening: state.isReopening,
     error: state.error,
-
-    // Mutations
     createShakedown,
     updateShakedown,
     deleteShakedown,
     completeShakedown,
     reopenShakedown,
-
-    // Helpers
     clearError,
   };
 }
@@ -529,10 +315,6 @@ export function useShakedownMutations(): UseShakedownMutationsReturn {
 // Optimistic Update Helpers
 // =============================================================================
 
-/**
- * Creates an optimistic shakedown for immediate UI updates
- * Use before the actual mutation completes
- */
 export function createOptimisticShakedown(
   input: CreateShakedownInput,
   userId: string,
@@ -544,9 +326,8 @@ export function createOptimisticShakedown(
 ): ShakedownWithAuthor {
   const now = new Date().toISOString();
   const privacy = input.privacy ?? 'public';
-
   return {
-    id: `temp-${Date.now()}`, // Temporary ID until server returns real one
+    id: `temp-${Date.now()}`,
     ownerId: userId,
     loadoutId: input.loadoutId,
     tripName: input.tripName,
@@ -564,7 +345,6 @@ export function createOptimisticShakedown(
     updatedAt: now,
     completedAt: null,
     archivedAt: null,
-    // Author fields
     authorName: userName,
     authorAvatar: userAvatar,
     loadoutName,
@@ -573,9 +353,6 @@ export function createOptimisticShakedown(
   };
 }
 
-/**
- * Replaces a temporary optimistic shakedown with the real one from the server
- */
 export function replaceOptimisticShakedown(
   shakedowns: ShakedownWithAuthor[],
   tempId: string,
@@ -584,9 +361,6 @@ export function replaceOptimisticShakedown(
   return shakedowns.map((s) => (s.id === tempId ? realShakedown : s));
 }
 
-/**
- * Removes an optimistic shakedown after a failed mutation
- */
 export function removeOptimisticShakedown(
   shakedowns: ShakedownWithAuthor[],
   tempId: string

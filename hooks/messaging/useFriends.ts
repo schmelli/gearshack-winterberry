@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-export interface FriendInfo {
+export interface MessagingFriend {
   id: string;
   display_name: string;
   avatar_url: string | null;
@@ -24,7 +24,7 @@ export interface FriendInfo {
 
 interface UseFriendsReturn {
   /** List of current user's friends */
-  friends: FriendInfo[];
+  friends: MessagingFriend[];
   /** Loading state */
   isLoading: boolean;
   /** Error message if any */
@@ -47,7 +47,7 @@ type QueryResult = any;
  */
 export function useFriends(): UseFriendsReturn {
   const { user } = useSupabaseAuth();
-  const [friends, setFriends] = useState<FriendInfo[]>([]);
+  const [friends, setFriends] = useState<MessagingFriend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -83,7 +83,7 @@ export function useFriends(): UseFriendsReturn {
         throw fetchError;
       }
 
-      const friendsList: FriendInfo[] = (data ?? []).map((row: QueryResult) => {
+      const friendsList: MessagingFriend[] = (data ?? []).map((row: QueryResult) => {
         const profile = row.profiles;
         return {
           id: profile.id,

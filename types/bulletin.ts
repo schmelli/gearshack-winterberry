@@ -15,9 +15,9 @@ export type PostTag =
 
 export type LinkedContentType = 'loadout' | 'shakedown' | 'marketplace_item';
 
-export type ReportReason = 'spam' | 'harassment' | 'off_topic' | 'other';
+export type BulletinReportReason = 'spam' | 'harassment' | 'off_topic' | 'other';
 
-export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
+export type BulletinReportStatus = 'pending' | 'resolved' | 'dismissed';
 
 export type ModerationAction =
   | 'delete_content'
@@ -72,9 +72,9 @@ export interface BulletinReport {
   reporter_id: string;
   target_type: 'post' | 'reply';
   target_id: string;
-  reason: ReportReason;
+  reason: BulletinReportReason;
   details: string | null;
-  status: ReportStatus;
+  status: BulletinReportStatus;
   resolved_by: string | null;
   resolved_at: string | null;
   action_taken: ModerationAction | null;
@@ -131,7 +131,7 @@ export interface UpdateReplyInput {
 export interface CreateReportInput {
   target_type: 'post' | 'reply';
   target_id: string;
-  reason: ReportReason;
+  reason: BulletinReportReason;
   details?: string;
 }
 
@@ -221,7 +221,7 @@ export const POST_TAGS: { value: PostTag; labelKey: string }[] = [
   { value: 'other', labelKey: 'tags.other' },
 ];
 
-export const REPORT_REASONS: { value: ReportReason; labelKey: string }[] = [
+export const BULLETIN_REPORT_REASONS: { value: BulletinReportReason; labelKey: string }[] = [
   { value: 'spam', labelKey: 'report.reasons.spam' },
   { value: 'harassment', labelKey: 'report.reasons.harassment' },
   { value: 'off_topic', labelKey: 'report.reasons.offTopic' },

@@ -7,7 +7,7 @@
 
 // ===== Enums =====
 export type FriendRequestStatus = 'pending' | 'accepted' | 'declined' | 'expired';
-export type ActivityType =
+export type SocialActivityType =
   | 'new_loadout'
   | 'loadout_shared'
   | 'marketplace_listing'
@@ -81,7 +81,7 @@ export interface FollowInfo {
 export interface FriendActivity {
   id: string;
   user_id: string;
-  activity_type: ActivityType;
+  activity_type: SocialActivityType;
   reference_type: string;
   reference_id: string;
   metadata: Record<string, unknown>;
@@ -224,7 +224,7 @@ export interface FriendsListFilters {
   onlineOnly?: boolean;
 }
 
-export type ActivityTypeFilter =
+export type SocialActivityTypeFilter =
   | 'all'
   | 'new_loadout'
   | 'loadout_shared'

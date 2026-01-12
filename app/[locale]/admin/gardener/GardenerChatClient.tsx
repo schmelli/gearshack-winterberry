@@ -195,7 +195,7 @@ export function GardenerChatClient() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] flex-col gap-4">
+    <div className="flex h-full flex-col gap-4">
       {/* Header with Status */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

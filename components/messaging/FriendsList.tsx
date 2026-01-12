@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useFriends, type FriendInfo } from '@/hooks/messaging/useFriends';
+import { useFriends, type MessagingFriend } from '@/hooks/messaging/useFriends';
 import { usePresenceStatus } from '@/hooks/messaging/usePresenceStatus';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -38,7 +38,7 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
   const { friends, isLoading, error, removeFriend } = useFriends();
   const { isUserOnline } = usePresenceStatus();
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [confirmRemove, setConfirmRemove] = useState<FriendInfo | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<MessagingFriend | null>(null);
 
   const handleRemoveFriend = async () => {
     if (!confirmRemove) return;
