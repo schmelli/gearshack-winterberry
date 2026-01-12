@@ -18,7 +18,7 @@
 
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 // =============================================================================
 // Input Schema
@@ -165,24 +165,9 @@ Fuzzy Search:
     }
 
     try {
-      const supabase = await createClient();
-
-      // Verify user authentication
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user || user.id !== userId) {
-        return {
-          success: false,
-          operation: operation ?? 'select',
-          table,
-          rowCount: 0,
-          data: null,
-          error: 'Authentication failed or user mismatch',
-        };
-      }
+      // Use service role client since userId was already verified by the chat route
+      // Security: All queries are explicitly filtered by user_id below
+      const supabase = createServiceRoleClient();
 
       // Start building query
       const effectiveOperation = operation ?? 'select';
