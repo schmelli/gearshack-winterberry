@@ -28,7 +28,7 @@
 // T025: Replace next/link with locale-aware Link from i18n/navigation
 import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Mail, ChevronDown } from 'lucide-react';
+import { Mail, ChevronDown, Menu } from 'lucide-react';
 // T022: Import useTranslations hook
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,6 @@ import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import type { NavItemWithChildren } from '@/types/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
-import { SyncIndicator } from './SyncIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
@@ -117,29 +116,19 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
         <MobileNav open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
 
-        {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
-        {/* T006: Logo in Rock Salt font, text-3xl, white color */}
-        {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
-        {/* Issue #77: Logo triggers mobile menu on small screens, regular link on desktop */}
-        <button
+        {/* Issue #165: Hamburger menu icon for mobile - cleaner, more intuitive */}
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setMobileMenuOpen(true)}
-          className="flex items-center gap-2 md:hidden"
+          className="text-white hover:bg-white/10 hover:text-white md:hidden"
           aria-label={t('openMenu')}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg">
-            <Image
-              src="/logos/small_gearshack_logo.png"
-              alt="Gearshack Logo"
-              width={80}
-              height={80}
-              className="h-12 w-12"
-              priority
-            />
-          </div>
-          <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
-            Gearshack
-          </span>
-        </button>
+          <Menu className="h-6 w-6" />
+        </Button>
+
+        {/* Logo and brand - desktop only */}
+        {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         <Link href="/" className="hidden items-center gap-3 md:flex">
           <div className="flex h-20 w-20 items-center justify-center rounded-lg">
             <Image
@@ -232,13 +221,11 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           })}
         </nav>
 
-        {/* Right side: sync indicator, language switcher, notifications and user menu */}
+        {/* Right side: language switcher, notifications and user menu */}
         {/* Issue #73: Tighter spacing on mobile to fit all controls */}
         {/* Issue #77: Hide language switcher and avatar on small screens */}
+        {/* Issue #165: Removed SyncIndicator (cloud icon) to unclutter the app bar */}
         <div className="flex items-center gap-1 md:gap-2">
-          {/* Sync indicator - only show when authenticated */}
-          {user && <SyncIndicator />}
-
           {/* T012: Messaging icon with unread badge - only show when authenticated */}
           {user && (
             <Button

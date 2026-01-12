@@ -16,8 +16,7 @@
 import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
-import Image from 'next/image';
-import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Sheet,
@@ -110,40 +109,32 @@ export function MobileNav({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
+      {/* Issue #77: Hamburger button removed - menu is triggered by hamburger icon on mobile */}
+      {/* Issue #165: Logo removed from sidebar for cleaner mobile experience */}
       <SheetContent side="left" className="w-72">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Image
-              src="/logos/small_gearshack_logo.png"
-              alt="Gearshack Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="font-[family-name:var(--font-rock-salt)] text-base">
-              Gearshack
-            </span>
-          </SheetTitle>
-        </SheetHeader>
-
         {/* User info section (if authenticated) */}
         {user && (
           <>
-            <div className="mt-6 flex items-center gap-3 rounded-md bg-accent/10 p-3">
-              <AvatarWithFallback
-                src={avatarUrl}
-                name={displayName}
-                size="md"
-              />
-              <div className="flex flex-col space-y-0.5 overflow-hidden">
-                <p className="truncate text-sm font-medium leading-none">{displayName}</p>
-                {user.email && (
-                  <p className="truncate text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                )}
+            <div className="mt-6 flex flex-col items-center gap-3 rounded-md bg-accent/10 p-4">
+              <div className="relative">
+                <AvatarWithFallback
+                  src={avatarUrl}
+                  name={displayName}
+                  size="xl"
+                />
+                {/* Issue #165: Subtle edit button positioned at bottom-right of avatar */}
+                <button
+                  onClick={() => {
+                    router.push('/settings');
+                    setOpen(false);
+                  }}
+                  className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 hover:shadow-lg"
+                  aria-label={t('settings')}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
               </div>
+              <p className="text-center text-base font-medium leading-none">{displayName}</p>
             </div>
             <Separator className="my-4" />
           </>
