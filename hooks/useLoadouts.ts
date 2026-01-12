@@ -9,8 +9,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert, TablesUpdate } from '@/types/database';
+import type { Database, Tables, TablesInsert, TablesUpdate } from '@/types/database';
 import type { WeightSummary } from '@/lib/utils/weight';
+
+type ActivityTypeEnum = Database['public']['Enums']['activity_type'];
+type SeasonEnum = Database['public']['Enums']['season'];
 import { calculateWeightSummary } from '@/lib/utils/weight';
 
 // =============================================================================
@@ -161,8 +164,8 @@ export function useLoadouts(userId: string | null): UseLoadoutsReturn {
         name: data.name,
         description: data.description,
         trip_date: data.tripDate?.toISOString().split('T')[0],
-        activity_types: (data.activityTypes ?? []) as string[],
-        seasons: (data.seasons ?? []) as string[],
+        activity_types: (data.activityTypes ?? []) as ActivityTypeEnum[],
+        seasons: (data.seasons ?? []) as SeasonEnum[],
       };
 
       const { data: newData, error: insertError } = await supabase.from('loadouts').insert(insertData).select().single();
@@ -186,8 +189,8 @@ export function useLoadouts(userId: string | null): UseLoadoutsReturn {
       if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.tripDate !== undefined) updateData.trip_date = data.tripDate?.toISOString().split('T')[0] ?? null;
-      if (data.activityTypes !== undefined) updateData.activity_types = (data.activityTypes ?? []) as string[];
-      if (data.seasons !== undefined) updateData.seasons = (data.seasons ?? []) as string[];
+      if (data.activityTypes !== undefined) updateData.activity_types = data.activityTypes as ActivityTypeEnum[];
+      if (data.seasons !== undefined) updateData.seasons = data.seasons as SeasonEnum[];
 
       const { data: updatedData, error: updateError } = await supabase.from('loadouts').update(updateData).eq('id', id).eq('user_id', userId).select().single();
       if (updateError) { setError(updateError.message); return null; }
