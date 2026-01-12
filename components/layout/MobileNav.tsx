@@ -17,7 +17,7 @@ import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Sheet,
@@ -130,20 +130,23 @@ export function MobileNav({
         {/* User info section (if authenticated) */}
         {user && (
           <>
-            <div className="mt-6 flex items-center gap-3 rounded-md bg-accent/10 p-3">
-              <AvatarWithFallback
-                src={avatarUrl}
-                name={displayName}
-                size="md"
-              />
-              <div className="flex flex-col space-y-0.5 overflow-hidden">
-                <p className="truncate text-sm font-medium leading-none">{displayName}</p>
-                {user.email && (
-                  <p className="truncate text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                )}
+            <div className="mt-6 flex flex-col items-center gap-3 rounded-md bg-accent/10 p-6">
+              <div className="relative">
+                <AvatarWithFallback
+                  src={avatarUrl}
+                  name={displayName}
+                  size="xl"
+                />
+                <Link
+                  href="/settings"
+                  onClick={handleNavigate}
+                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-110 hover:shadow-lg"
+                  aria-label={t('settings')}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Link>
               </div>
+              <p className="text-center text-base font-medium leading-none">{displayName}</p>
             </div>
             <Separator className="my-4" />
           </>
