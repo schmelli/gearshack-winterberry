@@ -108,9 +108,19 @@ export async function GET(
 
     if (shakedownError) {
       console.error('[API] Shakedown fetch error:', shakedownError);
+      // PGRST116: "Results contain 0 rows" - actual not found
+      // PGRST000: Invalid request (e.g., invalid UUID format)
+      const isNotFound = shakedownError.code === 'PGRST116' || shakedownError.code === 'PGRST000';
+      if (isNotFound) {
+        return NextResponse.json(
+          { error: 'Shakedown not found' },
+          { status: 404 }
+        );
+      }
+      // Other errors should return 500
       return NextResponse.json(
-        { error: 'Shakedown not found' },
-        { status: 404 }
+        { error: 'Failed to fetch shakedown', details: shakedownError.message },
+        { status: 500 }
       );
     }
 
