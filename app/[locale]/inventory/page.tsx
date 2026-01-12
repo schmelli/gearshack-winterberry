@@ -10,7 +10,7 @@
 
 'use client';
 
-import { Suspense, useState, useCallback, useEffect } from 'react';
+import { Suspense, useState, useCallback, useEffect, useMemo } from 'react';
 import { useInventory } from '@/hooks/useInventory';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useInventoryView } from '@/hooks/useInventoryView';
@@ -32,6 +32,15 @@ function toInventorySortOption(option: WishlistSortOption): SortOption {
   if (option === 'name' || option === 'category' || option === 'dateAdded') {
     return option;
   }
+  return 'dateAdded';
+}
+
+function toWishlistSortOption(option: SortOption): WishlistSortOption {
+  // Only name, category, and dateAdded are supported in wishlist view
+  if (option === 'name' || option === 'category' || option === 'dateAdded') {
+    return option;
+  }
+  // Fall back to dateAdded for unsupported options (brand, productType)
   return 'dateAdded';
 }
 
@@ -95,7 +104,16 @@ function InventoryWithModal() {
   const activeCategoryFilter = isWishlistView ? wishlist.categoryFilter : inventory.categoryFilter;
   const activeSetCategoryFilter = isWishlistView ? wishlist.setCategoryFilter : inventory.setCategoryFilter;
   const activeSortOption = isWishlistView ? wishlist.sortOption : inventory.sortOption;
-  const activeSetSortOption = isWishlistView ? wishlist.setSortOption : inventory.setSortOption;
+
+  // Wrapper for setSortOption to handle type conversion between SortOption and WishlistSortOption
+  const handleSetSortOption = useCallback((option: SortOption) => {
+    if (isWishlistView) {
+      // Convert SortOption to WishlistSortOption (brand/productType fall back to dateAdded)
+      wishlist.setSortOption(toWishlistSortOption(option));
+    } else {
+      inventory.setSortOption(option);
+    }
+  }, [isWishlistView, wishlist, inventory]);
   const activeHasActiveFilters = isWishlistView ? wishlist.hasActiveFilters : inventory.hasActiveFilters;
   const activeClearFilters = isWishlistView ? wishlist.clearFilters : inventory.clearFilters;
   const activeItemCount = isWishlistView ? wishlist.itemCount : inventory.itemCount;
@@ -146,7 +164,7 @@ function InventoryWithModal() {
       setCategoryFilter={activeSetCategoryFilter}
       categoryOptions={inventory.categoryOptions}
       sortOption={isWishlistView ? toInventorySortOption(activeSortOption as WishlistSortOption) : activeSortOption as SortOption}
-      setSortOption={activeSetSortOption}
+      setSortOption={handleSetSortOption}
       groupedItems={inventory.groupedItems}
       hasActiveFilters={activeHasActiveFilters}
       clearFilters={activeClearFilters}

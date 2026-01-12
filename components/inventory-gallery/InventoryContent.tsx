@@ -220,6 +220,8 @@ export function InventoryContent({
               sortOptions: {
                 name: t('sortOptions.name'),
                 category: t('sortOptions.category'),
+                brand: t('sortOptions.brand'),
+                productType: t('sortOptions.productType'),
                 dateAdded: t('sortOptions.dateAdded'),
               },
             }}

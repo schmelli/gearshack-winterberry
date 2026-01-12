@@ -275,6 +275,8 @@
     "sortOptions": {
       "name": "Name (A-Z)",
       "category": "Category",
+      "brand": "Brand (A-Z)",
+      "productType": "Product Type",
       "dateAdded": "Date Added"
     },
     "emptyTitle": "No Gear Yet",

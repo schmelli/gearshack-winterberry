@@ -275,6 +275,8 @@
     "sortOptions": {
       "name": "Name (A-Z)",
       "category": "Kategorie",
+      "brand": "Marke (A-Z)",
+      "productType": "Produkttyp",
       "dateAdded": "Hinzugefügt am"
     },
     "emptyTitle": "Noch keine Ausrüstung",

@@ -101,9 +101,11 @@ export function LoadoutHeader({
   return (
     <div className="border-b bg-background">
       <div className="container max-w-6xl py-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          {/* Left: Description, Date, and Badges */}
-          <div className="flex-1 space-y-4">
+        <div className="flex flex-col gap-6">
+          {/* Main content row: stacks on mobile, side-by-side on md+ */}
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            {/* Left: Description, Date, and Badges */}
+            <div className="flex-1 space-y-4">
             {/* Trip Date */}
             {loadout.tripDate && (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -201,13 +203,24 @@ export function LoadoutHeader({
             />
           </div>
 
-          {/* Right: Enhanced Donut Chart with drill-down */}
-          <div className="hidden lg:flex lg:items-start lg:justify-end">
+            {/* Right: Enhanced Donut Chart - visible on md+ beside content */}
+            <div className="hidden shrink-0 md:flex md:items-start md:justify-end">
+              <EnhancedWeightDonut
+                items={items}
+                selectedId={selectedCategoryId}
+                onSegmentClick={onSegmentClick}
+                size={260}
+              />
+            </div>
+          </div>
+
+          {/* Mobile: Donut Chart below content, centered */}
+          <div className="flex justify-center md:hidden">
             <EnhancedWeightDonut
               items={items}
               selectedId={selectedCategoryId}
               onSegmentClick={onSegmentClick}
-              size={300}
+              size={220}
             />
           </div>
         </div>
