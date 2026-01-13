@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/server';
 import { searchEbayLocalized } from '@/lib/external-apis/serpapi-client';
 import { filterEbayListings } from '@/lib/external-apis/ebay-filter';
 import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
+import { ebaySearchRateLimiter } from '@/lib/rate-limiter';
 import type { EbaySearchResponse, EbayListing, EbayCacheEntry } from '@/types/ebay';
 
 // =============================================================================
@@ -33,6 +34,34 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Check authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Apply rate limiting (per user)
+    const rateLimitResult = ebaySearchRateLimiter.check(user.id);
+    if (!rateLimitResult.allowed) {
+      const resetIn = Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000 / 60);
+      return NextResponse.json(
+        {
+          error: `Rate limit exceeded. Please try again in ${resetIn} minutes.`,
+          resetAt: rateLimitResult.resetAt
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '20',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetAt.toString(),
+          }
+        }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
 
     // Parse query parameters
@@ -66,7 +95,6 @@ export async function GET(request: NextRequest) {
     const cacheKey = `${normalizedQuery}:${siteConfig.site}`;
 
     // Check cache first
-    const supabase = await createClient();
     const { data: cacheEntry } = await supabase
       .from('ebay_price_cache')
       .select('*')
