@@ -118,7 +118,24 @@ export function useEbaySearch(options: UseEbaySearchOptions = {}): UseEbaySearch
         setEbaySite(data.ebaySite);
         setFromCache(data.fromCache);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Search failed';
+        // Classify error for better user feedback
+        let message = 'Search failed';
+        if (err instanceof Error) {
+          const errMsg = err.message.toLowerCase();
+          if (errMsg.includes('429') || errMsg.includes('rate limit')) {
+            message = 'Rate limit exceeded. Please try again later.';
+          } else if (errMsg.includes('503') || errMsg.includes('service unavailable')) {
+            message = 'Service temporarily unavailable. Please try again in a few minutes.';
+          } else if (errMsg.includes('403') || errMsg.includes('forbidden')) {
+            message = 'Access denied. Please check your subscription status.';
+          } else if (errMsg.includes('401') || errMsg.includes('unauthorized')) {
+            message = 'Authentication required. Please sign in.';
+          } else if (errMsg.includes('network') || errMsg.includes('fetch')) {
+            message = 'Network error. Please check your connection.';
+          } else {
+            message = err.message;
+          }
+        }
         setError(message);
         setListings([]);
         console.error('[useEbaySearch] Error:', err);

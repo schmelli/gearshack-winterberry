@@ -10,10 +10,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkAdminAccess, createPostGISPoint } from '@/lib/supabase/admin-helpers';
+import { CreateResellerSchema } from '@/lib/validations/reseller-schema';
 import type {
   Reseller,
   ResellerListResponse,
-  CreateResellerInput,
 } from '@/types/reseller';
 
 // =============================================================================
@@ -22,34 +23,6 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Check if user is admin
- */
-async function checkAdminAccess(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { authorized: false, error: 'Unauthorized', status: 401 };
-  }
-
-  // Check if user has admin role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    return { authorized: false, error: 'Forbidden: Admin access required', status: 403 };
-  }
-
-  return { authorized: true, user };
-}
 
 // =============================================================================
 // GET - List Resellers
@@ -175,22 +148,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    // Parse request body
-    const body: CreateResellerInput = await request.json();
+    // Parse and validate request body
+    const rawBody = await request.json();
+    const validationResult = CreateResellerSchema.safeParse(rawBody);
 
-    // Validate required fields
-    if (!body.name || !body.websiteUrl || !body.resellerType || !body.countriesServed?.length) {
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return NextResponse.json(
-        { error: 'Missing required fields: name, websiteUrl, resellerType, countriesServed' },
+        { error: `Validation failed: ${errors}` },
         { status: 400 }
       );
     }
 
-    // Build location PostGIS point if coordinates provided
-    let location = null;
-    if (body.latitude !== null && body.longitude !== null &&
-        body.latitude !== undefined && body.longitude !== undefined) {
-      location = `POINT(${body.longitude} ${body.latitude})`;
+    const body = validationResult.data;
+
+    // Build location PostGIS point with proper validation
+    let location: string | null = null;
+    try {
+      location = createPostGISPoint(body.latitude, body.longitude);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Invalid coordinates' },
+        { status: 400 }
+      );
     }
 
     // Insert new reseller

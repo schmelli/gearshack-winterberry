@@ -155,9 +155,8 @@ export function useResellerPrices(
     if (autoFetch && !subscriptionLoading && isTrailblazer && query) {
       search();
     }
-    // Only run when subscription check completes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFetch, subscriptionLoading, isTrailblazer]);
+    // Include all dependencies to ensure proper re-fetching when props change
+  }, [autoFetch, subscriptionLoading, isTrailblazer, query, search, gearItemId, countryCode, userLocation]);
 
   return {
     localPrices,

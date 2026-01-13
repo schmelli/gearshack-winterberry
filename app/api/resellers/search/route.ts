@@ -196,11 +196,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Build price results with reseller details
+    // Optimize: Convert cachedResults to Map for O(1) lookup instead of O(n) find
+    const cachedMap = new Map(cachedResults.map(c => [c.resellerId, c]));
     const priceResults: ResellerPriceWithDetails[] = [];
 
     for (const reseller of resellers) {
       // Check if we have cached price for this reseller
-      const cached = cachedResults.find((c) => c.resellerId === reseller.id);
+      const cached = cachedMap.get(reseller.id);
 
       if (cached) {
         // Use cached result

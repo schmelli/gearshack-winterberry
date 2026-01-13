@@ -11,38 +11,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { Reseller, UpdateResellerInput } from '@/types/reseller';
+import { checkAdminAccess, createPostGISPoint } from '@/lib/supabase/admin-helpers';
+import { UpdateResellerSchema } from '@/lib/validations/reseller-schema';
+import type { Reseller } from '@/types/reseller';
 import type { Database } from '@/types/supabase';
 
 type ResellerRow = Database['public']['Tables']['resellers']['Row'];
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Check if user is admin
- */
-async function checkAdminAccess(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { authorized: false, error: 'Unauthorized', status: 401 };
-  }
-
-  // Check if user has admin role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    return { authorized: false, error: 'Forbidden: Admin access required', status: 403 };
-  }
-
-  return { authorized: true, user };
-}
 
 /**
  * Map database record to Reseller type
@@ -140,8 +114,19 @@ export async function PATCH(
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    // Parse request body
-    const body: UpdateResellerInput = await request.json();
+    // Parse and validate request body
+    const rawBody = await request.json();
+    const validationResult = UpdateResellerSchema.safeParse(rawBody);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      return NextResponse.json(
+        { error: `Validation failed: ${errors}` },
+        { status: 400 }
+      );
+    }
+
+    const body = validationResult.data;
 
     // Build update object (only include provided fields)
     type ResellerUpdate = Database['public']['Tables']['resellers']['Update'];
@@ -165,13 +150,15 @@ export async function PATCH(
     if (body.isActive !== undefined) updateData.is_active = body.isActive;
     if (body.priority !== undefined) updateData.priority = body.priority;
 
-    // Handle location update
+    // Handle location update with proper validation
     if (body.latitude !== undefined || body.longitude !== undefined) {
-      if (body.latitude !== null && body.longitude !== null &&
-          body.latitude !== undefined && body.longitude !== undefined) {
-        updateData.location = `POINT(${body.longitude} ${body.latitude})`;
-      } else {
-        updateData.location = null;
+      try {
+        updateData.location = createPostGISPoint(body.latitude, body.longitude);
+      } catch (error) {
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : 'Invalid coordinates' },
+          { status: 400 }
+        );
       }
     }
 
