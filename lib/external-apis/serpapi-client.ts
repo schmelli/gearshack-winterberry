@@ -392,7 +392,7 @@ export async function searchEbayLocalized(
         condition: mapCondition(result.condition),
         shippingCost: parseEbayShippingCost(result.shipping),
         seller: result.seller ? {
-          username: result.seller.name || 'Unknown Seller',
+          username: result.seller.name ?? 'Unknown Seller',
           feedbackPercent: result.seller.feedback_percentage ?? null,
           feedbackCount: result.seller.feedback_count ?? null,
           badge: result.seller.top_rated ? 'Top Rated' : undefined,
