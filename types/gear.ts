@@ -100,6 +100,10 @@ export interface GearItem {
   purchaseDate: Date | null;
   retailer: string | null;
   retailerUrl: string | null;
+  /** Manufacturer's suggested retail price (MSRP) - Feature 057 */
+  manufacturerPrice: number | null;
+  /** Currency for manufacturer price - Feature 057 */
+  manufacturerCurrency: string | null;
 
   // Section 5: Media
   primaryImageUrl: string | null;
@@ -182,6 +186,10 @@ export interface GearItemFormData {
   purchaseDate: string;
   retailer: string;
   retailerUrl: string;
+  /** Manufacturer's suggested retail price (MSRP) - Feature 057 */
+  manufacturerPrice: string;
+  /** Currency for manufacturer price - Feature 057 */
+  manufacturerCurrency: string;
 
   // Section 5: Media
   primaryImageUrl: string;
@@ -234,6 +242,8 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   purchaseDate: '',
   retailer: '',
   retailerUrl: '',
+  manufacturerPrice: '',
+  manufacturerCurrency: 'EUR',
   primaryImageUrl: '',
   galleryImageUrls: [],
   condition: 'new',

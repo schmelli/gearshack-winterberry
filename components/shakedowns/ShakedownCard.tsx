@@ -58,7 +58,7 @@ interface PrivacyIconProps {
 }
 
 function PrivacyIcon({ privacy, className }: PrivacyIconProps) {
-  const t = useTranslations('Shakedowns.privacy');
+  const t = useTranslations('Shakedowns.privacyOptions');
 
   const iconClass = cn('size-4 text-muted-foreground', className);
 
@@ -177,7 +177,7 @@ export function ShakedownCard({ shakedown, onClick }: ShakedownCardProps) {
                 {/* Feedback count */}
                 <div
                   className="flex items-center gap-1"
-                  title={t('card.feedbackCount', { count: feedbackCount })}
+                  title={t('detail.feedbackCount', { count: feedbackCount })}
                 >
                   <MessageSquare className="size-4" />
                   <span>{feedbackCount}</span>

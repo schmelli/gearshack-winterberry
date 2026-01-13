@@ -91,6 +91,8 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
     // Section 4: Purchase Details
     pricePaid: row.price_paid ?? null,
     currency: row.currency ?? null,
+    manufacturerPrice: row.manufacturer_price ?? null,
+    manufacturerCurrency: row.manufacturer_currency ?? null,
     purchaseDate: row.purchase_date ? new Date(row.purchase_date) : null,
     retailer: row.retailer ?? null,
     retailerUrl: row.retailer_url ?? null,

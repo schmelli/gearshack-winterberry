@@ -38,7 +38,7 @@ export function BannerCarousel() {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Update current slide index when carousel changes
+  // Update current slide index when carousel changes and start autoplay
   useEffect(() => {
     if (!api) return;
 
@@ -48,6 +48,23 @@ export function BannerCarousel() {
 
     api.on('select', onSelect);
     onSelect();
+
+    // Start autoplay after carousel is ready (avoids race condition)
+    const autoplayPlugin = api.plugins()?.autoplay;
+    if (autoplayPlugin && 'play' in autoplayPlugin && api.scrollSnapList().length > 0) {
+      // Small delay to ensure carousel is fully initialized
+      const timer = setTimeout(() => {
+        try {
+          (autoplayPlugin as { play: () => void }).play();
+        } catch {
+          // Ignore if already playing or not ready
+        }
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        api.off('select', onSelect);
+      };
+    }
 
     return () => {
       api.off('select', onSelect);
@@ -73,17 +90,27 @@ export function BannerCarousel() {
   // Pause autoplay on hover
   const handleMouseEnter = useCallback(() => {
     setIsPaused(true);
-    const autoplayPlugin = api?.plugins()?.autoplay;
-    if (autoplayPlugin && 'stop' in autoplayPlugin) {
-      (autoplayPlugin as { stop: () => void }).stop();
+    try {
+      const autoplayPlugin = api?.plugins()?.autoplay;
+      if (autoplayPlugin && 'stop' in autoplayPlugin) {
+        (autoplayPlugin as { stop: () => void }).stop();
+      }
+    } catch {
+      // Ignore errors if carousel is not fully initialized
     }
   }, [api]);
 
   const handleMouseLeave = useCallback(() => {
     setIsPaused(false);
-    const autoplayPlugin = api?.plugins()?.autoplay;
-    if (autoplayPlugin && 'play' in autoplayPlugin) {
-      (autoplayPlugin as { play: () => void }).play();
+    try {
+      // Only play if carousel API is ready and has slides
+      if (!api || api.scrollSnapList().length === 0) return;
+      const autoplayPlugin = api.plugins()?.autoplay;
+      if (autoplayPlugin && 'play' in autoplayPlugin) {
+        (autoplayPlugin as { play: () => void }).play();
+      }
+    } catch {
+      // Ignore errors if carousel is not fully initialized
     }
   }, [api]);
 
@@ -115,6 +142,7 @@ export function BannerCarousel() {
             delay: BANNER_CONSTANTS.AUTO_ROTATE_INTERVAL_MS,
             stopOnInteraction: false,
             stopOnMouseEnter: true,
+            playOnInit: false, // We manually start autoplay after carousel is ready
           }),
         ]}
         className="w-full"

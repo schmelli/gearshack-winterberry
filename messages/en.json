@@ -275,6 +275,8 @@
     "sortOptions": {
       "name": "Name (A-Z)",
       "category": "Category",
+      "brand": "Brand (A-Z)",
+      "productType": "Product Type",
       "dateAdded": "Date Added"
     },
     "emptyTitle": "No Gear Yet",
@@ -571,8 +573,11 @@
     },
     "purchase": {
       "title": "Purchase Details",
+      "wishlistTitle": "Price Information",
       "pricePaidLabel": "Price Paid",
       "pricePaidPlaceholder": "0.00",
+      "manufacturerPriceLabel": "Manufacturer Price (MSRP)",
+      "manufacturerPricePlaceholder": "0.00",
       "currencyLabel": "Currency",
       "currencyPlaceholder": "Select currency",
       "purchaseDateLabel": "Purchase Date",
@@ -587,6 +592,52 @@
       "searchFor": "Search weight for \"{query}\"",
       "searchForWithLimit": "Search weight for \"{query}\" ({remaining} of {limit} left today)"
     }
+  },
+  "EbayListings": {
+    "title": "eBay Listings",
+    "noResults": "No matching listings found",
+    "viewAllOnEbay": "View all on eBay",
+    "freeShipping": "Free Shipping",
+    "shipping": "shipping",
+    "shippingNotSpecified": "Shipping not specified",
+    "bids": "{count, plural, =0 {No bids} =1 {1 bid} other {# bids}}",
+    "types": {
+      "auction": "Auction",
+      "buyItNow": "Buy It Now",
+      "bestOffer": "Best Offer"
+    },
+    "conditions": {
+      "new": "New",
+      "openBox": "Open Box",
+      "refurbished": "Refurbished",
+      "used": "Used",
+      "forParts": "For Parts"
+    },
+    "seller": {
+      "positive": "positive",
+      "ratings": "ratings"
+    },
+    "popup": {
+      "title": "eBay Listing Details",
+      "condition": "Condition",
+      "location": "Location",
+      "seller": "Seller",
+      "viewOnEbay": "View on eBay"
+    }
+  },
+  "ResellerPrices": {
+    "title": "Reseller Prices",
+    "typeLocal": "Local Shop",
+    "typeOnline": "Online",
+    "partner": "Partner",
+    "visitShop": "Visit Shop",
+    "outOfStock": "Out of Stock",
+    "noResults": "No reseller prices found for this item",
+    "cached": "Cached",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "trailblazerRequired": "Trailblazer Feature",
+    "trailblazerDescription": "Upgrade to Trailblazer to see reseller price comparisons and find the best deals nearby."
   },
   "GearDetail": {
     "sections": {
@@ -625,7 +676,8 @@
     },
     "purchaseInfo": {
       "from": "from",
-      "purchased": "Purchased"
+      "purchased": "Purchased",
+      "manufacturerPrice": "Manufacturer Price"
     },
     "badges": {
       "favourite": "Favourite",
@@ -2158,6 +2210,82 @@
     "accessDenied": "Access Denied",
     "accessDeniedDesc": "You do not have permission to access this page.",
     "goHome": "Go to Home"
+  },
+  "AdminResellers": {
+    "pageTitle": "Reseller Management",
+    "pageDescription": "Manage reseller catalog for price comparison",
+    "title": "Reseller Catalog",
+    "description": "Manage resellers for Trailblazer price comparison feature",
+    "addReseller": "Add Reseller",
+    "editReseller": "Edit Reseller",
+    "createReseller": "Create Reseller",
+    "editResellerDescription": "Update reseller information",
+    "createResellerDescription": "Add a new reseller to the catalog",
+    "searchPlaceholder": "Search resellers...",
+    "filterType": "Type",
+    "filterStatus": "Status",
+    "allTypes": "All Types",
+    "allStatuses": "All Statuses",
+    "typeLocal": "Local Shop",
+    "typeOnline": "Online",
+    "typeChain": "Chain",
+    "suspended": "Suspended",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "status": "Status",
+      "countries": "Countries",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "noResellers": "No resellers found",
+    "toggleActive": "Toggle active status",
+    "openMenu": "Open menu",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "showingResults": "Showing {count} of {total} results",
+    "pageOf": "Page {page} of {total}",
+    "previous": "Previous",
+    "next": "Next",
+    "deleteConfirmTitle": "Delete Reseller",
+    "deleteConfirmDescription": "Are you sure you want to delete this reseller? This action cannot be undone.",
+    "cancel": "Cancel",
+    "toast": {
+      "created": "Reseller created successfully",
+      "updated": "Reseller updated successfully",
+      "deleted": "Reseller deleted successfully",
+      "statusUpdated": "Status updated",
+      "activeToggled": "Active status toggled"
+    },
+    "form": {
+      "name": "Name",
+      "websiteUrl": "Website URL",
+      "logoUrl": "Logo URL",
+      "logoUrlHint": "Optional logo image URL",
+      "searchUrlTemplate": "Search URL Template",
+      "searchUrlTemplateHint": "Use {query} as placeholder",
+      "type": "Type",
+      "selectType": "Select type",
+      "status": "Status",
+      "selectStatus": "Select status",
+      "priority": "Priority",
+      "priorityHint": "0-100, higher = more prominent",
+      "countriesServed": "Countries Served",
+      "addressSection": "Address (for local shops)",
+      "addressLine1": "Address",
+      "city": "City",
+      "postalCode": "Postal Code",
+      "country": "Country Code",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "isActive": "Active",
+      "isActiveHint": "Inactive resellers are hidden from search results",
+      "cancel": "Cancel",
+      "create": "Create Reseller",
+      "update": "Update Reseller",
+      "saving": "Saving..."
+    }
   },
   "MerchantAnalytics": {
     "pageTitle": "Analytics",

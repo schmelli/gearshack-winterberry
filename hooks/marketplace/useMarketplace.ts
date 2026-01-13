@@ -49,7 +49,7 @@ interface UseMarketplaceReturn {
 export function useMarketplace(): UseMarketplaceReturn {
   // Memoize Supabase client to prevent infinite re-renders
   const supabase = useMemo(() => createClient(), []);
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   // Get filters from URL params
   const filters = useMarketplaceFilters();
@@ -158,8 +158,12 @@ export function useMarketplace(): UseMarketplaceReturn {
     await loadListings();
   }, [loadListings]);
 
-  // Load listings on mount and when filters change
+  // Load listings when filters change or auth state settles
+  // Wait for auth to be ready to ensure consistent excludeUserId behavior
   useEffect(() => {
+    // Don't load until auth state is settled
+    if (authLoading) return;
+
     loadListings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -167,12 +171,15 @@ export function useMarketplace(): UseMarketplaceReturn {
     filters.filters.sortBy,
     filters.filters.sortOrder,
     filters.filters.search,
+    user?.id,
+    authLoading,
   ]);
 
   return {
     listings: state.listings,
     hasMore: state.hasMore,
-    loadingState: state.loadingState,
+    // Show loading state while auth is settling or during actual loading
+    loadingState: authLoading ? 'loading' : state.loadingState,
     error: state.error,
     filters,
     loadListings,

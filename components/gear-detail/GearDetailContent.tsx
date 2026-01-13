@@ -45,7 +45,10 @@ import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButt
 import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
 import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
 import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
+import { EbayListingsSection } from '@/components/price-tracking/EbayListingsSection';
+import { ResellerPricesSection } from '@/components/price-tracking/ResellerPricesSection';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
@@ -204,6 +207,7 @@ export function GearDetailContent({
   onMoveComplete,
 }: GearDetailContentProps) {
   const t = useTranslations('GearDetail');
+  const { profile } = useAuthContext();
 
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
   const categories = useCategoriesStore((state) => state.categories);
@@ -232,6 +236,18 @@ export function GearDetailContent({
     isWishlistItem ? item.brand : null,
     isWishlistItem
   );
+
+  // Feature 057: Derive product type keywords for eBay filtering
+  const productTypeKeywords = useMemo(() => {
+    if (!item.productTypeId || !categories.length) return [];
+    const category = categories.find(c => c.id === item.productTypeId);
+    if (category) {
+      // Split category name into keywords (e.g., "Backpacking Tent" → ["Backpacking", "Tent"])
+      const categoryName = category.i18n?.en || category.label || '';
+      return categoryName.split(/\s+/).filter((k: string) => k.length > 2);
+    }
+    return [];
+  }, [item.productTypeId, categories]);
 
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
@@ -335,12 +351,27 @@ export function GearDetailContent({
         {/* Wishlist Price Overview - Always visible (not in accordion) */}
         {isWishlistItem && (
           <div className="space-y-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/10 p-4">
-            {/* MSRP Display */}
-            <MsrpPriceDisplay
-              msrpAmount={msrp?.expectedPriceUsd ?? null}
-              isLoading={msrpLoading}
-              variant="inline"
-            />
+            {/* Manufacturer Price Display (Feature 057) */}
+            {item.manufacturerPrice != null && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">{t('purchaseInfo.manufacturerPrice')}</span>
+                <span className="text-lg font-semibold">
+                  {new Intl.NumberFormat('de-DE', {
+                    style: 'currency',
+                    currency: item.manufacturerCurrency ?? 'EUR',
+                  }).format(item.manufacturerPrice)}
+                </span>
+              </div>
+            )}
+
+            {/* MSRP Display (fallback if no manufacturer price) */}
+            {item.manufacturerPrice == null && (
+              <MsrpPriceDisplay
+                msrpAmount={msrp?.expectedPriceUsd ?? null}
+                isLoading={msrpLoading}
+                variant="inline"
+              />
+            )}
 
             {/* Top 3 Retail Prices */}
             <TopRetailPricesDisplay
@@ -349,6 +380,31 @@ export function GearDetailContent({
               variant="full"
             />
           </div>
+        )}
+
+        {/* Feature 057: eBay Listings Section - For all wishlist items */}
+        {isWishlistItem && (
+          <EbayListingsSection
+            itemName={item.name}
+            brandName={item.brand}
+            productTypeKeywords={productTypeKeywords}
+            msrp={item.manufacturerPrice ?? msrp?.expectedPriceUsd ?? null}
+            maxListings={3}
+          />
+        )}
+
+        {/* Feature 057: Reseller Prices Section - Trailblazer only (shows upgrade prompt for others) */}
+        {isWishlistItem && (
+          <ResellerPricesSection
+            gearItemId={item.id}
+            query={`${item.brand ?? ''} ${item.name}`.trim()}
+            countryCode={profile?.rawProfile?.preferred_locale?.split('-')[1]?.toUpperCase() || 'DE'}
+            userLocation={
+              profile?.rawProfile?.latitude && profile?.rawProfile?.longitude
+                ? { latitude: profile.rawProfile.latitude, longitude: profile.rawProfile.longitude }
+                : null
+            }
+          />
         )}
 
         {/* Collapsible Sections */}

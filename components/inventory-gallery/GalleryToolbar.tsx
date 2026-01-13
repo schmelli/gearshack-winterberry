@@ -33,6 +33,8 @@ import { ViewDensityToggle } from './ViewDensityToggle';
 interface SortOptionTranslations {
   name: string;
   category: string;
+  brand: string;
+  productType: string;
   dateAdded: string;
 }
 
@@ -56,6 +58,8 @@ const DEFAULT_TRANSLATIONS: GalleryToolbarTranslations = {
   sortOptions: {
     name: 'Name (A-Z)',
     category: 'Category',
+    brand: 'Brand (A-Z)',
+    productType: 'Product Type',
     dateAdded: 'Date Added',
   },
 };
