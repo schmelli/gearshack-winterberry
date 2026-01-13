@@ -118,14 +118,7 @@ export function useAdminResellers(
       const response = await fetch(`/api/admin/resellers?${params}`);
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setError('Nicht autorisiert');
-          return;
-        }
-        if (response.status === 403) {
-          setError('Admin-Zugriff erforderlich');
-          return;
-        }
+        // Let the client translate error messages
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
@@ -136,7 +129,7 @@ export function useAdminResellers(
       setTotal(data.total);
       setHasMore(data.hasMore);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler beim Laden der Händler';
+      const message = err instanceof Error ? err.message : 'Failed to load resellers';
       setError(message);
       console.error('[useAdminResellers] Error:', err);
     } finally {
@@ -161,7 +154,7 @@ export function useAdminResellers(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Fehler beim Erstellen');
+      throw new Error(errorData.error || 'Failed to create reseller');
     }
 
     const newReseller: Reseller = await response.json();
@@ -183,7 +176,7 @@ export function useAdminResellers(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Fehler beim Aktualisieren');
+        throw new Error(errorData.error || 'Failed to update reseller');
       }
 
       const updatedReseller: Reseller = await response.json();
@@ -206,7 +199,7 @@ export function useAdminResellers(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Fehler beim Löschen');
+      throw new Error(errorData.error || 'Failed to delete reseller');
     }
 
     // Remove from local state

@@ -109,6 +109,7 @@ function ConditionDisplay({ condition }: { condition: EbayCondition }) {
 
 function SellerInfo({ seller }: { seller: NonNullable<EbayListing['seller']> }) {
   const t = useTranslations('EbayListings');
+  const tCommon = useTranslations('Common');
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -117,11 +118,11 @@ function SellerInfo({ seller }: { seller: NonNullable<EbayListing['seller']> }) 
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium">{seller.username}</span>
+          <span className="font-medium">{seller.username ?? tCommon('seller.unknown')}</span>
           {seller.badge && (
             <Badge variant="outline" className="text-xs">
               <ShieldCheck className="w-3 h-3 mr-1" />
-              {seller.badge}
+              {seller.badge === 'top_rated' ? tCommon('seller.topRatedBadge') : seller.badge}
             </Badge>
           )}
         </div>

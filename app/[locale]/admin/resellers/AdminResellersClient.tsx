@@ -42,6 +42,7 @@ import type { Reseller, ResellerStatus, ResellerType, CreateResellerInput } from
 
 export function AdminResellersClient() {
   const t = useTranslations('AdminResellers');
+  const tCommon = useTranslations('Common');
 
   // Hook for reseller management
   const {
@@ -125,7 +126,7 @@ export function AdminResellersClient() {
         setIsFormOpen(false);
         setEditingReseller(null);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : tCommon('errors.generic');
         toast.error(message);
       } finally {
         setIsSubmitting(false);
@@ -145,9 +146,9 @@ export function AdminResellersClient() {
       await deleteReseller(deleteId);
       toast.success(t('toast.deleted'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler';
+      const message = err instanceof Error ? err.message : tCommon('errors.generic');
       toast.error(message);
-    } finally {
+    } finally{
       setDeleteId(null);
     }
   }, [deleteId, deleteReseller, t]);
@@ -159,7 +160,7 @@ export function AdminResellersClient() {
         await updateStatus(id, status);
         toast.success(t('toast.statusUpdated'));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : tCommon('errors.generic');
         toast.error(message);
       }
     },
@@ -173,7 +174,7 @@ export function AdminResellersClient() {
         await toggleActive(id);
         toast.success(t('toast.activeToggled'));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : tCommon('errors.generic');
         toast.error(message);
       }
     },
@@ -232,10 +233,10 @@ export function AdminResellersClient() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allStatuses')}</SelectItem>
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="vip">VIP</SelectItem>
-              <SelectItem value="partner">Partner</SelectItem>
-              <SelectItem value="suspended">{t('suspended')}</SelectItem>
+              <SelectItem value="standard">{tCommon('resellerStatuses.standard')}</SelectItem>
+              <SelectItem value="vip">{tCommon('resellerStatuses.vip')}</SelectItem>
+              <SelectItem value="partner">{tCommon('resellerStatuses.partner')}</SelectItem>
+              <SelectItem value="suspended">{tCommon('resellerStatuses.suspended')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -35,32 +35,9 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import type { Reseller, CreateResellerInput, ResellerType, ResellerStatus } from '@/types/reseller';
+import { createResellerSchema } from '@/lib/validations/reseller-schema';
 
-// =============================================================================
-// Schema
-// =============================================================================
-
-const resellerFormSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  websiteUrl: z.string().url('Ungültige URL'),
-  logoUrl: z.string().url('Ungültige URL').optional().or(z.literal('')),
-  resellerType: z.enum(['local', 'online', 'chain']),
-  status: z.enum(['standard', 'vip', 'partner', 'suspended']),
-  countriesServed: z.array(z.string()).min(1, 'Mindestens ein Land erforderlich'),
-  searchUrlTemplate: z.string().optional().or(z.literal('')),
-  affiliateTag: z.string().optional().or(z.literal('')),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
-  addressLine1: z.string().optional().or(z.literal('')),
-  addressLine2: z.string().optional().or(z.literal('')),
-  addressCity: z.string().optional().or(z.literal('')),
-  addressPostalCode: z.string().optional().or(z.literal('')),
-  addressCountry: z.string().optional().or(z.literal('')),
-  isActive: z.boolean(),
-  priority: z.number().min(0).max(100),
-});
-
-type ResellerFormValues = z.infer<typeof resellerFormSchema>;
+// NOTE: Schema is created dynamically with i18n support (see form initialization below)
 
 // =============================================================================
 // Types
@@ -85,19 +62,6 @@ const COMMON_COUNTRIES = [
   'DE', 'AT', 'CH', 'US', 'GB', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ',
 ];
 
-const RESELLER_TYPES: { value: ResellerType; label: string }[] = [
-  { value: 'local', label: 'Lokaler Shop' },
-  { value: 'online', label: 'Online-Shop' },
-  { value: 'chain', label: 'Handelskette' },
-];
-
-const RESELLER_STATUSES: { value: ResellerStatus; label: string }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'vip', label: 'VIP' },
-  { value: 'partner', label: 'Partner' },
-  { value: 'suspended', label: 'Gesperrt' },
-];
-
 // =============================================================================
 // Component
 // =============================================================================
@@ -109,6 +73,25 @@ export function ResellerForm({
   isSubmitting = false,
 }: ResellerFormProps) {
   const t = useTranslations('AdminResellers.form');
+  const tCommon = useTranslations('Common');
+
+  // Create schema with i18n support
+  const resellerFormSchema = createResellerSchema(tCommon);
+  type ResellerFormValues = z.infer<typeof resellerFormSchema>;
+
+  // Define type/status options using translations
+  const RESELLER_TYPES: { value: ResellerType; label: string }[] = [
+    { value: 'local', label: tCommon('resellerTypes.local') },
+    { value: 'online', label: tCommon('resellerTypes.online') },
+    { value: 'chain', label: tCommon('resellerTypes.chain') },
+  ];
+
+  const RESELLER_STATUSES: { value: ResellerStatus; label: string }[] = [
+    { value: 'standard', label: tCommon('resellerStatuses.standard') },
+    { value: 'vip', label: tCommon('resellerStatuses.vip') },
+    { value: 'partner', label: tCommon('resellerStatuses.partner') },
+    { value: 'suspended', label: tCommon('resellerStatuses.suspended') },
+  ];
 
   const form = useForm<ResellerFormValues>({
     resolver: zodResolver(resellerFormSchema),

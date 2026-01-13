@@ -2,51 +2,72 @@
  * Reseller Validation Schemas
  *
  * Feature: 057-wishlist-pricing-enhancements
- * Purpose: Zod schemas for validating reseller API inputs
+ * Purpose: Zod schemas for reseller CRUD validation
+ *
+ * NOTE: Validation messages are now internationalized via schema factory
  */
 
 import { z } from 'zod';
 
 // =============================================================================
-// Enums
+// Schema Factory (for i18n)
 // =============================================================================
 
-export const ResellerTypeSchema = z.enum(['local', 'online', 'chain']);
-export const ResellerStatusSchema = z.enum(['standard', 'vip', 'partner', 'suspended']);
+/**
+ * Creates a reseller validation schema with internationalized messages
+ * @param t - Translation function from useTranslations('Common')
+ */
+export function createResellerSchema(t: (key: string, values?: Record<string, string | number>) => string) {
+  return z.object({
+    name: z.string().min(1, t('validation.required')),
+    websiteUrl: z.string().url(t('validation.invalidUrl')),
+    logoUrl: z.string().url(t('validation.invalidUrl')).optional().or(z.literal('')),
+    resellerType: z.enum(['local', 'online', 'chain']),
+    status: z.enum(['standard', 'vip', 'partner', 'suspended']),
+    countriesServed: z.array(z.string()).min(1, t('validation.minLength', { min: '1' })),
+    searchUrlTemplate: z.string().optional().or(z.literal('')),
+    affiliateTag: z.string().optional().or(z.literal('')),
+    latitude: z.number().min(-90).max(90).nullable().optional(),
+    longitude: z.number().min(-180).max(180).nullable().optional(),
+    addressLine1: z.string().optional().or(z.literal('')),
+    addressLine2: z.string().optional().or(z.literal('')),
+    addressCity: z.string().optional().or(z.literal('')),
+    addressPostalCode: z.string().optional().or(z.literal('')),
+    addressCountry: z.string().optional().or(z.literal('')),
+    isActive: z.boolean(),
+    priority: z.number().min(0).max(100),
+  });
+}
 
 // =============================================================================
-// Create Reseller Schema
+// API Validation Schemas (without i18n - for server-side)
 // =============================================================================
 
+/**
+ * Server-side validation schema for create/update operations
+ * Uses English messages (acceptable for API layer)
+ */
 export const CreateResellerSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be at most 100 characters'),
-  websiteUrl: z.string().url('Website URL must be valid'),
-  logoUrl: z.string().url('Logo URL must be valid').optional().nullable(),
-  resellerType: ResellerTypeSchema,
-  status: ResellerStatusSchema.optional(),
-  countriesServed: z.array(z.string().length(2, 'Country code must be 2 characters')).min(1, 'At least one country is required'),
-  searchUrlTemplate: z.string().url('Search URL template must be valid').optional().nullable(),
-  affiliateTag: z.string().max(50, 'Affiliate tag must be at most 50 characters').optional().nullable(),
-  latitude: z.number().min(-90, 'Latitude must be between -90 and 90').max(90, 'Latitude must be between -90 and 90').optional().nullable(),
-  longitude: z.number().min(-180, 'Longitude must be between -180 and 180').max(180, 'Longitude must be between -180 and 180').optional().nullable(),
-  addressLine1: z.string().max(200, 'Address line 1 must be at most 200 characters').optional().nullable(),
-  addressLine2: z.string().max(200, 'Address line 2 must be at most 200 characters').optional().nullable(),
-  addressCity: z.string().max(100, 'City must be at most 100 characters').optional().nullable(),
-  addressPostalCode: z.string().max(20, 'Postal code must be at most 20 characters').optional().nullable(),
-  addressCountry: z.string().length(2, 'Country code must be 2 characters').optional().nullable(),
-  isActive: z.boolean().optional(),
-  priority: z.number().int('Priority must be an integer').min(0, 'Priority must be non-negative').max(100, 'Priority must be at most 100').optional(),
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  websiteUrl: z.string().url('Invalid website URL'),
+  logoUrl: z.string().url('Invalid logo URL').nullable().optional(),
+  resellerType: z.enum(['local', 'online', 'chain']),
+  status: z.enum(['standard', 'vip', 'partner', 'suspended']),
+  countriesServed: z.array(z.string().length(2, 'Country codes must be 2 characters')).min(1, 'At least one country required'),
+  searchUrlTemplate: z.string().nullable().optional(),
+  affiliateTag: z.string().nullable().optional(),
+  latitude: z.number().min(-90, 'Invalid latitude').max(90, 'Invalid latitude').nullable().optional(),
+  longitude: z.number().min(-180, 'Invalid longitude').max(180, 'Invalid longitude').nullable().optional(),
+  addressLine1: z.string().nullable().optional(),
+  addressLine2: z.string().nullable().optional(),
+  addressCity: z.string().nullable().optional(),
+  addressPostalCode: z.string().nullable().optional(),
+  addressCountry: z.string().nullable().optional(),
+  isActive: z.boolean().optional().default(true),
+  priority: z.number().min(0).max(100).optional().default(50),
 });
 
-// =============================================================================
-// Update Reseller Schema (all fields optional)
-// =============================================================================
-
 export const UpdateResellerSchema = CreateResellerSchema.partial();
-
-// =============================================================================
-// Type exports
-// =============================================================================
 
 export type CreateResellerInput = z.infer<typeof CreateResellerSchema>;
 export type UpdateResellerInput = z.infer<typeof UpdateResellerSchema>;

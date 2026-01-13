@@ -96,7 +96,46 @@
     "genericUser": "Benutzer",
     "unknown": "Unbekannt",
     "anonymousUser": "Anonymer Benutzer",
-    "close": "Schließen"
+    "close": "Schließen",
+    "currencies": {
+      "USD": "US-Dollar ($)",
+      "EUR": "Euro (€)",
+      "GBP": "Britisches Pfund (£)",
+      "CAD": "Kanadischer Dollar (C$)",
+      "AUD": "Australischer Dollar (A$)",
+      "CHF": "Schweizer Franken (CHF)",
+      "JPY": "Japanischer Yen (¥)"
+    },
+    "resellerTypes": {
+      "local": "Lokaler Shop",
+      "online": "Online-Shop",
+      "chain": "Handelskette"
+    },
+    "resellerStatuses": {
+      "standard": "Standard",
+      "vip": "VIP",
+      "partner": "Partner",
+      "suspended": "Gesperrt"
+    },
+    "errors": {
+      "generic": "Ein Fehler ist aufgetreten",
+      "unauthorized": "Nicht autorisiert",
+      "forbidden": "Zugriff verweigert",
+      "notFound": "Nicht gefunden",
+      "validation": "Validierungsfehler",
+      "network": "Netzwerkfehler",
+      "unknown": "Unbekannter Fehler"
+    },
+    "seller": {
+      "unknown": "Unbekannter Verkäufer",
+      "topRatedBadge": "Top bewertet"
+    },
+    "validation": {
+      "required": "Dieses Feld ist erforderlich",
+      "invalidUrl": "Ungültige URL",
+      "minLength": "Mindestens {min} Zeichen erforderlich",
+      "invalidCoordinates": "Ungültige Koordinaten"
+    }
   },
   "Landing": {
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",

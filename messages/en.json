@@ -96,7 +96,46 @@
     "genericUser": "User",
     "unknown": "Unknown",
     "anonymousUser": "Anonymous User",
-    "close": "Close"
+    "close": "Close",
+    "currencies": {
+      "USD": "US Dollar ($)",
+      "EUR": "Euro (€)",
+      "GBP": "British Pound (£)",
+      "CAD": "Canadian Dollar (C$)",
+      "AUD": "Australian Dollar (A$)",
+      "CHF": "Swiss Franc (CHF)",
+      "JPY": "Japanese Yen (¥)"
+    },
+    "resellerTypes": {
+      "local": "Local Shop",
+      "online": "Online Shop",
+      "chain": "Chain"
+    },
+    "resellerStatuses": {
+      "standard": "Standard",
+      "vip": "VIP",
+      "partner": "Partner",
+      "suspended": "Suspended"
+    },
+    "errors": {
+      "generic": "An error occurred",
+      "unauthorized": "Unauthorized",
+      "forbidden": "Access forbidden",
+      "notFound": "Not found",
+      "validation": "Validation error",
+      "network": "Network error",
+      "unknown": "Unknown error"
+    },
+    "seller": {
+      "unknown": "Unknown Seller",
+      "topRatedBadge": "Top Rated"
+    },
+    "validation": {
+      "required": "This field is required",
+      "invalidUrl": "Invalid URL",
+      "minLength": "Minimum {min} characters required",
+      "invalidCoordinates": "Invalid coordinates"
+    }
   },
   "Landing": {
     "heroTitle": "Organize Your Gear. Conquer the Trail.",

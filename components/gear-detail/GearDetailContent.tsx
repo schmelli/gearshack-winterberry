@@ -12,7 +12,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -207,6 +207,7 @@ export function GearDetailContent({
   onMoveComplete,
 }: GearDetailContentProps) {
   const t = useTranslations('GearDetail');
+  const locale = useLocale();
   const { profile } = useAuthContext();
 
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
@@ -356,7 +357,7 @@ export function GearDetailContent({
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted-foreground">{t('purchaseInfo.manufacturerPrice')}</span>
                 <span className="text-lg font-semibold">
-                  {new Intl.NumberFormat('de-DE', {
+                  {new Intl.NumberFormat(locale, {
                     style: 'currency',
                     currency: item.manufacturerCurrency ?? 'EUR',
                   }).format(item.manufacturerPrice)}

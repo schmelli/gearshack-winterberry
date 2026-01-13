@@ -53,15 +53,7 @@ interface PurchaseSectionProps {
 // Constants
 // =============================================================================
 
-const CURRENCIES = [
-  { code: 'USD', label: 'US Dollar ($)' },
-  { code: 'EUR', label: 'Euro (€)' },
-  { code: 'GBP', label: 'British Pound (£)' },
-  { code: 'CAD', label: 'Canadian Dollar (C$)' },
-  { code: 'AUD', label: 'Australian Dollar (A$)' },
-  { code: 'CHF', label: 'Swiss Franc (CHF)' },
-  { code: 'JPY', label: 'Japanese Yen (¥)' },
-];
+const CURRENCY_CODES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY'] as const;
 
 // =============================================================================
 // Component
@@ -69,6 +61,7 @@ const CURRENCIES = [
 
 export function PurchaseSection({ mode = 'inventory' }: PurchaseSectionProps) {
   const t = useTranslations('GearEditor');
+  const tCommon = useTranslations('Common');
   const form = useFormContext<GearItemFormData>();
 
   const isWishlist = mode === 'wishlist';
@@ -119,9 +112,9 @@ export function PurchaseSection({ mode = 'inventory' }: PurchaseSectionProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {CURRENCIES.map((currency) => (
-                        <SelectItem key={currency.code} value={currency.code}>
-                          {currency.label}
+                      {CURRENCY_CODES.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {tCommon(`currencies.${code}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -168,9 +161,9 @@ export function PurchaseSection({ mode = 'inventory' }: PurchaseSectionProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {CURRENCIES.map((currency) => (
-                        <SelectItem key={currency.code} value={currency.code}>
-                          {currency.label}
+                      {CURRENCY_CODES.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {tCommon(`currencies.${code}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
