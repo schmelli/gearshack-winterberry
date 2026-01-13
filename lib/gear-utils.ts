@@ -1,7 +1,7 @@
 /**
  * Gear Item Utility Functions
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, 057-wishlist-pricing-enhancements
  * Provides conversion functions between form data and entity types
  */
 
@@ -110,6 +110,8 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     purchaseDate: item.purchaseDate?.toISOString().split('T')[0] ?? '',
     retailer: item.retailer ?? '',
     retailerUrl: item.retailerUrl ?? '',
+    manufacturerPrice: item.manufacturerPrice?.toString() ?? '',
+    manufacturerCurrency: item.manufacturerCurrency ?? 'EUR',
     primaryImageUrl: item.primaryImageUrl ?? '',
     galleryImageUrls: item.galleryImageUrls,
     condition: item.condition,
@@ -162,6 +164,8 @@ export function formDataToGearItem(
     purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate) : null,
     retailer: formData.retailer || null,
     retailerUrl: formData.retailerUrl || null,
+    manufacturerPrice: formData.manufacturerPrice ? parseFloat(formData.manufacturerPrice) : null,
+    manufacturerCurrency: formData.manufacturerCurrency || 'EUR',
     primaryImageUrl: formData.primaryImageUrl || null,
     galleryImageUrls: formData.galleryImageUrls.filter(Boolean),
     condition: formData.condition,

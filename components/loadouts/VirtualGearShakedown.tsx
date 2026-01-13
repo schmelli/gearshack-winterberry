@@ -67,6 +67,8 @@ function convertToGearItem(selectedItem: SharedGearItem): GearItem {
     tentConstruction: null,
     pricePaid: null,
     currency: null,
+    manufacturerPrice: null,
+    manufacturerCurrency: null,
     purchaseDate: null,
     retailer: null,
     retailerUrl: null,

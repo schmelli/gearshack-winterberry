@@ -93,6 +93,8 @@ export const gearItemFormSchema = z.object({
   // Section 4: Purchase Details
   pricePaid: optionalPositiveNumberSchema,
   currency: z.string().max(3, 'Currency code must be 3 characters'),
+  manufacturerPrice: optionalPositiveNumberSchema,
+  manufacturerCurrency: z.string().max(3, 'Currency code must be 3 characters'),
   purchaseDate: z
     .string()
     .refine((val) => val === '' || !isNaN(Date.parse(val)), {

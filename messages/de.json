@@ -573,8 +573,11 @@
     },
     "purchase": {
       "title": "Kaufdetails",
+      "wishlistTitle": "Preisinformationen",
       "pricePaidLabel": "Bezahlter Preis",
       "pricePaidPlaceholder": "0,00",
+      "manufacturerPriceLabel": "Herstellerpreis (UVP)",
+      "manufacturerPricePlaceholder": "0,00",
       "currencyLabel": "Währung",
       "currencyPlaceholder": "Währung auswählen",
       "purchaseDateLabel": "Kaufdatum",
@@ -589,6 +592,52 @@
       "searchFor": "Gewicht suchen für \"{query}\"",
       "searchForWithLimit": "Gewicht suchen für \"{query}\" ({remaining} von {limit} heute übrig)"
     }
+  },
+  "EbayListings": {
+    "title": "eBay-Angebote",
+    "noResults": "Keine passenden Angebote gefunden",
+    "viewAllOnEbay": "Alle auf eBay ansehen",
+    "freeShipping": "Kostenloser Versand",
+    "shipping": "Versand",
+    "shippingNotSpecified": "Versand nicht angegeben",
+    "bids": "{count, plural, =0 {Keine Gebote} =1 {1 Gebot} other {# Gebote}}",
+    "types": {
+      "auction": "Auktion",
+      "buyItNow": "Sofort-Kaufen",
+      "bestOffer": "Preisvorschlag"
+    },
+    "conditions": {
+      "new": "Neu",
+      "openBox": "Geöffnete Verpackung",
+      "refurbished": "Generalüberholt",
+      "used": "Gebraucht",
+      "forParts": "Für Ersatzteile"
+    },
+    "seller": {
+      "positive": "positiv",
+      "ratings": "Bewertungen"
+    },
+    "popup": {
+      "title": "eBay-Angebotsdetails",
+      "condition": "Zustand",
+      "location": "Standort",
+      "seller": "Verkäufer",
+      "viewOnEbay": "Auf eBay ansehen"
+    }
+  },
+  "ResellerPrices": {
+    "title": "Händler-Preise",
+    "typeLocal": "Lokaler Shop",
+    "typeOnline": "Online",
+    "partner": "Partner",
+    "visitShop": "Shop besuchen",
+    "outOfStock": "Nicht auf Lager",
+    "noResults": "Keine Händler-Preise für diesen Artikel gefunden",
+    "cached": "Zwischengespeichert",
+    "refresh": "Aktualisieren",
+    "retry": "Erneut versuchen",
+    "trailblazerRequired": "Trailblazer-Funktion",
+    "trailblazerDescription": "Upgrade auf Trailblazer, um Händler-Preisvergleiche zu sehen und die besten Angebote in deiner Nähe zu finden."
   },
   "GearDetail": {
     "sections": {
@@ -627,7 +676,8 @@
     },
     "purchaseInfo": {
       "from": "von",
-      "purchased": "Gekauft"
+      "purchased": "Gekauft",
+      "manufacturerPrice": "Herstellerpreis"
     },
     "badges": {
       "favourite": "Favorit",
@@ -2160,6 +2210,82 @@
     "accessDenied": "Zugriff verweigert",
     "accessDeniedDesc": "Du hast keine Berechtigung, auf diese Seite zuzugreifen.",
     "goHome": "Zur Startseite"
+  },
+  "AdminResellers": {
+    "pageTitle": "Händler-Verwaltung",
+    "pageDescription": "Händler-Katalog für Preisvergleich verwalten",
+    "title": "Händler-Katalog",
+    "description": "Händler für Trailblazer-Preisvergleich verwalten",
+    "addReseller": "Händler hinzufügen",
+    "editReseller": "Händler bearbeiten",
+    "createReseller": "Händler erstellen",
+    "editResellerDescription": "Händlerinformationen aktualisieren",
+    "createResellerDescription": "Neuen Händler zum Katalog hinzufügen",
+    "searchPlaceholder": "Händler suchen...",
+    "filterType": "Typ",
+    "filterStatus": "Status",
+    "allTypes": "Alle Typen",
+    "allStatuses": "Alle Status",
+    "typeLocal": "Lokaler Shop",
+    "typeOnline": "Online",
+    "typeChain": "Kette",
+    "suspended": "Gesperrt",
+    "columns": {
+      "name": "Name",
+      "type": "Typ",
+      "status": "Status",
+      "countries": "Länder",
+      "active": "Aktiv",
+      "actions": "Aktionen"
+    },
+    "noResellers": "Keine Händler gefunden",
+    "toggleActive": "Aktiv-Status umschalten",
+    "openMenu": "Menü öffnen",
+    "actions": "Aktionen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "showingResults": "{count} von {total} Ergebnissen",
+    "pageOf": "Seite {page} von {total}",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "deleteConfirmTitle": "Händler löschen",
+    "deleteConfirmDescription": "Möchtest du diesen Händler wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen",
+    "toast": {
+      "created": "Händler erfolgreich erstellt",
+      "updated": "Händler erfolgreich aktualisiert",
+      "deleted": "Händler erfolgreich gelöscht",
+      "statusUpdated": "Status aktualisiert",
+      "activeToggled": "Aktiv-Status umgeschaltet"
+    },
+    "form": {
+      "name": "Name",
+      "websiteUrl": "Website-URL",
+      "logoUrl": "Logo-URL",
+      "logoUrlHint": "Optionale Logo-Bild-URL",
+      "searchUrlTemplate": "Such-URL-Vorlage",
+      "searchUrlTemplateHint": "{query} als Platzhalter verwenden",
+      "type": "Typ",
+      "selectType": "Typ auswählen",
+      "status": "Status",
+      "selectStatus": "Status auswählen",
+      "priority": "Priorität",
+      "priorityHint": "0-100, höher = prominenter",
+      "countriesServed": "Bediente Länder",
+      "addressSection": "Adresse (für lokale Shops)",
+      "addressLine1": "Adresse",
+      "city": "Stadt",
+      "postalCode": "Postleitzahl",
+      "country": "Ländercode",
+      "latitude": "Breitengrad",
+      "longitude": "Längengrad",
+      "isActive": "Aktiv",
+      "isActiveHint": "Inaktive Händler werden in Suchergebnissen ausgeblendet",
+      "cancel": "Abbrechen",
+      "create": "Händler erstellen",
+      "update": "Händler aktualisieren",
+      "saving": "Speichern..."
+    }
   },
   "MerchantAnalytics": {
     "pageTitle": "Analysen",
