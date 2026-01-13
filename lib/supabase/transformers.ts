@@ -234,3 +234,63 @@ export function categoryFromDb(row: CategoryRow): Category {
     createdAt: new Date(row.created_at),
   };
 }
+
+// =============================================================================
+// PostGIS Transformer (Feature 057)
+// =============================================================================
+
+/**
+ * Transform PostGIS GEOGRAPHY/GEOMETRY data to { latitude, longitude } format
+ *
+ * Supabase returns PostGIS data in various formats depending on the query:
+ * - GeoJSON: { type: 'Point', coordinates: [lng, lat] }
+ * - WKT string: "POINT(lng lat)"
+ * - Object with x/y: { x: lng, y: lat }
+ *
+ * This function normalizes all formats to { latitude, longitude } | null
+ */
+export function parsePostGISLocation(
+  location: unknown
+): { latitude: number; longitude: number } | null {
+  if (!location) return null;
+
+  // Handle GeoJSON format: { type: 'Point', coordinates: [lng, lat] }
+  if (
+    typeof location === 'object' &&
+    'type' in location &&
+    location.type === 'Point' &&
+    'coordinates' in location &&
+    Array.isArray(location.coordinates) &&
+    location.coordinates.length === 2
+  ) {
+    const [lng, lat] = location.coordinates;
+    if (typeof lng === 'number' && typeof lat === 'number') {
+      return { latitude: lat, longitude: lng };
+    }
+  }
+
+  // Handle x/y object format: { x: lng, y: lat }
+  if (
+    typeof location === 'object' &&
+    'x' in location &&
+    'y' in location &&
+    typeof location.x === 'number' &&
+    typeof location.y === 'number'
+  ) {
+    return { latitude: location.y, longitude: location.x };
+  }
+
+  // Handle WKT string format: "POINT(lng lat)"
+  if (typeof location === 'string') {
+    const match = location.match(/POINT\s*\(\s*([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)\s*\)/i);
+    if (match) {
+      const lng = parseFloat(match[1]);
+      const lat = parseFloat(match[2]);
+      if (!isNaN(lng) && !isNaN(lat)) {
+        return { latitude: lat, longitude: lng };
+      }
+    }
+  }
+
+  return null;
+}

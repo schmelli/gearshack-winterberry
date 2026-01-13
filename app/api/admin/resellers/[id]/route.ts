@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkAdminAccess, createPostGISPoint } from '@/lib/supabase/admin-helpers';
 import { UpdateResellerSchema } from '@/lib/validations/reseller-schema';
+import { parsePostGISLocation } from '@/lib/supabase/transformers';
 import type { Reseller } from '@/types/reseller';
 import type { Database } from '@/types/supabase';
 
@@ -32,7 +33,7 @@ function mapToReseller(r: ResellerRow): Reseller {
     countriesServed: r.countries_served,
     searchUrlTemplate: r.search_url_template,
     affiliateTag: r.affiliate_tag,
-    location: r.location as Reseller['location'],
+    location: parsePostGISLocation(r.location),
     addressLine1: r.address_line1,
     addressLine2: r.address_line2,
     addressCity: r.address_city,
@@ -119,7 +120,7 @@ export async function PATCH(
     const validationResult = UpdateResellerSchema.safeParse(rawBody);
 
     if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errors = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return NextResponse.json(
         { error: `Validation failed: ${errors}` },
         { status: 400 }

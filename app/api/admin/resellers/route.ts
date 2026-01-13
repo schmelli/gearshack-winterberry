@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkAdminAccess, createPostGISPoint } from '@/lib/supabase/admin-helpers';
 import { CreateResellerSchema } from '@/lib/validations/reseller-schema';
+import { parsePostGISLocation } from '@/lib/supabase/transformers';
 import type {
   Reseller,
   ResellerListResponse,
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
       countriesServed: r.countries_served,
       searchUrlTemplate: r.search_url_template,
       affiliateTag: r.affiliate_tag,
-      location: r.location as Reseller['location'],
+      location: parsePostGISLocation(r.location),
       addressLine1: r.address_line1,
       addressLine2: r.address_line2,
       addressCity: r.address_city,
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
     const validationResult = CreateResellerSchema.safeParse(rawBody);
 
     if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errors = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       return NextResponse.json(
         { error: `Validation failed: ${errors}` },
         { status: 400 }
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
       countriesServed: newReseller.countries_served,
       searchUrlTemplate: newReseller.search_url_template,
       affiliateTag: newReseller.affiliate_tag,
-      location: newReseller.location as Reseller['location'],
+      location: parsePostGISLocation(newReseller.location),
       addressLine1: newReseller.address_line1,
       addressLine2: newReseller.address_line2,
       addressCity: newReseller.address_city,

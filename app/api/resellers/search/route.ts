@@ -18,18 +18,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { parsePostGISLocation } from '@/lib/supabase/transformers';
 import type {
   ResellerSearchResponse,
   ResellerPriceWithDetails,
   Reseller,
   ResellerPriceResult,
 } from '@/types/reseller';
-
-// PostGIS location type from database
-interface PostGISPoint {
-  type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
-}
 
 // =============================================================================
 // Constants
@@ -151,7 +146,7 @@ export async function GET(request: NextRequest) {
       countriesServed: r.countries_served,
       searchUrlTemplate: r.search_url_template,
       affiliateTag: r.affiliate_tag,
-      location: r.location as Reseller['location'],
+      location: parsePostGISLocation(r.location),
       addressLine1: r.address_line1,
       addressLine2: r.address_line2,
       addressCity: r.address_city,
@@ -206,18 +201,15 @@ export async function GET(request: NextRequest) {
 
       if (cached) {
         // Use cached result
-        // PostGIS returns location as { type: 'Point', coordinates: [lng, lat] }
+        // Calculate distance if user location and reseller location are available
         let distance: number | null = null;
         if (userLocation && reseller.location) {
-          const loc = reseller.location as unknown as PostGISPoint;
-          if (loc.coordinates) {
-            distance = calculateDistance(
-              userLocation.latitude,
-              userLocation.longitude,
-              loc.coordinates[1], // latitude
-              loc.coordinates[0]  // longitude
-            );
-          }
+          distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            reseller.location.latitude,
+            reseller.location.longitude
+          );
         }
 
         priceResults.push({
