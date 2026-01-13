@@ -39,6 +39,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          target_resource_id: string | null
+          target_resource_type: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_resource_id?: string | null
+          target_resource_type?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_resource_id?: string | null
+          target_resource_type?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_activity_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_activity_logs_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_cached_responses: {
         Row: {
           created_at: string
@@ -1101,6 +1161,39 @@ export type Database = {
           },
         ]
       }
+      ebay_price_cache: {
+        Row: {
+          country_code: string
+          created_at: string
+          ebay_site: string
+          expires_at: string
+          id: string
+          result_count: number
+          results: Json
+          search_query: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          ebay_site: string
+          expires_at?: string
+          id?: string
+          result_count?: number
+          results?: Json
+          search_query: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          ebay_site?: string
+          expires_at?: string
+          id?: string
+          result_count?: number
+          results?: Json
+          search_query?: string
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -1387,6 +1480,8 @@ export type Database = {
           is_favourite: boolean
           is_for_sale: boolean
           length_cm: number | null
+          manufacturer_currency: string | null
+          manufacturer_price: number | null
           materials: string | null
           model_number: string | null
           name: string
@@ -1434,6 +1529,8 @@ export type Database = {
           is_favourite?: boolean
           is_for_sale?: boolean
           length_cm?: number | null
+          manufacturer_currency?: string | null
+          manufacturer_price?: number | null
           materials?: string | null
           model_number?: string | null
           name: string
@@ -1481,6 +1578,8 @@ export type Database = {
           is_favourite?: boolean
           is_for_sale?: boolean
           length_cm?: number | null
+          manufacturer_currency?: string | null
+          manufacturer_price?: number | null
           materials?: string | null
           model_number?: string | null
           name?: string
@@ -2995,6 +3094,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: Database["public"]["Enums"]["account_status"] | null
           account_type: Database["public"]["Enums"]["account_type"] | null
           auto_convert_prices: boolean | null
           avatar_url: string | null
@@ -3037,6 +3137,10 @@ export type Database = {
           show_weight_breakdown: boolean | null
           start_page: string | null
           subscription_tier: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_until: string | null
+          suspension_reason: string | null
           time_format: string | null
           timezone: string | null
           trail_name: string | null
@@ -3047,6 +3151,7 @@ export type Database = {
           youtube: string | null
         }
         Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
           account_type?: Database["public"]["Enums"]["account_type"] | null
           auto_convert_prices?: boolean | null
           avatar_url?: string | null
@@ -3089,6 +3194,10 @@ export type Database = {
           show_weight_breakdown?: boolean | null
           start_page?: string | null
           subscription_tier?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_until?: string | null
+          suspension_reason?: string | null
           time_format?: string | null
           timezone?: string | null
           trail_name?: string | null
@@ -3099,6 +3208,7 @@ export type Database = {
           youtube?: string | null
         }
         Update: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
           account_type?: Database["public"]["Enums"]["account_type"] | null
           auto_convert_prices?: boolean | null
           avatar_url?: string | null
@@ -3141,6 +3251,10 @@ export type Database = {
           show_weight_breakdown?: boolean | null
           start_page?: string | null
           subscription_tier?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_until?: string | null
+          suspension_reason?: string | null
           time_format?: string | null
           timezone?: string | null
           trail_name?: string | null
@@ -3150,7 +3264,15 @@ export type Database = {
           week_starts_on?: string | null
           youtube?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_suspended_by_fkey"
+            columns: ["suspended_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limit_tracking: {
         Row: {
@@ -3176,6 +3298,140 @@ export type Database = {
           request_count?: number
           user_id?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      reseller_price_results: {
+        Row: {
+          expires_at: string
+          fetched_at: string
+          gear_item_id: string
+          id: string
+          in_stock: boolean | null
+          price_amount: number
+          price_currency: string
+          product_name: string | null
+          product_url: string | null
+          reseller_id: string
+        }
+        Insert: {
+          expires_at?: string
+          fetched_at?: string
+          gear_item_id: string
+          id?: string
+          in_stock?: boolean | null
+          price_amount: number
+          price_currency?: string
+          product_name?: string | null
+          product_url?: string | null
+          reseller_id: string
+        }
+        Update: {
+          expires_at?: string
+          fetched_at?: string
+          gear_item_id?: string
+          id?: string
+          in_stock?: boolean | null
+          price_amount?: number
+          price_currency?: string
+          product_name?: string | null
+          product_url?: string | null
+          reseller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_price_results_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "community_availability"
+            referencedColumns: ["gear_item_id"]
+          },
+          {
+            foreignKeyName: "reseller_price_results_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_price_results_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_price_results_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resellers: {
+        Row: {
+          address_city: string | null
+          address_country: string | null
+          address_line1: string | null
+          address_line2: string | null
+          address_postal_code: string | null
+          affiliate_tag: string | null
+          countries_served: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          location: unknown
+          logo_url: string | null
+          name: string
+          priority: number
+          reseller_type: string
+          search_url_template: string | null
+          status: Database["public"]["Enums"]["reseller_status"]
+          updated_at: string
+          website_url: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_postal_code?: string | null
+          affiliate_tag?: string | null
+          countries_served?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: unknown
+          logo_url?: string | null
+          name: string
+          priority?: number
+          reseller_type: string
+          search_url_template?: string | null
+          status?: Database["public"]["Enums"]["reseller_status"]
+          updated_at?: string
+          website_url: string
+        }
+        Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          address_postal_code?: string | null
+          affiliate_tag?: string | null
+          countries_served?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: unknown
+          logo_url?: string | null
+          name?: string
+          priority?: number
+          reseller_type?: string
+          search_url_template?: string | null
+          status?: Database["public"]["Enums"]["reseller_status"]
+          updated_at?: string
+          website_url?: string
         }
         Relationships: []
       }
@@ -6023,6 +6279,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_status: "active" | "suspended" | "banned"
       account_type: "standard" | "vip" | "merchant"
       activity_type:
         | "hiking"
@@ -6068,6 +6325,7 @@ export type Database = {
       privacy_preset: "only_me" | "friends_only" | "everyone" | "custom"
       report_reason: "spam" | "harassment" | "inappropriate_content" | "other"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
+      reseller_status: "standard" | "vip" | "partner" | "suspended"
       season: "spring" | "summer" | "fall" | "winter"
       shakedown_badge: "shakedown_helper" | "trail_expert" | "community_legend"
       shakedown_privacy: "public" | "friends_only" | "private"
@@ -6214,6 +6472,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      account_status: ["active", "suspended", "banned"],
       account_type: ["standard", "vip", "merchant"],
       activity_type: ["hiking", "camping", "climbing", "skiing", "backpacking"],
       activity_visibility: ["public", "friends", "private"],
@@ -6258,6 +6517,7 @@ export const Constants = {
       privacy_preset: ["only_me", "friends_only", "everyone", "custom"],
       report_reason: ["spam", "harassment", "inappropriate_content", "other"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
+      reseller_status: ["standard", "vip", "partner", "suspended"],
       season: ["spring", "summer", "fall", "winter"],
       shakedown_badge: ["shakedown_helper", "trail_expert", "community_legend"],
       shakedown_privacy: ["public", "friends_only", "private"],

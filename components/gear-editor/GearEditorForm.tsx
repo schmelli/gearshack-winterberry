@@ -142,7 +142,7 @@ export function GearEditorForm({
               <TabsContent value="details" className="mt-0">
                 <div className="space-y-2">
                   <CategorySpecsSection />
-                  <PurchaseSection />
+                  <PurchaseSection mode={mode} />
                 </div>
               </TabsContent>
 
