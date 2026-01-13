@@ -27,9 +27,9 @@ interface CommunityAvailabilityRPCResult {
   owner_avatar_url: string | null;
   item_name: string;
   item_brand: string | null;
-  for_sale: boolean;
-  lendable: boolean;
-  tradeable: boolean;
+  is_for_sale: boolean;
+  can_be_borrowed: boolean;
+  can_be_traded: boolean;
   similarity_score: number;
   primary_image_url: string | null;
 }
@@ -50,9 +50,9 @@ function transformCommunityMatch(result: CommunityAvailabilityRPCResult): Commun
     ownerAvatarUrl: result.owner_avatar_url,
     itemName: result.item_name,
     itemBrand: result.item_brand,
-    forSale: result.for_sale,
-    lendable: result.lendable,
-    tradeable: result.tradeable,
+    forSale: result.is_for_sale,
+    lendable: result.can_be_borrowed,
+    tradeable: result.can_be_traded,
     similarityScore: result.similarity_score,
     primaryImageUrl: result.primary_image_url,
   };
