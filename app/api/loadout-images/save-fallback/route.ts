@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     const { loadoutId, fallbackImageUrl, fallbackImageId, altText } = validatedData;
 
     // Verify loadout ownership
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadouts table not in generated types
     const { data: loadout, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('user_id')

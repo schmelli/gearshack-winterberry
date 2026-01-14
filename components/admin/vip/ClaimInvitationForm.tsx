@@ -130,6 +130,7 @@ export function ClaimInvitationForm({ vip, onSuccess }: ClaimInvitationFormProps
           {/* VIP Info Display */}
           <div className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
             {vip.avatarUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={vip.avatarUrl}
                 alt={vip.name}

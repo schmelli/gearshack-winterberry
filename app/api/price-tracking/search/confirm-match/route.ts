@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Confirm fuzzy match selection
  * Feature: 050-price-tracking

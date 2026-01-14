@@ -38,8 +38,7 @@ export async function isUserBulletinBanned(
   supabase: SupabaseClientType,
   userId: string
 ): Promise<boolean> {
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data } = await (supabase as any).rpc('is_user_bulletin_banned', {
+  const { data } = await supabase.rpc('is_user_bulletin_banned', {
     p_user_id: userId,
   });
   return data === true;
@@ -77,8 +76,7 @@ export async function fetchBulletinPosts(
     limit,
   });
 
-  // Note: Type assertion needed - view exists but types need regeneration
-  let query = (supabase as any)
+  let query = supabase
     .from('v_bulletin_posts_with_author')
     .select('*')
     .eq('is_archived', false)
@@ -134,8 +132,7 @@ export async function fetchBulletinPost(
   supabase: SupabaseClientType,
   postId: string
 ): Promise<BulletinPostWithAuthor | null> {
-  // Note: Type assertion needed - view exists but types need regeneration
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('v_bulletin_posts_with_author')
     .select('*')
     .eq('id', postId)
@@ -162,8 +159,7 @@ export async function createBulletinPost(
   if (isBanned) throw createBannedError();
 
   // Check rate limit
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data: canPost } = await (supabase as any).rpc('check_bulletin_rate_limit', {
+  const { data: canPost } = await supabase.rpc('check_bulletin_rate_limit', {
     p_user_id: user.id,
     p_action_type: 'post',
   });
@@ -179,14 +175,10 @@ export async function createBulletinPost(
   }
 
   // Check for duplicates
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data: isUnique } = await (supabase as any).rpc(
-    'check_duplicate_bulletin_post',
-    {
-      p_user_id: user.id,
-      p_content: input.content,
-    }
-  );
+  const { data: isUnique } = await supabase.rpc('check_duplicate_bulletin_post', {
+    p_user_id: user.id,
+    p_content: input.content,
+  });
 
   if (!isUnique) {
     const error: PostError = {
@@ -197,8 +189,7 @@ export async function createBulletinPost(
   }
 
   // Create the post
-  // Note: Type assertion needed - table exists but types need regeneration
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('bulletin_posts')
     .insert({
       author_id: user.id,
@@ -222,7 +213,7 @@ export async function updateBulletinPost(
   postId: string,
   input: UpdatePostInput
 ): Promise<BulletinPost> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('bulletin_posts')
     .update({
       content: input.content,
@@ -244,7 +235,7 @@ export async function deleteBulletinPost(
   supabase: SupabaseClientType,
   postId: string
 ): Promise<void> {
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('bulletin_posts')
     .update({ is_deleted: true })
     .eq('id', postId);
@@ -263,8 +254,7 @@ export async function fetchBulletinReplies(
   supabase: SupabaseClientType,
   postId: string
 ): Promise<BulletinReplyWithAuthor[]> {
-  // Note: Type assertion needed - view exists but types need regeneration
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('v_bulletin_replies_with_author')
     .select('*')
     .eq('post_id', postId)
@@ -291,8 +281,7 @@ export async function createBulletinReply(
   if (isBanned) throw createBannedError();
 
   // Check rate limit
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data: canReply } = await (supabase as any).rpc('check_bulletin_rate_limit', {
+  const { data: canReply } = await supabase.rpc('check_bulletin_rate_limit', {
     p_user_id: user.id,
     p_action_type: 'reply',
   });
@@ -310,17 +299,17 @@ export async function createBulletinReply(
   // Determine depth
   let depth: 1 | 2 = 1;
   if (input.parent_reply_id) {
-    const { data: parent } = await (supabase as any)
+    const { data: parent } = await supabase
       .from('bulletin_replies')
       .select('depth')
       .eq('id', input.parent_reply_id)
       .single();
 
-    depth = parent ? Math.min((parent.depth as number) + 1, 2) as 1 | 2 : 1;
+    depth = parent ? (Math.min(parent.depth + 1, 2) as 1 | 2) : 1;
   }
 
   // Create the reply
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('bulletin_replies')
     .insert({
       post_id: input.post_id,
@@ -348,7 +337,7 @@ export async function updateBulletinReply(
   replyId: string,
   content: string
 ): Promise<BulletinReply> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('bulletin_replies')
     .update({
       content,
@@ -369,7 +358,7 @@ export async function deleteBulletinReply(
   supabase: SupabaseClientType,
   replyId: string
 ): Promise<void> {
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('bulletin_replies')
     .update({ is_deleted: true })
     .eq('id', replyId);
@@ -393,7 +382,7 @@ export async function createBulletinReport(
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('bulletin_reports')
     .insert({
       reporter_id: user.id,
@@ -432,8 +421,7 @@ export async function searchBulletinPosts(
   query: string,
   limit = BULLETIN_CONSTANTS.POSTS_PER_PAGE
 ): Promise<BulletinPostWithAuthor[]> {
-  // Note: Type assertion needed - view exists but types need regeneration
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('v_bulletin_posts_with_author')
     .select('*')
     .textSearch('content_tsvector', query, {
@@ -473,14 +461,14 @@ async function triggerReplyNotification(
   replierId: string
 ): Promise<void> {
   // Count existing replies
-  const { count } = await (supabase as any)
+  const { count } = await supabase
     .from('bulletin_replies')
     .select('*', { count: 'exact', head: true })
     .eq('post_id', postId);
 
   if (count && count <= BULLETIN_CONSTANTS.NOTIFICATION_REPLY_LIMIT) {
     // Get post author
-    const { data: post } = await (supabase as any)
+    const { data: post } = await supabase
       .from('bulletin_posts')
       .select('author_id')
       .eq('id', postId)
@@ -489,8 +477,7 @@ async function triggerReplyNotification(
     if (post && post.author_id !== replierId) {
       // Create notification (if notifications table exists)
       try {
-        // Note: Type assertion needed for notification data structure
-        await (supabase as any).from('notifications').insert({
+        await supabase.from('notifications').insert({
           user_id: post.author_id,
           type: 'bulletin_reply',
           data: {
@@ -519,8 +506,7 @@ export async function canEditBulletinPost(
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data } = await (supabase as any).rpc('can_edit_bulletin_post', {
+  const { data } = await supabase.rpc('can_edit_bulletin_post', {
     p_post_id: postId,
     p_user_id: user.id,
   });
@@ -537,8 +523,7 @@ export async function getRateLimitStatus(supabase: SupabaseClientType) {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Note: Type assertion needed - RPC exists but types need regeneration
-  const { data, error } = await (supabase as any).rpc('get_bulletin_rate_limit_status', {
+  const { data, error } = await supabase.rpc('get_bulletin_rate_limit_status', {
     p_user_id: user.id,
   });
 

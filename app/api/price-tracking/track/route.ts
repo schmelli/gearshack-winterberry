@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Enable price tracking for a gear item
  * Feature: 050-price-tracking

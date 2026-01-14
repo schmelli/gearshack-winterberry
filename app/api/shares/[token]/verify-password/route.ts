@@ -35,6 +35,7 @@ export async function POST(
     const supabase = await createClient();
 
     // Fetch the share with password hash
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadout_shares not in generated types
     const { data: share, error: fetchError } = await (supabase as any)
       .from('loadout_shares')
       .select('password_hash, expires_at')
@@ -102,18 +103,19 @@ export async function GET(
     const supabase = await createClient();
 
     // Fetch the share
-    const { data: share, error: fetchError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadout_shares not in generated types
+    const { data: share2, error: fetchError } = await (supabase as any)
       .from('loadout_shares')
       .select('password_hash, expires_at')
       .eq('share_token', token)
       .single();
 
-    if (fetchError || !share) {
+    if (fetchError || !share2) {
       return NextResponse.json({ error: 'Share not found' }, { status: 404 });
     }
 
     // Check expiry
-    if (share.expires_at && new Date(share.expires_at) < new Date()) {
+    if (share2.expires_at && new Date(share2.expires_at) < new Date()) {
       return NextResponse.json({
         requiresPassword: false,
         expired: true,
@@ -122,7 +124,7 @@ export async function GET(
     }
 
     // If no password, always has access
-    if (!share.password_hash) {
+    if (!share2.password_hash) {
       return NextResponse.json({
         requiresPassword: false,
         expired: false,

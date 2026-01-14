@@ -134,7 +134,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
       // Transform RPC results to WishlistInsight format
        
       const insightResults: WishlistInsight[] = (insightsData ?? [])
-        .map((row: any) => ({
+        .map((row: Record<string, unknown>) => ({
           catalogItemId: row.catalog_item_id as string,
           catalogItemName: row.catalog_item_name as string,
           catalogItemBrand: row.catalog_item_brand as string | null,
@@ -158,7 +158,7 @@ export function useWishlistInsights(): UseWishlistInsightsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [merchant?.id, primaryLocation, filters.radiusMeters, filters.minUsers, filters.recentDays, filters.limit, filters.offset]);
+  }, [merchant?.id, primaryLocation, filters.radiusMeters, filters.minUsers, filters.limit]);
 
   // Fetch on mount and dependency change
   useEffect(() => {

@@ -5,7 +5,7 @@
  * Tests rendering of user info, stats, social links, favorites, and VIP badge.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfileView } from '@/components/profile/ProfileView';
 import type { MergedUser } from '@/types/auth';

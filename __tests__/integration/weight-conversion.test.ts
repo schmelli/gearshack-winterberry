@@ -235,7 +235,7 @@ describe('Weight Conversion System Integration', () => {
 
     it('should update conversions when preference changes', async () => {
       // Arrange
-      const queryBuilder = setupProfileMock('g');
+      const _queryBuilder = setupProfileMock('g');
       const { useUserPreferences } = await import('@/hooks/useUserPreferences');
       const { useWeightConversion } = await import('@/hooks/useWeightConversion');
 

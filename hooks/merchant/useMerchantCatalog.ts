@@ -139,6 +139,8 @@ export function useMerchantCatalog(): UseMerchantCatalogReturn {
 
   // Fetch on mount and when dependencies change
   useEffect(() => {
+    // Data fetching in useEffect is a valid pattern
+     
     fetchCatalog();
   }, [fetchCatalog]);
 
@@ -368,6 +370,7 @@ export function useCatalogBulkOperations() {
     setSelectedIds(new Set());
   }, []);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- async operation with state updates
   const bulkDeactivate = useCallback(async (): Promise<number> => {
     if (!merchant?.id || selectedIds.size === 0) return 0;
 

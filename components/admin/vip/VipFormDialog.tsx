@@ -112,6 +112,7 @@ export function VipFormDialog({
   }, [vip, form]);
 
   // Auto-generate slug from name
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const watchedName = form.watch('name');
   useEffect(() => {
     if (!isEditing && watchedName) {

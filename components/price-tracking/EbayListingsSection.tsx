@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ExternalLink, Package, Gavel, Tag, Loader2, AlertCircle } from 'lucide-react';
+import { ExternalLink, Package, Gavel, Tag, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

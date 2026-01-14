@@ -10,7 +10,7 @@
 
 'use client';
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { useInventory } from '@/hooks/useInventory';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useInventoryView } from '@/hooks/useInventoryView';

@@ -7,7 +7,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { WeightInput } from '@/components/ui/weight-input';
 import type { WeightUnit } from '@/types/gear';
 
@@ -16,6 +15,22 @@ import type { WeightUnit } from '@/types/gear';
 // =============================================================================
 
 // Mock shadcn/ui components
+interface InputMockProps {
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  type?: string;
+  min?: number | string;
+  step?: number | string;
+  name?: string;
+  'aria-label'?: string;
+  'aria-invalid'?: boolean;
+  [key: string]: unknown;
+}
+
 vi.mock('@/components/ui/input', () => ({
   Input: ({
     value,
@@ -31,7 +46,7 @@ vi.mock('@/components/ui/input', () => ({
     'aria-label': ariaLabel,
     'aria-invalid': ariaInvalid,
     ...props
-  }: any) => (
+  }: InputMockProps) => (
     <input
       data-testid="weight-value-input"
       type={type}
@@ -77,7 +92,7 @@ vi.mock('@/components/ui/select', () => ({
       </select>
     </div>
   ),
-  SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: any) => (
+  SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: { children: React.ReactNode; className?: string; 'aria-label'?: string }) => (
     <div data-testid="select-trigger" className={className} aria-label={ariaLabel}>
       {children}
     </div>

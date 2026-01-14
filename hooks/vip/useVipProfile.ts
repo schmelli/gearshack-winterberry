@@ -77,7 +77,10 @@ export function useVipProfile(slug: string | undefined): UseVipProfileReturn {
 
   // Fetch on mount and when slug changes
   useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching pattern
     fetchVip();
+    return () => controller.abort();
   }, [fetchVip]);
 
   return {

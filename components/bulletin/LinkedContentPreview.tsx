@@ -50,6 +50,7 @@ export function LinkedContentPreview({
       try {
         if (contentType === 'loadout' || contentType === 'shakedown') {
           // Note: Type assertion needed due to schema mismatch
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data: loadout, error: err } = await (supabase as any)
             .from('loadouts')
             .select('id, name')
@@ -65,6 +66,7 @@ export function LinkedContentPreview({
             .eq('loadout_id', contentId);
 
           // Note: Type assertion needed - loadouts fields accessed directly
+          /* eslint-disable @typescript-eslint/no-explicit-any */
           setData({
             id: (loadout as any).id,
             title: (loadout as any).name,
@@ -72,6 +74,7 @@ export function LinkedContentPreview({
             baseWeight: (loadout as any).base_weight_g,
             itemCount: count ?? 0,
           });
+          /* eslint-enable @typescript-eslint/no-explicit-any */
         }
         // TODO: Add marketplace_item support when needed
       } catch {
@@ -127,6 +130,7 @@ export function LinkedContentPreview({
       <CardContent className="flex gap-4 p-4">
         {/* Thumbnail */}
         {data.thumbnail ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={data.thumbnail}
             alt={data.title}

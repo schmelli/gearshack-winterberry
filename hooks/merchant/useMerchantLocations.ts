@@ -199,6 +199,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [merchant?.id, locations]
   );
 
@@ -263,6 +264,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [merchant?.id]
   );
 
@@ -316,6 +318,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [merchant?.id, locations]
   );
 
@@ -362,6 +365,7 @@ export function useMerchantLocations(): UseMerchantLocationsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [merchant?.id]
   );
 

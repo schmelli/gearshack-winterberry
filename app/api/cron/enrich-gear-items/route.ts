@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- gear_enrichment_suggestions/notifications/profiles tables not in generated types */
 /**
  * Cron job: Background GearGraph enrichment check
  * Feature: Gear enrichment system
@@ -97,7 +98,6 @@ export async function GET(request: NextRequest) {
     log.info('Processing gear items for enrichment', { count: gearItems.length });
 
     // Batch fetch subscription tiers for all users with pending items
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userIds = [...new Set(gearItems.map((item: any) => item.user_id))];
     const { data: profiles, error: profilesError } = await (supabase as any)
       .from('profiles')

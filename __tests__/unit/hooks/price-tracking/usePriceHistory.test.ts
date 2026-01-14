@@ -91,7 +91,7 @@ describe('usePriceHistory', () => {
     });
 
     it('should not fetch when trackingId is empty', async () => {
-      const { result } = renderHook(() => usePriceHistory(''));
+      const { result: _result } = renderHook(() => usePriceHistory(''));
 
       // Wait a tick for useEffect to run
       await waitFor(() => {

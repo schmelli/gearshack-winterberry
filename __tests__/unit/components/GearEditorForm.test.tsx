@@ -5,9 +5,8 @@
  * Tests form rendering, tab navigation, user interactions, and form submission.
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
 import type { GearItem, GearItemFormData } from '@/types/gear';
 import type { UseGearEditorReturn } from '@/hooks/useGearEditor';

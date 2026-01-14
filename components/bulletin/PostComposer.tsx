@@ -87,6 +87,7 @@ export function PostComposer({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const content = watch('content') || '';
   const charCount = content.length;
   const isOverWarning = charCount >= BULLETIN_CONSTANTS.WARNING_THRESHOLD;
@@ -113,15 +114,18 @@ export function PostComposer({
     }
   }, [editPost, reset, linkedContent]);
 
-  const handleFormSubmit = async (data: CreatePostSchema) => {
-    await onSubmit({
-      ...data,
-      tag: selectedTag,
-    });
-    reset();
-    setSelectedTag(undefined);
-    onClose();
-  };
+  const handleFormSubmit = useCallback(
+    async (data: CreatePostSchema) => {
+      await onSubmit({
+        ...data,
+        tag: selectedTag,
+      });
+      reset();
+      setSelectedTag(undefined);
+      onClose();
+    },
+    [onSubmit, selectedTag, reset, onClose]
+  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {

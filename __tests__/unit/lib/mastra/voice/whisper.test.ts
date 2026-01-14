@@ -17,7 +17,6 @@ import {
   getLowConfidenceMessage,
   TranscriptionError,
   CONFIDENCE_THRESHOLD,
-  type TranscriptionResult,
   type TranscriptionOptions,
 } from '@/lib/mastra/voice/whisper';
 
@@ -306,7 +305,7 @@ describe('transcribeAudio', () => {
 
       await transcribeAudio(Buffer.from('test'), 'recording.webm');
 
-      const formData = mockFetch.mock.calls[0][1].body as FormData;
+      const _formData = mockFetch.mock.calls[0][1].body as FormData;
       // FormData contains the blob with correct mime type
       expect(mockFetch).toHaveBeenCalled();
     });

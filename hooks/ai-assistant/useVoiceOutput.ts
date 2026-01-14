@@ -77,7 +77,7 @@ export interface UseVoiceOutputReturn {
 export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutputReturn {
   const {
     voice = 'rachel', // Default ElevenLabs voice (calm and warm)
-    speed = 1.0,
+    speed: _speed = 1.0, // TODO: Implement playback speed control
     volume: initialVolume = 1.0,
     autoPlay = true,
     onStart,
@@ -260,7 +260,9 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
       onError?.(err instanceof Error ? err : new Error(errorMessage));
       cleanup();
     }
-  }, [voice, speed, autoPlay, cleanup, initAudioContext, state, onStart, onEnd, onError]);
+  // speed is captured by closure but not a reactive dependency here
+   
+  }, [voice, autoPlay, cleanup, initAudioContext, state, onStart, onEnd, onError]);
 
   // Pause playback
   const pause = useCallback(() => {

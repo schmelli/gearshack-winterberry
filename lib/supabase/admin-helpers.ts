@@ -6,9 +6,6 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/types/supabase';
-
-type ResellerRow = Database['public']['Tables']['resellers']['Row'];
 
 /**
  * Check if user is admin

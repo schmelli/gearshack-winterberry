@@ -5,7 +5,7 @@
  * Tests search, category filter, sorting, view density toggle, and item counts.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import type { ViewDensity, SortOption } from '@/types/inventory';

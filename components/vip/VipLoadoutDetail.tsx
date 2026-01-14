@@ -251,10 +251,12 @@ export function VipLoadoutDetail({
 
           {/* Source Attribution */}
           {/* TODO: Update VipSourceAttribution component to use new schema */}
+          {/* eslint-disable @typescript-eslint/no-explicit-any */}
           <VipSourceAttribution
             sourceUrl={(loadout as any).sourceUrl || (loadout as any).source_attribution?.url || ''}
             isSourceAvailable={!!(loadout as any).sourceUrl || !!(loadout as any).source_attribution?.url}
           />
+          {/* eslint-enable @typescript-eslint/no-explicit-any */}
         </CardContent>
       </Card>
 

@@ -190,6 +190,6 @@ export const emptyGearItem: Partial<GearItem> = {
 export const invalidGearItems = {
   missingName: { ...emptyGearItem, brand: 'Test Brand' },
   negativeWeight: { ...emptyGearItem, name: 'Test', weight_grams: -100 },
-  invalidStatus: { ...emptyGearItem, name: 'Test', status: 'invalid' as any },
+  invalidStatus: { ...emptyGearItem, name: 'Test', status: 'invalid' as GearItem['status'] },
   excessiveWeight: { ...emptyGearItem, name: 'Test', weight_grams: 1000000 },
 };

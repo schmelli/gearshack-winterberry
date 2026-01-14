@@ -242,6 +242,7 @@ export async function GET(request: NextRequest) {
 
     if (productTypeIds.length > 0) {
       // Get all categories to build the hierarchy
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- categories table not in generated types
       const { data: allCategories } = await (supabase as any)
         .from('categories')
         .select('id, label, slug, level, parent_id')

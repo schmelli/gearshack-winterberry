@@ -118,7 +118,16 @@ export async function preloadLoadoutContext(
     }
 
     // Calculate weights
-    const gearItems = (loadout.gear_items || []).map((item: any) => ({
+    // Type for raw gear item from Supabase join query
+    interface RawGearItem {
+      id: string;
+      name: string;
+      brand: string | null;
+      weight: number | null;
+      category: { name: string } | null;
+      product_type: { name: string } | null;
+    }
+    const gearItems = ((loadout.gear_items || []) as RawGearItem[]).map((item) => ({
       id: item.id,
       name: item.name,
       brand: item.brand,
@@ -127,7 +136,7 @@ export async function preloadLoadoutContext(
       productType: item.product_type?.name || null,
     }));
 
-    const totalWeight = gearItems.reduce((sum: number, item: any) => sum + item.weight, 0);
+    const totalWeight = gearItems.reduce((sum, item) => sum + item.weight, 0);
     const baseWeight = totalWeight; // Simplified - could exclude consumables
 
     // Category breakdown

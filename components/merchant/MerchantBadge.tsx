@@ -202,6 +202,7 @@ export function MerchantInfoBadge({
   return (
     <div className={cn('inline-flex items-center', sizeClasses.gap, className)}>
       {merchant.logoUrl && (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={merchant.logoUrl}
           alt={merchant.businessName}

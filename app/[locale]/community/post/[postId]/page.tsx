@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- v_bulletin_posts_with_author view not in generated types */
 /**
  * Direct Post Link Page
  *

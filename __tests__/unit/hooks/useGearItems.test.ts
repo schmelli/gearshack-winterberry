@@ -8,8 +8,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useGearItems } from '@/hooks/useGearItems';
-import { mockUser, createQueryBuilderMock, resetSupabaseMocks } from '../../mocks/supabase';
-import { mockGearItems } from '../../fixtures/gear';
+import { createQueryBuilderMock as _createQueryBuilderMock, resetSupabaseMocks } from '../../mocks/supabase';
+import { mockGearItems as _mockGearItems } from '../../fixtures/gear';
 
 // =============================================================================
 // Mock Setup
@@ -154,7 +154,7 @@ describe('useGearItems', () => {
   describe('Initial State', () => {
     it('should start with loading state true', () => {
       const queryBuilder = createMockQueryBuilder();
-      queryBuilder.then = vi.fn((resolve) => {
+      queryBuilder.then = vi.fn((_resolve) => {
         // Don't resolve immediately to test loading state
         return new Promise(() => {});
       });

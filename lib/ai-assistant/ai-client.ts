@@ -85,6 +85,23 @@ export function getAIModel() {
 // Mastra Tool Adapter for Vercel AI SDK
 // =====================================================
 
+// Mastra tool interface for type safety
+interface MastraTool<TInput = unknown, TOutput = unknown> {
+  id: string;
+  description: string;
+  inputSchema: z.ZodType<TInput>;
+  outputSchema?: z.ZodType<TOutput>;
+  execute: (params: { context: TInput; runtimeContext: Map<string, unknown> }) => Promise<TOutput>;
+}
+
+// JSON Schema type for converted schemas
+interface JsonSchema {
+  type?: string;
+  properties?: Record<string, unknown>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
 /**
  * Convert Mastra tool to Vercel AI SDK format
  *
@@ -94,15 +111,15 @@ export function getAIModel() {
  * CRITICAL: Claude requires JSON Schema with explicit type: "object" field.
  * We use zodToJsonSchema to ensure proper conversion with all required fields.
  */
-function adaptMastraTool<TInput = any, TOutput = any>(
-  mastraTool: any,
+function adaptMastraTool<TInput, TOutput>(
+  mastraTool: MastraTool<TInput, TOutput>,
   userId: string
 ) {
   // Convert Zod schema to JSON Schema with proper type field for Claude
   const jsonSchema = zodToJsonSchema(mastraTool.inputSchema, {
     target: 'jsonSchema7',
     $refStrategy: 'none', // Don't use $ref, inline all definitions
-  }) as any;
+  }) as JsonSchema;
 
   // Ensure type: "object" is at the root level (required by Claude)
   if (!jsonSchema.type) {
@@ -114,12 +131,14 @@ function adaptMastraTool<TInput = any, TOutput = any>(
     console.log('[adaptMastraTool] DEBUG - Full tool object keys:', Object.keys(mastraTool));
     console.log('[adaptMastraTool] DEBUG - inputSchema type:', typeof mastraTool.inputSchema);
     console.log('[adaptMastraTool] DEBUG - inputSchema constructor:', mastraTool.inputSchema?.constructor?.name);
-    console.log('[adaptMastraTool] DEBUG - Is Zod schema?:', mastraTool.inputSchema?._def !== undefined);
+    // Access _def through type assertion for Zod internal structure
+    const zodSchema = mastraTool.inputSchema as unknown as { _def?: { typeName?: string } };
+    console.log('[adaptMastraTool] DEBUG - Is Zod schema?:', zodSchema._def !== undefined);
 
     // Try to get the schema shape
-    if (mastraTool.inputSchema?._def) {
-      console.log('[adaptMastraTool] DEBUG - Zod _def.typeName:', mastraTool.inputSchema._def.typeName);
-      console.log('[adaptMastraTool] DEBUG - Zod _def keys:', Object.keys(mastraTool.inputSchema._def));
+    if (zodSchema._def) {
+      console.log('[adaptMastraTool] DEBUG - Zod _def.typeName:', zodSchema._def.typeName);
+      console.log('[adaptMastraTool] DEBUG - Zod _def keys:', Object.keys(zodSchema._def));
     }
 
     console.log('[adaptMastraTool] DEBUG - Generated JSON Schema:', JSON.stringify(jsonSchema, null, 2));
@@ -127,10 +146,10 @@ function adaptMastraTool<TInput = any, TOutput = any>(
 
   return {
     description: mastraTool.description,
-    parameters: jsonSchema as any, // JSON Schema format for Claude compatibility
+    parameters: jsonSchema, // JSON Schema format for Claude compatibility
     execute: async (args: TInput): Promise<TOutput> => {
       // Create runtime context with userId
-      const runtimeContext = new Map<string, any>();
+      const runtimeContext = new Map<string, unknown>();
       runtimeContext.set('userId', userId);
 
       // Call Mastra tool's execute with proper format
@@ -296,7 +315,7 @@ async function generateAIResponseInternal(
   text: string;
   tokensUsed: number;
   finishReason: string;
-  toolCalls: any[];
+  toolCalls: ToolCallResult[];
 }> {
   const model = getAIModel();
 
@@ -305,7 +324,15 @@ async function generateAIResponseInternal(
   const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
   try {
-    const config: any = {
+    // Build config object - using Record for dynamic tool assignment
+    const config: {
+      model: ReturnType<typeof getAIModel>;
+      system: string;
+      messages: Array<{ role: 'user'; content: string }>;
+      abortSignal: AbortSignal;
+      tools?: ReturnType<typeof getAITools>;
+      maxSteps?: number;
+    } = {
       model,
       system: systemPrompt,
       messages: [
@@ -327,11 +354,18 @@ async function generateAIResponseInternal(
 
     const result = await generateText(config);
 
+    // Map tool calls to our ToolCallResult format
+    const mappedToolCalls: ToolCallResult[] = (result.toolCalls || []).map((call) => ({
+      toolCallId: call.toolCallId,
+      toolName: call.toolName,
+      args: call.args as Record<string, unknown>,
+    }));
+
     return {
       text: result.text,
       tokensUsed: result.usage?.totalTokens || 0,
       finishReason: result.finishReason,
-      toolCalls: result.toolCalls || [], // T058: Return tool calls for action extraction
+      toolCalls: mappedToolCalls, // T058: Return tool calls for action extraction
     };
   } catch (error) {
     // Check if error is due to timeout
@@ -365,7 +399,7 @@ export async function generateAIResponse(
   text: string;
   tokensUsed: number;
   finishReason: string;
-  toolCalls: any[];
+  toolCalls: ToolCallResult[];
 }> {
   // Wrap with retry logic if enabled
   if (AI_RETRY_ENABLED) {
@@ -436,9 +470,22 @@ export async function generateStreamingAIResponse(
 
   try {
     // Build config with optional tools
-    // Note: Using `any` for config to work around Vercel AI SDK type complexities
-    // This matches the pattern used in generateAIResponseInternal
-    const config: any = {
+    // Define explicit type for config with optional fields
+    const config: {
+      model: ReturnType<typeof getAIModel>;
+      system: string;
+      messages: Array<{ role: 'user'; content: string }>;
+      abortSignal: AbortSignal;
+      tools?: ReturnType<typeof getAITools>;
+      maxSteps?: number;
+      onStepFinish?: (step: {
+        stepType: string;
+        text: string;
+        toolCalls?: unknown[];
+        toolResults?: unknown[];
+        finishReason: string;
+      }) => void;
+    } = {
       model,
       system: systemPrompt,
       messages: [
@@ -466,13 +513,7 @@ export async function generateStreamingAIResponse(
       });
 
       // AI SDK 5: onStepFinish callback for debugging multi-step execution
-      config.onStepFinish = (step: {
-        stepType: string;
-        text: string;
-        toolCalls?: unknown[];
-        toolResults?: unknown[];
-        finishReason: string;
-      }) => {
+      config.onStepFinish = (step) => {
         console.log('[AI Multi-Step] Step finished:', {
           stepType: step.stepType,
           finishReason: step.finishReason,
@@ -488,10 +529,18 @@ export async function generateStreamingAIResponse(
     // Clear timeout when stream completes
     result.text.finally(() => clearTimeout(timeoutId));
 
+    // Define type for raw tool call from AI SDK
+    type RawToolCall = {
+      toolCallId: string;
+      toolName: string;
+      args?: Record<string, unknown>;
+      input?: Record<string, unknown>;
+    };
+
     return {
       textStream: result.textStream,
-      toolCalls: result.toolCalls.then((calls: any[]) =>
-        (calls || []).map((call: any) => ({
+      toolCalls: result.toolCalls.then((calls: RawToolCall[]) =>
+        (calls || []).map((call) => ({
           toolCallId: call.toolCallId,
           toolName: call.toolName,
           args: (call.args || call.input || {}) as Record<string, unknown>,

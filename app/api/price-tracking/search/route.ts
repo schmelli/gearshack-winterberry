@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Search prices for a wishlist item
  * Feature: 050-price-tracking

@@ -124,7 +124,8 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
 
       // Calculate summary statistics for each loadout
       const loadoutsWithStats: VipLoadoutSummary[] = await Promise.all(
-        (data || []).map(async (loadout: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (data || []).map(async (loadout: Record<string, any>) => {
           // Get total weight from loadout items
           const { data: items } = await supabase
             .from('loadout_items')
@@ -134,7 +135,8 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
             `)
             .eq('loadout_id', loadout.id);
 
-          const totalWeightGrams = (items || []).reduce((sum, item: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const totalWeightGrams = (items || []).reduce((sum, item: Record<string, any>) => {
             const weight = item.gear_items?.weight_grams || 0;
             const quantity = item.quantity || 1;
             return sum + weight * quantity;
@@ -196,10 +198,11 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
         user_id: userId,
         name: data.name,
         description: data.description || null,
-        activity_types: (data.activityTypes as any) || null,
-        seasons: (data.seasons as any) || null,
+        activity_types: (data.activityTypes as string[] | null) || null,
+        seasons: (data.seasons as string[] | null) || null,
         is_vip_loadout: false, // Start as draft (unpublished)
-        source_attribution: sourceAttribution as any, // JSONB type
+         
+        source_attribution: sourceAttribution as Record<string, unknown> | null, // JSONB type
       };
 
       const { data: loadout, error } = await supabase

@@ -81,6 +81,7 @@ export function WikiPageEditor({ page, mode }: WikiPageEditorProps) {
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const watchContent = watch(activeLocale === 'de' ? 'content_de' : 'content_en');
 
   const onSubmit = async (data: WikiPageFormValues) => {

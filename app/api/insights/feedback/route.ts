@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- insight_feedback table not in generated types */
 /**
  * Insight Feedback API Route
  *

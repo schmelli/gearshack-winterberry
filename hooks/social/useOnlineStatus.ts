@@ -45,6 +45,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
    * Updates the current user's online status.
    */
   const updateStatus = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- async operation with state updates
     async (newStatus: OnlineStatus): Promise<void> => {
       if (!user?.uid) return;
 
@@ -170,7 +171,8 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
   useEffect(() => {
     if (!user?.uid || !friends.length) return;
 
-    // Initial refresh
+    // Initial refresh - data fetching in useEffect is a valid pattern
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshFriendsStatus();
 
     // Periodic refresh
@@ -186,6 +188,8 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
   // Set initial status on mount
   useEffect(() => {
     if (user?.uid) {
+      // Data fetching in useEffect is a valid pattern
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       updateStatus('online');
       resetInactivityTimer();
     }

@@ -100,13 +100,21 @@ export async function calculateBaseWeight(
     };
   }
 
+  // Define the category structure from the join
+  interface JoinedCategory {
+    id: string;
+    label: string;
+    i18n: Record<string, string> | null;
+  }
+
   // Build category map from joined data (no additional query needed)
   const categoryMap = new Map<string, string>();
 
   for (const item of gearItems) {
-    const category = (item as any).categories;
+    // Access the joined categories data
+    const category = (item as typeof item & { categories?: JoinedCategory }).categories;
     if (category && item.category_id && !categoryMap.has(item.category_id)) {
-      const i18n = category.i18n as Record<string, string> | null;
+      const i18n = category.i18n;
       const name = i18n?.en ?? category.label;
       categoryMap.set(item.category_id, name);
     }
@@ -180,11 +188,23 @@ export async function getCategoryBreakdowns(userId: string): Promise<CategoryBre
  * @param currency - Currency code (default: USD)
  * @returns Array of gear items within budget
  */
+// Type for gear items with budget-relevant fields
+interface GearItemBudgetView {
+  id: string;
+  name: string;
+  brand: string | null;
+  price_paid: number | null;
+  currency: string | null;
+  category_id: string | null;
+  weight_grams: number | null;
+  primary_image_url: string | null;
+}
+
 export async function findGearByBudget(
   userId: string,
   maxPrice: number,
   currency: string = 'USD'
-): Promise<any[]> {
+): Promise<GearItemBudgetView[]> {
   const supabase = await createClient();
 
   const { data: gearItems, error } = await supabase
@@ -335,9 +355,15 @@ export async function getUserGearList(userId: string): Promise<string> {
     return '';
   }
 
+  // Define the category structure from the inner join
+  interface JoinedCategoryLabel {
+    label: string;
+    i18n: Record<string, string> | null;
+  }
+
   // Format items as a bulleted list
   const formattedItems = gearItems.map((item) => {
-    const category = (item as any).categories;
+    const category = (item as typeof item & { categories?: JoinedCategoryLabel }).categories;
     const categoryLabel = category?.label || 'Uncategorized';
     const brand = item.brand ? `${item.brand} ` : '';
     const weight = item.weight_grams ? ` - ${item.weight_grams}g` : '';

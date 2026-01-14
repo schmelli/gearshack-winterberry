@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getPriceHistory } from '@/lib/supabase/price-tracking-queries';
 import { HISTORY_CONFIG } from '@/lib/constants/price-tracking';
 import type { PriceHistoryEntry } from '@/types/price-tracking';
@@ -23,7 +23,7 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchHistory = async (days: number = HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS) => {
+  const fetchHistory = useCallback(async (days: number = HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -34,7 +34,7 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [trackingId]);
 
   useEffect(() => {
     if (trackingId) {
@@ -43,7 +43,7 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
       // No tracking ID, nothing to fetch
       setIsLoading(false);
     }
-  }, [trackingId]);
+  }, [trackingId, fetchHistory]);
 
   return {
     history,

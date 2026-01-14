@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- profiles table not in generated types */
 /**
  * AI Assistant Streaming API Route
  * Feature 050: AI Assistant - Streaming Support

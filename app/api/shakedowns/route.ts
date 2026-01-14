@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- shakedowns tables not in generated types */
 /**
  * API Route: Shakedowns
  *
@@ -230,7 +231,7 @@ export async function GET(
 
     // Build the base query on the feed view
     // Note: Using type assertion until Supabase types are regenerated
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query = (supabase as any)
       .from('v_shakedowns_feed')
       .select('*');
@@ -311,7 +312,7 @@ export async function GET(
     // If friendsFirst is enabled and user is authenticated, reorder results
     if (friendsFirst && user) {
       // Get user's friend IDs
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: friendships } = await (supabase as any)
         .from('friendships')
         .select('user_id, friend_id')
@@ -449,7 +450,7 @@ export async function POST(
 
     // Insert shakedown into database
     // Note: Using type assertion until Supabase types are regenerated with shakedowns table
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: shakedown, error: insertError } = await (supabase as any)
       .from('shakedowns')
       .insert(insertPayload)

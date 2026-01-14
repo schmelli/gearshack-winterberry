@@ -4,7 +4,7 @@
  * Tests for message compose component with text and attachments.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MessageInput } from '@/components/messaging/MessageInput';
@@ -17,6 +17,7 @@ import { MessageInput } from '@/components/messaging/MessageInput';
 vi.mock('@/components/messaging/ImageAttachmentPreview', () => ({
   ImageAttachmentPreview: ({ imageUrl, onRemove }: { imageUrl: string; onRemove: () => void }) => (
     <div data-testid="image-preview">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={imageUrl} alt="preview" />
       <button onClick={onRemove} data-testid="remove-image">Remove</button>
     </div>

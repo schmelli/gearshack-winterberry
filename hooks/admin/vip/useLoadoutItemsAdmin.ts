@@ -89,7 +89,9 @@ export function useLoadoutItemsAdmin(
 
       if (error) throw error;
 
-      const items: LoadoutItem[] = (data || []).map((item: any) => ({
+      // Map database records to LoadoutItem interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: LoadoutItem[] = (data || []).map((item: Record<string, any>) => ({
         id: item.id,
         loadoutId: item.loadout_id,
         gearItemId: item.gear_item_id,

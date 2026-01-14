@@ -31,7 +31,7 @@ vi.mock('@/lib/supabase/wishlist-queries', () => ({
   checkWishlistDuplicate: (brand: string | null, model: string | null) =>
     mockCheckWishlistDuplicate(brand, model),
   DuplicateError: class DuplicateError extends Error {
-    constructor(existingItem: unknown) {
+    constructor(_existingItem: unknown) {
       super('Duplicate item');
       this.name = 'DuplicateError';
     }

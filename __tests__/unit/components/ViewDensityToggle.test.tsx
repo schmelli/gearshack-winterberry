@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ViewDensityToggle } from '@/components/inventory-gallery/ViewDensityToggle';
-import type { ViewDensity } from '@/types/inventory';
+import type { } from '@/types/inventory';
 
 // =============================================================================
 // Mocks

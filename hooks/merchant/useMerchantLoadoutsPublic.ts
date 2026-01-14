@@ -136,6 +136,8 @@ export function useMerchantLoadoutsPublic(
 
   // Fetch on mount and when dependencies change
   useEffect(() => {
+    // Data fetching in useEffect is a valid pattern
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLoadouts();
   }, [fetchLoadouts]);
 

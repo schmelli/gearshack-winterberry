@@ -62,7 +62,10 @@ export function useAdminVips(): UseAdminVipsReturn {
 
   // Fetch on mount
   useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching pattern
     fetchVips();
+    return () => controller.abort();
   }, [fetchVips]);
 
   return {

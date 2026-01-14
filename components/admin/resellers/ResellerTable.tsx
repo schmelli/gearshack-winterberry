@@ -231,6 +231,7 @@ export function ResellerTable({
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">
                       {reseller.logoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={reseller.logoUrl}
                           alt={reseller.name}

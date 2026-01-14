@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GearCard } from '@/components/inventory-gallery/GearCard';
 import type { GearItem } from '@/types/gear';
-import type { ViewDensity } from '@/types/inventory';
+import type { } from '@/types/inventory';
 
 // =============================================================================
 // Mocks

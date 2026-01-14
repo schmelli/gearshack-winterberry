@@ -94,6 +94,7 @@ function MiniGearCard({ item, onClick }: MiniGearCardProps) {
     >
       <div className="relative w-14 h-14 rounded-lg bg-muted/50 overflow-hidden">
         {item.imageUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={item.imageUrl}
             alt={item.name}

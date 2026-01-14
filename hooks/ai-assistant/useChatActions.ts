@@ -127,7 +127,8 @@ export function useChatActions(): UseChatActionsResult {
 
 // Action handlers (T064: Inline confirmations, T065: Inline errors)
 
-async function handleAddToWishlist(action: Action, t: any): Promise<Record<string, unknown>> {
+ 
+async function handleAddToWishlist(action: Action, t: (key: string, values?: Record<string, unknown>) => string): Promise<Record<string, unknown>> {
   if (action.type !== 'add_to_wishlist') return {};
 
   const result = await executeAddToWishlist(action.gearItemId);
@@ -143,7 +144,7 @@ async function handleAddToWishlist(action: Action, t: any): Promise<Record<strin
   return { gearItemId: action.gearItemId };
 }
 
-async function handleCompareGear(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+async function handleCompareGear(action: Action, t: (key: string, values?: Record<string, unknown>) => string, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
   if (action.type !== 'compare') return {};
 
   const result = await executeCompareGear(action.gearItemIds);
@@ -162,7 +163,7 @@ async function handleCompareGear(action: Action, t: any, router: ReturnType<type
   return { gearItemIds: action.gearItemIds, compareUrl: result.compareUrl };
 }
 
-async function handleSendMessage(action: Action, t: any): Promise<Record<string, unknown>> {
+async function handleSendMessage(action: Action, t: (key: string, values?: Record<string, unknown>) => string): Promise<Record<string, unknown>> {
   if (action.type !== 'send_message') return {};
 
   const result = await executeSendMessage(action.recipientUserId, action.messagePreview);
@@ -178,7 +179,7 @@ async function handleSendMessage(action: Action, t: any): Promise<Record<string,
   return { recipientUserId: action.recipientUserId, conversationId: result.conversationId };
 }
 
-async function handleNavigate(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+async function handleNavigate(action: Action, t: (key: string, values?: Record<string, unknown>) => string, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
   if (action.type !== 'navigate') return {};
 
   const result = await executeNavigate(action.destination);

@@ -117,6 +117,7 @@ export const OfferCreationForm = memo(function OfferCreationForm({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const watchOfferPrice = form.watch('offerPrice');
   const watchExpiresInDays = form.watch('expiresInDays');
 
@@ -164,6 +165,7 @@ export const OfferCreationForm = memo(function OfferCreationForm({
             <div className="flex gap-4">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
                 {catalogItem.imageUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={catalogItem.imageUrl}
                     alt={catalogItem.name}

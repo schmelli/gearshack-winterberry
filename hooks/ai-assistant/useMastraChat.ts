@@ -402,6 +402,8 @@ export function useMastraChat(): UseMastraChatResult {
         abortControllerRef.current = null;
       }
     },
+    // t is excluded intentionally - translation function reference stays stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, conversationId, abort]
   );
 

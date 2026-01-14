@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { PersonalOffer } from '@/types/price-tracking';
 
@@ -23,7 +23,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadOffers = async () => {
+  const loadOffers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -77,7 +77,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gearItemId]);
 
   const dismissOffer = async (offerId: string) => {
     try {
@@ -101,7 +101,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
 
   useEffect(() => {
     loadOffers();
-  }, [gearItemId]);
+  }, [loadOffers]);
 
   return {
     offers,

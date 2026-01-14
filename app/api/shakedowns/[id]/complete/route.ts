@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- shakedowns tables not in generated types */
 /**
  * API Route: Complete Shakedown
  *
@@ -153,7 +154,7 @@ function mapDbRowToShakedownWithAuthor(
  * Returns the newly awarded badge if applicable
  */
 async function checkForNewBadge(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   authorId: string,
   previousHelpfulCount: number
@@ -253,7 +254,7 @@ export async function POST(
     const { helpfulFeedbackIds } = validation.data;
 
     // Fetch shakedown with profile data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: shakedownRow, error: shakedownError } = await (supabase as any)
       .from('shakedowns')
       .select(
@@ -305,7 +306,7 @@ export async function POST(
     // Process batch helpful votes if provided
     if (helpfulFeedbackIds && helpfulFeedbackIds.length > 0) {
       // Validate that all feedback IDs belong to this shakedown
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: feedbackRows, error: feedbackError } = await (supabase as any)
         .from('shakedown_feedback')
         .select('id, author_id')
@@ -337,7 +338,7 @@ export async function POST(
         const previousCounts = new Map<string, number>();
 
         // Fetch all profiles in a single query to avoid N+1 problem
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const { data: profiles } = await (supabase as any)
           .from('profiles')
           .select('id, shakedown_helpful_received')
@@ -355,7 +356,7 @@ export async function POST(
           voter_id: user.id,
         }));
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const { error: upsertError, count } = await (supabase as any)
           .from('shakedown_helpful_votes')
           .upsert(voteInserts, {
@@ -385,7 +386,7 @@ export async function POST(
     // Update shakedown status to 'completed'
     const completedAt = new Date().toISOString();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: updatedRow, error: updateError } = await (supabase as any)
       .from('shakedowns')
       .update({

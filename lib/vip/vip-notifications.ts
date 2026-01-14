@@ -10,13 +10,14 @@
 
 import { createClient } from '@/lib/supabase/client';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 /**
- * Helper to get supabase client with any typing for VIP functions
+ * Helper to get supabase client for VIP functions
  * TODO: Remove after regenerating types from migrations
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getVipClient(): any {
-  return createClient();
+function getVipClient(): SupabaseClient {
+  return createClient() as SupabaseClient;
 }
 
 // =============================================================================
@@ -119,7 +120,7 @@ export async function notifyVipArchived(
 
   try {
     // Get all followers
-    const { data: followers, error: followersError } = await (supabase as any)
+    const { data: followers, error: followersError } = await supabase
       .from('vip_follows')
       .select('follower_id')
       .eq('vip_id', vipId);
@@ -131,8 +132,7 @@ export async function notifyVipArchived(
     }
 
     // Create notifications for each follower
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const notifications = followers.map((f: any) => ({
+    const notifications = followers.map((f: { follower_id: string }) => ({
       user_id: f.follower_id,
       type: 'vip_archived' as const,
       data: {
@@ -143,7 +143,7 @@ export async function notifyVipArchived(
       created_at: new Date().toISOString(),
     }));
 
-    const { error: insertError } = await (supabase as any)
+    const { error: insertError } = await supabase
       .from('notifications')
       .insert(notifications);
 
@@ -241,7 +241,7 @@ export async function userWantsVipNotifications(userId: string): Promise<boolean
   const supabase = getVipClient();
 
   try {
-    const { data: profile } = await (supabase as any)
+    const { data: profile } = await supabase
       .from('profiles')
       .select('notification_preferences')
       .eq('id', userId)
@@ -266,7 +266,7 @@ export async function setVipNotificationPreference(
   const supabase = getVipClient();
 
   // Get current preferences
-  const { data: profile } = await (supabase as any)
+  const { data: profile } = await supabase
     .from('profiles')
     .select('notification_preferences')
     .eq('id', userId)
@@ -275,7 +275,7 @@ export async function setVipNotificationPreference(
   const currentPrefs = (profile?.notification_preferences ?? {}) as Record<string, boolean>;
 
   // Update VIP preference
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('profiles')
     .update({
       notification_preferences: {

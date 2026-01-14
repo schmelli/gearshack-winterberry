@@ -37,7 +37,7 @@ export const queryUserDataParametersSchema = z.object({
     .describe('Columns to select (comma-separated, e.g., "id,name,brand,weight_grams")'),
 
   filters: z
-    .record(z.string(), z.any())
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
     .optional()
     .describe('Filters to apply (e.g., {"brand": "Osprey", "status": "own"})'),
 
@@ -114,7 +114,7 @@ export interface QueryUserDataResponse {
   operation: string;
   table: string;
   rowCount: number;
-  data: any[] | number | null;
+  data: Record<string, unknown>[] | number | null;
   error?: string;
   metadata?: {
     executionTimeMs: number;

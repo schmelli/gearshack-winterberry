@@ -106,7 +106,7 @@ describe('Profile Schema', () => {
     });
 
     it('should allow missing trail name', () => {
-      const { trailName, ...withoutTrailName } = validProfile;
+      const { trailName: _trailName, ...withoutTrailName } = validProfile;
       const result = profileSchema.safeParse(withoutTrailName);
       expect(result.success).toBe(true);
     });

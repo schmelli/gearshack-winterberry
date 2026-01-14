@@ -216,9 +216,13 @@ Fuzzy Search:
         const rangeMax = range?.max ?? null;
 
         // Use fuzzy_search_column RPC for typo-tolerant search
-        // Note: Type assertion needed until Supabase types are regenerated after migration
-        const { data: fuzzyData, error: fuzzyError } = await Promise.race([
-          supabase.rpc('fuzzy_search_column' as any, {
+        // Type assertion: RPC function not in generated types, using 'never' to bypass strict checking
+        interface FuzzySearchResult {
+          row_data: Record<string, unknown>;
+          similarity_score: number;
+        }
+        const { data: fuzzyData, error: fuzzyError } = (await Promise.race([
+          supabase.rpc('fuzzy_search_column' as never, {
             p_table_name: table,
             p_column_name: search.column,
             p_search_value: search.value,
@@ -229,11 +233,11 @@ Fuzzy Search:
             p_range_column: rangeColumn,
             p_range_min: rangeMin,
             p_range_max: rangeMax,
-          }),
+          } as never),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Query timeout (5s)')), 5000)
           ),
-        ]);
+        ])) as { data: FuzzySearchResult[] | null; error: { message: string; details?: string; hint?: string; code?: string } | null };
 
         if (fuzzyError) {
           // Log detailed error for debugging (server-side only)
@@ -268,10 +272,7 @@ Fuzzy Search:
         const executionTime = Date.now() - startTime;
 
         // Extract row_data from fuzzy search results
-        // Type: Array of {row_data: JSONB, similarity_score: FLOAT}
-        const results =
-          fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
-          [];
+        const results = fuzzyData?.map((row) => row.row_data) ?? [];
 
         // Build applied filters list for metadata
         const fuzzyAppliedFilters = [`fuzzy_search:${search.column}:threshold=${threshold}`];
@@ -410,8 +411,13 @@ Fuzzy Search:
         const rangeMin = range?.min ?? null;
         const rangeMax = range?.max ?? null;
 
-        const { data: fuzzyData, error: fuzzyError } = await Promise.race([
-          supabase.rpc('fuzzy_search_column' as any, {
+        // Type for fuzzy search RPC result (defined above, reusing interface)
+        interface FallbackFuzzySearchResult {
+          row_data: Record<string, unknown>;
+          similarity_score: number;
+        }
+        const { data: fuzzyData, error: fuzzyError } = (await Promise.race([
+          supabase.rpc('fuzzy_search_column' as never, {
             p_table_name: table,
             p_column_name: search.column,
             p_search_value: search.value,
@@ -422,18 +428,16 @@ Fuzzy Search:
             p_range_column: rangeColumn,
             p_range_min: rangeMin,
             p_range_max: rangeMax,
-          }),
+          } as never),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Fuzzy fallback timeout (5s)')), 5000)
           ),
-        ]);
+        ])) as { data: FallbackFuzzySearchResult[] | null; error: unknown };
 
         // If fuzzy search succeeds and finds results, return those instead
         if (!fuzzyError && fuzzyData && fuzzyData.length > 0) {
           const fuzzyExecutionTime = Date.now() - startTime;
-          const results =
-            fuzzyData?.map((row: { row_data: Record<string, unknown>; similarity_score: number }) => row.row_data) ??
-            [];
+          const results = fuzzyData.map((row) => row.row_data);
 
           console.log('[queryUserData] Auto-fuzzy fallback succeeded', {
             table,

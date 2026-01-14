@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 // =============================================================================
@@ -162,11 +161,10 @@ vi.mock('@/components/ui/form', () => ({
     <div data-testid="form-provider" {...props}>{children}</div>
   ),
   FormField: ({
-    control,
     name,
     render,
   }: {
-    control: unknown;
+    control?: unknown;
     name: string;
     render: (props: { field: { name: string; value: string; onChange: () => void } }) => React.ReactNode;
   }) => (

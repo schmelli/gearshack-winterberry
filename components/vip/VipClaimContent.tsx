@@ -237,6 +237,7 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
       <CardHeader className="text-center">
         {claimData?.vip.avatarUrl && (
           <div className="mx-auto mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={claimData.vip.avatarUrl}
               alt={claimData.vip.name}

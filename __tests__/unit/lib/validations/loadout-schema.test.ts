@@ -195,7 +195,7 @@ describe('Loadout Creation Form Schema', () => {
     });
 
     it('should reject invalid season values', () => {
-      const invalid = { ...validCreationForm, seasons: ['autumn'] as any };
+      const invalid = { ...validCreationForm, seasons: ['autumn'] as unknown as string[] };
       const result = loadoutCreationFormSchema.safeParse(invalid);
       expect(result.success).toBe(false);
     });
@@ -233,7 +233,7 @@ describe('Loadout Creation Form Schema', () => {
     });
 
     it('should reject invalid activity types', () => {
-      const invalid = { ...validCreationForm, activityTypes: ['swimming'] as any };
+      const invalid = { ...validCreationForm, activityTypes: ['swimming'] as unknown as string[] };
       const result = loadoutCreationFormSchema.safeParse(invalid);
       expect(result.success).toBe(false);
     });

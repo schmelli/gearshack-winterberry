@@ -109,6 +109,7 @@ const LoadoutItemCard = memo(function LoadoutItemCard({
         {/* Item Image */}
         <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
           {catalogItem.imageUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={catalogItem.imageUrl}
               alt={catalogItem.name}
@@ -335,6 +336,7 @@ function MerchantSection({ loadout }: { loadout: LoadoutDetailType }) {
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           {merchant.logoUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={merchant.logoUrl}
               alt={merchant.businessName}
@@ -389,6 +391,7 @@ export const MerchantLoadoutDetail = memo(function MerchantLoadoutDetail({
       <div className="relative">
         <AspectRatio ratio={21 / 9}>
           {loadout.heroImageUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={loadout.heroImageUrl}
               alt={loadout.name}

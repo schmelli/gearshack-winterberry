@@ -565,7 +565,7 @@ describe('POST /api/shakedowns', () => {
         }),
       });
       const response = await POST(request);
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(400);
     });
@@ -583,7 +583,7 @@ describe('POST /api/shakedowns', () => {
         }),
       });
       const response = await POST(request);
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(400);
     });

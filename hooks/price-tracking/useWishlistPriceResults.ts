@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import type { PriceResult } from '@/types/price-tracking';
@@ -57,7 +57,7 @@ export function useWishlistPriceResults(gearItemId: string): UseWishlistPriceRes
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadPriceResults = async () => {
+  const loadPriceResults = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -113,7 +113,7 @@ export function useWishlistPriceResults(gearItemId: string): UseWishlistPriceRes
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gearItemId]);
 
   useEffect(() => {
     if (!gearItemId) {
@@ -123,7 +123,7 @@ export function useWishlistPriceResults(gearItemId: string): UseWishlistPriceRes
     }
 
     loadPriceResults();
-  }, [gearItemId]);
+  }, [gearItemId, loadPriceResults]);
 
   return {
     priceResults,

@@ -173,8 +173,10 @@ export function useAdminUsers(): UseAdminUsersReturn {
         if (!user) return;
 
         // Use type assertion since admin_activity_logs table is created by migration
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('admin_activity_logs').insert({
+        type SupabaseWithViews = typeof supabase & {
+          from: (table: string) => ReturnType<typeof supabase.from>;
+        };
+        await (supabase as SupabaseWithViews).from('admin_activity_logs').insert({
           admin_id: user.id,
           action_type: actionType,
           target_user_id: targetUserId,
@@ -313,7 +315,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
             suspended_until: suspendedUntil,
             suspension_reason: reason,
             suspended_by: admin.id,
-          } as any)
+          } as Record<string, unknown>)
           .eq('id', userId);
 
         if (updateErr) throw updateErr;
@@ -369,7 +371,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
             suspended_until: null,
             suspension_reason: null,
             suspended_by: null,
-          } as any)
+          } as Record<string, unknown>)
           .eq('id', userId);
 
         if (updateErr) throw updateErr;
@@ -419,8 +421,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
         if (!admin) throw new Error('Not authenticated');
 
         // Use type assertion since account_status is added by migration
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: current, error: fetchErr } = await (supabase as any)
+        const { data: current, error: fetchErr } = await (supabase as SupabaseWithViews)
           .from('profiles')
           .select('account_status')
           .eq('id', userId)
@@ -438,7 +439,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
             suspended_until: null,
             suspension_reason: reason,
             suspended_by: admin.id,
-          } as any)
+          } as Record<string, unknown>)
           .eq('id', userId);
 
         if (updateErr) throw updateErr;
@@ -484,7 +485,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
             suspended_until: null,
             suspension_reason: null,
             suspended_by: null,
-          } as any)
+          } as Record<string, unknown>)
           .eq('id', userId);
 
         if (updateErr) throw updateErr;

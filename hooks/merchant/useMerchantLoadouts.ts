@@ -160,7 +160,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
-    [merchant?.id]
+    [merchant?.id, t]
   );
 
   const updateLoadout = useCallback(
@@ -195,7 +195,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
-    [merchant?.id, currentLoadout?.id]
+    [merchant?.id, currentLoadout?.id, t]
   );
 
   const deleteLoadout = useCallback(
@@ -221,7 +221,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
-    [merchant?.id, currentLoadout?.id]
+    [merchant?.id, currentLoadout?.id, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -304,7 +304,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
-    [merchant?.id, currentLoadout?.id]
+    [merchant?.id, currentLoadout?.id, t]
   );
 
   const updateItem = useCallback(
@@ -333,6 +333,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [currentLoadout?.id]
   );
 
@@ -358,6 +359,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [currentLoadout?.id]
   );
 
@@ -387,6 +389,7 @@ export function useMerchantLoadouts(): UseMerchantLoadoutsReturn {
         setIsSaving(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [currentLoadout?.id]
   );
 

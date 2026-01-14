@@ -108,11 +108,11 @@ export async function withRetry<T>(
  * @param options - Retry configuration
  * @returns Wrapped function with retry logic
  */
-export function createRetryWrapper<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
+export function createRetryWrapper<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
   options: RetryOptions = {}
-): T {
-  return ((...args: Parameters<T>) => {
+): (...args: TArgs) => Promise<TResult> {
+  return (...args: TArgs) => {
     return withRetry(() => fn(...args), options);
-  }) as T;
+  };
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- user_reports table not in generated types */
 /**
  * POST /api/messaging/reports
  *

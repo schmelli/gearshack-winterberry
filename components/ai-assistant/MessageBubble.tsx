@@ -24,6 +24,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   inline_cards?: any[];
   actions?: Action[];
 }
@@ -123,6 +124,7 @@ export function MessageBubble({
         {/* Inline Cards (Gear References) */}
         {!isUser && message.inline_cards && message.inline_cards.length > 0 && (
           <div className="space-y-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {message.inline_cards.map((card: any, index: number) => (
               <InlineGearCard key={card.id || index} gearId={card.id} />
             ))}

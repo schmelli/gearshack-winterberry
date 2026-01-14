@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking/personal_offers tables not in generated types */
 /**
  * Cron job: Daily price checks for all tracked items
  * Feature: 050-price-tracking (US2)
@@ -88,7 +89,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Batch check conversions (Review fix #12)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conversionData = trackingItems.map((item: any) => ({
       tracking_id: item.id,
       gear_item_id: item.gear_item_id,
@@ -100,7 +100,6 @@ export async function GET(request: NextRequest) {
     await (supabase as any)
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .in('id', trackingItems.map((item: any) => item.id));
 
     log.info('Price check job completed', {

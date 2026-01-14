@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- messaging tables not in generated types */
 /**
  * POST /api/messaging/conversations/start
  *

@@ -165,6 +165,7 @@ export function ShakedownCreator({
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Watch start date to set min for end date
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const startDate = form.watch('tripStartDate');
 
   return (

@@ -11,7 +11,7 @@
 
 import { useTranslations } from 'next-intl';
 import { ExternalLink, MapPin, Store, Globe, RefreshCw, Crown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,6 +52,7 @@ function ResellerPriceCard({ price }: { price: ResellerPriceWithDetails }) {
           {/* Reseller Logo or Icon */}
           <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
             {reseller.logoUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={reseller.logoUrl}
                 alt={reseller.name}

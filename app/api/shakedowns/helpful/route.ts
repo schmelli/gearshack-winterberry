@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- shakedowns tables not in generated types */
 /**
  * API Route: Shakedown Helpful Votes
  *
@@ -94,7 +95,7 @@ const BADGE_THRESHOLDS: Record<ShakedownBadge, number> = {
  * Returns the newly awarded badge if applicable
  */
 async function checkForNewBadge(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   authorId: string,
   previousHelpfulCount: number
@@ -190,7 +191,7 @@ export async function POST(
     const { feedbackId } = validation.data;
 
     // Fetch feedback with shakedown info for authorization
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: feedback, error: feedbackError } = await (supabase as any)
       .from('shakedown_feedback')
       .select('id, shakedown_id, author_id, helpful_count')
@@ -207,7 +208,7 @@ export async function POST(
     const typedFeedback = feedback as FeedbackDbRow;
 
     // Fetch shakedown to verify ownership
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: shakedown, error: shakedownError } = await (supabase as any)
       .from('shakedowns')
       .select('id, owner_id')
@@ -240,7 +241,7 @@ export async function POST(
     }
 
     // Get previous helpful count for badge check
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: authorProfile } = await (supabase as any)
       .from('profiles')
       .select('shakedown_helpful_received')
@@ -250,7 +251,7 @@ export async function POST(
     const previousHelpfulCount = authorProfile?.shakedown_helpful_received ?? 0;
 
     // Insert the vote (will fail with unique constraint if already voted)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { error: insertError } = await (supabase as any)
       .from('shakedown_helpful_votes')
       .insert({
@@ -276,7 +277,7 @@ export async function POST(
 
     // Fetch updated helpful count from feedback
     // (The trigger has already updated it)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: updatedFeedback, error: fetchError } = await (supabase as any)
       .from('shakedown_feedback')
       .select('helpful_count')
@@ -307,7 +308,7 @@ export async function POST(
 
       // Create notification for badge award (T072)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         await (supabase as any).from('notifications').insert({
           user_id: typedFeedback.author_id,
           type: 'shakedown_badge',
@@ -386,7 +387,7 @@ export async function DELETE(
     const { feedbackId } = validation.data;
 
     // Check if the vote exists and belongs to the user
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: existingVote, error: voteError } = await (supabase as any)
       .from('shakedown_helpful_votes')
       .select('id, feedback_id, voter_id, created_at')
@@ -412,7 +413,7 @@ export async function DELETE(
     }
 
     // Check feedback exists before deletion
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: feedback, error: feedbackError } = await (supabase as any)
       .from('shakedown_feedback')
       .select('id, helpful_count')
@@ -429,7 +430,7 @@ export async function DELETE(
     const typedFeedback = feedback as FeedbackDbRow;
 
     // Delete the vote
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { error: deleteError } = await (supabase as any)
       .from('shakedown_helpful_votes')
       .delete()
@@ -445,7 +446,7 @@ export async function DELETE(
 
     // Fetch updated helpful count
     // (The trigger has already decremented it)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: updatedFeedback, error: fetchError } = await (supabase as any)
       .from('shakedown_feedback')
       .select('helpful_count')

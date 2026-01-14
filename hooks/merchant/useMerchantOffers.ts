@@ -345,6 +345,7 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
         setIsCreating(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from useTranslations
     [merchant?.id, fetchOffers]
   );
 

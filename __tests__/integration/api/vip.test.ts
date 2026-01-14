@@ -53,7 +53,7 @@ import { copyVipLoadout as mockCopyVipLoadout } from '@/lib/vip/vip-service';
 // Test Data
 // =============================================================================
 
-const mockUser = {
+const _mockUser = {
   id: 'user-123',
   email: 'test@example.com',
 };
@@ -113,7 +113,7 @@ describe('POST /api/vip/copy-loadout', () => {
     it('should reject non-string vipLoadoutId', async () => {
       const request = createRequest({ vipLoadoutId: 12345 });
       const response = await copyVipLoadout(request);
-      const data = await response.json();
+      const _data = await response.json();
 
       expect(response.status).toBe(400);
     });

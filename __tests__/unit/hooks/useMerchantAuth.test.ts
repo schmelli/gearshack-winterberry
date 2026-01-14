@@ -8,14 +8,13 @@
  * - Route guard helper
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import {
   useMerchantAuth,
   useMerchantAuthGuard,
-  type MerchantAuthStatus,
 } from '@/hooks/merchant/useMerchantAuth';
-import type { Merchant, MerchantStatus } from '@/types/merchant';
+import type { Merchant } from '@/types/merchant';
 import type { User } from '@supabase/supabase-js';
 
 // =============================================================================

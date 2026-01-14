@@ -10,7 +10,7 @@
  * - useIsFriend: Single user friendship check
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useFollowing, useIsFollowing } from '@/hooks/social/useFollowing';
 import { useFriendships, useFilteredFriends, useIsFriend } from '@/hooks/social/useFriendships';
@@ -158,7 +158,7 @@ describe('useFollowing', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      const initialCount = result.current.following.length;
+      const _initialCount = result.current.following.length;
 
       await act(async () => {
         await result.current.follow('new-user-id');

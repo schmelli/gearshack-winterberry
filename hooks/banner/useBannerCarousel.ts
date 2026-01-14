@@ -59,6 +59,8 @@ export function useBannerCarousel(): UseBannerCarouselReturn {
 
   // Load banners on mount
   useEffect(() => {
+    // Data fetching in useEffect is a valid pattern
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBanners();
   }, [loadBanners]);
 

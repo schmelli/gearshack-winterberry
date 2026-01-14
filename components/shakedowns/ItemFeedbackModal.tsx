@@ -186,6 +186,7 @@ function FeedbackComposer({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const content = form.watch('content');
   const charCount = content.length;
 

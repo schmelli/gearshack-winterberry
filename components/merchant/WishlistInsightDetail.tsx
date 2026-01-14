@@ -207,6 +207,7 @@ export const WishlistInsightDetail = memo(function WishlistInsightDetail({
 
   // Calculate proximity groups (must be before early returns per rules-of-hooks)
   type UserEntry = InsightDetailType['users'][number];
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- using detail?.users is intentional; recalc only needed when users array changes
   const proximityGroups = useMemo(() => {
     const emptyGroups: Record<ProximityBucket, UserEntry[]> = {
       '5km': [],
@@ -273,6 +274,7 @@ export const WishlistInsightDetail = memo(function WishlistInsightDetail({
           <div className="flex gap-4">
             <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
               {detail.catalogItem.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={detail.catalogItem.imageUrl}
                   alt={detail.catalogItem.name}

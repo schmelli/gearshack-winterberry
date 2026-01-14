@@ -396,7 +396,7 @@ describe('Gear Item Form Schema', () => {
     });
 
     it('should reject non-boolean values for boolean fields', () => {
-      const invalid = { ...validGearItem, isFavourite: 'yes' as any };
+      const invalid = { ...validGearItem, isFavourite: 'yes' as unknown as boolean };
       const result = gearItemFormSchema.safeParse(invalid);
       expect(result.success).toBe(false);
     });

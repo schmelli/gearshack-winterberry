@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- vip_accounts/claim_invitations/profiles tables not in generated types */
 /**
  * Admin VIP Invite API Route
  *
@@ -70,7 +71,7 @@ export async function POST(
     const { email } = validation.data;
 
     // Verify VIP exists and is not already claimed
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: vip, error: vipError } = await (supabase as any)
       .from('vip_accounts')
       .select('id, name, slug, status, claimed_by_user_id')

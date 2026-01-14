@@ -127,6 +127,7 @@ export const OfferDetailSheet = memo(function OfferDetailSheet({
           {/* Product Image */}
           <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
             {offer.productImageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={offer.productImageUrl}
                 alt={offer.productName}

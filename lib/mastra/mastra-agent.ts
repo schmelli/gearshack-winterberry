@@ -57,13 +57,15 @@ export async function streamMastraResponse(
   userId: string
 ) {
   // Set runtime context for tool execution
-  const runtimeContext = new Map<string, any>();
+  // RuntimeContext uses Map<string, unknown> for type safety
+  const runtimeContext = new Map<string, unknown>();
   runtimeContext.set('userId', userId);
 
   // Generate streaming response
+  // Type assertion for runtimeContext: Mastra expects specific internal type
   const stream = await agent.stream(message, {
     resourceId: userId,
-    runtimeContext: runtimeContext as any, // Pass runtimeContext so tools can access userId
+    runtimeContext: runtimeContext as Parameters<typeof agent.stream>[1]['runtimeContext'],
   });
 
   return {

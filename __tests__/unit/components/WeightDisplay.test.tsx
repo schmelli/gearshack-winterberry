@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { WeightDisplay } from '@/components/ui/weight-display';
 import type { WeightUnit } from '@/types/gear';
 
@@ -34,6 +33,16 @@ vi.mock('@/hooks/useWeightConversion', () => ({
 }));
 
 // Mock shadcn/ui components
+interface ButtonMockProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: string;
+  size?: string;
+  className?: string;
+  'aria-label'?: string;
+  type?: 'button' | 'submit' | 'reset';
+}
+
 vi.mock('@/components/ui/button', () => ({
   Button: ({
     children,
@@ -43,7 +52,7 @@ vi.mock('@/components/ui/button', () => ({
     className,
     'aria-label': ariaLabel,
     type = 'button',
-  }: any) => (
+  }: ButtonMockProps) => (
     <button
       data-testid="toggle-button"
       onClick={onClick}

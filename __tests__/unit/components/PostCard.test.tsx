@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PostCard } from '@/components/bulletin/PostCard';
 import type { BulletinPostWithAuthor, PostTag } from '@/types/bulletin';
 
@@ -102,6 +102,7 @@ vi.mock('@/components/ui/avatar', () => ({
     </div>
   ),
   AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img data-testid="avatar-image" src={src} alt={alt} />
   ),
   AvatarFallback: ({ children }: { children: React.ReactNode }) => (

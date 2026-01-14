@@ -20,6 +20,7 @@ interface VipMentionProps {
 export function VipMention({ slug, name }: VipMentionProps) {
   return (
     <Link
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       href={`/vip/${slug}` as any}
       className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
     >

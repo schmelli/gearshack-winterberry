@@ -36,7 +36,7 @@ vi.mock('@/hooks/social/useOnlineStatus', () => ({
     };
     return statusMap[status];
   },
-  formatLastActive: (timestamp: string) => {
+  formatLastActive: (_timestamp: string) => {
     return '5 minutes ago';
   },
 }));
@@ -106,7 +106,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dropdown-menu">{children}</div>
   ),
-  DropdownMenuTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+  DropdownMenuTrigger: ({ children, asChild: _asChild }: { children: React.ReactNode; asChild?: boolean }) => (
     <div data-testid="dropdown-trigger">{children}</div>
   ),
   DropdownMenuContent: ({ children, align }: { children: React.ReactNode; align?: string }) => (

@@ -52,7 +52,9 @@ export function VipLoadoutCard({
    * - Type assertions are temporary until VIP schema finalization
    * - Safe to use: both patterns are backwards compatible
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const loadoutSlug = (loadout as any).slug || loadout.id;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sourceUrl = (loadout as any).sourceUrl || (loadout as any).source_attribution?.url || '';
 
   const loadoutUrl = `/${locale}/vip/${vipSlug}/${loadoutSlug}`;

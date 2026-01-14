@@ -85,7 +85,7 @@ describe('brandPayloadSchema', () => {
     });
 
     it('should reject missing external_id', () => {
-      const { external_id, ...withoutId } = validBrand;
+      const { external_id: _external_id, ...withoutId } = validBrand;
       const result = brandPayloadSchema.safeParse(withoutId);
       expect(result.success).toBe(false);
     });

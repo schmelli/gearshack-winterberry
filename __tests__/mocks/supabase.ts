@@ -63,7 +63,7 @@ export const mockAuth = {
   signInWithPassword: vi.fn().mockResolvedValue({ data: { user: mockUser, session: mockSession }, error: null }),
   signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://auth.example.com' }, error: null }),
   signOut: vi.fn().mockResolvedValue({ error: null }),
-  onAuthStateChange: vi.fn((callback) => {
+  onAuthStateChange: vi.fn((_callback) => {
     // Return unsubscribe function
     return { data: { subscription: { unsubscribe: vi.fn() } } };
   }),

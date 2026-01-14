@@ -119,7 +119,7 @@ const mockOffersListData = [
   },
 ];
 
-const mockOfferDetailData = {
+const _mockOfferDetailData = {
   id: 'offer-1',
   regular_price: 150,
   offer_price: 120,
@@ -141,7 +141,7 @@ const mockOfferDetailData = {
   },
 };
 
-const mockLocationData = {
+const _mockLocationData = {
   name: 'REI Downtown',
   address_line1: '123 Main St',
   city: 'Seattle',

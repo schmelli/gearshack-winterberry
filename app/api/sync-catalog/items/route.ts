@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (brandExternalIds.length > 0) {
       const uniqueBrandIds = [...new Set(brandExternalIds)];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_brands not in generated types
       const { data: brands, error: brandError } = await (supabase as any)
         .from('catalog_brands')
         .select('id, external_id')
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Note: category_main and subcategory are no longer stored - use product_type_id FK instead
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_products not in generated types
       const { data: upserted, error } = await (supabase as any)
         .from('catalog_products')
         .upsert(

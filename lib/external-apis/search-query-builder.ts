@@ -100,8 +100,11 @@ export async function getProductCategoryInfo(
 
   try {
     // Try optimized RPC function first (eliminates N+1 queries)
-    const { data, error } = await (supabase as any)
-      .rpc('get_category_ancestry', { p_category_id: productTypeId });
+    // Type assertion needed: Supabase client's rpc() requires generated types
+    // but we're using a generic SupabaseClient from caller
+    const { data, error } = await supabase.rpc('get_category_ancestry' as never, {
+      p_category_id: productTypeId,
+    } as never) as { data: { product_type: string | null; category_main: string | null; category_top: string | null }[] | null; error: { code: string; message: string } | null };
 
     // Check for backward compatibility errors (missing function during staged deployment)
     if (error) {
@@ -154,11 +157,18 @@ async function getProductCategoryInfoLegacy(
 ): Promise<ProductCategoryInfo | null> {
   try {
     // Fetch the category and its parents in one query
-    const { data, error } = await (supabase as any)
+    // Type assertion: Using generic SupabaseClient without generated database types
+    interface CategoryRow {
+      id: string;
+      label: string;
+      level: number;
+      parent_id: string | null;
+    }
+    const { data, error } = (await supabase
       .from('categories')
       .select('id, label, level, parent_id')
       .eq('id', productTypeId)
-      .single();
+      .single()) as { data: CategoryRow | null; error: unknown };
 
     if (error || !data) {
       console.warn(`Failed to fetch category for ID ${productTypeId}:`, error);
@@ -171,22 +181,29 @@ async function getProductCategoryInfoLegacy(
 
     // If this is level 3, fetch level 2 parent
     if (data.level === 3 && data.parent_id) {
-      const { data: level2Data } = await (supabase as any)
+      interface Level2Row {
+        label: string;
+        parent_id: string | null;
+      }
+      const { data: level2Data } = (await supabase
         .from('categories')
         .select('label, parent_id')
         .eq('id', data.parent_id)
-        .single();
+        .single()) as { data: Level2Row | null };
 
       if (level2Data) {
         categoryMain = level2Data.label;
 
         // Fetch level 1 grandparent
         if (level2Data.parent_id) {
-          const { data: level1Data } = await (supabase as any)
+          interface Level1Row {
+            label: string;
+          }
+          const { data: level1Data } = (await supabase
             .from('categories')
             .select('label')
             .eq('id', level2Data.parent_id)
-            .single();
+            .single()) as { data: Level1Row | null };
 
           if (level1Data) {
             categoryTop = level1Data.label;

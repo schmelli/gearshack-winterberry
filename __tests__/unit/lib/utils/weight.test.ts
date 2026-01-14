@@ -28,7 +28,7 @@ import {
 
 const ULTRALIGHT_TENT_GRAMS = 1020; // Big Agnes Copper Spur HV UL2
 const QUILT_GRAMS = 567; // Enlightened Equipment Enigma 20
-const PAD_GRAMS = 354; // Thermarest NeoAir XLite NXT
+const _PAD_GRAMS = 354; // Thermarest NeoAir XLite NXT
 const PACK_GRAMS = 737; // Gossamer Gear Mariposa 60
 const STOVE_GRAMS = 83; // MSR PocketRocket Deluxe
 
@@ -193,11 +193,11 @@ describe('Weight Utilities', () => {
     });
 
     it('should throw for unknown source unit', () => {
-      expect(() => convertWeight(100, 'kg' as any, 'g')).toThrow('Unknown weight unit');
+      expect(() => convertWeight(100, 'kg' as 'g' | 'oz' | 'lb', 'g')).toThrow('Unknown weight unit');
     });
 
     it('should throw for unknown target unit', () => {
-      expect(() => convertWeight(100, 'g', 'kg' as any)).toThrow('Unknown weight unit');
+      expect(() => convertWeight(100, 'g', 'kg' as 'g' | 'oz' | 'lb')).toThrow('Unknown weight unit');
     });
   });
 

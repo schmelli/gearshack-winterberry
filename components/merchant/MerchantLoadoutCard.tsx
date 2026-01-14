@@ -92,6 +92,7 @@ export const MerchantLoadoutCard = memo(function MerchantLoadoutCard({
       <div className="relative">
         <AspectRatio ratio={16 / 9}>
           {loadout.heroImageUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={loadout.heroImageUrl}
               alt={loadout.name}
@@ -129,6 +130,7 @@ export const MerchantLoadoutCard = memo(function MerchantLoadoutCard({
         {/* Merchant Info */}
         <div className="mb-2 flex items-center gap-2">
           {loadout.merchant.logoUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={loadout.merchant.logoUrl}
               alt={loadout.merchant.businessName}

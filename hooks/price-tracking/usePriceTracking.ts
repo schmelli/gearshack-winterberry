@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   enablePriceTracking as enableTrackingQuery,
   disablePriceTracking as disableTrackingQuery,
@@ -30,7 +30,7 @@ export function usePriceTracking(gearItemId: string): UsePriceTrackingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadTrackingStatus = async () => {
+  const loadTrackingStatus = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -41,11 +41,11 @@ export function usePriceTracking(gearItemId: string): UsePriceTrackingResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gearItemId]);
 
   useEffect(() => {
     loadTrackingStatus();
-  }, [gearItemId]);
+  }, [loadTrackingStatus]);
 
   const enableTracking = async (alertsEnabled: boolean = true) => {
     try {

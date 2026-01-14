@@ -31,6 +31,7 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
         <div className="flex items-start justify-between gap-4">
           {/* Product Image */}
           {result.product_image_url && (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={result.product_image_url}
               alt={result.product_name}

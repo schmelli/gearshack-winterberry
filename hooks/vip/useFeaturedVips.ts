@@ -63,7 +63,10 @@ export function useFeaturedVips(limit: number = 6): UseFeaturedVipsReturn {
 
   // Fetch on mount
   useEffect(() => {
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching pattern
     fetchFeaturedVips();
+    return () => controller.abort();
   }, [fetchFeaturedVips]);
 
   return {

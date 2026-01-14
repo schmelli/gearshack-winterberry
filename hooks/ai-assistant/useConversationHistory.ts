@@ -81,7 +81,7 @@ export function useConversationHistory(
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
           created_at: msg.created_at,
-          gear_references: msg.inline_cards as any || undefined,
+          gear_references: (msg.inline_cards as Array<{ id: string; name: string; brand?: string }>) || undefined,
         }));
 
         if (append) {

@@ -213,8 +213,23 @@ export async function searchCommunityForWishlistItem(
     return [];
   }
 
+  // Define the expected shape of the RPC response
+  interface CommunityAvailabilityRow {
+    matched_item_id: string;
+    owner_id: string;
+    owner_display_name: string;
+    owner_avatar_url: string | null;
+    item_name: string;
+    item_brand: string | null;
+    for_sale: boolean;
+    lendable: boolean;
+    tradeable: boolean;
+    similarity_score: string | number;
+    primary_image_url: string | null;
+  }
+
   // Transform database response to CommunityMatch
-  return (data as any[]).map((match: any) => ({
+  return (data as CommunityAvailabilityRow[]).map((match) => ({
     matchedItemId: match.matched_item_id,
     ownerId: match.owner_id,
     ownerDisplayName: match.owner_display_name,
@@ -224,7 +239,7 @@ export async function searchCommunityForWishlistItem(
     forSale: match.for_sale,
     lendable: match.lendable,
     tradeable: match.tradeable,
-    similarityScore: parseFloat(match.similarity_score),
+    similarityScore: parseFloat(String(match.similarity_score)),
     primaryImageUrl: match.primary_image_url,
   }));
 }

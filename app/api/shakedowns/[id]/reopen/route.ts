@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- shakedowns tables not in generated types */
 /**
  * API Route: Reopen Shakedown
  *
@@ -134,7 +135,7 @@ export async function POST(
     }
 
     // Fetch shakedown to verify ownership and status
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: existingShakedown, error: fetchError } = await (supabase as any)
       .from('shakedowns')
       .select('id, owner_id, status')
@@ -172,7 +173,7 @@ export async function POST(
     }
 
     // Status must be 'completed' at this point - proceed with update
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: updatedShakedown, error: updateError } = await (supabase as any)
       .from('shakedowns')
       .update({

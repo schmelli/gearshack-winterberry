@@ -170,7 +170,9 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
           tripDate: row.trip_date ? new Date(row.trip_date) : null,
           itemIds: items.map((item) => item.gear_item_id),
           description: row.description,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           activityTypes: (row.activity_types || []) as any[],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           seasons: (row.seasons || []) as any[],
           itemStates: items.map((item) => ({
             itemId: item.gear_item_id,

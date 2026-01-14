@@ -8,6 +8,13 @@
 
 import type { InlineCard, Action } from '@/types/ai-assistant';
 
+// Tool call structure from Vercel AI SDK
+interface ToolCall {
+  toolCallId?: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
 /**
  * T059: Parse AI response text and tool calls to extract inline cards and actions
  *
@@ -17,7 +24,7 @@ import type { InlineCard, Action } from '@/types/ai-assistant';
  */
 export function parseAIResponse(
   responseText: string,
-  toolCalls?: any[]
+  toolCalls?: ToolCall[]
 ): {
   cleanText: string;
   inlineCards: InlineCard[];
@@ -51,7 +58,7 @@ export function parseAIResponse(
  * @param toolCall - Tool call object from AI SDK
  * @returns Action object or null if invalid
  */
-function extractActionFromToolCall(toolCall: any): Action | null {
+function extractActionFromToolCall(toolCall: ToolCall): Action | null {
   if (!toolCall || !toolCall.toolName || !toolCall.args) {
     return null;
   }

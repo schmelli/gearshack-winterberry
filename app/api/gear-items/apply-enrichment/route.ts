@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- gear_enrichment_suggestions/notifications tables not in generated types */
 /**
  * POST /api/gear-items/apply-enrichment
  * Apply GearGraph enrichment suggestions to gear items

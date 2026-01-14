@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- user_blocks/profiles tables not in generated types */
 /**
  * GET /api/messaging/users/search
  *

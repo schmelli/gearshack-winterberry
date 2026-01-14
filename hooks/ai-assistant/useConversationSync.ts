@@ -95,6 +95,7 @@ export function useConversationSync({
   // Setup Realtime subscription
   useEffect(() => {
     if (!conversationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsConnected(false);
       return;
     }

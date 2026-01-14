@@ -7,9 +7,15 @@
  * Fetches pending reports and provides moderation actions.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { BulletinReportStatus, ModerationAction } from '@/types/bulletin';
+
+// Type helper for Supabase client with untyped views/tables
+ 
+type SupabaseWithViews = ReturnType<typeof createClient> & {
+  from: (table: string) => ReturnType<ReturnType<typeof createClient>['from']>;
+};
 
 export interface ModerationReport {
   id: string;
@@ -33,7 +39,7 @@ interface ModerationState {
 }
 
 export function useModerationReports() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient() as SupabaseWithViews, []);
   const [state, setState] = useState<ModerationState>({
     reports: [],
     isLoading: false,
@@ -45,8 +51,7 @@ export function useModerationReports() {
 
     try {
       // Use the moderation view
-      // Note: Type assertion needed - view exists but types need regeneration
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('v_bulletin_reports_for_mods')
         .select('*')
         .eq('status', 'pending')
@@ -77,8 +82,7 @@ export function useModerationReports() {
     ) => {
       try {
         // Update report status
-        // Note: Type assertion needed - table exists but types need regeneration
-        const { error: reportError } = await (supabase as any)
+        const { error: reportError } = await supabase
           .from('bulletin_reports')
           .update({
             status: 'resolved' as BulletinReportStatus,
@@ -96,14 +100,12 @@ export function useModerationReports() {
           const report = state.reports.find((r) => r.id === reportId);
           if (report) {
             if (report.target_type === 'post') {
-              // Note: Type assertion needed - table exists but types need regeneration
-              await (supabase as any)
+              await supabase
                 .from('bulletin_posts')
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
             } else {
-              // Note: Type assertion needed - table exists but types need regeneration
-              await (supabase as any)
+              await supabase
                 .from('bulletin_replies')
                 .update({ is_deleted: true })
                 .eq('id', report.target_id);
@@ -136,8 +138,7 @@ export function useModerationReports() {
             ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
             : null;
 
-          // Note: Type assertion needed - table exists but types need regeneration
-          await (supabase as any).from('user_bulletin_bans').insert({
+          await supabase.from('user_bulletin_bans').insert({
             user_id: targetAuthorId,
             reason: 'Violation of community guidelines',
             expires_at: expiresAt,
@@ -163,8 +164,7 @@ export function useModerationReports() {
   const dismissReport = useCallback(
     async (reportId: string) => {
       try {
-        // Note: Type assertion needed - table exists but types need regeneration
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('bulletin_reports')
           .update({
             status: 'dismissed' as BulletinReportStatus,

@@ -81,6 +81,7 @@ export async function POST(
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Update the share
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadout_shares not in generated types
     const { error: updateError } = await (supabase as any)
       .from('loadout_shares')
       .update({ password_hash: passwordHash })
@@ -117,13 +118,14 @@ export async function DELETE(
     }
 
     // Remove the password
-    const { error: updateError } = await (supabase as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadout_shares not in generated types
+    const { error: updateError2 } = await (supabase as any)
       .from('loadout_shares')
       .update({ password_hash: null })
       .eq('share_token', token);
 
-    if (updateError) {
-      console.error('[shares/password] Delete error:', updateError);
+    if (updateError2) {
+      console.error('[shares/password] Delete error:', updateError2);
       return NextResponse.json({ error: 'Failed to remove password' }, { status: 500 });
     }
 

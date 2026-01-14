@@ -68,6 +68,7 @@ export function CategoryEditDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const labelValue = watch('label');
 
   // Auto-generate slug from label

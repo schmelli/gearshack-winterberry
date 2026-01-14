@@ -237,6 +237,8 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
 
   // Load posts when filters change
   useEffect(() => {
+    // Data fetching in useEffect is a valid pattern
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPosts();
   }, [loadPosts]);
 

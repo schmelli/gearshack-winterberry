@@ -48,6 +48,7 @@ vi.mock('@/components/ui/avatar', () => ({
     <div data-testid="avatar" className={className}>{children}</div>
   ),
   AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img data-testid="avatar-image" src={src} alt={alt} />
   ),
   AvatarFallback: ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -85,7 +86,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dropdown-menu">{children}</div>
   ),
-  DropdownMenuTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+  DropdownMenuTrigger: ({ children, asChild: _asChild }: { children: React.ReactNode; asChild?: boolean }) => (
     <div data-testid="dropdown-trigger">{children}</div>
   ),
   DropdownMenuContent: ({ children, align }: { children: React.ReactNode; align?: string }) => (
@@ -113,7 +114,7 @@ vi.mock('@/components/ui/tooltip', () => ({
     <div data-testid="tooltip-content">{children}</div>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  TooltipTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+  TooltipTrigger: ({ children, asChild: _asChild }: { children: React.ReactNode; asChild?: boolean }) => (
     <div data-testid="tooltip-trigger">{children}</div>
   ),
 }));

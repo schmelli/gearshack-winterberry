@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
     const upsertedIds: string[] = [];
 
     for (const brand of brands) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_brands not in generated types
       const { data: upserted, error } = await (supabase as any)
         .from('catalog_brands')
         .upsert(

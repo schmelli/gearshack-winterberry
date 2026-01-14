@@ -103,6 +103,7 @@ export const OfferCard = memo(function OfferCard({
           {/* Product Image */}
           <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
             {offer.productImageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={offer.productImageUrl}
                 alt={offer.productName}

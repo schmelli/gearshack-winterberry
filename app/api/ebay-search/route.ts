@@ -20,7 +20,7 @@ import { searchEbayLocalized } from '@/lib/external-apis/serpapi-client';
 import { filterEbayListings } from '@/lib/external-apis/ebay-filter';
 import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
 import { ebaySearchRateLimiter } from '@/lib/rate-limiter';
-import type { EbaySearchResponse, EbayListing, EbayCacheEntry } from '@/types/ebay';
+import type { EbaySearchResponse, EbayListing } from '@/types/ebay';
 
 // =============================================================================
 // Cache Configuration
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 
     // Normalize query for cache key
     const normalizedQuery = query.toLowerCase().trim();
-    const cacheKey = `${normalizedQuery}:${siteConfig.site}`;
+    const _cacheKey = `${normalizedQuery}:${siteConfig.site}`; // Reserved for manual cache lookups
 
     // Check cache first
     const { data: cacheEntry } = await supabase

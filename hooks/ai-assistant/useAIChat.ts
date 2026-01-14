@@ -29,7 +29,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
-  inline_cards?: any[];
+  inline_cards?: ToolCallData[];
 }
 
 interface UseAIChatResult {

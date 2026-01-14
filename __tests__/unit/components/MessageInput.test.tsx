@@ -77,7 +77,7 @@ vi.mock('@/components/ui/textarea', () => ({
     disabled,
     rows,
     className,
-    ref,
+    ref: _ref,
   }: {
     value?: string;
     onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -104,14 +104,14 @@ vi.mock('@/components/ui/textarea', () => ({
 vi.mock('@/components/ui/popover', () => ({
   Popover: ({
     children,
-    open,
-    onOpenChange,
+    open: _open,
+    onOpenChange: _onOpenChange,
   }: {
     children: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
   }) => <div data-testid="popover">{children}</div>,
-  PopoverTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+  PopoverTrigger: ({ children, asChild: _asChild }: { children: React.ReactNode; asChild?: boolean }) => (
     <div data-testid="popover-trigger">{children}</div>
   ),
   PopoverContent: ({
@@ -132,7 +132,7 @@ vi.mock('@/components/ui/popover', () => ({
 // Mock sub-components
 vi.mock('@/components/messaging/ImageAttachmentPreview', () => ({
   ImageAttachmentPreview: ({
-    imageUrl,
+    imageUrl: _imageUrl,
     isUploading,
     onRemove,
   }: {
@@ -151,8 +151,8 @@ vi.mock('@/components/messaging/ImageAttachmentPreview', () => ({
 vi.mock('@/components/messaging/GearPicker', () => ({
   GearPicker: ({
     open,
-    onOpenChange,
-    onSelect,
+    onOpenChange: _onOpenChange,
+    onSelect: _onSelect,
   }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -163,8 +163,8 @@ vi.mock('@/components/messaging/GearPicker', () => ({
 vi.mock('@/components/messaging/LocationPicker', () => ({
   LocationPicker: ({
     open,
-    onOpenChange,
-    onSelect,
+    onOpenChange: _onOpenChange,
+    onSelect: _onSelect,
   }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -176,7 +176,7 @@ vi.mock('@/components/messaging/VoiceRecorder', () => ({
   VoiceRecorder: ({
     onSend,
     onCancel,
-    disabled,
+    disabled: _disabled,
   }: {
     onSend: (blob: Blob, duration: number) => void;
     onCancel: () => void;

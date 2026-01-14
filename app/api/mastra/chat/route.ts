@@ -755,12 +755,14 @@ export async function POST(request: Request): Promise<Response> {
             metadata: {
               finishReason,
               toolCallCount: toolCalls?.length || 0,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
               toolNames: toolCalls?.map((tc: any) => tc.toolName || tc.name || 'unknown').join(', ') || 'none',
             },
           });
 
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
             for (const tc of toolCalls as any[]) {
               recordToolCall(tc.toolName || tc.name || 'unknown');
             }

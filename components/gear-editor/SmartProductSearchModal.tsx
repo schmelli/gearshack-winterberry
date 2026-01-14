@@ -73,6 +73,7 @@ export function SmartProductSearchModal({
   useEffect(() => {
     if (open && initialQuery && !hasAutoSearched.current) {
       hasAutoSearched.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync input state with initialQuery on modal open, performSearch triggers async state updates for data fetching
       setSearchInput(initialQuery);
       performSearch(initialQuery);
     }
