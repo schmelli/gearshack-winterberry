@@ -3595,5 +3595,113 @@
       "submitting": "Submitting...",
       "submit": "Submit Report"
     }
+  },
+  "Onboarding": {
+    "title": "Welcome to Gearshack",
+    "skip": "Skip tour",
+    "previous": "Back",
+    "next": "Next",
+    "complete": "Get Started",
+    "welcome": {
+      "title": "Welcome to Gearshack!",
+      "subtitle": "Your ultimate companion for outdoor gear management. Let's take a quick tour of the key features.",
+      "feature1": {
+        "title": "Build Your Inventory",
+        "description": "Track all your outdoor gear in one place with detailed specs and photos."
+      },
+      "feature2": {
+        "title": "Create Smart Loadouts",
+        "description": "Plan trips by assembling gear lists with weight tracking and optimization."
+      },
+      "feature3": {
+        "title": "Join the Community",
+        "description": "Connect with fellow outdoor enthusiasts, share tips, and discover new gear."
+      }
+    },
+    "inventory": {
+      "title": "Your Gear Inventory",
+      "subtitle": "Keep track of everything you own. Add gear items with photos, weight, and detailed specifications.",
+      "feature1": {
+        "title": "Add New Gear",
+        "description": "Quickly add items with our smart product search that auto-fills specifications."
+      },
+      "feature2": {
+        "title": "Smart Search",
+        "description": "Find any item instantly with powerful search and filtering options."
+      },
+      "feature3": {
+        "title": "Photo Management",
+        "description": "Upload photos with automatic background removal for clean, professional looks."
+      }
+    },
+    "loadouts": {
+      "title": "Trip Loadouts",
+      "subtitle": "Create packing lists for your adventures. Track weights and ensure you never forget essential gear.",
+      "feature1": {
+        "title": "Weight Tracking",
+        "description": "See base weight, consumables, and worn items. Optimize your pack for any trip."
+      },
+      "feature2": {
+        "title": "Trip Planning",
+        "description": "Organize loadouts by activity type and season. Clone and modify for quick trip prep."
+      },
+      "feature3": {
+        "title": "AI Hero Images",
+        "description": "Generate beautiful cover images for your loadouts using AI-powered image creation."
+      }
+    },
+    "community": {
+      "title": "Community Hub",
+      "subtitle": "Connect with other outdoor enthusiasts. Share experiences, get advice, and discover new gear.",
+      "feature1": {
+        "title": "Gear Shakedowns",
+        "description": "Get expert feedback on your loadouts from experienced community members."
+      },
+      "feature2": {
+        "title": "Discussion Board",
+        "description": "Ask questions, share trip reports, and discuss gear with the community."
+      },
+      "feature3": {
+        "title": "Marketplace",
+        "description": "Buy, sell, and trade gear with trusted community members."
+      }
+    },
+    "profile": {
+      "title": "Your Profile",
+      "subtitle": "Customize your experience and manage your settings to get the most out of Gearshack.",
+      "feature1": {
+        "title": "Personal Profile",
+        "description": "Add your trail name, location, and connect with other hikers."
+      },
+      "feature2": {
+        "title": "Settings",
+        "description": "Customize appearance, notifications, and display preferences."
+      },
+      "feature3": {
+        "title": "Notifications",
+        "description": "Stay updated on community activity, messages, and gear updates."
+      },
+      "feature4": {
+        "title": "Privacy Controls",
+        "description": "Control who can see your profile, gear, and activity."
+      }
+    },
+    "beta": {
+      "title": "Welcome Beta Tester!",
+      "subtitle": "Thank you for being part of our beta testing program. Your feedback helps us build a better Gearshack.",
+      "feature1": {
+        "title": "Report Bugs",
+        "description": "Found something that doesn't work right? Let us know so we can fix it."
+      },
+      "feature2": {
+        "title": "Share Feedback",
+        "description": "Have ideas for improvements? We'd love to hear your suggestions."
+      },
+      "feature3": {
+        "title": "Early Access",
+        "description": "As a beta tester, you get first access to new features before anyone else."
+      },
+      "feedbackHint": "You can report bugs or share feedback anytime via the Feedback option in your profile menu."
+    }
   }
 }

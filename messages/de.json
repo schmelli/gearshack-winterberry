@@ -3602,5 +3602,113 @@
       "submitting": "Wird eingereicht...",
       "submit": "Meldung einreichen"
     }
+  },
+  "Onboarding": {
+    "title": "Willkommen bei Gearshack",
+    "skip": "Tour überspringen",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "complete": "Los geht's",
+    "welcome": {
+      "title": "Willkommen bei Gearshack!",
+      "subtitle": "Dein ultimativer Begleiter für die Verwaltung deiner Outdoor-Ausrüstung. Lass uns einen kurzen Überblick über die wichtigsten Funktionen geben.",
+      "feature1": {
+        "title": "Inventar aufbauen",
+        "description": "Verfolge deine gesamte Outdoor-Ausrüstung an einem Ort mit detaillierten Spezifikationen und Fotos."
+      },
+      "feature2": {
+        "title": "Smarte Loadouts erstellen",
+        "description": "Plane Trips mit Packlisten, Gewichtsverfolgung und Optimierung."
+      },
+      "feature3": {
+        "title": "Community beitreten",
+        "description": "Verbinde dich mit anderen Outdoor-Enthusiasten, teile Tipps und entdecke neue Ausrüstung."
+      }
+    },
+    "inventory": {
+      "title": "Dein Ausrüstungs-Inventar",
+      "subtitle": "Behalte den Überblick über alles, was du besitzt. Füge Ausrüstung mit Fotos, Gewicht und Details hinzu.",
+      "feature1": {
+        "title": "Neue Ausrüstung hinzufügen",
+        "description": "Füge Artikel schnell hinzu mit unserer smarten Produktsuche, die Spezifikationen automatisch ausfüllt."
+      },
+      "feature2": {
+        "title": "Smarte Suche",
+        "description": "Finde jeden Artikel sofort mit leistungsstarken Such- und Filteroptionen."
+      },
+      "feature3": {
+        "title": "Foto-Verwaltung",
+        "description": "Lade Fotos hoch mit automatischer Hintergrundentfernung für ein sauberes, professionelles Aussehen."
+      }
+    },
+    "loadouts": {
+      "title": "Trip-Loadouts",
+      "subtitle": "Erstelle Packlisten für deine Abenteuer. Verfolge Gewichte und vergiss nie wieder wichtige Ausrüstung.",
+      "feature1": {
+        "title": "Gewichtsverfolgung",
+        "description": "Sieh Basisgewicht, Verbrauchsmaterial und getragene Artikel. Optimiere deinen Rucksack für jede Tour."
+      },
+      "feature2": {
+        "title": "Trip-Planung",
+        "description": "Organisiere Loadouts nach Aktivitätstyp und Jahreszeit. Klone und modifiziere für schnelle Trip-Vorbereitung."
+      },
+      "feature3": {
+        "title": "KI-Titelbilder",
+        "description": "Generiere wunderschöne Titelbilder für deine Loadouts mit KI-gestützter Bildgenerierung."
+      }
+    },
+    "community": {
+      "title": "Community Hub",
+      "subtitle": "Verbinde dich mit anderen Outdoor-Enthusiasten. Teile Erfahrungen, hole dir Rat und entdecke neue Ausrüstung.",
+      "feature1": {
+        "title": "Gear Shakedowns",
+        "description": "Erhalte Experten-Feedback zu deinen Loadouts von erfahrenen Community-Mitgliedern."
+      },
+      "feature2": {
+        "title": "Diskussionsforum",
+        "description": "Stelle Fragen, teile Reiseberichte und diskutiere Ausrüstung mit der Community."
+      },
+      "feature3": {
+        "title": "Marktplatz",
+        "description": "Kaufe, verkaufe und tausche Ausrüstung mit vertrauenswürdigen Community-Mitgliedern."
+      }
+    },
+    "profile": {
+      "title": "Dein Profil",
+      "subtitle": "Passe dein Erlebnis an und verwalte deine Einstellungen, um das Beste aus Gearshack herauszuholen.",
+      "feature1": {
+        "title": "Persönliches Profil",
+        "description": "Füge deinen Trail-Namen und Standort hinzu und verbinde dich mit anderen Wanderern."
+      },
+      "feature2": {
+        "title": "Einstellungen",
+        "description": "Passe Aussehen, Benachrichtigungen und Anzeigeeinstellungen an."
+      },
+      "feature3": {
+        "title": "Benachrichtigungen",
+        "description": "Bleib auf dem Laufenden über Community-Aktivitäten, Nachrichten und Ausrüstungs-Updates."
+      },
+      "feature4": {
+        "title": "Datenschutz-Einstellungen",
+        "description": "Kontrolliere, wer dein Profil, deine Ausrüstung und deine Aktivitäten sehen kann."
+      }
+    },
+    "beta": {
+      "title": "Willkommen Beta-Tester!",
+      "subtitle": "Danke, dass du Teil unseres Beta-Testprogramms bist. Dein Feedback hilft uns, ein besseres Gearshack zu entwickeln.",
+      "feature1": {
+        "title": "Fehler melden",
+        "description": "Etwas funktioniert nicht richtig? Lass es uns wissen, damit wir es beheben können."
+      },
+      "feature2": {
+        "title": "Feedback teilen",
+        "description": "Hast du Verbesserungsvorschläge? Wir freuen uns über deine Ideen."
+      },
+      "feature3": {
+        "title": "Früher Zugang",
+        "description": "Als Beta-Tester erhältst du als Erster Zugang zu neuen Funktionen."
+      },
+      "feedbackHint": "Du kannst jederzeit Fehler melden oder Feedback teilen über die Feedback-Option in deinem Profilmenü."
+    }
   }
 }
