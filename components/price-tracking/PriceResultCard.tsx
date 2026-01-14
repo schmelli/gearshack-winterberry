@@ -70,7 +70,6 @@ export function PriceResultCard({
                 fill
                 className="rounded-md object-cover"
                 sizes="64px"
-                unoptimized // External URLs from various retailers
               />
             </div>
           )}

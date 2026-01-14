@@ -147,7 +147,6 @@ function VideoCard({ video }: VideoCardProps) {
           src={video.thumbnailUrl}
           alt={video.title}
           fill
-          unoptimized
           className="object-cover transition-transform group-hover:scale-105"
           sizes="192px"
         />

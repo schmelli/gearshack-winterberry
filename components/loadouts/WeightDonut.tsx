@@ -10,6 +10,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label } from 'recharts';
 import type { CategoryWeight } from '@/types/loadout';
 import { formatWeight } from '@/lib/loadout-utils';
@@ -122,10 +123,11 @@ function CenterLabel({ viewBox, totalWeight }: CenterLabelProps) {
 }
 
 // =============================================================================
-// Component
+// Component - Memoized to prevent unnecessary re-renders
+// Recharts is expensive to re-render, so we memoize this component
 // =============================================================================
 
-export function WeightDonut({
+export const WeightDonut = memo(function WeightDonut({
   categoryWeights,
   size = 'large',
   onSegmentClick,
@@ -204,4 +206,4 @@ export function WeightDonut({
       </ResponsiveContainer>
     </div>
   );
-}
+});

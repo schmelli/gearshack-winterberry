@@ -20,14 +20,18 @@ import { locales } from '@/i18n/config';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
+// Performance: Add display: "swap" to all fonts to prevent render blocking
+// This allows the browser to show fallback fonts while custom fonts load
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const rockSalt = Rock_Salt({

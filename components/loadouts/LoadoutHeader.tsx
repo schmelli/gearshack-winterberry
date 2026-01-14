@@ -22,16 +22,31 @@
 
 import { Calendar, Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { ToggleBadge } from '@/components/ui/toggle-badge';
-import { EnhancedWeightDonut } from '@/components/loadouts/EnhancedWeightDonut';
 import { WeightSummaryTable } from '@/components/loadouts/WeightSummaryTable';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
 import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
+
+// Performance: Lazy load the heavy recharts-based donut chart (~90KB)
+// Only loads when LoadoutHeader is rendered (specific loadout pages)
+const EnhancedWeightDonut = dynamic(
+  () => import('@/components/loadouts/EnhancedWeightDonut').then(mod => ({ default: mod.EnhancedWeightDonut })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center">
+        <Skeleton className="h-[220px] w-[220px] rounded-full md:h-[260px] md:w-[260px]" />
+      </div>
+    ),
+  }
+);
 
 // =============================================================================
 // Types

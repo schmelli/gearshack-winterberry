@@ -12,8 +12,9 @@ Sentry.init({
     Sentry.replayIntegration(),
   ],
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  // Define how likely traces are sampled. Reduced from 1.0 to 0.1 for performance.
+  // 100% sampling causes significant overhead on every page load.
+  tracesSampleRate: 0.1,
   // Enable logs to be sent to Sentry
   enableLogs: true,
 

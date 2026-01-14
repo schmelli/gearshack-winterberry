@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronLeft } from 'lucide-react';
@@ -116,10 +116,11 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 // =============================================================================
-// Component
+// Component - Memoized to prevent unnecessary re-renders
+// Recharts is expensive to re-render, so we memoize this component
 // =============================================================================
 
-export function EnhancedWeightDonut({
+export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
   items,
   onSegmentClick,
   selectedId,
@@ -370,4 +371,4 @@ export function EnhancedWeightDonut({
       )}
     </div>
   );
-}
+});

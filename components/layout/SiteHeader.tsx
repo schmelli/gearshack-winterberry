@@ -46,16 +46,29 @@ import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
-import { MessagingModal } from '@/components/messaging/MessagingModal';
 import { useRouter } from '@/i18n/navigation';
 import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 // Feature 050: AI Assistant
 import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton';
-import { AIAssistantModal } from '@/components/ai-assistant/AIAssistantModal';
-import { UpgradeModal } from '@/components/ai-assistant/UpgradeModal';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
+
+// Performance: Lazy load heavy modal components to reduce initial bundle size
+// These modals are only shown when user interacts with specific buttons
+const MessagingModal = dynamic(
+  () => import('@/components/messaging/MessagingModal').then(mod => ({ default: mod.MessagingModal })),
+  { ssr: false }
+);
+const AIAssistantModal = dynamic(
+  () => import('@/components/ai-assistant/AIAssistantModal').then(mod => ({ default: mod.AIAssistantModal })),
+  { ssr: false }
+);
+const UpgradeModal = dynamic(
+  () => import('@/components/ai-assistant/UpgradeModal').then(mod => ({ default: mod.UpgradeModal })),
+  { ssr: false }
+);
 
 interface SiteHeaderProps {
   className?: string;

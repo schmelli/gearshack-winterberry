@@ -123,7 +123,7 @@ export function ImagePreview({
         )}
         onError={handleError}
         onLoad={handleLoad}
-        unoptimized // Allow external URLs
+        sizes="(max-width: 768px) 100vw, 400px"
       />
     </div>
   );
