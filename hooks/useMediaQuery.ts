@@ -7,8 +7,12 @@
  * Returns true if the media query matches, false otherwise.
  *
  * Usage:
- * const isMobile = useMediaQuery('(max-width: 640px)');
- * const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+ * ```tsx
+ * import { MEDIA_QUERIES } from '@/lib/constants/breakpoints';
+ *
+ * const isMobile = useMediaQuery(MEDIA_QUERIES.mobile);
+ * const prefersReducedMotion = useMediaQuery(MEDIA_QUERIES.reducedMotion);
+ * ```
  */
 
 'use client';

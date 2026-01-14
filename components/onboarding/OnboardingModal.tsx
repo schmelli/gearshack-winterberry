@@ -12,6 +12,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { MEDIA_QUERIES } from '@/lib/constants/breakpoints';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -183,7 +184,7 @@ export function OnboardingModal({
   isLoading,
 }: OnboardingModalProps) {
   const t = useTranslations('Onboarding');
-  const isMobile = useMediaQuery('(max-width: 640px)');
+  const isMobile = useMediaQuery(MEDIA_QUERIES.mobile);
 
   // Shared content
   const content = (
