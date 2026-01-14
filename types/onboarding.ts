@@ -103,5 +103,7 @@ export interface OnboardingStepProps {
 
 /**
  * Environment flag for beta mode
+ * Set NEXT_PUBLIC_IS_BETA=true to enable beta features in onboarding
+ * If false or not set, beta features will be disabled
  */
-export const IS_BETA_MODE = true;
+export const IS_BETA_MODE = process.env.NEXT_PUBLIC_IS_BETA === 'true';
