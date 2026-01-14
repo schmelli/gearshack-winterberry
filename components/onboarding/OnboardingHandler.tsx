@@ -26,17 +26,12 @@ const ONBOARDING_COMPLETED_KEY = 'gearshack_onboarding_completed';
 // Types
 // =============================================================================
 
-/** Extended profile type with optional first_launch field */
-type ProfileWithOnboarding = Tables<'profiles'> & {
-  first_launch?: string | null;
-};
-
 interface OnboardingHandlerProps {
   /** Whether the user is authenticated */
   isAuthenticated: boolean;
   /** User ID */
   userId: string | null;
-  /** Raw profile data including optional first_launch field */
+  /** User profile data (may include first_launch field if migration is complete) */
   profile: Tables<'profiles'> | null;
 }
 
@@ -51,10 +46,10 @@ export function OnboardingHandler({
 }: OnboardingHandlerProps) {
   // Determine if onboarding is complete
   // Check localStorage first (primary), then profile field (if database migration is complete)
-  const profileWithOnboarding = profile as ProfileWithOnboarding | null;
+  // Use type-safe property access instead of unsafe type assertion
   const hasCompletedOnboarding =
     (typeof window !== 'undefined' && localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true') ||
-    profileWithOnboarding?.first_launch != null;
+    (profile != null && 'first_launch' in profile && profile.first_launch != null);
 
   const onboarding = useOnboarding({
     userId: isAuthenticated ? userId : null,
