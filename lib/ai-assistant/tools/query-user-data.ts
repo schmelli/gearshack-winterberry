@@ -271,7 +271,7 @@ export async function executeQueryUserData(
       operation,
       table,
       rowCount: data?.length || 0,
-      data: data || [],
+      data: (data || []) as unknown as Record<string, unknown>[],
       metadata: {
         executionTimeMs: executionTime,
         limitApplied: limit || 50,

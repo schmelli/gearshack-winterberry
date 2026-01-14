@@ -116,7 +116,8 @@ function adaptMastraTool<TInput, TOutput>(
   userId: string
 ) {
   // Convert Zod schema to JSON Schema with proper type field for Claude
-  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema as any, {
     target: 'jsonSchema7',
     $refStrategy: 'none', // Don't use $ref, inline all definitions
   }) as JsonSchema;
@@ -180,13 +181,16 @@ export function getAITools(userId: string) {
     // =========================================================================
 
     // Query user's database (gear, loadouts, categories, etc.)
-    queryUserData: adaptMastraTool(queryUserDataTool, userId),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryUserData: adaptMastraTool(queryUserDataTool as any, userId),
 
     // Search product catalog
-    searchCatalog: adaptMastraTool(searchCatalogTool, userId),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    searchCatalog: adaptMastraTool(searchCatalogTool as any, userId),
 
     // Search the web for real-time information
-    searchWeb: adaptMastraTool(searchWebTool, userId),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    searchWeb: adaptMastraTool(searchWebTool as any, userId),
 
     // =========================================================================
     // Action Tools
@@ -352,10 +356,12 @@ async function generateAIResponseInternal(
       config.maxSteps = AI_MAX_STEPS;
     }
 
-    const result = await generateText(config);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await generateText(config as any);
 
     // Map tool calls to our ToolCallResult format
-    const mappedToolCalls: ToolCallResult[] = (result.toolCalls || []).map((call) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mappedToolCalls: ToolCallResult[] = (result.toolCalls || []).map((call: any) => ({
       toolCallId: call.toolCallId,
       toolName: call.toolName,
       args: call.args as Record<string, unknown>,
@@ -524,7 +530,8 @@ export async function generateStreamingAIResponse(
       };
     }
 
-    const result = streamText(config);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = streamText(config as any);
 
     // Clear timeout when stream completes
     result.text.finally(() => clearTimeout(timeoutId));
@@ -539,8 +546,9 @@ export async function generateStreamingAIResponse(
 
     return {
       textStream: result.textStream,
-      toolCalls: result.toolCalls.then((calls: RawToolCall[]) =>
-        (calls || []).map((call) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toolCalls: result.toolCalls.then((calls: any[]) =>
+        (calls || []).map((call: RawToolCall) => ({
           toolCallId: call.toolCallId,
           toolName: call.toolName,
           args: (call.args || call.input || {}) as Record<string, unknown>,

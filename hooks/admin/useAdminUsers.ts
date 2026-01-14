@@ -173,10 +173,8 @@ export function useAdminUsers(): UseAdminUsersReturn {
         if (!user) return;
 
         // Use type assertion since admin_activity_logs table is created by migration
-        type SupabaseWithViews = typeof supabase & {
-          from: (table: string) => ReturnType<typeof supabase.from>;
-        };
-        await (supabase as SupabaseWithViews).from('admin_activity_logs').insert({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('admin_activity_logs').insert({
           admin_id: user.id,
           action_type: actionType,
           target_user_id: targetUserId,
@@ -421,7 +419,8 @@ export function useAdminUsers(): UseAdminUsersReturn {
         if (!admin) throw new Error('Not authenticated');
 
         // Use type assertion since account_status is added by migration
-        const { data: current, error: fetchErr } = await (supabase as SupabaseWithViews)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: current, error: fetchErr } = await (supabase as any)
           .from('profiles')
           .select('account_status')
           .eq('id', userId)

@@ -65,8 +65,9 @@ export async function streamMastraResponse(
   // Type assertion for runtimeContext: Mastra expects specific internal type
   const stream = await agent.stream(message, {
     resourceId: userId,
-    runtimeContext: runtimeContext as Parameters<typeof agent.stream>[1]['runtimeContext'],
-  });
+    runtimeContext: runtimeContext,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   return {
     textStream: stream.textStream,

@@ -69,7 +69,7 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
     case 'addToWishlist':
       return {
         type: 'add_to_wishlist',
-        gearItemId: args.gearItemId,
+        gearItemId: args.gearItemId as string,
         status: 'pending',
         error: null,
       };
@@ -77,7 +77,7 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
     case 'compareGear':
       return {
         type: 'compare',
-        gearItemIds: args.gearItemIds || [],
+        gearItemIds: (args.gearItemIds || []) as string[],
         status: 'pending',
         error: null,
       };
@@ -85,8 +85,8 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
     case 'sendMessage':
       return {
         type: 'send_message',
-        recipientUserId: args.recipientUserId,
-        messagePreview: args.messagePreview || '',
+        recipientUserId: args.recipientUserId as string,
+        messagePreview: (args.messagePreview || '') as string,
         status: 'pending',
         error: null,
       };
@@ -94,7 +94,7 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
     case 'navigate':
       return {
         type: 'navigate',
-        destination: args.destination,
+        destination: args.destination as string,
         status: 'pending',
         error: null,
       };

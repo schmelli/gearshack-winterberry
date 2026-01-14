@@ -61,7 +61,7 @@ export function useModerationReports() {
       if (error) throw error;
 
       setState({
-        reports: (data ?? []) as ModerationReport[],
+        reports: (data ?? []) as unknown as ModerationReport[],
         isLoading: false,
         error: null,
       });
@@ -138,7 +138,8 @@ export function useModerationReports() {
             ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
             : null;
 
-          await supabase.from('user_bulletin_bans').insert({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('user_bulletin_bans').insert({
             user_id: targetAuthorId,
             reason: 'Violation of community guidelines',
             expires_at: expiresAt,

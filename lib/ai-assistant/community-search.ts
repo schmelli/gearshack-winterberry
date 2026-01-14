@@ -221,24 +221,24 @@ export async function searchCommunityForWishlistItem(
     owner_avatar_url: string | null;
     item_name: string;
     item_brand: string | null;
-    for_sale: boolean;
-    lendable: boolean;
-    tradeable: boolean;
+    is_for_sale: boolean;
+    can_be_borrowed: boolean;
+    can_be_traded: boolean;
     similarity_score: string | number;
     primary_image_url: string | null;
   }
 
   // Transform database response to CommunityMatch
-  return (data as CommunityAvailabilityRow[]).map((match) => ({
+  return (data as unknown as CommunityAvailabilityRow[]).map((match) => ({
     matchedItemId: match.matched_item_id,
     ownerId: match.owner_id,
     ownerDisplayName: match.owner_display_name,
     ownerAvatarUrl: match.owner_avatar_url,
     itemName: match.item_name,
     itemBrand: match.item_brand,
-    forSale: match.for_sale,
-    lendable: match.lendable,
-    tradeable: match.tradeable,
+    forSale: match.is_for_sale,
+    lendable: match.can_be_borrowed,
+    tradeable: match.can_be_traded,
     similarityScore: parseFloat(String(match.similarity_score)),
     primaryImageUrl: match.primary_image_url,
   }));

@@ -127,7 +127,7 @@ export async function preloadLoadoutContext(
       category: { name: string } | null;
       product_type: { name: string } | null;
     }
-    const gearItems = ((loadout.gear_items || []) as RawGearItem[]).map((item) => ({
+    const gearItems = ((loadout.gear_items || []) as unknown as RawGearItem[]).map((item) => ({
       id: item.id,
       name: item.name,
       brand: item.brand,

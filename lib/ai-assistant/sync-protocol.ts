@@ -59,9 +59,9 @@ export function handleMessageInsert(
       role: payload.new.role,
       content: payload.new.content,
       createdAt: new Date(payload.new.created_at),
-      inlineCards: payload.new.inline_cards || null,
-      actions: payload.new.actions || null,
-      context: payload.new.context || null,
+      inlineCards: (payload.new.inline_cards || null) as Message['inlineCards'],
+      actions: (payload.new.actions || null) as Message['actions'],
+      context: (payload.new.context || null) as Message['context'],
       tokensUsed: payload.new.tokens_used || null,
     };
 
@@ -134,7 +134,7 @@ export function subscribeToConversationMessages(
       table: 'ai_messages',
       filter: `conversation_id=eq.${conversationId}`,
     },
-    (payload) => handleMessageInsert(payload, handler)
+    (payload) => handleMessageInsert(payload as RealtimePostgresChangesPayload<AIMessageRow>, handler)
   );
 }
 

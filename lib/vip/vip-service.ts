@@ -869,7 +869,7 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoado
   if (!newLoadout) throw new Error('Failed to create loadout');
 
   // Batch fetch user's existing inventory to avoid N+1 queries
-  const loadoutItemsWithGear = (items ?? []) as LoadoutItemWithGear[];
+  const loadoutItemsWithGear = (items ?? []) as unknown as LoadoutItemWithGear[];
   const catalogProductIds = loadoutItemsWithGear
     .map((item) => item.gear_items?.source_attribution?.catalog_product_id)
     .filter((id): id is string => Boolean(id));
@@ -953,7 +953,8 @@ export async function copyVipLoadout(vipLoadoutId: string): Promise<CopyVipLoado
   if (wishlistItemsToCreate.length > 0) {
     const { data: createdItems, error: createItemsError } = await supabase
       .from('gear_items')
-      .insert(wishlistItemsToCreate)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(wishlistItemsToCreate as any)
       .select('id');
 
     if (createItemsError) throw createItemsError;
