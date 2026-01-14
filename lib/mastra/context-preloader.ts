@@ -38,6 +38,7 @@ export interface LoadoutContext {
     name: string;
     brand: string | null;
     weight: number;
+    quantity: number;
     category: string | null;
     productType: string | null;
   }>;
@@ -100,6 +101,7 @@ export async function preloadLoadoutContext(
         activity_types,
         seasons,
         loadout_items (
+          quantity,
           gear_item:gear_items (
             id,
             name,
@@ -122,6 +124,7 @@ export async function preloadLoadoutContext(
     // Calculate weights
     // Type for raw loadout item from Supabase join query via junction table
     interface RawLoadoutItem {
+      quantity: number;
       gear_item: {
         id: string;
         name: string;
@@ -139,27 +142,28 @@ export async function preloadLoadoutContext(
         name: item.gear_item!.name,
         brand: item.gear_item!.brand,
         weight: item.gear_item!.weight || 0,
+        quantity: item.quantity,
         category: item.gear_item!.category?.name || null,
         productType: item.gear_item!.product_type?.name || null,
       }));
 
-    const totalWeight = gearItems.reduce((sum, item) => sum + item.weight, 0);
+    const totalWeight = gearItems.reduce((sum, item) => sum + (item.weight * item.quantity), 0);
     const baseWeight = totalWeight; // Simplified - could exclude consumables
 
     // Category breakdown
     const categoryWeights: Record<string, number> = {};
     for (const item of gearItems) {
       const category = item.category || 'Uncategorized';
-      categoryWeights[category] = (categoryWeights[category] || 0) + item.weight;
+      categoryWeights[category] = (categoryWeights[category] || 0) + (item.weight * item.quantity);
     }
 
-    // Heaviest items (top 5)
+    // Heaviest items (top 5) - sorted by total weight (weight * quantity)
     const heaviestItems = [...gearItems]
-      .sort((a, b) => b.weight - a.weight)
+      .sort((a, b) => (b.weight * b.quantity) - (a.weight * a.quantity))
       .slice(0, 5)
       .map(item => ({
         name: item.name,
-        weight: item.weight,
+        weight: item.weight * item.quantity,
         category: item.category,
       }));
 
