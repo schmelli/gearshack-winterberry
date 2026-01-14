@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ExternalLink, MapPin, Store, Globe, RefreshCw, Crown, Bell, BellOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { useResellerPrices } from '@/hooks/price-tracking/useResellerPrices';
 import { usePriceTracking } from '@/hooks/price-tracking/usePriceTracking';
 import type { ResellerPriceWithDetails } from '@/types/reseller';
@@ -56,6 +57,7 @@ interface ResellerPricesSectionProps {
 
 function ResellerPriceCard({ price }: { price: ResellerPriceWithDetails }) {
   const t = useTranslations('ResellerPrices');
+  const locale = useLocale();
   const reseller = price.reseller;
   const isLocal = reseller.resellerType === 'local' || reseller.resellerType === 'chain';
 
@@ -107,7 +109,7 @@ function ResellerPriceCard({ price }: { price: ResellerPriceWithDetails }) {
             {/* Price */}
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-primary">
-                {new Intl.NumberFormat('de-DE', {
+                {new Intl.NumberFormat(locale, {
                   style: 'currency',
                   currency: price.priceCurrency || 'EUR',
                 }).format(price.priceAmount)}
@@ -192,36 +194,30 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
   } = usePriceTracking(gearItemId);
 
   const isEnabled = tracking?.enabled ?? false;
-  const emailEnabled = tracking?.alert_email ?? false;
-  const appEnabled = tracking?.alerts_enabled ?? false;
+  const alertsEnabled = tracking?.alerts_enabled ?? false;
 
   const handleToggleTracking = async () => {
     try {
       if (isEnabled) {
         await disableTracking();
+        toast.success(t('priceMonitoring.disabled'));
       } else {
         await enableTracking(true);
+        toast.success(t('priceMonitoring.enabled'));
       }
     } catch (error) {
       console.error('Failed to toggle price monitoring:', error);
+      toast.error('Failed to update price monitoring settings');
     }
   };
 
-  const handleToggleEmail = async (enabled: boolean) => {
-    try {
-      // For now, we toggle alerts_enabled as a general toggle
-      // In a full implementation, you'd have separate toggles
-      await toggleAlerts(enabled);
-    } catch (error) {
-      console.error('Failed to toggle email notifications:', error);
-    }
-  };
-
-  const handleToggleApp = async (enabled: boolean) => {
+  const handleToggleAlerts = async (enabled: boolean) => {
     try {
       await toggleAlerts(enabled);
+      toast.success(enabled ? 'Notifications enabled' : 'Notifications disabled');
     } catch (error) {
-      console.error('Failed to toggle app notifications:', error);
+      console.error('Failed to toggle notifications:', error);
+      toast.error('Failed to update notification settings');
     }
   };
 
@@ -275,23 +271,13 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
             {isEnabled && (
               <div className="space-y-3 pt-2 border-t">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="notify-email" className="text-sm">
-                    {t('priceMonitoring.notifyEmail')}
+                  <Label htmlFor="notify-alerts" className="text-sm">
+                    Enable Notifications
                   </Label>
                   <Switch
-                    id="notify-email"
-                    checked={emailEnabled}
-                    onCheckedChange={handleToggleEmail}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="notify-app" className="text-sm">
-                    {t('priceMonitoring.notifyApp')}
-                  </Label>
-                  <Switch
-                    id="notify-app"
-                    checked={appEnabled}
-                    onCheckedChange={handleToggleApp}
+                    id="notify-alerts"
+                    checked={alertsEnabled}
+                    onCheckedChange={handleToggleAlerts}
                   />
                 </div>
               </div>

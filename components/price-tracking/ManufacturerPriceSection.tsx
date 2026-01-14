@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ExternalLink, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ export function ManufacturerPriceSection({
   msrpLoading = false,
 }: ManufacturerPriceSectionProps) {
   const t = useTranslations('ManufacturerPrice');
+  const locale = useLocale();
 
   // Determine if we have any price to show
   const hasManufacturerPrice = manufacturerPrice != null;
@@ -89,7 +90,7 @@ export function ManufacturerPriceSection({
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-muted-foreground">{t('price')}</span>
               <span className="text-lg font-semibold text-primary">
-                {new Intl.NumberFormat('de-DE', {
+                {new Intl.NumberFormat(locale, {
                   style: 'currency',
                   currency: manufacturerCurrency ?? 'EUR',
                 }).format(manufacturerPrice!)}
@@ -113,7 +114,7 @@ export function ManufacturerPriceSection({
               <span className="text-sm font-medium">
                 {shippingCost === 0
                   ? t('freeShipping')
-                  : new Intl.NumberFormat('de-DE', {
+                  : new Intl.NumberFormat(locale, {
                       style: 'currency',
                       currency: manufacturerCurrency ?? 'EUR',
                     }).format(shippingCost)}
