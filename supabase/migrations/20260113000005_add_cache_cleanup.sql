@@ -71,6 +71,4 @@ GRANT EXECUTE ON FUNCTION cleanup_expired_cache() TO service_role;
 -- =============================================================================
 
 COMMENT ON FUNCTION cleanup_expired_cache() IS
-  'Deletes expired cache entries from ebay_price_cache and reseller_price_results tables. ' ||
-  'Returns the total number of deleted rows. ' ||
-  'Scheduled to run every 6 hours if pg_cron is available.';
+  'Deletes expired cache entries from ebay_price_cache and reseller_price_results tables. Returns the total number of deleted rows. Scheduled to run every 6 hours if pg_cron is available.';
