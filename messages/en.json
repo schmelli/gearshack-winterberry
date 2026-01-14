@@ -404,7 +404,8 @@
   "LoadoutEditor": {
     "addedItem": "Added {name}",
     "swappedItem": "Swapped {oldName} with {newName}",
-    "savedWeight": "Saved {weight}"
+    "savedWeight": "Saved {weight}",
+    "swapFailed": "Failed to swap items"
   },
   "CategoryManagement": {
     "createFailed": "Failed to create category: {error}",

@@ -13,7 +13,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useLocale, useTranslations } from 'next-intl';
-import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
+import { useStore, useLoadout, useItems, useSupabaseStore } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
 import { calculateTotalWeight, calculateCategoryWeights, calculateWeightSummary, formatWeight, ACTIVITY_PRIORITY_MATRIX } from '@/lib/loadout-utils';
@@ -175,15 +175,38 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
       const currentItem = allItems.find((i) => i.id === currentItemId);
       const alternativeItem = allItems.find((i) => i.id === alternativeItemId);
 
+      // Get current item's state before removing
+      const currentItemState = itemStates.find((s) => s.itemId === currentItemId);
+      const isWorn = currentItemState?.isWorn ?? false;
+      const isConsumable = currentItemState?.isConsumable ?? false;
+
       try {
-        // Remove the current heavier item
-        await removeItemFromLoadout(loadoutId, currentItemId);
-        // Add the lighter alternative
+        // Add the lighter alternative first (safer - if this fails, we don't lose the original)
         await addItemToLoadout(loadoutId, alternativeItemId);
+
+        // Preserve the original item's state
+        const setItemWorn = useSupabaseStore.getState().setItemWorn;
+        const setItemConsumable = useSupabaseStore.getState().setItemConsumable;
+
+        if (isWorn) {
+          await setItemWorn(loadoutId, alternativeItemId, true);
+        }
+        if (isConsumable) {
+          await setItemConsumable(loadoutId, alternativeItemId, true);
+        }
+
+        // Only remove the original item after successfully adding the alternative
+        await removeItemFromLoadout(loadoutId, currentItemId);
 
         // Show success toast with weight savings
         if (currentItem && alternativeItem) {
           const weightSaved = (currentItem.weightGrams ?? 0) - (alternativeItem.weightGrams ?? 0);
+
+          // Defensive: warn if alternative is heavier (shouldn't happen)
+          if (weightSaved < 0) {
+            console.warn('[LoadoutEditor] Alternative item is heavier than current item, should not happen');
+          }
+
           toast.success(t('swappedItem', {
             oldName: currentItem.name,
             newName: alternativeItem.name
@@ -193,9 +216,13 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
         }
       } catch (error) {
         console.error('[LoadoutEditor] Failed to swap item:', error);
+        // Show error toast to inform user
+        toast.error(t('swapFailed'));
+        // Re-throw to let caller handle if needed
+        throw error;
       }
     },
-    [loadoutId, removeItemFromLoadout, addItemToLoadout, allItems, t]
+    [loadoutId, removeItemFromLoadout, addItemToLoadout, allItems, itemStates, t]
   );
 
   return {

@@ -404,7 +404,8 @@
   "LoadoutEditor": {
     "addedItem": "{name} hinzugefügt",
     "swappedItem": "{oldName} mit {newName} getauscht",
-    "savedWeight": "{weight} gespart"
+    "savedWeight": "{weight} gespart",
+    "swapFailed": "Gegenstandstausch fehlgeschlagen"
   },
   "CategoryManagement": {
     "createFailed": "Kategorie konnte nicht erstellt werden: {error}",
