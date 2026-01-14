@@ -402,7 +402,10 @@
     }
   },
   "LoadoutEditor": {
-    "addedItem": "Added {name}"
+    "addedItem": "Added {name}",
+    "swappedItem": "Swapped {oldName} with {newName}",
+    "savedWeight": "Saved {weight}",
+    "swapFailed": "Failed to swap items"
   },
   "CategoryManagement": {
     "createFailed": "Failed to create category: {error}",
@@ -813,7 +816,9 @@
     "itemActions": {
       "markAsWorn": "Mark as worn",
       "markAsConsumable": "Mark as consumable",
-      "lighterAlternativeAvailable": "Lighter alternative available"
+      "lighterAlternativeAvailable": "Lighter alternative available",
+      "swapItem": "Swap item",
+      "saveWeight": "Save {weight}"
     }
   },
   "LoadoutCreation": {

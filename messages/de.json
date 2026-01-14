@@ -402,7 +402,10 @@
     }
   },
   "LoadoutEditor": {
-    "addedItem": "{name} hinzugefügt"
+    "addedItem": "{name} hinzugefügt",
+    "swappedItem": "{oldName} mit {newName} getauscht",
+    "savedWeight": "{weight} gespart",
+    "swapFailed": "Gegenstandstausch fehlgeschlagen"
   },
   "CategoryManagement": {
     "createFailed": "Kategorie konnte nicht erstellt werden: {error}",
@@ -813,7 +816,9 @@
     "itemActions": {
       "markAsWorn": "Als getragen markieren",
       "markAsConsumable": "Als Verbrauchsgut markieren",
-      "lighterAlternativeAvailable": "Leichtere Alternative verfügbar"
+      "lighterAlternativeAvailable": "Leichtere Alternative verfügbar",
+      "swapItem": "Gegenstand austauschen",
+      "saveWeight": "Spare {weight}"
     }
   },
   "LoadoutCreation": {
