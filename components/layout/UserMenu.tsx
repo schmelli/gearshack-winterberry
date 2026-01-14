@@ -44,11 +44,35 @@ export function UserMenu() {
   const { mergedUser } = profile;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const t = useTranslations('Navigation');
+  const tBugReport = useTranslations('BugReport');
 
   // Handle sign out (T052, T053)
   async function handleSignOut() {
     await signOut();
     router.replace('/login');
+  }
+
+  // Handle bug report with enhanced configuration
+  function handleReportBug() {
+    try {
+      Sentry.showReportDialog({
+        // Link to last error event if available
+        eventId: Sentry.lastEventId(),
+        // Pre-populate user information
+        user: {
+          email: user?.email || '',
+          name: displayName || '',
+        },
+        // Internationalized dialog labels
+        subtitle: tBugReport('dialogSubtitle'),
+        labelComments: tBugReport('labelComments'),
+        labelSubmit: tBugReport('labelSubmit'),
+        labelClose: tBugReport('labelClose'),
+      });
+    } catch (error) {
+      console.error('Failed to show Sentry report dialog:', error);
+      // Silently fail - user can still report issues through other channels
+    }
   }
 
   // Not authenticated - show sign in button
@@ -132,7 +156,7 @@ export function UserMenu() {
 
           {/* Report Bug - Sentry User Feedback */}
           <DropdownMenuItem
-            onClick={() => Sentry.showReportDialog()}
+            onClick={handleReportBug}
             className="cursor-pointer"
           >
             <Bug className="mr-2 h-4 w-4" />

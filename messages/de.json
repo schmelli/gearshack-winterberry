@@ -17,6 +17,12 @@
     "messages": "Nachrichten",
     "reportBug": "Bug melden"
   },
+  "BugReport": {
+    "dialogSubtitle": "Was ist schiefgelaufen? Bitte beschreibe das Problem, das du festgestellt hast.",
+    "labelComments": "Was ist passiert?",
+    "labelSubmit": "Bericht senden",
+    "labelClose": "Schließen"
+  },
   "Messages": {
     "title": "Nachrichten",
     "description": "Deine Unterhaltungen mit anderen Nutzern",

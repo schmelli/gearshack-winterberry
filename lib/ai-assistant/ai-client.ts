@@ -116,7 +116,7 @@ function adaptMastraTool<TInput, TOutput>(
   userId: string
 ) {
   // Convert Zod schema to JSON Schema with proper type field for Claude
-  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema, {
+  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema as any, {
     target: 'jsonSchema7',
     $refStrategy: 'none', // Don't use $ref, inline all definitions
   }) as JsonSchema;
@@ -180,13 +180,13 @@ export function getAITools(userId: string) {
     // =========================================================================
 
     // Query user's database (gear, loadouts, categories, etc.)
-    queryUserData: adaptMastraTool(queryUserDataTool, userId),
+    queryUserData: adaptMastraTool(queryUserDataTool as any, userId),
 
     // Search product catalog
-    searchCatalog: adaptMastraTool(searchCatalogTool, userId),
+    searchCatalog: adaptMastraTool(searchCatalogTool as any, userId),
 
     // Search the web for real-time information
-    searchWeb: adaptMastraTool(searchWebTool, userId),
+    searchWeb: adaptMastraTool(searchWebTool as any, userId),
 
     // =========================================================================
     // Action Tools
@@ -352,10 +352,10 @@ async function generateAIResponseInternal(
       config.maxSteps = AI_MAX_STEPS;
     }
 
-    const result = await generateText(config);
+    const result = await generateText(config as any);
 
     // Map tool calls to our ToolCallResult format
-    const mappedToolCalls: ToolCallResult[] = (result.toolCalls || []).map((call) => ({
+    const mappedToolCalls: ToolCallResult[] = (result.toolCalls || []).map((call: any) => ({
       toolCallId: call.toolCallId,
       toolName: call.toolName,
       args: call.args as Record<string, unknown>,
@@ -524,7 +524,7 @@ export async function generateStreamingAIResponse(
       };
     }
 
-    const result = streamText(config);
+    const result = streamText(config as any);
 
     // Clear timeout when stream completes
     result.text.finally(() => clearTimeout(timeoutId));
@@ -539,8 +539,8 @@ export async function generateStreamingAIResponse(
 
     return {
       textStream: result.textStream,
-      toolCalls: result.toolCalls.then((calls: RawToolCall[]) =>
-        (calls || []).map((call) => ({
+      toolCalls: result.toolCalls.then((calls: any) =>
+        (calls || []).map((call: any) => ({
           toolCallId: call.toolCallId,
           toolName: call.toolName,
           args: (call.args || call.input || {}) as Record<string, unknown>,

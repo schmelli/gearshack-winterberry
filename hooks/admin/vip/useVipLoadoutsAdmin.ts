@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database';
+import type { Json } from '@/types/supabase';
 
 // =============================================================================
 // Types
@@ -198,11 +199,11 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
         user_id: userId,
         name: data.name,
         description: data.description || null,
-        activity_types: (data.activityTypes as string[] | null) || null,
-        seasons: (data.seasons as string[] | null) || null,
+        activity_types: (data.activityTypes as Database['public']['Tables']['loadouts']['Row']['activity_types']) || null,
+        seasons: (data.seasons as Database['public']['Tables']['loadouts']['Row']['seasons']) || null,
         is_vip_loadout: false, // Start as draft (unpublished)
-         
-        source_attribution: sourceAttribution as Record<string, unknown> | null, // JSONB type
+
+        source_attribution: sourceAttribution as Json | null,
       };
 
       const { data: loadout, error } = await supabase

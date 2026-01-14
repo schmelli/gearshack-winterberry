@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { Json } from '@/types/supabase';
 import type {
   AdminUserView,
   UserFilter,
@@ -176,8 +177,8 @@ export function useAdminUsers(): UseAdminUsersReturn {
           admin_id: user.id,
           action_type: actionType,
           target_user_id: targetUserId,
-          old_value: oldValue,
-          new_value: newValue,
+          old_value: oldValue as Json,
+          new_value: newValue as Json,
           reason: reason || null,
         });
       } catch (err) {

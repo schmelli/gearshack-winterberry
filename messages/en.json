@@ -17,6 +17,12 @@
     "messages": "Messages",
     "reportBug": "Report Bug"
   },
+  "BugReport": {
+    "dialogSubtitle": "What went wrong? Please describe the issue you encountered.",
+    "labelComments": "What happened?",
+    "labelSubmit": "Submit Report",
+    "labelClose": "Close"
+  },
   "Messages": {
     "title": "Messages",
     "description": "Your conversations with other users",
