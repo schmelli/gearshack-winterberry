@@ -3107,6 +3107,7 @@ export type Database = {
           display_name: string | null
           email: string
           facebook: string | null
+          first_launch: string | null
           follower_count: number | null
           id: string
           instagram: string | null
@@ -3164,6 +3165,7 @@ export type Database = {
           display_name?: string | null
           email: string
           facebook?: string | null
+          first_launch?: string | null
           follower_count?: number | null
           id: string
           instagram?: string | null
@@ -3221,6 +3223,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           facebook?: string | null
+          first_launch?: string | null
           follower_count?: number | null
           id?: string
           instagram?: string | null
@@ -5088,6 +5091,7 @@ export type Database = {
       }
       cleanup_daily_rate_limits: { Args: never; Returns: number }
       cleanup_delivery_queue: { Args: never; Returns: number }
+      cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_conversation_memory: { Args: never; Returns: number }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       clear_conversation_state: {
