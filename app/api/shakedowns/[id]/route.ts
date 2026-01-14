@@ -21,6 +21,7 @@ import { updateShakedownSchema } from '@/lib/shakedown-schemas';
 import {
   type ShakedownDetailDbRow,
   type LoadoutDbRow,
+  type LoadoutItemDbRow,
   type GearItemDbRow,
   type GearItemApiResponse,
   type FeedbackDbRow,
@@ -57,6 +58,15 @@ interface UpdateShakedownResponse {
 }
 
 /**
+ * Extended gear item response that includes loadout item metadata
+ */
+interface ShakedownLoadoutItem extends GearItemApiResponse {
+  quantity: number;
+  isWorn: boolean;
+  isConsumable: boolean;
+}
+
+/**
  * API Response shape for GET /api/shakedowns/[id]
  */
 interface ShakedownDetailResponse {
@@ -67,7 +77,7 @@ interface ShakedownDetailResponse {
     description: string | null;
     totalWeight: number;
     itemCount: number;
-    gearItems: GearItemApiResponse[];
+    gearItems: ShakedownLoadoutItem[];
   };
   feedback: FeedbackWithAuthor[];
 }
@@ -193,10 +203,11 @@ export async function GET(
     }
 
     // Fetch loadout data (using service client to avoid RLS issues)
+    // Only select columns that actually exist in the loadouts table
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadoutRow, error: loadoutError } = await (serviceClient as any)
       .from('loadouts')
-      .select('id, name, description, total_weight_grams, item_count, item_ids, item_states')
+      .select('id, name, description')
       .eq('id', shakedown.loadout_id)
       .single();
 
@@ -208,24 +219,59 @@ export async function GET(
       );
     }
 
-    const loadout = loadoutRow as unknown as LoadoutDbRow;
+    const loadout = loadoutRow as { id: string; name: string; description: string | null };
 
-    // Fetch gear items for the loadout (using service client to avoid RLS issues)
-    let gearItems: GearItemApiResponse[] = [];
-    if (loadout.item_ids && loadout.item_ids.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: gearItemRows, error: gearItemsError } = await (serviceClient as any)
-        .from('gear_items')
-        .select('id, name, brand, description, weight_grams, image_url, product_type_id')
-        .in('id', loadout.item_ids);
+    // Fetch gear items via loadout_items junction table with joined gear_items
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: loadoutItemRows, error: loadoutItemsError } = await (serviceClient as any)
+      .from('loadout_items')
+      .select(`
+        id,
+        loadout_id,
+        gear_item_id,
+        quantity,
+        is_worn,
+        is_consumable,
+        gear_items (
+          id,
+          name,
+          brand,
+          description,
+          weight_grams,
+          image_url,
+          product_type_id
+        )
+      `)
+      .eq('loadout_id', shakedown.loadout_id);
 
-      if (gearItemsError) {
-        console.error('[API] Failed to fetch gear items:', gearItemsError);
-        // Continue without gear items rather than failing
-      } else if (gearItemRows) {
-        gearItems = (gearItemRows as unknown as GearItemDbRow[]).map(
-          mapGearItemToApiResponse
-        );
+    let gearItems: ShakedownLoadoutItem[] = [];
+    let totalWeightGrams = 0;
+    let itemCount = 0;
+
+    if (loadoutItemsError) {
+      console.error('[API] Failed to fetch loadout items:', loadoutItemsError);
+      // Continue without gear items rather than failing
+    } else if (loadoutItemRows && loadoutItemRows.length > 0) {
+      // Process loadout items and calculate totals
+      for (const item of loadoutItemRows as LoadoutItemDbRow[]) {
+        if (item.gear_items) {
+          const gearItem = item.gear_items;
+          // Include item-specific metadata (quantity, isWorn, isConsumable)
+          gearItems.push({
+            ...mapGearItemToApiResponse(gearItem),
+            quantity: item.quantity,
+            isWorn: item.is_worn,
+            isConsumable: item.is_consumable,
+          });
+
+          // Calculate total weight (weight * quantity)
+          if (gearItem.weight_grams) {
+            totalWeightGrams += gearItem.weight_grams * item.quantity;
+          }
+          // Count distinct items (like v_shakedowns_feed view does with COUNT(*))
+          // not the sum of quantities
+          itemCount++;
+        }
       }
     }
 
@@ -251,15 +297,15 @@ export async function GET(
       shakedown: mapDbRowToShakedownWithAuthor(
         shakedown,
         loadout.name,
-        loadout.total_weight_grams,
-        loadout.item_count
+        totalWeightGrams,
+        itemCount
       ),
       loadout: {
         id: loadout.id,
         name: loadout.name,
         description: loadout.description,
-        totalWeight: loadout.total_weight_grams,
-        itemCount: loadout.item_count,
+        totalWeight: totalWeightGrams,
+        itemCount: itemCount,
         gearItems,
       },
       feedback,
