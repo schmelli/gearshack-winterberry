@@ -90,7 +90,7 @@ export async function preloadLoadoutContext(
 
     const supabase = await createClient();
 
-    // Fetch loadout with gear items in a single query (optimized)
+    // Fetch loadout with gear items via loadout_items junction table (optimized)
     const { data: loadout, error: loadoutError } = await supabase
       .from('loadouts')
       .select(`
@@ -99,13 +99,15 @@ export async function preloadLoadoutContext(
         description,
         activity_types,
         seasons,
-        gear_items (
-          id,
-          name,
-          brand,
-          weight,
-          category:categories(name),
-          product_type:product_types(name)
+        loadout_items (
+          gear_item:gear_items (
+            id,
+            name,
+            brand,
+            weight,
+            category:categories(name),
+            product_type:product_types(name)
+          )
         )
       `)
       .eq('id', loadoutId)
@@ -118,23 +120,28 @@ export async function preloadLoadoutContext(
     }
 
     // Calculate weights
-    // Type for raw gear item from Supabase join query
-    interface RawGearItem {
-      id: string;
-      name: string;
-      brand: string | null;
-      weight: number | null;
-      category: { name: string } | null;
-      product_type: { name: string } | null;
+    // Type for raw loadout item from Supabase join query via junction table
+    interface RawLoadoutItem {
+      gear_item: {
+        id: string;
+        name: string;
+        brand: string | null;
+        weight: number | null;
+        category: { name: string } | null;
+        product_type: { name: string } | null;
+      } | null;
     }
-    const gearItems = ((loadout.gear_items || []) as unknown as RawGearItem[]).map((item) => ({
-      id: item.id,
-      name: item.name,
-      brand: item.brand,
-      weight: item.weight || 0,
-      category: item.category?.name || null,
-      productType: item.product_type?.name || null,
-    }));
+    const rawLoadoutItems = (loadout.loadout_items || []) as unknown as RawLoadoutItem[];
+    const gearItems = rawLoadoutItems
+      .filter((item) => item.gear_item !== null)
+      .map((item) => ({
+        id: item.gear_item!.id,
+        name: item.gear_item!.name,
+        brand: item.gear_item!.brand,
+        weight: item.gear_item!.weight || 0,
+        category: item.gear_item!.category?.name || null,
+        productType: item.gear_item!.product_type?.name || null,
+      }));
 
     const totalWeight = gearItems.reduce((sum, item) => sum + item.weight, 0);
     const baseWeight = totalWeight; // Simplified - could exclude consumables
