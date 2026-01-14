@@ -594,6 +594,14 @@
       "searchForWithLimit": "Gewicht suchen für \"{query}\" ({remaining} von {limit} heute übrig)"
     }
   },
+  "ManufacturerPrice": {
+    "title": "Herstellerpreis",
+    "price": "Preis",
+    "shipping": "Versand",
+    "freeShipping": "Kostenloser Versand",
+    "viewOnManufacturer": "Auf Herstellerseite ansehen",
+    "noData": "Noch keine Preisdaten verfügbar"
+  },
   "EbayListings": {
     "title": "eBay-Angebote",
     "noResults": "Keine passenden Angebote gefunden",
@@ -627,18 +635,27 @@
     }
   },
   "ResellerPrices": {
-    "title": "Händler-Preise",
+    "title": "Händlerpreise",
     "typeLocal": "Lokaler Shop",
     "typeOnline": "Online",
     "partner": "Partner",
     "visitShop": "Shop besuchen",
     "outOfStock": "Nicht auf Lager",
-    "noResults": "Keine Händler-Preise für diesen Artikel gefunden",
+    "noResults": "Keine Händlerpreise für diesen Artikel gefunden",
     "cached": "Zwischengespeichert",
     "refresh": "Aktualisieren",
     "retry": "Erneut versuchen",
     "trailblazerRequired": "Trailblazer-Funktion",
-    "trailblazerDescription": "Upgrade auf Trailblazer, um Händler-Preisvergleiche zu sehen und die besten Angebote in deiner Nähe zu finden."
+    "trailblazerDescription": "Upgrade auf Trailblazer, um Händler-Preisvergleiche zu sehen und die besten Angebote in deiner Nähe zu finden.",
+    "priceMonitoring": {
+      "title": "Preisüberwachung",
+      "enable": "Preisüberwachung aktivieren",
+      "enabled": "Preisüberwachung aktiviert",
+      "disabled": "Preisüberwachung deaktiviert",
+      "notifyEmail": "Per E-Mail benachrichtigen",
+      "notifyApp": "In der App benachrichtigen",
+      "tooltip": "Benachrichtigung bei Preissenkung erhalten"
+    }
   },
   "GearDetail": {
     "sections": {
@@ -647,9 +664,8 @@
       "purchaseInfo": "Kaufinformationen",
       "priceTracking": "Preisverfolgung",
       "externalLinks": "Externe Links",
-      "reviews": "Bewertungen",
-      "gearInsights": "Ausrüstungs-Einblicke",
-      "gearGraphDescription": "GearGraph Beschreibung"
+      "reviews": "Reviews",
+      "gearInsights": "GearGraph Insights"
     },
     "specLabels": {
       "weight": "Gewicht",

@@ -13,7 +13,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag, Sparkles } from 'lucide-react';
+import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,19 +38,16 @@ import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
 import { cn } from '@/lib/utils';
 import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
-import { PriceTrackingSection } from '@/components/price-tracking';
 import { SpecIcon } from '@/components/gear/SpecIcon';
 import type { SpecIconType } from '@/components/gear/SpecIcon';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
-import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
-import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
+import { ManufacturerPriceSection } from '@/components/price-tracking/ManufacturerPriceSection';
 import { EbayListingsSection } from '@/components/price-tracking/EbayListingsSection';
 import { ResellerPricesSection } from '@/components/price-tracking/ResellerPricesSection';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
-import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 
 // =============================================================================
@@ -225,11 +222,6 @@ export function GearDetailContent({
     return sections;
   }, [item.description, item.notes]);
 
-  // Fetch top 3 prices for wishlist items (shown outside accordion)
-  const { priceResults, isLoading: priceResultsLoading } = useWishlistPriceResults(
-    isWishlistItem ? item.id : ''
-  );
-
   // Fetch MSRP for wishlist items
   const { msrp, isLoading: msrpLoading } = useMsrpPrice(
     isWishlistItem ? item.name : null,
@@ -348,38 +340,16 @@ export function GearDetailContent({
           />
         )}
 
-        {/* Wishlist Price Overview - Always visible (not in accordion) */}
+        {/* Feature 057: Manufacturer Price Section - For all wishlist items */}
         {isWishlistItem && (
-          <div className="space-y-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/10 p-4">
-            {/* Manufacturer Price Display (Feature 057) */}
-            {item.manufacturerPrice != null && (
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-muted-foreground">{t('purchaseInfo.manufacturerPrice')}</span>
-                <span className="text-lg font-semibold">
-                  {new Intl.NumberFormat('de-DE', {
-                    style: 'currency',
-                    currency: item.manufacturerCurrency ?? 'EUR',
-                  }).format(item.manufacturerPrice)}
-                </span>
-              </div>
-            )}
-
-            {/* MSRP Display (fallback if no manufacturer price) */}
-            {item.manufacturerPrice == null && (
-              <MsrpPriceDisplay
-                msrpAmount={msrp?.expectedPriceUsd ?? null}
-                isLoading={msrpLoading}
-                variant="inline"
-              />
-            )}
-
-            {/* Top 3 Retail Prices */}
-            <TopRetailPricesDisplay
-              priceResults={priceResults}
-              isLoading={priceResultsLoading}
-              variant="full"
-            />
-          </div>
+          <ManufacturerPriceSection
+            manufacturerPrice={item.manufacturerPrice}
+            manufacturerCurrency={item.manufacturerCurrency}
+            productUrl={item.productUrl}
+            brandUrl={item.brandUrl}
+            msrpAmount={msrp?.expectedPriceUsd ?? null}
+            msrpLoading={msrpLoading}
+          />
         )}
 
         {/* Feature 057: eBay Listings Section - For all wishlist items */}
@@ -505,18 +475,6 @@ export function GearDetailContent({
             </AccordionItem>
           )}
 
-          {/* Price Tracking Section - Feature 050 (only for wishlist items) */}
-          {isWishlistItem && (
-            <AccordionItem value="price-tracking">
-              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                {t('sections.priceTracking')}
-              </AccordionTrigger>
-              <AccordionContent>
-                <PriceTrackingSection item={item} />
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
           {/* External Links */}
           {(item.productUrl || item.brandUrl || item.retailerUrl) && (
             <AccordionItem value="links">
@@ -609,28 +567,6 @@ export function GearDetailContent({
             </AccordionContent>
           </AccordionItem>
 
-          {/* GEARGRAPH DESCRIPTION Section (Placeholder for AI-generated content) */}
-          {item.productTypeId && (
-            <AccordionItem value="geargraph-description">
-              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                  {t('sections.gearGraphDescription')}
-                </span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-center">
-                  <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {t('gearGraph.aiPlaceholder')}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground/70">
-                    {t('gearGraph.aiSubtext')}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
         </Accordion>
       </div>
     </div>

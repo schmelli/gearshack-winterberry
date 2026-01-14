@@ -10,12 +10,26 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ExternalLink, MapPin, Store, Globe, RefreshCw, Crown } from 'lucide-react';
+import { ExternalLink, MapPin, Store, Globe, RefreshCw, Crown, Bell, BellOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useResellerPrices } from '@/hooks/price-tracking/useResellerPrices';
+import { usePriceTracking } from '@/hooks/price-tracking/usePriceTracking';
 import type { ResellerPriceWithDetails } from '@/types/reseller';
 
 // =============================================================================
@@ -166,6 +180,129 @@ function NotTrailblazerMessage() {
   );
 }
 
+function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
+  const t = useTranslations('ResellerPrices');
+
+  const {
+    tracking,
+    isLoading,
+    enableTracking,
+    disableTracking,
+    toggleAlerts,
+  } = usePriceTracking(gearItemId);
+
+  const isEnabled = tracking?.enabled ?? false;
+  const emailEnabled = tracking?.alert_email ?? false;
+  const appEnabled = tracking?.alerts_enabled ?? false;
+
+  const handleToggleTracking = async () => {
+    try {
+      if (isEnabled) {
+        await disableTracking();
+      } else {
+        await enableTracking(true);
+      }
+    } catch (error) {
+      console.error('Failed to toggle price monitoring:', error);
+    }
+  };
+
+  const handleToggleEmail = async (enabled: boolean) => {
+    try {
+      // For now, we toggle alerts_enabled as a general toggle
+      // In a full implementation, you'd have separate toggles
+      await toggleAlerts(enabled);
+    } catch (error) {
+      console.error('Failed to toggle email notifications:', error);
+    }
+  };
+
+  const handleToggleApp = async (enabled: boolean) => {
+    try {
+      await toggleAlerts(enabled);
+    } catch (error) {
+      console.error('Failed to toggle app notifications:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
+        <Bell className="h-4 w-4 animate-pulse" />
+      </Button>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Popover>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`}
+              >
+                {isEnabled ? (
+                  <Bell className="h-4 w-4" />
+                ) : (
+                  <BellOff className="h-4 w-4" />
+                )}
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{t('priceMonitoring.tooltip')}</p>
+          </TooltipContent>
+        </Tooltip>
+        <PopoverContent className="w-64" align="end">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">{t('priceMonitoring.title')}</h4>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-monitoring" className="text-sm">
+                  {t('priceMonitoring.enable')}
+                </Label>
+                <Switch
+                  id="enable-monitoring"
+                  checked={isEnabled}
+                  onCheckedChange={handleToggleTracking}
+                />
+              </div>
+            </div>
+
+            {isEnabled && (
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="notify-email" className="text-sm">
+                    {t('priceMonitoring.notifyEmail')}
+                  </Label>
+                  <Switch
+                    id="notify-email"
+                    checked={emailEnabled}
+                    onCheckedChange={handleToggleEmail}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="notify-app" className="text-sm">
+                    {t('priceMonitoring.notifyApp')}
+                  </Label>
+                  <Switch
+                    id="notify-app"
+                    checked={appEnabled}
+                    onCheckedChange={handleToggleApp}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </TooltipProvider>
+  );
+}
+
 // =============================================================================
 // Main Component
 // =============================================================================
@@ -203,6 +340,7 @@ export function ResellerPricesSection({
             <Store className="h-4 w-4" />
             {t('title')}
           </h3>
+          <PriceMonitoringButton gearItemId={gearItemId} />
         </div>
         <NotTrailblazerMessage />
       </section>
@@ -218,6 +356,7 @@ export function ResellerPricesSection({
             <Store className="h-4 w-4" />
             {t('title')}
           </h3>
+          <PriceMonitoringButton gearItemId={gearItemId} />
         </div>
         <LoadingSkeleton />
       </section>
@@ -233,6 +372,7 @@ export function ResellerPricesSection({
             <Store className="h-4 w-4" />
             {t('title')}
           </h3>
+          <PriceMonitoringButton gearItemId={gearItemId} />
         </div>
         <Card className="border-destructive/50">
           <CardContent className="p-4">
@@ -257,6 +397,7 @@ export function ResellerPricesSection({
             <Store className="h-4 w-4" />
             {t('title')}
           </h3>
+          <PriceMonitoringButton gearItemId={gearItemId} />
         </div>
         <Card>
           <CardContent className="p-4">
@@ -280,10 +421,13 @@ export function ResellerPricesSection({
             </Badge>
           )}
         </h3>
-        <Button variant="ghost" size="sm" onClick={refresh} className="h-7">
-          <RefreshCw className="h-3 w-3 mr-1" />
-          {t('refresh')}
-        </Button>
+        <div className="flex items-center gap-1">
+          <PriceMonitoringButton gearItemId={gearItemId} />
+          <Button variant="ghost" size="sm" onClick={refresh} className="h-7">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            {t('refresh')}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
