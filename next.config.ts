@@ -97,12 +97,16 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // Disabled: Conflicts with [locale] routing and causes 405 errors
   // tunnelRoute: "/monitoring",
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  // Bundle size optimizations (replaces deprecated disableLogger)
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
+  // Webpack-specific options
+  webpack: {
+    // Cron monitoring (replaces deprecated top-level automaticVercelMonitors)
+    // Note: Does not yet work with App Router route handlers.
+    // See: https://docs.sentry.io/product/crons/
+    automaticVercelMonitors: true,
+  },
 });
