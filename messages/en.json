@@ -594,6 +594,14 @@
       "searchForWithLimit": "Search weight for \"{query}\" ({remaining} of {limit} left today)"
     }
   },
+  "ManufacturerPrice": {
+    "title": "Manufacturer Price",
+    "price": "Price",
+    "shipping": "Shipping",
+    "freeShipping": "Free Shipping",
+    "viewOnManufacturer": "View on Manufacturer Website",
+    "noData": "No price data available yet"
+  },
   "EbayListings": {
     "title": "eBay Listings",
     "noResults": "No matching listings found",
@@ -627,18 +635,27 @@
     }
   },
   "ResellerPrices": {
-    "title": "Reseller Prices",
+    "title": "Retailer Prices",
     "typeLocal": "Local Shop",
     "typeOnline": "Online",
     "partner": "Partner",
     "visitShop": "Visit Shop",
     "outOfStock": "Out of Stock",
-    "noResults": "No reseller prices found for this item",
+    "noResults": "No retailer prices found for this item",
     "cached": "Cached",
     "refresh": "Refresh",
     "retry": "Retry",
     "trailblazerRequired": "Trailblazer Feature",
-    "trailblazerDescription": "Upgrade to Trailblazer to see reseller price comparisons and find the best deals nearby."
+    "trailblazerDescription": "Upgrade to Trailblazer to see retailer price comparisons and find the best deals nearby.",
+    "priceMonitoring": {
+      "title": "Price Monitoring",
+      "enable": "Enable price monitoring",
+      "enabled": "Price monitoring enabled",
+      "disabled": "Price monitoring disabled",
+      "notifyEmail": "Notify via Email",
+      "notifyApp": "Notify in App",
+      "tooltip": "Get notified when prices drop"
+    }
   },
   "GearDetail": {
     "sections": {
@@ -648,8 +665,7 @@
       "priceTracking": "Price Tracking",
       "externalLinks": "External Links",
       "reviews": "Reviews",
-      "gearInsights": "Gear Insights",
-      "gearGraphDescription": "GearGraph Description"
+      "gearInsights": "GearGraph Insights"
     },
     "specLabels": {
       "weight": "Weight",
