@@ -22,6 +22,7 @@ import type { AuthUser, UserProfile, MergedUser } from '@/types/auth';
 import type { Tables } from '@/types/database';
 import type { Tables as SupabaseTables } from '@/types/supabase';
 import { PendingImportHandler } from './PendingImportHandler';
+import { OnboardingHandler } from '@/components/onboarding';
 
 // =============================================================================
 // Types - Compatible with existing Firebase AuthProvider
@@ -396,6 +397,12 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
     <AuthContext.Provider value={value}>
       {/* Feature 048: Check for pending loadout import after auth (T025, T026) */}
       <PendingImportHandler isAuthenticated={!!user} />
+      {/* User Onboarding: Show onboarding modal for first-time users */}
+      <OnboardingHandler
+        isAuthenticated={!!user}
+        userId={user?.uid ?? null}
+        profile={supabaseProfile.profile}
+      />
       {children}
     </AuthContext.Provider>
   );
