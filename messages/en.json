@@ -941,6 +941,7 @@
     "getShareLink": "Get Share Link",
     "generateNewLink": "Generate New Link",
     "share": "Share",
+    "shareLoadout": "Share loadout",
     "shareOn": "Share on:",
     "linkCopied": "Link copied",
     "copyFailed": "Failed to copy",
