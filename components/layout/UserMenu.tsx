@@ -18,7 +18,8 @@
 import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
-import { User, Settings, LogOut, LogIn, Shield } from 'lucide-react';
+import { User, Settings, LogOut, LogIn, Shield, Bug } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -128,6 +129,15 @@ export function UserMenu() {
               </Link>
             </DropdownMenuItem>
           )}
+
+          {/* Report Bug - Sentry User Feedback */}
+          <DropdownMenuItem
+            onClick={() => Sentry.showReportDialog()}
+            className="cursor-pointer"
+          >
+            <Bug className="mr-2 h-4 w-4" />
+            {t('reportBug')}
+          </DropdownMenuItem>
 
           <DropdownMenuSeparator />
 
