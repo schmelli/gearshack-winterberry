@@ -14,7 +14,8 @@
     "settings": "Settings",
     "admin": "Admin",
     "openMenu": "Open menu",
-    "messages": "Messages"
+    "messages": "Messages",
+    "reportBug": "Report Bug"
   },
   "Messages": {
     "title": "Messages",
