@@ -74,6 +74,8 @@ export interface UseLoadoutEditorReturn {
   addItem: (itemId: string) => Promise<void>;
   /** Remove an item from the loadout */
   removeItem: (itemId: string) => Promise<void>;
+  /** Swap an item with a lighter alternative */
+  swapItem: (currentItemId: string, alternativeItemId: string) => Promise<void>;
   /** Total weight of items in loadout */
   totalWeight: number;
   /** Base weight (total minus worn and consumable items) - Feature 007 */
@@ -168,6 +170,34 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
     [loadoutId, removeItemFromLoadout]
   );
 
+  const swapItem = useCallback(
+    async (currentItemId: string, alternativeItemId: string) => {
+      const currentItem = allItems.find((i) => i.id === currentItemId);
+      const alternativeItem = allItems.find((i) => i.id === alternativeItemId);
+
+      try {
+        // Remove the current heavier item
+        await removeItemFromLoadout(loadoutId, currentItemId);
+        // Add the lighter alternative
+        await addItemToLoadout(loadoutId, alternativeItemId);
+
+        // Show success toast with weight savings
+        if (currentItem && alternativeItem) {
+          const weightSaved = (currentItem.weightGrams ?? 0) - (alternativeItem.weightGrams ?? 0);
+          toast.success(t('swappedItem', {
+            oldName: currentItem.name,
+            newName: alternativeItem.name
+          }), {
+            description: t('savedWeight', { weight: formatWeight(weightSaved) }),
+          });
+        }
+      } catch (error) {
+        console.error('[LoadoutEditor] Failed to swap item:', error);
+      }
+    },
+    [loadoutId, removeItemFromLoadout, addItemToLoadout, allItems, t]
+  );
+
   return {
     loadoutItems,
     searchQuery,
@@ -175,6 +205,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
     filteredPickerItems,
     addItem,
     removeItem,
+    swapItem,
     totalWeight,
     baseWeight,
     categoryWeights,

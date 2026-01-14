@@ -98,6 +98,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     filteredPickerItems,
     addItem,
     removeItem,
+    swapItem,
     totalWeight,
     baseWeight,
     itemStates,
@@ -281,6 +282,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
             <LoadoutList
               items={sortedFilteredLoadoutItems}
               onRemoveItem={removeItem}
+              onSwapItem={swapItem}
               filterCategoryId={selectedCategoryId}
               sortBy={sortBy}
               isWorn={isWorn}

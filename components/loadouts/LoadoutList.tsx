@@ -16,7 +16,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { X, Package, Shirt, Apple, AlertTriangle } from 'lucide-react';
+import { X, Package, Shirt, Apple, AlertTriangle, ArrowLeftRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,8 @@ import type { LighterAlternative } from '@/hooks/useLighterAlternatives';
 interface LoadoutListProps {
   items: GearItem[];
   onRemoveItem: (itemId: string) => void;
+  /** Swap an item with a lighter alternative */
+  onSwapItem?: (currentItemId: string, alternativeItemId: string) => void;
   /** Filter to show only items from this category (FR-012: chart segment filter) */
   filterCategoryId?: string | null;
   /** Sort option to apply to items and categories */
@@ -67,6 +69,7 @@ interface LoadoutListProps {
 export function LoadoutList({
   items,
   onRemoveItem,
+  onSwapItem,
   filterCategoryId,
   sortBy = 'category',
   isWorn,
@@ -142,6 +145,7 @@ export function LoadoutList({
                     key={item.id}
                     item={item}
                     onRemove={() => onRemoveItem(item.id)}
+                    onSwap={onSwapItem && lighterAlt ? () => onSwapItem(item.id, lighterAlt.alternativeItem.id) : undefined}
                     isWorn={isWorn(item.id)}
                     isConsumable={isConsumable(item.id)}
                     onToggleWorn={() => onToggleWorn(item.id)}
@@ -191,6 +195,7 @@ export function LoadoutList({
                     key={item.id}
                     item={item}
                     onRemove={() => onRemoveItem(item.id)}
+                    onSwap={onSwapItem && lighterAlt ? () => onSwapItem(item.id, lighterAlt.alternativeItem.id) : undefined}
                     isWorn={isWorn(item.id)}
                     isConsumable={isConsumable(item.id)}
                     onToggleWorn={() => onToggleWorn(item.id)}
@@ -218,6 +223,8 @@ export function LoadoutList({
 interface LoadoutListItemProps {
   item: GearItem;
   onRemove: () => void;
+  /** Swap with lighter alternative */
+  onSwap?: () => void;
   isWorn: boolean;
   isConsumable: boolean;
   onToggleWorn: () => void;
@@ -235,6 +242,7 @@ interface LoadoutListItemProps {
 function LoadoutListItem({
   item,
   onRemove,
+  onSwap,
   isWorn,
   isConsumable,
   onToggleWorn,
@@ -314,8 +322,22 @@ function LoadoutListItem({
                   })}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Save {formatWeight(lighterAlternative.weightSavings)}
+                  {t('itemActions.saveWeight', { weight: formatWeight(lighterAlternative.weightSavings) })}
                 </p>
+                {onSwap && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSwap();
+                    }}
+                  >
+                    <ArrowLeftRight className="mr-2 h-3 w-3" />
+                    {t('itemActions.swapItem')}
+                  </Button>
+                )}
               </TooltipContent>
             </Tooltip>
           )}
