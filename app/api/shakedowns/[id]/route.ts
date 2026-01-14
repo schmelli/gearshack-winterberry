@@ -58,6 +58,15 @@ interface UpdateShakedownResponse {
 }
 
 /**
+ * Extended gear item response that includes loadout item metadata
+ */
+interface ShakedownLoadoutItem extends GearItemApiResponse {
+  quantity: number;
+  isWorn: boolean;
+  isConsumable: boolean;
+}
+
+/**
  * API Response shape for GET /api/shakedowns/[id]
  */
 interface ShakedownDetailResponse {
@@ -68,7 +77,7 @@ interface ShakedownDetailResponse {
     description: string | null;
     totalWeight: number;
     itemCount: number;
-    gearItems: GearItemApiResponse[];
+    gearItems: ShakedownLoadoutItem[];
   };
   feedback: FeedbackWithAuthor[];
 }
@@ -235,7 +244,7 @@ export async function GET(
       `)
       .eq('loadout_id', shakedown.loadout_id);
 
-    let gearItems: GearItemApiResponse[] = [];
+    let gearItems: ShakedownLoadoutItem[] = [];
     let totalWeightGrams = 0;
     let itemCount = 0;
 
@@ -247,13 +256,21 @@ export async function GET(
       for (const item of loadoutItemRows as LoadoutItemDbRow[]) {
         if (item.gear_items) {
           const gearItem = item.gear_items;
-          gearItems.push(mapGearItemToApiResponse(gearItem));
+          // Include item-specific metadata (quantity, isWorn, isConsumable)
+          gearItems.push({
+            ...mapGearItemToApiResponse(gearItem),
+            quantity: item.quantity,
+            isWorn: item.is_worn,
+            isConsumable: item.is_consumable,
+          });
 
           // Calculate total weight (weight * quantity)
           if (gearItem.weight_grams) {
             totalWeightGrams += gearItem.weight_grams * item.quantity;
           }
-          itemCount += item.quantity;
+          // Count distinct items (like v_shakedowns_feed view does with COUNT(*))
+          // not the sum of quantities
+          itemCount++;
         }
       }
     }
