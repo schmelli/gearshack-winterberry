@@ -51,20 +51,32 @@ export interface ShakedownDetailDbRow {
 }
 
 /**
- * Database row from loadouts table
+ * Database row from loadouts table (actual columns)
  */
 export interface LoadoutDbRow {
   id: string;
   name: string;
   description: string | null;
-  total_weight_grams: number;
-  item_count: number;
-  item_ids: string[];
-  item_states: Array<{
-    item_id: string;
-    is_worn: boolean;
-    is_consumable: boolean;
-  }>;
+  user_id: string;
+  trip_date: string | null;
+  activity_types: string[] | null;
+  seasons: string[] | null;
+  hero_image_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Loadout item from loadout_items junction table with gear data
+ */
+export interface LoadoutItemDbRow {
+  id: string;
+  loadout_id: string;
+  gear_item_id: string;
+  quantity: number;
+  is_worn: boolean;
+  is_consumable: boolean;
+  gear_items: GearItemDbRow;
 }
 
 /**
