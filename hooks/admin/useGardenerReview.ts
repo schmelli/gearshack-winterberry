@@ -8,8 +8,8 @@ import type {
   UseGardenerReviewReturn,
 } from '@/types/gardener';
 
-const GARDENER_BASE_URL = 'https://geargraph.gearshack.app/gardener';
-const AUTH_HEADER = 'Basic Z2VhcmdyYXBoYWRtaW46R0dBZG1pbjIwMjU=';
+// Use local API proxy to avoid CORS issues
+const API_BASE_URL = '/api/gardener';
 
 /**
  * Custom hook for managing the interactive review queue.
@@ -54,14 +54,9 @@ export function useGardenerReview(): UseGardenerReviewReturn {
 
     try {
       const query = buildQueryString(position || undefined);
-      // Correct endpoint: /api/approvals/review (not /queue)
-      const url = `${GARDENER_BASE_URL}/api/approvals/review${query ? `?${query}` : ''}`;
+      const url = `${API_BASE_URL}/review${query ? `?${query}` : ''}`;
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: AUTH_HEADER,
-        },
-      });
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch review item: ${response.status}`);
@@ -140,10 +135,9 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     setError(null);
 
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/approvals/review`, {
+      const response = await fetch(`${API_BASE_URL}/review`, {
         method: 'POST',
         headers: {
-          Authorization: AUTH_HEADER,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -202,10 +196,9 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     setError(null);
 
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/approvals/review/batch`, {
+      const response = await fetch(`${API_BASE_URL}/review/batch`, {
         method: 'POST',
         headers: {
-          Authorization: AUTH_HEADER,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

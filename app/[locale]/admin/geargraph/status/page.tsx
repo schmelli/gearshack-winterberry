@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
-const GEARGRAPH_BASE_URL = 'https://geargraph.gearshack.app';
+// Use local API proxy to avoid CORS issues
+const API_BASE_URL = '/api/geargraph';
 
 interface HealthResponse {
   status: string;
@@ -47,7 +48,7 @@ export default function GearGraphStatusPage() {
 
     // Fetch health
     try {
-      const healthRes = await fetch(`${GEARGRAPH_BASE_URL}/health`, {
+      const healthRes = await fetch(`${API_BASE_URL}/health`, {
         cache: 'no-store',
       });
       if (!healthRes.ok) {
@@ -62,7 +63,7 @@ export default function GearGraphStatusPage() {
 
     // Fetch stats
     try {
-      const statsRes = await fetch(`${GEARGRAPH_BASE_URL}/stats`, {
+      const statsRes = await fetch(`${API_BASE_URL}/stats`, {
         cache: 'no-store',
       });
       if (!statsRes.ok) {
@@ -107,7 +108,7 @@ export default function GearGraphStatusPage() {
         <div>
           <h1 className="text-2xl font-bold">GearGraph Status</h1>
           <p className="text-muted-foreground">
-            Server: {GEARGRAPH_BASE_URL}
+            Server: geargraph.gearshack.app
           </p>
         </div>
         <div className="flex items-center gap-4">

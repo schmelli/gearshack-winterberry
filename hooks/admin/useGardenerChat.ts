@@ -8,8 +8,8 @@ import type {
   UseGardenerChatReturn,
 } from '@/types/gardener';
 
-const GARDENER_BASE_URL = 'https://geargraph.gearshack.app/gardener';
-const AUTH_HEADER = 'Basic Z2VhcmdyYXBoYWRtaW46R0dBZG1pbjIwMjU=';
+// Use local API proxy to avoid CORS issues
+const API_BASE_URL = '/api/gardener';
 const STATUS_POLL_INTERVAL = 30000; // 30 seconds
 
 /**
@@ -35,7 +35,7 @@ export function useGardenerChat(): UseGardenerChatReturn {
    */
   const refreshStatus = useCallback(async () => {
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/system/status`);
+      const response = await fetch(`${API_BASE_URL}/status`);
       if (!response.ok) {
         throw new Error(`Status check failed: ${response.status}`);
       }
@@ -52,11 +52,7 @@ export function useGardenerChat(): UseGardenerChatReturn {
    */
   const fetchHistory = useCallback(async () => {
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/chat`, {
-        headers: {
-          Authorization: AUTH_HEADER,
-        },
-      });
+      const response = await fetch(`${API_BASE_URL}/history`);
       if (!response.ok) {
         throw new Error(`Failed to fetch history: ${response.status}`);
       }
@@ -74,11 +70,8 @@ export function useGardenerChat(): UseGardenerChatReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}/history`, {
         method: 'DELETE',
-        headers: {
-          Authorization: AUTH_HEADER,
-        },
       });
       if (!response.ok) {
         throw new Error(`Failed to clear history: ${response.status}`);
@@ -139,10 +132,9 @@ export function useGardenerChat(): UseGardenerChatReturn {
     setMessages((prev) => [...prev, assistantPlaceholder]);
 
     try {
-      const response = await fetch(`${GARDENER_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
-          Authorization: AUTH_HEADER,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
