@@ -44,6 +44,7 @@ interface MobileNavProps {
   items?: NavItemWithChildren[];
   onNavigate?: () => void;
   onProfileClick?: () => void;
+  onOpenMessaging?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -52,6 +53,7 @@ export function MobileNav({
   items = MAIN_NAV_ITEMS,
   onNavigate,
   onProfileClick,
+  onOpenMessaging,
   open: controlledOpen,
   onOpenChange,
 }: MobileNavProps) {
@@ -91,6 +93,11 @@ export function MobileNav({
   const handleProfileClick = () => {
     setOpen(false);
     onProfileClick?.();
+  };
+
+  const handleOpenMessaging = () => {
+    setOpen(false);
+    onOpenMessaging?.();
   };
 
   const handleSignOut = async () => {
@@ -141,10 +148,10 @@ export function MobileNav({
               <p className="text-center text-base font-medium leading-none">{displayName}</p>
             </div>
 
-            {/* Quick action buttons */}
+            {/* Quick action buttons - direct links to create pages */}
             <div className="mt-4 grid grid-cols-4 gap-1 px-2">
               <Link
-                href="/inventory"
+                href="/inventory/new"
                 onClick={handleNavigate}
                 className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
@@ -154,7 +161,7 @@ export function MobileNav({
                 <span className="text-center text-[10px] font-medium leading-tight">{t('addNewItem')}</span>
               </Link>
               <Link
-                href="/loadouts"
+                href="/loadouts/new"
                 onClick={handleNavigate}
                 className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
@@ -164,7 +171,7 @@ export function MobileNav({
                 <span className="text-center text-[10px] font-medium leading-tight">{t('planNewLoadout')}</span>
               </Link>
               <Link
-                href="/community"
+                href="/community/shakedowns/new"
                 onClick={handleNavigate}
                 className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
@@ -173,16 +180,15 @@ export function MobileNav({
                 </div>
                 <span className="text-center text-[10px] font-medium leading-tight">{t('generateNewPost')}</span>
               </Link>
-              <Link
-                href="/messaging"
-                onClick={handleNavigate}
+              <button
+                onClick={handleOpenMessaging}
                 className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <MessageSquarePlus className="h-4 w-4" />
                 </div>
                 <span className="text-center text-[10px] font-medium leading-tight">{t('newMessage')}</span>
-              </Link>
+              </button>
             </div>
 
             <Separator className="my-4" />

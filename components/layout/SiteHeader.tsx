@@ -128,7 +128,11 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* Issue #77: Mobile menu state management */}
       <div className="container flex h-24 items-center px-3 md:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
-        <MobileNav open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
+        <MobileNav
+          open={mobileMenuOpen}
+          onOpenChange={setMobileMenuOpen}
+          onOpenMessaging={() => setMessagingOpen(true)}
+        />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
