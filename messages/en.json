@@ -19,7 +19,11 @@
     "reportBug": "Report a bug",
     "addNewItem": "Add new item",
     "planNewLoadout": "Plan new loadout",
-    "generateNewPost": "Generate new post"
+    "generateNewPost": "Generate new post",
+    "newMessage": "New message",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "themeToggle": "Theme"
   },
   "Messages": {
     "title": "Messages",

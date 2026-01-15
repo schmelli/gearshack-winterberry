@@ -9,7 +9,7 @@
  * - Sub-navigation items for Dashboard, Shakedowns, VIP Loadouts, Marketplace, Wiki
  */
 
-import { Instagram, Twitter, LayoutDashboard, Scale, Star, ShoppingBag, BookOpen } from 'lucide-react';
+import { Instagram, Twitter, LayoutDashboard, Scale, Star, ShoppingBag, BookOpen, Backpack, Compass, Users } from 'lucide-react';
 import type { NavItem, NavItemWithChildren, UserMenuItem } from '@/types/navigation';
 
 /**
@@ -30,9 +30,9 @@ export const COMMUNITY_SUB_NAV_ITEMS: NavItem[] = [
  * Community now has children for dropdown menu.
  */
 export const MAIN_NAV_ITEMS: NavItemWithChildren[] = [
-  { label: 'Inventory', translationKey: 'inventory', href: '/inventory', enabled: true },
-  { label: 'Loadouts', translationKey: 'loadouts', href: '/loadouts', enabled: true },
-  { label: 'Community', translationKey: 'community', href: '/community', enabled: true, children: COMMUNITY_SUB_NAV_ITEMS },
+  { label: 'Inventory', translationKey: 'inventory', href: '/inventory', enabled: true, icon: Backpack },
+  { label: 'Loadouts', translationKey: 'loadouts', href: '/loadouts', enabled: true, icon: Compass },
+  { label: 'Community', translationKey: 'community', href: '/community', enabled: true, icon: Users, children: COMMUNITY_SUB_NAV_ITEMS },
 ];
 
 /**

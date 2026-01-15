@@ -19,7 +19,11 @@
     "reportBug": "Bug melden",
     "addNewItem": "Neues Teil",
     "planNewLoadout": "Neue Packliste",
-    "generateNewPost": "Neuer Beitrag"
+    "generateNewPost": "Neuer Beitrag",
+    "newMessage": "Neue Nachricht",
+    "darkMode": "Dunkelmodus",
+    "lightMode": "Hellmodus",
+    "themeToggle": "Design"
   },
   "Messages": {
     "title": "Nachrichten",

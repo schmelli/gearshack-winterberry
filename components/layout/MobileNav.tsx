@@ -17,8 +17,9 @@ import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil, Plus, Calendar, FileEdit, HelpCircle, Bug } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil, Plus, Calendar, FileEdit, HelpCircle, Bug, MessageSquarePlus, Sun, Moon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import {
   Sheet,
   SheetContent,
@@ -28,6 +29,7 @@ import {
 import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
 import { getDisplayAvatarUrl } from '@/lib/utils/avatar';
@@ -66,6 +68,7 @@ export function MobileNav({
   const { mergedUser } = profile;
   const t = useTranslations('Navigation');
   const tCommon = useTranslations('Common');
+  const { theme, setTheme } = useTheme();
 
   // Toggle expanded state for collapsible items
   const toggleExpanded = (href: string) => {
@@ -112,25 +115,14 @@ export function MobileNav({
     <Sheet open={open} onOpenChange={setOpen}>
       {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
       <SheetContent side="left" className="w-72">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Image
-              src="/logos/small_gearshack_logo.png"
-              alt="Gearshack Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="font-[family-name:var(--font-rock-salt)] text-base">
-              Gearshack
-            </span>
-          </SheetTitle>
+        <SheetHeader className="sr-only">
+          <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>
 
         {/* User info section (if authenticated) */}
         {user && (
           <>
-            <div className="mt-6 flex flex-col items-center gap-3 rounded-md bg-accent/10 p-6">
+            <div className="mt-2 flex flex-col items-center gap-3 p-4">
               <div className="relative">
                 <AvatarWithFallback
                   src={avatarUrl}
@@ -150,36 +142,46 @@ export function MobileNav({
             </div>
 
             {/* Quick action buttons */}
-            <div className="mt-4 grid grid-cols-3 gap-2 px-4">
+            <div className="mt-4 grid grid-cols-4 gap-1 px-2">
               <Link
                 href="/inventory"
                 onClick={handleNavigate}
-                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Plus className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Plus className="h-4 w-4" />
                 </div>
-                <span className="text-center text-xs font-medium leading-tight">{t('addNewItem')}</span>
+                <span className="text-center text-[10px] font-medium leading-tight">{t('addNewItem')}</span>
               </Link>
               <Link
                 href="/loadouts"
                 onClick={handleNavigate}
-                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Calendar className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Calendar className="h-4 w-4" />
                 </div>
-                <span className="text-center text-xs font-medium leading-tight">{t('planNewLoadout')}</span>
+                <span className="text-center text-[10px] font-medium leading-tight">{t('planNewLoadout')}</span>
               </Link>
               <Link
                 href="/community"
                 onClick={handleNavigate}
-                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <FileEdit className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <FileEdit className="h-4 w-4" />
                 </div>
-                <span className="text-center text-xs font-medium leading-tight">{t('generateNewPost')}</span>
+                <span className="text-center text-[10px] font-medium leading-tight">{t('generateNewPost')}</span>
+              </Link>
+              <Link
+                href="/messaging"
+                onClick={handleNavigate}
+                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <MessageSquarePlus className="h-4 w-4" />
+                </div>
+                <span className="text-center text-[10px] font-medium leading-tight">{t('newMessage')}</span>
               </Link>
             </div>
 
@@ -286,6 +288,8 @@ export function MobileNav({
           {/* User menu items (if authenticated) */}
           {user && (
             <>
+              <Separator className="my-2" />
+
               <button
                 onClick={handleProfileClick}
                 className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -350,6 +354,26 @@ export function MobileNav({
               </button>
             </>
           )}
+
+          {/* Theme toggle - always visible */}
+          <Separator className="my-2" />
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <div className="flex items-center gap-3">
+              {theme === 'dark' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+              <span className="text-base font-medium">
+                {theme === 'dark' ? t('darkMode') : t('lightMode')}
+              </span>
+            </div>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              aria-label={t('themeToggle')}
+            />
+          </div>
         </nav>
       </SheetContent>
     </Sheet>

@@ -28,7 +28,7 @@
 // T025: Replace next/link with locale-aware Link from i18n/navigation
 import { Link, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { Mail, ChevronDown } from 'lucide-react';
+import { Mail, ChevronDown, Menu, X } from 'lucide-react';
 // T022: Import useTranslations hook
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -133,21 +133,18 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
-        {/* Issue #77: Logo triggers mobile menu on small screens, regular link on desktop */}
+        {/* Issue #77: Hamburger icon triggers mobile menu on small screens, regular link on desktop */}
         <button
-          onClick={() => setMobileMenuOpen(true)}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="flex items-center gap-2 md:hidden"
           aria-label={t('openMenu')}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg">
-            <Image
-              src="/logos/small_gearshack_logo.png"
-              alt="Gearshack Logo"
-              width={80}
-              height={80}
-              className="h-12 w-12"
-              priority
-            />
+          <div className="flex h-10 w-10 items-center justify-center">
+            {mobileMenuOpen ? (
+              <X className="h-7 w-7 text-white" />
+            ) : (
+              <Menu className="h-7 w-7 text-white" />
+            )}
           </div>
           <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
             Gearshack
