@@ -27,7 +27,7 @@ export function GardenerTabs() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="chat" className="flex-1 mt-4">
+        <TabsContent value="chat" className="flex-1 mt-4 min-h-0 overflow-hidden">
           <GardenerChatClient />
         </TabsContent>
 

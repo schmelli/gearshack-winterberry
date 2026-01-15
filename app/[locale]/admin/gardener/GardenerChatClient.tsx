@@ -195,9 +195,9 @@ export function GardenerChatClient() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       {/* Header with Status */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
@@ -212,7 +212,7 @@ export function GardenerChatClient() {
 
       {/* System Metrics Row */}
       {systemStatus && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-shrink-0 flex-wrap gap-2">
           <MetricsCard label={t('metrics.nodes')} value={systemStatus.metrics.totalNodes.toLocaleString()} icon={Database} />
           <MetricsCard
             label={t('metrics.relationships')}
@@ -226,7 +226,7 @@ export function GardenerChatClient() {
       )}
 
       {/* Chat Area */}
-      <Card className="flex flex-1 flex-col overflow-hidden">
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <CardHeader className="flex-shrink-0 border-b py-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
