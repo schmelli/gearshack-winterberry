@@ -15,7 +15,11 @@
     "admin": "Admin",
     "openMenu": "Menü öffnen",
     "messages": "Nachrichten",
-    "reportBug": "Bug melden"
+    "helpCenter": "Hilfe-Center",
+    "reportBug": "Bug melden",
+    "addNewItem": "Neues Teil",
+    "planNewLoadout": "Neue Packliste",
+    "generateNewPost": "Neuer Beitrag"
   },
   "Messages": {
     "title": "Nachrichten",

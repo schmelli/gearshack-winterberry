@@ -17,7 +17,7 @@ import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
-import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil, Plus, Calendar, FileEdit, HelpCircle, Bug } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Sheet,
@@ -148,13 +148,48 @@ export function MobileNav({
               </div>
               <p className="text-center text-base font-medium leading-none">{displayName}</p>
             </div>
+
+            {/* Quick action buttons */}
+            <div className="mt-4 grid grid-cols-3 gap-2 px-4">
+              <Link
+                href="/inventory"
+                onClick={handleNavigate}
+                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span className="text-center text-xs font-medium leading-tight">{t('addNewItem')}</span>
+              </Link>
+              <Link
+                href="/loadouts"
+                onClick={handleNavigate}
+                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <span className="text-center text-xs font-medium leading-tight">{t('planNewLoadout')}</span>
+              </Link>
+              <Link
+                href="/community"
+                onClick={handleNavigate}
+                className="flex flex-col items-center gap-1 rounded-md p-3 transition-colors hover:bg-accent"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <FileEdit className="h-5 w-5" />
+                </div>
+                <span className="text-center text-xs font-medium leading-tight">{t('generateNewPost')}</span>
+              </Link>
+            </div>
+
             <Separator className="my-4" />
           </>
         )}
 
         {/* Main navigation items */}
         {/* Community Section Restructure: Items with children render as collapsible sections */}
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-1">
           {items.map((item) => {
             // Items with children render as collapsible
             if (item.children && item.children.length > 0) {
@@ -171,10 +206,10 @@ export function MobileNav({
                 >
                   <CollapsibleTrigger
                     className={cn(
-                      'flex w-full items-center justify-between rounded-md px-3 py-2 text-base font-medium transition-colors',
+                      'flex w-full items-center justify-between rounded-md px-4 py-2.5 text-base font-medium transition-colors',
                       item.enabled
                         ? isActive
-                          ? 'bg-accent/50 text-foreground'
+                          ? 'bg-primary text-primary-foreground'
                           : 'text-foreground hover:bg-accent hover:text-accent-foreground'
                         : 'pointer-events-none text-muted-foreground opacity-50'
                     )}
@@ -224,6 +259,7 @@ export function MobileNav({
             }
 
             // Regular nav items without children
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
@@ -232,9 +268,11 @@ export function MobileNav({
                 tabIndex={item.enabled ? undefined : -1}
                 onClick={item.enabled ? handleNavigate : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors',
+                  'flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium transition-colors',
                   item.enabled
-                    ? 'text-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-accent hover:text-accent-foreground'
                     : 'pointer-events-none text-muted-foreground opacity-50'
                 )}
               >
@@ -248,11 +286,9 @@ export function MobileNav({
           {/* User menu items (if authenticated) */}
           {user && (
             <>
-              <Separator className="my-2" />
-
               <button
                 onClick={handleProfileClick}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <User className="h-5 w-5" />
                 {t('profile')}
@@ -261,7 +297,7 @@ export function MobileNav({
               <Link
                 href="/settings"
                 onClick={handleNavigate}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <Settings className="h-5 w-5" />
                 {t('settings')}
@@ -272,18 +308,42 @@ export function MobileNav({
                 <Link
                   href="/admin"
                   onClick={handleNavigate}
-                  className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <Shield className="h-5 w-5" />
                   {t('admin')}
                 </Link>
               )}
 
+              <Link
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  // TODO: Implement help center
+                }}
+                className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <HelpCircle className="h-5 w-5" />
+                {t('helpCenter')}
+              </Link>
+
+              <Link
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  // TODO: Implement report bug
+                }}
+                className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Bug className="h-5 w-5" />
+                {t('reportBug')}
+              </Link>
+
               <Separator className="my-2" />
 
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-destructive transition-colors hover:bg-destructive/10"
+                className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <LogOut className="h-5 w-5" />
                 {t('signOut')}
