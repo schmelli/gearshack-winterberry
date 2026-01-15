@@ -7,8 +7,10 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createGateway } from '@ai-sdk/gateway';
-import { queryUserDataTool } from './tools/query-user-data';
-import { searchCatalogTool } from './tools/search-catalog';
+// Simplified tools (AI Assistant Simplification feature)
+import { queryUserDataSqlTool } from './tools/query-user-data-sql';
+import { queryCatalogTool } from './tools/query-catalog';
+import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
 
 // Environment configuration
@@ -36,14 +38,19 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     instructions: systemPrompt,
     model: gateway(AI_CHAT_MODEL), // Use Vercel AI Gateway
     tools: {
-      // Register Mastra tools directly - no conversion needed!
-      queryUserData: queryUserDataTool,
-      searchCatalog: searchCatalogTool,
+      // Simplified tools with free query formulation
+      // - queryUserData: SQL-like queries for user tables (gear_items, loadouts, etc.)
+      // - queryCatalog: SQL-like queries for public catalog (catalog_products, categories)
+      // - queryGearGraph: Cypher queries for product relationships
+      // - searchWeb: Web search for current info (kept as-is)
+      queryUserData: queryUserDataSqlTool,
+      queryCatalog: queryCatalogTool,
+      queryGearGraph: queryGearGraphTool,
       searchWeb: searchWebTool,
     },
   });
 
-  console.log(`[Mastra Agent] Created with ${AI_CHAT_MODEL} via AI Gateway and 3 tools`);
+  console.log(`[Mastra Agent] Created with ${AI_CHAT_MODEL} via AI Gateway and 4 tools`);
   return agent;
 }
 
