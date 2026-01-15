@@ -51,6 +51,12 @@ const NODE_TYPES: GardenerReviewItemType[] = [
   'Insight',
 ];
 
+const ACTION_TYPES = [
+  'enrich',
+  'delete',
+  'merge',
+] as const;
+
 /**
  * ReviewQueue component
  * Provides the full review interface with navigation, filters, and batch operations
@@ -164,6 +170,25 @@ export function ReviewQueue() {
                 {NODE_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.action || 'all'}
+              onValueChange={(value) =>
+                setFilter('action', value === 'all' ? undefined : value)
+              }
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder={t('filterByAction')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allActions')}</SelectItem>
+                {ACTION_TYPES.map((action) => (
+                  <SelectItem key={action} value={action}>
+                    {action.charAt(0).toUpperCase() + action.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>

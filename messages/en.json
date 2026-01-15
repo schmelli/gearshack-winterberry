@@ -2836,6 +2836,8 @@
         "filters": "Filters",
         "filterByType": "Filter by type",
         "allTypes": "All Types",
+        "filterByAction": "Filter by action",
+        "allActions": "All Actions",
         "loading": "Loading review items...",
         "emptyQueue": "All caught up!",
         "emptyQueueDescription": "There are no items pending review. Great job!",

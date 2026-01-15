@@ -2836,6 +2836,8 @@
         "filters": "Filter",
         "filterByType": "Nach Typ filtern",
         "allTypes": "Alle Typen",
+        "filterByAction": "Nach Aktion filtern",
+        "allActions": "Alle Aktionen",
         "loading": "Lade Prüfeinträge...",
         "emptyQueue": "Alles erledigt!",
         "emptyQueueDescription": "Es gibt keine ausstehenden Einträge zur Prüfung. Gute Arbeit!",

@@ -14,6 +14,12 @@ const AUTH_HEADER = 'Basic Z2VhcmdyYXBoYWRtaW46R0dBZG1pbjIwMjU=';
 /**
  * Custom hook for managing the interactive review queue.
  * Handles fetching review items, navigation, and approval/rejection actions.
+ *
+ * API Endpoints:
+ * - GET /api/approvals/review - Get next item to review
+ * - POST /api/approvals/review - Submit decision
+ * - GET /api/approvals/review/stats - Get statistics
+ * - POST /api/approvals/review/batch - Batch operations
  */
 export function useGardenerReview(): UseGardenerReviewReturn {
   const [currentItem, setCurrentItem] = useState<GardenerReviewItem | null>(null);
@@ -24,22 +30,23 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<{
     nodeType?: GardenerReviewItemType;
-    problem?: string;
+    action?: string;
   }>({});
 
   /**
-   * Build query string from current filters and position
+   * Build query string from current filters and skip position
    */
-  const buildQueryString = useCallback((pos?: number) => {
+  const buildQueryString = useCallback((skip?: number) => {
     const params = new URLSearchParams();
-    if (pos !== undefined) params.set('position', pos.toString());
+    if (skip !== undefined && skip > 0) params.set('skip', skip.toString());
     if (filters.nodeType) params.set('nodeType', filters.nodeType);
-    if (filters.problem) params.set('problem', filters.problem);
+    if (filters.action) params.set('action', filters.action);
     return params.toString();
   }, [filters]);
 
   /**
    * Fetch the current review item from the queue
+   * Uses GET /api/approvals/review endpoint
    */
   const fetchCurrentItem = useCallback(async () => {
     setIsLoading(true);
@@ -47,7 +54,8 @@ export function useGardenerReview(): UseGardenerReviewReturn {
 
     try {
       const query = buildQueryString(position || undefined);
-      const url = `${GARDENER_BASE_URL}/api/approvals/queue${query ? `?${query}` : ''}`;
+      // Correct endpoint: /api/approvals/review (not /queue)
+      const url = `${GARDENER_BASE_URL}/api/approvals/review${query ? `?${query}` : ''}`;
 
       const response = await fetch(url, {
         headers: {
@@ -61,9 +69,31 @@ export function useGardenerReview(): UseGardenerReviewReturn {
 
       const data = await response.json();
 
-      setCurrentItem(data.item || null);
-      setPosition(data.position || 0);
-      setTotal(data.total || 0);
+      // Map API response to our internal format
+      // API returns: { item: { approvalId, nodeName, nodeType, proposedAction, confidence, problem, position, total, remaining }, fullReasoning }
+      if (data.item) {
+        const mappedItem: GardenerReviewItem = {
+          approvalId: data.item.approvalId,
+          name: data.item.nodeName,
+          nodeType: data.item.nodeType,
+          problem: data.item.problem,
+          currentData: {
+            relationshipCount: 0,
+            relationships: [],
+            properties: data.item,
+          },
+          suggestedResolution: data.fullReasoning || '',
+          confidence: data.item.confidence || 0,
+          createdAt: new Date().toISOString(),
+        };
+        setCurrentItem(mappedItem);
+        setPosition(data.item.position || 0);
+        setTotal(data.item.total || 0);
+      } else {
+        setCurrentItem(null);
+        setPosition(0);
+        setTotal(0);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch review item';
       setError(errorMessage);
@@ -208,7 +238,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   /**
    * Set a filter value
    */
-  const setFilter = useCallback((key: 'nodeType' | 'problem', value: string | undefined) => {
+  const setFilter = useCallback((key: 'nodeType' | 'action', value: string | undefined) => {
     setFilters(prev => ({
       ...prev,
       [key]: value,
@@ -226,7 +256,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   // Fetch initial item on mount and when position/filters change
   useEffect(() => {
     fetchCurrentItem();
-  }, [position, filters.nodeType, filters.problem]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [position, filters.nodeType, filters.action]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     currentItem,

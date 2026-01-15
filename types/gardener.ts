@@ -385,7 +385,7 @@ export interface UseGardenerReviewState {
   error: string | null;
   filters: {
     nodeType?: GardenerReviewItemType;
-    problem?: string;
+    action?: string;
   };
 }
 
@@ -397,7 +397,7 @@ export interface UseGardenerReviewActions {
   approve: (notes?: string) => Promise<void>;
   reject: (notes?: string) => Promise<void>;
   batchApprove: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
-  setFilter: (key: 'nodeType' | 'problem', value: string | undefined) => void;
+  setFilter: (key: 'nodeType' | 'action', value: string | undefined) => void;
   refresh: () => Promise<void>;
 }
 
