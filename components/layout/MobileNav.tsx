@@ -114,7 +114,7 @@ export function MobileNav({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
-      <SheetContent side="left" className="w-72">
+      <SheetContent side="left" className="flex h-full w-72 flex-col">
         <SheetHeader className="sr-only">
           <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>
@@ -191,7 +191,7 @@ export function MobileNav({
 
         {/* Main navigation items */}
         {/* Community Section Restructure: Items with children render as collapsible sections */}
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2">
           {items.map((item) => {
             // Items with children render as collapsible
             if (item.children && item.children.length > 0) {
@@ -354,10 +354,11 @@ export function MobileNav({
               </button>
             </>
           )}
+        </nav>
 
-          {/* Theme toggle - always visible */}
-          <Separator className="my-2" />
-          <div className="flex items-center justify-between px-4 py-2.5">
+        {/* Theme toggle - fixed at bottom with flexible spacing */}
+        <div className="mt-auto border-t px-4 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {theme === 'dark' ? (
                 <Moon className="h-5 w-5" />
@@ -374,7 +375,7 @@ export function MobileNav({
               aria-label={t('themeToggle')}
             />
           </div>
-        </nav>
+        </div>
       </SheetContent>
     </Sheet>
   );

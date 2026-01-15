@@ -133,23 +133,33 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
-        {/* Issue #77: Hamburger icon triggers mobile menu on small screens, regular link on desktop */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="flex items-center gap-2 md:hidden"
-          aria-label={t('openMenu')}
-        >
-          <div className="flex h-10 w-10 items-center justify-center">
+        {/* Mobile: Hamburger + Logo side by side */}
+        <div className="flex items-center gap-2 md:hidden">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-white/10"
+            aria-label={t('openMenu')}
+          >
             {mobileMenuOpen ? (
-              <X className="h-7 w-7 text-white" />
+              <X className="h-6 w-6 text-white" />
             ) : (
-              <Menu className="h-7 w-7 text-white" />
+              <Menu className="h-6 w-6 text-white" />
             )}
+          </button>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logos/small_gearshack_logo.png"
+              alt="Gearshack Logo"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+              priority
+            />
+            <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
+              Gearshack
+            </span>
           </div>
-          <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
-            Gearshack
-          </span>
-        </button>
+        </div>
         <Link href="/" className="hidden items-center gap-3 md:flex">
           <div className="flex h-20 w-20 items-center justify-center rounded-lg">
             <Image
