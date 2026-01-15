@@ -15,7 +15,11 @@
     "admin": "Admin",
     "openMenu": "Open menu",
     "messages": "Messages",
-    "reportBug": "Report Bug"
+    "helpCenter": "Help center",
+    "reportBug": "Report a bug",
+    "addNewItem": "Add new item",
+    "planNewLoadout": "Plan new loadout",
+    "generateNewPost": "Generate new post"
   },
   "Messages": {
     "title": "Messages",
