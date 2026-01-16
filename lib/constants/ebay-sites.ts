@@ -21,19 +21,22 @@ export const EBAY_SITES: EbaySiteMap = {
     site: 'ebay.de',
     currency: 'EUR',
     country: 'Germany',
-    serpApiDomain: 'EBAY_DE',
+    marketplaceId: 'EBAY_DE',
+    serpApiDomain: 'EBAY_DE', // @deprecated
   },
   'de-AT': {
     site: 'ebay.at',
     currency: 'EUR',
     country: 'Austria',
-    serpApiDomain: 'EBAY_AT',
+    marketplaceId: 'EBAY_AT',
+    serpApiDomain: 'EBAY_AT', // @deprecated
   },
   'de-CH': {
     site: 'ebay.ch',
     currency: 'CHF',
     country: 'Switzerland',
-    serpApiDomain: 'EBAY_CH',
+    marketplaceId: 'EBAY_CH',
+    serpApiDomain: 'EBAY_CH', // @deprecated
   },
 
   // English-speaking
@@ -41,31 +44,36 @@ export const EBAY_SITES: EbaySiteMap = {
     site: 'ebay.com',
     currency: 'USD',
     country: 'United States',
-    serpApiDomain: 'EBAY_US',
+    marketplaceId: 'EBAY_US',
+    serpApiDomain: 'EBAY_US', // @deprecated
   },
   'en-US': {
     site: 'ebay.com',
     currency: 'USD',
     country: 'United States',
-    serpApiDomain: 'EBAY_US',
+    marketplaceId: 'EBAY_US',
+    serpApiDomain: 'EBAY_US', // @deprecated
   },
   'en-GB': {
     site: 'ebay.co.uk',
     currency: 'GBP',
     country: 'United Kingdom',
-    serpApiDomain: 'EBAY_GB',
+    marketplaceId: 'EBAY_GB',
+    serpApiDomain: 'EBAY_GB', // @deprecated
   },
   'en-AU': {
     site: 'ebay.com.au',
     currency: 'AUD',
     country: 'Australia',
-    serpApiDomain: 'EBAY_AU',
+    marketplaceId: 'EBAY_AU',
+    serpApiDomain: 'EBAY_AU', // @deprecated
   },
   'en-CA': {
     site: 'ebay.ca',
     currency: 'CAD',
     country: 'Canada',
-    serpApiDomain: 'EBAY_CA',
+    marketplaceId: 'EBAY_CA',
+    serpApiDomain: 'EBAY_CA', // @deprecated
   },
 
   // Romance languages
@@ -73,19 +81,22 @@ export const EBAY_SITES: EbaySiteMap = {
     site: 'ebay.fr',
     currency: 'EUR',
     country: 'France',
-    serpApiDomain: 'EBAY_FR',
+    marketplaceId: 'EBAY_FR',
+    serpApiDomain: 'EBAY_FR', // @deprecated
   },
   it: {
     site: 'ebay.it',
     currency: 'EUR',
     country: 'Italy',
-    serpApiDomain: 'EBAY_IT',
+    marketplaceId: 'EBAY_IT',
+    serpApiDomain: 'EBAY_IT', // @deprecated
   },
   es: {
     site: 'ebay.es',
     currency: 'EUR',
     country: 'Spain',
-    serpApiDomain: 'EBAY_ES',
+    marketplaceId: 'EBAY_ES',
+    serpApiDomain: 'EBAY_ES', // @deprecated
   },
 
   // Other European
@@ -93,19 +104,22 @@ export const EBAY_SITES: EbaySiteMap = {
     site: 'ebay.nl',
     currency: 'EUR',
     country: 'Netherlands',
-    serpApiDomain: 'EBAY_NL',
+    marketplaceId: 'EBAY_NL',
+    serpApiDomain: 'EBAY_NL', // @deprecated
   },
   pl: {
     site: 'ebay.pl',
     currency: 'PLN',
     country: 'Poland',
-    serpApiDomain: 'EBAY_PL',
+    marketplaceId: 'EBAY_PL',
+    serpApiDomain: 'EBAY_PL', // @deprecated
   },
   be: {
     site: 'ebay.be',
     currency: 'EUR',
     country: 'Belgium',
-    serpApiDomain: 'EBAY_BE',
+    marketplaceId: 'EBAY_BE',
+    serpApiDomain: 'EBAY_BE', // @deprecated
   },
 };
 

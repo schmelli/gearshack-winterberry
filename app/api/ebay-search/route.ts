@@ -2,6 +2,7 @@
  * eBay Search API Route
  *
  * Feature: 057-wishlist-pricing-enhancements
+ * Updated: 054-ebay-integration (migrated from SerpAPI to eBay Browse API)
  * Purpose: Search eBay with localization and smart filtering
  *
  * GET /api/ebay-search
@@ -16,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { searchEbayLocalized } from '@/lib/external-apis/serpapi-client';
+import { searchEbayLocalized } from '@/lib/ebay/browse-api';
 import { filterEbayListings } from '@/lib/external-apis/ebay-filter';
 import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
 import { ebaySearchRateLimiter } from '@/lib/rate-limiter';
@@ -174,9 +175,17 @@ export async function GET(request: NextRequest) {
 
     // Handle specific error types
     if (error instanceof Error) {
-      if (error.message.includes('SERPAPI_KEY')) {
+      if (error.message.includes('EBAY_CLIENT_ID') ||
+          error.message.includes('EBAY_CLIENT_SECRET') ||
+          error.message.includes('eBay credentials not configured')) {
         return NextResponse.json(
           { error: 'eBay search service not configured' },
+          { status: 503 }
+        );
+      }
+      if (error.message.includes('authentication failed')) {
+        return NextResponse.json(
+          { error: 'eBay authentication failed' },
           { status: 503 }
         );
       }

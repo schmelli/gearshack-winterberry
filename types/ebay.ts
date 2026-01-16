@@ -19,7 +19,9 @@ export interface EbaySiteConfig {
   currency: string;
   /** Human-readable country name */
   country: string;
-  /** SerpApi ebay_domain parameter */
+  /** eBay Browse API Marketplace ID (e.g., 'EBAY_DE') */
+  marketplaceId: string;
+  /** @deprecated Use marketplaceId instead. SerpApi ebay_domain parameter */
   serpApiDomain?: string;
 }
 
