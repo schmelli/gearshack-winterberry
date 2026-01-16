@@ -37,6 +37,7 @@ import {
   Inbox,
   AlertCircle,
   Filter,
+  Sparkles,
 } from 'lucide-react';
 import type { GardenerReviewItemType } from '@/types/gardener';
 import { toast } from 'sonner';
@@ -65,6 +66,7 @@ export function ReviewQueue() {
   const t = useTranslations('Admin.gardener.review');
   const [jumpToPosition, setJumpToPosition] = useState('');
   const [batchLimit, setBatchLimit] = useState('100');
+  const [smartConfidence, setSmartConfidence] = useState('90');
 
   const {
     currentItem,
@@ -80,6 +82,7 @@ export function ReviewQueue() {
     approve,
     reject,
     batchApprove,
+    smartApprove,
     setFilter,
     refresh,
   } = useGardenerReview();
@@ -97,6 +100,18 @@ export function ReviewQueue() {
       const result = await batchApprove(filters.nodeType, parseInt(batchLimit, 10));
       toast.success(
         t('batchApproveSuccess', { count: result.processedCount })
+      );
+    } catch {
+      toast.error(t('batchApproveFailed'));
+    }
+  };
+
+  const handleSmartApprove = async () => {
+    try {
+      const minConfidence = parseInt(smartConfidence, 10) / 100;
+      const result = await smartApprove(minConfidence, filters.nodeType, 500);
+      toast.success(
+        t('smartApproveSuccess', { count: result.processedCount })
       );
     } catch {
       toast.error(t('batchApproveFailed'));
@@ -195,6 +210,64 @@ export function ReviewQueue() {
             </Select>
 
             <div className="ml-auto flex items-center gap-2">
+              {/* Smart Approve - AI-assisted */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="default"
+                    disabled={total === 0 || isProcessing}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {t('smartApprove')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      {t('smartApproveTitle')}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('smartApproveDescription', {
+                        minConfidence: smartConfidence,
+                        type: filters.nodeType || t('all'),
+                        count: '?',
+                      })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="py-4 space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">
+                        {t('minConfidence')}
+                      </label>
+                      <Select value={smartConfidence} onValueChange={setSmartConfidence}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="95">95%</SelectItem>
+                          <SelectItem value="90">90%</SelectItem>
+                          <SelectItem value="85">85%</SelectItem>
+                          <SelectItem value="80">80%</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleSmartApprove}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {t('confirmSmartApprove')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Regular Batch Approve */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" disabled={total === 0 || isProcessing}>

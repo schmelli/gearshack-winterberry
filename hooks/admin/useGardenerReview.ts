@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type {
   GardenerReviewItem,
   GardenerReviewItemType,
@@ -14,6 +14,11 @@ const API_BASE_URL = '/api/gardener';
 /**
  * Custom hook for managing the interactive review queue.
  * Handles fetching review items, navigation, and approval/rejection actions.
+ *
+ * Key improvements:
+ * - Prevents infinite fetch loops with proper ref tracking
+ * - Only fetches one item at a time (not all 18k)
+ * - Supports filtering by node type and action
  *
  * API Endpoints:
  * - GET /api/approvals/review - Get next item to review
@@ -33,27 +38,50 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     action?: string;
   }>({});
 
+  // Track if we've done the initial fetch to prevent loops
+  const hasFetched = useRef(false);
+  const lastFetchParams = useRef<string>('');
+  const isFetching = useRef(false);
+
   /**
    * Build query string from current filters and skip position
    */
-  const buildQueryString = useCallback((skip?: number) => {
+  const buildQueryString = useCallback((skip?: number, filtersOverride?: typeof filters) => {
     const params = new URLSearchParams();
+    const activeFilters = filtersOverride ?? filters;
     if (skip !== undefined && skip > 0) params.set('skip', skip.toString());
-    if (filters.nodeType) params.set('nodeType', filters.nodeType);
-    if (filters.action) params.set('action', filters.action);
+    if (activeFilters.nodeType) params.set('nodeType', activeFilters.nodeType);
+    if (activeFilters.action) params.set('action', activeFilters.action);
     return params.toString();
   }, [filters]);
 
   /**
    * Fetch the current review item from the queue
    * Uses GET /api/approvals/review endpoint
+   *
+   * IMPORTANT: This only fetches ONE item at a time to prevent
+   * performance issues with large queues (18k+ items)
    */
-  const fetchCurrentItem = useCallback(async () => {
+  const fetchCurrentItem = useCallback(async (targetPosition?: number) => {
+    const posToUse = targetPosition ?? position;
+    const queryKey = `${posToUse}-${filters.nodeType || ''}-${filters.action || ''}`;
+
+    // Prevent duplicate fetches
+    if (isFetching.current) {
+      return;
+    }
+
+    // Skip if we already fetched this exact combination
+    if (lastFetchParams.current === queryKey && currentItem) {
+      return;
+    }
+
+    isFetching.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
-      const query = buildQueryString(position || undefined);
+      const query = buildQueryString(posToUse || undefined);
       const url = `${API_BASE_URL}/review${query ? `?${query}` : ''}`;
 
       const response = await fetch(url);
@@ -82,39 +110,51 @@ export function useGardenerReview(): UseGardenerReviewReturn {
           createdAt: new Date().toISOString(),
         };
         setCurrentItem(mappedItem);
-        setPosition(data.item.position || 0);
+        // Only update position if it came from the API (don't cause loops)
+        if (targetPosition === undefined) {
+          setPosition(data.item.position || 0);
+        }
         setTotal(data.item.total || 0);
+        lastFetchParams.current = queryKey;
       } else {
         setCurrentItem(null);
         setPosition(0);
         setTotal(0);
       }
+      hasFetched.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch review item';
       setError(errorMessage);
       setCurrentItem(null);
     } finally {
       setIsLoading(false);
+      isFetching.current = false;
     }
-  }, [buildQueryString, position]);
+  }, [buildQueryString, position, filters, currentItem]);
 
   /**
    * Navigate to the next item in the queue
    */
   const goToNext = useCallback(async () => {
     if (position < total - 1) {
-      setPosition(position + 1);
+      const newPos = position + 1;
+      setPosition(newPos);
+      lastFetchParams.current = ''; // Clear cache to force fetch
+      await fetchCurrentItem(newPos);
     }
-  }, [position, total]);
+  }, [position, total, fetchCurrentItem]);
 
   /**
    * Navigate to the previous item in the queue
    */
   const goToPrevious = useCallback(async () => {
     if (position > 0) {
-      setPosition(position - 1);
+      const newPos = position - 1;
+      setPosition(newPos);
+      lastFetchParams.current = ''; // Clear cache to force fetch
+      await fetchCurrentItem(newPos);
     }
-  }, [position]);
+  }, [position, fetchCurrentItem]);
 
   /**
    * Navigate to a specific position in the queue
@@ -122,8 +162,10 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   const goToPosition = useCallback(async (newPosition: number) => {
     if (newPosition >= 0 && newPosition < total) {
       setPosition(newPosition);
+      lastFetchParams.current = ''; // Clear cache to force fetch
+      await fetchCurrentItem(newPosition);
     }
-  }, [total]);
+  }, [total, fetchCurrentItem]);
 
   /**
    * Submit a review decision (approve/reject)
@@ -216,6 +258,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
       const data: GardenerBatchReviewResponse = await response.json();
 
       // Refetch to update the queue
+      lastFetchParams.current = '';
       await fetchCurrentItem();
 
       return data;
@@ -229,27 +272,93 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   }, [fetchCurrentItem]);
 
   /**
+   * Smart approve: batch approve high-confidence items
+   * This is the AI-assisted auto-approval feature
+   *
+   * @param minConfidence - Minimum confidence threshold (0-1, e.g., 0.9 for 90%)
+   * @param nodeType - Optional filter by node type
+   * @param limit - Maximum items to approve (default 500)
+   */
+  const smartApprove = useCallback(async (
+    minConfidence: number = 0.9,
+    nodeType?: GardenerReviewItemType,
+    limit: number = 500
+  ): Promise<GardenerBatchReviewResponse> => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/review/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: 'approve',
+          nodeType,
+          minConfidence,
+          limit,
+          dryRun: false,
+          notes: `Auto-approved by AI (confidence >= ${Math.round(minConfidence * 100)}%)`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to smart approve: ${response.status}`);
+      }
+
+      const data: GardenerBatchReviewResponse = await response.json();
+
+      // Refetch to update the queue
+      lastFetchParams.current = '';
+      await fetchCurrentItem();
+
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to smart approve';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fetchCurrentItem]);
+
+  /**
    * Set a filter value
    */
   const setFilter = useCallback((key: 'nodeType' | 'action', value: string | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-    setPosition(0); // Reset to first item when filter changes
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value };
+      // Clear cache and reset position when filter changes
+      lastFetchParams.current = '';
+      setPosition(0);
+      return newFilters;
+    });
   }, []);
 
   /**
    * Refresh the current view
    */
   const refresh = useCallback(async () => {
+    lastFetchParams.current = ''; // Clear cache to force refetch
     await fetchCurrentItem();
   }, [fetchCurrentItem]);
 
-  // Fetch initial item on mount and when position/filters change
+  // Fetch initial item on mount only
   useEffect(() => {
-    fetchCurrentItem();
-  }, [position, filters.nodeType, filters.action]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!hasFetched.current) {
+      fetchCurrentItem();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch when filters change (but not position - position changes trigger direct fetches)
+  useEffect(() => {
+    if (hasFetched.current) {
+      // Filters changed, refetch from position 0
+      lastFetchParams.current = '';
+      fetchCurrentItem(0);
+    }
+  }, [filters.nodeType, filters.action]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     currentItem,
@@ -266,6 +375,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     approve,
     reject,
     batchApprove,
+    smartApprove,
     setFilter,
     refresh,
   };

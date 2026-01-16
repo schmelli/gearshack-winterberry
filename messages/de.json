@@ -2872,6 +2872,7 @@
         "notesPlaceholder": "Optionale Notizen für diese Entscheidung...",
         "approve": "Genehmigen",
         "reject": "Ablehnen",
+        "cancel": "Abbrechen",
         "itemApproved": "Eintrag erfolgreich genehmigt",
         "itemRejected": "Eintrag abgelehnt",
         "actionFailed": "Aktion fehlgeschlagen. Bitte erneut versuchen.",
@@ -2882,7 +2883,19 @@
         "confirmBatchApprove": "Einträge genehmigen",
         "batchApproveSuccess": "{count} Einträge erfolgreich genehmigt",
         "batchApproveFailed": "Stapelgenehmigung fehlgeschlagen. Bitte erneut versuchen.",
-        "all": "alle"
+        "all": "alle",
+        "smartApprove": "KI-Genehmigung",
+        "smartApproveTitle": "KI-gestützte Stapelgenehmigung",
+        "smartApproveDescription": "Genehmigt automatisch hochkonfidente Einträge ({minConfidence}%+) vom Typ \"{type}\". {count} Einträge gefunden.",
+        "smartApproveNoItems": "Keine passenden Einträge mit {minConfidence}%+ Konfidenz gefunden.",
+        "minConfidence": "Minimale Konfidenz",
+        "confirmSmartApprove": "Automatisch genehmigen",
+        "smartApproveSuccess": "{count} hochkonfidente Einträge automatisch genehmigt",
+        "filterByConfidence": "Nach Konfidenz filtern",
+        "confidenceHigh": "Hoch (90%+)",
+        "confidenceMedium": "Mittel (70-89%)",
+        "confidenceLow": "Niedrig (<70%)",
+        "allConfidences": "Alle Konfidenzwerte"
       }
     },
     "users": {

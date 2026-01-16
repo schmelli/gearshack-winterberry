@@ -397,6 +397,8 @@ export interface UseGardenerReviewActions {
   approve: (notes?: string) => Promise<void>;
   reject: (notes?: string) => Promise<void>;
   batchApprove: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
+  /** AI-assisted auto-approval for high-confidence items */
+  smartApprove: (minConfidence?: number, nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
   setFilter: (key: 'nodeType' | 'action', value: string | undefined) => void;
   refresh: () => Promise<void>;
 }

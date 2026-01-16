@@ -2872,6 +2872,7 @@
         "notesPlaceholder": "Add optional notes for this decision...",
         "approve": "Approve",
         "reject": "Reject",
+        "cancel": "Cancel",
         "itemApproved": "Item approved successfully",
         "itemRejected": "Item rejected",
         "actionFailed": "Action failed. Please try again.",
@@ -2882,7 +2883,19 @@
         "confirmBatchApprove": "Approve Items",
         "batchApproveSuccess": "{count} items approved successfully",
         "batchApproveFailed": "Batch approve failed. Please try again.",
-        "all": "all"
+        "all": "all",
+        "smartApprove": "AI Approve",
+        "smartApproveTitle": "AI-Assisted Batch Approval",
+        "smartApproveDescription": "Automatically approves high-confidence items ({minConfidence}%+) of type \"{type}\". {count} items found.",
+        "smartApproveNoItems": "No matching items with {minConfidence}%+ confidence found.",
+        "minConfidence": "Minimum Confidence",
+        "confirmSmartApprove": "Auto-Approve",
+        "smartApproveSuccess": "{count} high-confidence items auto-approved",
+        "filterByConfidence": "Filter by confidence",
+        "confidenceHigh": "High (90%+)",
+        "confidenceMedium": "Medium (70-89%)",
+        "confidenceLow": "Low (<70%)",
+        "allConfidences": "All Confidence Levels"
       }
     },
     "users": {
