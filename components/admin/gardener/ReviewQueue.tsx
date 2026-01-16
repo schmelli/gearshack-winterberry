@@ -38,6 +38,8 @@ import {
   AlertCircle,
   Filter,
   Sparkles,
+  XCircle,
+  Trash2,
 } from 'lucide-react';
 import type { GardenerReviewItemType } from '@/types/gardener';
 import { toast } from 'sonner';
@@ -84,7 +86,11 @@ export function ReviewQueue() {
     goToPosition,
     approve,
     reject,
+    skip,
+    deleteItem,
     batchApprove,
+    batchReject,
+    batchDelete,
     smartApprove,
     smartApprovePreview,
     setFilter,
@@ -139,6 +145,46 @@ export function ReviewQueue() {
       toast.success(t('itemRejected'));
     } catch {
       toast.error(t('actionFailed'));
+    }
+  };
+
+  const handleSkip = async () => {
+    try {
+      await skip();
+      toast.success(t('itemSkipped'));
+    } catch {
+      toast.error(t('actionFailed'));
+    }
+  };
+
+  const handleDelete = async (notes?: string) => {
+    try {
+      await deleteItem(notes);
+      toast.success(t('itemDeleted'));
+    } catch {
+      toast.error(t('actionFailed'));
+    }
+  };
+
+  const handleBatchReject = async () => {
+    try {
+      const result = await batchReject(filters.nodeType, parseInt(batchLimit, 10));
+      toast.success(
+        t('batchRejectSuccess', { count: result.processedCount })
+      );
+    } catch {
+      toast.error(t('batchRejectFailed'));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      const result = await batchDelete(filters.nodeType, parseInt(batchLimit, 10));
+      toast.success(
+        t('batchDeleteSuccess', { count: result.processedCount })
+      );
+    } catch {
+      toast.error(t('batchDeleteFailed'));
     }
   };
 
@@ -361,6 +407,102 @@ export function ReviewQueue() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+              {/* Batch Reject */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={total === 0 || isProcessing}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    {t('batchReject')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('batchRejectTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('batchRejectDescription', {
+                        type: filters.nodeType || t('all'),
+                      })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="py-4">
+                    <label className="text-sm font-medium">
+                      {t('batchLimit')}
+                    </label>
+                    <Select value={batchLimit} onValueChange={setBatchLimit}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBatchReject}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {t('confirmBatchReject')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Batch Delete */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={total === 0 || isProcessing}
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t('batchDelete')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive">
+                      {t('batchDeleteTitle')}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('batchDeleteDescription', {
+                        type: filters.nodeType || t('all'),
+                      })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="py-4">
+                    <label className="text-sm font-medium">
+                      {t('batchLimit')}
+                    </label>
+                    <Select value={batchLimit} onValueChange={setBatchLimit}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBatchDelete}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {t('confirmBatchDelete')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </CardContent>
@@ -474,6 +616,8 @@ export function ReviewQueue() {
             item={currentItem}
             onApprove={handleApprove}
             onReject={handleReject}
+            onSkip={handleSkip}
+            onDelete={handleDelete}
             isProcessing={isProcessing}
           />
         </>

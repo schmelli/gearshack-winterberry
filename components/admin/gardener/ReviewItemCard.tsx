@@ -24,6 +24,8 @@ import {
   Tag,
   Link2,
   Lightbulb,
+  SkipForward,
+  Trash2,
 } from 'lucide-react';
 import type { GardenerReviewItem } from '@/types/gardener';
 
@@ -31,6 +33,8 @@ interface ReviewItemCardProps {
   item: GardenerReviewItem;
   onApprove: (notes?: string) => Promise<void>;
   onReject: (notes?: string) => Promise<void>;
+  onSkip: () => Promise<void>;
+  onDelete: (notes?: string) => Promise<void>;
   isProcessing: boolean;
 }
 
@@ -72,6 +76,8 @@ export function ReviewItemCard({
   item,
   onApprove,
   onReject,
+  onSkip,
+  onDelete,
   isProcessing,
 }: ReviewItemCardProps) {
   const t = useTranslations('Admin.gardener.review');
@@ -93,6 +99,16 @@ export function ReviewItemCard({
 
   const handleReject = async () => {
     await onReject(notes.trim() || undefined);
+    setNotes('');
+    setShowNotes(false);
+  };
+
+  const handleSkip = async () => {
+    await onSkip();
+  };
+
+  const handleDelete = async () => {
+    await onDelete(notes.trim() || undefined);
     setNotes('');
     setShowNotes(false);
   };
@@ -228,10 +244,10 @@ export function ReviewItemCard({
         <Separator />
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant="default"
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700 text-white"
             onClick={handleApprove}
             disabled={isProcessing}
           >
@@ -244,7 +260,7 @@ export function ReviewItemCard({
           </Button>
           <Button
             variant="destructive"
-            className="flex-1"
+            className="flex-1 min-w-[120px]"
             onClick={handleReject}
             disabled={isProcessing}
           >
@@ -254,6 +270,28 @@ export function ReviewItemCard({
               <XCircle className="mr-2 h-4 w-4" />
             )}
             {t('reject')}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 min-w-[120px]"
+            onClick={handleSkip}
+            disabled={isProcessing}
+          >
+            <SkipForward className="mr-2 h-4 w-4" />
+            {t('skip')}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 min-w-[120px] border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDelete}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            {t('delete')}
           </Button>
         </div>
       </CardContent>

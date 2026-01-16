@@ -5,6 +5,7 @@ import type {
   GardenerReviewItem,
   GardenerReviewItemType,
   GardenerBatchReviewResponse,
+  GardenerDecision,
   UseGardenerReviewReturn,
 } from '@/types/gardener';
 
@@ -170,7 +171,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   /**
    * Submit a review decision (approve/reject)
    */
-  const submitDecision = useCallback(async (decision: 'approve' | 'reject', notes?: string) => {
+  const submitDecision = useCallback(async (decision: GardenerDecision, notes?: string) => {
     if (!currentItem) return;
 
     setIsProcessing(true);
@@ -228,6 +229,26 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   }, [submitDecision]);
 
   /**
+   * Skip the current item without changing status
+   * Moves to next item without API call
+   */
+  const skip = useCallback(async () => {
+    if (position < total - 1) {
+      const newPos = position + 1;
+      setPosition(newPos);
+      lastFetchParams.current = '';
+      await fetchCurrentItem(newPos);
+    }
+  }, [position, total, fetchCurrentItem]);
+
+  /**
+   * Delete the current node from the graph
+   */
+  const deleteItem = useCallback(async (notes?: string) => {
+    await submitDecision('delete', notes);
+  }, [submitDecision]);
+
+  /**
    * Batch approve items by type
    */
   const batchApprove = useCallback(async (
@@ -264,6 +285,94 @@ export function useGardenerReview(): UseGardenerReviewReturn {
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to batch approve';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fetchCurrentItem]);
+
+  /**
+   * Batch reject items by type
+   */
+  const batchReject = useCallback(async (
+    nodeType?: GardenerReviewItemType,
+    limit: number = 100
+  ): Promise<GardenerBatchReviewResponse> => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/review/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: 'reject',
+          nodeType,
+          limit,
+          dryRun: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to batch reject: ${response.status}`);
+      }
+
+      const data: GardenerBatchReviewResponse = await response.json();
+
+      // Refetch to update the queue
+      lastFetchParams.current = '';
+      await fetchCurrentItem();
+
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to batch reject';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fetchCurrentItem]);
+
+  /**
+   * Batch delete nodes from graph by type
+   */
+  const batchDelete = useCallback(async (
+    nodeType?: GardenerReviewItemType,
+    limit: number = 100
+  ): Promise<GardenerBatchReviewResponse> => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/review/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: 'delete',
+          nodeType,
+          limit,
+          dryRun: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to batch delete: ${response.status}`);
+      }
+
+      const data: GardenerBatchReviewResponse = await response.json();
+
+      // Refetch to update the queue
+      lastFetchParams.current = '';
+      await fetchCurrentItem();
+
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to batch delete';
       setError(errorMessage);
       throw err;
     } finally {
@@ -416,7 +525,11 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     goToPosition,
     approve,
     reject,
+    skip,
+    deleteItem,
     batchApprove,
+    batchReject,
+    batchDelete,
     smartApprove,
     smartApprovePreview,
     setFilter,

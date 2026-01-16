@@ -11,7 +11,7 @@
 export type GardenerRelationshipDirection = 'incoming' | 'outgoing';
 
 /** Decision type used for approval and review actions */
-export type GardenerDecision = 'approve' | 'reject';
+export type GardenerDecision = 'approve' | 'reject' | 'skip' | 'delete';
 
 // ============================================================================
 // Chat Types
@@ -402,7 +402,15 @@ export interface UseGardenerReviewActions {
   goToPosition: (position: number) => Promise<void>;
   approve: (notes?: string) => Promise<void>;
   reject: (notes?: string) => Promise<void>;
+  /** Skip current item without status change (single only) */
+  skip: () => Promise<void>;
+  /** Delete node from graph (single) */
+  deleteItem: (notes?: string) => Promise<void>;
   batchApprove: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
+  /** Batch reject items */
+  batchReject: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
+  /** Batch delete nodes from graph */
+  batchDelete: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
   /** AI-assisted auto-approval for high-confidence items */
   smartApprove: (minConfidence?: number, nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
   /** Dry-run preview: shows how many items would be auto-approved */
