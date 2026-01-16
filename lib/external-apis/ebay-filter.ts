@@ -13,11 +13,79 @@ import { DEFAULT_FILTER_PATTERNS } from '@/types/ebay';
 // =============================================================================
 
 /**
+ * Bundle context indicators - if accessory keyword appears after these,
+ * it's likely part of a bundle, not a standalone accessory listing
+ */
+const BUNDLE_INDICATORS = [
+  'mit',
+  'inkl',
+  'inkl.',
+  'inklusive',
+  'including',
+  'includes',
+  'with',
+  'plus',
+  '+',
+  '&',
+  'und',
+  'and',
+  'set',
+  'bundle',
+  'kit',
+  'combo',
+  'package',
+];
+
+/**
+ * Check if accessory keyword appears in a bundle context
+ * e.g., "Zelt mit Footprint" = bundle (allow)
+ * e.g., "Footprint für MSR Hubba" = accessory (block)
+ */
+function isInBundleContext(title: string, accessoryKeyword: string): boolean {
+  const lowerTitle = title.toLowerCase();
+  const lowerKeyword = accessoryKeyword.toLowerCase();
+  const keywordIndex = lowerTitle.indexOf(lowerKeyword);
+
+  if (keywordIndex === -1) return false;
+
+  // Check if any bundle indicator appears before the accessory keyword
+  // with some reasonable distance (within 20 chars before)
+  const textBefore = lowerTitle.substring(Math.max(0, keywordIndex - 20), keywordIndex);
+
+  return BUNDLE_INDICATORS.some((indicator) => {
+    const indicatorLower = indicator.toLowerCase();
+    // Check if indicator is present and is a word boundary (not part of another word)
+    const indicatorIndex = textBefore.lastIndexOf(indicatorLower);
+    if (indicatorIndex === -1) return false;
+
+    // Verify it's a word boundary (space or start before, space or end after)
+    const charBefore = indicatorIndex === 0 ? ' ' : textBefore[indicatorIndex - 1];
+    const charAfter = textBefore[indicatorIndex + indicatorLower.length] || ' ';
+
+    return /\s/.test(charBefore) && /[\s,]/.test(charAfter);
+  });
+}
+
+/**
  * Check if a listing title contains accessory keywords
+ * Now with bundle-context awareness - allows accessories when part of a bundle
  */
 function isAccessory(title: string, patterns: string[]): boolean {
   const lowerTitle = title.toLowerCase();
-  return patterns.some((pattern) => lowerTitle.includes(pattern.toLowerCase()));
+
+  for (const pattern of patterns) {
+    if (lowerTitle.includes(pattern.toLowerCase())) {
+      // Check if this is in a bundle context
+      if (isInBundleContext(title, pattern)) {
+        // It's a bundle, not a standalone accessory - allow it
+        continue;
+      }
+      // Standalone accessory mention - block it
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -176,6 +244,7 @@ export function filterEbayListings(
 
 export {
   isAccessory,
+  isInBundleContext,
   isKnockoff,
   isPriceTooLow,
   containsBrand,

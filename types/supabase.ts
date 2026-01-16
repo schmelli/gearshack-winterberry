@@ -1161,6 +1161,85 @@ export type Database = {
           },
         ]
       }
+      ebay_listing_feedback: {
+        Row: {
+          brand_name: string | null
+          created_at: string
+          ebay_item_id: string
+          feedback_reason: string | null
+          feedback_type: string
+          gear_item_id: string | null
+          id: string
+          item_name: string | null
+          listing_condition: string | null
+          listing_currency: string | null
+          listing_price: number | null
+          listing_title: string
+          listing_url: string | null
+          search_query: string
+          user_id: string
+          was_filtered: boolean | null
+        }
+        Insert: {
+          brand_name?: string | null
+          created_at?: string
+          ebay_item_id: string
+          feedback_reason?: string | null
+          feedback_type: string
+          gear_item_id?: string | null
+          id?: string
+          item_name?: string | null
+          listing_condition?: string | null
+          listing_currency?: string | null
+          listing_price?: number | null
+          listing_title: string
+          listing_url?: string | null
+          search_query: string
+          user_id: string
+          was_filtered?: boolean | null
+        }
+        Update: {
+          brand_name?: string | null
+          created_at?: string
+          ebay_item_id?: string
+          feedback_reason?: string | null
+          feedback_type?: string
+          gear_item_id?: string | null
+          id?: string
+          item_name?: string | null
+          listing_condition?: string | null
+          listing_currency?: string | null
+          listing_price?: number | null
+          listing_title?: string
+          listing_url?: string | null
+          search_query?: string
+          user_id?: string
+          was_filtered?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebay_listing_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "community_availability"
+            referencedColumns: ["gear_item_id"]
+          },
+          {
+            foreignKeyName: "ebay_listing_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebay_listing_feedback_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebay_price_cache: {
         Row: {
           country_code: string
@@ -4543,6 +4622,15 @@ export type Database = {
           max_price: number | null
           min_price: number | null
           user_count: number | null
+        }
+        Relationships: []
+      }
+      ebay_feedback_patterns: {
+        Row: {
+          feedback_count: number | null
+          feedback_type: string | null
+          title_word: string | null
+          word_frequency: number | null
         }
         Relationships: []
       }

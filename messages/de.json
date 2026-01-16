@@ -643,6 +643,17 @@
       "location": "Standort",
       "seller": "Verkäufer",
       "viewOnEbay": "Auf eBay ansehen"
+    },
+    "feedback": {
+      "tooltip": "Dieses Angebot passt nicht",
+      "wrongProduct": "Falsches Produkt",
+      "accessory": "Ist nur Zubehör",
+      "knockoff": "Sieht nach Fälschung aus",
+      "irrelevant": "Nicht relevant",
+      "other": "Anderer Grund",
+      "thankYou": "Danke für dein Feedback!",
+      "error": "Feedback konnte nicht gespeichert werden",
+      "submitted": "Feedback gesendet"
     }
   },
   "ResellerPrices": {

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEbaySearch } from '@/hooks/price-tracking/useEbaySearch';
 import { EbayListingPopup } from './EbayListingPopup';
+import { EbayFeedbackButton } from './EbayFeedbackButton';
 import type { EbayListing, EbayListingType, EbayCondition } from '@/types/ebay';
 
 // =============================================================================
@@ -35,6 +36,8 @@ interface EbayListingsSectionProps {
   msrp?: number | null;
   /** Maximum listings to show (default: 3) */
   maxListings?: number;
+  /** Optional gear item ID for feedback context */
+  gearItemId?: string;
 }
 
 // =============================================================================
@@ -89,9 +92,17 @@ function ConditionBadge({ condition }: { condition: EbayCondition }) {
 function ListingCard({
   listing,
   onViewDetails,
+  searchQuery,
+  gearItemId,
+  brandName,
+  itemName,
 }: {
   listing: EbayListing;
   onViewDetails: (listing: EbayListing) => void;
+  searchQuery: string;
+  gearItemId?: string;
+  brandName?: string;
+  itemName?: string;
 }) {
   const t = useTranslations('EbayListings');
 
@@ -125,8 +136,17 @@ function ListingCard({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Title */}
-        <h4 className="text-sm font-medium line-clamp-2 mb-1">{listing.title}</h4>
+        {/* Title + Feedback Button */}
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="text-sm font-medium line-clamp-2 mb-1">{listing.title}</h4>
+          <EbayFeedbackButton
+            listing={listing}
+            searchQuery={searchQuery}
+            gearItemId={gearItemId}
+            brandName={brandName}
+            itemName={itemName}
+          />
+        </div>
 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -185,6 +205,7 @@ export function EbayListingsSection({
   productTypeKeywords,
   msrp,
   maxListings = 3,
+  gearItemId,
 }: EbayListingsSectionProps) {
   const t = useTranslations('EbayListings');
 
@@ -204,11 +225,13 @@ export function EbayListingsSection({
   // Selected listing for popup
   const [selectedListing, setSelectedListing] = useState<EbayListing | null>(null);
 
+  // Track the search query for feedback context
+  const searchQuery = brandName ? `${brandName} ${itemName}` : itemName;
+
   // Build search query and fetch on mount (with stable dependency)
   useEffect(() => {
     if (itemName) {
-      const query = brandName ? `${brandName} ${itemName}` : itemName;
-      search(query);
+      search(searchQuery);
     }
     // Only re-run when item or brand changes, not on every search callback change
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,6 +279,10 @@ export function EbayListingsSection({
                   key={listing.id}
                   listing={listing}
                   onViewDetails={setSelectedListing}
+                  searchQuery={searchQuery}
+                  gearItemId={gearItemId}
+                  brandName={brandName || undefined}
+                  itemName={itemName}
                 />
               ))}
 

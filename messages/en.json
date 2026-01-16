@@ -643,6 +643,17 @@
       "location": "Location",
       "seller": "Seller",
       "viewOnEbay": "View on eBay"
+    },
+    "feedback": {
+      "tooltip": "This listing doesn't match",
+      "wrongProduct": "Wrong product",
+      "accessory": "It's an accessory",
+      "knockoff": "Looks like a knockoff",
+      "irrelevant": "Not relevant",
+      "other": "Other reason",
+      "thankYou": "Thanks for your feedback!",
+      "error": "Failed to submit feedback",
+      "submitted": "Feedback submitted"
     }
   },
   "ResellerPrices": {
