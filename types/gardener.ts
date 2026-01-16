@@ -389,6 +389,12 @@ export interface UseGardenerReviewState {
   };
 }
 
+/** Preview result for smart approve dry-run */
+export interface GardenerSmartApprovePreview {
+  count: number;
+  items?: Array<{ approvalId: string; name: string; confidence: number }>;
+}
+
 export interface UseGardenerReviewActions {
   fetchCurrentItem: () => Promise<void>;
   goToNext: () => Promise<void>;
@@ -399,6 +405,8 @@ export interface UseGardenerReviewActions {
   batchApprove: (nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
   /** AI-assisted auto-approval for high-confidence items */
   smartApprove: (minConfidence?: number, nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerBatchReviewResponse>;
+  /** Dry-run preview: shows how many items would be auto-approved */
+  smartApprovePreview: (minConfidence?: number, nodeType?: GardenerReviewItemType, limit?: number) => Promise<GardenerSmartApprovePreview>;
   setFilter: (key: 'nodeType' | 'action', value: string | undefined) => void;
   refresh: () => Promise<void>;
 }

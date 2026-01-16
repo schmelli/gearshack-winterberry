@@ -272,6 +272,48 @@ export function useGardenerReview(): UseGardenerReviewReturn {
   }, [fetchCurrentItem]);
 
   /**
+   * Smart approve preview: get count of items that would be approved (dry run)
+   *
+   * @param minConfidence - Minimum confidence threshold (0-1, e.g., 0.9 for 90%)
+   * @param nodeType - Optional filter by node type
+   * @param limit - Maximum items to check (default 500)
+   */
+  const smartApprovePreview = useCallback(async (
+    minConfidence: number = 0.9,
+    nodeType?: GardenerReviewItemType,
+    limit: number = 500
+  ): Promise<{ count: number; items?: Array<{ approvalId: string; name: string; confidence: number }> }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/review/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: 'approve',
+          nodeType,
+          minConfidence,
+          limit,
+          dryRun: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to preview: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        count: data.wouldProcess || data.processedCount || 0,
+        items: data.preview || data.affectedItems,
+      };
+    } catch (err) {
+      console.error('[SmartApprovePreview] Error:', err);
+      return { count: 0 };
+    }
+  }, []);
+
+  /**
    * Smart approve: batch approve high-confidence items
    * This is the AI-assisted auto-approval feature
    *
@@ -376,6 +418,7 @@ export function useGardenerReview(): UseGardenerReviewReturn {
     reject,
     batchApprove,
     smartApprove,
+    smartApprovePreview,
     setFilter,
     refresh,
   };

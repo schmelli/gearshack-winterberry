@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGardenerReview } from '@/hooks/admin';
 import { ReviewItemCard } from './ReviewItemCard';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,9 @@ export function ReviewQueue() {
   const [jumpToPosition, setJumpToPosition] = useState('');
   const [batchLimit, setBatchLimit] = useState('100');
   const [smartConfidence, setSmartConfidence] = useState('90');
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [smartDialogOpen, setSmartDialogOpen] = useState(false);
 
   const {
     currentItem,
@@ -83,6 +86,7 @@ export function ReviewQueue() {
     reject,
     batchApprove,
     smartApprove,
+    smartApprovePreview,
     setFilter,
     refresh,
   } = useGardenerReview();
@@ -110,6 +114,8 @@ export function ReviewQueue() {
     try {
       const minConfidence = parseInt(smartConfidence, 10) / 100;
       const result = await smartApprove(minConfidence, filters.nodeType, 500);
+      setSmartDialogOpen(false);
+      setPreviewCount(null);
       toast.success(
         t('smartApproveSuccess', { count: result.processedCount })
       );
@@ -135,6 +141,27 @@ export function ReviewQueue() {
       toast.error(t('actionFailed'));
     }
   };
+
+  // Fetch preview when dialog opens or confidence changes
+  const fetchPreview = useCallback(async () => {
+    setIsLoadingPreview(true);
+    try {
+      const minConfidence = parseInt(smartConfidence, 10) / 100;
+      const result = await smartApprovePreview(minConfidence, filters.nodeType, 500);
+      setPreviewCount(result.count);
+    } catch {
+      setPreviewCount(null);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  }, [smartConfidence, filters.nodeType, smartApprovePreview]);
+
+  // Fetch preview when dialog opens
+  useEffect(() => {
+    if (smartDialogOpen) {
+      fetchPreview();
+    }
+  }, [smartDialogOpen, fetchPreview]);
 
   return (
     <div className="space-y-4">
@@ -211,7 +238,7 @@ export function ReviewQueue() {
 
             <div className="ml-auto flex items-center gap-2">
               {/* Smart Approve - AI-assisted */}
-              <AlertDialog>
+              <AlertDialog open={smartDialogOpen} onOpenChange={setSmartDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="default"
@@ -228,12 +255,31 @@ export function ReviewQueue() {
                       <Sparkles className="h-5 w-5 text-purple-500" />
                       {t('smartApproveTitle')}
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('smartApproveDescription', {
-                        minConfidence: smartConfidence,
-                        type: filters.nodeType || t('all'),
-                        count: '?',
-                      })}
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>
+                          {t('smartApproveDescription', {
+                            minConfidence: smartConfidence,
+                            type: filters.nodeType || t('all'),
+                          })}
+                        </p>
+                        <div className="flex items-center gap-2 rounded-md bg-muted p-3">
+                          {isLoadingPreview ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span className="text-sm">{t('loadingPreview')}</span>
+                            </>
+                          ) : previewCount !== null ? (
+                            <span className="text-sm font-medium">
+                              {t('previewCount', { count: previewCount.toLocaleString() })}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {t('previewUnavailable')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <div className="py-4 space-y-4">
@@ -241,7 +287,13 @@ export function ReviewQueue() {
                       <label className="text-sm font-medium">
                         {t('minConfidence')}
                       </label>
-                      <Select value={smartConfidence} onValueChange={setSmartConfidence}>
+                      <Select
+                        value={smartConfidence}
+                        onValueChange={(value) => {
+                          setSmartConfidence(value);
+                          // Preview will be fetched via useEffect
+                        }}
+                      >
                         <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
@@ -258,6 +310,7 @@ export function ReviewQueue() {
                     <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleSmartApprove}
+                      disabled={isLoadingPreview || previewCount === 0}
                       className="bg-gradient-to-r from-purple-600 to-blue-600"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
