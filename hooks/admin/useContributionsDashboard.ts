@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type {
   ContributionStats,
   MissingBrand,
+  MissingBrandStatus,
   MissingBrandsResponse,
 } from '@/types/contributions';
 
@@ -178,7 +179,7 @@ export function useContributionsDashboard(): UseContributionsDashboardReturn {
       } else {
         // Update in place
         setMissingBrands((prev) =>
-          prev.map((b) => (b.id === id ? { ...b, status } : b))
+          prev.map((b) => (b.id === id ? { ...b, status: status as MissingBrandStatus } : b))
         );
       }
 

@@ -14,6 +14,10 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
 import type { TrackContributionRequest } from '@/types/contributions';
 
+// Type alias for Supabase client to bypass ungenerated table types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClient = any;
+
 // =============================================================================
 // Configuration
 // =============================================================================
@@ -41,7 +45,7 @@ function hashUserId(userId: string): string {
 async function getCountryCode(
   request: NextRequest,
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: AnyClient
 ): Promise<string | null> {
   // Try Cloudflare header first (available on Vercel)
   const cfCountry = request.headers.get('CF-IPCountry');
@@ -104,7 +108,7 @@ async function getCountryCode(
  */
 async function checkBrandInCatalog(
   brandName: string,
-  serviceClient: ReturnType<typeof createServiceRoleClient>
+  serviceClient: AnyClient
 ): Promise<boolean> {
   if (!brandName) return false;
 
@@ -160,7 +164,7 @@ export async function POST(request: NextRequest) {
     const countryCode = await getCountryCode(request, user.id, supabase);
 
     // Use service role client for inserts (bypasses RLS)
-    const serviceClient = createServiceRoleClient();
+    const serviceClient = createServiceRoleClient() as AnyClient;
 
     // Convert field arrays to JSONB objects
     const addedFieldsObj = (userAddedFields || []).reduce(

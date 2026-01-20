@@ -12,9 +12,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { ContributionStats } from '@/types/contributions';
 
+// Type alias for Supabase client to bypass ungenerated table types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClient = any;
+
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = await createClient() as AnyClient;
 
     // Verify admin role
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -59,7 +63,7 @@ export async function GET() {
       .select('contributor_hash')
       .limit(10000);
     const uniqueContributors = new Set(
-      uniqueContributorsData?.map((c) => c.contributor_hash) || []
+      uniqueContributorsData?.map((c: { contributor_hash: string }) => c.contributor_hash) || []
     ).size;
 
     // Get matched vs unmatched counts
@@ -80,7 +84,7 @@ export async function GET() {
       .not('contributor_country_code', 'is', null);
 
     const countryCounts = new Map<string, number>();
-    countryData?.forEach((c) => {
+    countryData?.forEach((c: { contributor_country_code: string | null }) => {
       if (c.contributor_country_code) {
         countryCounts.set(
           c.contributor_country_code,
@@ -113,7 +117,12 @@ export async function GET() {
       .order('occurrence_count', { ascending: false })
       .limit(10);
 
-    const topMissingBrands = (topBrandsData || []).map((b) => ({
+    const topMissingBrands = (topBrandsData || []).map((b: {
+      brand_name: string;
+      occurrence_count: number;
+      first_seen_at: string;
+      countries_seen: string[] | null;
+    }) => ({
       brandName: b.brand_name,
       count: b.occurrence_count,
       firstSeen: b.first_seen_at,
@@ -128,8 +137,8 @@ export async function GET() {
       .limit(1000);
 
     const fieldCounts = new Map<string, number>();
-    addedFieldsData?.forEach((c) => {
-      const fields = c.user_added_fields as Record<string, boolean>;
+    addedFieldsData?.forEach((c: { user_added_fields: Record<string, boolean> }) => {
+      const fields = c.user_added_fields;
       Object.keys(fields).forEach((field) => {
         fieldCounts.set(field, (fieldCounts.get(field) || 0) + 1);
       });

@@ -198,7 +198,7 @@ export interface ImportedProductData {
   currency: string | null;
   productUrl: string;
   extractionConfidence: 'high' | 'medium' | 'low';
-  extractionMethod: 'schema' | 'patterns';
+  extractionMethod: 'schema' | 'patterns' | 'ai';
 
   // GearGraph matching
   catalogMatch: CatalogMatchResult | null;

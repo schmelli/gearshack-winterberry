@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           catalogMatch = {
             id: bestMatch.id,
             name: bestMatch.name,
-            brand: bestMatch.brand,
+            brand: bestMatch.brand?.name ?? null,
             categoryMain: bestMatch.categoryMain,
             subcategory: bestMatch.subcategory,
             productType: bestMatch.productType,

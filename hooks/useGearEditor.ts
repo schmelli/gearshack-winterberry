@@ -292,7 +292,7 @@ export function useGearEditor(
             sourceUrl: _prefillMeta?.sourceUrl,
             catalogMatchId: _prefillMeta?.catalogMatchId,
             catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
-            userAddedFields: computeAddedFields(data, null),
+            userAddedFields: computeAddedFields(data as unknown as Record<string, unknown>, null),
           });
         } else {
           // Add new item to store (now async with optimistic update)
@@ -315,7 +315,7 @@ export function useGearEditor(
             sourceUrl: _prefillMeta?.sourceUrl,
             catalogMatchId: _prefillMeta?.catalogMatchId,
             catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
-            userAddedFields: computeAddedFields(data, null),
+            userAddedFields: computeAddedFields(data as unknown as Record<string, unknown>, null),
           });
         }
 

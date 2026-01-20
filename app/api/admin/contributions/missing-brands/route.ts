@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { MissingBrand, MissingBrandsResponse } from '@/types/contributions';
+import type { MissingBrand, MissingBrandRow, MissingBrandsResponse } from '@/types/contributions';
 
 // =============================================================================
 // GET Handler - List Missing Brands
@@ -49,8 +49,9 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // Build query
-    let query = supabase
+    // Build query - using raw query to avoid type issues with ungenerated table types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (supabase as any)
       .from('missing_brands_log')
       .select('*', { count: 'exact' });
 
@@ -70,7 +71,11 @@ export async function GET(request: NextRequest) {
       .order('last_seen_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    const { data, error, count } = await query;
+    const { data, error, count } = await query as {
+      data: MissingBrandRow[] | null;
+      error: Error | null;
+      count: number | null;
+    };
 
     if (error) {
       console.error('[Admin Missing Brands] Query error:', error);
@@ -78,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform to MissingBrand type
-    const brands: MissingBrand[] = (data || []).map((row) => ({
+    const brands: MissingBrand[] = (data || []).map((row: MissingBrandRow) => ({
       id: row.id,
       brandName: row.brand_name,
       brandNameNormalized: row.brand_name_normalized,
@@ -88,6 +93,10 @@ export async function GET(request: NextRequest) {
       status: row.status,
       sourceUrls: row.source_urls || [],
       countriesSeen: row.countries_seen || [],
+      resolvedAt: row.resolved_at,
+      resolvedBy: row.resolved_by,
+      resolutionNote: row.resolution_note,
+      mergedIntoBrandId: row.merged_into_brand_id,
     }));
 
     const response: MissingBrandsResponse = {
@@ -149,8 +158,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Update the record
-    const { error: updateError } = await supabase
+    // Update the record - using raw query to avoid type issues with ungenerated table types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: updateError } = await (supabase as any)
       .from('missing_brands_log')
       .update({ status })
       .eq('id', id);
