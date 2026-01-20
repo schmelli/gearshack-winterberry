@@ -3055,6 +3055,46 @@
         "error": "Failed to update tier"
       }
     },
+    "features": {
+      "pageTitle": "Activate Features",
+      "pageDescription": "Enable or disable features globally or restrict access to specific user groups",
+      "title": "Feature Activation",
+      "description": "Manage feature availability across the platform",
+      "refresh": "Refresh",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "restrictedTo": "Restricted to {count} groups",
+      "restrictAccess": "Restrict access to specific user groups (leave empty for everyone):",
+      "availableToAll": "No restrictions - available to all users when enabled",
+      "subFeatures": "{count} sub-features",
+      "noFeatures": "No features configured",
+      "groups": {
+        "all": "Everyone",
+        "admins": "Admins",
+        "trailblazer": "Trailblazer",
+        "beta": "Beta Users",
+        "vip": "VIP",
+        "merchant": "Merchants"
+      },
+      "featureNames": {
+        "community": "Community",
+        "community_bulletin": "Bulletin Board",
+        "community_shakedowns": "Shakedowns",
+        "community_social": "Social Features",
+        "community_wiki": "Wiki",
+        "ai_gear_assistant": "AI Gear Assistant",
+        "messaging": "Messaging System"
+      },
+      "featureDescriptions": {
+        "community": "Community hub with all social features",
+        "community_bulletin": "Community bulletin board for posts and discussions",
+        "community_shakedowns": "Gear shakedown reviews from the community",
+        "community_social": "Following, friends, and social connections",
+        "community_wiki": "Community-driven gear wiki",
+        "ai_gear_assistant": "AI-powered gear recommendations and assistance",
+        "messaging": "Direct messaging between users"
+      }
+    },
     "dashboard": {
       "pageTitle": "Admin Dashboard",
       "title": "Admin Dashboard",

@@ -29,6 +29,7 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  ToggleRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ const navItems = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/wiki', label: 'Wiki', icon: BookOpen },
   { href: '/admin/prompts', label: 'Prompts', icon: MessageSquare, disabled: true },
+  { href: '/admin/features', label: 'Activate Features', icon: ToggleRight },
   { href: '/admin/settings', label: 'Settings', icon: Settings, disabled: true },
 ];
 

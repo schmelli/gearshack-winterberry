@@ -28,3 +28,6 @@ export { useGardenerChat } from './useGardenerChat';
 
 // Gardener Review Queue
 export { useGardenerReview } from './useGardenerReview';
+
+// Feature Flags Management
+export { useAdminFeatureFlags } from './useAdminFeatureFlags';

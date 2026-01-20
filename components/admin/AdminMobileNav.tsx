@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
+  ToggleRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -57,6 +58,7 @@ const navItems = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/wiki', label: 'Wiki', icon: BookOpen },
   { href: '/admin/prompts', label: 'Prompts', icon: MessageSquare, disabled: true },
+  { href: '/admin/features', label: 'Activate Features', icon: ToggleRight },
   { href: '/admin/settings', label: 'Settings', icon: Settings, disabled: true },
 ];
 
