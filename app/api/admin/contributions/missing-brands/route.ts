@@ -1,0 +1,171 @@
+/**
+ * Admin Missing Brands API Route
+ *
+ * Feature: URL-Import & Contributions Tracking
+ *
+ * GET /api/admin/contributions/missing-brands
+ * Returns paginated list of missing brands for admin dashboard.
+ *
+ * PATCH /api/admin/contributions/missing-brands
+ * Updates status of a missing brand (pending → added_to_catalog/rejected/merged).
+ *
+ * Requires admin role.
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import type { MissingBrand, MissingBrandsResponse } from '@/types/contributions';
+
+// =============================================================================
+// GET Handler - List Missing Brands
+// =============================================================================
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    // Verify admin role
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const status = searchParams.get('status') || 'pending';
+    const search = searchParams.get('search') || '';
+
+    const offset = (page - 1) * limit;
+
+    // Build query
+    let query = supabase
+      .from('missing_brands_log')
+      .select('*', { count: 'exact' });
+
+    // Filter by status
+    if (status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    // Search by brand name
+    if (search) {
+      query = query.ilike('brand_name', `%${search}%`);
+    }
+
+    // Order and paginate
+    query = query
+      .order('occurrence_count', { ascending: false })
+      .order('last_seen_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('[Admin Missing Brands] Query error:', error);
+      return NextResponse.json({ error: 'Failed to fetch missing brands' }, { status: 500 });
+    }
+
+    // Transform to MissingBrand type
+    const brands: MissingBrand[] = (data || []).map((row) => ({
+      id: row.id,
+      brandName: row.brand_name,
+      brandNameNormalized: row.brand_name_normalized,
+      occurrenceCount: row.occurrence_count,
+      firstSeenAt: row.first_seen_at,
+      lastSeenAt: row.last_seen_at,
+      status: row.status,
+      sourceUrls: row.source_urls || [],
+      countriesSeen: row.countries_seen || [],
+    }));
+
+    const response: MissingBrandsResponse = {
+      brands,
+      total: count || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((count || 0) / limit),
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('[Admin Missing Brands] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch missing brands' },
+      { status: 500 }
+    );
+  }
+}
+
+// =============================================================================
+// PATCH Handler - Update Brand Status
+// =============================================================================
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    // Verify admin role
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { id, status } = body as { id: string; status: string };
+
+    // Validate
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    const validStatuses = ['pending', 'added_to_catalog', 'rejected', 'merged'];
+    if (!status || !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `status must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Update the record
+    const { error: updateError } = await supabase
+      .from('missing_brands_log')
+      .update({ status })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[Admin Missing Brands] Update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update brand status' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[Admin Missing Brands] PATCH Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update brand status' },
+      { status: 500 }
+    );
+  }
+}

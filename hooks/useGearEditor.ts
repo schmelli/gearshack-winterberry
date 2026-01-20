@@ -34,6 +34,10 @@ import {
   useDuplicateDetection,
   type UseDuplicateDetectionReturn,
 } from '@/hooks/useDuplicateDetection';
+import {
+  useContributionTracking,
+  computeAddedFields,
+} from '@/hooks/useContributionTracking';
 
 // =============================================================================
 // Image Import Helpers
@@ -58,6 +62,14 @@ function isExternalUrl(url: string | null | undefined): boolean {
 export interface UseGearEditorOptions {
   /** Existing gear item to edit (undefined for new item) */
   initialItem?: GearItem;
+  /** Partial form data to prefill (e.g., from URL import) */
+  prefillFormData?: Partial<GearItemFormData>;
+  /** Metadata about the prefill source (for contribution tracking) */
+  prefillMeta?: {
+    sourceUrl?: string;
+    catalogMatchId?: string | null;
+    catalogMatchConfidence?: number | null;
+  };
   /** Callback when save is successful */
   onSaveSuccess?: (item: GearItem) => void;
   /** Callback when save fails */
@@ -110,6 +122,9 @@ export function useGearEditor(
 ): UseGearEditorReturn {
   const {
     initialItem,
+    prefillFormData,
+    // TODO: Phase 3 - Use prefillMeta for contribution tracking after save
+    prefillMeta: _prefillMeta,
     onSaveSuccess,
     onSaveError,
     redirectPath = '/inventory',
@@ -134,6 +149,9 @@ export function useGearEditor(
   // Duplicate detection (Feature XXX-duplicate-detection)
   const duplicateDetection = useDuplicateDetection({ redirectPath });
 
+  // Contribution tracking (Feature: URL-Import & Contributions Tracking)
+  const { trackContribution } = useContributionTracking();
+
   // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -144,8 +162,15 @@ export function useGearEditor(
     if (initialItem) {
       return gearItemToFormData(initialItem);
     }
+    // Support prefill from URL import (Feature: URL-Import)
+    if (prefillFormData) {
+      return {
+        ...DEFAULT_GEAR_ITEM_FORM,
+        ...prefillFormData,
+      };
+    }
     return DEFAULT_GEAR_ITEM_FORM;
-  }, [initialItem]);
+  }, [initialItem, prefillFormData]);
 
   // Initialize form with Zod resolver (T012, T013)
   const form = useForm<GearItemFormData>({
@@ -258,6 +283,17 @@ export function useGearEditor(
           };
           onSaveSuccess?.(savedItem);
           toast.success(t('toasts.addedToWishlist'));
+
+          // Track contribution (fire-and-forget)
+          trackContribution({
+            gearItemId: savedItem.id,
+            brandName: data.brand || '',
+            productName: data.name,
+            sourceUrl: _prefillMeta?.sourceUrl,
+            catalogMatchId: _prefillMeta?.catalogMatchId,
+            catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
+            userAddedFields: computeAddedFields(data, null),
+          });
         } else {
           // Add new item to store (now async with optimistic update)
           const newId = await addItem(itemData);
@@ -270,6 +306,17 @@ export function useGearEditor(
           };
           onSaveSuccess?.(savedItem);
           toast.success(t('toasts.itemSaved'));
+
+          // Track contribution (fire-and-forget)
+          trackContribution({
+            gearItemId: newId,
+            brandName: data.brand || '',
+            productName: data.name,
+            sourceUrl: _prefillMeta?.sourceUrl,
+            catalogMatchId: _prefillMeta?.catalogMatchId,
+            catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
+            userAddedFields: computeAddedFields(data, null),
+          });
         }
 
         // Navigate to inventory (item already visible via optimistic update)
@@ -300,7 +347,7 @@ export function useGearEditor(
         setIsUploading(false);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t, trackContribution, _prefillMeta]
   );
 
   // Wrapped submit handler with validation and duplicate detection

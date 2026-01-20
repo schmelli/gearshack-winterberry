@@ -292,6 +292,7 @@
     "emptyDescription": "Start building your inventory by adding your first piece of gear.",
     "addFirstItem": "Add Your First Item",
     "addItem": "Add Item",
+    "import": "Import",
     "editItem": "Edit",
     "deleteItem": "Delete",
     "viewDetails": "View Details",
@@ -677,6 +678,28 @@
       "notifyEmail": "Notify via Email",
       "notifyApp": "Notify in App",
       "tooltip": "Get notified when prices drop"
+    },
+    "urlImport": {
+      "title": "Import from URL",
+      "description": "Paste a product URL to automatically fill in gear details",
+      "urlPlaceholder": "https://example.com/product/...",
+      "importButton": "Import",
+      "importing": "Importing...",
+      "continueToForm": "Continue to Form",
+      "cancel": "Cancel",
+      "productPreview": "Product Preview",
+      "catalogMatch": "GearGraph Match Found",
+      "catalogMatchDescription": "This product exists in GearGraph with verified data",
+      "matchConfidence": "{confidence}% match confidence",
+      "useCatalogData": "Use GearGraph Data",
+      "useExtractedData": "Use Extracted Data",
+      "extractedFrom": "Extracted from URL",
+      "noData": "No data extracted",
+      "errors": {
+        "invalidUrl": "Please enter a valid URL",
+        "extractionFailed": "Failed to extract product data",
+        "networkError": "Network error. Please try again."
+      }
     }
   },
   "GearDetail": {
@@ -3088,6 +3111,66 @@
         "avgGearPerUser": "Avg. Gear/User",
         "avgLoadoutsPerUser": "Avg. Loadouts/User",
         "perActiveUser": "per active user"
+      }
+    },
+    "contributions": {
+      "pageTitle": "Contributions Dashboard",
+      "title": "Contributions Dashboard",
+      "description": "Track user contributions and manage missing brands",
+      "refresh": "Refresh",
+      "tabs": {
+        "overview": "Overview",
+        "missingBrands": "Missing Brands"
+      },
+      "stats": {
+        "totalContributions": "Total Contributions",
+        "uniqueContributors": "Unique Contributors",
+        "matchRate": "Match Rate",
+        "missingBrands": "Missing Brands",
+        "contributions30d": "30-Day Contributions",
+        "topCountry": "Top Country",
+        "last7days": "{count} last 7 days",
+        "matched": "{matched} matched, {unmatched} new",
+        "pendingReview": "Pending review",
+        "last30days": "Last 30 days",
+        "ofContributions": "{percentage}% of contributions",
+        "noDataYet": "No data yet",
+        "anonymousHashes": "Anonymous contributor hashes"
+      },
+      "countryDistribution": "Country Distribution",
+      "frequentlyAddedFields": "Frequently Added Fields",
+      "topMissingBrands": "Top Missing Brands",
+      "occurrences": "{count} occurrences",
+      "seenIn": "Seen in: {countries}",
+      "missingBrandsTable": {
+        "brandName": "Brand Name",
+        "occurrences": "Occurrences",
+        "countries": "Countries",
+        "firstSeen": "First Seen",
+        "status": "Status",
+        "actions": "Actions",
+        "sourceUrls": "{count} source URL",
+        "sourceUrlsPlural": "{count} source URLs",
+        "noResults": "No missing brands found",
+        "search": "Search brands...",
+        "statusFilter": {
+          "pending": "Pending",
+          "added": "Added",
+          "rejected": "Rejected",
+          "merged": "Merged",
+          "all": "All"
+        },
+        "actionMenu": {
+          "markAdded": "Mark as Added",
+          "markMerged": "Mark as Merged",
+          "reject": "Reject",
+          "resetPending": "Reset to Pending"
+        },
+        "statusUpdated": "Brand status updated to {status}",
+        "statusUpdateFailed": "Failed to update status",
+        "brandsFound": "{count} brand found",
+        "brandsFoundPlural": "{count} brands found",
+        "page": "Page {current} of {total}"
       }
     }
   },

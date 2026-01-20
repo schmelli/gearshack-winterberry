@@ -29,6 +29,7 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  GitPullRequest,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ const navItems = [
   { href: '/admin/banners', label: 'Banners', icon: ImageIcon },
   { href: '/admin/announcements', label: 'Announcements', icon: Bell },
   { href: '/admin/vip', label: 'VIPs', icon: UsersRound },
+  { href: '/admin/contributions', label: 'Contributions', icon: GitPullRequest },
   { href: '/admin/moderation', label: 'Moderation', icon: Shield },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/wiki', label: 'Wiki', icon: BookOpen },
