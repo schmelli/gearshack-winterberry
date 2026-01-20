@@ -152,6 +152,17 @@ export interface FieldFrequency {
   percentage: number;
 }
 
+/**
+ * Paginated response for missing brands list
+ */
+export interface MissingBrandsResponse {
+  brands: MissingBrand[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // =============================================================================
 // URL Import Types
 // =============================================================================
