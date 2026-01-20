@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import type {
@@ -18,6 +19,25 @@ import type {
   FeatureUserGroup,
   UseFeatureFlagsReturn,
 } from '@/types/feature-flags';
+
+// Zod schema for runtime validation of feature flags
+const featureFlagSchema = z.object({
+  id: z.string().uuid(),
+  feature_key: z.string(),
+  feature_name: z.string(),
+  description: z.string().nullable(),
+  parent_feature_key: z.string().nullable(),
+  is_enabled: z.boolean(),
+  allowed_groups: z.array(
+    z.enum(['all', 'admins', 'trailblazer', 'beta', 'vip', 'merchant'])
+  ),
+  created_at: z.string(),
+  updated_at: z.string(),
+  created_by: z.string().nullable(),
+  updated_by: z.string().nullable(),
+});
+
+const featureFlagsArraySchema = z.array(featureFlagSchema);
 
 /**
  * Hook for checking feature availability throughout the app
@@ -37,6 +57,7 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Create Supabase client once (no deps needed - createClient returns singleton)
   const supabase = useMemo(() => createClient(), []);
 
   // Extract user context from profile
@@ -59,16 +80,25 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      // Use 'any' to avoid TypeScript deep instantiation error with Supabase types
+      // We validate the data with Zod below, which provides runtime type safety
+      const response: any = await (supabase as any)
         .from('feature_flags')
         .select('*')
         .order('feature_key');
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
-      setFeatures(data as FeatureFlag[]);
+      // Validate response data with Zod
+      const parsedData = featureFlagsArraySchema.safeParse(response.data);
+      if (!parsedData.success) {
+        console.error('[useFeatureFlags] Failed to parse feature flags:', parsedData.error);
+        throw new Error('Invalid feature flags data received from server');
+      }
+
+      setFeatures(parsedData.data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load feature flags';
       setError(message);
@@ -108,7 +138,14 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
 
   // Check if a feature is enabled for the current user
   const isFeatureEnabled = useCallback(
-    (featureKey: string): boolean => {
+    (featureKey: string, visited = new Set<string>()): boolean => {
+      // Prevent infinite recursion from circular dependencies
+      if (visited.has(featureKey)) {
+        console.error('[useFeatureFlags] Circular dependency detected:', featureKey);
+        return false;
+      }
+      visited.add(featureKey);
+
       const feature = features.find((f) => f.feature_key === featureKey);
 
       // Feature not found - default to disabled
@@ -123,7 +160,7 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
 
       // Check parent feature if this is a child
       if (feature.parent_feature_key) {
-        const parentEnabled = isFeatureEnabled(feature.parent_feature_key);
+        const parentEnabled = isFeatureEnabled(feature.parent_feature_key, visited);
         if (!parentEnabled) {
           return false;
         }
@@ -168,7 +205,7 @@ export async function checkFeatureAccess(
 ): Promise<boolean> {
   const supabase = createClient();
 
-  const { data: feature, error } = await supabase
+  const { data: feature, error } = await (supabase as any)
     .from('feature_flags')
     .select('*')
     .eq('feature_key', featureKey)
@@ -213,6 +250,9 @@ export async function checkFeatureAccess(
         return userContext.isAdmin;
       case 'trailblazer':
         return userContext.subscriptionTier === 'trailblazer';
+      case 'beta':
+        // TODO: Implement beta flag in profiles table
+        return false;
       case 'vip':
         return userContext.accountType === 'vip';
       case 'merchant':

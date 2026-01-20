@@ -2749,6 +2749,24 @@
     }
   },
   "Admin": {
+    "navigation": {
+      "dashboard": "Dashboard",
+      "categories": "Categories",
+      "banners": "Banners",
+      "announcements": "Announcements",
+      "vips": "VIPs",
+      "moderation": "Moderation",
+      "users": "Users",
+      "wiki": "Wiki",
+      "prompts": "Prompts",
+      "activateFeatures": "Activate Features",
+      "settings": "Settings",
+      "gearGraph": "GearGraph",
+      "status": "Status",
+      "gardener": "Gardener",
+      "ingestion": "Ingestion",
+      "backToApp": "Back to App"
+    },
     "categories": {
       "deleteTitle": "Delete Category",
       "confirmDeleteMessage": "Are you sure you want to delete <strong>{category}</strong>?",

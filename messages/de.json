@@ -2749,6 +2749,24 @@
     }
   },
   "Admin": {
+    "navigation": {
+      "dashboard": "Dashboard",
+      "categories": "Kategorien",
+      "banners": "Banner",
+      "announcements": "Ankündigungen",
+      "vips": "VIPs",
+      "moderation": "Moderation",
+      "users": "Benutzer",
+      "wiki": "Wiki",
+      "prompts": "Eingabeaufforderungen",
+      "activateFeatures": "Funktionen aktivieren",
+      "settings": "Einstellungen",
+      "gearGraph": "GearGraph",
+      "status": "Status",
+      "gardener": "Gärtner",
+      "ingestion": "Aufnahme",
+      "backToApp": "Zurück zur App"
+    },
     "categories": {
       "deleteTitle": "Kategorie löschen",
       "confirmDeleteMessage": "Bist du sicher, dass du <strong>{category}</strong> löschen möchtest?",

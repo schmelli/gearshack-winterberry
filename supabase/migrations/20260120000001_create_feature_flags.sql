@@ -63,6 +63,25 @@ CREATE TRIGGER trigger_feature_flags_updated_at
   EXECUTE FUNCTION update_feature_flags_updated_at();
 
 -- ============================================================================
+-- Prevent feature_key updates to maintain referential integrity
+-- ============================================================================
+CREATE OR REPLACE FUNCTION prevent_feature_key_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.feature_key != OLD.feature_key THEN
+    RAISE EXCEPTION 'feature_key cannot be changed to maintain referential integrity';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_prevent_feature_key_update ON feature_flags;
+CREATE TRIGGER trigger_prevent_feature_key_update
+  BEFORE UPDATE ON feature_flags
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_feature_key_update();
+
+-- ============================================================================
 -- RLS Policies
 -- ============================================================================
 ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;

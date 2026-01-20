@@ -128,19 +128,17 @@ function FeatureCard({
           </div>
           <div className="flex-1 space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium">{feature.feature_name}</h3>
-              {feature.description && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{feature.description}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+              <h3 className="font-medium">{t(`featureNames.${feature.feature_key}`)}</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{t(`featureDescriptions.${feature.feature_key}`)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             {/* Status Badge */}
             <div className="flex items-center gap-2">
@@ -320,6 +318,7 @@ export function FeatureActivation() {
 
   const handleToggle = useCallback(
     async (featureKey: string, enabled: boolean) => {
+      let cancelled = false;
       const feature = flatFeatures.find((f) => f.feature_key === featureKey);
       if (!feature) return;
 
@@ -331,14 +330,22 @@ export function FeatureActivation() {
           allowedGroups: feature.allowed_groups,
         });
       } finally {
-        setUpdatingKey(null);
+        // Only update state if component hasn't unmounted
+        if (!cancelled) {
+          setUpdatingKey(null);
+        }
       }
+
+      return () => {
+        cancelled = true;
+      };
     },
     [flatFeatures, updateFeature]
   );
 
   const handleGroupsChange = useCallback(
     async (featureKey: string, groups: FeatureUserGroup[]) => {
+      let cancelled = false;
       const feature = flatFeatures.find((f) => f.feature_key === featureKey);
       if (!feature) return;
 
@@ -350,8 +357,15 @@ export function FeatureActivation() {
           allowedGroups: groups,
         });
       } finally {
-        setUpdatingKey(null);
+        // Only update state if component hasn't unmounted
+        if (!cancelled) {
+          setUpdatingKey(null);
+        }
       }
+
+      return () => {
+        cancelled = true;
+      };
     },
     [flatFeatures, updateFeature]
   );

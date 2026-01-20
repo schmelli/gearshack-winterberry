@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { toast } from 'sonner';
@@ -21,6 +22,25 @@ import type {
   CreateFeatureFlagInput,
   UseAdminFeatureFlagsReturn,
 } from '@/types/feature-flags';
+
+// Zod schema for runtime validation of feature flags
+const featureFlagSchema = z.object({
+  id: z.string().uuid(),
+  feature_key: z.string(),
+  feature_name: z.string(),
+  description: z.string().nullable(),
+  parent_feature_key: z.string().nullable(),
+  is_enabled: z.boolean(),
+  allowed_groups: z.array(
+    z.enum(['all', 'admins', 'trailblazer', 'beta', 'vip', 'merchant'])
+  ),
+  created_at: z.string(),
+  updated_at: z.string(),
+  created_by: z.string().nullable(),
+  updated_by: z.string().nullable(),
+});
+
+const featureFlagsArraySchema = z.array(featureFlagSchema);
 
 /**
  * Hook for admin management of feature flags
@@ -44,6 +64,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
   const [loadingState, setLoadingState] = useState<FeatureFlagLoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  // Create Supabase client once (no deps needed - createClient returns singleton)
   const supabase = useMemo(() => createClient(), []);
   const currentUserId = profile.mergedUser?.uid;
 
@@ -65,16 +86,25 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
       setLoadingState('loading');
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      // Use 'any' to avoid TypeScript deep instantiation error with Supabase types
+      // We validate the data with Zod below, which provides runtime type safety
+      const response: any = await (supabase as any)
         .from('feature_flags')
         .select('*')
         .order('feature_key');
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
-      setFlatFeatures(data as FeatureFlag[]);
+      // Validate response data with Zod
+      const parsedData = featureFlagsArraySchema.safeParse(response.data);
+      if (!parsedData.success) {
+        console.error('[useAdminFeatureFlags] Failed to parse feature flags:', parsedData.error);
+        throw new Error('Invalid feature flags data received from server');
+      }
+
+      setFlatFeatures(parsedData.data);
       setLoadingState('idle');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load feature flags';
@@ -101,13 +131,12 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
           (f) => f.feature_key === input.featureKey
         );
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from('feature_flags')
           .update({
             is_enabled: input.isEnabled,
             allowed_groups: input.allowedGroups,
             updated_by: currentUserId,
-            updated_at: new Date().toISOString(),
           })
           .eq('feature_key', input.featureKey);
 
@@ -115,23 +144,28 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
           throw new Error(updateError.message);
         }
 
-        // Log admin activity
-        await supabase.from('admin_activity_logs').insert({
-          admin_id: currentUserId,
-          action_type: 'feature_flag_update',
-          target_resource_type: 'feature_flag',
-          target_resource_id: existingFeature?.id,
-          old_value: existingFeature
-            ? {
-                is_enabled: existingFeature.is_enabled,
-                allowed_groups: existingFeature.allowed_groups,
-              }
-            : null,
-          new_value: {
-            is_enabled: input.isEnabled,
-            allowed_groups: input.allowedGroups,
-          },
-        });
+        // Log admin activity (non-blocking - don't fail update if logging fails)
+        try {
+          await (supabase as any).from('admin_activity_logs').insert({
+            admin_id: currentUserId,
+            action_type: 'feature_flag_update',
+            target_resource_type: 'feature_flag',
+            target_resource_id: existingFeature?.id,
+            old_value: existingFeature
+              ? {
+                  is_enabled: existingFeature.is_enabled,
+                  allowed_groups: existingFeature.allowed_groups,
+                }
+              : null,
+            new_value: {
+              is_enabled: input.isEnabled,
+              allowed_groups: input.allowedGroups,
+            },
+          });
+        } catch (logError) {
+          console.error('[useAdminFeatureFlags] Failed to log activity:', logError);
+          // Continue with update - don't fail the whole operation
+        }
 
         // Refresh data
         await fetchFeatures();
@@ -159,7 +193,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
         setLoadingState('submitting');
         setError(null);
 
-        const { error: insertError } = await supabase.from('feature_flags').insert({
+        const { error: insertError } = await (supabase as any).from('feature_flags').insert({
           feature_key: input.featureKey,
           feature_name: input.featureName,
           description: input.description || null,
@@ -192,6 +226,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
   );
 
   // Delete a feature flag
+  // Note: Database has ON DELETE CASCADE, so deleting a parent will cascade to children
   const deleteFeature = useCallback(
     async (featureKey: string): Promise<void> => {
       try {
@@ -201,18 +236,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
         // Find the feature to get its name for the toast
         const feature = flatFeatures.find((f) => f.feature_key === featureKey);
 
-        // Check if feature has children
-        const hasChildren = flatFeatures.some(
-          (f) => f.parent_feature_key === featureKey
-        );
-
-        if (hasChildren) {
-          throw new Error(
-            'Cannot delete feature with child features. Delete children first.'
-          );
-        }
-
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await (supabase as any)
           .from('feature_flags')
           .delete()
           .eq('feature_key', featureKey);
