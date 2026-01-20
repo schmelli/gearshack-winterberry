@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { YouTubeVideo, YouTubeSearchResponse } from '@/types/youtube';
 
 // =============================================================================
@@ -63,8 +63,10 @@ export function useYouTubeReviews({
   const [cached, setCached] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  // Track last fetch params to avoid duplicate fetches
-  const [lastFetchParams, setLastFetchParams] = useState<string | null>(null);
+  // Track last fetch params to avoid duplicate fetches (using ref to avoid re-renders)
+  const lastFetchParamsRef = useRef<string | null>(null);
+  // Track if currently fetching to prevent concurrent requests
+  const isFetchingRef = useRef(false);
 
   // T033: Fetch logic for /api/youtube/search
   const fetchReviews = useCallback(async () => {
@@ -77,11 +79,12 @@ export function useYouTubeReviews({
 
     const fetchKey = `${brand ?? ''}|${name}|${limit}`;
 
-    // Skip if already fetched with same params
-    if (fetchKey === lastFetchParams && videos !== null) {
+    // Skip if already fetched with same params or currently fetching
+    if (fetchKey === lastFetchParamsRef.current || isFetchingRef.current) {
       return;
     }
 
+    isFetchingRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -103,7 +106,7 @@ export function useYouTubeReviews({
       setVideos(data.videos);
       setCached(data.cached);
       setExpiresAt(data.expiresAt);
-      setLastFetchParams(fetchKey);
+      lastFetchParamsRef.current = fetchKey;
     } catch (err) {
       console.error('YouTube fetch error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unable to load reviews';
@@ -113,15 +116,18 @@ export function useYouTubeReviews({
       setVideos(null);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [brand, name, limit, lastFetchParams, videos]);
+  }, [brand, name, limit]);
 
   // T034a: Retry function that clears error state and re-fetches
   const retry = useCallback(() => {
     setError(null);
-    setLastFetchParams(null); // Force re-fetch
-    setVideos(null);
-  }, []);
+    setIsQuotaExhausted(false);
+    lastFetchParamsRef.current = null; // Force re-fetch
+    isFetchingRef.current = false;
+    fetchReviews();
+  }, [fetchReviews]);
 
   // T035: Trigger fetch when modal opens and brand+name are available
   useEffect(() => {
