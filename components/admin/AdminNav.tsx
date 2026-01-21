@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronRight,
   ToggleRight,
+  GitPullRequest,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,28 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+
+// Regular nav items (flat list)
+const navItems = [
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/categories', label: 'Categories', icon: FolderTree },
+  { href: '/admin/banners', label: 'Banners', icon: ImageIcon },
+  { href: '/admin/announcements', label: 'Announcements', icon: Bell },
+  { href: '/admin/vip', label: 'VIPs', icon: UsersRound },
+  { href: '/admin/contributions', label: 'Contributions', icon: GitPullRequest },
+  { href: '/admin/moderation', label: 'Moderation', icon: Shield },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/wiki', label: 'Wiki', icon: BookOpen },
+  { href: '/admin/prompts', label: 'Prompts', icon: MessageSquare, disabled: true },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, disabled: true },
+];
+
+// GearGraph section with sub-items
+const gearGraphItems = [
+  { href: '/admin/geargraph/status', label: 'Status', icon: Activity },
+  { href: '/admin/geargraph/gardener', label: 'Gardener', icon: Bot },
+  { href: '/admin/geargraph/ingestion', label: 'Ingestion', icon: Upload },
+];
 
 export function AdminNav() {
   const pathname = usePathname();

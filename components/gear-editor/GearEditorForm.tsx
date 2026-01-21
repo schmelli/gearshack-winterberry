@@ -61,6 +61,9 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
   mode?: 'inventory' | 'wishlist';
 }
 
+// Re-export UseGearEditorOptions for prefill support
+export type { UseGearEditorOptions };
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -68,6 +71,8 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
 export function GearEditorForm({
   title,
   initialItem,
+  prefillFormData,
+  prefillMeta,
   onSaveSuccess,
   onSaveError,
   redirectPath,
@@ -88,6 +93,8 @@ export function GearEditorForm({
     duplicateDetection,
   } = useGearEditor({
     initialItem,
+    prefillFormData,
+    prefillMeta,
     onSaveSuccess,
     onSaveError,
     redirectPath,

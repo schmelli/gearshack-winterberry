@@ -292,6 +292,7 @@
     "emptyDescription": "Beginne mit dem Aufbau deines Inventars, indem du dein erstes Ausrüstungsteil hinzufügst.",
     "addFirstItem": "Erstes Teil hinzufügen",
     "addItem": "Hinzufügen",
+    "import": "Importieren",
     "editItem": "Bearbeiten",
     "deleteItem": "Löschen",
     "viewDetails": "Details anzeigen",
@@ -677,6 +678,28 @@
       "notifyEmail": "Per E-Mail benachrichtigen",
       "notifyApp": "In der App benachrichtigen",
       "tooltip": "Benachrichtigung bei Preissenkung erhalten"
+    },
+    "urlImport": {
+      "title": "Von URL importieren",
+      "description": "Füge eine Produkt-URL ein, um Ausrüstungsdetails automatisch auszufüllen",
+      "urlPlaceholder": "https://beispiel.com/produkt/...",
+      "importButton": "Importieren",
+      "importing": "Importiere...",
+      "continueToForm": "Zum Formular",
+      "cancel": "Abbrechen",
+      "productPreview": "Produkt-Vorschau",
+      "catalogMatch": "GearGraph-Treffer gefunden",
+      "catalogMatchDescription": "Dieses Produkt existiert in GearGraph mit verifizierten Daten",
+      "matchConfidence": "{confidence}% Übereinstimmung",
+      "useCatalogData": "GearGraph-Daten verwenden",
+      "useExtractedData": "Extrahierte Daten verwenden",
+      "extractedFrom": "Extrahiert von URL",
+      "noData": "Keine Daten extrahiert",
+      "errors": {
+        "invalidUrl": "Bitte gib eine gültige URL ein",
+        "extractionFailed": "Produktdaten konnten nicht extrahiert werden",
+        "networkError": "Netzwerkfehler. Bitte erneut versuchen."
+      }
     }
   },
   "GearDetail": {
@@ -3146,6 +3169,66 @@
         "avgGearPerUser": "Ø Ausrüstung/Benutzer",
         "avgLoadoutsPerUser": "Ø Loadouts/Benutzer",
         "perActiveUser": "pro aktivem Benutzer"
+      }
+    },
+    "contributions": {
+      "pageTitle": "Beitrags-Dashboard",
+      "title": "Beitrags-Dashboard",
+      "description": "Nutzerbeiträge verfolgen und fehlende Marken verwalten",
+      "refresh": "Aktualisieren",
+      "tabs": {
+        "overview": "Übersicht",
+        "missingBrands": "Fehlende Marken"
+      },
+      "stats": {
+        "totalContributions": "Beiträge gesamt",
+        "uniqueContributors": "Einzelne Beitragende",
+        "matchRate": "Trefferquote",
+        "missingBrands": "Fehlende Marken",
+        "contributions30d": "30-Tage-Beiträge",
+        "topCountry": "Top-Land",
+        "last7days": "{count} letzte 7 Tage",
+        "matched": "{matched} zugeordnet, {unmatched} neu",
+        "pendingReview": "Zur Überprüfung",
+        "last30days": "Letzte 30 Tage",
+        "ofContributions": "{percentage}% der Beiträge",
+        "noDataYet": "Noch keine Daten",
+        "anonymousHashes": "Anonyme Beitrags-Hashes"
+      },
+      "countryDistribution": "Länderverteilung",
+      "frequentlyAddedFields": "Häufig hinzugefügte Felder",
+      "topMissingBrands": "Top fehlende Marken",
+      "occurrences": "{count} Vorkommen",
+      "seenIn": "Gesehen in: {countries}",
+      "missingBrandsTable": {
+        "brandName": "Markenname",
+        "occurrences": "Vorkommen",
+        "countries": "Länder",
+        "firstSeen": "Erstmals gesehen",
+        "status": "Status",
+        "actions": "Aktionen",
+        "sourceUrls": "{count} Quell-URL",
+        "sourceUrlsPlural": "{count} Quell-URLs",
+        "noResults": "Keine fehlenden Marken gefunden",
+        "search": "Marken suchen...",
+        "statusFilter": {
+          "pending": "Ausstehend",
+          "added": "Hinzugefügt",
+          "rejected": "Abgelehnt",
+          "merged": "Zusammengeführt",
+          "all": "Alle"
+        },
+        "actionMenu": {
+          "markAdded": "Als hinzugefügt markieren",
+          "markMerged": "Als zusammengeführt markieren",
+          "reject": "Ablehnen",
+          "resetPending": "Auf Ausstehend zurücksetzen"
+        },
+        "statusUpdated": "Markenstatus geändert zu {status}",
+        "statusUpdateFailed": "Status konnte nicht aktualisiert werden",
+        "brandsFound": "{count} Marke gefunden",
+        "brandsFoundPlural": "{count} Marken gefunden",
+        "page": "Seite {current} von {total}"
       }
     }
   },

@@ -9,8 +9,8 @@
 
 'use client';
 
-import { useCallback } from 'react';
-import { Plus, Heart } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Plus, Heart, Link2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
@@ -18,6 +18,7 @@ import { GalleryGrid } from '@/components/inventory-gallery/GalleryGrid';
 import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import { WishlistToggle } from '@/components/wishlist/WishlistToggle';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
+import { UrlImportDialog } from '@/components/gear-editor/UrlImportDialog';
 import { Announcement } from '@/components/ui/visually-hidden';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
@@ -127,6 +128,7 @@ export function InventoryContent({
   announcement,
 }: InventoryContentProps) {
   const t = useTranslations('Inventory');
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Handler for view change announcements
   const handleViewChangeAnnouncement = useCallback(
@@ -164,14 +166,25 @@ export function InventoryContent({
           wishlistCount={wishlistCount}
           onViewChangeAnnouncement={handleViewChangeAnnouncement}
         />
-        <Button asChild size="sm" className="shrink-0">
-          <Link href={viewMode === 'wishlist' ? '/inventory/new?mode=wishlist' : '/inventory/new'}>
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">
-              {viewMode === 'wishlist' ? t('addToWishlist') : t('addItem')}
-            </span>
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setImportDialogOpen(true)}
+          >
+            <Link2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('import')}</span>
+          </Button>
+          <Button asChild size="sm" className="shrink-0">
+            <Link href={viewMode === 'wishlist' ? '/inventory/new?mode=wishlist' : '/inventory/new'}>
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">
+                {viewMode === 'wishlist' ? t('addToWishlist') : t('addItem')}
+              </span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Categories Error Warning */}
@@ -267,6 +280,13 @@ export function InventoryContent({
         isWishlistItem={isSelectedItemFromWishlist}
         onMoveToInventory={isSelectedItemFromWishlist ? moveToInventory : undefined}
         onMoveComplete={isSelectedItemFromWishlist ? () => setViewMode('inventory') : undefined}
+      />
+
+      {/* URL Import Dialog */}
+      <UrlImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        mode={viewMode}
       />
     </main>
   );
