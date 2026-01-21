@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +30,7 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  ToggleRight,
   GitPullRequest,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +66,29 @@ const gearGraphItems = [
 
 export function AdminNav() {
   const pathname = usePathname();
+  const t = useTranslations('Admin.navigation');
+
+  // Regular nav items (flat list)
+  const navItems = [
+    { href: '/admin', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/admin/categories', label: t('categories'), icon: FolderTree },
+    { href: '/admin/banners', label: t('banners'), icon: ImageIcon },
+    { href: '/admin/announcements', label: t('announcements'), icon: Bell },
+    { href: '/admin/vip', label: t('vips'), icon: UsersRound },
+    { href: '/admin/moderation', label: t('moderation'), icon: Shield },
+    { href: '/admin/users', label: t('users'), icon: Users },
+    { href: '/admin/wiki', label: t('wiki'), icon: BookOpen },
+    { href: '/admin/prompts', label: t('prompts'), icon: MessageSquare, disabled: true },
+    { href: '/admin/features', label: t('activateFeatures'), icon: ToggleRight },
+    { href: '/admin/settings', label: t('settings'), icon: Settings, disabled: true },
+  ];
+
+  // GearGraph section with sub-items
+  const gearGraphItems = [
+    { href: '/admin/geargraph/status', label: t('status'), icon: Activity },
+    { href: '/admin/geargraph/gardener', label: t('gardener'), icon: Bot },
+    { href: '/admin/geargraph/ingestion', label: t('ingestion'), icon: Upload },
+  ];
   // Auto-expand GearGraph section if we're on a GearGraph page
   const isGearGraphActive = pathname.includes('/admin/geargraph');
   const [gearGraphOpen, setGearGraphOpen] = useState(isGearGraphActive);
@@ -109,7 +134,7 @@ export function AdminNav() {
             >
               <span className="flex items-center gap-3">
                 <Network className="h-4 w-4" />
-                GearGraph
+                {t('gearGraph')}
               </span>
               {gearGraphOpen ? (
                 <ChevronDown className="h-4 w-4" />
@@ -149,7 +174,7 @@ export function AdminNav() {
         <Link href="/inventory">
           <Button variant="outline" className="w-full justify-start" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to App
+            {t('backToApp')}
           </Button>
         </Link>
       </CardContent>

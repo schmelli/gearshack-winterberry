@@ -2772,6 +2772,24 @@
     }
   },
   "Admin": {
+    "navigation": {
+      "dashboard": "Dashboard",
+      "categories": "Kategorien",
+      "banners": "Banner",
+      "announcements": "Ankündigungen",
+      "vips": "VIPs",
+      "moderation": "Moderation",
+      "users": "Benutzer",
+      "wiki": "Wiki",
+      "prompts": "Eingabeaufforderungen",
+      "activateFeatures": "Funktionen aktivieren",
+      "settings": "Einstellungen",
+      "gearGraph": "GearGraph",
+      "status": "Status",
+      "gardener": "Gärtner",
+      "ingestion": "Aufnahme",
+      "backToApp": "Zurück zur App"
+    },
     "categories": {
       "deleteTitle": "Kategorie löschen",
       "confirmDeleteMessage": "Bist du sicher, dass du <strong>{category}</strong> löschen möchtest?",
@@ -3076,6 +3094,46 @@
       "tierChange": {
         "success": "Stufe erfolgreich aktualisiert",
         "error": "Stufe konnte nicht aktualisiert werden"
+      }
+    },
+    "features": {
+      "pageTitle": "Features aktivieren",
+      "pageDescription": "Aktiviere oder deaktiviere Features global oder beschränke den Zugriff auf bestimmte Benutzergruppen",
+      "title": "Feature-Aktivierung",
+      "description": "Verwalte die Verfügbarkeit von Features auf der Plattform",
+      "refresh": "Aktualisieren",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "restrictedTo": "Beschränkt auf {count} Gruppen",
+      "restrictAccess": "Zugriff auf bestimmte Benutzergruppen beschränken (leer lassen für alle):",
+      "availableToAll": "Keine Einschränkungen - für alle Benutzer verfügbar wenn aktiviert",
+      "subFeatures": "{count} Unterfunktionen",
+      "noFeatures": "Keine Features konfiguriert",
+      "groups": {
+        "all": "Alle",
+        "admins": "Admins",
+        "trailblazer": "Trailblazer",
+        "beta": "Beta-Nutzer",
+        "vip": "VIP",
+        "merchant": "Händler"
+      },
+      "featureNames": {
+        "community": "Community",
+        "community_bulletin": "Pinnwand",
+        "community_shakedowns": "Shakedowns",
+        "community_social": "Soziale Funktionen",
+        "community_wiki": "Wiki",
+        "ai_gear_assistant": "KI-Ausrüstungsassistent",
+        "messaging": "Nachrichtensystem"
+      },
+      "featureDescriptions": {
+        "community": "Community-Hub mit allen sozialen Funktionen",
+        "community_bulletin": "Community-Pinnwand für Beiträge und Diskussionen",
+        "community_shakedowns": "Ausrüstungs-Shakedown-Bewertungen aus der Community",
+        "community_social": "Folgen, Freunde und soziale Verbindungen",
+        "community_wiki": "Community-betriebenes Ausrüstungs-Wiki",
+        "ai_gear_assistant": "KI-gestützte Ausrüstungsempfehlungen und Unterstützung",
+        "messaging": "Direktnachrichten zwischen Benutzern"
       }
     },
     "dashboard": {
