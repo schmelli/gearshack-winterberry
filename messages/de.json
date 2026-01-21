@@ -821,6 +821,11 @@
       "consumable": "Verbrauchbar",
       "baseWeight": "Basisgewicht"
     },
+    "weightMode": {
+      "baseweight": "Basisgewicht",
+      "packWeight": "Packgewicht",
+      "toggleLabel": "Zwischen Basisgewicht und Packgewicht umschalten"
+    },
     "lighterAlternative": "Leichtere Option verfügbar",
     "lighterAlternativeTooltip": "Du hast einen leichteren {productType} im Inventar: {itemName} ({weight})",
     "metadataSheet": {
