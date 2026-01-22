@@ -47,6 +47,10 @@ interface MobileNavProps {
   onOpenMessaging?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Feature flag: is messaging feature enabled */
+  isMessagingEnabled?: boolean;
+  /** Feature flag: is community feature enabled */
+  isCommunityEnabled?: boolean;
 }
 
 export function MobileNav({
@@ -56,6 +60,8 @@ export function MobileNav({
   onOpenMessaging,
   open: controlledOpen,
   onOpenChange,
+  isMessagingEnabled = true,
+  isCommunityEnabled = true,
 }: MobileNavProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   // Track which expandable sections are open
@@ -149,6 +155,7 @@ export function MobileNav({
             </div>
 
             {/* Quick action buttons - direct links to create pages */}
+            {/* Feature Flags: Conditionally show actions based on enabled features */}
             <div className="mt-4 grid grid-cols-4 gap-1 px-2">
               <Link
                 href="/inventory/new"
@@ -170,25 +177,31 @@ export function MobileNav({
                 </div>
                 <span className="text-center text-[10px] font-medium leading-tight">{t('planNewLoadout')}</span>
               </Link>
-              <Link
-                href="/community/shakedowns/new"
-                onClick={handleNavigate}
-                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <FileEdit className="h-4 w-4" />
-                </div>
-                <span className="text-center text-[10px] font-medium leading-tight">{t('generateNewPost')}</span>
-              </Link>
-              <button
-                onClick={handleOpenMessaging}
-                className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <MessageSquarePlus className="h-4 w-4" />
-                </div>
-                <span className="text-center text-[10px] font-medium leading-tight">{t('newMessage')}</span>
-              </button>
+              {/* Feature Flag: Only show "New Shakedown" if community is enabled */}
+              {isCommunityEnabled && (
+                <Link
+                  href="/community/shakedowns/new"
+                  onClick={handleNavigate}
+                  className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <FileEdit className="h-4 w-4" />
+                  </div>
+                  <span className="text-center text-[10px] font-medium leading-tight">{t('generateNewPost')}</span>
+                </Link>
+              )}
+              {/* Feature Flag: Only show "New Message" if messaging is enabled */}
+              {isMessagingEnabled && (
+                <button
+                  onClick={handleOpenMessaging}
+                  className="flex flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-accent"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <MessageSquarePlus className="h-4 w-4" />
+                  </div>
+                  <span className="text-center text-[10px] font-medium leading-tight">{t('newMessage')}</span>
+                </button>
+              )}
             </div>
 
             <Separator className="my-4" />

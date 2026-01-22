@@ -45,7 +45,7 @@ import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
 import { SyncIndicator } from './SyncIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useUnreadCount } from '@/hooks/messaging/useUnreadCount';
 import { useRouter } from '@/i18n/navigation';
@@ -54,6 +54,8 @@ import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
+// Feature: Admin Feature Activation
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 // Performance: Lazy load heavy modal components to reduce initial bundle size
 // These modals are only shown when user interacts with specific buttons
@@ -89,6 +91,40 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const { isTrailblazer } = useSubscriptionCheck(user?.uid || null);
   // Issue #77: Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Feature: Admin Feature Activation - check which features are enabled
+  const { isFeatureEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
+
+  // Derive feature-enabled flags (always check, even while loading - defaults to disabled)
+  const isMessagingEnabled = isFeatureEnabled('messaging');
+  const isAIAssistantEnabled = isFeatureEnabled('ai_gear_assistant');
+  const isCommunityEnabled = isFeatureEnabled('community');
+
+  // Filter navigation items based on feature flags
+  const filteredNavItems = useMemo(() => {
+    return MAIN_NAV_ITEMS.map((item) => {
+      // Check community feature for the Community nav item
+      if (item.href === '/community' && !isCommunityEnabled) {
+        return { ...item, enabled: false };
+      }
+      // Filter children based on sub-feature flags
+      if (item.children && item.children.length > 0) {
+        const filteredChildren = item.children.map((child) => {
+          // Map child hrefs to feature keys
+          let featureKey: string | null = null;
+          if (child.href === '/community/shakedowns') featureKey = 'community_shakedowns';
+          if (child.href === '/community/wiki') featureKey = 'community_wiki';
+          // Add more mappings as needed
+
+          if (featureKey && !isFeatureEnabled(featureKey)) {
+            return { ...child, enabled: false };
+          }
+          return child;
+        });
+        return { ...item, children: filteredChildren };
+      }
+      return item;
+    });
+  }, [isCommunityEnabled, isFeatureEnabled]);
 
   // Feature 050: Handle AI Assistant button click
   const handleAIAssistantClick = () => {
@@ -128,10 +164,14 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* Issue #77: Mobile menu state management */}
       <div className="container flex h-24 items-center px-3 md:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
+        {/* Feature Flags: Pass filtered items and feature flags to MobileNav */}
         <MobileNav
           open={mobileMenuOpen}
           onOpenChange={setMobileMenuOpen}
           onOpenMessaging={() => setMessagingOpen(true)}
+          items={filteredNavItems}
+          isMessagingEnabled={isMessagingEnabled}
+          isCommunityEnabled={isCommunityEnabled}
         />
 
         {/* Logo and brand - FR-021: balanced spacing with gap-3 */}
@@ -183,8 +223,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Desktop navigation (right side) - FR-021: baseline alignment via items-baseline */}
         {/* T005: Larger nav font (text-lg font-bold) */}
         {/* Community Section Restructure: Items with children render as dropdown menus */}
+        {/* Feature Flags: Use filteredNavItems to respect admin-controlled feature access */}
         <nav className="ml-auto hidden items-baseline gap-8 md:flex">
-          {MAIN_NAV_ITEMS.map((item: NavItemWithChildren) => {
+          {filteredNavItems.map((item: NavItemWithChildren) => {
             const isActive = pathname === item.href ||
               (item.children && item.children.some(child => pathname.startsWith(child.href)));
 
@@ -263,8 +304,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           {/* Sync indicator - only show when authenticated */}
           {user && <SyncIndicator />}
 
-          {/* T012: Messaging icon with unread badge - only show when authenticated */}
-          {user && (
+          {/* T012: Messaging icon with unread badge - only show when authenticated AND messaging feature is enabled */}
+          {user && isMessagingEnabled && (
             <Button
               variant="ghost"
               size="icon"
@@ -285,7 +326,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           <NotificationMenu userId={user?.uid || null} />
 
           {/* Feature 050: AI Assistant button - T026, T027 */}
-          {user && (
+          {/* Feature Flag: Only show AI Assistant when ai_gear_assistant feature is enabled */}
+          {user && isAIAssistantEnabled && (
             <AIAssistantButton
               onClick={handleAIAssistantClick}
               isTrailblazer={isTrailblazer}

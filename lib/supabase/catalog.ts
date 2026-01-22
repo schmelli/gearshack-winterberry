@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
 
 // ============================================================================
