@@ -88,7 +88,7 @@ export interface GearItemDbRow {
   brand: string | null;
   description: string | null;
   weight_grams: number | null;
-  image_url: string | null;
+  primary_image_url: string | null;
   product_type_id: string | null;
 }
 
@@ -215,7 +215,7 @@ export function mapGearItemToApiResponse(row: GearItemDbRow): GearItemApiRespons
     brand: row.brand,
     description: row.description,
     weightGrams: row.weight_grams,
-    imageUrl: row.image_url,
+    imageUrl: row.primary_image_url,
     productTypeId: row.product_type_id,
   };
 }

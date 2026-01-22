@@ -25,6 +25,11 @@
     "lightMode": "Light mode",
     "themeToggle": "Theme"
   },
+  "FeatureGate": {
+    "comingSoon": "Coming Soon",
+    "featureNotAvailable": "This feature is currently being prepared and will be available soon. We're working hard to bring you the best experience!",
+    "backToInventory": "Back to Inventory"
+  },
   "Messages": {
     "title": "Messages",
     "description": "Your conversations with other users",

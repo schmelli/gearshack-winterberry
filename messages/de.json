@@ -25,6 +25,11 @@
     "lightMode": "Hellmodus",
     "themeToggle": "Design"
   },
+  "FeatureGate": {
+    "comingSoon": "Demnächst verfügbar",
+    "featureNotAvailable": "Diese Funktion wird gerade vorbereitet und wird bald verfügbar sein. Wir arbeiten daran, dir das beste Erlebnis zu bieten!",
+    "backToInventory": "Zurück zum Inventar"
+  },
   "Messages": {
     "title": "Nachrichten",
     "description": "Deine Unterhaltungen mit anderen Nutzern",

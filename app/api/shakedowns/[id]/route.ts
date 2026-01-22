@@ -238,7 +238,7 @@ export async function GET(
           brand,
           description,
           weight_grams,
-          image_url,
+          primary_image_url,
           product_type_id
         )
       `)
