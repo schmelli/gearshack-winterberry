@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_activity_logs: {
@@ -1296,6 +1271,76 @@ export type Database = {
           rates?: Json
         }
         Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          allowed_groups:
+            | Database["public"]["Enums"]["feature_user_group"][]
+            | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_enabled: boolean
+          parent_feature_key: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_groups?:
+            | Database["public"]["Enums"]["feature_user_group"][]
+            | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_enabled?: boolean
+          parent_feature_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_groups?:
+            | Database["public"]["Enums"]["feature_user_group"][]
+            | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_enabled?: boolean
+          parent_feature_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_flags_parent_feature_key_fkey"
+            columns: ["parent_feature_key"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["feature_key"]
+          },
+          {
+            foreignKeyName: "feature_flags_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       friend_activities: {
         Row: {
@@ -2756,6 +2801,62 @@ export type Database = {
           },
         ]
       }
+      missing_brands_log: {
+        Row: {
+          brand_name: string
+          brand_name_normalized: string | null
+          countries_seen: string[] | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          merged_into_brand_id: string | null
+          occurrence_count: number | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_urls: string[] | null
+          status: string | null
+        }
+        Insert: {
+          brand_name: string
+          brand_name_normalized?: string | null
+          countries_seen?: string[] | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          merged_into_brand_id?: string | null
+          occurrence_count?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_urls?: string[] | null
+          status?: string | null
+        }
+        Update: {
+          brand_name?: string
+          brand_name_normalized?: string | null
+          countries_seen?: string[] | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          merged_into_brand_id?: string | null
+          occurrence_count?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_urls?: string[] | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missing_brands_log_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -3974,6 +4075,76 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_contributions: {
+        Row: {
+          brand_name: string
+          contributor_country_code: string | null
+          contributor_hash: string
+          created_at: string
+          gear_item_id: string | null
+          geargraph_matched: boolean | null
+          id: string
+          matched_catalog_product_id: string | null
+          matched_confidence: number | null
+          product_name: string
+          source_url: string | null
+          user_added_fields: Json | null
+          user_modified_fields: Json | null
+        }
+        Insert: {
+          brand_name: string
+          contributor_country_code?: string | null
+          contributor_hash: string
+          created_at?: string
+          gear_item_id?: string | null
+          geargraph_matched?: boolean | null
+          id?: string
+          matched_catalog_product_id?: string | null
+          matched_confidence?: number | null
+          product_name: string
+          source_url?: string | null
+          user_added_fields?: Json | null
+          user_modified_fields?: Json | null
+        }
+        Update: {
+          brand_name?: string
+          contributor_country_code?: string | null
+          contributor_hash?: string
+          created_at?: string
+          gear_item_id?: string | null
+          geargraph_matched?: boolean | null
+          id?: string
+          matched_catalog_product_id?: string | null
+          matched_confidence?: number | null
+          product_name?: string
+          source_url?: string | null
+          user_added_fields?: Json | null
+          user_modified_fields?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_contributions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "community_availability"
+            referencedColumns: ["gear_item_id"]
+          },
+          {
+            foreignKeyName: "user_contributions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "gear_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_contributions_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_marketplace_listings"
             referencedColumns: ["id"]
           },
         ]
@@ -6369,6 +6540,14 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_missing_brand: {
+        Args: {
+          p_brand_name: string
+          p_country_code?: string
+          p_source_url?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       account_status: "active" | "suspended" | "banned"
@@ -6382,6 +6561,13 @@ export type Database = {
       activity_visibility: "public" | "friends" | "private"
       conversation_type: "direct" | "group"
       experience_level: "beginner" | "intermediate" | "experienced" | "expert"
+      feature_user_group:
+        | "all"
+        | "admins"
+        | "trailblazer"
+        | "beta"
+        | "vip"
+        | "merchant"
       friend_request_status: "pending" | "accepted" | "declined" | "expired"
       gear_condition: "new" | "used" | "worn"
       gear_status: "own" | "wishlist" | "sold" | "lent" | "retired"
@@ -6559,9 +6745,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       account_status: ["active", "suspended", "banned"],
@@ -6570,6 +6753,14 @@ export const Constants = {
       activity_visibility: ["public", "friends", "private"],
       conversation_type: ["direct", "group"],
       experience_level: ["beginner", "intermediate", "experienced", "expert"],
+      feature_user_group: [
+        "all",
+        "admins",
+        "trailblazer",
+        "beta",
+        "vip",
+        "merchant",
+      ],
       friend_request_status: ["pending", "accepted", "declined", "expired"],
       gear_condition: ["new", "used", "worn"],
       gear_status: ["own", "wishlist", "sold", "lent", "retired"],
