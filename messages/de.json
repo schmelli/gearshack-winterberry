@@ -1685,7 +1685,169 @@
       "loadoutInfo": "Loadout-Info",
       "totalWeight": "Gesamtgewicht",
       "itemCount": "{count} Artikel",
-      "clickToFeedback": "Klicke auf einen Artikel für spezifisches Feedback"
+      "clickToFeedback": "Klicke auf einen Artikel für spezifisches Feedback",
+      "viewDetails": "Artikeldetails anzeigen",
+      "noItemsMatch": "Keine Artikel entsprechen deinen Filtern",
+      "clearFilters": "Filter zurücksetzen"
+    },
+    "gearToolbar": {
+      "searchPlaceholder": "Ausrüstung suchen...",
+      "clearSearch": "Suche löschen",
+      "toggleFilters": "Filter umschalten",
+      "allCategories": "Alle Kategorien",
+      "statusAll": "Alle Artikel",
+      "statusWorn": "Getragene Artikel",
+      "statusConsumable": "Verbrauchsmaterial",
+      "statusBase": "Basisgewicht",
+      "sortName": "Nach Name sortieren",
+      "sortWeightAsc": "Leichteste zuerst",
+      "sortWeightDesc": "Schwerste zuerst",
+      "sortCategory": "Nach Kategorie sortieren",
+      "showingFiltered": "Zeige {filtered} von {total} Artikeln",
+      "showingAll": "Zeige alle {count} Artikel",
+      "clearAll": "Alle zurücksetzen"
+    },
+    "gearDetail": {
+      "specifications": "Spezifikationen",
+      "weight": "Gewicht",
+      "category": "Kategorie",
+      "description": "Beschreibung",
+      "addToInventory": "Zu meinem Inventar hinzufügen",
+      "alreadyOwned": "Bereits im Inventar",
+      "youtubeReviews": "YouTube-Reviews",
+      "youtubeComingSoon": "Video-Reviews kommen bald",
+      "gearInsights": "GearGraph-Einblicke",
+      "insightsComingSoon": "KI-gestützte Einblicke kommen bald"
+    },
+    "addToInventory": {
+      "button": "Zum Inventar hinzufügen",
+      "alreadyOwned": "Bereits vorhanden",
+      "loginRequired": "Anmelden zum Hinzufügen",
+      "dialog": {
+        "title": "Zu deinem Inventar hinzufügen",
+        "description": "Möchtest du \"{itemName}\" zu deinem Ausrüstungsinventar hinzufügen?",
+        "cancel": "Abbrechen",
+        "confirm": "Zum Inventar hinzufügen"
+      },
+      "errors": {
+        "notLoggedIn": "Du musst angemeldet sein, um Artikel hinzuzufügen",
+        "failed": "Artikel konnte nicht zum Inventar hinzugefügt werden"
+      },
+      "success": "Artikel zu deinem Inventar hinzugefügt"
+    },
+    "weightHeatmap": {
+      "title": "Gewichtsverteilung",
+      "subtitle": "Sieh, wo dein Gewicht verteilt ist",
+      "noData": "Keine Gewichtsdaten verfügbar",
+      "noCategories": "Keine Kategorien gefunden",
+      "itemCount": "{count, plural, one {# Artikel} other {# Artikel}}",
+      "items": "{count, plural, one {# Artikel} other {# Artikel}}",
+      "moreCategories": "weitere",
+      "weightHogs": "{count, plural, one {# schwerer Artikel} other {# schwere Artikel}}",
+      "outlierTooltip": "Dieser Artikel macht {percentage}% des Gesamtgewichts aus",
+      "severity": {
+        "moderate": "Schwer",
+        "significant": "Sehr schwer",
+        "extreme": "Gewichtsmonster"
+      },
+      "stats": {
+        "totalWeight": "Gesamtgewicht",
+        "baseWeight": "Basisgewicht",
+        "wornWeight": "Getragenes Gewicht",
+        "consumableWeight": "Verbrauchsmaterial",
+        "avgItemWeight": "Ø Artikelgewicht",
+        "heaviestItem": "Schwerster Artikel",
+        "lightestItem": "Leichtester Artikel"
+      },
+      "comparison": {
+        "title": "Community-Vergleich",
+        "aboveAverage": "{percentage}% über dem Durchschnitt",
+        "belowAverage": "{percentage}% unter dem Durchschnitt",
+        "onTarget": "Genau im Ziel!"
+      },
+      "outliers": {
+        "title": "Gewichtsmonster",
+        "description": "Artikel, die deutlich schwerer sind als der Durchschnitt",
+        "none": "Keine Ausreißer erkannt"
+      }
+    },
+    "trustScore": {
+      "title": "Vertrauenswert",
+      "description": "Basierend auf hilfreichen Stimmen und Community-Beiträgen",
+      "helpfulVotes": "{count, plural, one {# hilfreiche Stimme} other {# hilfreiche Stimmen}}",
+      "shakedownsReviewed": "{count, plural, one {# Shakedown bewertet} other {# Shakedowns bewertet}}",
+      "tiers": {
+        "newcomer": "Neuling",
+        "established": "Etabliert",
+        "trusted": "Vertrauenswürdig",
+        "expert": "Experte"
+      }
+    },
+    "expertSpotlight": {
+      "title": "Top-Reviewer",
+      "compactLabel": "Experten:",
+      "feedbackCount": "{count, plural, one {# Feedback} other {# Feedbacks}}",
+      "trustScore": "Vertrauen: {score}",
+      "stats": "{feedback, plural, one {# Feedback} other {# Feedbacks}}, {helpful} hilfreich"
+    },
+    "specialties": {
+      "pct_veteran": "PCT Veteran",
+      "pct_veteranDesc": "Hat den Pacific Crest Trail abgeschlossen",
+      "at_veteran": "AT Veteran",
+      "at_veteranDesc": "Hat den Appalachian Trail abgeschlossen",
+      "cdt_veteran": "CDT Veteran",
+      "cdt_veteranDesc": "Hat den Continental Divide Trail abgeschlossen",
+      "ul_expert": "UL Experte",
+      "ul_expertDesc": "Ultraleicht-Ausrüstungsspezialist",
+      "winter_specialist": "Winter-Spezialist",
+      "winter_specialistDesc": "Experte für Kaltwetter-Wandern",
+      "desert_specialist": "Wüsten-Spezialist",
+      "desert_specialistDesc": "Experte für Wüstenwanderungen",
+      "alpine_expert": "Alpin-Experte",
+      "alpine_expertDesc": "Berg- und Höhenspezialist",
+      "bikepacking": "Bikepacking",
+      "bikepackingDesc": "Fahrradtouren-Spezialist",
+      "fastpacking": "Fastpacking",
+      "fastpackingDesc": "Schnell-und-leicht Wanderspezialist"
+    },
+    "comparison": {
+      "title": "Ausrüstungsvergleich",
+      "subtitle": "Vergleiche {count, plural, one {# Artikel} other {# Artikel}}",
+      "compare": "Vergleichen",
+      "exitCompare": "Vergleich beenden",
+      "noItems": "Keine Artikel zum Vergleich ausgewählt",
+      "selectMoreItems": "Wähle mindestens 2 Artikel zum Vergleichen",
+      "criterion": "Kriterium",
+      "criteria": {
+        "weight": "Gewicht",
+        "brand": "Marke",
+        "category": "Kategorie",
+        "price": "Preis"
+      },
+      "suggestions": {
+        "title": "Tauschvorschläge",
+        "lighterAlternative": "Leichtere Alternative verfügbar"
+      },
+      "selectHint": "Klicke Artikel zum Vergleichen (nur gleiche Kategorie)",
+      "maxReached": "Maximal {max} Artikel können verglichen werden"
+    },
+    "recommendations": {
+      "title": "Intelligente Analyse",
+      "subtitle": "{count, plural, one {# Empfehlung} other {# Empfehlungen}}",
+      "allGood": "Dein Loadout sieht gut aus! Keine Probleme erkannt.",
+      "dismiss": "Verwerfen",
+      "sections": {
+        "critical": "Kritische Probleme",
+        "warnings": "Warnungen",
+        "suggestions": "Vorschläge"
+      },
+      "types": {
+        "missing_essential": "Fehlendes Wesentliches",
+        "weather_warning": "Wetter-Warnung",
+        "redundancy": "Redundanz-Check",
+        "suggested_addition": "Vorschlag",
+        "weight_concern": "Gewichts-Warnung"
+      }
     },
     "report": {
       "title": "Feedback melden",
@@ -1770,6 +1932,17 @@
       "helpfulAdded": "Als hilfreich markiert",
       "helpfulRemoved": "Hilfreich-Markierung entfernt",
       "sharedToBulletin": "Im Schwarzen Brett geteilt!"
+    },
+    "presence": {
+      "connecting": "Verbinden...",
+      "onlyYou": "Nur du",
+      "viewingItem": "Betrachtet Artikel",
+      "viewerCount": "{count, plural, one {# Betrachter} other {# Betrachter}}",
+      "focusedOn": "Fokussiert auf diesen Artikel:",
+      "requestAttention": "Aufmerksamkeit anfordern",
+      "requestAttentionTooltip": "Andere auf diesen Artikel aufmerksam machen",
+      "requestedAttention": "hat deine Aufmerksamkeit angefordert",
+      "dismiss": "Schließen"
     }
   },
   "Merchant": {
