@@ -260,17 +260,24 @@ export async function GET(
     }
 
     // Fetch category names if any
-    let categoryMap: Record<string, { name_en: string; name_de: string }> = {};
+    // The categories table uses i18n JSONB column with { en: string; de?: string } structure
+    let categoryMap: Record<string, { en: string; de?: string }> = {};
     if (categoryIds.size > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: categoriesData } = await (serviceClient as any)
+      const { data: categoriesData, error: categoriesError } = await (serviceClient as any)
         .from('categories')
-        .select('id, name_en, name_de')
+        .select('id, i18n')
         .in('id', Array.from(categoryIds));
+
+      if (categoriesError) {
+        console.error('[API] Categories fetch error:', categoriesError);
+      }
 
       if (categoriesData) {
         for (const cat of categoriesData) {
-          categoryMap[cat.id] = { name_en: cat.name_en, name_de: cat.name_de };
+          if (cat.i18n) {
+            categoryMap[cat.id] = cat.i18n as { en: string; de?: string };
+          }
         }
       }
     }
@@ -296,11 +303,11 @@ export async function GET(
         if (item.gear_items) {
           const gearItem = item.gear_items;
 
-          // Get localized category name from categoryMap
+          // Get localized category name from categoryMap (i18n structure: { en: string; de?: string })
           let categoryName: string | null = null;
           if (gearItem.product_type_id && categoryMap[gearItem.product_type_id]) {
             const cat = categoryMap[gearItem.product_type_id];
-            categoryName = locale === 'de' ? cat.name_de : cat.name_en;
+            categoryName = locale === 'de' && cat.de ? cat.de : cat.en;
           }
 
           // Include item-specific metadata (quantity, isWorn, isConsumable)

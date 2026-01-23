@@ -81,11 +81,11 @@ export interface LoadoutItemDbRow {
 
 /**
  * Category data from categories table
+ * Note: Categories use i18n JSONB column for translations
  */
 export interface CategoryDbRow {
   id: string;
-  name_en: string;
-  name_de: string;
+  i18n: { en: string; de?: string };
 }
 
 /**
@@ -226,10 +226,11 @@ export function mapGearItemToApiResponse(
   row: GearItemDbRow,
   locale: 'en' | 'de' = 'en'
 ): GearItemApiResponse {
-  // Get localized category name
+  // Get localized category name from i18n JSONB structure { en: string; de?: string }
   let categoryName: string | null = null;
-  if (row.categories) {
-    categoryName = locale === 'de' ? row.categories.name_de : row.categories.name_en;
+  if (row.categories?.i18n) {
+    const i18n = row.categories.i18n;
+    categoryName = locale === 'de' && i18n.de ? i18n.de : i18n.en;
   }
 
   return {
