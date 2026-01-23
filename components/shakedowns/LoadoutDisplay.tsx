@@ -17,7 +17,7 @@ import { ChevronRight, MessageSquare, Package, Scale, Info, Eye } from 'lucide-r
 import type { FeedbackNode } from '@/types/shakedown';
 import type { Loadout } from '@/types/loadout';
 import type { ShakedownGearItem } from '@/hooks/shakedowns';
-import { useShakedownGearFilters } from '@/hooks/shakedowns/useShakedownGearFilters';
+import { useShakedownGearFilters, type GearSortOption } from '@/hooks/shakedowns/useShakedownGearFilters';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -231,87 +231,14 @@ export function LoadoutDisplay({
 
               {/* Gear Items Grid */}
               {filteredItems.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredItems.map((item) => {
-                    const feedbackCount = itemFeedbackCounts[item.id] || 0;
-                    return (
-                      <div
-                        key={item.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleItemClick(item)}
-                        onKeyDown={(e) => handleKeyDown(e, item)}
-                        className={cn(
-                          'relative flex items-center gap-3 rounded-lg border p-3',
-                          'cursor-pointer transition-colors',
-                          'hover:bg-muted/50 hover:border-primary/30',
-                          'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
-                        )}
-                      >
-                        <Avatar className="size-10 rounded-md shrink-0">
-                          {item.imageUrl ? (
-                            <AvatarImage
-                              src={item.imageUrl}
-                              alt={item.name}
-                              className="object-cover"
-                            />
-                          ) : null}
-                          <AvatarFallback className="rounded-md bg-muted">
-                            <Package className="size-4 text-muted-foreground" />
-                          </AvatarFallback>
-                        </Avatar>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.name}</p>
-                          {item.brand && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {item.brand}
-                            </p>
-                          )}
-                          {item.weightGrams !== null && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatWeight(item.weightGrams)}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Feedback Count Badge */}
-                        {feedbackCount > 0 && (
-                          <div
-                            className="absolute -top-1 -right-1 flex items-center justify-center
-                              size-5 rounded-full bg-primary text-primary-foreground text-xs font-medium"
-                            title={`${feedbackCount} feedback${feedbackCount !== 1 ? 's' : ''}`}
-                          >
-                            {feedbackCount}
-                          </div>
-                        )}
-
-                        {/* Action Icons */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {onItemDetail && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleItemDetail(e, item)}
-                                  className="p-1 rounded hover:bg-muted transition-colors"
-                                  aria-label={t('viewDetails')}
-                                >
-                                  <Eye className="size-4 text-muted-foreground" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>{t('viewDetails')}</TooltipContent>
-                            </Tooltip>
-                          )}
-                          <MessageSquare
-                            className="size-4 text-muted-foreground/50"
-                            aria-hidden="true"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <GearItemsGrid
+                  items={filteredItems}
+                  sortOption={sortOption}
+                  itemFeedbackCounts={itemFeedbackCounts}
+                  onItemClick={handleItemClick}
+                  onItemDetail={onItemDetail ? handleItemDetail : undefined}
+                  t={t}
+                />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="size-8 mx-auto mb-2 opacity-50" />
@@ -333,6 +260,169 @@ export function LoadoutDisplay({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// =============================================================================
+// GearItemsGrid Component - Handles category grouping
+// =============================================================================
+
+interface GearItemsGridProps {
+  items: ShakedownGearItem[];
+  sortOption: GearSortOption;
+  itemFeedbackCounts: Record<string, number>;
+  onItemClick: (item: ShakedownGearItem) => void;
+  onItemDetail?: (e: React.MouseEvent, item: ShakedownGearItem) => void;
+  t: ReturnType<typeof useTranslations>;
+}
+
+function GearItemsGrid({
+  items,
+  sortOption,
+  itemFeedbackCounts,
+  onItemClick,
+  onItemDetail,
+  t,
+}: GearItemsGridProps): React.ReactElement {
+  // Group items by category when sorting by category
+  const groupedItems = useMemo(() => {
+    if (sortOption !== 'category') {
+      return [{ category: null, items }];
+    }
+
+    const groups: { category: string | null; items: ShakedownGearItem[] }[] = [];
+    let currentCategory: string | null = null;
+    let currentGroup: ShakedownGearItem[] = [];
+
+    items.forEach((item) => {
+      const itemCategory = item.categoryName || item.productTypeId || null;
+      if (itemCategory !== currentCategory) {
+        if (currentGroup.length > 0) {
+          groups.push({ category: currentCategory, items: currentGroup });
+        }
+        currentCategory = itemCategory;
+        currentGroup = [item];
+      } else {
+        currentGroup.push(item);
+      }
+    });
+
+    if (currentGroup.length > 0) {
+      groups.push({ category: currentCategory, items: currentGroup });
+    }
+
+    return groups;
+  }, [items, sortOption]);
+
+  const handleKeyDown = (e: React.KeyboardEvent, item: ShakedownGearItem) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onItemClick(item);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {groupedItems.map((group, groupIndex) => (
+        <div key={group.category || `group-${groupIndex}`}>
+          {/* Category Divider */}
+          {sortOption === 'category' && group.category && (
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="outline" className="text-xs font-medium">
+                {group.category}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ({group.items.length})
+              </span>
+              <Separator className="flex-1" />
+            </div>
+          )}
+
+          {/* Items Grid */}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {group.items.map((item) => {
+              const feedbackCount = itemFeedbackCounts[item.id] || 0;
+              return (
+                <div
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onItemClick(item)}
+                  onKeyDown={(e) => handleKeyDown(e, item)}
+                  className={cn(
+                    'relative flex items-center gap-3 rounded-lg border p-3',
+                    'cursor-pointer transition-colors',
+                    'hover:bg-muted/50 hover:border-primary/30',
+                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                  )}
+                >
+                  <Avatar className="size-10 rounded-md shrink-0">
+                    {item.imageUrl ? (
+                      <AvatarImage
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="object-cover"
+                      />
+                    ) : null}
+                    <AvatarFallback className="rounded-md bg-muted">
+                      <Package className="size-4 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    {item.brand && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.brand}
+                      </p>
+                    )}
+                    {item.weightGrams !== null && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatWeight(item.weightGrams)}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Feedback Count Badge */}
+                  {feedbackCount > 0 && (
+                    <div
+                      className="absolute -top-1 -right-1 flex items-center justify-center
+                        size-5 rounded-full bg-primary text-primary-foreground text-xs font-medium"
+                      title={`${feedbackCount} feedback${feedbackCount !== 1 ? 's' : ''}`}
+                    >
+                      {feedbackCount}
+                    </div>
+                  )}
+
+                  {/* Action Icons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onItemDetail && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={(e) => onItemDetail(e, item)}
+                            className="p-1 rounded hover:bg-muted transition-colors"
+                            aria-label={t('viewDetails')}
+                          >
+                            <Eye className="size-4 text-muted-foreground" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('viewDetails')}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    <MessageSquare
+                      className="size-4 text-muted-foreground/50"
+                      aria-hidden="true"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -102,6 +102,11 @@ export async function GET(
     // Get optional share token from query params
     const shareToken = request.nextUrl.searchParams.get('shareToken');
 
+    // Extract locale from Accept-Language header or NEXT_LOCALE cookie
+    const acceptLanguage = request.headers.get('Accept-Language') || '';
+    const localeCookie = request.cookies.get('NEXT_LOCALE')?.value;
+    const locale: 'en' | 'de' = localeCookie === 'de' || acceptLanguage.startsWith('de') ? 'de' : 'en';
+
     // Use service role client to bypass RLS for initial fetch.
     // Permission checks are handled in application code below (privacy, ownership, etc.)
     // This fixes an issue where RLS auth.uid() context may not be properly populated
@@ -221,7 +226,7 @@ export async function GET(
 
     const loadout = loadoutRow as { id: string; name: string; description: string | null };
 
-    // Fetch gear items via loadout_items junction table with joined gear_items
+    // Fetch gear items via loadout_items junction table with joined gear_items and categories
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadoutItemRows, error: loadoutItemsError } = await (serviceClient as any)
       .from('loadout_items')
@@ -239,7 +244,12 @@ export async function GET(
           description,
           weight_grams,
           primary_image_url,
-          product_type_id
+          product_type_id,
+          categories:product_type_id (
+            id,
+            name_en,
+            name_de
+          )
         )
       `)
       .eq('loadout_id', shakedown.loadout_id);
@@ -266,7 +276,7 @@ export async function GET(
           const gearItem = item.gear_items;
           // Include item-specific metadata (quantity, isWorn, isConsumable)
           gearItems.push({
-            ...mapGearItemToApiResponse(gearItem),
+            ...mapGearItemToApiResponse(gearItem, locale),
             quantity: item.quantity,
             isWorn: item.is_worn,
             isConsumable: item.is_consumable,

@@ -254,11 +254,11 @@ function GearDetailContent({
           )}
 
           {/* Category */}
-          {item.productTypeId && (
+          {(item.categoryName || item.productTypeId) && (
             <SpecCard
               icon={<Tag className="size-4" />}
               label={t('category')}
-              value={item.productTypeId}
+              value={item.categoryName || item.productTypeId || ''}
             />
           )}
         </div>

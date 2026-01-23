@@ -80,6 +80,15 @@ export interface LoadoutItemDbRow {
 }
 
 /**
+ * Category data from categories table
+ */
+export interface CategoryDbRow {
+  id: string;
+  name_en: string;
+  name_de: string;
+}
+
+/**
  * Gear item as returned from database (snake_case)
  */
 export interface GearItemDbRow {
@@ -90,6 +99,7 @@ export interface GearItemDbRow {
   weight_grams: number | null;
   primary_image_url: string | null;
   product_type_id: string | null;
+  categories?: CategoryDbRow | null;
 }
 
 /**
@@ -103,6 +113,8 @@ export interface GearItemApiResponse {
   weightGrams: number | null;
   imageUrl: string | null;
   productTypeId: string | null;
+  /** Category name (localized - defaults to English) */
+  categoryName: string | null;
 }
 
 /**
@@ -207,8 +219,19 @@ export function mapFeedbackRowToFeedbackWithAuthor(
 
 /**
  * Maps gear item database row to API response format
+ * @param row - The gear item database row
+ * @param locale - Optional locale for category name (default: 'en')
  */
-export function mapGearItemToApiResponse(row: GearItemDbRow): GearItemApiResponse {
+export function mapGearItemToApiResponse(
+  row: GearItemDbRow,
+  locale: 'en' | 'de' = 'en'
+): GearItemApiResponse {
+  // Get localized category name
+  let categoryName: string | null = null;
+  if (row.categories) {
+    categoryName = locale === 'de' ? row.categories.name_de : row.categories.name_en;
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -217,6 +240,7 @@ export function mapGearItemToApiResponse(row: GearItemDbRow): GearItemApiRespons
     weightGrams: row.weight_grams,
     imageUrl: row.primary_image_url,
     productTypeId: row.product_type_id,
+    categoryName,
   };
 }
 

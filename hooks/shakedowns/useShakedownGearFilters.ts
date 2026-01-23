@@ -114,12 +114,14 @@ export function useShakedownGearFilters({
     return map;
   }, [itemStates]);
 
-  // Extract available categories from gear items
+  // Extract available categories from gear items (use categoryName for display)
   const availableCategories = useMemo(() => {
     const categories = new Set<string>();
     gearItems.forEach((item) => {
-      if (item.productTypeId) {
-        categories.add(item.productTypeId);
+      // Prefer categoryName over productTypeId for display
+      const categoryDisplay = item.categoryName || item.productTypeId;
+      if (categoryDisplay) {
+        categories.add(categoryDisplay);
       }
     });
     return Array.from(categories).sort();
@@ -140,9 +142,12 @@ export function useShakedownGearFilters({
       });
     }
 
-    // Apply category filter
+    // Apply category filter (match against categoryName or productTypeId)
     if (categoryFilter) {
-      result = result.filter((item) => item.productTypeId === categoryFilter);
+      result = result.filter((item) => {
+        const categoryDisplay = item.categoryName || item.productTypeId;
+        return categoryDisplay === categoryFilter;
+      });
     }
 
     // Apply status filter
@@ -176,8 +181,8 @@ export function useShakedownGearFilters({
         case 'weight-desc':
           return (b.weightGrams ?? 0) - (a.weightGrams ?? 0);
         case 'category':
-          const catA = a.productTypeId || '';
-          const catB = b.productTypeId || '';
+          const catA = a.categoryName || a.productTypeId || '';
+          const catB = b.categoryName || b.productTypeId || '';
           return catA.localeCompare(catB) || a.name.localeCompare(b.name);
         default:
           return 0;
