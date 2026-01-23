@@ -226,7 +226,7 @@ export async function GET(
 
     const loadout = loadoutRow as { id: string; name: string; description: string | null };
 
-    // Fetch gear items via loadout_items junction table with joined gear_items and categories
+    // Fetch gear items via loadout_items junction table with joined gear_items
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: loadoutItemRows, error: loadoutItemsError } = await (serviceClient as any)
       .from('loadout_items')
@@ -244,15 +244,36 @@ export async function GET(
           description,
           weight_grams,
           primary_image_url,
-          product_type_id,
-          categories:product_type_id (
-            id,
-            name_en,
-            name_de
-          )
+          product_type_id
         )
       `)
       .eq('loadout_id', shakedown.loadout_id);
+
+    // Collect unique category IDs to fetch names
+    const categoryIds = new Set<string>();
+    if (loadoutItemRows) {
+      for (const item of loadoutItemRows) {
+        if (item.gear_items?.product_type_id) {
+          categoryIds.add(item.gear_items.product_type_id);
+        }
+      }
+    }
+
+    // Fetch category names if any
+    let categoryMap: Record<string, { name_en: string; name_de: string }> = {};
+    if (categoryIds.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: categoriesData } = await (serviceClient as any)
+        .from('categories')
+        .select('id, name_en, name_de')
+        .in('id', Array.from(categoryIds));
+
+      if (categoriesData) {
+        for (const cat of categoriesData) {
+          categoryMap[cat.id] = { name_en: cat.name_en, name_de: cat.name_de };
+        }
+      }
+    }
 
     let gearItems: ShakedownLoadoutItem[] = [];
     let totalWeightGrams = 0;
@@ -274,9 +295,20 @@ export async function GET(
       for (const item of loadoutItemRows as LoadoutItemDbRow[]) {
         if (item.gear_items) {
           const gearItem = item.gear_items;
+
+          // Get localized category name from categoryMap
+          let categoryName: string | null = null;
+          if (gearItem.product_type_id && categoryMap[gearItem.product_type_id]) {
+            const cat = categoryMap[gearItem.product_type_id];
+            categoryName = locale === 'de' ? cat.name_de : cat.name_en;
+          }
+
           // Include item-specific metadata (quantity, isWorn, isConsumable)
+          // Note: mapGearItemToApiResponse won't have category data since we fetch it separately
+          const baseItem = mapGearItemToApiResponse(gearItem, locale);
           gearItems.push({
-            ...mapGearItemToApiResponse(gearItem, locale),
+            ...baseItem,
+            categoryName, // Override with our looked-up category name
             quantity: item.quantity,
             isWorn: item.is_worn,
             isConsumable: item.is_consumable,
