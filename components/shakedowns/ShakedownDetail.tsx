@@ -23,7 +23,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { Calendar, Copy, MessageSquare, ThumbsUp } from 'lucide-react';
+import { Copy, MessageSquare, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { FeedbackNode } from '@/types/shakedown';
@@ -35,7 +35,6 @@ import { createClient } from '@/lib/supabase/client';
 import { formatShakedownDateRange, daysUntilArchive, canAddFeedback } from '@/lib/shakedown-utils';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -50,6 +49,7 @@ import { ShakedownFeedbackSection } from './ShakedownFeedbackSection';
 import { StatusBadge } from './StatusBadge';
 import { ItemFeedbackModal } from './ItemFeedbackModal';
 import { CompletionModal } from './CompletionModal';
+import { ShakedownHeroHeader } from './ShakedownHeroHeader';
 
 // =============================================================================
 // Types
@@ -60,18 +60,6 @@ interface ShakedownDetailProps {
   shakedownId: string;
   /** Optional share token for accessing private shakedowns */
   shareToken?: string;
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-function getAuthorInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 // =============================================================================
@@ -287,64 +275,43 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
+      {/* Hero Image Header */}
+      <ShakedownHeroHeader
+        tripName={shakedown.tripName}
+        dateRange={dateRange}
+        authorName={shakedown.authorName}
+        authorAvatar={shakedown.authorAvatar}
+        status={shakedown.status}
+        privacy={shakedown.privacy}
+        heroImageUrl={loadout?.heroImageUrl ?? null}
+        activityTypes={loadout?.activityTypes ?? undefined}
+        seasons={loadout?.seasons ?? undefined}
+      />
+
+      {/* Actions Card */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            {/* Left: Main info */}
-            <div className="space-y-3 flex-1 min-w-0">
-              <h1 className="text-2xl font-bold leading-tight">{shakedown.tripName}</h1>
-
-              {/* Author info */}
-              <div className="flex items-center gap-3">
-                <Avatar className="size-10">
-                  {shakedown.authorAvatar && (
-                    <AvatarImage src={shakedown.authorAvatar} alt={shakedown.authorName} />
-                  )}
-                  <AvatarFallback>{getAuthorInitials(shakedown.authorName)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{shakedown.authorName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {tDetail('postedBy', { author: shakedown.authorName })}
-                  </p>
-                </div>
+        <CardHeader className="py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5" title="Feedback count">
+                <MessageSquare className="size-4" />
+                <span>{shakedown.feedbackCount}</span>
               </div>
-
-              {/* Date range */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="size-4" />
-                <span>{dateRange}</span>
+              <div className="flex items-center gap-1.5" title="Helpful votes">
+                <ThumbsUp className="size-4" />
+                <span>{shakedown.helpfulCount}</span>
               </div>
-            </div>
-
-            {/* Right: Status, badges, actions */}
-            <div className="flex flex-col items-start gap-3 md:items-end shrink-0">
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={shakedown.status} showDescription />
-                <PrivacyIndicator privacy={shakedown.privacy} />
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5" title="Feedback count">
-                  <MessageSquare className="size-4" />
-                  <span>{shakedown.feedbackCount}</span>
-                </div>
-                <div className="flex items-center gap-1.5" title="Helpful votes">
-                  <ThumbsUp className="size-4" />
-                  <span>{shakedown.helpfulCount}</span>
-                </div>
-              </div>
-
               {/* Archive countdown */}
               {archiveDays !== null && archiveDays > 0 && (
-                <p className="text-xs text-muted-foreground">
+                <span className="text-xs">
                   {tDetail('daysUntilArchive', { days: archiveDays })}
-                </p>
+                </span>
               )}
+            </div>
 
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
               {/* Owner actions */}
               {isOwner && loadout && (
                 <OwnerActions

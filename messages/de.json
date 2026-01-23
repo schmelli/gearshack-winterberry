@@ -1551,6 +1551,7 @@
     "noShakedownsDescription": "Sei der Erste, der Community-Feedback zu seinem Loadout anfordert!",
     "loadMore": "Mehr laden",
     "endOfList": "Du hast das Ende erreicht",
+    "backToList": "Zurück zu Shakedowns",
     "tripName": "Tourname",
     "tripNamePlaceholder": "z.B. Alpenüberquerung 2025",
     "tripDates": "Tourdaten",
@@ -1689,7 +1690,10 @@
       "viewDetails": "Artikeldetails anzeigen",
       "noItemsMatch": "Keine Artikel entsprechen deinen Filtern",
       "clearFilters": "Filter zurücksetzen",
-      "items": "Gegenstände"
+      "items": "Gegenstände",
+      "uncategorized": "Nicht kategorisiert",
+      "feedbackPreview": "{count, plural, one {# Feedback} other {# Feedbacks}}",
+      "moreFeedback": "+{count} weitere..."
     },
     "gearToolbar": {
       "searchPlaceholder": "Ausrüstung suchen...",

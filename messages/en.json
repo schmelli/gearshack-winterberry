@@ -1551,6 +1551,7 @@
     "noShakedownsDescription": "Be the first to request community feedback on your loadout!",
     "loadMore": "Load more",
     "endOfList": "You've reached the end",
+    "backToList": "Back to Shakedowns",
     "tripName": "Trip Name",
     "tripNamePlaceholder": "e.g., JMT Thru-Hike 2025",
     "tripDates": "Trip Dates",
@@ -1689,7 +1690,10 @@
       "viewDetails": "View item details",
       "noItemsMatch": "No items match your filters",
       "clearFilters": "Clear filters",
-      "items": "Items"
+      "items": "Items",
+      "uncategorized": "Uncategorized",
+      "feedbackPreview": "{count, plural, one {# Feedback} other {# Feedbacks}}",
+      "moreFeedback": "+{count} more..."
     },
     "gearToolbar": {
       "searchPlaceholder": "Search gear items...",
