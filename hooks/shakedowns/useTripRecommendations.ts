@@ -359,7 +359,7 @@ export function useTripRecommendations({
     }
 
     return results;
-  }, [gearItems, loadout, tripContext, totalWeight]);
+  }, [gearItems, tripContext, totalWeight]);
 
   // Categorize recommendations
   const criticalRecommendations = useMemo(

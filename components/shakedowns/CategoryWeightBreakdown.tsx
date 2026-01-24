@@ -165,9 +165,8 @@ export function CategoryWeightBreakdown({
                         value={category.percentage}
                         className="h-1.5 flex-1"
                         style={{
-                          // @ts-ignore - CSS custom property
-                          '--progress-background': getCategoryColor(category.hue),
-                        }}
+                          ['--progress-background' as string]: getCategoryColor(category.hue),
+                        } as React.CSSProperties}
                       />
                       <span className="text-xs text-muted-foreground shrink-0">
                         {category.percentage.toFixed(1)}%
