@@ -267,11 +267,14 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
   inputSchema: queryUserDataSqlInputSchema,
   outputSchema: queryUserDataSqlOutputSchema,
 
-  execute: async ({ context, runtimeContext }): Promise<QueryUserDataSqlOutput> => {
+  execute: async (input, executionContext): Promise<QueryUserDataSqlOutput> => {
     const startTime = Date.now();
-    const { table, select, where, orderBy, limit } = context;
+    const { table, select, where, orderBy, limit } = input;
 
-    // Get userId from runtimeContext
+    // Get userId from execution context's runtimeContext
+    // Note: runtimeContext is passed at runtime but not exposed in ToolExecutionContext type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const runtimeContext = (executionContext as any)?.runtimeContext as Map<string, unknown> | undefined;
     const userId = runtimeContext?.get('userId') as string | undefined;
 
     if (!userId) {

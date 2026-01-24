@@ -155,8 +155,8 @@ Returns structured results with source URLs, snippets, domain names, and trust s
   inputSchema: searchWebInputSchema,
   outputSchema: searchWebOutputSchema,
 
-  execute: async ({ context }): Promise<SearchWebOutput> => {
-    const { query, searchType, maxResults, freshness } = context;
+  execute: async (input): Promise<SearchWebOutput> => {
+    const { query, searchType, maxResults, freshness } = input;
 
     try {
       // Execute the search using the existing web search service

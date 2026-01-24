@@ -261,9 +261,9 @@ Search shelters: { table: "catalog_products", where: "product_type = 'shelter'" 
   inputSchema: queryCatalogInputSchema,
   outputSchema: queryCatalogOutputSchema,
 
-  execute: async ({ context }): Promise<QueryCatalogOutput> => {
+  execute: async (input): Promise<QueryCatalogOutput> => {
     const startTime = Date.now();
-    const { table, select, where, orderBy, limit } = context;
+    const { table, select, where, orderBy, limit } = input;
 
     try {
       const supabase = createServiceRoleClient();

@@ -129,9 +129,9 @@ Examples:
   inputSchema: searchCatalogInputSchema,
   outputSchema: searchCatalogOutputSchema,
 
-  execute: async ({ context }): Promise<SearchCatalogOutput> => {
+  execute: async (input): Promise<SearchCatalogOutput> => {
     const startTime = Date.now();
-    const { query, filters, sortBy, limit } = context;
+    const { query, filters, sortBy, limit } = input;
 
     try {
       const supabase = await createClient();

@@ -185,9 +185,9 @@ Find ultralight tents:
   inputSchema: queryGearGraphInputSchema,
   outputSchema: queryGearGraphOutputSchema,
 
-  execute: async ({ context }): Promise<QueryGearGraphOutput> => {
+  execute: async (input): Promise<QueryGearGraphOutput> => {
     const startTime = Date.now();
-    const { cypher, limit } = context;
+    const { cypher, limit } = input;
 
     // Validate query is read-only
     const validation = validateCypherQuery(cypher);

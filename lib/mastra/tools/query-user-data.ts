@@ -146,11 +146,14 @@ Fuzzy Search:
   inputSchema: queryUserDataInputSchema,
   outputSchema: queryUserDataOutputSchema,
 
-  execute: async ({ context, runtimeContext }): Promise<QueryUserDataOutput> => {
+  execute: async (input, executionContext): Promise<QueryUserDataOutput> => {
     const startTime = Date.now();
-    const { table, operation, select, filters, search, orderBy, limit, range } = context;
+    const { table, operation, select, filters, search, orderBy, limit, range } = input;
 
-    // Get userId from runtimeContext (set by chat route)
+    // Get userId from execution context's runtimeContext (set by chat route)
+    // Note: runtimeContext is passed at runtime but not exposed in ToolExecutionContext type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const runtimeContext = (executionContext as any)?.runtimeContext as Map<string, unknown> | undefined;
     const userId = runtimeContext?.get('userId') as string | undefined;
 
     if (!userId) {
