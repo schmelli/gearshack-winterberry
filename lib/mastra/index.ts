@@ -8,12 +8,16 @@
  * Usage:
  * ```typescript
  * import {
+ *   mastraStorage,
  *   mastraAgentConfig,
  *   buildMastraSystemPrompt,
  *   createMastraAgentConfig,
  * } from '@/lib/mastra';
  * ```
  */
+
+// Mastra storage for memory persistence
+export { mastraStorage, getMastraStorage, isStoragePersistent } from './instance';
 
 // Main configuration exports
 export {

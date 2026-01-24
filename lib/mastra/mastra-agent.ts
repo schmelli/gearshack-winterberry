@@ -1,21 +1,30 @@
 /**
- * Mastra Agent with Native Tool Support
+ * Mastra Agent with Native Tool Support and Memory
  *
- * Uses Mastra's Agent class for proper tool integration.
- * This eliminates manual schema conversion issues.
+ * Uses Mastra's Agent class for proper tool integration with Memory
+ * for conversation context persistence. The agent now "learns" from
+ * previous messages in the conversation.
+ *
+ * @see https://mastra.ai/docs/memory/overview
  */
 
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
 import { createGateway } from '@ai-sdk/gateway';
 // Simplified tools (AI Assistant Simplification feature)
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryCatalogTool } from './tools/query-catalog';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
+// Mastra storage for memory persistence
+import { mastraStorage } from './instance';
 
 // Environment configuration
 const AI_GATEWAY_KEY = process.env.AI_GATEWAY_KEY || process.env.AI_GATEWAY_API_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
+
+// Memory configuration
+const MEMORY_LAST_MESSAGES = parseInt(process.env.MASTRA_MEMORY_LAST_MESSAGES || '20', 10);
 
 if (!AI_GATEWAY_KEY) {
   console.warn('⚠️ AI_GATEWAY_KEY not configured - Mastra Agent will fail');
@@ -27,16 +36,44 @@ const gateway = createGateway({
 });
 
 /**
- * Create Mastra Agent with registered tools
+ * Shared Memory instance for conversation context
+ *
+ * Configuration:
+ * - lastMessages: Number of recent messages the agent can "see" (default: 20)
+ * - Uses LibSQLStore for persistent storage
+ *
+ * This enables the agent to:
+ * - Remember previous questions in the conversation
+ * - Maintain context across multiple exchanges
+ * - Provide more coherent, accurate replies
+ */
+const agentMemory = new Memory({
+  storage: mastraStorage,
+  options: {
+    lastMessages: MEMORY_LAST_MESSAGES,
+  },
+});
+
+console.log(`[Mastra Memory] Configured with lastMessages: ${MEMORY_LAST_MESSAGES}`);
+
+/**
+ * Create Mastra Agent with registered tools and memory
+ *
+ * The agent now has memory enabled, allowing it to:
+ * - See the last N messages from the conversation
+ * - Maintain context across multiple exchanges
+ * - Learn from previous interactions in the session
  *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt based on context
  */
 export function createGearAgent(userId: string, systemPrompt: string) {
   const agent = new Agent({
+    id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
     model: gateway(AI_CHAT_MODEL), // Use Vercel AI Gateway
+    memory: agentMemory, // Enable conversation memory
     tools: {
       // Simplified tools with free query formulation
       // - queryUserData: SQL-like queries for user tables (gear_items, loadouts, etc.)
@@ -50,7 +87,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     },
   });
 
-  console.log(`[Mastra Agent] Created with ${AI_CHAT_MODEL} via AI Gateway and 4 tools`);
+  console.log(`[Mastra Agent] Created with ${AI_CHAT_MODEL} via AI Gateway, 4 tools, and memory (last ${MEMORY_LAST_MESSAGES} messages)`);
   return agent;
 }
 
