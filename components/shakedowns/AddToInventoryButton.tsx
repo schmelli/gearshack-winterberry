@@ -12,11 +12,10 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus, Check, Loader2, Package } from 'lucide-react';
-import { toast } from 'sonner';
 
 import type { ShakedownGearItem } from '@/hooks/shakedowns/useShakedown';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
-import { createClient } from '@/lib/supabase/client';
+import { useAddToInventory } from '@/hooks/inventory/useAddToInventory';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -67,52 +66,24 @@ export function AddToInventoryButton({
 }: AddToInventoryButtonProps): React.ReactElement {
   const t = useTranslations('Shakedowns.addToInventory');
   const { user } = useAuthContext();
-  const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Use custom hook for business logic
+  const { isLoading, addToInventory } = useAddToInventory({
+    t,
+    onSuccess: () => {
+      setIsDialogOpen(false);
+      onSuccess?.();
+    },
+  });
 
   const handleConfirm = useCallback(async () => {
     if (!user) {
-      toast.error(t('errors.notLoggedIn'));
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const supabase = createClient();
-
-      // Create new gear item in user's inventory
-      const { error } = await supabase.from('gear_items').insert({
-        user_id: user.uid,
-        name: item.name,
-        brand: item.brand,
-        description: item.description,
-        weight_grams: item.weightGrams,
-        primary_image_url: item.imageUrl,
-        product_type_id: item.productTypeId,
-        status: 'own',
-        source_share_token: item.id, // Attribution to original item
-      });
-
-      if (error) {
-        console.error('Error adding item to inventory:', error);
-        toast.error(t('errors.failed'));
-        return;
-      }
-
-      toast.success(t('success'), {
-        description: item.name,
-      });
-
-      setIsDialogOpen(false);
-      onSuccess?.();
-    } catch (err) {
-      console.error('Unexpected error adding item:', err);
-      toast.error(t('errors.failed'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, item, t, onSuccess]);
+    await addToInventory(item, user.uid);
+  }, [user, item, addToInventory]);
 
   // Already owned state
   if (alreadyOwned) {

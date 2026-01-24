@@ -128,9 +128,15 @@ export function useCollaborativePresence({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const focusedItemRef = useRef<string | null>(null);
+  const userRef = useRef(user);
 
   const myColor = useMemo(() => {
     return user ? getColorForUser(user.uid) : 0;
+  }, [user]);
+
+  // Update user ref when user changes
+  useEffect(() => {
+    userRef.current = user;
   }, [user]);
 
   // Track and update presence
@@ -146,14 +152,19 @@ export function useCollaborativePresence({
       const displayName = profile?.profile?.displayName || user.displayName || 'Anonymous';
       const avatarUrl = profile?.profile?.avatarUrl || user.photoURL || null;
 
-      await channelRef.current.track({
-        id: user.uid,
-        name: displayName,
-        avatar: avatarUrl,
-        color: myColor,
-        focusedItemId,
-        lastSeen: now,
-      });
+      try {
+        await channelRef.current.track({
+          id: user.uid,
+          name: displayName,
+          avatar: avatarUrl,
+          color: myColor,
+          focusedItemId,
+          lastSeen: now,
+        });
+      } catch (error) {
+        console.error('Failed to track presence:', error);
+        // Gracefully degrade - presence tracking is non-critical
+      }
     },
     [user, profile, myColor]
   );
@@ -175,21 +186,26 @@ export function useCollaborativePresence({
       const displayName = profile?.profile?.displayName || user.displayName || 'Anonymous';
       const avatarUrl = profile?.profile?.avatarUrl || user.photoURL || null;
 
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'attention_request',
-        payload: {
-          id: `${user.uid}_${Date.now()}`,
-          user: {
-            id: user.uid,
-            name: displayName,
-            avatar: avatarUrl,
-            color: myColor,
+      try {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'attention_request',
+          payload: {
+            id: `${user.uid}_${Date.now()}`,
+            user: {
+              id: user.uid,
+              name: displayName,
+              avatar: avatarUrl,
+              color: myColor,
+            },
+            itemId,
+            timestamp: Date.now(),
           },
-          itemId,
-          timestamp: Date.now(),
-        },
-      });
+        });
+      } catch (error) {
+        console.error('Failed to send attention request:', error);
+        // Gracefully degrade - attention requests are non-critical
+      }
     },
     [user, profile, myColor]
   );
@@ -199,6 +215,7 @@ export function useCollaborativePresence({
     (state: RealtimePresenceState<Record<string, unknown>>) => {
       const now = Date.now();
       const users: PresenceUser[] = [];
+      const currentUser = userRef.current;
 
       Object.values(state).forEach((presences) => {
         presences.forEach((presence: Record<string, unknown>) => {
@@ -212,7 +229,7 @@ export function useCollaborativePresence({
           };
 
           // Skip self
-          if (user && presenceData.id === user.uid) return;
+          if (currentUser && presenceData.id === currentUser.uid) return;
 
           const lastSeen = presenceData.lastSeen || now;
           const isActive = now - lastSeen < ACTIVITY_TIMEOUT_MS;
@@ -234,7 +251,7 @@ export function useCollaborativePresence({
 
       setViewers(users);
     },
-    [user]
+    [] // No dependencies - uses refs
   );
 
   // Set up presence channel
@@ -301,9 +318,27 @@ export function useCollaborativePresence({
     });
 
     return () => {
-      channel.unsubscribe();
-      channelRef.current = null;
-      setIsConnected(false);
+      const cleanup = async () => {
+        try {
+          // Untrack presence before unsubscribing
+          if (user && channelRef.current) {
+            await channelRef.current.untrack();
+          }
+        } catch (error) {
+          console.error('Failed to untrack presence:', error);
+        }
+
+        try {
+          await channel.unsubscribe();
+        } catch (error) {
+          console.error('Failed to unsubscribe from channel:', error);
+        }
+
+        channelRef.current = null;
+        setIsConnected(false);
+      };
+
+      cleanup();
     };
   }, [enabled, shakedownId, user, processPresenceState, trackPresence]);
 

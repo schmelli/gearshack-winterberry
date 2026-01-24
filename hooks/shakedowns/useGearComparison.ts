@@ -189,6 +189,7 @@ export function useGearComparison({
 
       const itemCategory = getCategory(item);
 
+      // Use functional updates to avoid race conditions
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.add(item.id);
@@ -196,13 +197,16 @@ export function useGearComparison({
       });
 
       // Set category if this is the first selection
-      if (selectedCategory === null) {
-        setSelectedCategory(itemCategory);
-      }
+      setSelectedCategory((prevCategory) => {
+        if (prevCategory === null) {
+          return itemCategory;
+        }
+        return prevCategory;
+      });
 
       return true;
     },
-    [canSelectItem, selectedCategory]
+    [canSelectItem]
   );
 
   // Deselect an item
@@ -211,7 +215,7 @@ export function useGearComparison({
       const next = new Set(prev);
       next.delete(itemId);
 
-      // If no items left, clear category
+      // Clear category if no items left (do it in the same state update)
       if (next.size === 0) {
         setSelectedCategory(null);
       }

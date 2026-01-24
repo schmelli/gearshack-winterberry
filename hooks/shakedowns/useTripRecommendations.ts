@@ -120,7 +120,7 @@ const ACTIVITY_REQUIREMENTS: Record<string, string[]> = {
 // =============================================================================
 
 function generateId(): string {
-  return `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `rec_${crypto.randomUUID()}`;
 }
 
 function itemMatchesCategory(item: ShakedownGearItem, keywords: string[]): boolean {

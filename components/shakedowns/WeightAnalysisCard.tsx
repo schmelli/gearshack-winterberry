@@ -240,7 +240,7 @@ export function WeightAnalysisCard({
               className="w-full justify-between"
             >
               <span className="text-sm font-medium">
-                {t('title')} ({categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'category' : 'categories'})
+                {t('title')} ({t('categoryCount', { count: categoryBreakdown.length })})
               </span>
               {isExpanded ? (
                 <ChevronUp className="size-4" />

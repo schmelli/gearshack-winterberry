@@ -1688,7 +1688,8 @@
       "clickToFeedback": "Click an item to give specific feedback",
       "viewDetails": "View item details",
       "noItemsMatch": "No items match your filters",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "items": "Items"
     },
     "gearToolbar": {
       "searchPlaceholder": "Search gear items...",
@@ -1769,7 +1770,8 @@
         "title": "Weight Hogs",
         "description": "Items significantly heavier than average",
         "none": "No outliers detected"
-      }
+      },
+      "categoryCount": "{count, plural, =1 {# category} other {# categories}}"
     },
     "trustScore": {
       "title": "Trust Score",

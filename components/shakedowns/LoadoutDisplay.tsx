@@ -178,7 +178,7 @@ export function LoadoutDisplay({
               <Package className="size-5 text-terracotta-600 dark:text-terracotta-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Items</p>
+              <p className="text-xs text-muted-foreground">{t('items')}</p>
               <p className="font-semibold">{t('itemCount', { count: itemCount })}</p>
             </div>
           </div>

@@ -1688,7 +1688,8 @@
       "clickToFeedback": "Klicke auf einen Artikel für spezifisches Feedback",
       "viewDetails": "Artikeldetails anzeigen",
       "noItemsMatch": "Keine Artikel entsprechen deinen Filtern",
-      "clearFilters": "Filter zurücksetzen"
+      "clearFilters": "Filter zurücksetzen",
+      "items": "Gegenstände"
     },
     "gearToolbar": {
       "searchPlaceholder": "Ausrüstung suchen...",
@@ -1769,7 +1770,8 @@
         "title": "Gewichtsmonster",
         "description": "Artikel, die deutlich schwerer sind als der Durchschnitt",
         "none": "Keine Ausreißer erkannt"
-      }
+      },
+      "categoryCount": "{count, plural, =1 {# Kategorie} other {# Kategorien}}"
     },
     "trustScore": {
       "title": "Vertrauenswert",
