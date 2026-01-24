@@ -20,7 +20,7 @@ import { searchWebTool } from './tools/search-web';
 import { mastraStorage } from './instance';
 
 // Environment configuration
-const AI_GATEWAY_KEY = process.env.AI_GATEWAY_KEY || process.env.AI_GATEWAY_API_KEY;
+const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 
 // Memory configuration
