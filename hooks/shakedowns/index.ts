@@ -72,3 +72,52 @@ export type { UseBookmarksReturn, BookmarkedShakedown } from './useBookmarks';
 // Badges (T067)
 export { useBadges } from './useBadges';
 export type { UseBadgesReturn, ShakedownBadgeAward } from './useBadges';
+
+// Gear filters (Shakedown Detail Enhancement)
+export { useShakedownGearFilters } from './useShakedownGearFilters';
+export type {
+  GearSortOption,
+  GearStatusFilter,
+  UseShakedownGearFiltersOptions,
+  UseShakedownGearFiltersReturn,
+} from './useShakedownGearFilters';
+
+// Weight analysis (Shakedown Detail Enhancement)
+export { useWeightAnalysis } from './useWeightAnalysis';
+export type {
+  CategoryWeightData,
+  WeightOutlier,
+  WeightDistribution,
+  UseWeightAnalysisOptions,
+  UseWeightAnalysisReturn,
+} from './useWeightAnalysis';
+
+// Gear comparison (Shakedown Detail Enhancement)
+export { useGearComparison } from './useGearComparison';
+export type {
+  ComparisonItem,
+  ComparisonCriterion,
+  SuggestedSwap,
+  UseGearComparisonOptions,
+  UseGearComparisonReturn,
+} from './useGearComparison';
+
+// Trip recommendations (Shakedown Detail Enhancement)
+export { useTripRecommendations } from './useTripRecommendations';
+export type {
+  TripRecommendation,
+  RecommendationType,
+  RecommendationSeverity,
+  TripContext,
+  UseTripRecommendationsOptions,
+  UseTripRecommendationsReturn,
+} from './useTripRecommendations';
+
+// Collaborative presence (Shakedown Detail Enhancement)
+export { useCollaborativePresence } from './useCollaborativePresence';
+export type {
+  PresenceUser,
+  AttentionRequest,
+  UseCollaborativePresenceOptions,
+  UseCollaborativePresenceReturn,
+} from './useCollaborativePresence';

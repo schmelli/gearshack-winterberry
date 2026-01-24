@@ -44,6 +44,12 @@ export interface ShakedownGearItem {
   weightGrams: number | null;
   imageUrl: string | null;
   productTypeId: string | null;
+  /** Localized category name */
+  categoryName: string | null;
+  /** Whether item is worn (affects base weight calculation) */
+  isWorn?: boolean;
+  /** Whether item is consumable */
+  isConsumable?: boolean;
 }
 
 // =============================================================================
@@ -89,6 +95,10 @@ interface LoadoutApiResponseWithGearItems {
     weightGrams: number | null;
     imageUrl: string | null;
     productTypeId: string | null;
+    categoryName: string | null;
+    quantity: number;
+    isWorn: boolean;
+    isConsumable: boolean;
   }>;
 }
 
@@ -238,6 +248,14 @@ export function useShakedown(
       setShakedown(data.shakedown);
       // Note: API returns simplified loadout, we create a minimal Loadout object
       if (data.loadout) {
+        // Extract item states from gear items (isWorn, isConsumable flags)
+        const extractedItemStates = data.loadout.gearItems.map((item) => ({
+          itemId: item.id,
+          quantity: item.quantity ?? 1,
+          isWorn: item.isWorn ?? false,
+          isConsumable: item.isConsumable ?? false,
+        }));
+
         setLoadout({
           id: data.loadout.id,
           name: data.loadout.name,
@@ -246,11 +264,25 @@ export function useShakedown(
           activityTypes: undefined,
           seasons: undefined,
           description: data.loadout.description,
-          itemStates: [],
+          itemStates: extractedItemStates,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        setGearItems(data.loadout.gearItems || []);
+
+        // Map gear items with isWorn/isConsumable for direct access
+        const mappedGearItems: ShakedownGearItem[] = data.loadout.gearItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          brand: item.brand,
+          description: item.description,
+          weightGrams: item.weightGrams,
+          imageUrl: item.imageUrl,
+          productTypeId: item.productTypeId,
+          categoryName: item.categoryName,
+          isWorn: item.isWorn,
+          isConsumable: item.isConsumable,
+        }));
+        setGearItems(mappedGearItems);
       } else {
         setLoadout(null);
         setGearItems([]);

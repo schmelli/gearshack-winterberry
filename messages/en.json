@@ -1685,7 +1685,171 @@
       "loadoutInfo": "Loadout Info",
       "totalWeight": "Total Weight",
       "itemCount": "{count} items",
-      "clickToFeedback": "Click an item to give specific feedback"
+      "clickToFeedback": "Click an item to give specific feedback",
+      "viewDetails": "View item details",
+      "noItemsMatch": "No items match your filters",
+      "clearFilters": "Clear filters",
+      "items": "Items"
+    },
+    "gearToolbar": {
+      "searchPlaceholder": "Search gear items...",
+      "clearSearch": "Clear search",
+      "toggleFilters": "Toggle filters",
+      "allCategories": "All Categories",
+      "statusAll": "All Items",
+      "statusWorn": "Worn Items",
+      "statusConsumable": "Consumables",
+      "statusBase": "Base Weight",
+      "sortName": "Sort by Name",
+      "sortWeightAsc": "Lightest First",
+      "sortWeightDesc": "Heaviest First",
+      "sortCategory": "Sort by Category",
+      "showingFiltered": "Showing {filtered} of {total} items",
+      "showingAll": "Showing all {count} items",
+      "clearAll": "Clear all"
+    },
+    "gearDetail": {
+      "specifications": "Specifications",
+      "weight": "Weight",
+      "category": "Category",
+      "description": "Description",
+      "addToInventory": "Add to My Inventory",
+      "alreadyOwned": "Already in Inventory",
+      "youtubeReviews": "YouTube Reviews",
+      "youtubeComingSoon": "Video reviews coming soon",
+      "gearInsights": "GearGraph Insights",
+      "insightsComingSoon": "AI-powered insights coming soon"
+    },
+    "addToInventory": {
+      "button": "Add to Inventory",
+      "alreadyOwned": "Already Owned",
+      "loginRequired": "Log in to add items",
+      "dialog": {
+        "title": "Add to Your Inventory",
+        "description": "Would you like to add \"{itemName}\" to your gear inventory?",
+        "cancel": "Cancel",
+        "confirm": "Add to Inventory"
+      },
+      "errors": {
+        "notLoggedIn": "You must be logged in to add items",
+        "failed": "Failed to add item to inventory"
+      },
+      "success": "Item added to your inventory"
+    },
+    "weightHeatmap": {
+      "title": "Weight Distribution",
+      "subtitle": "See where your weight is distributed",
+      "noData": "No weight data available",
+      "noCategories": "No categories found",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "items": "{count, plural, one {# item} other {# items}}",
+      "moreCategories": "more",
+      "weightHogs": "{count, plural, one {# heavy item} other {# heavy items}}",
+      "outlierTooltip": "This item accounts for {percentage}% of total weight",
+      "severity": {
+        "moderate": "Heavy",
+        "significant": "Very Heavy",
+        "extreme": "Weight Hog"
+      },
+      "stats": {
+        "totalWeight": "Total Weight",
+        "baseWeight": "Base Weight",
+        "wornWeight": "Worn Weight",
+        "consumableWeight": "Consumables",
+        "avgItemWeight": "Avg Item Weight",
+        "heaviestItem": "Heaviest Item",
+        "lightestItem": "Lightest Item"
+      },
+      "comparison": {
+        "title": "Community Comparison",
+        "aboveAverage": "{percentage}% above average",
+        "belowAverage": "{percentage}% below average",
+        "onTarget": "Right on target!"
+      },
+      "outliers": {
+        "title": "Weight Hogs",
+        "description": "Items significantly heavier than average",
+        "none": "No outliers detected"
+      },
+      "categoryCount": "{count, plural, =1 {# category} other {# categories}}"
+    },
+    "trustScore": {
+      "title": "Trust Score",
+      "description": "Based on helpful votes and community contributions",
+      "helpfulVotes": "{count, plural, one {# helpful vote} other {# helpful votes}}",
+      "shakedownsReviewed": "{count, plural, one {# shakedown reviewed} other {# shakedowns reviewed}}",
+      "tiers": {
+        "newcomer": "Newcomer",
+        "established": "Established",
+        "trusted": "Trusted",
+        "expert": "Expert"
+      }
+    },
+    "expertSpotlight": {
+      "title": "Top Reviewers",
+      "compactLabel": "Experts:",
+      "feedbackCount": "{count, plural, one {# feedback} other {# feedbacks}}",
+      "trustScore": "Trust: {score}",
+      "stats": "{feedback, plural, one {# feedback} other {# feedbacks}}, {helpful} helpful"
+    },
+    "specialties": {
+      "pct_veteran": "PCT Veteran",
+      "pct_veteranDesc": "Completed the Pacific Crest Trail",
+      "at_veteran": "AT Veteran",
+      "at_veteranDesc": "Completed the Appalachian Trail",
+      "cdt_veteran": "CDT Veteran",
+      "cdt_veteranDesc": "Completed the Continental Divide Trail",
+      "ul_expert": "UL Expert",
+      "ul_expertDesc": "Ultralight gear specialist",
+      "winter_specialist": "Winter Specialist",
+      "winter_specialistDesc": "Expert in cold weather hiking",
+      "desert_specialist": "Desert Specialist",
+      "desert_specialistDesc": "Expert in desert hiking",
+      "alpine_expert": "Alpine Expert",
+      "alpine_expertDesc": "Mountain and high altitude specialist",
+      "bikepacking": "Bikepacking",
+      "bikepackingDesc": "Bicycle touring specialist",
+      "fastpacking": "Fastpacking",
+      "fastpackingDesc": "Fast and light hiking specialist"
+    },
+    "comparison": {
+      "title": "Gear Comparison",
+      "subtitle": "Comparing {count, plural, one {# item} other {# items}}",
+      "compare": "Compare Items",
+      "exitCompare": "Exit Compare",
+      "noItems": "No items selected for comparison",
+      "selectMoreItems": "Select at least 2 items to compare",
+      "criterion": "Criterion",
+      "criteria": {
+        "weight": "Weight",
+        "brand": "Brand",
+        "category": "Category",
+        "price": "Price"
+      },
+      "suggestions": {
+        "title": "Swap Suggestions",
+        "lighterAlternative": "Lighter alternative available"
+      },
+      "selectHint": "Click items to add to comparison (same category only)",
+      "maxReached": "Maximum {max} items can be compared"
+    },
+    "recommendations": {
+      "title": "Smart Analysis",
+      "subtitle": "{count, plural, one {# recommendation} other {# recommendations}}",
+      "allGood": "Your loadout looks great! No issues detected.",
+      "dismiss": "Dismiss",
+      "sections": {
+        "critical": "Critical Issues",
+        "warnings": "Warnings",
+        "suggestions": "Suggestions"
+      },
+      "types": {
+        "missing_essential": "Missing Essential",
+        "weather_warning": "Weather Alert",
+        "redundancy": "Redundancy Check",
+        "suggested_addition": "Suggestion",
+        "weight_concern": "Weight Alert"
+      }
     },
     "report": {
       "title": "Report Feedback",
@@ -1770,6 +1934,17 @@
       "helpfulAdded": "Marked as helpful",
       "helpfulRemoved": "Helpful mark removed",
       "sharedToBulletin": "Shared to bulletin board!"
+    },
+    "presence": {
+      "connecting": "Connecting...",
+      "onlyYou": "Only you",
+      "viewingItem": "Viewing item",
+      "viewerCount": "{count, plural, one {# viewer} other {# viewers}}",
+      "focusedOn": "Focused on this item:",
+      "requestAttention": "Request Attention",
+      "requestAttentionTooltip": "Notify others about this item",
+      "requestedAttention": "requested your attention",
+      "dismiss": "Dismiss"
     }
   },
   "Merchant": {

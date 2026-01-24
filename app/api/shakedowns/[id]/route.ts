@@ -102,6 +102,11 @@ export async function GET(
     // Get optional share token from query params
     const shareToken = request.nextUrl.searchParams.get('shareToken');
 
+    // Extract locale from Accept-Language header or NEXT_LOCALE cookie
+    const acceptLanguage = request.headers.get('Accept-Language') || '';
+    const localeCookie = request.cookies.get('NEXT_LOCALE')?.value;
+    const locale: 'en' | 'de' = localeCookie === 'de' || acceptLanguage.startsWith('de') ? 'de' : 'en';
+
     // Use service role client to bypass RLS for initial fetch.
     // Permission checks are handled in application code below (privacy, ownership, etc.)
     // This fixes an issue where RLS auth.uid() context may not be properly populated
@@ -244,6 +249,39 @@ export async function GET(
       `)
       .eq('loadout_id', shakedown.loadout_id);
 
+    // Collect unique category IDs to fetch names
+    const categoryIds = new Set<string>();
+    if (loadoutItemRows) {
+      for (const item of loadoutItemRows) {
+        if (item.gear_items?.product_type_id) {
+          categoryIds.add(item.gear_items.product_type_id);
+        }
+      }
+    }
+
+    // Fetch category names if any
+    // The categories table uses i18n JSONB column with { en: string; de?: string } structure
+    let categoryMap: Record<string, { en: string; de?: string }> = {};
+    if (categoryIds.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: categoriesData, error: categoriesError } = await (serviceClient as any)
+        .from('categories')
+        .select('id, i18n')
+        .in('id', Array.from(categoryIds));
+
+      if (categoriesError) {
+        console.error('[API] Categories fetch error:', categoriesError);
+      }
+
+      if (categoriesData) {
+        for (const cat of categoriesData) {
+          if (cat.i18n) {
+            categoryMap[cat.id] = cat.i18n as { en: string; de?: string };
+          }
+        }
+      }
+    }
+
     let gearItems: ShakedownLoadoutItem[] = [];
     let totalWeightGrams = 0;
     let itemCount = 0;
@@ -264,9 +302,20 @@ export async function GET(
       for (const item of loadoutItemRows as LoadoutItemDbRow[]) {
         if (item.gear_items) {
           const gearItem = item.gear_items;
+
+          // Get localized category name from categoryMap (i18n structure: { en: string; de?: string })
+          let categoryName: string | null = null;
+          if (gearItem.product_type_id && categoryMap[gearItem.product_type_id]) {
+            const cat = categoryMap[gearItem.product_type_id];
+            categoryName = locale === 'de' && cat.de ? cat.de : cat.en;
+          }
+
           // Include item-specific metadata (quantity, isWorn, isConsumable)
+          // Note: mapGearItemToApiResponse won't have category data since we fetch it separately
+          const baseItem = mapGearItemToApiResponse(gearItem, locale);
           gearItems.push({
-            ...mapGearItemToApiResponse(gearItem),
+            ...baseItem,
+            categoryName, // Override with our looked-up category name
             quantity: item.quantity,
             isWorn: item.is_worn,
             isConsumable: item.is_consumable,
