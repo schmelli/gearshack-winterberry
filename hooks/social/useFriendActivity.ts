@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
@@ -117,13 +117,19 @@ export function useFriendActivity(
     console.log('Mark all as read - not yet implemented');
   }, []);
 
+  // Use ref for activity filter to avoid subscription churn
+  const activityTypeFilterRef = useRef(activityTypeFilter);
+  activityTypeFilterRef.current = activityTypeFilter;
+
   /**
    * Handles new activity from Realtime subscription.
+   * Uses ref to access filter without causing subscription churn.
    */
   const handleNewActivity = useCallback((activity: FriendActivityWithProfile) => {
-    // Only add if it matches the current filter
-    if (activityTypeFilter && activityTypeFilter !== 'all') {
-      if (activity.activity_type !== activityTypeFilter) {
+    // Only add if it matches the current filter (read from ref)
+    const filter = activityTypeFilterRef.current;
+    if (filter && filter !== 'all') {
+      if (activity.activity_type !== filter) {
         return;
       }
     }
@@ -137,14 +143,15 @@ export function useFriendActivity(
       // Add to beginning and limit to MAX_ACTIVITIES
       return [activity, ...prev].slice(0, MAX_ACTIVITIES);
     });
-  }, [activityTypeFilter]);
+  }, []); // No dependencies - uses ref
 
-  // Initial load
+  // Initial load - depend only on user.uid and activityTypeFilter
   useEffect(() => {
     loadActivities();
-  }, [loadActivities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, activityTypeFilter]);
 
-  // Setup Realtime subscription
+  // Setup Realtime subscription - only recreate when user changes
   useEffect(() => {
     if (!user?.uid) return;
 

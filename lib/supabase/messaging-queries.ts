@@ -657,20 +657,36 @@ export async function unblockUser(
 
 /**
  * Checks if a user is blocked (in either direction).
+ * Uses separate queries instead of .or() with string interpolation to prevent PostgREST injection.
  */
 export async function isBlocked(user1: string, user2: string): Promise<boolean> {
   const supabase = getMessagingClient();
 
-  const { count, error } = await supabase
+  // Check if user1 blocked user2
+  const { count: count1, error: error1 } = await supabase
     .from('user_blocks')
     .select('*', { count: 'exact', head: true })
-    .or(`and(user_id.eq.${user1},blocked_id.eq.${user2}),and(user_id.eq.${user2},blocked_id.eq.${user1})`);
+    .eq('user_id', user1)
+    .eq('blocked_id', user2);
 
-  if (error) {
-    throw new Error(`Failed to check block status: ${error.message}`);
+  if (error1) {
+    throw new Error(`Failed to check block status: ${error1.message}`);
   }
 
-  return (count ?? 0) > 0;
+  if ((count1 ?? 0) > 0) return true;
+
+  // Check if user2 blocked user1
+  const { count: count2, error: error2 } = await supabase
+    .from('user_blocks')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user2)
+    .eq('blocked_id', user1);
+
+  if (error2) {
+    throw new Error(`Failed to check block status: ${error2.message}`);
+  }
+
+  return (count2 ?? 0) > 0;
 }
 
 // ----- User Search Queries -----

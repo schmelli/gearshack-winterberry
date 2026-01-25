@@ -144,10 +144,12 @@ export function useFollowing(): UseFollowingReturn {
     await loadFollowing();
   }, [loadFollowing]);
 
-  // Initial load
+  // Initial load - depend only on user.uid to prevent infinite loops
+  // loadFollowing is stable when user.uid is stable
   useEffect(() => {
     loadFollowing();
-  }, [loadFollowing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   return {
     following,
@@ -218,9 +220,11 @@ export function useIsFollowing(targetUserId: string): {
     }
   }, [user?.uid, targetUserId, isFollowing]);
 
+  // Depend on actual values, not the callback to prevent infinite loops
   useEffect(() => {
     checkFollowing();
-  }, [checkFollowing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, targetUserId]);
 
   return { isFollowing, isLoading, toggle };
 }
