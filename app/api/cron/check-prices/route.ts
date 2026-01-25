@@ -117,10 +117,15 @@ export async function GET(request: NextRequest) {
     await batchCheckConversions(conversionData);
 
     // Update last_checked_at for all items
-    await (supabase as any)
+    const { error: updateError } = await (supabase as any)
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
       .in('id', trackingItems.map((item: any) => item.id));
+
+    if (updateError) {
+      log.warn('Failed to update last_checked_at timestamps', {}, updateError);
+      // Non-fatal: continue but log for monitoring
+    }
 
     log.info('Price check job completed', {
       processed: trackingItems.length,
@@ -160,7 +165,7 @@ async function processTrackingItem(
   }>
 ): Promise<void> {
   try {
-    const itemName = item.gear_items.name;
+    const itemName = item.gear_items?.name;
     if (!itemName) {
       log.warn('No name found for gear item', {
         tracking_id: item.id,
@@ -249,7 +254,11 @@ async function checkPersonalOffers(
   // Send notification for each offer (notification tracking handled in price_alerts table)
   for (const offer of offers as any[]) {
     try {
-      const partnerName = offer.partner_retailers.name;
+      const partnerName = offer.partner_retailers?.name;
+      if (!partnerName) {
+        log.warn('Partner retailer not found for offer', { offer_id: offer.id });
+        continue;
+      }
 
       await sendPersonalOfferAlert(
         userId,

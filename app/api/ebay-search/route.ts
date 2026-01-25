@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
 
       // Store in cache (upsert)
       const expiresAt = new Date(Date.now() + CACHE_TTL_MS).toISOString();
-      await supabase
+      const { error: cacheError } = await supabase
         .from('ebay_price_cache')
         .upsert(
           {
@@ -152,7 +152,10 @@ export async function GET(request: NextRequest) {
           }
         );
 
-      if (process.env.NODE_ENV === 'development') {
+      if (cacheError) {
+        console.warn('[eBay API] Failed to cache results:', cacheError);
+        // Non-fatal: continue with response, but log for monitoring
+      } else if (process.env.NODE_ENV === 'development') {
         console.log(`[eBay API] Cached ${listings.length} results for "${normalizedQuery}"`);
       }
     }

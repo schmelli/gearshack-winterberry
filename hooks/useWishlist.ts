@@ -101,7 +101,7 @@ export function useWishlist(): UseWishlistReturn {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Fetch Wishlist Items on Mount
+  // Manual Refresh Function
   // ---------------------------------------------------------------------------
   const refresh = useCallback(async () => {
     try {
@@ -118,9 +118,39 @@ export function useWishlist(): UseWishlistReturn {
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Fetch Wishlist Items on Mount (with race condition protection)
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let isCancelled = false;
+
+    const loadWishlist = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const items = await fetchWishlistItems();
+        if (!isCancelled) {
+          setWishlistItems(items);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load wishlist';
+          setError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadWishlist();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   // ---------------------------------------------------------------------------
   // CRUD Actions
