@@ -271,7 +271,14 @@ async function geocodeLocation(location: string): Promise<{ lat: number; lon: nu
       return null;
     }
 
-    const data = await response.json();
+    // Parse JSON with error handling
+    let data: { results?: GeocodingResult[] };
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[Weather] Invalid JSON response from geocoding API');
+      return null;
+    }
     const results: GeocodingResult[] = data.results ?? [];
 
     if (results.length === 0) {
@@ -333,7 +340,14 @@ async function fetchClimateData(
       return null;
     }
 
-    const data: ClimateApiResponse = await response.json();
+    // Parse JSON with error handling
+    let data: ClimateApiResponse;
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[Weather] Invalid JSON response from climate API');
+      return null;
+    }
 
     if (!data.daily || data.daily.temperature_2m_max.length === 0) {
       console.warn('[Weather] No climate data available');

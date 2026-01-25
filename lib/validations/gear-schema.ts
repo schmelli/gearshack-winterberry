@@ -130,7 +130,11 @@ export const gearItemFormSchema = z.object({
   quantity: z
     .string()
     .refine(
-      (val) => val === '' || (!isNaN(parseInt(val)) && parseInt(val) >= 1),
+      (val) => {
+        if (val === '') return true;
+        const parsed = parseInt(val, 10);
+        return !isNaN(parsed) && parsed >= 1;
+      },
       { message: 'Quantity must be at least 1' }
     ),
   /** Whether this item is marked as favourite - Feature 041 */
