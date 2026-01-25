@@ -40,10 +40,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Parse query parameters
+    // Parse query parameters with validation
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limitRaw = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 20;
     const status = searchParams.get('status') || 'pending';
     const search = searchParams.get('search') || '';
 

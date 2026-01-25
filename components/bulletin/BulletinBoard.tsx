@@ -88,18 +88,24 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
   // Infinite scroll ref
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Get current user
+  // Get current user with cancellation
   useEffect(() => {
+    let isCancelled = false;
+
     const getUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (isCancelled) return;
+
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('display_name, avatar_url')
           .eq('id', user.id)
           .single();
+
+        if (isCancelled) return;
 
         setCurrentUser({
           id: user.id,
@@ -109,6 +115,10 @@ export function BulletinBoard({ initialPosts }: BulletinBoardProps) {
       }
     };
     getUser();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [supabase, t]);
 
   // Infinite scroll observer

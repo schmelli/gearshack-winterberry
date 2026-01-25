@@ -256,7 +256,10 @@ export const WishlistInsightsPanel = memo(function WishlistInsightsPanel({
 
   const handleRadiusChange = useCallback(
     (value: string) => {
-      onFiltersChange({ radiusMeters: parseInt(value, 10) });
+      const parsed = parseInt(value, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        onFiltersChange({ radiusMeters: parsed });
+      }
     },
     [onFiltersChange]
   );

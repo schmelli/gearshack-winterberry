@@ -147,7 +147,44 @@ export function useFriendActivity(
 
   // Initial load - depend only on user.uid and activityTypeFilter
   useEffect(() => {
-    loadActivities();
+    let isCancelled = false;
+
+    const load = async () => {
+      if (!user?.uid) {
+        setActivities([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        setOffset(0);
+
+        const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as SocialActivityType | undefined;
+        const data = await fetchFriendActivities(PAGE_SIZE, 0, filterType);
+
+        if (isCancelled) return;
+
+        setActivities(data);
+        setHasMore(data.length === PAGE_SIZE);
+      } catch (err) {
+        if (isCancelled) return;
+        const message = err instanceof Error ? err.message : 'Failed to load activity feed';
+        setError(message);
+        console.error('Error loading friend activities:', err);
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isCancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, activityTypeFilter]);
 

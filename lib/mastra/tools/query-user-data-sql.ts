@@ -177,7 +177,10 @@ function parseWhereClause(whereStr: string): ParsedCondition[] {
         } else if (value !== undefined) {
           if (value.toLowerCase() === 'true') parsedValue = true;
           else if (value.toLowerCase() === 'false') parsedValue = false;
-          else if (/^-?\d+(?:\.\d+)?$/.test(value)) parsedValue = parseFloat(value);
+          else if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+          const parsed = parseFloat(value);
+          parsedValue = Number.isFinite(parsed) ? parsed : null;
+        }
         }
 
         conditions.push({

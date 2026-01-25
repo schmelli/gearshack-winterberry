@@ -57,7 +57,8 @@ export async function GET(request: NextRequest) {
     const brandIdParam = searchParams.get('brand_id') || undefined;
     const brandNameParam = searchParams.get('brand_name') || undefined;
     const limitParam = searchParams.get('limit') || '8';
-    const limit = Math.min(Math.max(parseInt(limitParam, 10) || 8, 1), 20);
+    const parsedLimit = parseInt(limitParam, 10);
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 20) : 8;
 
     // Determine brand filtering strategy:
     // 1. If brand_name is provided, use it for ILIKE filtering (most reliable)

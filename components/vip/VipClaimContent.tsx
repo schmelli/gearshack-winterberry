@@ -90,12 +90,16 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
 
-  // Fetch claim invitation details
+  // Fetch claim invitation details with cancellation
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchClaimData = async () => {
       try {
         const response = await fetch(`/api/vip/claim/${token}`);
         const data = await response.json();
+
+        if (isCancelled) return;
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -117,6 +121,7 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
         setClaimData(data);
         setStatus('valid');
       } catch (err) {
+        if (isCancelled) return;
         console.error('Error fetching claim data:', err);
         setStatus('error');
         setError(t('errors.loadFailed'));
@@ -124,6 +129,10 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
     };
 
     fetchClaimData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [token, t]);
 
   // Handle claim completion

@@ -192,10 +192,16 @@ export async function executeQueryUserData(
 
     // Apply search filter (case-insensitive ILIKE)
     if (search) {
+      // Sanitize search value to prevent ILIKE injection
+      const sanitizedValue = search.value
+        .replace(/\\/g, '\\\\')  // Escape backslash first
+        .replace(/%/g, '\\%')    // Escape %
+        .replace(/_/g, '\\_')    // Escape _
+        .replace(/[(),\.]/g, ''); // Remove PostgREST operators
       if (search.caseSensitive) {
-        query = query.like(search.column, `%${search.value}%`);
+        query = query.like(search.column, `%${sanitizedValue}%`);
       } else {
-        query = query.ilike(search.column, `%${search.value}%`);
+        query = query.ilike(search.column, `%${sanitizedValue}%`);
       }
       appliedFilters.push(`search:${search.column}`);
     }

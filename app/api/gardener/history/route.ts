@@ -20,9 +20,10 @@ export async function GET() {
     });
 
     if (!response.ok) {
+      console.error('[Gardener Proxy] Upstream error:', response.status);
       return NextResponse.json(
-        { error: `Gardener API error: ${response.status}` },
-        { status: response.status }
+        { error: 'Failed to fetch history' },
+        { status: 502 }
       );
     }
 
@@ -47,9 +48,10 @@ export async function DELETE() {
     });
 
     if (!response.ok) {
+      console.error('[Gardener Proxy] Upstream error:', response.status);
       return NextResponse.json(
-        { error: `Gardener API error: ${response.status}` },
-        { status: response.status }
+        { error: 'Failed to clear history' },
+        { status: 502 }
       );
     }
 

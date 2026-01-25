@@ -56,6 +56,8 @@ export function useCurrencyFormat(): UseCurrencyFormatReturn {
 
   // Fetch exchange rates
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchRates = async () => {
       setRatesLoading(true);
       setRatesError(null);
@@ -70,6 +72,8 @@ export function useCurrencyFormat(): UseCurrencyFormatReturn {
           .order('fetched_at', { ascending: false })
           .limit(1)
           .single() as { data: ExchangeRatesRow | null; error: { code?: string; message?: string } | null };
+
+        if (isCancelled) return;
 
         if (error) {
           // Table might not exist yet or no data - use fallback
@@ -86,19 +90,28 @@ export function useCurrencyFormat(): UseCurrencyFormatReturn {
             setExchangeRates(row.rates as Record<string, number>);
           } else {
             // Rates expired, try to fetch new ones via API
-            await refreshRatesFromAPI();
+            if (!isCancelled) {
+              await refreshRatesFromAPI();
+            }
           }
         }
       } catch (err) {
+        if (isCancelled) return;
         console.error('Error fetching exchange rates:', err);
         setRatesError('Failed to fetch exchange rates');
         // Keep using fallback rates
       } finally {
-        setRatesLoading(false);
+        if (!isCancelled) {
+          setRatesLoading(false);
+        }
       }
     };
 
     fetchRates();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [supabase]);
 
   // Refresh rates from external API

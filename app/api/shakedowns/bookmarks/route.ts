@@ -230,12 +230,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse query parameters
+    // Parse query parameters with validation
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get('cursor');
     const limitParam = searchParams.get('limit');
-    const limit = limitParam
-      ? Math.min(Math.max(parseInt(limitParam, 10) || SHAKEDOWN_CONSTANTS.ITEMS_PER_PAGE, 1), 50)
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : SHAKEDOWN_CONSTANTS.ITEMS_PER_PAGE;
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 50)
       : SHAKEDOWN_CONSTANTS.ITEMS_PER_PAGE;
 
     // Request one extra to determine if there are more results
