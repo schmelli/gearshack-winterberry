@@ -154,8 +154,8 @@ export function VirtualGearShakedown({
     [payload.loadout.tripDate]
   );
   const createdDate = useMemo(() => (createdAt ? new Date(createdAt) : null), [createdAt]);
-  const tripDateLabel = useMemo(() => formatTripDate(tripDate) ?? 'Not set', [tripDate]);
-  const createdDateLabel = useMemo(() => formatTripDate(createdDate) ?? 'Live', [createdDate]);
+  const tripDateLabel = useMemo(() => formatTripDate(tripDate) ?? tShared('notSet'), [tripDate, tShared]);
+  const createdDateLabel = useMemo(() => formatTripDate(createdDate) ?? tShared('live'), [createdDate, tShared]);
 
   const weightSummary = useMemo(() => {
     const totalWeight = payload.items.reduce((sum, item) => sum + (item.weightGrams ?? 0), 0);
