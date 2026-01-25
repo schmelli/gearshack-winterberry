@@ -58,11 +58,15 @@ export async function GET(request: NextRequest) {
 
     // Search users - Using ilike for case-insensitive search
     // Filter by discoverable=true (T043)
+    // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+    const sanitizedQuery = query
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
     const { data: users, error: searchError } = await (supabase as any)
       .from('profiles')
       .select('id, display_name, avatar_url, trail_name, bio, discoverable')
       .neq('id', user.id) // Exclude self
-      .or(`display_name.ilike.%${query}%,trail_name.ilike.%${query}%`)
+      .or(`display_name.ilike.%${sanitizedQuery}%,trail_name.ilike.%${sanitizedQuery}%`)
       .limit(20);
 
     if (searchError) {

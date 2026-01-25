@@ -105,7 +105,10 @@ export async function GET(request: NextRequest) {
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
     // Build query - use ILIKE for case-insensitive search
-    const normalizedQuery = q.toLowerCase().trim();
+    // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+    const normalizedQuery = q.toLowerCase().trim()
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
 
     // Query catalog_products with FK joins to catalog_brands and categories
     // The product_type_id references categories at level 3 (product type)

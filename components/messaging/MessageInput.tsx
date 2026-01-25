@@ -75,6 +75,15 @@ export function MessageInput({
     };
   }, []);
 
+  // Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (imageAttachment?.url) {
+        URL.revokeObjectURL(imageAttachment.url);
+      }
+    };
+  }, [imageAttachment?.url]);
+
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
 

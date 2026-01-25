@@ -248,8 +248,12 @@ export async function GET(
 
     // Apply search filter (trigram search on trip_name)
     if (search && search.trim()) {
+      // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+      const sanitizedSearch = search.trim()
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
       // Use ilike for basic search (trigram extension provides fuzzy matching)
-      query = query.ilike('trip_name', `%${search.trim()}%`);
+      query = query.ilike('trip_name', `%${sanitizedSearch}%`);
     }
 
     // Apply cursor-based pagination
