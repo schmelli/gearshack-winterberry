@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 import type { PriceResult } from '@/types/price-tracking';
 
 interface PriceResultCardProps {
@@ -129,22 +129,24 @@ export function PriceResultCard({
             )}
           </div>
 
-          {/* View button */}
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="shrink-0"
-          >
-            <a
-              href={result.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
+          {/* View button - SECURITY: Validate URL before rendering */}
+          {sanitizeExternalUrl(result.source_url) && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="shrink-0"
             >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              View
-            </a>
-          </Button>
+              <a
+                href={sanitizeExternalUrl(result.source_url)!}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View
+              </a>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
