@@ -1608,6 +1608,18 @@
       "addFriend": "Als Freund hinzufügen",
       "unknown": "Unbekannt"
     },
+    "modal": {
+      "tabs": {
+        "messages": "Nachrichten",
+        "friends": "Freunde"
+      },
+      "searchMessages": "Nachrichten suchen...",
+      "new": "Neu",
+      "back": "Zurück",
+      "newConversation": "Neue Konversation",
+      "searchMessagesTitle": "Nachrichten suchen",
+      "searchForSomeone": "Nach jemandem suchen, um eine Nachricht zu senden..."
+    },
     "messageBubble": {
       "copy": "Kopieren",
       "deleteForMe": "Für mich löschen",
