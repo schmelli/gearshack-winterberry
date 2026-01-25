@@ -11,6 +11,7 @@
 'use client';
 
 import { memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label } from 'recharts';
 import type { CategoryWeight } from '@/types/loadout';
 import { formatWeight } from '@/lib/loadout-utils';
@@ -73,6 +74,7 @@ function CustomTooltip({
   active?: boolean;
   payload?: TooltipPayload[];
 }) {
+  const t = useTranslations('Loadouts');
   if (!active || !payload || payload.length === 0) return null;
 
   const data = payload[0].payload;
@@ -83,7 +85,7 @@ function CustomTooltip({
         {formatWeight(data.totalWeightGrams)} ({data.percentage.toFixed(1)}%)
       </p>
       <p className="text-xs text-muted-foreground">
-        {data.itemCount} {data.itemCount === 1 ? 'item' : 'items'}
+        {t('itemCount', { count: data.itemCount })}
       </p>
     </div>
   );
@@ -99,6 +101,7 @@ interface CenterLabelProps {
 }
 
 function CenterLabel({ viewBox, totalWeight }: CenterLabelProps) {
+  const t = useTranslations('Loadouts');
   const cx = viewBox?.cx ?? 0;
   const cy = viewBox?.cy ?? 0;
 
@@ -116,7 +119,7 @@ function CenterLabel({ viewBox, totalWeight }: CenterLabelProps) {
         dy="1.4em"
         className="fill-muted-foreground text-xs"
       >
-        grams
+        {t('weightDonut.grams')}
       </tspan>
     </text>
   );
@@ -146,6 +149,8 @@ export const WeightDonut = memo(function WeightDonut({
     0
   );
 
+  const t = useTranslations('Loadouts');
+
   // Handle empty state
   if (categoryWeights.length === 0) {
     return (
@@ -153,7 +158,7 @@ export const WeightDonut = memo(function WeightDonut({
         className="flex items-center justify-center text-muted-foreground"
         style={{ width, height }}
       >
-        <span className="text-sm">No data</span>
+        <span className="text-sm">{t('noData')}</span>
       </div>
     );
   }
