@@ -113,11 +113,22 @@ export function ImageUploadInput({
   // Firebase upload hook
   const { status: uploadStatus, upload } = useImageUpload();
 
-  // Cleanup tempPreview blob URL on unmount to prevent memory leaks
+  // Cleanup tempPreview blob URL to prevent memory leaks
+  // Use ref to track previous preview for proper cleanup
+  const prevPreviewRef = useRef<string | null>(null);
+
   useEffect(() => {
+    // Revoke previous URL when tempPreview changes
+    if (prevPreviewRef.current && prevPreviewRef.current !== tempPreview) {
+      URL.revokeObjectURL(prevPreviewRef.current);
+    }
+    prevPreviewRef.current = tempPreview;
+
+    // Cleanup on unmount
     return () => {
-      if (tempPreview) {
-        URL.revokeObjectURL(tempPreview);
+      if (prevPreviewRef.current) {
+        URL.revokeObjectURL(prevPreviewRef.current);
+        prevPreviewRef.current = null;
       }
     };
   }, [tempPreview]);
