@@ -53,3 +53,20 @@ export function isValidCloudinaryUrl(url: string): boolean {
     return false;
   }
 }
+
+// =============================================================================
+// Formatting Utilities
+// =============================================================================
+
+/**
+ * Format weight in grams to a human-readable string.
+ * Converts to kg if >= 1000g, otherwise displays in grams.
+ * @param grams - Weight in grams
+ * @returns Formatted weight string (e.g., "500 g" or "1.50 kg")
+ */
+export function formatWeight(grams: number): string {
+  if (grams >= 1000) {
+    return `${(grams / 1000).toFixed(2)} kg`;
+  }
+  return `${grams} g`;
+}

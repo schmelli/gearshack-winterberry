@@ -27,7 +27,7 @@ import {
 
 import type { ShakedownGearItem } from '@/hooks/shakedowns/useShakedown';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 
 import {
   Dialog,
@@ -186,13 +186,6 @@ function GearDetailContent({
   onAddToInventory,
 }: GearDetailContentProps): React.ReactElement {
   const t = useTranslations('Shakedowns.gearDetail');
-
-  const formatWeight = (grams: number): string => {
-    if (grams >= 1000) {
-      return `${(grams / 1000).toFixed(2)} kg`;
-    }
-    return `${grams} g`;
-  };
 
   return (
     <div className="space-y-6">

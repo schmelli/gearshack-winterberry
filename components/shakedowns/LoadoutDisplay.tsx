@@ -19,7 +19,7 @@ import type { Loadout } from '@/types/loadout';
 import type { ShakedownGearItem } from '@/hooks/shakedowns';
 import { useShakedownGearFilters, type GearSortOption } from '@/hooks/shakedowns/useShakedownGearFilters';
 import { Link } from '@/i18n/navigation';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -50,13 +50,6 @@ interface LoadoutDisplayProps {
   onItemDetail?: (item: SelectedGearItem) => void;
   /** Show toolbar with search/filter/sort (default: true if > 5 items) */
   showToolbar?: boolean;
-}
-
-function formatWeight(grams: number): string {
-  if (grams >= 1000) {
-    return `${(grams / 1000).toFixed(2)} kg`;
-  }
-  return `${grams} g`;
 }
 
 export function LoadoutDisplay({
@@ -349,6 +342,7 @@ function GearItemsGrid({
                   tabIndex={0}
                   onClick={() => onItemClick(item)}
                   onKeyDown={(e) => handleKeyDown(e, item)}
+                  aria-label={`${item.name}${item.brand ? ` - ${item.brand}` : ''}${item.weightGrams !== null ? ` - ${formatWeight(item.weightGrams)}` : ''}`}
                   className={cn(
                     'relative flex items-center gap-3 rounded-lg border p-3',
                     'cursor-pointer transition-colors',
