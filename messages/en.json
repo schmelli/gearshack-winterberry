@@ -997,6 +997,84 @@
       "weightHeaviest": "Weight (Heaviest)",
       "category": "Category",
       "allCategories": "All Categories"
+    },
+    "fallbackImage": {
+      "altText": "Fallback loadout image",
+      "errorMessage": "Failed to generate image",
+      "generatingImage": "Generating image...",
+      "generationFailed": "Generation Failed",
+      "defaultImage": "Default Image",
+      "noImage": "No image"
+    },
+    "generatedImage": {
+      "altText": "Generated loadout image",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "noImageGenerated": "No image generated"
+    },
+    "imageGeneration": {
+      "generateImage": "Generate Image",
+      "generatingAriaLabel": "Generating image...",
+      "generating": "Generating..."
+    },
+    "imageHistory": {
+      "title": "Image History ({count}/{max})",
+      "selectImage": "Select image {number}",
+      "imageVariationAlt": "Generated image variation",
+      "maxHistoryReached": "Maximum history reached. Generating new images will replace the oldest.",
+      "clickToSelect": "Click an image to set it as active."
+    },
+    "stylePreferences": {
+      "title": "Style Preferences",
+      "subtitle": "Customize the visual style of your generated image",
+      "visualStyle": "Visual Style",
+      "selectStyle": "Select style...",
+      "lightingTimeOfDay": "Lighting / Time of Day",
+      "selectLighting": "Select lighting...",
+      "atmosphereOptional": "Atmosphere (Optional)",
+      "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
+      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)",
+      "templates": {
+        "default": "Default (Natural)",
+        "cinematic": {
+          "name": "Cinematic",
+          "description": "Dramatic, wide-angle, movie-like"
+        },
+        "documentary": {
+          "name": "Documentary",
+          "description": "Natural, realistic, photojournalistic"
+        },
+        "magazine": {
+          "name": "Magazine",
+          "description": "Polished, editorial, striking"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "description": "Vibrant, trendy, social media"
+        }
+      },
+      "timeOfDay": {
+        "default": "Default (Season-based)",
+        "goldenHour": {
+          "name": "Golden Hour",
+          "description": "Warm, low-angle sun"
+        },
+        "blueHour": {
+          "name": "Blue Hour",
+          "description": "Twilight, cool tones"
+        },
+        "midday": {
+          "name": "Midday",
+          "description": "Bright, high contrast"
+        },
+        "dawn": {
+          "name": "Dawn",
+          "description": "Early morning, soft"
+        },
+        "dusk": {
+          "name": "Dusk",
+          "description": "Sunset, fading light"
+        }
+      }
     }
   },
   "LoadoutCreation": {

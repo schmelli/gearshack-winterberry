@@ -1026,6 +1026,59 @@
       "imageVariationAlt": "Generierte Bildvariante",
       "maxHistoryReached": "Maximaler Verlauf erreicht. Neue Bilder ersetzen die ältesten.",
       "clickToSelect": "Klicke auf ein Bild, um es zu aktivieren."
+    },
+    "stylePreferences": {
+      "title": "Stileinstellungen",
+      "subtitle": "Passe den visuellen Stil deines generierten Bildes an",
+      "visualStyle": "Visueller Stil",
+      "selectStyle": "Stil auswählen...",
+      "lightingTimeOfDay": "Beleuchtung / Tageszeit",
+      "selectLighting": "Beleuchtung auswählen...",
+      "atmosphereOptional": "Atmosphäre (Optional)",
+      "atmospherePlaceholder": "z.B. nebeliger Morgen, dramatische Wolken...",
+      "atmosphereHint": "Füge benutzerdefinierte Atmosphäre-Hinweise hinzu (max. 50 Zeichen)",
+      "templates": {
+        "default": "Standard (Natürlich)",
+        "cinematic": {
+          "name": "Filmisch",
+          "description": "Dramatisch, Weitwinkel, filmreif"
+        },
+        "documentary": {
+          "name": "Dokumentarisch",
+          "description": "Natürlich, realistisch, fotojournalistisch"
+        },
+        "magazine": {
+          "name": "Magazin",
+          "description": "Poliert, redaktionell, auffällig"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "description": "Lebendig, trendy, Social Media"
+        }
+      },
+      "timeOfDay": {
+        "default": "Standard (Saisonabhängig)",
+        "goldenHour": {
+          "name": "Goldene Stunde",
+          "description": "Warm, tiefstehende Sonne"
+        },
+        "blueHour": {
+          "name": "Blaue Stunde",
+          "description": "Dämmerung, kühle Töne"
+        },
+        "midday": {
+          "name": "Mittag",
+          "description": "Hell, hoher Kontrast"
+        },
+        "dawn": {
+          "name": "Morgendämmerung",
+          "description": "Früher Morgen, weich"
+        },
+        "dusk": {
+          "name": "Abenddämmerung",
+          "description": "Sonnenuntergang, schwindendes Licht"
+        }
+      }
     }
   },
   "LoadoutCreation": {
@@ -3328,6 +3381,19 @@
       "backToApp": "Zurück zur App"
     },
     "categories": {
+      "pageTitle": "Kategorieverwaltung",
+      "pageDescription": "Verwalte die Ausrüstungsklassifizierungs-Taxonomie",
+      "refreshIssues": "Probleme aktualisieren",
+      "categoryIssues": "Kategorieprobleme",
+      "issuesCount": "{count} Kategorien mit erkannten Problemen",
+      "noIssuesFound": "Keine Probleme gefunden. Alle Kategorien haben vollständige Übersetzungen und Struktur.",
+      "highlightIssues": "Probleme hervorheben",
+      "moreIssues": "+{count} weitere Probleme. Aktiviere die Hervorhebung, um sie im Baum zu sehen.",
+      "totalCategories": "Kategorien gesamt",
+      "byLevel": "Nach Ebene",
+      "issues": "Probleme",
+      "categoryHierarchy": "Kategoriehierarchie",
+      "hierarchyDescription": "Erweitere Kategorien, um Unterkategorien und Produkttypen anzuzeigen. Benutze die Aktionsschaltflächen zum Bearbeiten, Löschen oder Neuordnen.",
       "deleteTitle": "Kategorie löschen",
       "confirmDeleteMessage": "Bist du sicher, dass du <strong>{category}</strong> löschen möchtest?",
       "cannotDeleteChildrenWarning": "Du musst zuerst alle Unterkategorien löschen. Kategorien mit Unterkategorien können nicht gelöscht werden.",
