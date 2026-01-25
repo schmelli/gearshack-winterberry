@@ -1449,6 +1449,21 @@
       "oneUser": "{name} tippt",
       "twoUsers": "{name1} und {name2} tippen",
       "several": "Mehrere Personen tippen"
+    },
+    "gearPicker": {
+      "title": "Ausrüstung teilen",
+      "searchPlaceholder": "Suche in deiner Ausrüstung...",
+      "noGearInInventory": "Keine Ausrüstung in deinem Inventar",
+      "noGearMatches": "Keine Ausrüstung entspricht deiner Suche",
+      "share": "Teilen"
+    },
+    "locationPicker": {
+      "title": "Standort teilen",
+      "searchPlaceholder": "Nach einem Ort suchen...",
+      "currentLocation": "Aktueller Standort",
+      "gettingLocation": "Standort wird ermittelt...",
+      "useCurrentLocation": "Aktuellen Standort verwenden",
+      "shareLocation": "Standort teilen"
     }
   },
   "Settings": {
@@ -3085,7 +3100,20 @@
       "compare": "Vergleichen",
       "sendMessage": "Nachricht senden",
       "viewDetails": "Details ansehen"
-    }
+    },
+    "modal": {
+      "title": "KI-Ausrüstungsassistent",
+      "description": "Stelle Fragen zu deiner Ausrüstung, hole dir Empfehlungen und optimiere deine Packlisten"
+    },
+    "welcome": {
+      "title": "Willkommen beim KI-Ausrüstungsassistenten!",
+      "description": "Ich kann dir helfen, deine Packlisten zu optimieren, leichtere Ausrüstungsalternativen zu finden und Fragen zu deinem Inventar zu beantworten.",
+      "tryAsking": "Probiere es mit:",
+      "suggestion1": "Was ist mein Basisgewicht?",
+      "suggestion2": "Empfiehl mir ein leichteres Zelt",
+      "suggestion3": "Zeig mir meine Schlafsäcke"
+    },
+    "thinking": "KI denkt nach..."
   },
   "Admin": {
     "navigation": {

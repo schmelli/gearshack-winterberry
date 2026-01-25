@@ -1449,6 +1449,21 @@
       "oneUser": "{name} is typing",
       "twoUsers": "{name1} and {name2} are typing",
       "several": "Several people are typing"
+    },
+    "gearPicker": {
+      "title": "Share Gear Item",
+      "searchPlaceholder": "Search your gear...",
+      "noGearInInventory": "No gear in your inventory",
+      "noGearMatches": "No gear matches your search",
+      "share": "Share"
+    },
+    "locationPicker": {
+      "title": "Share Location",
+      "searchPlaceholder": "Search for a location...",
+      "currentLocation": "Current Location",
+      "gettingLocation": "Getting location...",
+      "useCurrentLocation": "Use Current Location",
+      "shareLocation": "Share Location"
     }
   },
   "Settings": {
@@ -3085,7 +3100,20 @@
       "compare": "Compare",
       "sendMessage": "Send Message",
       "viewDetails": "View Details"
-    }
+    },
+    "modal": {
+      "title": "AI Gear Assistant",
+      "description": "Ask questions about your gear, get recommendations, and optimize your loadouts"
+    },
+    "welcome": {
+      "title": "Welcome to AI Gear Assistant!",
+      "description": "I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.",
+      "tryAsking": "Try asking:",
+      "suggestion1": "What's my base weight?",
+      "suggestion2": "Recommend a lighter tent",
+      "suggestion3": "Show me my sleeping bags"
+    },
+    "thinking": "AI is thinking..."
   },
   "Admin": {
     "navigation": {

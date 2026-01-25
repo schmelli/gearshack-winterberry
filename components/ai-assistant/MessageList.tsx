@@ -13,6 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Message {
   id: string;
@@ -41,6 +42,7 @@ export function MessageList({
   onSpeakMessage,
   isPlayingAudio = false,
 }: MessageListProps) {
+  const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -52,23 +54,25 @@ export function MessageList({
 
   // Empty state
   if (messages.length === 0) {
+    const suggestions = [
+      t('welcome.suggestion1'),
+      t('welcome.suggestion2'),
+      t('welcome.suggestion3'),
+    ];
+
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">
           <span className="text-3xl">👋</span>
         </div>
-        <h3 className="mb-2 text-lg font-semibold">Welcome to AI Gear Assistant!</h3>
+        <h3 className="mb-2 text-lg font-semibold">{t('welcome.title')}</h3>
         <p className="max-w-md text-sm text-muted-foreground">
-          I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.
+          {t('welcome.description')}
         </p>
         <div className="mt-6 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">Try asking:</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t('welcome.tryAsking')}</p>
           <div className="flex flex-wrap justify-center gap-2">
-            {[
-              "What's my base weight?",
-              'Recommend a lighter tent',
-              'Show me my sleeping bags',
-            ].map((suggestion, i) => (
+            {suggestions.map((suggestion, i) => (
               <div
                 key={i}
                 className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs"
@@ -107,7 +111,7 @@ export function MessageList({
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>AI is thinking...</span>
+            <span>{t('thinking')}</span>
           </div>
         )}
       </div>

@@ -21,6 +21,7 @@ import {
 import { LocationAutocomplete } from '@/components/profile/LocationAutocomplete';
 import type { LocationSelection } from '@/types/profile';
 import type { LocationMetadata } from '@/types/messaging';
+import { useTranslations } from 'next-intl';
 
 interface LocationPickerProps {
   open: boolean;
@@ -32,6 +33,8 @@ interface LocationPickerProps {
  * Dialog for selecting a location to share.
  */
 export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerProps) {
+  const t = useTranslations('Messaging');
+  const tCommon = useTranslations('Common');
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   // Track timeout for cleanup on unmount
@@ -92,7 +95,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             data.address?.town ||
             data.address?.village ||
             data.display_name?.split(',')[0] ||
-            'Current Location';
+            t('locationPicker.currentLocation');
 
           setSelectedLocation({
             name: placeName,
@@ -109,9 +112,10 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
           // Clear AbortController ref after error
           abortControllerRef.current = null;
           // Fallback to basic coordinates on timeout or error
+          const currentLocationText = t('locationPicker.currentLocation');
           setSelectedLocation({
-            name: 'Current Location',
-            formattedAddress: 'Current Location',
+            name: currentLocationText,
+            formattedAddress: currentLocationText,
             latitude,
             longitude,
             placeId: '',
@@ -150,7 +154,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Share Location</DialogTitle>
+          <DialogTitle>{t('locationPicker.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -158,7 +162,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
           <LocationAutocomplete
             value={selectedLocation?.formattedAddress ?? ''}
             onSelect={handleLocationSelect}
-            placeholder="Search for a location..."
+            placeholder={t('locationPicker.searchPlaceholder')}
           />
 
           {/* Current Location Button */}
@@ -169,7 +173,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             disabled={isGettingLocation}
           >
             <Navigation className="mr-2 h-4 w-4" />
-            {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+            {isGettingLocation ? t('locationPicker.gettingLocation') : t('locationPicker.useCurrentLocation')}
           </Button>
 
           {/* Selected Location Preview */}
@@ -189,10 +193,10 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
         {/* Actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={handleClose}>
-            Cancel
+            {tCommon('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!canConfirm}>
-            Share Location
+            {t('locationPicker.shareLocation')}
           </Button>
         </div>
       </DialogContent>
