@@ -58,6 +58,17 @@ export function VipBookmarkButton({
 
   // Use ref to track previous error state
   const prevErrorRef = useRef<string | null>(null);
+  // Timer ref for toast notification cleanup
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Show error toast
   useEffect(() => {
@@ -81,7 +92,7 @@ export function VipBookmarkButton({
 
     // Show success toast only if there was no previous error and no new error occurred
     // Use a small delay to allow error state to update
-    setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       if (!previousError && !error) {
         toast.success(wasBookmarked ? t('unbookmarkedNotification') : t('bookmarkedNotification'));
       }

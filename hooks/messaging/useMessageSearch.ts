@@ -145,6 +145,10 @@ export function useMessageSearch(): UseMessageSearchReturn {
     [user]
   );
 
+  // Use ref to access performSearch without causing effect re-runs
+  const performSearchRef = useRef(performSearch);
+  performSearchRef.current = performSearch;
+
   // Debounced search effect
   useEffect(() => {
     if (debounceRef.current) {
@@ -157,7 +161,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
     }
 
     debounceRef.current = setTimeout(() => {
-      performSearch(query, conversationFilter);
+      performSearchRef.current(query, conversationFilter);
     }, 300);
 
     return () => {
@@ -165,7 +169,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, conversationFilter, performSearch]);
+  }, [query, conversationFilter]); // Remove performSearch - use ref instead
 
   const searchInConversation = useCallback((conversationId: string) => {
     setConversationFilter(conversationId);

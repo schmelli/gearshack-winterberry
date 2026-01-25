@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Copy, Mail, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -85,6 +85,18 @@ export function SocialShareButtons({
   const t = useTranslations('Shakedown');
   const [copied, setCopied] = useState(false);
 
+  // Timer ref for copy feedback cleanup
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Encoded values for URLs
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
@@ -102,7 +114,7 @@ export function SocialShareButtons({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success(t('linkCopied'));
-      setTimeout(() => setCopied(false), 2000);
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(t('copyFailed'));
     }

@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Calendar,
@@ -102,6 +102,18 @@ function ShareListItemRow({
   const [passwordValue, setPasswordValue] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // Timer ref for copy feedback cleanup
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const url = getShareUrl();
   const isExpired = share.expiresAt && new Date(share.expiresAt) < new Date();
 
@@ -110,7 +122,7 @@ function ShareListItemRow({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success(t('linkCopied'));
-      setTimeout(() => setCopied(false), 2000);
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(t('copyFailed'));
     }

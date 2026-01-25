@@ -248,10 +248,12 @@ export async function GET(
 
     // Apply search filter (trigram search on trip_name)
     if (search && search.trim()) {
-      // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+      // Escape ILIKE wildcards and SQL special characters to prevent injection
       const sanitizedSearch = search.trim()
-        .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_');
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
+        .replace(/'/g, "''")     // Escape single quotes for SQL
+        .replace(/%/g, '\\%')    // Escape % wildcards
+        .replace(/_/g, '\\_');   // Escape _ wildcards
       // Use ilike for basic search (trigram extension provides fuzzy matching)
       query = query.ilike('trip_name', `%${sanitizedSearch}%`);
     }

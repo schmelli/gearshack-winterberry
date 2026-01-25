@@ -168,11 +168,13 @@ Examples:
       }
 
       // Apply text search (only if query provided)
-      // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+      // Escape ILIKE wildcards and PostgREST special characters to prevent injection
       if (query) {
         const sanitizedQuery = query
-          .replace(/%/g, '\\%')
-          .replace(/_/g, '\\_');
+          .replace(/\\/g, '\\\\')  // Escape backslashes first
+          .replace(/%/g, '\\%')    // Escape % wildcards
+          .replace(/_/g, '\\_')    // Escape _ wildcards
+          .replace(/,/g, '');      // Remove commas (PostgREST .or() delimiter)
         dbQuery = dbQuery.or(`name.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`);
         appliedFilters.query = query;
       }

@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ThumbsUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -75,6 +75,18 @@ export function HelpfulButton({
   const [optimisticCount, setOptimisticCount] = useState(helpfulCount);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Timer ref for badge notification cleanup
+  const badgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (badgeTimeoutRef.current) {
+        clearTimeout(badgeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Sync with props when they change (e.g., from server refresh)
   if (isHelpful !== optimisticIsHelpful && !isLoading) {
     setOptimisticIsHelpful(isHelpful);
@@ -132,7 +144,7 @@ export function HelpfulButton({
       // Check for badge award and show celebratory notification
       if (result.badgeAwarded) {
         // Delay badge notification slightly for better UX
-        setTimeout(() => {
+        badgeTimeoutRef.current = setTimeout(() => {
           toast.success(t('badges.newBadge'), {
             description: getBadgeName(result.badgeAwarded!, t),
             duration: 5000,

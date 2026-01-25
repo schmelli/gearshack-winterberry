@@ -209,7 +209,10 @@ export async function searchEbay(
       console.log(`[eBay] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
     }
 
-    return filteredResults.map((result) => ({
+    // Filter out results without valid price data to prevent null access
+    return filteredResults
+      .filter((result) => result.price?.extracted != null)
+      .map((result) => ({
       id: crypto.randomUUID(),
       tracking_id: '', // Will be set by caller
       source_type: 'ebay' as const,

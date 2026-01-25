@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Search, Check, Plus, Package } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -209,6 +209,17 @@ function PickerItem({
 }: PickerItemProps) {
   // Micro-interaction state for Add button (US9)
   const [justAdded, setJustAdded] = useState(false);
+  // Timer ref for feedback cleanup
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
   const categories = useCategoriesStore((state) => state.categories);
@@ -224,7 +235,7 @@ function PickerItem({
       onAdd();
       // Brief flash feedback (US9)
       setJustAdded(true);
-      setTimeout(() => setJustAdded(false), 200);
+      feedbackTimeoutRef.current = setTimeout(() => setJustAdded(false), 200);
     }
   };
 
