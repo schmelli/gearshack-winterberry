@@ -78,7 +78,7 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
 
   if (alertError || !alertId) {
     console.error('Failed to create alert:', alertError);
-    throw alertError || new Error('No alert ID returned');
+    throw new Error('Failed to create price alert');
   }
 
   // Enqueue notifications for delivery (Review fix #10: Queue with retry)
