@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 // ============================================================================
 // Types
@@ -52,22 +53,24 @@ export function VoiceInputButton({
   className,
   tooltip,
 }: VoiceInputButtonProps) {
+  const t = useTranslations('AIAssistant');
+
   // Determine tooltip text
   const getTooltip = () => {
     if (tooltip) return tooltip;
     switch (state) {
       case 'idle':
-        return 'Click to start voice input';
+        return t('voice.clickToStart');
       case 'recording':
-        return 'Click to stop recording';
+        return t('voice.clickToStop');
       case 'processing':
-        return 'Processing your voice...';
+        return t('voice.processing');
       case 'disabled':
-        return 'Voice input not available';
+        return t('voice.notAvailable');
       case 'error':
-        return 'Voice input error - click to retry';
+        return t('voice.errorRetry');
       default:
-        return 'Voice input';
+        return t('voice.label');
     }
   };
 

@@ -872,6 +872,18 @@
       "lighterAlternativeAvailable": "Leichtere Alternative verfügbar",
       "swapItem": "Gegenstand austauschen",
       "saveWeight": "Spare {weight}"
+    },
+    "dependencies": {
+      "title": "Abhängigkeiten hinzufügen?",
+      "description": "'{itemName}' hat {count, plural, one {# Gegenstand} other {# Gegenstände}}, die typischerweise dazugehören:",
+      "direct": "Direkt",
+      "transitive": "Indirekt",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Alle abwählen",
+      "selectedCount": "{selected} von {total} ausgewählt",
+      "skip": "Überspringen",
+      "addSelected": "Ausgewählte hinzufügen ({count})",
+      "addAll": "Alle hinzufügen ({count})"
     }
   },
   "LoadoutCreation": {
@@ -3031,6 +3043,14 @@
       "placeholder": "Frag mich alles über deine Ausrüstung...",
       "keyboardHint": "Enter zum Senden, Shift+Enter für neue Zeile",
       "sendMessage": "Nachricht senden"
+    },
+    "voice": {
+      "clickToStart": "Klicken, um Spracheingabe zu starten",
+      "clickToStop": "Klicken, um Aufnahme zu stoppen",
+      "processing": "Verarbeite deine Sprache...",
+      "notAvailable": "Spracheingabe nicht verfügbar",
+      "errorRetry": "Spracheingabe-Fehler – klicken zum Wiederholen",
+      "label": "Spracheingabe"
     }
   },
   "Admin": {

@@ -872,6 +872,18 @@
       "lighterAlternativeAvailable": "Lighter alternative available",
       "swapItem": "Swap item",
       "saveWeight": "Save {weight}"
+    },
+    "dependencies": {
+      "title": "Add Dependencies?",
+      "description": "\"{itemName}\" has {count, plural, one {# item} other {# items}} that typically go with it:",
+      "direct": "Direct",
+      "transitive": "Transitive",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "selectedCount": "{selected} of {total} selected",
+      "skip": "Skip",
+      "addSelected": "Add Selected ({count})",
+      "addAll": "Add All ({count})"
     }
   },
   "LoadoutCreation": {
@@ -3031,6 +3043,14 @@
       "placeholder": "Ask me anything about your gear...",
       "keyboardHint": "Press Enter to send, Shift+Enter for new line",
       "sendMessage": "Send message"
+    },
+    "voice": {
+      "clickToStart": "Click to start voice input",
+      "clickToStop": "Click to stop recording",
+      "processing": "Processing your voice...",
+      "notAvailable": "Voice input not available",
+      "errorRetry": "Voice input error - click to retry",
+      "label": "Voice input"
     }
   },
   "Admin": {
