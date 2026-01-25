@@ -233,6 +233,10 @@ function PickerItem({
     e.stopPropagation();
     if (!isFullyAdded) {
       onAdd();
+      // FIXED: Clear previous timeout to prevent memory leak on rapid clicks
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
       // Brief flash feedback (US9)
       setJustAdded(true);
       feedbackTimeoutRef.current = setTimeout(() => setJustAdded(false), 200);

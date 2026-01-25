@@ -112,6 +112,10 @@ export function SocialShareButtons({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);
+      // FIXED: Clear previous timeout to prevent memory leak on rapid clicks
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
       setCopied(true);
       toast.success(t('linkCopied'));
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
