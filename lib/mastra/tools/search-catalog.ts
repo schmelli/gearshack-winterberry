@@ -168,8 +168,12 @@ Examples:
       }
 
       // Apply text search (only if query provided)
+      // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
       if (query) {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+        const sanitizedQuery = query
+          .replace(/%/g, '\\%')
+          .replace(/_/g, '\\_');
+        dbQuery = dbQuery.or(`name.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`);
         appliedFilters.query = query;
       }
 

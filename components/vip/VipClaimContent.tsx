@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -61,6 +61,17 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
   const [claimData, setClaimData] = useState<ClaimData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup redirect timeout on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Check authentication status
   useEffect(() => {
@@ -141,8 +152,8 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
         description: t('claimSuccessDescription', { name: data.vip.name }),
       });
 
-      // Redirect to VIP profile after a short delay
-      setTimeout(() => {
+      // Redirect to VIP profile after a short delay (with cleanup on unmount)
+      redirectTimeoutRef.current = setTimeout(() => {
         router.push(`/vip/${data.vip.slug}`);
       }, 2000);
     } catch (err) {

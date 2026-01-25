@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -51,8 +51,15 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const { startDirectConversation } = useConversations();
 
-  // Detect mobile for responsive layout
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  // Detect mobile for responsive layout (SSR-safe: default to false, update after mount)
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleSelectConversation = (conversation: ConversationListItem) => {
     setSelectedConversation(conversation);
