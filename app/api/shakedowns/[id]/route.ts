@@ -293,14 +293,6 @@ export async function GET(
     let totalWeightGrams = 0;
     let itemCount = 0;
 
-    // Debug: Log loadout items query result
-    console.log('[API] Shakedown loadout_id:', shakedown.loadout_id);
-    console.log('[API] Loadout items query result:', {
-      error: loadoutItemsError,
-      rowCount: loadoutItemRows?.length ?? 0,
-      firstRow: loadoutItemRows?.[0] ?? null,
-    });
-
     if (loadoutItemsError) {
       console.error('[API] Failed to fetch loadout items:', loadoutItemsError);
       // Continue without gear items rather than failing

@@ -276,7 +276,6 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
     const mostCommon = findMostCommonWeight(allWeights);
 
     if (!mostCommon) {
-      console.log('[Weight Search] No weights found for:', trimmedQuery);
       return null;
     }
 
@@ -289,13 +288,6 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
     } else {
       confidence = 'low';
     }
-
-    console.log('[Weight Search] Found weight:', {
-      query: trimmedQuery,
-      grams: mostCommon.weight.grams,
-      sources: mostCommon.count,
-      confidence,
-    });
 
     return {
       weightGrams: Math.round(mostCommon.weight.grams),
