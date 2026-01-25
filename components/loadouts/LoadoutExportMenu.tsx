@@ -248,14 +248,14 @@ function buildPdfHtml({
             <div>
               <h1 class="title">${escape(loadout.name)}</h1>
               <div class="meta">
-                <div><strong>Date:</strong> ${escape(formattedDate)}</div>
-                <div><strong>Activities:</strong> ${activitiesLabel}</div>
-                <div><strong>Seasons:</strong> ${seasonsLabel}</div>
+                <div><strong>${escape(labels.date)}:</strong> ${escape(formattedDate)}</div>
+                <div><strong>${escape(labels.activities)}:</strong> ${activitiesLabel}</div>
+                <div><strong>${escape(labels.seasons)}:</strong> ${seasonsLabel}</div>
               </div>
             </div>
             <div class="meta" style="text-align: right;">
-              <div><strong>Generated:</strong> ${escape(generatedAt)}</div>
-              <div><strong>Items:</strong> ${escape(String(itemCount))}</div>
+              <div><strong>${escape(labels.generated)}:</strong> ${escape(generatedAt)}</div>
+              <div><strong>${escape(labels.items)}:</strong> ${escape(String(itemCount))}</div>
             </div>
           </header>
 
@@ -267,30 +267,30 @@ function buildPdfHtml({
 
           <div class="summary">
             <div class="pill">
-              <div class="label">Total Weight</div>
+              <div class="label">${escape(labels.totalWeight)}</div>
               <div class="value">${formatWeight(totalWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Base Weight</div>
+              <div class="label">${escape(labels.baseWeight)}</div>
               <div class="value">${formatWeight(baseWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Worn Items</div>
+              <div class="label">${escape(labels.wornItems)}</div>
               <div class="value">${formatWeight(wornWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Consumables</div>
+              <div class="label">${escape(labels.consumables)}</div>
               <div class="value">${formatWeight(consumableWeight)}</div>
             </div>
           </div>
 
           <div>
-            <p class="label" style="margin: 0;">Activities & Seasons</p>
+            <p class="label" style="margin: 0;">${escape(labels.activitiesAndSeasons)}</p>
             <div class="badge-row">
               ${
                 loadout.activityTypes?.length
                   ? loadout.activityTypes.map((activity) => `<span class="badge">${escape(activity)}</span>`).join('')
-                  : '<span class="muted">No activities specified</span>'
+                  : `<span class="muted">${escape(labels.noActivities)}</span>`
               }
               ${
                 loadout.seasons?.length
@@ -301,15 +301,15 @@ function buildPdfHtml({
           </div>
 
           <div style="margin-top: 18px;">
-            <p class="section-title">Pack List</p>
+            <p class="section-title">${escape(labels.packList)}</p>
             <table>
               <thead>
                 <tr>
                   ${checklistHeader}
-                  <th>Item</th>
-                  <th>Category</th>
-                  <th class="right">Weight</th>
-                  <th>Status</th>
+                  <th>${escape(labels.tableItem)}</th>
+                  <th>${escape(labels.tableCategory)}</th>
+                  <th class="right">${escape(labels.tableWeight)}</th>
+                  <th>${escape(labels.tableStatus)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -403,17 +403,18 @@ export function LoadoutExportMenu({
       return;
     }
 
-    const formattedDate = formatTripDate(loadout.tripDate) ?? 'Not set';
+    const notSetLabel = t('pdfLabels.notSet') || 'Not set';
+    const formattedDate = formatTripDate(loadout.tripDate) ?? notSetLabel;
     const activitiesLabel =
       activityTypes.length > 0
         ? activityTypes
             .map((activity) => escape(activity.charAt(0).toUpperCase() + activity.slice(1)))
             .join(', ')
-        : 'Not set';
+        : notSetLabel;
     const seasonsLabel =
       seasons.length > 0
         ? seasons.map((season) => escape(season.charAt(0).toUpperCase() + season.slice(1))).join(', ')
-        : 'Not set';
+        : notSetLabel;
 
     const itemWeightMap = new Map(items.map((item) => [item.id, item.weightGrams ?? 0]));
     const wornWeight = itemStates

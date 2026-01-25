@@ -267,7 +267,7 @@ function CardNotification({
           </div>
           <span className="text-sm font-medium">{t('requests.newRequest')}</span>
           <span className="ml-auto text-xs text-muted-foreground">
-            {getTimeAgo(request.created_at)}
+            {getTimeAgo(request.created_at, t)}
           </span>
         </div>
 

@@ -146,9 +146,9 @@ function CardStatusControl({ className }: { className?: string }) {
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Your Status</CardTitle>
+        <CardTitle className="text-base">{t('presence.yourStatus')}</CardTitle>
         <CardDescription>
-          Set how you appear to other users
+          {t('presence.appearDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
