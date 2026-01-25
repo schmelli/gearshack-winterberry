@@ -27,6 +27,29 @@ import { cn } from '@/lib/utils';
 import type { EmblaCarouselType } from 'embla-carousel';
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * SECURITY: Validates URL is safe to use in href (prevents javascript: XSS)
+ */
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Determines if URL is external (http/https) with proper validation
+ */
+function isExternalUrl(url: string): boolean {
+  return isValidHttpUrl(url);
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -148,18 +171,20 @@ export function BannerCarousel() {
         className="w-full"
       >
         <CarouselContent>
-          {banners.map((banner) => (
+          {banners.map((banner) => {
+            // SECURITY: Use proper URL validation instead of string check
+            const isExternal = isExternalUrl(banner.targetUrl);
+            // SECURITY: Only allow http/https or relative URLs
+            const safeHref = isValidHttpUrl(banner.targetUrl) || banner.targetUrl.startsWith('/')
+              ? banner.targetUrl
+              : '#';
+
+            return (
             <CarouselItem key={banner.id}>
               <a
-                href={banner.targetUrl}
-                target={
-                  banner.targetUrl.startsWith('http') ? '_blank' : undefined
-                }
-                rel={
-                  banner.targetUrl.startsWith('http')
-                    ? 'noopener noreferrer'
-                    : undefined
-                }
+                href={safeHref}
+                target={isExternal ? '_blank' : undefined}
+                rel={isExternal ? 'noopener noreferrer' : undefined}
                 className="group relative block aspect-[21/9] w-full overflow-hidden rounded-xl"
               >
                 {/* Background image */}
@@ -188,7 +213,8 @@ export function BannerCarousel() {
                 </div>
               </a>
             </CarouselItem>
-          ))}
+            );
+          })}
         </CarouselContent>
       </Carousel>
 

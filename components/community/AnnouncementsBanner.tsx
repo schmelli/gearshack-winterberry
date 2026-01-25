@@ -20,6 +20,18 @@ import { cn } from '@/lib/utils';
 import { useAnnouncements } from '@/hooks/community/useAnnouncements';
 import type { AnnouncementsBannerProps, AnnouncementType, CommunityAnnouncement } from '@/types/community';
 
+/**
+ * SECURITY: Validates URL is safe to use in href (prevents javascript: XSS)
+ */
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 const ANNOUNCEMENT_STYLES: Record<AnnouncementType, {
   bg: string;
   border: string;
@@ -77,7 +89,8 @@ function SingleAnnouncement({ announcement, onDismiss }: SingleAnnouncementProps
         <h3 className="font-semibold text-foreground">{announcement.title}</h3>
         <p className="mt-1 text-sm text-muted-foreground">{announcement.message}</p>
 
-        {announcement.link_url && (
+        {/* SECURITY: Only render link if URL is a valid HTTP(S) URL */}
+        {announcement.link_url && isValidHttpUrl(announcement.link_url) && (
           <a
             href={announcement.link_url}
             target="_blank"
