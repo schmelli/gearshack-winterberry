@@ -11,6 +11,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Play, Pause, Square, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -69,6 +70,7 @@ export function AudioPlaybackControls({
   size = 'default',
   className,
 }: AudioPlaybackControlsProps) {
+  const t = useTranslations('AIAssistant');
   const isPlaying = state === 'playing';
   const isLoading = state === 'loading';
   const isMuted = volume === 0;

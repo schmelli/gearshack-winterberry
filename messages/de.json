@@ -555,6 +555,23 @@
       "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
       "importFailed": "Import fehlgeschlagen"
     },
+    "imageUpload": {
+      "removingBackground": "Hintergrund wird entfernt...",
+      "uploadingToCloudinary": "Hochladen zu Cloudinary...",
+      "uploadSuccessful": "Upload erfolgreich!",
+      "dragAndDrop": "Bild hierher ziehen oder klicken zum Durchsuchen",
+      "fileTypes": "PNG, JPG, WebP bis zu 10MB",
+      "removeBackground": "Hintergrund entfernen",
+      "removeBackgroundDescription": "Hintergrund automatisch mit lokaler Verarbeitung entfernen",
+      "or": "Oder",
+      "enterImageUrl": "Bild-URL eingeben oder nach Produktbildern suchen",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Nach \"{query}\" suchen",
+      "searchTooltipEmpty": "Zuerst Marke/Produktname eingeben",
+      "useThisUrl": "Diese URL verwenden",
+      "uploading": "Hochladen...",
+      "tryAgain": "Erneut versuchen"
+    },
     "productSearch": {
       "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
       "enterProductName": "Gib einen Produktnamen ein, um zu suchen",
