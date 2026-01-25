@@ -266,19 +266,43 @@ export async function moveCategory(
   const currentSortOrder = current.sort_order;
   const adjacentSortOrder = adjacent.sort_order;
 
-  // Swap sort_order values
+  // RACE CONDITION FIX: Use temporary negative value to prevent concurrent swap conflicts
+  // Step 1: Move current to temporary position (-1)
+  // Step 2: Move adjacent to current's position
+  // Step 3: Move current to adjacent's position
+  // This ensures unique sort_order values throughout the swap
+  const tempSortOrder = -1;
+
   const { error: error1 } = await supabase
     .from('categories')
-    .update({ sort_order: adjacentSortOrder })
+    .update({ sort_order: tempSortOrder })
     .eq('id', current.id);
+
+  if (error1) {
+    return { error: `Failed to start swap: ${error1.message}` };
+  }
 
   const { error: error2 } = await supabase
     .from('categories')
     .update({ sort_order: currentSortOrder })
     .eq('id', adjacent.id);
 
-  if (error1 || error2) {
-    return { error: error1?.message || error2?.message || 'Failed to swap' };
+  if (error2) {
+    // Rollback: restore current's original position
+    await supabase.from('categories').update({ sort_order: currentSortOrder }).eq('id', current.id);
+    return { error: `Failed to update adjacent: ${error2.message}` };
+  }
+
+  const { error: error3 } = await supabase
+    .from('categories')
+    .update({ sort_order: adjacentSortOrder })
+    .eq('id', current.id);
+
+  if (error3) {
+    // Rollback: restore both to original positions
+    await supabase.from('categories').update({ sort_order: adjacentSortOrder }).eq('id', adjacent.id);
+    await supabase.from('categories').update({ sort_order: currentSortOrder }).eq('id', current.id);
+    return { error: `Failed to complete swap: ${error3.message}` };
   }
 
   return { error: null };
