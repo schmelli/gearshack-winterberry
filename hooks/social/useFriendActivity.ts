@@ -189,6 +189,7 @@ export function useFriendActivity(
   }, [user?.uid, activityTypeFilter]);
 
   // Setup Realtime subscription - only recreate when user changes
+  // Note: handleNewActivity is stable via ref pattern, so not needed in deps
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -206,7 +207,8 @@ export function useFriendActivity(
         unsubscribeRef.current = null;
       }
     };
-  }, [user?.uid, handleNewActivity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   return {
     activities,

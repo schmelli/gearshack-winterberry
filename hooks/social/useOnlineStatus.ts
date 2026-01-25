@@ -190,7 +190,10 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     if (!user?.uid || status === 'invisible' || status === 'offline') return;
 
     heartbeatTimerRef.current = setInterval(() => {
-      updateStatus(status);
+      // Check if still mounted before async state update
+      if (isMountedRef.current) {
+        updateStatus(status);
+      }
     }, HEARTBEAT_INTERVAL);
 
     return () => {

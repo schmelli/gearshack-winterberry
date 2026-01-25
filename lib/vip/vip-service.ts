@@ -647,10 +647,15 @@ export async function followVip(vipId: string): Promise<VipFollowResponse> {
   if (error && error.code !== '23505') throw error; // Ignore duplicate key error
 
   // Get updated follower count
-  const { count: followerCount } = await supabase
+  const { count: followerCount, error: countError } = await supabase
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
+
+  if (countError) {
+    console.error('[followVip] Failed to get follower count:', countError);
+    // Don't fail the follow operation, just return 0 for count
+  }
 
   return {
     isFollowing: true,
@@ -676,10 +681,15 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
   if (error) throw error;
 
   // Get updated follower count
-  const { count: followerCount } = await supabase
+  const { count: followerCount, error: countError } = await supabase
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
+
+  if (countError) {
+    console.error('[unfollowVip] Failed to get follower count:', countError);
+    // Don't fail the unfollow operation, just return 0 for count
+  }
 
   return {
     isFollowing: false,
