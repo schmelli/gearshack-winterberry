@@ -831,6 +831,9 @@ export async function updateOnlineStatus(
   userId: string,
   status: 'online' | 'away' | 'invisible' | 'offline'
 ): Promise<void> {
+  // SECURITY: Validate UUID before database operation
+  validateUUID(userId, 'user ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase
@@ -856,6 +859,19 @@ export async function getOnlineStatuses(
 
   if (userIds.length === 0) {
     return new Map();
+  }
+
+  // SECURITY: Limit array size to prevent DoS attacks
+  const MAX_USER_IDS = 1000;
+  if (userIds.length > MAX_USER_IDS) {
+    throw new Error(`Too many user IDs requested (max: ${MAX_USER_IDS})`);
+  }
+
+  // SECURITY: Validate each UUID in the array
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const invalidIds = userIds.filter(id => !uuidRegex.test(id));
+  if (invalidIds.length > 0) {
+    throw new Error('Invalid user ID format in array');
   }
 
   const { data, error } = await supabase
