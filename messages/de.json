@@ -1722,16 +1722,28 @@
       "markAllRead": "Alle als gelesen markieren",
       "emptyTitle": "Noch keine Aktivitäten",
       "emptyDescription": "Wenn deine Freunde etwas tun, siehst du es hier.",
-      "filterAll": "Alle",
+      "filterAll": "Alle Aktivitäten",
       "filterLoadouts": "Loadouts",
       "filterMarketplace": "Marktplatz",
       "filterGear": "Ausrüstung",
+      "filterNewLoadouts": "Neue Loadouts",
+      "filterSharedLoadouts": "Geteilte Loadouts",
+      "filterNewGear": "Neue Ausrüstung",
+      "filterNewFriends": "Neue Freunde",
+      "filterBy": "Filtern nach",
+      "noFilteredActivity": "Keine Aktivitäten gefunden",
+      "noFilteredActivityDesc": "Keine {filter} Aktivitäten vorhanden.",
       "newLoadout": "{name} hat ein neues Loadout erstellt",
       "sharedLoadout": "{name} hat ein Loadout geteilt",
       "newListing": "{name} hat etwas auf dem Marktplatz eingestellt",
       "addedGear": "{name} hat neue Ausrüstung hinzugefügt",
       "newFriend": "{name} ist jetzt mit {friend} befreundet",
-      "loadMore": "Mehr laden"
+      "loadMore": "Mehr laden",
+      "createdLoadout": "hat ein neues Loadout erstellt",
+      "listedGear": "hat Ausrüstung zum Verkauf eingestellt",
+      "becameFriends": "ist mit jemandem befreundet geworden",
+      "updatedProfile": "hat das Profil aktualisiert",
+      "didSomething": "war aktiv"
     },
     "presence": {
       "online": "Online",
@@ -1740,7 +1752,14 @@
       "offline": "Offline",
       "lastActive": "Zuletzt aktiv {time}",
       "updating": "Wird aktualisiert...",
-      "updateFailed": "Aktualisierung des Status fehlgeschlagen"
+      "updateFailed": "Aktualisierung des Status fehlgeschlagen",
+      "yourStatus": "Dein Status",
+      "appearDescription": "Lege fest, wie du anderen Nutzern angezeigt wirst",
+      "status": "Status",
+      "onlineDesc": "Du erscheinst online für alle.",
+      "awayDesc": "Du erscheinst als abwesend. Wird nach 5 Min. Inaktivität automatisch gesetzt.",
+      "invisibleDesc": "Du erscheinst offline, kannst aber die App weiter nutzen.",
+      "offlineDesc": "Du erscheinst offline für alle."
     },
     "privacy": {
       "title": "Datenschutzeinstellungen",
@@ -3125,7 +3144,14 @@
       "bookmarkedNotification": "Loadout zu Lesezeichen hinzugefügt",
       "bookmark": "Merken",
       "bookmarked": "Gemerkt",
-      "removeBookmark": "Lesezeichen entfernen"
+      "removeBookmark": "Lesezeichen entfernen",
+      "savedLoadouts": "Gespeicherte Loadouts",
+      "retry": "Erneut versuchen",
+      "emptyTitle": "Noch keine gespeicherten Loadouts",
+      "emptyHint": "Speichere VIP-Loadouts, um sie hier zu finden",
+      "browseVipLoadouts": "VIP-Loadouts durchsuchen",
+      "viewAllVips": "Alle VIPs ansehen",
+      "savedTime": "Gespeichert {time}"
     },
     "claim": {
       "loading": "Einladung wird geladen...",

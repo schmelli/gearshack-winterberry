@@ -329,6 +329,7 @@
     },
     "addToWishlist": "Add to Wishlist",
     "quantityBadge": "x {quantity}",
+    "quantityTooltip": "Quantity: {quantity}",
     "emptyState": {
       "noResults": "No gear matches your filters",
       "noResultsSubtext": "Try adjusting your search or category filter",
@@ -478,6 +479,7 @@
   },
   "GearEditor": {
     "addTitle": "Add New Gear",
+    "addToWishlistTitle": "Add to Wishlist",
     "editTitle": "Edit Gear",
     "tabs": {
       "general": "General",
@@ -817,6 +819,9 @@
       "description": "Description",
       "myNotes": "My Notes",
       "visitWebsite": "Visit website"
+    },
+    "actions": {
+      "edit": "Edit"
     }
   },
   "Loadouts": {
@@ -2219,7 +2224,10 @@
       "selectHelpful": "Select helpful feedback to recognize",
       "thankYouNote": "Thank You Note (optional)",
       "thankYouPlaceholder": "Express your appreciation...",
-      "confirm": "Complete & Thank Reviewers"
+      "confirm": "Complete & Thank Reviewers",
+      "noFeedback": "No feedback to review yet.",
+      "noFeedbackHint": "You can still complete the shakedown to close it.",
+      "completing": "Completing..."
     },
     "notifications": {
       "newFeedback": "{author} commented on your shakedown",
