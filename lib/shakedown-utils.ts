@@ -28,9 +28,18 @@ export function buildFeedbackTree(feedback: FeedbackWithAuthor[]): FeedbackNode[
 
   // Second pass: build tree by linking children to parents
   feedback.forEach((f) => {
-    const node = map.get(f.id)!;
-    if (f.parentId && map.has(f.parentId)) {
-      map.get(f.parentId)!.children.push(node);
+    const node = map.get(f.id);
+    if (!node) {
+      console.error('[buildFeedbackTree] Missing node for ID:', f.id);
+      return;
+    }
+    if (f.parentId) {
+      const parent = map.get(f.parentId);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
     } else {
       roots.push(node);
     }

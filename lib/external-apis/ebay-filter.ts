@@ -177,6 +177,12 @@ export function filterEbayListings(
   listings: EbayListing[],
   options: FilterEbayListingsOptions = {}
 ): EbayListing[] {
+  // Input validation
+  if (!Array.isArray(listings)) {
+    console.error('[filterEbayListings] Invalid input: listings must be an array');
+    return [];
+  }
+
   const {
     brand,
     productTypeKeywords,
