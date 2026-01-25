@@ -108,7 +108,12 @@ function CompactMutualFriends({
   className,
 }: Omit<MutualFriendsDisplayProps, 'variant'>) {
   const t = useTranslations('Social');
-  const { mutualFriends, count, isLoading } = useMutualFriends(targetUserId);
+  const { mutualFriends, count, isLoading } = useMutualFriends(targetUserId ?? '');
+
+  // Guard against missing targetUserId
+  if (!targetUserId) {
+    return null;
+  }
   const [isOpen, setIsOpen] = useState(false);
 
   // T057: Don't render if no mutual friends
@@ -183,7 +188,12 @@ function InlineMutualFriends({
   className,
 }: Omit<MutualFriendsDisplayProps, 'variant'>) {
   const t = useTranslations('Social');
-  const { count, isLoading } = useMutualFriends(targetUserId);
+  const { count, isLoading } = useMutualFriends(targetUserId ?? '');
+
+  // Guard against missing targetUserId
+  if (!targetUserId) {
+    return null;
+  }
 
   // T057: Don't render if no mutual friends
   if (!isLoading && count === 0) {

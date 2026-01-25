@@ -62,6 +62,12 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        // Validate position data
+        if (!position?.coords?.latitude || !position?.coords?.longitude) {
+          console.error('[LocationPicker] Invalid position data received');
+          setIsGettingLocation(false);
+          return;
+        }
         const { latitude, longitude } = position.coords;
 
         // Reverse geocode to get place name with timeout protection
