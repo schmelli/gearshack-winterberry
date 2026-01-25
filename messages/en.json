@@ -313,6 +313,11 @@
     },
     "addToWishlist": "Add to Wishlist",
     "quantityBadge": "x {quantity}",
+    "emptyState": {
+      "noResults": "No gear matches your filters",
+      "noResultsSubtext": "Try adjusting your search or category filter",
+      "clearFilters": "Clear all filters"
+    },
     "wishlist": {
       "title": "Wishlist",
       "myGear": "My Gear",
@@ -910,6 +915,24 @@
       "weightHeaviest": "Weight (Heaviest)",
       "category": "Category",
       "allCategories": "All Categories"
+    },
+    "heroImage": {
+      "generatingImage": "Generating image...",
+      "imageUnavailable": "Image unavailable",
+      "tryAgain": "Try again",
+      "noImage": "No image",
+      "generateNewImage": "Generate new image"
+    },
+    "stylePreferences": {
+      "title": "Style Preferences",
+      "subtitle": "Customize the visual style of your generated image",
+      "visualStyle": "Visual Style",
+      "selectStyle": "Select style...",
+      "lightingTimeOfDay": "Lighting / Time of Day",
+      "selectLighting": "Select lighting...",
+      "atmosphereOptional": "Atmosphere (Optional)",
+      "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
+      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)"
     }
   },
   "LoadoutCreation": {
@@ -1767,6 +1790,9 @@
       "updateSuccess": "Feedback updated successfully",
       "deleteSuccess": "Feedback deleted"
     },
+    "placeholder": {
+      "addNote": "Add a note..."
+    },
     "actions": {
       "edit": "Edit Shakedown",
       "actionsButton": "Actions",
@@ -1798,7 +1824,12 @@
       "archiveFailed": "Failed to archive shakedown",
       "deleteSuccess": "Shakedown deleted",
       "deleteFailed": "Failed to delete shakedown",
-      "reportComingSoon": "Report functionality coming soon"
+      "reportComingSoon": "Report functionality coming soon",
+      "editNote": "Edit Note",
+      "addNote": "Add Note",
+      "clearNote": "Clear Note",
+      "save": "Save",
+      "close": "Close"
     },
     "filters": {
       "title": "Filters",
@@ -2174,6 +2205,8 @@
     "loadingMore": "Loading more...",
     "filters": {
       "tripType": "Trip Type",
+      "allTripTypes": "All trip types",
+      "allSeasons": "All seasons",
       "priceRange": "Price Range",
       "merchant": "Merchant",
       "featured": "Featured Only",
@@ -3164,7 +3197,13 @@
     "thinking": "AI is thinking...",
     "ariaLabels": {
       "aiAssistant": "AI Assistant",
-      "trailblazerFeature": "Trailblazer feature"
+      "trailblazerFeature": "Trailblazer feature",
+      "play": "Play",
+      "pause": "Pause",
+      "stop": "Stop",
+      "volume": "Volume",
+      "cancelRecording": "Cancel recording",
+      "regenerateImage": "Regenerate image"
     }
   },
   "Admin": {

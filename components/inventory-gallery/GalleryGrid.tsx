@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
@@ -82,16 +83,6 @@ const GRID_CLASSES = {
 // Component
 // =============================================================================
 
-/**
- * Default empty state translations
- * T073: Separated to allow wishlist-specific overrides
- */
-const DEFAULT_EMPTY_STATE_TRANSLATIONS: EmptyStateTranslations = {
-  noResults: 'No gear matches your filters',
-  noResultsSubtext: 'Try adjusting your search or category filter',
-  clearFilters: 'Clear all filters',
-};
-
 export function GalleryGrid({
   items,
   groupedItems = [],
@@ -106,8 +97,14 @@ export function GalleryGrid({
   onMoveComplete,
   emptyStateTranslations,
 }: GalleryGridProps) {
-  // T073: Use provided translations or fall back to defaults
-  const emptyMessages = emptyStateTranslations ?? DEFAULT_EMPTY_STATE_TRANSLATIONS;
+  const t = useTranslations('Inventory');
+
+  // T073: Use provided translations or fall back to translated defaults
+  const emptyMessages = emptyStateTranslations ?? {
+    noResults: t('emptyState.noResults'),
+    noResultsSubtext: t('emptyState.noResultsSubtext'),
+    clearFilters: t('emptyState.clearFilters'),
+  };
 
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {

@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -38,6 +39,8 @@ export function StylePreferencesForm({
   onChange,
   className,
 }: StylePreferencesFormProps) {
+  const t = useTranslations('Loadouts.stylePreferences');
+
   const handleTemplateChange = (value: string) => {
     onChange({
       ...stylePreferences,
@@ -62,21 +65,21 @@ export function StylePreferencesForm({
   return (
     <div className={cn('space-y-4', className)}>
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold">Style Preferences</h3>
+        <h3 className="text-sm font-semibold">{t('title')}</h3>
         <p className="text-xs text-muted-foreground">
-          Customize the visual style of your generated image
+          {t('subtitle')}
         </p>
       </div>
 
       {/* Template Selector */}
       <div className="space-y-2">
-        <Label htmlFor="template">Visual Style</Label>
+        <Label htmlFor="template">{t('visualStyle')}</Label>
         <Select
           value={stylePreferences.template || ''}
           onValueChange={handleTemplateChange}
         >
           <SelectTrigger id="template">
-            <SelectValue placeholder="Select style..." />
+            <SelectValue placeholder={t('selectStyle')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Default (Natural)</SelectItem>
@@ -118,13 +121,13 @@ export function StylePreferencesForm({
 
       {/* Time of Day Selector */}
       <div className="space-y-2">
-        <Label htmlFor="timeOfDay">Lighting / Time of Day</Label>
+        <Label htmlFor="timeOfDay">{t('lightingTimeOfDay')}</Label>
         <Select
           value={stylePreferences.timeOfDay || ''}
           onValueChange={handleTimeOfDayChange}
         >
           <SelectTrigger id="timeOfDay">
-            <SelectValue placeholder="Select lighting..." />
+            <SelectValue placeholder={t('selectLighting')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Default (Season-based)</SelectItem>
@@ -174,17 +177,17 @@ export function StylePreferencesForm({
 
       {/* Atmosphere Text Input */}
       <div className="space-y-2">
-        <Label htmlFor="atmosphere">Atmosphere (Optional)</Label>
+        <Label htmlFor="atmosphere">{t('atmosphereOptional')}</Label>
         <Input
           id="atmosphere"
           type="text"
-          placeholder="e.g., misty morning, dramatic clouds..."
+          placeholder={t('atmospherePlaceholder')}
           value={stylePreferences.atmosphere || ''}
           onChange={(e) => handleAtmosphereChange(e.target.value)}
           maxLength={50}
         />
         <p className="text-xs text-muted-foreground">
-          Add custom atmosphere hints (max 50 characters)
+          {t('atmosphereHint')}
         </p>
       </div>
     </div>

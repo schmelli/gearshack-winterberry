@@ -313,6 +313,11 @@
     },
     "addToWishlist": "Zur Wunschliste hinzufügen",
     "quantityBadge": "x {quantity}",
+    "emptyState": {
+      "noResults": "Keine Ausrüstung entspricht deinen Filtern",
+      "noResultsSubtext": "Versuche, deine Such- oder Kategoriefilter anzupassen",
+      "clearFilters": "Alle Filter löschen"
+    },
     "wishlist": {
       "title": "Wunschliste",
       "myGear": "Meine Ausrüstung",
@@ -910,6 +915,24 @@
       "weightHeaviest": "Gewicht (Schwerste)",
       "category": "Kategorie",
       "allCategories": "Alle Kategorien"
+    },
+    "heroImage": {
+      "generatingImage": "Bild wird generiert...",
+      "imageUnavailable": "Bild nicht verfügbar",
+      "tryAgain": "Erneut versuchen",
+      "noImage": "Kein Bild",
+      "generateNewImage": "Neues Bild generieren"
+    },
+    "stylePreferences": {
+      "title": "Stil-Präferenzen",
+      "subtitle": "Passe den visuellen Stil deines generierten Bildes an",
+      "visualStyle": "Visueller Stil",
+      "selectStyle": "Stil auswählen...",
+      "lightingTimeOfDay": "Beleuchtung / Tageszeit",
+      "selectLighting": "Beleuchtung auswählen...",
+      "atmosphereOptional": "Atmosphäre (Optional)",
+      "atmospherePlaceholder": "z.B., nebligen Morgen, dramatische Wolken...",
+      "atmosphereHint": "Füge benutzerdefinierte Atmosphären-Hinweise hinzu (max. 50 Zeichen)"
     }
   },
   "LoadoutCreation": {
@@ -1767,6 +1790,9 @@
       "updateSuccess": "Feedback erfolgreich aktualisiert",
       "deleteSuccess": "Feedback gelöscht"
     },
+    "placeholder": {
+      "addNote": "Notiz hinzufügen..."
+    },
     "actions": {
       "edit": "Shakedown bearbeiten",
       "actionsButton": "Aktionen",
@@ -1798,7 +1824,12 @@
       "archiveFailed": "Shakedown konnte nicht archiviert werden",
       "deleteSuccess": "Shakedown gelöscht",
       "deleteFailed": "Shakedown konnte nicht gelöscht werden",
-      "reportComingSoon": "Meldefunktion kommt bald"
+      "reportComingSoon": "Meldefunktion kommt bald",
+      "editNote": "Notiz bearbeiten",
+      "addNote": "Notiz hinzufügen",
+      "clearNote": "Notiz löschen",
+      "save": "Speichern",
+      "close": "Schließen"
     },
     "filters": {
       "title": "Filter",
@@ -2174,6 +2205,8 @@
     "loadingMore": "Lade mehr...",
     "filters": {
       "tripType": "Reiseart",
+      "allTripTypes": "Alle Reisearten",
+      "allSeasons": "Alle Jahreszeiten",
       "priceRange": "Preisspanne",
       "merchant": "Händler",
       "featured": "Nur Empfohlene",
@@ -3164,7 +3197,13 @@
     "thinking": "KI denkt nach...",
     "ariaLabels": {
       "aiAssistant": "KI-Assistent",
-      "trailblazerFeature": "Trailblazer-Funktion"
+      "trailblazerFeature": "Trailblazer-Funktion",
+      "play": "Abspielen",
+      "pause": "Pause",
+      "stop": "Stopp",
+      "volume": "Lautstärke",
+      "cancelRecording": "Aufnahme abbrechen",
+      "regenerateImage": "Bild neu generieren"
     }
   },
   "Admin": {
