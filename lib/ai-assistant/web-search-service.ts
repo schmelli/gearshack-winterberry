@@ -432,19 +432,37 @@ export async function searchWeb(
       ? 'https://google.serper.dev/news'
       : SERPER_API_URL;
 
-    // Call Serper API
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': webSearchConfig.apiKey!,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // TIMEOUT: Add abort controller to prevent hanging requests
+    const SERPER_API_TIMEOUT_MS = 10000; // 10 seconds
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), SERPER_API_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      // Call Serper API
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': webSearchConfig.apiKey!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        throw new Error('Web search request timed out');
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
-      console.error('[Web Search] API error:', response.status, response.statusText);
-      throw new Error(`Serper API error: ${response.status}`);
+      // SECURITY: Avoid logging potentially sensitive status text
+      console.error('[Web Search] API error:', response.status);
+      throw new Error(`Web search temporarily unavailable (HTTP ${response.status})`);
     }
 
     const data: SerperSearchResponse = await response.json();
