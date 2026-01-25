@@ -398,12 +398,12 @@ export function ImageUploadZone({
       {/* ================================================================= */}
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          Enter image URL or search for product images
+          {t('enterImageUrl')}
         </p>
         <div className="flex gap-2">
           <Input
             type="url"
-            placeholder="https://example.com/image.jpg"
+            placeholder={t('urlPlaceholder')}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => {
@@ -421,8 +421,8 @@ export function ImageUploadZone({
             size="icon"
             onClick={() => setIsSearchModalOpen(true)}
             disabled={isLoading || !searchQuery}
-            title={searchQuery ? `Search for "${searchQuery}"` : 'Enter brand/product name first'}
-            aria-label="Search for product images"
+            title={searchQuery ? t('searchTooltip', { query: searchQuery }) : t('searchTooltipEmpty')}
+            aria-label={t('searchTooltip', { query: searchQuery || '' })}
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -439,15 +439,15 @@ export function ImageUploadZone({
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Removing background...
+                {t('removingBackground')}
               </>
             ) : isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Uploading...
+                {t('uploading')}
               </>
             ) : (
-              'Use this URL'
+              t('useThisUrl')
             )}
           </Button>
         )}
@@ -462,7 +462,7 @@ export function ImageUploadZone({
           onClick={handleBrowseClick}
           className="w-full"
         >
-          Try Again
+          {t('tryAgain')}
         </Button>
       )}
 

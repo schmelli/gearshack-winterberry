@@ -652,6 +652,18 @@
       "noResults": "No images found. Try a different search term.",
       "removingBackground": "Removing background...",
       "uploading": "Uploading to Cloudinary..."
+    },
+    "imageUpload": {
+      "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
+      "fileTooLarge": "File size must be less than {maxSize}MB",
+      "uploadFailed": "Upload failed. Please try again.",
+      "pasteUrl": "Paste URL",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "imageSelected": "Image selected",
+      "removeImage": "Remove image",
+      "dragOrClick": "Click or drag image here",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
     }
   },
   "ManufacturerPrice": {
@@ -3181,7 +3193,9 @@
       "processing": "Processing your voice...",
       "notAvailable": "Voice input not available",
       "errorRetry": "Voice input error - click to retry",
-      "label": "Voice input"
+      "label": "Voice input",
+      "recording": "Recording",
+      "loading": "Loading..."
     },
     "actions": {
       "addToWishlist": "Add to Wishlist",
@@ -3204,7 +3218,24 @@
     "thinking": "AI is thinking...",
     "ariaLabels": {
       "aiAssistant": "AI Assistant",
-      "trailblazerFeature": "Trailblazer feature"
+      "trailblazerFeature": "Trailblazer feature",
+      "cancelRecording": "Cancel recording",
+      "pause": "Pause",
+      "play": "Play",
+      "stop": "Stop",
+      "volume": "Volume",
+      "playAudio": "Play audio"
+    },
+    "title": "AI Gear Assistant",
+    "subtitle": "Ask me anything about your gear",
+    "enableVoice": "Enable voice",
+    "disableVoice": "Disable voice",
+    "enableVoiceResponses": "Enable voice responses",
+    "disableVoiceResponses": "Disable voice responses",
+    "chat": {
+      "newConversation": "New Chat",
+      "title": "AI Gear Assistant",
+      "subtitle": "Ask me anything about your gear"
     }
   },
   "Admin": {

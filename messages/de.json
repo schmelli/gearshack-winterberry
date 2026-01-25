@@ -4367,5 +4367,50 @@
       },
       "feedbackHint": "Du kannst jederzeit Fehler melden oder Feedback teilen über die Feedback-Option in deinem Profilmenü."
     }
+  },
+  "AlertPreferences": {
+    "loading": "Einstellungen werden geladen...",
+    "loadError": "Einstellungen konnten nicht geladen werden: {message}",
+    "channels": {
+      "title": "Benachrichtigungskanäle",
+      "description": "Wähle, wie du Preisbenachrichtigungen erhalten möchtest",
+      "push": {
+        "label": "Push-Benachrichtigungen",
+        "description": "Erhalte sofortige Benachrichtigungen in deinem Browser"
+      },
+      "email": {
+        "label": "E-Mail-Benachrichtigungen",
+        "description": "Erhalte Benachrichtigungen per E-Mail"
+      }
+    },
+    "types": {
+      "title": "Benachrichtigungstypen",
+      "description": "Wähle, welche Ereignisse Benachrichtigungen auslösen",
+      "priceDrop": {
+        "label": "Preissenkungen",
+        "description": "Werde benachrichtigt, wenn Preise sinken"
+      },
+      "localShop": {
+        "label": "Verfügbarkeit im lokalen Geschäft",
+        "description": "Benachrichtigung, wenn Artikel in der Nähe verfügbar sind"
+      },
+      "community": {
+        "label": "Community-Verfügbarkeit",
+        "description": "Benachrichtigung, wenn Community-Mitglieder den Artikel haben"
+      },
+      "personalOffer": {
+        "label": "Persönliche Angebote",
+        "description": "Erhalte exklusive Angebote von Partnerhändlern"
+      }
+    },
+    "quietHours": {
+      "title": "Ruhezeiten",
+      "comingSoon": "Demnächst: Lege Zeiten fest, in denen du keine Benachrichtigungen erhalten möchtest",
+      "description": "Mit dieser Funktion kannst du Ruhezeiten konfigurieren (z.B. 22:00 - 7:00 Uhr), in denen Benachrichtigungen bis zum nächsten Tag zurückgehalten werden."
+    }
+  },
+  "WeightDisplay": {
+    "also": "Auch:",
+    "toggleUnit": "Gewichtseinheit wechseln"
   }
 }
