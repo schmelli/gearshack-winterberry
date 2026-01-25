@@ -94,10 +94,17 @@ export function useLoadoutImageGeneration(
   // Prevents memory leaks when component unmounts during image generation
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Timer ref for retry delay cleanup
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -268,8 +275,13 @@ export function useLoadoutImageGeneration(
         });
 
         try {
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, AI_GENERATION_RETRY_DELAY_MS));
+          // Wait before retry with cleanup support
+          await new Promise<void>((resolve, reject) => {
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              resolve();
+            }, AI_GENERATION_RETRY_DELAY_MS);
+          });
 
           // Retry the generation
           await executeRetry(stylePreferences, startTime);

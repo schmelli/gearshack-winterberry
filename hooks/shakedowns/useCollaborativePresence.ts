@@ -338,7 +338,10 @@ export function useCollaborativePresence({
         setIsConnected(false);
       };
 
-      cleanup();
+      // Properly handle async cleanup promise
+      cleanup().catch((error) => {
+        console.error('Cleanup failed:', error);
+      });
     };
   }, [enabled, shakedownId, user, processPresenceState, trackPresence]);
 

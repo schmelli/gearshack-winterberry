@@ -239,8 +239,14 @@ export async function validateSourceUrl(url: string): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
+
+    if (!response.ok) {
+      console.error(`URL validation failed: ${response.status}`);
+      return false;
+    }
+
     const data = await response.json();
-    return data.isAvailable;
+    return typeof data.isAvailable === 'boolean' ? data.isAvailable : false;
   } catch {
     return false;
   }

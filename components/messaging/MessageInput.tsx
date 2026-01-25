@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/popover';
 import { Send, Loader2, Paperclip, Image as ImageIcon, MapPin, Package, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { ImageAttachmentPreview } from './ImageAttachmentPreview';
 import { GearPicker } from './GearPicker';
 import { LocationPicker } from './LocationPicker';
@@ -219,8 +220,13 @@ export function MessageInput({
   // Handle gear item selection
   const handleGearSelect = useCallback(
     async (metadata: GearReferenceMetadata) => {
-      if (onSendWithMedia) {
-        await onSendWithMedia(null, 'gear_reference', null, metadata);
+      try {
+        if (onSendWithMedia) {
+          await onSendWithMedia(null, 'gear_reference', null, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send gear reference:', error);
+        toast.error('Failed to share gear item');
       }
     },
     [onSendWithMedia]
@@ -229,8 +235,13 @@ export function MessageInput({
   // Handle location selection
   const handleLocationSelect = useCallback(
     async (metadata: LocationMetadata) => {
-      if (onSendWithMedia) {
-        await onSendWithMedia(null, 'location', null, metadata);
+      try {
+        if (onSendWithMedia) {
+          await onSendWithMedia(null, 'location', null, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send location:', error);
+        toast.error('Failed to share location');
       }
     },
     [onSendWithMedia]
@@ -241,26 +252,37 @@ export function MessageInput({
     async (audioBlob: Blob, durationSeconds: number) => {
       if (!onSendWithMedia) return;
 
-      // Upload audio to Cloudinary
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice-message.webm');
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
-      formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
+      try {
+        // Upload audio to Cloudinary
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'voice-message.webm');
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
+        formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
 
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
-        { method: 'POST', body: formData }
-      );
-      const data = await response.json();
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+          { method: 'POST', body: formData }
+        );
 
-      if (data.secure_url) {
-        const metadata: VoiceMetadata = {
-          duration_seconds: durationSeconds,
-          waveform: [], // Could be populated with actual waveform data
-        };
-        await onSendWithMedia(null, 'voice', data.secure_url, metadata);
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.secure_url) {
+          const metadata: VoiceMetadata = {
+            duration_seconds: durationSeconds,
+            waveform: [], // Could be populated with actual waveform data
+          };
+          await onSendWithMedia(null, 'voice', data.secure_url, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send voice message:', error);
+        toast.error('Failed to send voice message');
+      } finally {
+        setIsRecordingVoice(false);
       }
-      setIsRecordingVoice(false);
     },
     [onSendWithMedia]
   );
