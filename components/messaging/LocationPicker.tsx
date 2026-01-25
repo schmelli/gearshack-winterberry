@@ -49,11 +49,16 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        // Reverse geocode to get place name
+        // Reverse geocode to get place name with timeout protection
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { signal: controller.signal }
           );
+          clearTimeout(timeoutId);
           const data = await response.json();
           const placeName =
             data.address?.city ||
@@ -70,6 +75,8 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             placeId: '',
           });
         } catch {
+          clearTimeout(timeoutId);
+          // Fallback to basic coordinates on timeout or error
           setSelectedLocation({
             name: 'Current Location',
             formattedAddress: 'Current Location',

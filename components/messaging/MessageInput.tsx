@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -64,6 +64,16 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup typing timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
