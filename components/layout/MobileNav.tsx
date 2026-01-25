@@ -16,7 +16,6 @@
 import { useState } from 'react';
 // T026: Replace next/link with locale-aware Link
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
-import Image from 'next/image';
 import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil, Plus, Calendar, FileEdit, HelpCircle, Bug, MessageSquarePlus, Sun, Moon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
