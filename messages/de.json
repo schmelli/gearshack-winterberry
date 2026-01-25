@@ -1997,7 +1997,19 @@
       "anyStatus": "Beliebiger Status",
       "anyExperience": "Beliebige Erfahrung",
       "anySeason": "Beliebige Jahreszeit",
-      "anyTripType": "Beliebige Tourart"
+      "anyTripType": "Beliebige Tourart",
+      "seasons": {
+        "spring": "Frühling",
+        "summer": "Sommer",
+        "fall": "Herbst",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Tagestour",
+        "overnight": "Übernachtung",
+        "multiDay": "Mehrtägig",
+        "thruHike": "Fernwanderung"
+      }
     },
     "detail": {
       "postedBy": "Gepostet von {author}",
