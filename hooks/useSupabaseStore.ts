@@ -12,6 +12,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { getTranslation } from '@/lib/translations';
@@ -513,15 +514,23 @@ export function useSupabaseLoadouts(): LoadoutLocal[] {
 }
 
 export function useSupabaseLoadout(id: string): LoadoutLocal | undefined {
-  return useSupabaseStore((state) => state.loadouts.find((l) => l.id === id));
+  // PERFORMANCE FIX: Use useShallow to prevent re-renders when other loadouts change
+  // This ensures the component only re-renders when this specific loadout changes
+  return useSupabaseStore(
+    useShallow((state) => state.loadouts.find((l) => l.id === id))
+  );
 }
 
 export function useSupabaseLoadoutItems(loadoutId: string): GearItem[] {
-  return useSupabaseStore((state) => {
-    const loadout = state.loadouts.find((l) => l.id === loadoutId);
-    if (!loadout) return [];
-    return state.items.filter((item) => loadout.itemIds.includes(item.id));
-  });
+  // PERFORMANCE FIX: Use useShallow to compare array contents instead of reference
+  // This prevents re-renders when unrelated items or loadouts change
+  return useSupabaseStore(
+    useShallow((state) => {
+      const loadout = state.loadouts.find((l) => l.id === loadoutId);
+      if (!loadout) return [];
+      return state.items.filter((item) => loadout.itemIds.includes(item.id));
+    })
+  );
 }
 
 export function useSupabaseSyncState(): SyncState {
