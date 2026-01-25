@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type {
@@ -103,7 +103,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   /**
    * Fetch preferences from database

@@ -8,6 +8,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { useUserPreferences } from './useUserPreferences';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -48,7 +49,8 @@ export function useCurrencyFormat(): UseCurrencyFormatReturn {
   const [ratesLoading, setRatesLoading] = useState(false);
   const [ratesError, setRatesError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []) as SupabaseClient;
 
   const { preferredCurrency, currencyPosition, showOriginalPrice, autoConvertPrices } = preferences;
 

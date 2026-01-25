@@ -6,7 +6,7 @@
  * Subscribes to new messages and broadcasts typing indicators.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   subscribeToConversationMessages,
@@ -47,7 +47,8 @@ export function useConversationSync({
   onContextChange,
 }: UseConversationSyncOptions): UseConversationSyncResult {
   const [isConnected, setIsConnected] = useState(false);
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Handle sync events
   const handleSyncEvent = useCallback(

@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database';
 
@@ -59,7 +59,8 @@ export function useLoadoutItemsAdmin(
     error: null,
   });
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch items for the loadout
   const fetchItems = useCallback(async () => {

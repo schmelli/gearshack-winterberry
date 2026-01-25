@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { WikiCategoryWithChildren, UseWikiCategoriesReturn } from '@/types/wiki';
 
@@ -17,7 +17,8 @@ export function useWikiCategories(): UseWikiCategoriesReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchCategories = useCallback(async () => {
     setIsLoading(true);

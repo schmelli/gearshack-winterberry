@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { CatalogProductResult } from '@/types/smart-search';
 
@@ -34,7 +34,8 @@ export function useCatalogSearch(): UseCatalogSearchReturn {
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   /**
    * Searches the catalog for products matching the query.
