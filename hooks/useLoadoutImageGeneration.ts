@@ -162,10 +162,12 @@ export function useLoadoutImageGeneration(
       abortControllerRef.current = new AbortController();
 
       try {
-        // Update state to generating
+        // FIXED: Reset ALL state fields when starting new generation to avoid stale data
         setState({
           status: 'generating',
           progress: 0,
+          error: undefined,
+          generatedImageId: undefined,
         });
 
         logMetric('generation_started', {
