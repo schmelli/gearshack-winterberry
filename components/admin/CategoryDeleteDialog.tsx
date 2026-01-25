@@ -54,11 +54,9 @@ export function CategoryDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
-            <p
-              dangerouslySetInnerHTML={{
-                __html: t('confirmDeleteMessage', { category: category.label }),
-              }}
-            />
+            <p>
+              {t('confirmDeleteMessage', { category: category.label })}
+            </p>
             {category.level < 3 && (
               <p className="text-destructive">
                 ⚠️ {t('cannotDeleteChildrenWarning')}

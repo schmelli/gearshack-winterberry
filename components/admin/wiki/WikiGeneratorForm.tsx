@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { Sparkles, Loader2, ExternalLink, Check, FileText, AlertTriangle, Link2, Merge } from 'lucide-react';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -371,31 +372,17 @@ function DuplicateWarning({ similarArticles, onViewArticle, onEditArticle }: Dup
 }
 
 // ============================================================================
-// Article Preview (Simple Markdown Rendering)
+// Article Preview (Safe Markdown Rendering)
 // ============================================================================
 
 function ArticlePreview({ content }: { content: string }) {
-  // Simple markdown-to-HTML conversion for preview
-  // In production, use react-markdown or similar
-  const html = content
-    // Headers
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Lists
-    .replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>')
-    // Line breaks
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
-
+  // Use react-markdown for safe rendering of AI-generated content
+  // This prevents XSS attacks as react-markdown sanitizes HTML by default
   return (
-    <div
-      dangerouslySetInnerHTML={{ __html: `<p>${html}</p>` }}
-      className="whitespace-pre-wrap"
-    />
+    <div className="whitespace-pre-wrap">
+      <ReactMarkdown>
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }
