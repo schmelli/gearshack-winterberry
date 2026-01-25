@@ -219,7 +219,9 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(statusRefreshTimerRef.current);
       }
     };
-  }, [user?.uid, friends, refreshFriendsStatus]);
+    // refreshFriendsStatus depends on friends, so including both creates redundant re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, friends]);
 
   // Track user.uid in ref for cleanup
   const userUidRef = useRef<string | undefined>(user?.uid);

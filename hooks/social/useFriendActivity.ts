@@ -43,6 +43,9 @@ export function useFriendActivity(
   // Track unsubscribe function
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
   /**
    * Loads initial activities.
    */
@@ -126,6 +129,9 @@ export function useFriendActivity(
    * Uses ref to access filter without causing subscription churn.
    */
   const handleNewActivity = useCallback((activity: FriendActivityWithProfile) => {
+    // MEMORY SAFETY: Guard against state updates after unmount
+    if (!isMountedRef.current) return;
+
     // Only add if it matches the current filter (read from ref)
     const filter = activityTypeFilterRef.current;
     if (filter && filter !== 'all') {
@@ -202,6 +208,8 @@ export function useFriendActivity(
     unsubscribeRef.current = subscribeToFriendActivities(user.uid, handleNewActivity);
 
     return () => {
+      // MEMORY SAFETY: Mark as unmounted before cleanup to prevent race conditions
+      isMountedRef.current = false;
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
@@ -209,6 +217,14 @@ export function useFriendActivity(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
+
+  // MEMORY SAFETY: Reset mounted state on mount (handles re-mounts)
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     activities,

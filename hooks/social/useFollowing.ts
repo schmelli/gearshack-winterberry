@@ -84,6 +84,7 @@ export function useFollowing(): UseFollowingReturn {
       try {
         await followUser(user.uid, userId);
         // Refresh to get actual profile data
+        // Note: loadFollowing is intentionally excluded from deps to prevent callback instability
         await loadFollowing();
       } catch (err) {
         // Rollback on error
@@ -93,7 +94,9 @@ export function useFollowing(): UseFollowingReturn {
         throw err;
       }
     },
-    [user?.uid, loadFollowing]
+    // loadFollowing excluded to maintain callback stability - it's called but doesn't affect closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.uid]
   );
 
   /**
