@@ -3024,6 +3024,19 @@
       "noPricesYet": "No prices tracked yet",
       "enableTracking": "Enable price tracking to see offers"
     },
+    "move": {
+      "buttonText": "Move to Inventory",
+      "moving": "Moving...",
+      "dialogTitle": "Move to Inventory",
+      "dialogDescription": "Are you sure you want to move <strong>{itemName}</strong> from your wishlist to your inventory?",
+      "dialogNote": "This will mark the item as owned gear. You can always edit its status later.",
+      "cancel": "Cancel",
+      "ariaLabelMove": "Move {itemName} to inventory",
+      "ariaLabelCancel": "Cancel and keep item in wishlist",
+      "ariaLabelMoving": "Moving item to inventory",
+      "ariaLabelConfirm": "Confirm move {itemName} to inventory",
+      "successAnnouncement": "{itemName} moved to inventory successfully."
+    },
     "toggle": {
       "myGear": "My Gear",
       "wishlist": "Wishlist",

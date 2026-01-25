@@ -3024,6 +3024,19 @@
       "noPricesYet": "Noch keine Preise erfasst",
       "enableTracking": "Aktiviere Preisverfolgung, um Angebote zu sehen"
     },
+    "move": {
+      "buttonText": "Ins Inventar verschieben",
+      "moving": "Wird verschoben...",
+      "dialogTitle": "Ins Inventar verschieben",
+      "dialogDescription": "Möchtest du <strong>{itemName}</strong> wirklich von deiner Wunschliste ins Inventar verschieben?",
+      "dialogNote": "Der Artikel wird als eigene Ausrüstung markiert. Du kannst den Status jederzeit ändern.",
+      "cancel": "Abbrechen",
+      "ariaLabelMove": "{itemName} ins Inventar verschieben",
+      "ariaLabelCancel": "Abbrechen und Artikel in der Wunschliste belassen",
+      "ariaLabelMoving": "Artikel wird ins Inventar verschoben",
+      "ariaLabelConfirm": "Verschieben von {itemName} ins Inventar bestätigen",
+      "successAnnouncement": "{itemName} wurde erfolgreich ins Inventar verschoben."
+    },
     "toggle": {
       "myGear": "Meine Ausrüstung",
       "wishlist": "Wunschliste",
