@@ -893,6 +893,15 @@
       "skip": "Skip",
       "addSelected": "Add Selected ({count})",
       "addAll": "Add All ({count})"
+    },
+    "sortFilter": {
+      "sort": "Sort",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "weightLightest": "Weight (Lightest)",
+      "weightHeaviest": "Weight (Heaviest)",
+      "category": "Category",
+      "allCategories": "All Categories"
     }
   },
   "LoadoutCreation": {
