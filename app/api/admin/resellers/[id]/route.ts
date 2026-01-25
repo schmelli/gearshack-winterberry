@@ -115,8 +115,16 @@ export async function PATCH(
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    // Parse and validate request body
-    const rawBody = await request.json();
+    // Parse and validate request body with JSON error handling
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validationResult = UpdateResellerSchema.safeParse(rawBody);
 
     if (!validationResult.success) {

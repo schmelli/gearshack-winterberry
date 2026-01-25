@@ -20,14 +20,20 @@ class RateLimiter {
   private readonly windowMs: number;
   private readonly maxStoreSize: number;
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private lastCleanup: number = 0;
+  private readonly cleanupIntervalMs: number = 5 * 60 * 1000;
 
   constructor(maxAttempts: number, windowMs: number, maxStoreSize: number = 10000) {
     this.maxAttempts = maxAttempts;
     this.windowMs = windowMs;
     this.maxStoreSize = maxStoreSize;
 
-    // Cleanup expired entries every 5 minutes
-    this.cleanupIntervalId = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Note: In serverless environments, setInterval can cause memory leaks.
+    // We use lazy cleanup instead - cleanup runs during check() calls.
+    // Only start interval in long-running processes.
+    if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      this.cleanupIntervalId = setInterval(() => this.cleanup(), this.cleanupIntervalMs);
+    }
   }
 
   /**
@@ -53,6 +59,13 @@ class RateLimiter {
     resetAt: number;
   } {
     const now = Date.now();
+
+    // Lazy cleanup in production (serverless) - run periodically during checks
+    if (now - this.lastCleanup > this.cleanupIntervalMs) {
+      this.cleanup();
+      this.lastCleanup = now;
+    }
+
     const entry = this.store.get(userId);
 
     if (!entry) {
@@ -80,23 +93,25 @@ class RateLimiter {
     const windowStart = now - this.windowMs;
     entry.attempts = entry.attempts.filter(timestamp => timestamp > windowStart);
 
-    // Check if limit exceeded
+    // Check if limit exceeded (check BEFORE incrementing to avoid race condition)
     if (entry.attempts.length >= this.maxAttempts) {
+      // Update store with cleaned attempts
+      this.store.set(userId, entry);
       return {
         allowed: false,
         remaining: 0,
-        resetAt: entry.attempts[0] + this.windowMs,
+        resetAt: entry.attempts[0] ? entry.attempts[0] + this.windowMs : now + this.windowMs,
       };
     }
 
-    // Add current attempt
+    // Add current attempt atomically with check
     entry.attempts.push(now);
     this.store.set(userId, entry);
 
     return {
       allowed: true,
       remaining: this.maxAttempts - entry.attempts.length,
-      resetAt: entry.attempts[0] + this.windowMs,
+      resetAt: entry.attempts[0] ? entry.attempts[0] + this.windowMs : now + this.windowMs,
     };
   }
 
