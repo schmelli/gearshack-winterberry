@@ -425,6 +425,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!fetchResponse.ok) {
+        clearTimeout(timeout); // Clear timeout before early return
         return NextResponse.json(
           { error: `Failed to fetch URL: ${fetchResponse.status}` },
           { status: 400 }
@@ -434,6 +435,7 @@ export async function POST(request: NextRequest) {
       // Check Content-Length header to prevent memory exhaustion
       const contentLength = fetchResponse.headers.get('content-length');
       if (contentLength && parseInt(contentLength, 10) > MAX_CONTENT_SIZE) {
+        clearTimeout(timeout); // Clear timeout before early return
         return NextResponse.json(
           { error: 'URL content too large (max 50MB)' },
           { status: 413 }
@@ -444,6 +446,7 @@ export async function POST(request: NextRequest) {
 
       // Double-check size after download (Content-Length may be missing or wrong)
       if (html.length > MAX_CONTENT_SIZE) {
+        clearTimeout(timeout); // Clear timeout before early return
         return NextResponse.json(
           { error: 'URL content too large (max 50MB)' },
           { status: 413 }

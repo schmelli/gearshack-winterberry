@@ -25,7 +25,40 @@ export function usePriceAlerts(): UsePriceAlertsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadAlerts = async () => {
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAlerts = async () => {
+      try {
+        if (mounted) setIsLoading(true);
+        if (mounted) setError(null);
+
+        const supabase = createClient();
+        const { data, error: alertsError } = await supabase
+          .from('price_alerts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (alertsError) throw alertsError;
+        // Cast through unknown as DB schema may differ from client type
+        if (mounted) setAlerts((data || []) as unknown as PriceAlert[]);
+      } catch (err) {
+        if (mounted) setError(err as Error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    loadAlerts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Refresh function that can be called manually
+  const refresh = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -38,7 +71,6 @@ export function usePriceAlerts(): UsePriceAlertsResult {
         .limit(50);
 
       if (alertsError) throw alertsError;
-      // Cast through unknown as DB schema may differ from client type
       setAlerts((data || []) as unknown as PriceAlert[]);
     } catch (err) {
       setError(err as Error);
@@ -46,10 +78,6 @@ export function usePriceAlerts(): UsePriceAlertsResult {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadAlerts();
-  }, []);
 
   const markAsRead = async (alertId: string) => {
     try {
@@ -62,7 +90,7 @@ export function usePriceAlerts(): UsePriceAlertsResult {
         .is('opened_at', null);
 
       if (error) throw error;
-      await loadAlerts();
+      await refresh();
     } catch (err) {
       setError(err as Error);
     }
@@ -79,7 +107,7 @@ export function usePriceAlerts(): UsePriceAlertsResult {
         .is('clicked_at', null);
 
       if (error) throw error;
-      await loadAlerts();
+      await refresh();
     } catch (err) {
       setError(err as Error);
     }
@@ -94,6 +122,6 @@ export function usePriceAlerts(): UsePriceAlertsResult {
     error,
     markAsRead,
     markAsClicked,
-    refresh: loadAlerts,
+    refresh,
   };
 }

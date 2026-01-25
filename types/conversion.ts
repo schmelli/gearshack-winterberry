@@ -357,8 +357,11 @@ export function detectFraudFlags(
     }
   }
 
-  // High value (> 3x average)
-  if (conversion.salePrice > averagePrice * 3) {
+  // High value (> 3x average) - only check if averagePrice is valid
+  if (Number.isFinite(averagePrice) &&
+      averagePrice > 0 &&
+      Number.isFinite(conversion.salePrice) &&
+      conversion.salePrice > averagePrice * 3) {
     flags.push('high_value');
   }
 

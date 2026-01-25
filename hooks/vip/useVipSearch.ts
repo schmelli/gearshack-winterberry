@@ -133,6 +133,14 @@ export function useVipSearch(options: UseVipSearchOptions = {}): UseVipSearchRet
   // Search when debounced query changes
   useEffect(() => {
     fetchVips(debouncedQuery, 0, false);
+
+    // Cleanup: abort any pending request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [debouncedQuery, fetchVips]);
 
   // Load more results

@@ -51,6 +51,8 @@ export function useFriends(): UseFriendsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Store fetchFriends in ref to prevent subscription churn
+  const fetchFriendsRef = useRef<() => Promise<void>>(async () => {});
 
   // Fetch friends list
   const fetchFriends = useCallback(async () => {
@@ -102,7 +104,13 @@ export function useFriends(): UseFriendsReturn {
     }
   }, [user?.id]);
 
+  // Keep ref updated with latest fetchFriends function
+  useEffect(() => {
+    fetchFriendsRef.current = fetchFriends;
+  }, [fetchFriends]);
+
   // Subscribe to friend changes
+  // Uses fetchFriendsRef to avoid subscription churn when fetchFriends changes
   useEffect(() => {
     if (!user?.id) return;
 
@@ -120,8 +128,8 @@ export function useFriends(): UseFriendsReturn {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          // Refresh on any change
-          fetchFriends();
+          // Refresh on any change - use ref to avoid stale closure
+          fetchFriendsRef.current();
         }
       )
       .subscribe();
@@ -134,7 +142,7 @@ export function useFriends(): UseFriendsReturn {
         channelRef.current = null;
       }
     };
-  }, [user?.id, fetchFriends]);
+  }, [user?.id]); // Remove fetchFriends from deps - use ref instead
 
   // Check if user is a friend
   const isFriend = useCallback(

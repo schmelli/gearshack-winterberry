@@ -59,6 +59,9 @@ export function PriceHistoryChart({
     if (history.length < 2) return 'stable';
     const first = history[0].average_price;
     const last = history[history.length - 1].average_price;
+    // Guard against division by zero and invalid values
+    if (!Number.isFinite(first) || first <= 0) return 'stable';
+    if (!Number.isFinite(last)) return 'stable';
     const change = ((last - first) / first) * 100;
     if (change < -5) return 'down';
     if (change > 5) return 'up';
