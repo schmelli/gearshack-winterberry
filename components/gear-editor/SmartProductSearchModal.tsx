@@ -242,9 +242,9 @@ export function SmartProductSearchModal({
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Globe className="h-4 w-4 text-blue-600" />
-                      <h3 className="font-medium">From Web</h3>
+                      <h3 className="font-medium">{t('fromWeb')}</h3>
                       <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {smartSearch.internetResults.length} found
+                        {t('found', { count: smartSearch.internetResults.length })}
                       </Badge>
                     </div>
                     <div className="grid gap-2">
@@ -265,7 +265,7 @@ export function SmartProductSearchModal({
             {/* No Results */}
             {!isSearching && !hasResults && smartSearch.status === 'success' && (
               <div className="text-center py-8 text-muted-foreground">
-                <p>No products found. Try a different search term.</p>
+                <p>{t('noResults')}</p>
               </div>
             )}
 
@@ -273,9 +273,9 @@ export function SmartProductSearchModal({
             {smartSearch.isRateLimited && (
               <div className="text-center py-4 px-6 bg-yellow-50 rounded-lg border border-yellow-200">
                 <p className="text-sm text-yellow-800">
-                  Daily internet search limit reached. Catalog results are still available.
+                  {t('rateLimited')}
                   <br />
-                  <span className="font-medium">Upgrade to Trailblazer for unlimited searches.</span>
+                  <span className="font-medium">{t('rateLimitedUpgrade')}</span>
                 </p>
               </div>
             )}
