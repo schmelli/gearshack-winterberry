@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import Image from 'next/image';
 import { User, Settings, LogOut, ChevronDown, ChevronRight, Shield, Pencil, Plus, Calendar, FileEdit, HelpCircle, Bug, MessageSquarePlus, Sun, Moon } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import {
@@ -350,17 +351,16 @@ export function MobileNav({
                 {t('helpCenter')}
               </Link>
 
-              <Link
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // TODO: Implement report bug
+              <button
+                onClick={() => {
+                  handleNavigate();
+                  Sentry.showReportDialog();
                 }}
                 className="flex items-center gap-3 rounded-md px-4 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <Bug className="h-5 w-5" />
                 {t('reportBug')}
-              </Link>
+              </button>
 
               <Separator className="my-2" />
 
