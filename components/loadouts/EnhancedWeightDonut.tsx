@@ -314,7 +314,7 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
     <div className="flex flex-col items-center gap-4">
       {/* Weight Mode Toggle */}
       <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-2.5">
-        <span className={cn("text-sm font-medium transition-colors", !showPackWeight && "text-muted-foreground")}>
+        <span className={cn("text-sm font-medium transition-colors", showPackWeight && "text-muted-foreground")}>
           {t('weightMode.baseweight')}
         </span>
         <Switch
@@ -322,7 +322,7 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
           onCheckedChange={setShowPackWeight}
           aria-label={t('weightMode.toggleLabel')}
         />
-        <span className={cn("text-sm font-medium transition-colors", showPackWeight && "text-muted-foreground")}>
+        <span className={cn("text-sm font-medium transition-colors", !showPackWeight && "text-muted-foreground")}>
           {t('weightMode.packWeight')}
         </span>
       </div>
