@@ -90,6 +90,7 @@ export function poundsToOunces(pounds: number): number {
  * Convert a weight value from one unit to another
  */
 export function convertWeight(value: number, from: WeightUnit, to: WeightUnit): number {
+  if (!Number.isFinite(value)) return 0;
   if (from === to) return value;
 
   // First convert to grams
@@ -148,6 +149,7 @@ export function fromGrams(grams: number, unit: WeightUnit): number {
  * @returns Formatted string like "123.4 g" or "4.3 oz"
  */
 export function formatWeight(value: number, unit: WeightUnit, precision: number = 1): string {
+  if (!Number.isFinite(value)) return `0 ${unit}`;
   const formatted = value.toFixed(precision);
   return `${formatted} ${unit}`;
 }
@@ -222,10 +224,16 @@ export function calculateWeightSummary(
   consumableGrams: number,
   quantity: number = 1
 ): WeightSummary {
+  // Validate inputs to prevent NaN/Infinity propagation
+  const safeTotal = Number.isFinite(totalGrams) ? totalGrams : 0;
+  const safeWorn = Number.isFinite(wornGrams) ? wornGrams : 0;
+  const safeConsumable = Number.isFinite(consumableGrams) ? consumableGrams : 0;
+  const safeQty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+
   // Multiply all weights by quantity
-  const adjustedTotal = totalGrams * quantity;
-  const adjustedWorn = wornGrams * quantity;
-  const adjustedConsumable = consumableGrams * quantity;
+  const adjustedTotal = safeTotal * safeQty;
+  const adjustedWorn = safeWorn * safeQty;
+  const adjustedConsumable = safeConsumable * safeQty;
 
   return {
     totalWeight: adjustedTotal,

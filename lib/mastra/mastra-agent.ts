@@ -24,7 +24,8 @@ const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 
 // Memory configuration
-const MEMORY_LAST_MESSAGES = parseInt(process.env.MASTRA_MEMORY_LAST_MESSAGES || '20', 10);
+const parsedMessages = parseInt(process.env.MASTRA_MEMORY_LAST_MESSAGES || '20', 10);
+const MEMORY_LAST_MESSAGES = Number.isFinite(parsedMessages) && parsedMessages > 0 ? parsedMessages : 20;
 
 if (!AI_GATEWAY_KEY) {
   console.warn('⚠️ AI_GATEWAY_KEY not configured - Mastra Agent will fail');

@@ -535,7 +535,8 @@ export async function fetchMerchantCatalog(
       .replace(/_/g, '\\_')    // Escape _ wildcards
       .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
       .replace(/\(/g, '')      // Remove parentheses (PostgREST grouping)
-      .replace(/\)/g, '');     // Remove parentheses
+      .replace(/\)/g, '')      // Remove parentheses
+      .replace(/\./g, ' ');    // Replace dots with space (prevents .eq. injection)
     query = query.or(`name.ilike.%${escapedSearch}%,sku.ilike.%${escapedSearch}%,brand.ilike.%${escapedSearch}%`);
   }
 

@@ -56,7 +56,10 @@ function escapeILikePattern(pattern: string): string {
     .replace(/\\/g, '\\\\') // Escape backslashes first
     .replace(/%/g, '\\%')   // Escape % wildcards
     .replace(/_/g, '\\_')   // Escape _ wildcards
-    .replace(/,/g, '');     // Remove commas (PostgREST .or() delimiter)
+    .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')     // Remove parentheses (PostgREST grouping)
+    .replace(/\)/g, '')     // Remove parentheses
+    .replace(/\./g, ' ');   // Replace dots with space (prevents .eq. injection)
 }
 
 // ============================================================================

@@ -214,13 +214,15 @@ function parseIntent(query: string): TripIntent {
     }
   }
 
-  // Extract duration
+  // Extract duration with validation
   const durationMatch = query.match(/(\d+)\s*(?:day|night)/i);
-  const durationDays = durationMatch ? parseInt(durationMatch[1], 10) : 3;
+  const parsedDuration = durationMatch ? parseInt(durationMatch[1], 10) : NaN;
+  const durationDays = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 3;
 
-  // Extract weight constraint
+  // Extract weight constraint with validation
   const weightMatch = query.match(/(?:under|max|maximum|less than)\s*(\d+)\s*(?:kg|kilogram)/i);
-  const maxWeight = weightMatch ? parseInt(weightMatch[1], 10) * 1000 : undefined;
+  const parsedWeight = weightMatch ? parseInt(weightMatch[1], 10) : NaN;
+  const maxWeight = Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight * 1000 : undefined;
 
   // Extract requirements
   const requirements: string[] = [];
