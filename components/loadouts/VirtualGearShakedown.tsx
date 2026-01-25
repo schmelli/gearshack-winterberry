@@ -127,14 +127,26 @@ export function VirtualGearShakedown({
 
   // Track view for analytics
   useEffect(() => {
+    let isCancelled = false;
+    const controller = new AbortController();
+
     async function trackView() {
       try {
-        await fetch(`/api/shares/${shareToken}/track-view`, { method: 'POST' });
+        await fetch(`/api/shares/${shareToken}/track-view`, {
+          method: 'POST',
+          signal: controller.signal,
+        });
       } catch (error) {
-        console.debug('[VirtualGearShakedown] View tracking failed:', error);
+        if (!isCancelled && error instanceof Error && error.name !== 'AbortError') {
+          console.debug('[VirtualGearShakedown] View tracking failed:', error);
+        }
       }
     }
     trackView();
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
   }, [shareToken]);
 
   const tripDate = useMemo(

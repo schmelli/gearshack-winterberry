@@ -146,7 +146,7 @@ export function MarkAsPurchasedButton({
     if (!user) return;
 
     const price = parseFloat(salePrice);
-    if (isNaN(price) || price <= 0) {
+    if (!Number.isFinite(price) || price <= 0) {
       toast.error(t('invalidPrice'));
       return;
     }

@@ -118,7 +118,7 @@ export function OfferPreviewDialog({
   const t = useTranslations('Wishlist');
 
   const discount =
-    originalPrice && originalPrice > price
+    originalPrice && originalPrice > price && Number.isFinite(originalPrice)
       ? Math.round(((originalPrice - price) / originalPrice) * 100)
       : null;
 

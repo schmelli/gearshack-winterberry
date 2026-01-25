@@ -141,12 +141,15 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
 
   // Check if shakedown is already shared to bulletin board
   useEffect(() => {
+    let isCancelled = false;
+
     async function checkIfAlreadyShared() {
       if (!shakedown || !isOwner || !user) return;
 
       try {
         const supabase = createClient();
         const result = await fetchBulletinPosts(supabase, { limit: 50 });
+        if (isCancelled) return;
         const alreadyShared = result?.posts?.some(
           (post) =>
             post.linked_content_type === 'shakedown' &&
@@ -155,11 +158,12 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
         ) ?? false;
         setIsAlreadyShared(alreadyShared);
       } catch {
-        setIsAlreadyShared(false);
+        if (!isCancelled) setIsAlreadyShared(false);
       }
     }
 
     checkIfAlreadyShared();
+    return () => { isCancelled = true; };
   }, [shakedown, isOwner, user]);
 
   // Handle share to bulletin board

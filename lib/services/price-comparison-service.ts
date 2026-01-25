@@ -52,7 +52,13 @@ export async function recordPriceSnapshot(
 
   const supabase = await createClient();
 
-  const prices = results.map(r => r.total_price);
+  const prices = results.map(r => r.total_price).filter(p => Number.isFinite(p));
+
+  // Guard against empty prices array after filtering
+  if (prices.length === 0) {
+    console.warn('No valid prices found in results, skipping snapshot');
+    return;
+  }
 
   // Use database function for atomic insert of history + results
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,7 +72,7 @@ export async function recordPriceSnapshot(
 
   if (error) {
     console.error('Failed to record price snapshot:', error);
-    throw error;
+    throw new Error('Failed to record price snapshot');
   }
 }
 

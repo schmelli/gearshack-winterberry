@@ -190,14 +190,26 @@ export function canReplyAtDepth(parentDepth: number): boolean {
 // =============================================================================
 
 /**
- * Generates a random share token for public shakedowns
+ * Generates a cryptographically secure random share token for public shakedowns
  * @returns 32-character alphanumeric token
  */
 export function generateShareToken(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charsLength = chars.length;
   let token = '';
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
+
+  // Use crypto.getRandomValues for secure token generation
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const randomValues = new Uint32Array(32);
+    crypto.getRandomValues(randomValues);
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(randomValues[i] % charsLength);
+    }
+  } else {
+    // Fallback for environments without crypto (should not happen in browser/Node 15+)
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * charsLength));
+    }
   }
   return token;
 }
