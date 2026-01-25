@@ -87,13 +87,14 @@ export function HelpfulButton({
     };
   }, []);
 
-  // Sync with props when they change (e.g., from server refresh)
-  if (isHelpful !== optimisticIsHelpful && !isLoading) {
-    setOptimisticIsHelpful(isHelpful);
-  }
-  if (helpfulCount !== optimisticCount && !isLoading) {
-    setOptimisticCount(helpfulCount);
-  }
+  // FIXED: Sync with props when they change - moved to useEffect to avoid
+  // state updates during render which can cause infinite loops
+  useEffect(() => {
+    if (!isLoading) {
+      setOptimisticIsHelpful(isHelpful);
+      setOptimisticCount(helpfulCount);
+    }
+  }, [isHelpful, helpfulCount, isLoading]);
 
   // Determine if button should be disabled
   // Disabled when: not owner, user is author, or currently loading

@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Bookmark, BookmarkCheck, Loader2, StickyNote, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -99,14 +99,20 @@ export function BookmarkButton({
   const [isNotePopoverOpen, setIsNotePopoverOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(note || '');
 
-  // Sync with props when they change (e.g., from server refresh)
-  if (isBookmarked !== optimisticIsBookmarked && !isLoading) {
-    setOptimisticIsBookmarked(isBookmarked);
-  }
-  if (note !== optimisticNote && !isLoading) {
-    setOptimisticNote(note || '');
-    setNoteInput(note || '');
-  }
+  // FIXED: Sync with props when they change - moved to useEffect to avoid
+  // state updates during render which can cause infinite loops
+  useEffect(() => {
+    if (!isLoading) {
+      setOptimisticIsBookmarked(isBookmarked);
+    }
+  }, [isBookmarked, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setOptimisticNote(note || '');
+      setNoteInput(note || '');
+    }
+  }, [note, isLoading]);
 
   // Determine if note features are enabled
   const hasNoteSupport = Boolean(onNoteUpdate);

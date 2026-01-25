@@ -56,6 +56,18 @@ function getSourceBadge(sourceType: PriceResult['source_type']): {
 }
 
 /**
+ * SECURITY: Validate URL is safe to use in href (prevents javascript: XSS)
+ */
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Format price with currency
  */
 function formatPrice(amount: number, currency: string = 'USD'): string {
@@ -220,8 +232,9 @@ export function TopRetailPricesDisplay({
                 )}
               </div>
 
-              {/* Link icon (if URL available) */}
-              {result.source_url && !isCompact && (
+              {/* Link icon (if URL available and valid) */}
+              {/* SECURITY: Validate URL to prevent XSS via javascript: protocol */}
+              {result.source_url && isValidHttpUrl(result.source_url) && !isCompact && (
                 <a
                   href={result.source_url}
                   target="_blank"

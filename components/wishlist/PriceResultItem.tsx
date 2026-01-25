@@ -17,6 +17,18 @@ interface PriceResultItemProps {
   isLowest?: boolean;
 }
 
+/**
+ * SECURITY: Validate URL is safe to open (prevents javascript: XSS)
+ */
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('de-DE', {
@@ -91,13 +103,16 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
           </div>
 
           {/* Action Button */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(result.source_url, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
+          {/* SECURITY: Only render button if URL is a valid HTTP(S) URL */}
+          {isValidHttpUrl(result.source_url) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(result.source_url, '_blank', 'noopener,noreferrer')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </Card>
