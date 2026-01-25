@@ -127,20 +127,22 @@ export function VoiceRecorder({
   const handleSend = useCallback(async () => {
     if (!audioBlob) return;
 
+    // Capture URL before async operation to ensure cleanup even on error
+    const urlToRevoke = audioUrl;
     try {
       setIsSending(true);
       await onSend(audioBlob, duration);
-
-      // Clean up
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
+    } catch (error) {
+      console.error('Failed to send voice message:', error);
+      // Don't rethrow - error is logged
+    } finally {
+      // Always clean up in finally block to prevent memory leaks
+      if (urlToRevoke) {
+        URL.revokeObjectURL(urlToRevoke);
       }
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
-    } catch (error) {
-      console.error('Failed to send voice message:', error);
-    } finally {
       setIsSending(false);
     }
   }, [audioBlob, duration, audioUrl, onSend]);

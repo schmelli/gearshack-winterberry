@@ -300,11 +300,13 @@ export function useLoadoutImageGeneration(
         stylePreferences,
       });
 
+      // Use the same AbortController signal for retry to allow cancellation
       const response = await fetch('/api/loadout-images/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: abortControllerRef.current?.signal,
         body: JSON.stringify({
           loadoutId,
           prompt,
@@ -322,6 +324,11 @@ export function useLoadoutImageGeneration(
 
       const result = await response.json();
 
+      // Check if aborted before state updates
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
+
       setState({
         status: 'success',
         generatedImageId: result.imageId,
@@ -337,7 +344,11 @@ export function useLoadoutImageGeneration(
       });
 
       toast.success(t('generateSuccess'));
-      await refreshHistory();
+
+      // Check again before refresh
+      if (!abortControllerRef.current?.signal.aborted) {
+        await refreshHistory();
+      }
     },
     [
       loadoutId,

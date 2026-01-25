@@ -333,40 +333,45 @@ export function LoadoutExportMenu({
   };
 
   const exportCsv = () => {
-    const headers = ['Item', 'Brand', 'Category', 'Weight (g)', 'Worn', 'Consumable'];
-    const rows = items.map((item) => {
-      const state = itemStates.find((s) => s.itemId === item.id);
-      const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
-      return [
-        item.name,
-        item.brand ?? '',
-        buildCategoryLabelLocal(categoryId),
-        item.weightGrams ?? '',
-        formatBooleanLocal(state?.isWorn),
-        formatBooleanLocal(state?.isConsumable),
-      ];
-    });
+    let url: string | null = null;
+    try {
+      const headers = ['Item', 'Brand', 'Category', 'Weight (g)', 'Worn', 'Consumable'];
+      const rows = items.map((item) => {
+        const state = itemStates.find((s) => s.itemId === item.id);
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+        return [
+          item.name,
+          item.brand ?? '',
+          buildCategoryLabelLocal(categoryId),
+          item.weightGrams ?? '',
+          formatBooleanLocal(state?.isWorn),
+          formatBooleanLocal(state?.isConsumable),
+        ];
+      });
 
-    const csvContent = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((value) => {
-            const safe = String(value ?? '');
-            return `"${safe.replace(/"/g, '""')}"`;
-          })
-          .join(',')
-      )
-      .join('\n');
+      const csvContent = [headers, ...rows]
+        .map((row) =>
+          row
+            .map((value) => {
+              const safe = String(value ?? '');
+              return `"${safe.replace(/"/g, '""')}"`;
+            })
+            .join(',')
+        )
+        .join('\n');
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${buildFileName('loadout')}.csv`;
-    link.click();
-    // Revoke immediately - modern browsers handle this correctly
-    // Delayed revocation can leak if component unmounts
-    URL.revokeObjectURL(url);
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${buildFileName('loadout')}.csv`;
+      link.click();
+    } finally {
+      // Always revoke blob URL to prevent memory leak, even on error
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    }
   };
 
   const renderPdf = (includeChecklist: boolean) => {

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'crypto';
 import {
   productSyncRequestSchema,
   type ProductPayload,
@@ -19,13 +20,27 @@ import {
 import type { Database } from '@/types/database';
 import type { SyncResponse } from '@/types/catalog';
 
+/**
+ * Timing-safe comparison of authorization headers to prevent timing attacks.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedToken: string): boolean {
+  if (!authHeader) return false;
+  // Ensure both strings have the same length for timing-safe comparison
+  if (authHeader.length !== expectedToken.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedToken));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Validate authorization
+    // Validate authorization using timing-safe comparison
     const authHeader = request.headers.get('Authorization');
     const expectedToken = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
 
-    if (!authHeader || authHeader !== expectedToken) {
+    if (!verifyAuthHeader(authHeader, expectedToken)) {
       const response: SyncResponse = {
         success: false,
         error: 'Unauthorized',

@@ -64,6 +64,9 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use ref for onTyping to avoid stale closures in timeout callbacks
+  const onTypingRef = useRef(onTyping);
+  onTypingRef.current = onTyping;
 
   // Cleanup typing timeout on unmount to prevent memory leaks
   useEffect(() => {
@@ -175,8 +178,8 @@ export function MessageInput({
       textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
 
       // Trigger typing indicator
-      if (onTyping && e.target.value.length > 0) {
-        onTyping(true);
+      if (onTypingRef.current && e.target.value.length > 0) {
+        onTypingRef.current(true);
 
         // Clear existing timeout
         if (typingTimeoutRef.current) {
@@ -184,12 +187,13 @@ export function MessageInput({
         }
 
         // Stop typing after 2 seconds of inactivity
+        // Use ref to access current onTyping value, avoiding stale closure
         typingTimeoutRef.current = setTimeout(() => {
-          onTyping(false);
+          onTypingRef.current?.(false);
         }, 2000);
       }
     },
-    [onTyping]
+    [] // No dependencies needed - uses refs for stable access
   );
 
   // Handle image file selection

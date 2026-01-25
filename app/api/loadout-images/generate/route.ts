@@ -60,9 +60,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
+    // Parse request body with safeParse for proper error handling
     const body = await request.json();
-    const validatedData = GenerateImageRequestSchema.parse(body);
+    const parseResult = GenerateImageRequestSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid request data',
+          details: parseResult.error.issues,
+        },
+        { status: 400 }
+      );
+    }
 
     const {
       loadoutId,
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
       negativePrompt,
       stylePreferences,
       isRetry = false,
-    } = validatedData;
+    } = parseResult.data;
 
     // Verify loadout ownership
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadouts table not in generated types
@@ -148,18 +158,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request data',
-          details: error.issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Generic error
+    // Generic error (ZodError is now handled by safeParse above)
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Failed to generate image',

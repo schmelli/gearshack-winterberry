@@ -41,6 +41,15 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
   const heartbeatTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   /**
    * Updates the current user's online status.
    */
@@ -51,8 +60,11 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
 
       try {
         await updateOnlineStatus(user.uid, newStatus);
-        setStatus(newStatus);
-        setLastActive(new Date().toISOString());
+        // Guard against state updates after unmount
+        if (isMountedRef.current) {
+          setStatus(newStatus);
+          setLastActive(new Date().toISOString());
+        }
       } catch (err) {
         console.error('Error updating online status:', err);
       }
@@ -90,6 +102,9 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
       const friendIds = friends.map((f) => f.id);
       const statuses = await getOnlineStatuses(friendIds);
 
+      // Guard against state updates after unmount
+      if (!isMountedRef.current) return;
+
       const newOnlineMap = new Map<string, boolean>();
       const newLastActiveMap = new Map<string, string>();
 
@@ -105,7 +120,9 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
       setIsRealtimeConnected(true);
     } catch (err) {
       console.error('Error refreshing friend statuses:', err);
-      setIsRealtimeConnected(false);
+      if (isMountedRef.current) {
+        setIsRealtimeConnected(false);
+      }
     }
   }, [friends]);
 
@@ -135,22 +152,28 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     resetInactivityTimer();
   }, [status, updateStatus, resetInactivityTimer]);
 
-  // Set up activity listeners
+  // Use ref to avoid event listener churn when handleActivity changes
+  const handleActivityRef = useRef(handleActivity);
+  handleActivityRef.current = handleActivity;
+
+  // Set up activity listeners with stable handler
   useEffect(() => {
     if (!user?.uid) return;
 
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    // Use stable handler that delegates to current ref
+    const stableHandler = () => handleActivityRef.current();
 
     events.forEach((event) => {
-      window.addEventListener(event, handleActivity, { passive: true });
+      window.addEventListener(event, stableHandler, { passive: true });
     });
 
     return () => {
       events.forEach((event) => {
-        window.removeEventListener(event, handleActivity);
+        window.removeEventListener(event, stableHandler);
       });
     };
-  }, [user?.uid, handleActivity]);
+  }, [user?.uid]); // Only re-run when user changes, not on every handleActivity change
 
   // Set up heartbeat (periodic status update)
   useEffect(() => {

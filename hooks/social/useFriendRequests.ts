@@ -245,35 +245,50 @@ export function useFriendRequestStatus(targetUserId: string): {
   const [canSendResult, setCanSendResult] = useState<boolean | null>(null);
   const [isCheckingCanSend, setIsCheckingCanSend] = useState(false);
   const lastTargetIdRef = useRef<string>(targetUserId);
+  // AbortController ref to cancel pending requests on unmount or target change
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check for existing requests
   const outgoingRequest = pendingOutgoing.find((r) => r.recipient_id === targetUserId);
   const incomingRequest = pendingIncoming.find((r) => r.sender_id === targetUserId);
 
   // Check if can send - exposed as a method for manual triggering
-  // FIXED: Cancellation token to prevent race conditions
+  // Uses AbortController to properly cancel pending operations
   const checkCanSend = useCallback(async () => {
+    // Cancel any previous pending request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsCheckingCanSend(true);
     const currentTargetId = targetUserId;
     try {
       const result = await canSendRequest(currentTargetId);
-      // Only update state if targetUserId hasn't changed
-      if (currentTargetId === targetUserId) {
+      // Only update state if not aborted and targetUserId hasn't changed
+      if (!signal.aborted && currentTargetId === targetUserId) {
         setCanSendResult(result.canSend);
       }
+    } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      console.error('Error checking friend request eligibility:', error);
     } finally {
-      // Only clear loading if targetUserId hasn't changed
-      if (currentTargetId === targetUserId) {
+      // Only clear loading if not aborted and targetUserId hasn't changed
+      if (!signal.aborted && currentTargetId === targetUserId) {
         setIsCheckingCanSend(false);
       }
     }
   }, [targetUserId, canSendRequest]);
 
-  // Reset when target changes (FIXED: moved to useEffect to prevent state update during render)
+  // Reset when target changes
   useEffect(() => {
     if (lastTargetIdRef.current !== targetUserId) {
       lastTargetIdRef.current = targetUserId;
       setCanSendResult(null);
+      // Abort any pending request when target changes
+      abortControllerRef.current?.abort();
     }
   }, [targetUserId]);
 
@@ -282,10 +297,9 @@ export function useFriendRequestStatus(targetUserId: string): {
     if (!isLoading && !outgoingRequest && !incomingRequest && canSendResult === null) {
       checkCanSend();
     }
-    // Cleanup: cancel pending operations when component unmounts or targetUserId changes
+    // Cleanup: abort pending operations when component unmounts
     return () => {
-      // Note: We can't actually cancel the Promise, but we prevent state updates above
-      setIsCheckingCanSend(false);
+      abortControllerRef.current?.abort();
     };
   }, [isLoading, outgoingRequest, incomingRequest, canSendResult, checkCanSend]);
 

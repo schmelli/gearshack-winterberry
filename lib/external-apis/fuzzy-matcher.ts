@@ -85,5 +85,11 @@ export function calculateSimilarity(str1: string, str2: string): number {
 
   const distance = matrix[len1][len2];
   const maxLen = Math.max(len1, len2);
+
+  // Handle edge case: both strings empty (avoid division by zero)
+  if (maxLen === 0) {
+    return 1.0; // Two empty strings are considered identical
+  }
+
   return 1 - distance / maxLen;
 }
