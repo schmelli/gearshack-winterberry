@@ -92,8 +92,6 @@ function WeightBreakdownChart({ breakdown }: { breakdown: CategoryBreakdown[] })
 }
 
 function LoadoutItemsList({ loadout }: { loadout: VipLoadoutWithItems }) {
-  const _t = useTranslations('vip');
-
   // Group items by category
   const itemsByCategory = loadout.items.reduce(
     (acc, item) => {

@@ -1453,6 +1453,8 @@
       "offerExpires": "Läuft ab: {date}",
       "alerts": {
         "title": "Alarm-Einstellungen",
+        "description": "Verwalte, wie und wann du Preisverfolgungs-Benachrichtigungen erhältst",
+        "back": "Zurück",
         "priceDropEnabled": "Preissenkungsalarme",
         "localShopEnabled": "Lokale Shop-Alarme",
         "communityEnabled": "Community-Alarme",
@@ -2312,6 +2314,29 @@
       "allUsersReceivedOffer": "Alle Benutzer haben in den letzten 30 Tagen bereits ein Angebot für dieses Produkt erhalten",
       "usersSkipped": "{count} Benutzer übersprungen - haben in den letzten 30 Tagen bereits ein Angebot erhalten",
       "offersSent": "{count, plural, one {# Angebot} other {# Angebote}} gesendet"
+    },
+    "badge": {
+      "verified": "Verifiziert",
+      "verifiedTooltip": "Verifizierter Händler - Identität und Geschäft bestätigt",
+      "businessTypes": {
+        "local": "Lokal",
+        "localDescription": "Lokales Geschäft mit physischem Standort",
+        "chain": "Kette",
+        "chainDescription": "Einzelhandelskette mit mehreren Standorten",
+        "online": "Online",
+        "onlineDescription": "Reiner Online-Händler"
+      },
+      "status": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "suspended": "Gesperrt",
+        "rejected": "Abgelehnt"
+      }
+    },
+    "errorBoundary": {
+      "title": "Etwas ist schief gelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist im Händlerportal aufgetreten",
+      "tryAgain": "Erneut versuchen"
     }
   },
   "MerchantLoadouts": {

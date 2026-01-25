@@ -7,6 +7,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ export interface GeneratedImagePreviewProps {
  */
 export function GeneratedImagePreview({
   imageUrl,
-  altText = 'Generated loadout image',
+  altText,
   isLoading = false,
   loadoutTitle,
   itemCount,
@@ -59,6 +60,9 @@ export function GeneratedImagePreview({
   onClick,
   isPriority = false,
 }: GeneratedImagePreviewProps) {
+  const t = useTranslations('Loadouts.generatedImage');
+  const resolvedAltText = altText ?? t('altText');
+
   return (
     <div className={cn('w-full', className)}>
       <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg">

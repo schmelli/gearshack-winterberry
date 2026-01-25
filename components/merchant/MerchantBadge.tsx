@@ -11,6 +11,7 @@
 'use client';
 
 import { memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { BadgeCheck, Store, Globe, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -68,25 +69,10 @@ const SIZE_CLASSES = {
   },
 };
 
-const BUSINESS_TYPE_CONFIG: Record<
-  MerchantBusinessType,
-  { icon: typeof Store; label: string; description: string }
-> = {
-  local: {
-    icon: Store,
-    label: 'Local',
-    description: 'Local store with physical location',
-  },
-  chain: {
-    icon: Building2,
-    label: 'Chain',
-    description: 'Retail chain with multiple locations',
-  },
-  online: {
-    icon: Globe,
-    label: 'Online',
-    description: 'Online-only retailer',
-  },
+const BUSINESS_TYPE_ICONS: Record<MerchantBusinessType, typeof Store> = {
+  local: Store,
+  chain: Building2,
+  online: Globe,
 };
 
 // =============================================================================
@@ -102,6 +88,7 @@ export const VerifiedBadge = memo(function VerifiedBadge({
   size = 'md',
   className,
 }: Omit<MerchantBadgeProps, 'businessType'>) {
+  const t = useTranslations('Merchant.badge');
   if (!isVerified) return null;
 
   const sizeClasses = SIZE_CLASSES[size];
@@ -121,11 +108,11 @@ export const VerifiedBadge = memo(function VerifiedBadge({
             )}
           >
             <BadgeCheck className={cn(sizeClasses.icon, 'text-blue-600 dark:text-blue-400')} />
-            {showLabel && <span>Verified</span>}
+            {showLabel && <span>{t('verified')}</span>}
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Verified merchant - identity and business confirmed</p>
+          <p>{t('verifiedTooltip')}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -141,9 +128,9 @@ export const BusinessTypeBadge = memo(function BusinessTypeBadge({
   size = 'md',
   className,
 }: Omit<MerchantBadgeProps, 'isVerified'>) {
+  const t = useTranslations('Merchant.badge.businessTypes');
   const sizeClasses = SIZE_CLASSES[size];
-  const config = BUSINESS_TYPE_CONFIG[businessType];
-  const Icon = config.icon;
+  const Icon = BUSINESS_TYPE_ICONS[businessType];
 
   return (
     <TooltipProvider>
@@ -159,11 +146,11 @@ export const BusinessTypeBadge = memo(function BusinessTypeBadge({
             )}
           >
             <Icon className={sizeClasses.icon} />
-            {showLabel && <span>{config.label}</span>}
+            {showLabel && <span>{t(businessType)}</span>}
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{config.description}</p>
+          <p>{t(`${businessType}Description`)}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -235,38 +222,24 @@ export interface StatusBadgeProps {
   className?: string;
 }
 
-const STATUS_VARIANTS: Record<
-  StatusBadgeProps['status'],
-  { label: string; className: string }
-> = {
-  pending: {
-    label: 'Pending',
-    className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  },
-  approved: {
-    label: 'Approved',
-    className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  },
-  suspended: {
-    label: 'Suspended',
-    className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  },
-  rejected: {
-    label: 'Rejected',
-    className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-  },
+const STATUS_STYLES: Record<StatusBadgeProps['status'], string> = {
+  pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  suspended: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  rejected: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
 };
 
 export function MerchantStatusBadge({ status, size = 'md', className }: StatusBadgeProps) {
+  const t = useTranslations('Merchant.badge.status');
   const sizeClasses = SIZE_CLASSES[size];
-  const variant = STATUS_VARIANTS[status];
+  const styleClass = STATUS_STYLES[status];
 
   return (
     <Badge
       variant="secondary"
-      className={cn(sizeClasses.badge, variant.className, className)}
+      className={cn(sizeClasses.badge, styleClass, className)}
     >
-      {variant.label}
+      {t(status)}
     </Badge>
   );
 }

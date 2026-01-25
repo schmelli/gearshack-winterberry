@@ -19,6 +19,7 @@
 
 import { use } from 'react';
 import { notFound } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
 import { useItems } from '@/hooks/useSupabaseStore';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -33,6 +34,9 @@ interface EditGearItemContentProps {
 }
 
 function EditGearItemContent({ id }: EditGearItemContentProps) {
+  const t = useTranslations('GearEditor');
+  const tCommon = useTranslations('Common');
+
   // Get items from zustand store (inventory items)
   const items = useItems();
 
@@ -49,7 +53,7 @@ function EditGearItemContent({ id }: EditGearItemContentProps) {
     return (
       <main className="container py-8">
         <div className="flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{tCommon('loading')}</p>
         </div>
       </main>
     );

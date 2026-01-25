@@ -1449,6 +1449,8 @@
       "offerExpires": "Expires: {date}",
       "alerts": {
         "title": "Alert Preferences",
+        "description": "Manage how and when you receive price tracking notifications",
+        "back": "Back",
         "priceDropEnabled": "Price Drop Alerts",
         "localShopEnabled": "Local Shop Alerts",
         "communityEnabled": "Community Alerts",
@@ -2304,6 +2306,29 @@
       "allUsersReceivedOffer": "All users have already received an offer for this product in the last 30 days",
       "usersSkipped": "{count} user(s) skipped - already received offer in last 30 days",
       "offersSent": "{count, plural, one {# offer} other {# offers}} sent"
+    },
+    "badge": {
+      "verified": "Verified",
+      "verifiedTooltip": "Verified merchant - identity and business confirmed",
+      "businessTypes": {
+        "local": "Local",
+        "localDescription": "Local store with physical location",
+        "chain": "Chain",
+        "chainDescription": "Retail chain with multiple locations",
+        "online": "Online",
+        "onlineDescription": "Online-only retailer"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "suspended": "Suspended",
+        "rejected": "Rejected"
+      }
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred in the merchant portal",
+      "tryAgain": "Try again"
     }
   },
   "MerchantLoadouts": {
