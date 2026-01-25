@@ -1590,6 +1590,19 @@
       "addFriend": "Als Freund hinzufügen",
       "unknown": "Unbekannt"
     },
+    "messageBubble": {
+      "copy": "Kopieren",
+      "deleteForMe": "Für mich löschen",
+      "deleteForEveryone": "Für alle löschen",
+      "report": "Melden",
+      "imageUnavailable": "Bild nicht verfügbar",
+      "sharedImageAlt": "Geteiltes Bild",
+      "voiceMessageUnavailable": "Sprachnachricht nicht verfügbar",
+      "sharedLocation": "Geteilter Standort",
+      "sharedGearItem": "Geteilte Ausrüstung",
+      "gearTradePost": "Ausrüstungstausch-Post",
+      "tripInvitation": "Trip-Einladung"
+    },
     "conversationView": {
       "sendFailed": "Nachricht konnte nicht gesendet werden",
       "reactionFailed": "Reaktion konnte nicht aktualisiert werden",

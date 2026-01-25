@@ -1586,6 +1586,19 @@
       "addFriend": "Add friend",
       "unknown": "Unknown"
     },
+    "messageBubble": {
+      "copy": "Copy",
+      "deleteForMe": "Delete for me",
+      "deleteForEveryone": "Delete for everyone",
+      "report": "Report",
+      "imageUnavailable": "Image unavailable",
+      "sharedImageAlt": "Shared image",
+      "voiceMessageUnavailable": "Voice message unavailable",
+      "sharedLocation": "Shared location",
+      "sharedGearItem": "Shared gear item",
+      "gearTradePost": "Gear trade post",
+      "tripInvitation": "Trip invitation"
+    },
     "conversationView": {
       "sendFailed": "Failed to send message",
       "reactionFailed": "Failed to update reaction",
