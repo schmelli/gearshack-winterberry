@@ -339,39 +339,57 @@ export async function processSSEStream(
  * @returns Action object or null if tool not recognized
  */
 export function toolCallToAction(toolCall: ToolCallData): Action | null {
+  const { args } = toolCall;
+
   switch (toolCall.toolName) {
-    case 'addToWishlist':
+    case 'addToWishlist': {
+      const gearItemId = typeof args.gearItemId === 'string' ? args.gearItemId : null;
+      if (!gearItemId) return null;
       return {
         type: 'add_to_wishlist',
-        gearItemId: toolCall.args.gearItemId as string,
+        gearItemId,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'compareGear':
+    case 'compareGear': {
+      const gearItemIds = Array.isArray(args.gearItemIds) &&
+        args.gearItemIds.every((id): id is string => typeof id === 'string')
+        ? args.gearItemIds
+        : null;
+      if (!gearItemIds || gearItemIds.length < 2) return null;
       return {
         type: 'compare',
-        gearItemIds: toolCall.args.gearItemIds as string[],
+        gearItemIds,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'sendMessage':
+    case 'sendMessage': {
+      const recipientUserId = typeof args.recipientUserId === 'string' ? args.recipientUserId : null;
+      const messagePreview = typeof args.messagePreview === 'string' ? args.messagePreview : '';
+      if (!recipientUserId) return null;
       return {
         type: 'send_message',
-        recipientUserId: toolCall.args.recipientUserId as string,
-        messagePreview: toolCall.args.messagePreview as string,
+        recipientUserId,
+        messagePreview,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'navigate':
+    case 'navigate': {
+      const destination = typeof args.destination === 'string' ? args.destination : null;
+      if (!destination) return null;
       return {
         type: 'navigate',
-        destination: toolCall.args.destination as string,
+        destination,
         status: 'pending',
         error: null,
       };
+    }
 
     default:
       return null;
