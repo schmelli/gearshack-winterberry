@@ -245,7 +245,10 @@ export async function searchCommunityForWishlistItem(
     forSale: match.is_for_sale,
     lendable: match.can_be_borrowed,
     tradeable: match.can_be_traded,
-    similarityScore: parseFloat(String(match.similarity_score)),
+    similarityScore: (() => {
+      const score = parseFloat(String(match.similarity_score));
+      return Number.isFinite(score) ? score : 0;
+    })(),
     primaryImageUrl: match.primary_image_url,
   }));
 }

@@ -127,10 +127,14 @@ function formatPrice(value: string | number, currency: string): string {
 function mapSeller(seller?: BrowseApiItemSummary['seller']): EbaySeller | null {
   if (!seller) return null;
 
+  const parsedFeedback = seller.feedbackPercentage
+    ? parseFloat(seller.feedbackPercentage)
+    : null;
+
   return {
     username: seller.username,
-    feedbackPercent: seller.feedbackPercentage
-      ? parseFloat(seller.feedbackPercentage)
+    feedbackPercent: parsedFeedback !== null && Number.isFinite(parsedFeedback)
+      ? parsedFeedback
       : null,
     feedbackCount: seller.feedbackScore ?? null,
     // Note: Top Rated status comes from topRatedBuyingExperience flag on item
@@ -203,7 +207,8 @@ function mapItemSummary(
 ): EbayListing {
   // Get price (handle both regular price and bid price)
   const priceData = item.price || item.currentBidPrice;
-  const priceValue = priceData ? parseFloat(priceData.value) : 0;
+  const parsedPrice = priceData ? parseFloat(priceData.value) : 0;
+  const priceValue = Number.isFinite(parsedPrice) ? parsedPrice : 0;
   const priceCurrency = priceData?.currency || currency;
 
   return {

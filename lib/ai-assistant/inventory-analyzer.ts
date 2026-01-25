@@ -144,7 +144,7 @@ export async function calculateBaseWeight(
       categoryName: categoryMap.get(categoryId) || 'Uncategorized',
       itemCount: items.length,
       totalWeight,
-      averageWeight: totalWeight / items.length,
+      averageWeight: items.length > 0 ? totalWeight / items.length : 0,
       heaviestItem: heaviest
         ? {
             id: heaviest.id,

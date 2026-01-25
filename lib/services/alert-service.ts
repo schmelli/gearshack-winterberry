@@ -149,7 +149,7 @@ export async function sendPersonalOfferAlert(
   originalPrice: number | null,
   productUrl: string
 ): Promise<void> {
-  const discount = originalPrice
+  const discount = originalPrice && originalPrice > 0
     ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
     : null;
 

@@ -124,8 +124,9 @@ function calculateBrandModelScore(
     count++;
   }
 
+  const score = count > 0 ? totalScore / count : 0;
   return {
-    score: count > 0 ? totalScore / count : 0,
+    score: Number.isFinite(score) ? score : 0,
     isExact: false,
   };
 }

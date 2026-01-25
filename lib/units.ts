@@ -114,8 +114,10 @@ export function kmToMiles(km: number): number {
 
 /**
  * Convert miles to kilometers
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function milesToKm(miles: number): number {
+  if (!Number.isFinite(miles)) return 0;
   return miles * KM_PER_MILE;
 }
 
@@ -151,15 +153,19 @@ export function formatDistance(
 
 /**
  * Convert Celsius to Fahrenheit
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function celsiusToFahrenheit(celsius: number): number {
+  if (!Number.isFinite(celsius)) return 0;
   return (celsius * 9) / 5 + 32;
 }
 
 /**
  * Convert Fahrenheit to Celsius
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function fahrenheitToCelsius(fahrenheit: number): number {
+  if (!Number.isFinite(fahrenheit)) return 0;
   return ((fahrenheit - 32) * 5) / 9;
 }
 

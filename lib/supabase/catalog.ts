@@ -86,12 +86,14 @@ export async function fuzzyBrandSearch(
   return (data || []).map((brand) => {
     // Calculate simple similarity score based on match position
     const normalized = brand.name_normalized || brand.name.toLowerCase();
+    // Guard against division by zero for empty names
+    const normalizedLength = normalized.length || 1;
     const matchIndex = normalized.indexOf(normalizedQuery);
     const similarity =
       matchIndex === 0
-        ? 0.9 + 0.1 * (normalizedQuery.length / normalized.length)
+        ? 0.9 + 0.1 * (normalizedQuery.length / normalizedLength)
         : matchIndex > 0
-          ? 0.5 + 0.3 * (normalizedQuery.length / normalized.length)
+          ? 0.5 + 0.3 * (normalizedQuery.length / normalizedLength)
           : 0.3;
 
     return {
