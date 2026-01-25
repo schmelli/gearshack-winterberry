@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -54,12 +54,14 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   // Detect mobile for responsive layout (SSR-safe: default to false, update after mount)
   const [isMobile, setIsMobile] = useState(false);
 
+  // Use useCallback for stable event handler reference to prevent listener churn
+  const checkMobile = useCallback(() => setIsMobile(window.innerWidth < 768), []);
+
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [checkMobile]);
 
   const handleSelectConversation = (conversation: ConversationListItem) => {
     setSelectedConversation(conversation);

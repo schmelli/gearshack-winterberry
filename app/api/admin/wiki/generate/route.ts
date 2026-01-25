@@ -280,7 +280,17 @@ async function findSimilarArticles(
     const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 3);
 
     // Strategy 1: Search by title similarity using ILIKE patterns
-    const titlePatterns = titleWords.slice(0, 3).map(word => `%${word}%`);
+    // Sanitize words to prevent PostgREST injection (escape commas, parens, backslashes, wildcards)
+    const sanitizeForPostgREST = (word: string): string =>
+      word
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        .replace(/,/g, '')
+        .replace(/\(/g, '')
+        .replace(/\)/g, '');
+
+    const titlePatterns = titleWords.slice(0, 3).map(word => `%${sanitizeForPostgREST(word)}%`);
 
     if (titlePatterns.length > 0) {
       const { data: titleMatches } = await supabase
@@ -315,8 +325,9 @@ async function findSimilarArticles(
 
     // Strategy 2: Search by keyword/topic overlap
     if (keyTopics && keyTopics.length > 0) {
+      // Sanitize topics to prevent PostgREST injection
       const topicPatterns = keyTopics.slice(0, 5).map(topic =>
-        `%${topic.toLowerCase()}%`
+        `%${sanitizeForPostgREST(topic.toLowerCase())}%`
       );
 
       const { data: topicMatches } = await supabase

@@ -126,8 +126,17 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     }
   }, [friends]);
 
+  // Use ref to track current status for timer callback (avoids dependency on status)
+  const statusRef = useRef<OnlineStatus>(status);
+  statusRef.current = status;
+
+  // Use ref for updateStatus to avoid recreating resetInactivityTimer
+  const updateStatusRef = useRef(updateStatus);
+  updateStatusRef.current = updateStatus;
+
   /**
    * Resets inactivity timer.
+   * Uses refs to access current values without adding dependencies.
    */
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current) {
@@ -136,21 +145,22 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
 
     // Set to "away" after inactivity
     inactivityTimerRef.current = setTimeout(() => {
-      if (status === 'online') {
-        updateStatus('away');
+      if (statusRef.current === 'online') {
+        updateStatusRef.current('away');
       }
     }, INACTIVITY_TIMEOUT);
-  }, [status, updateStatus]);
+  }, []);
 
   /**
    * Handles user activity (mouse, keyboard, etc.).
+   * Uses refs to access current values without adding dependencies.
    */
   const handleActivity = useCallback(() => {
-    if (status === 'away') {
-      updateStatus('online');
+    if (statusRef.current === 'away') {
+      updateStatusRef.current('online');
     }
     resetInactivityTimer();
-  }, [status, updateStatus, resetInactivityTimer]);
+  }, [resetInactivityTimer]);
 
   // Use ref to avoid event listener churn when handleActivity changes
   const handleActivityRef = useRef(handleActivity);
@@ -208,19 +218,23 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     };
   }, [user?.uid, friends, refreshFriendsStatus]);
 
-  // Set initial status on mount
+  // Track user.uid in ref for cleanup
+  const userUidRef = useRef<string | undefined>(user?.uid);
+  userUidRef.current = user?.uid;
+
+  // Set initial status on mount - only runs when user.uid changes
   useEffect(() => {
     if (user?.uid) {
       // Data fetching in useEffect is a valid pattern
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      updateStatus('online');
+      updateStatusRef.current('online');
       resetInactivityTimer();
     }
 
     // Set to offline on unmount
     return () => {
-      if (user?.uid) {
-        updateOnlineStatus(user.uid, 'offline').catch(console.error);
+      if (userUidRef.current) {
+        updateOnlineStatus(userUidRef.current, 'offline').catch(console.error);
       }
 
       if (inactivityTimerRef.current) {
@@ -233,20 +247,21 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(statusRefreshTimerRef.current);
       }
     };
-  }, [user?.uid, updateStatus, resetInactivityTimer]);
+  }, [user?.uid, resetInactivityTimer]);
 
   // Handle visibility change (tab switching)
+  // Uses refs to access current values without adding dependencies that cause listener churn
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         // Don't immediately set offline, user might switch back
-        if (status === 'online') {
-          updateStatus('away');
+        if (statusRef.current === 'online') {
+          updateStatusRef.current('away');
         }
       } else {
         // Coming back to tab
-        if (status === 'away') {
-          updateStatus('online');
+        if (statusRef.current === 'away') {
+          updateStatusRef.current('online');
         }
       }
     };
@@ -256,7 +271,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [status, updateStatus]);
+  }, []);
 
   return {
     isOnline: status === 'online',
