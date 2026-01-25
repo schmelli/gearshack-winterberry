@@ -181,7 +181,7 @@ export function GearCard({
             >
               <Link href={`/inventory/${item.id}/edit`}>
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit</span>
+                <span className="sr-only">{t('actions.edit')}</span>
               </Link>
             </Button>
           )}
@@ -251,7 +251,7 @@ export function GearCard({
             >
               <Link href={`/inventory/${item.id}/edit`}>
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit</span>
+                <span className="sr-only">{t('actions.edit')}</span>
               </Link>
             </Button>
           )}
