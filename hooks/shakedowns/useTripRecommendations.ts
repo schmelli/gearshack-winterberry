@@ -264,6 +264,10 @@ export function useTripRecommendations({
 
     // 4. Weight concerns based on experience level
     const tripDuration = getTripDuration(tripContext.startDate, tripContext.endDate);
+    // Guard against division by zero (invalid date range)
+    if (tripDuration <= 0) {
+      return results;
+    }
     const weightPerDay = totalWeight / tripDuration;
 
     // Approximate thresholds (grams per day)

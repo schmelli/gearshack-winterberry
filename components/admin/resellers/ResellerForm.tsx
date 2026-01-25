@@ -404,7 +404,10 @@ export function ResellerForm({
                       placeholder="48.1351"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                      onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        field.onChange(Number.isFinite(parsed) ? parsed : null);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -425,7 +428,10 @@ export function ResellerForm({
                       placeholder="11.5820"
                       {...field}
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                      onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        field.onChange(Number.isFinite(parsed) ? parsed : null);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

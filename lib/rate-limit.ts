@@ -19,6 +19,7 @@ class RateLimiter {
   private readonly maxAttempts: number;
   private readonly windowMs: number;
   private readonly maxStoreSize: number;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(maxAttempts: number, windowMs: number, maxStoreSize: number = 10000) {
     this.maxAttempts = maxAttempts;
@@ -26,7 +27,18 @@ class RateLimiter {
     this.maxStoreSize = maxStoreSize;
 
     // Cleanup expired entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    this.cleanupIntervalId = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+  }
+
+  /**
+   * Clean up resources (call when rate limiter is no longer needed)
+   */
+  destroy(): void {
+    if (this.cleanupIntervalId !== null) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    this.store.clear();
   }
 
   /**
