@@ -93,25 +93,31 @@ export function FriendRequestButton({
   const [isFriends, setIsFriends] = useState(false);
   const [isCheckingFriends, setIsCheckingFriends] = useState(true);
 
-  // Check if already friends
+  // Check if already friends (with race condition prevention)
   useEffect(() => {
+    let isCancelled = false;
+
     const checkFriendship = async () => {
       if (!currentUser?.uid) {
-        setIsCheckingFriends(false);
+        if (!isCancelled) setIsCheckingFriends(false);
         return;
       }
 
       try {
         const friends = await areFriends(currentUser.uid, userId);
-        setIsFriends(friends);
+        if (!isCancelled) setIsFriends(friends);
       } catch (err) {
         console.error('Error checking friendship:', err);
       } finally {
-        setIsCheckingFriends(false);
+        if (!isCancelled) setIsCheckingFriends(false);
       }
     };
 
     checkFriendship();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentUser?.uid, userId]);
 
   // Determine button state

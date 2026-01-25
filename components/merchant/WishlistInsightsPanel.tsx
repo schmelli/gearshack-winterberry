@@ -98,6 +98,9 @@ const InsightCard = memo(function InsightCard({
     insight.proximityBreakdown.within50km +
     insight.proximityBreakdown.beyond50km;
 
+  // Guard against division by zero - use safe divisor
+  const safeDivisor = totalBreakdown > 0 ? totalBreakdown : 1;
+
   return (
     <Card
       className={cn(
@@ -153,7 +156,7 @@ const InsightCard = memo(function InsightCard({
               <div
                 className="bg-green-500 transition-all"
                 style={{
-                  width: `${(insight.proximityBreakdown.within5km / totalBreakdown) * 100}%`,
+                  width: `${(insight.proximityBreakdown.within5km / safeDivisor) * 100}%`,
                 }}
                 title={`5km: ${insight.proximityBreakdown.within5km}`}
               />
@@ -162,7 +165,7 @@ const InsightCard = memo(function InsightCard({
               <div
                 className="bg-green-400 transition-all"
                 style={{
-                  width: `${(insight.proximityBreakdown.within10km / totalBreakdown) * 100}%`,
+                  width: `${(insight.proximityBreakdown.within10km / safeDivisor) * 100}%`,
                 }}
                 title={`10km: ${insight.proximityBreakdown.within10km}`}
               />
@@ -171,7 +174,7 @@ const InsightCard = memo(function InsightCard({
               <div
                 className="bg-yellow-500 transition-all"
                 style={{
-                  width: `${(insight.proximityBreakdown.within25km / totalBreakdown) * 100}%`,
+                  width: `${(insight.proximityBreakdown.within25km / safeDivisor) * 100}%`,
                 }}
                 title={`25km: ${insight.proximityBreakdown.within25km}`}
               />
@@ -180,7 +183,7 @@ const InsightCard = memo(function InsightCard({
               <div
                 className="bg-orange-400 transition-all"
                 style={{
-                  width: `${(insight.proximityBreakdown.within50km / totalBreakdown) * 100}%`,
+                  width: `${(insight.proximityBreakdown.within50km / safeDivisor) * 100}%`,
                 }}
                 title={`50km: ${insight.proximityBreakdown.within50km}`}
               />
@@ -189,7 +192,7 @@ const InsightCard = memo(function InsightCard({
               <div
                 className="bg-gray-400 transition-all"
                 style={{
-                  width: `${(insight.proximityBreakdown.beyond50km / totalBreakdown) * 100}%`,
+                  width: `${(insight.proximityBreakdown.beyond50km / safeDivisor) * 100}%`,
                 }}
                 title={`100km+: ${insight.proximityBreakdown.beyond50km}`}
               />

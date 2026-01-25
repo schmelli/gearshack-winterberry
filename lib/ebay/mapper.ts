@@ -32,11 +32,14 @@ function mapCondition(condition?: string, conditionId?: string): EbayCondition {
   // Map by condition ID first (more reliable)
   if (conditionId) {
     const id = parseInt(conditionId, 10);
-    if (id === 1000) return 'new';
-    if (id >= 1500 && id < 2000) return 'new'; // New (Other), New with defects
-    if (id >= 2000 && id < 3000) return 'refurbished';
-    if (id >= 2750 && id < 7000) return 'used';
-    if (id === 7000) return 'for_parts';
+    // Validate parsed ID before comparisons (NaN comparisons always return false)
+    if (Number.isFinite(id)) {
+      if (id === 1000) return 'new';
+      if (id >= 1500 && id < 2000) return 'new'; // New (Other), New with defects
+      if (id >= 2000 && id < 3000) return 'refurbished';
+      if (id >= 2750 && id < 7000) return 'used';
+      if (id === 7000) return 'for_parts';
+    }
   }
 
   // Fallback: map by condition string
@@ -179,7 +182,8 @@ function extractShippingCost(
   for (const option of shippingOptions) {
     if (option.shippingCostType === 'FIXED' && option.shippingCost) {
       const cost = parseFloat(option.shippingCost.value);
-      if (!isNaN(cost)) {
+      // Use Number.isFinite() instead of !isNaN() to also reject Infinity
+      if (Number.isFinite(cost)) {
         if (cheapestCost === null || cost < cheapestCost) {
           cheapestCost = cost;
         }

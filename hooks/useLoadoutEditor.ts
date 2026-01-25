@@ -31,6 +31,7 @@ import { useCategories } from '@/hooks/useCategories';
 export function computeAveragePriorities(
   selectedActivities: ActivityType[]
 ): ActivityPriorities {
+  // Guard against empty array (division by zero)
   if (selectedActivities.length === 0) {
     return { weight: 50, comfort: 50, durability: 50, safety: 50 };
   }
@@ -48,6 +49,7 @@ export function computeAveragePriorities(
     { weight: 0, comfort: 0, durability: 0, safety: 0 }
   );
 
+  // Count is guaranteed > 0 due to early return above
   const count = selectedActivities.length;
   return {
     weight: Math.round(totals.weight / count),
