@@ -774,7 +774,12 @@
       "disabled": "Price monitoring disabled",
       "notifyEmail": "Notify via Email",
       "notifyApp": "Notify in App",
-      "tooltip": "Get notified when prices drop"
+      "tooltip": "Get notified when prices drop",
+      "enableNotifications": "Enable Notifications",
+      "notificationsEnabled": "Notifications enabled",
+      "notificationsDisabled": "Notifications disabled",
+      "updateFailed": "Failed to update price monitoring settings",
+      "notificationUpdateFailed": "Failed to update notification settings"
     },
     "urlImport": {
       "title": "Import from URL",

@@ -775,7 +775,12 @@
       "disabled": "Preisüberwachung deaktiviert",
       "notifyEmail": "Per E-Mail benachrichtigen",
       "notifyApp": "In der App benachrichtigen",
-      "tooltip": "Benachrichtigung bei Preissenkung erhalten"
+      "tooltip": "Benachrichtigung bei Preissenkung erhalten",
+      "enableNotifications": "Benachrichtigungen aktivieren",
+      "notificationsEnabled": "Benachrichtigungen aktiviert",
+      "notificationsDisabled": "Benachrichtigungen deaktiviert",
+      "updateFailed": "Fehler beim Aktualisieren der Preisüberwachung",
+      "notificationUpdateFailed": "Fehler beim Aktualisieren der Benachrichtigungseinstellungen"
     },
     "urlImport": {
       "title": "Von URL importieren",
