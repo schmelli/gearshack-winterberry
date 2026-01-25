@@ -11,6 +11,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,8 @@ export function ImageGallery({
   altText,
   className,
 }: ImageGalleryProps) {
+  const t = useTranslations('ImageGallery');
+
   // Combine primary and gallery images
   const allImages = [
     ...(primaryImageUrl ? [primaryImageUrl] : []),
@@ -91,18 +94,18 @@ export function ImageGallery({
               size="icon"
               className="absolute left-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToPrevious}
+              aria-label={t('aria.previousImage')}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Previous image</span>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               className="absolute right-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToNext}
+              aria-label={t('aria.nextImage')}
             >
               <ChevronRight className="h-4 w-4" />
-              <span className="sr-only">Next image</span>
             </Button>
           </>
         )}

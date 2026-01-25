@@ -11,6 +11,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Play, RotateCcw, Youtube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,6 +49,8 @@ export function YouTubeCarousel({
   onRetry,
   className,
 }: YouTubeCarouselProps) {
+  const t = useTranslations('YouTubeReviews');
+
   // T041: Error state with retry button (check first to handle error + null videos case)
   if (error) {
     return (
@@ -55,14 +58,14 @@ export function YouTubeCarousel({
         <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           {isQuotaExhausted
-            ? 'Video reviews temporarily unavailable (quota reset at midnight PT)'
+            ? t('quotaExhausted')
             : error}
         </p>
         {/* Hide retry button when quota exhausted - retrying won't help */}
         {onRetry && !isQuotaExhausted && (
           <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
             <RotateCcw className="mr-2 h-3 w-3" />
-            Try again
+            {t('tryAgain')}
           </Button>
         )}
       </div>
@@ -92,7 +95,7 @@ export function YouTubeCarousel({
       <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
         <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          No reviews found for this product
+          {t('noReviews')}
         </p>
       </div>
     );
