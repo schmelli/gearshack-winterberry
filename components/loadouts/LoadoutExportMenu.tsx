@@ -67,6 +67,26 @@ function _formatBoolean(value: boolean | undefined): string {
   return value ? 'Yes' : 'No';
 }
 
+interface PdfTemplateLabels {
+  date: string;
+  activities: string;
+  seasons: string;
+  generated: string;
+  items: string;
+  totalWeight: string;
+  baseWeight: string;
+  wornItems: string;
+  consumables: string;
+  activitiesAndSeasons: string;
+  packList: string;
+  tableItem: string;
+  tableCategory: string;
+  tableWeight: string;
+  tableStatus: string;
+  noActivities: string;
+  pack: string;
+}
+
 interface PdfTemplateOptions {
   loadout: Loadout;
   activitiesLabel: string;
@@ -82,6 +102,7 @@ interface PdfTemplateOptions {
   checklistHeader: string;
   includeChecklist: boolean;
   formattedDate: string;
+  labels: PdfTemplateLabels;
 }
 
 function buildPdfHtml({
@@ -98,6 +119,7 @@ function buildPdfHtml({
   rows,
   checklistHeader,
   formattedDate,
+  labels,
 }: PdfTemplateOptions): string {
   return `
     <!DOCTYPE html>

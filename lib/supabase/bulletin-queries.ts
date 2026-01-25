@@ -68,14 +68,6 @@ export async function fetchBulletinPosts(
 ): Promise<PaginatedPosts> {
   const limit = params.limit ?? BULLETIN_CONSTANTS.POSTS_PER_PAGE;
 
-  // Debug logging to help identify "All posts" filter issue
-  console.log('[fetchBulletinPosts] Called with params:', {
-    tag: params.tag,
-    search: params.search,
-    cursor: params.cursor,
-    limit,
-  });
-
   let query = supabase
     .from('v_bulletin_posts_with_author')
     .select('*')
@@ -84,10 +76,7 @@ export async function fetchBulletinPosts(
     .limit(limit + 1); // +1 to detect hasMore
 
   if (params.tag) {
-    console.log('[fetchBulletinPosts] Adding tag filter:', params.tag);
     query = query.eq('tag', params.tag);
-  } else {
-    console.log('[fetchBulletinPosts] No tag filter - fetching ALL posts');
   }
 
   if (params.search) {
@@ -104,7 +93,6 @@ export async function fetchBulletinPosts(
   const { data, error } = await query;
 
   if (error) {
-    console.error('[fetchBulletinPosts] Query error:', error);
     throw error;
   }
 
@@ -114,13 +102,6 @@ export async function fetchBulletinPosts(
   const nextCursor = hasMore
     ? resultPosts[resultPosts.length - 1].created_at
     : null;
-
-  // Debug logging for results
-  console.log('[fetchBulletinPosts] Results:', {
-    totalReturned: posts.length,
-    hasMore,
-    postIds: resultPosts.map((p) => ({ id: p.id, tag: p.tag })),
-  });
 
   return { posts: resultPosts, hasMore, nextCursor };
 }

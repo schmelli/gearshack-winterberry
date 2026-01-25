@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Package, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface GearItemReferenceProps {
 }
 
 export function GearItemReference({ itemId, name }: GearItemReferenceProps) {
+  const t = useTranslations('Bulletin');
   const [loading, setLoading] = useState(false);
 
   // TODO: Implement actual gear item data fetching and add-to-inventory/wishlist functionality
@@ -38,9 +40,9 @@ export function GearItemReference({ itemId, name }: GearItemReferenceProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm line-clamp-1">
-            {name || `Gear Item #${itemId.slice(0, 8)}`}
+            {name || t('gearReference.defaultName', { id: itemId.slice(0, 8) })}
           </p>
-          <p className="text-xs text-muted-foreground">Referenced gear item</p>
+          <p className="text-xs text-muted-foreground">{t('gearReference.description')}</p>
         </div>
         <Button
           size="sm"
@@ -50,7 +52,7 @@ export function GearItemReference({ itemId, name }: GearItemReferenceProps) {
           className="flex-shrink-0"
         >
           <Plus className="h-4 w-4 mr-1" />
-          Add
+          {t('gearReference.add')}
         </Button>
       </div>
     </Card>

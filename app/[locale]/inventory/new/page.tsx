@@ -15,12 +15,14 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { GearEditorForm } from '@/components/gear-editor/GearEditorForm';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { getImportPrefillData } from '@/components/gear-editor/UrlImportDialog';
 import type { GearItemFormData } from '@/types/gear';
 
 function NewGearItemContent() {
+  const t = useTranslations('GearEditor');
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') as 'inventory' | 'wishlist' | null;
   const hasPrefill = searchParams.get('prefill') === 'true';
@@ -77,7 +79,7 @@ function NewGearItemContent() {
   return (
     <main className="container py-8">
       <GearEditorForm
-        title={isWishlistMode ? 'Add to Wishlist' : 'Add New Gear Item'}
+        title={isWishlistMode ? t('addToWishlistTitle') : t('addTitle')}
         mode={isWishlistMode ? 'wishlist' : 'inventory'}
         prefillFormData={prefillFormData}
         prefillMeta={prefillMeta}

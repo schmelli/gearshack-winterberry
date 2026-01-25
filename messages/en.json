@@ -2984,6 +2984,7 @@
       "selectYourLoadout": "Select your loadout",
       "noVipsFound": "No VIPs found",
       "noLoadoutsFound": "No loadouts found",
+      "byVip": "by {name}",
       "loadoutItems": "{count} items",
       "loadoutWeight": "{weight}",
       "loading": "Loading...",

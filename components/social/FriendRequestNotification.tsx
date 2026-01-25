@@ -165,7 +165,7 @@ function InlineNotification({
           </p>
         )}
         <p className="mt-0.5 text-xs text-muted-foreground/70">
-          {getTimeAgo(request.created_at)}
+          {getTimeAgo(request.created_at, t)}
         </p>
       </div>
 

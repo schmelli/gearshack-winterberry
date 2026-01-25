@@ -224,6 +224,11 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   );
 }
 
+function MerchantPortalTitle() {
+  const t = useTranslations('Merchant');
+  return <h1 className="font-semibold">{t('portal.title')}</h1>;
+}
+
 function LoadingSkeleton() {
   return (
     <div className="flex min-h-screen">
@@ -294,7 +299,7 @@ export default function MerchantLayout({ children }: MerchantLayoutProps) {
               <SidebarContent onNavClick={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
-          <h1 className="font-semibold">Merchant Portal</h1>
+          <MerchantPortalTitle />
         </header>
 
         {/* Main Content */}
