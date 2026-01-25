@@ -255,7 +255,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
           {/* Left: Item Picker (desktop) */}
           <div className="hidden space-y-4 md:block">
-            <h2 className="text-lg font-semibold">Add from Inventory</h2>
+            <h2 className="text-lg font-semibold">{t('editor.addFromInventory')}</h2>
             <LoadoutPicker
               items={sortedFilteredPickerItems}
               loadoutItemIds={loadout.itemIds}
@@ -269,13 +269,13 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
           {/* Right: Loadout List */}
           <div className="space-y-4 md:sticky md:top-28 md:self-start">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">Loadout Items</h2>
+              <h2 className="text-lg font-semibold">{t('editor.loadoutItems')}</h2>
               {selectedCategoryId && (
                 <button
                   onClick={clearFilter}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
-                  Clear filter
+                  {t('editor.clearFilter')}
                 </button>
               )}
             </div>
@@ -302,12 +302,12 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
           <SheetTrigger asChild>
             <Button className="w-full" size="lg">
               <Plus className="mr-2 h-5 w-5" />
-              Add Items
+              {t('editor.addItems')}
             </Button>
           </SheetTrigger>
           <SheetContent side="bottom" className="h-[85vh]">
             <SheetHeader>
-              <SheetTitle>Add from Inventory</SheetTitle>
+              <SheetTitle>{t('editor.addFromInventory')}</SheetTitle>
             </SheetHeader>
             <div className="mt-4 space-y-4">
               <LoadoutSortFilter

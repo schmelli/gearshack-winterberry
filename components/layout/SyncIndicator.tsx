@@ -13,6 +13,7 @@
 'use client';
 
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSyncState } from '@/hooks/useSupabaseStore';
 import {
   Tooltip,
@@ -23,6 +24,7 @@ import {
 
 export function SyncIndicator() {
   const syncState = useSyncState();
+  const t = useTranslations('SyncStatus');
 
   const getIcon = () => {
     switch (syncState.status) {
@@ -39,13 +41,13 @@ export function SyncIndicator() {
   const getTooltipContent = () => {
     switch (syncState.status) {
       case 'syncing':
-        return 'Syncing with cloud...';
+        return t('syncing');
       case 'error':
-        return `Sync error: ${syncState.error || 'Unknown error'}`;
+        return t('error', { error: syncState.error || t('unknownError') });
       case 'idle':
         return syncState.lastSyncedAt
-          ? `Last synced: ${syncState.lastSyncedAt.toLocaleTimeString()}`
-          : 'Connected to cloud';
+          ? t('lastSynced', { time: syncState.lastSyncedAt.toLocaleTimeString() })
+          : t('connected');
     }
   };
 

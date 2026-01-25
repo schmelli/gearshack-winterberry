@@ -11,7 +11,7 @@
 'use client';
 
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import type { Locale } from '@/i18n/config';
 
@@ -19,6 +19,7 @@ export function LanguageSwitcher() {
   const locale = useLocale() as Locale;
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations('Navigation');
 
   const switchLocale = () => {
     const newLocale: Locale = locale === 'en' ? 'de' : 'en';
@@ -31,7 +32,7 @@ export function LanguageSwitcher() {
       size="sm"
       onClick={switchLocale}
       className="text-white hover:bg-white/10 hover:text-white font-medium"
-      aria-label={locale === 'en' ? 'Switch to German' : 'Switch to English'}
+      aria-label={locale === 'en' ? t('switchToGerman') : t('switchToEnglish')}
     >
       {locale === 'en' ? 'DE' : 'EN'}
     </Button>
