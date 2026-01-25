@@ -40,6 +40,9 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Request ID ref to prevent stale data from race conditions
+  const requestIdRef = useRef(0);
+
   /**
    * Loads all pending friend requests.
    */
@@ -51,19 +54,32 @@ export function useFriendRequests(): UseFriendRequestsReturn {
       return;
     }
 
+    // Increment request ID to track this specific request
+    const currentRequestId = ++requestIdRef.current;
+
     try {
       setIsLoading(true);
       setError(null);
       const { incoming, outgoing } = await fetchFriendRequests(user.uid);
+
+      // Only update state if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       setPendingIncoming(incoming);
       setPendingOutgoing(outgoing);
     } catch (err) {
+      // Only handle error if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       const message = err instanceof Error ? err.message : 'Failed to load friend requests';
       setError(message);
       console.error('Error loading friend requests:', err);
       toast.error(t('loadFailed'));
     } finally {
-      setIsLoading(false);
+      // Only update loading state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [user?.uid, t]);
 

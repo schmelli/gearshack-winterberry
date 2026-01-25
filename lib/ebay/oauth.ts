@@ -120,7 +120,18 @@ async function fetchNewToken(): Promise<OAuthToken> {
     throw new Error(`eBay OAuth failed: ${response.status} - ${errorText}`);
   }
 
-  const data: OAuthTokenResponse = await response.json();
+  let data: OAuthTokenResponse;
+  try {
+    data = await response.json();
+  } catch (parseError) {
+    console.error('[eBay OAuth] Failed to parse token response:', parseError);
+    throw new Error('eBay OAuth failed: Invalid JSON response');
+  }
+
+  // Validate expected fields exist
+  if (!data.access_token || typeof data.expires_in !== 'number') {
+    throw new Error('eBay OAuth failed: Missing required fields in response');
+  }
 
   const token: OAuthToken = {
     accessToken: data.access_token,

@@ -106,23 +106,32 @@ export function useFollowing(): UseFollowingReturn {
         throw new Error('Must be logged in to unfollow users');
       }
 
-      // Store for rollback
-      const previousFollowing = [...following];
+      // Capture the removed item for precise rollback (avoids stale closure)
+      let removedItem: FollowInfo | undefined;
 
-      // Optimistic update
-      setFollowing((prev) => prev.filter((f) => f.id !== userId));
+      // Optimistic update - also capture the removed item
+      setFollowing((prev) => {
+        removedItem = prev.find((f) => f.id === userId);
+        return prev.filter((f) => f.id !== userId);
+      });
 
       try {
         await unfollowUser(user.uid, userId);
       } catch (err) {
-        // Rollback on error
-        setFollowing(previousFollowing);
+        // Rollback on error - re-add just the removed item
+        if (removedItem) {
+          setFollowing((prev) => {
+            // Avoid duplicates - only add back if not already present
+            if (prev.some((f) => f.id === removedItem!.id)) return prev;
+            return [...prev, removedItem!];
+          });
+        }
         const message = err instanceof Error ? err.message : 'Failed to unfollow user';
         setError(message);
         throw err;
       }
     },
-    [user?.uid, following]
+    [user?.uid]
   );
 
   /**
