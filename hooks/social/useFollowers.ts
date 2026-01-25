@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
@@ -140,12 +140,18 @@ export function useUserFollowerCount(userId: string | undefined): {
   const [count, setCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (!userId) {
       setCount(null);
       setIsLoading(false);
-      return;
+      return () => {
+        isMountedRef.current = false;
+      };
     }
 
     const loadCount = async () => {
@@ -153,17 +159,27 @@ export function useUserFollowerCount(userId: string | undefined): {
         setIsLoading(true);
         setError(null);
         const followerCount = await getFollowerCount(userId);
-        setCount(followerCount);
+        if (isMountedRef.current) {
+          setCount(followerCount);
+        }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load follower count';
-        setError(message);
-        setCount(null);
+        if (isMountedRef.current) {
+          const message = err instanceof Error ? err.message : 'Failed to load follower count';
+          setError(message);
+          setCount(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadCount();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [userId]);
 
   return { count, isLoading, error };

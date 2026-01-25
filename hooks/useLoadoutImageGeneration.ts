@@ -149,6 +149,8 @@ export function useLoadoutImageGeneration(
       // Reset retry counter for new generation attempt
       retryAttemptRef.current = 0;
 
+      // Abort any previous in-flight request before creating new one
+      abortControllerRef.current?.abort();
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
 

@@ -71,7 +71,8 @@ export default function DataSettingsPage() {
       a.href = url;
       a.download = `gearshack-export-${Date.now()}.${exportFormat}`;
       a.click();
-      URL.revokeObjectURL(url);
+      // Delay revocation to ensure download starts (some browsers need this)
+      setTimeout(() => URL.revokeObjectURL(url), 100);
 
       toast.success(t('export.success'));
     } catch {

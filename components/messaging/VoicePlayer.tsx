@@ -36,32 +36,40 @@ export function VoicePlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(metadata?.duration_seconds ?? 0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Initialize audio element
   useEffect(() => {
+    isMountedRef.current = true;
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     audio.onloadedmetadata = () => {
+      if (!isMountedRef.current) return;
       setDuration(audio.duration);
       setIsLoading(false);
     };
 
     audio.ontimeupdate = () => {
+      if (!isMountedRef.current) return;
       setCurrentTime(audio.currentTime);
     };
 
     audio.onended = () => {
+      if (!isMountedRef.current) return;
       setIsPlaying(false);
       setCurrentTime(0);
     };
 
     audio.onerror = () => {
+      if (!isMountedRef.current) return;
       setIsLoading(false);
       console.error('Failed to load audio');
     };
 
     return () => {
+      isMountedRef.current = false;
       // Stop playback
       audio.pause();
       // Remove event listeners to prevent memory leaks

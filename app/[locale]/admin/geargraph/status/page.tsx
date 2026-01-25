@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -108,8 +108,10 @@ export default function GearGraphStatusPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setHealthError(null);
     setStatsError(null);
@@ -123,10 +125,14 @@ export default function GearGraphStatusPage() {
         throw new Error(`HTTP ${healthRes.status}: ${healthRes.statusText}`);
       }
       const healthData = await healthRes.json();
-      setHealth(healthData);
+      if (isMountedRef.current) {
+        setHealth(healthData);
+      }
     } catch (err) {
-      setHealthError(err instanceof Error ? err.message : 'Failed to fetch health');
-      setHealth(null);
+      if (isMountedRef.current) {
+        setHealthError(err instanceof Error ? err.message : 'Failed to fetch health');
+        setHealth(null);
+      }
     }
 
     // Fetch stats
@@ -138,19 +144,29 @@ export default function GearGraphStatusPage() {
         throw new Error(`HTTP ${statsRes.status}: ${statsRes.statusText}`);
       }
       const statsData = await statsRes.json();
-      setStats(statsData);
+      if (isMountedRef.current) {
+        setStats(statsData);
+      }
     } catch (err) {
-      setStatsError(err instanceof Error ? err.message : 'Failed to fetch stats');
-      setStats(null);
+      if (isMountedRef.current) {
+        setStatsError(err instanceof Error ? err.message : 'Failed to fetch stats');
+        setStats(null);
+      }
     }
 
-    setLoading(false);
-    setLastUpdated(new Date());
-  };
+    if (isMountedRef.current) {
+      setLoading(false);
+      setLastUpdated(new Date());
+    }
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchData();
-  }, []);
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [fetchData]);
 
   const getStatusBadge = () => {
     if (loading) return <Badge variant="secondary">Laden...</Badge>;

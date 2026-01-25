@@ -116,6 +116,11 @@ export function MessageInput({
           setImageAttachment(null);
         }
       } catch {
+        // Revoke blob URL on error to prevent memory leak
+        if (imageAttachment?.url) {
+          URL.revokeObjectURL(imageAttachment.url);
+        }
+        setImageAttachment(null);
         // Error handled by parent
       } finally {
         setIsSending(false);
