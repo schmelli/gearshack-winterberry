@@ -969,7 +969,49 @@
       "selectLighting": "Select lighting...",
       "atmosphereOptional": "Atmosphere (Optional)",
       "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
-      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)"
+      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)",
+      "templates": {
+        "default": "Default (Natural)",
+        "cinematic": {
+          "name": "Cinematic",
+          "description": "Dramatic, wide-angle, movie-like"
+        },
+        "documentary": {
+          "name": "Documentary",
+          "description": "Natural, realistic, photojournalistic"
+        },
+        "magazine": {
+          "name": "Magazine",
+          "description": "Polished, editorial, striking"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "description": "Vibrant, trendy, social media"
+        }
+      },
+      "timeOfDay": {
+        "default": "Default (Season-based)",
+        "goldenHour": {
+          "name": "Golden Hour",
+          "description": "Warm, low-angle sun"
+        },
+        "blueHour": {
+          "name": "Blue Hour",
+          "description": "Twilight, cool tones"
+        },
+        "midday": {
+          "name": "Midday",
+          "description": "Bright, high contrast"
+        },
+        "dawn": {
+          "name": "Dawn",
+          "description": "Early morning, soft"
+        },
+        "dusk": {
+          "name": "Dusk",
+          "description": "Sunset, fading light"
+        }
+      }
     },
     "weightBar": {
       "ultralight": "Ultralight",

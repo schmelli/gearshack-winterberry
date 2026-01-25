@@ -3243,7 +3243,10 @@
     },
     "search": {
       "placeholder": "VIPs suchen...",
-      "clearSearch": "Suche löschen"
+      "clearSearch": "Suche löschen",
+      "noResults": "Keine VIPs gefunden",
+      "tryBroader": "Versuche einen breiteren Suchbegriff",
+      "resultsCount": "{count, plural, =1 {1 Ergebnis} other {# Ergebnisse}} für \"{query}\""
     }
   },
   "Wishlist": {
