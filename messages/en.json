@@ -1975,7 +1975,11 @@
       "itemFeedback": "Item Feedback",
       "submitSuccess": "Feedback submitted successfully",
       "updateSuccess": "Feedback updated successfully",
-      "deleteSuccess": "Feedback deleted"
+      "deleteSuccess": "Feedback deleted",
+      "edited": "edited",
+      "expertBadge": "Expert",
+      "deleteTitle": "Delete Feedback",
+      "deleteDescription": "This action cannot be undone. Your feedback will be permanently removed from this shakedown."
     },
     "actions": {
       "edit": "Edit Shakedown",
@@ -2029,7 +2033,19 @@
       "anyStatus": "Any Status",
       "anyExperience": "Any Experience",
       "anySeason": "Any Season",
-      "anyTripType": "Any Trip Type"
+      "anyTripType": "Any Trip Type",
+      "seasons": {
+        "spring": "Spring",
+        "summer": "Summer",
+        "fall": "Fall",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Day Hike",
+        "overnight": "Overnight",
+        "multiDay": "Multi-day",
+        "thruHike": "Thru-hike"
+      }
     },
     "detail": {
       "postedBy": "Posted by {author}",
@@ -2045,7 +2061,8 @@
       "viewDetails": "View item details",
       "noItemsMatch": "No items match your filters",
       "clearFilters": "Clear filters",
-      "items": "Items"
+      "items": "Items",
+      "shareToBulletinContent": "Check out my loadout shakedown: \"{tripName}\" - Looking for feedback!"
     },
     "gearToolbar": {
       "searchPlaceholder": "Search gear items...",
@@ -2248,7 +2265,10 @@
       "selectHelpful": "Select helpful feedback to recognize",
       "thankYouNote": "Thank You Note (optional)",
       "thankYouPlaceholder": "Express your appreciation...",
-      "confirm": "Complete & Thank Reviewers"
+      "confirm": "Complete & Thank Reviewers",
+      "noFeedback": "No feedback to review yet.",
+      "noFeedbackHint": "You can still complete the shakedown to close it.",
+      "completing": "Completing..."
     },
     "notifications": {
       "newFeedback": "{author} commented on your shakedown",

@@ -1979,7 +1979,11 @@
       "itemFeedback": "Artikel-Feedback",
       "submitSuccess": "Feedback erfolgreich gesendet",
       "updateSuccess": "Feedback erfolgreich aktualisiert",
-      "deleteSuccess": "Feedback gelöscht"
+      "deleteSuccess": "Feedback gelöscht",
+      "edited": "bearbeitet",
+      "expertBadge": "Experte",
+      "deleteTitle": "Feedback löschen",
+      "deleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Dein Feedback wird dauerhaft von diesem Shakedown entfernt."
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
@@ -2033,7 +2037,19 @@
       "anyStatus": "Beliebiger Status",
       "anyExperience": "Beliebige Erfahrung",
       "anySeason": "Beliebige Jahreszeit",
-      "anyTripType": "Beliebige Tourart"
+      "anyTripType": "Beliebige Tourart",
+      "seasons": {
+        "spring": "Frühling",
+        "summer": "Sommer",
+        "fall": "Herbst",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Tagestour",
+        "overnight": "Übernachtung",
+        "multiDay": "Mehrtägig",
+        "thruHike": "Fernwanderung"
+      }
     },
     "detail": {
       "postedBy": "Gepostet von {author}",
