@@ -396,7 +396,12 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   if (words.length === 0) return '';
 
   // Search for products matching any of the extracted terms
-  const searchTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  // Sanitize: Escape ILIKE wildcards (%, _) and remove PostgREST injection chars (comma, parens, dots)
+  const rawTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  const searchTerm = rawTerm
+    .replace(/%/g, '\\%')   // Escape percent (ILIKE wildcard)
+    .replace(/_/g, '\\_')   // Escape underscore (ILIKE single-char wildcard)
+    .slice(0, 100);         // Limit length to prevent DoS
 
   // Note: category_main/subcategory removed - use product_type for category display
   const { data: products, error } = await supabase
