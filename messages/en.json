@@ -1,4 +1,11 @@
 {
+  "Bulletin": {
+    "gearReference": {
+      "defaultName": "Gear Item #{id}",
+      "description": "Referenced gear item",
+      "add": "Add"
+    }
+  },
   "Navigation": {
     "inventory": "Inventory",
     "loadouts": "Loadouts",
@@ -544,11 +551,22 @@
       "newItem": "Your New Item",
       "existingItem": "Existing Item",
       "matchScore": "{score}% match",
+      "quantity": "Qty: {count}",
       "actions": {
         "cancel": "Cancel",
         "increaseQuantity": "+1 to Existing",
         "saveAsNew": "Save as New"
       }
+    },
+    "brandAutocomplete": {
+      "searching": "Searching...",
+      "noResults": "No matching brands found. You can use a custom name.",
+      "sourceGearGraph": "GearGraph",
+      "sourceInventory": "Your Inventory"
+    },
+    "productAutocomplete": {
+      "searching": "Searching products...",
+      "matchScore": "{score}% match"
     },
     "cloudImport": {
       "buttonLabel": "Import from Cloud",
@@ -1692,16 +1710,28 @@
       "markAllRead": "Mark all as read",
       "emptyTitle": "No activity yet",
       "emptyDescription": "When your friends do something, you'll see it here.",
-      "filterAll": "All",
+      "filterAll": "All Activity",
       "filterLoadouts": "Loadouts",
       "filterMarketplace": "Marketplace",
       "filterGear": "Gear",
+      "filterNewLoadouts": "New Loadouts",
+      "filterSharedLoadouts": "Shared Loadouts",
+      "filterNewGear": "New Gear",
+      "filterNewFriends": "New Friends",
+      "filterBy": "Filter by",
+      "noFilteredActivity": "No activity found",
+      "noFilteredActivityDesc": "No {filter} activity to show.",
       "newLoadout": "{name} created a new loadout",
       "sharedLoadout": "{name} shared a loadout",
       "newListing": "{name} listed something in the marketplace",
       "addedGear": "{name} added new gear",
       "newFriend": "{name} is now friends with {friend}",
-      "loadMore": "Load More"
+      "loadMore": "Load More",
+      "createdLoadout": "created a new loadout",
+      "listedGear": "listed gear for sale",
+      "becameFriends": "became friends with someone",
+      "updatedProfile": "updated their profile",
+      "didSomething": "was active"
     },
     "presence": {
       "online": "Online",
@@ -1772,6 +1802,45 @@
     },
     "ariaLabels": {
       "toggleDarkMode": "Toggle dark mode"
+    },
+    "time": {
+      "justNow": "just now",
+      "minutesAgo": "{count}m ago",
+      "hoursAgo": "{count}h ago",
+      "daysAgo": "{count}d ago"
+    },
+    "emptyState": {
+      "default": {
+        "title": "Nothing to show",
+        "description": "No items available."
+      },
+      "following": {
+        "title": "Not following anyone yet",
+        "description": "Start following community members to see their updates and activities in your feed.",
+        "cta": "Discover People"
+      },
+      "followers": {
+        "title": "No followers yet",
+        "description": "Share your loadouts and engage with the community to attract followers."
+      },
+      "friends": {
+        "title": "No friends yet",
+        "description": "Send friend requests to users you've exchanged messages with to build your network.",
+        "cta": "Start Messaging"
+      },
+      "friendRequests": {
+        "title": "No pending requests",
+        "description": "Friend requests you send or receive will appear here."
+      },
+      "activity": {
+        "title": "No activity yet",
+        "description": "Activity from your friends will appear here. Add friends to see their updates!",
+        "cta": "Find Friends"
+      },
+      "search": {
+        "title": "No results found",
+        "description": "Try adjusting your search or filters to find what you're looking for."
+      }
     }
   },
   "Shakedowns": {
@@ -1853,7 +1922,11 @@
       "itemFeedback": "Item Feedback",
       "submitSuccess": "Feedback submitted successfully",
       "updateSuccess": "Feedback updated successfully",
-      "deleteSuccess": "Feedback deleted"
+      "deleteSuccess": "Feedback deleted",
+      "edited": "edited",
+      "expertBadge": "Expert",
+      "deleteTitle": "Delete Feedback",
+      "deleteDescription": "This action cannot be undone. Your feedback will be permanently removed from this shakedown."
     },
     "placeholder": {
       "addNote": "Add a note..."
@@ -1915,7 +1988,19 @@
       "anyStatus": "Any Status",
       "anyExperience": "Any Experience",
       "anySeason": "Any Season",
-      "anyTripType": "Any Trip Type"
+      "anyTripType": "Any Trip Type",
+      "seasons": {
+        "spring": "Spring",
+        "summer": "Summer",
+        "fall": "Fall",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Day Hike",
+        "overnight": "Overnight",
+        "multiDay": "Multi-day",
+        "thruHike": "Thru-hike"
+      }
     },
     "detail": {
       "postedBy": "Posted by {author}",
@@ -3102,7 +3187,14 @@
       "bookmarkedNotification": "Loadout added to bookmarks",
       "bookmark": "Bookmark",
       "bookmarked": "Bookmarked",
-      "removeBookmark": "Remove bookmark"
+      "removeBookmark": "Remove bookmark",
+      "savedLoadouts": "Saved Loadouts",
+      "retry": "Retry",
+      "emptyTitle": "No saved loadouts yet",
+      "emptyHint": "Bookmark VIP loadouts to save them here",
+      "browseVipLoadouts": "Browse VIP Loadouts",
+      "viewAllVips": "View all VIPs",
+      "savedTime": "Saved {time}"
     },
     "claim": {
       "loading": "Loading claim invitation...",
