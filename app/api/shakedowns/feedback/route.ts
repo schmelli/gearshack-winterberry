@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { createFeedbackSchema } from '@/lib/shakedown-schemas';
 import type { FeedbackWithAuthor, ShakedownPrivacy } from '@/types/shakedown';
 import { SHAKEDOWN_CONSTANTS } from '@/types/shakedown';
+import { shakedownFeedbackLimiter } from '@/lib/rate-limit';
 
 // =============================================================================
 // Types
@@ -190,6 +191,24 @@ export async function POST(
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting check
+    const rateLimitResult = shakedownFeedbackLimiter.check(user.id);
+    if (!rateLimitResult.allowed) {
+      const minutesUntilReset = Math.ceil((rateLimitResult.resetAt - Date.now()) / (60 * 1000));
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Try again in ${minutesUntilReset} minute(s).` },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '30',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      );
     }
 
     // Parse and validate request body

@@ -80,6 +80,71 @@ export const queryUserDataParametersSchema = z.object({
 export type QueryUserDataParameters = z.infer<typeof queryUserDataParametersSchema>;
 
 // =============================================================================
+// Security: Column Whitelists
+// =============================================================================
+
+/**
+ * SECURITY: Whitelist of allowed columns per table to prevent column injection attacks.
+ * Only columns explicitly listed here can be used for filtering, ordering, or range queries.
+ */
+const ALLOWED_COLUMNS: Record<string, Set<string>> = {
+  gear_items: new Set([
+    'id', 'user_id', 'name', 'brand', 'model', 'weight_grams', 'price_paid',
+    'price_currency', 'category_id', 'status', 'condition', 'notes',
+    'image_url', 'purchase_date', 'created_at', 'updated_at',
+  ]),
+  loadouts: new Set([
+    'id', 'user_id', 'name', 'description', 'total_weight', 'item_count',
+    'activity_types', 'seasons', 'hero_image_id', 'created_at', 'updated_at',
+  ]),
+  loadout_items: new Set([
+    'id', 'loadout_id', 'gear_item_id', 'quantity', 'worn', 'consumable',
+    'created_at', 'updated_at',
+  ]),
+  categories: new Set([
+    'id', 'label', 'i18n', 'icon', 'parent_id', 'sort_order', 'created_at',
+  ]),
+  profiles: new Set([
+    'id', 'username', 'display_name', 'avatar_url', 'subscription_tier',
+    'bio', 'created_at', 'updated_at',
+  ]),
+};
+
+/**
+ * SECURITY: Validate column name against whitelist
+ * Prevents SQL/PostgREST injection via column names
+ */
+function isValidColumn(table: string, column: string): boolean {
+  const allowedCols = ALLOWED_COLUMNS[table];
+  if (!allowedCols) return false;
+
+  // Additional validation: column names must be alphanumeric/underscore only
+  if (!/^[a-z_][a-z0-9_]*$/i.test(column)) return false;
+
+  return allowedCols.has(column);
+}
+
+/**
+ * SECURITY: Validate select clause columns
+ * Only allows whitelisted column names
+ */
+function validateSelectClause(table: string, selectClause: string): { valid: boolean; columns: string[] } {
+  if (selectClause === '*') return { valid: true, columns: ['*'] };
+
+  // Parse comma-separated columns
+  const columns = selectClause.split(',').map(c => c.trim()).filter(c => c.length > 0);
+
+  // Validate each column
+  for (const col of columns) {
+    if (!isValidColumn(table, col)) {
+      return { valid: false, columns: [] };
+    }
+  }
+
+  return { valid: true, columns };
+}
+
+// =============================================================================
 // Tool Definition
 // =============================================================================
 
@@ -158,6 +223,21 @@ export async function executeQueryUserData(
       };
     }
 
+    // SECURITY: Validate select clause columns
+    if (operation !== 'count') {
+      const selectValidation = validateSelectClause(table, select);
+      if (!selectValidation.valid) {
+        return {
+          success: false,
+          operation,
+          table,
+          rowCount: 0,
+          data: null,
+          error: 'Invalid column names in select clause',
+        };
+      }
+    }
+
     // Start building query
     let query = supabase.from(table).select(
       operation === 'count' ? '*' : select,
@@ -181,6 +261,17 @@ export async function executeQueryUserData(
     // Apply exact match filters
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
+        // SECURITY: Validate filter column names
+        if (!isValidColumn(table, key)) {
+          return {
+            success: false,
+            operation,
+            table,
+            rowCount: 0,
+            data: null,
+            error: `Invalid filter column: ${key}`,
+          };
+        }
         if (value === null) {
           query = query.is(key, null);
         } else {
@@ -192,12 +283,24 @@ export async function executeQueryUserData(
 
     // Apply search filter (case-insensitive ILIKE)
     if (search) {
+      // SECURITY: Validate search column name
+      if (!isValidColumn(table, search.column)) {
+        return {
+          success: false,
+          operation,
+          table,
+          rowCount: 0,
+          data: null,
+          error: `Invalid search column: ${search.column}`,
+        };
+      }
       // Sanitize search value to prevent ILIKE injection
       const sanitizedValue = search.value
+        .slice(0, 100) // Limit length to prevent DoS
         .replace(/\\/g, '\\\\')  // Escape backslash first
         .replace(/%/g, '\\%')    // Escape %
         .replace(/_/g, '\\_')    // Escape _
-        .replace(/[(),\.]/g, ''); // Remove PostgREST operators
+        .replace(/[(),\.:]/g, ''); // Remove PostgREST operators
       if (search.caseSensitive) {
         query = query.like(search.column, `%${sanitizedValue}%`);
       } else {
@@ -208,6 +311,17 @@ export async function executeQueryUserData(
 
     // Apply range filter
     if (range) {
+      // SECURITY: Validate range column name
+      if (!isValidColumn(table, range.column)) {
+        return {
+          success: false,
+          operation,
+          table,
+          rowCount: 0,
+          data: null,
+          error: `Invalid range column: ${range.column}`,
+        };
+      }
       if (range.min !== undefined) {
         query = query.gte(range.column, range.min);
         appliedFilters.push(`${range.column}:min`);
@@ -220,6 +334,17 @@ export async function executeQueryUserData(
 
     // Apply ordering
     if (orderBy) {
+      // SECURITY: Validate orderBy column name
+      if (!isValidColumn(table, orderBy.column)) {
+        return {
+          success: false,
+          operation,
+          table,
+          rowCount: 0,
+          data: null,
+          error: `Invalid orderBy column: ${orderBy.column}`,
+        };
+      }
       query = query.order(orderBy.column, { ascending: orderBy.ascending });
     }
 

@@ -185,6 +185,33 @@ export const imageGenerationLimiter = new RateLimiter(
 );
 
 /**
+ * Rate limiter for shakedown creation
+ * Limit: 10 shakedowns per hour per user
+ */
+export const shakedownCreationLimiter = new RateLimiter(
+  10, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for shakedown feedback creation
+ * Limit: 30 feedback posts per hour per user
+ */
+export const shakedownFeedbackLimiter = new RateLimiter(
+  30, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for AI assistant chat
+ * Limit: 50 messages per hour per user
+ */
+export const aiChatLimiter = new RateLimiter(
+  50, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
  * Helper to check rate limit and return appropriate response
  */
 export function checkRateLimit(userId: string): {
