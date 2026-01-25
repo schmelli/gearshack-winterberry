@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { MapPin, X, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ export function LocationAutocomplete({
   disabled = false,
   error: externalError,
 }: LocationAutocompleteProps) {
+  const t = useTranslations('LocationSearch');
   const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,8 +94,8 @@ export function LocationAutocomplete({
         setInputValue(location.formattedAddress);
         onSelect(location);
       }
-    } catch (error) {
-      console.error('Failed to select location:', error);
+    } catch (err) {
+      console.error('Failed to select location:', err);
       // Error will be shown via the searchError state from the hook
     } finally {
       setIsOpen(false);
@@ -188,7 +190,7 @@ export function LocationAutocomplete({
       {/* No results message */}
       {isOpen && !isLoading && inputValue.length >= 3 && suggestions.length === 0 && !searchError && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-center text-sm text-muted-foreground shadow-md">
-          No cities found. Try a different search.
+          {t('noCitiesFound')}
         </div>
       )}
     </div>

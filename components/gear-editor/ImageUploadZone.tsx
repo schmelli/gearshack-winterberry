@@ -24,6 +24,7 @@
 
 import { useState, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Upload, Loader2, X, Check, AlertCircle, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -63,10 +64,12 @@ export function ImageUploadZone({
   onChange,
   userId,
   itemId,
-  label = 'Product Image',
+  label,
   brand = '',
   productName = '',
 }: ImageUploadZoneProps) {
+  const t = useTranslations('GearEditor.imageUpload');
+
   // State for drag-and-drop UI
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -303,17 +306,17 @@ export function ImageUploadZone({
         <div className="text-center space-y-2">
           {isProcessing && (
             <p className="text-sm font-medium text-primary">
-              Removing background...
+              {t('removingBackground')}
             </p>
           )}
           {isUploading && (
             <p className="text-sm font-medium text-primary">
-              Uploading to Cloudinary...
+              {t('uploadingToCloudinary')}
             </p>
           )}
           {isSuccess && (
             <p className="text-sm font-medium text-green-600">
-              Upload successful!
+              {t('uploadSuccessful')}
             </p>
           )}
           {isError && error && (
@@ -324,10 +327,10 @@ export function ImageUploadZone({
           {!isLoading && !isSuccess && !isError && (
             <>
               <p className="text-sm font-medium text-foreground">
-                Drag and drop an image or click to browse
+                {t('dragAndDrop')}
               </p>
               <p className="text-xs text-muted-foreground">
-                PNG, JPG, WebP up to 10MB
+                {t('fileTypes')}
               </p>
             </>
           )}
@@ -362,10 +365,10 @@ export function ImageUploadZone({
       <div className="flex items-center justify-between p-4 rounded-lg bg-muted/40 border">
         <div className="space-y-0.5">
           <Label htmlFor="remove-bg" className="text-sm font-medium cursor-pointer">
-            Remove Background
+            {t('removeBackground')}
           </Label>
           <p className="text-xs text-muted-foreground">
-            Automatically remove the image background using local processing
+            {t('removeBackgroundDescription')}
           </p>
         </div>
         <Switch
@@ -385,7 +388,7 @@ export function ImageUploadZone({
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or
+            {t('or')}
           </span>
         </div>
       </div>
