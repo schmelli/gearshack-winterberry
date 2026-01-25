@@ -119,12 +119,26 @@ export function formatShakedownDateRange(
  * Calculates the trip duration in days
  * @param startDate - ISO date string
  * @param endDate - ISO date string
- * @returns Number of days (inclusive)
+ * @returns Number of days (inclusive), or 0 if dates are invalid
  */
 export function calculateTripDuration(startDate: string, endDate: string): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
+
+  // Validate dates are valid
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    console.warn('[calculateTripDuration] Invalid date format:', { startDate, endDate });
+    return 0;
+  }
+
   const diffMs = end.getTime() - start.getTime();
+
+  // Handle negative duration (end before start)
+  if (diffMs < 0) {
+    console.warn('[calculateTripDuration] End date before start date:', { startDate, endDate });
+    return 0;
+  }
+
   return Math.ceil(diffMs / (24 * 60 * 60 * 1000)) + 1; // +1 for inclusive
 }
 

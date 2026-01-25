@@ -317,12 +317,19 @@ export async function GET(
 
     // If friendsFirst is enabled and user is authenticated, reorder results
     if (friendsFirst && user) {
-      // Get user's friend IDs
-       
-      const { data: friendships } = await (supabase as any)
-        .from('friendships')
-        .select('user_id, friend_id')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+      // Get user's friend IDs - use separate queries to avoid string interpolation
+      // This prevents potential injection if user.id format changes in the future
+      const [{ data: friendships1 }, { data: friendships2 }] = await Promise.all([
+        (supabase as any)
+          .from('friendships')
+          .select('user_id, friend_id')
+          .eq('user_id', user.id),
+        (supabase as any)
+          .from('friendships')
+          .select('user_id, friend_id')
+          .eq('friend_id', user.id),
+      ]);
+      const friendships = [...(friendships1 || []), ...(friendships2 || [])];
 
       if (friendships && friendships.length > 0) {
         const friendIds = new Set<string>();

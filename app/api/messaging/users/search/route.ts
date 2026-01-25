@@ -41,10 +41,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Get blocked user IDs (users we blocked or who blocked us)
-    const { data: blocks } = await (supabase as any)
-      .from('user_blocks')
-      .select('user_id, blocked_id')
-      .or(`user_id.eq.${user.id},blocked_id.eq.${user.id}`);
+    // Use separate queries to avoid string interpolation in .or() clause
+    const [{ data: blocksAsUser }, { data: blocksAsBlocked }] = await Promise.all([
+      (supabase as any)
+        .from('user_blocks')
+        .select('user_id, blocked_id')
+        .eq('user_id', user.id),
+      (supabase as any)
+        .from('user_blocks')
+        .select('user_id, blocked_id')
+        .eq('blocked_id', user.id),
+    ]);
+    const blocks = [...(blocksAsUser || []), ...(blocksAsBlocked || [])];
 
     const blockedIds = new Set<string>();
     if (blocks) {

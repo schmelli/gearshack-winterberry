@@ -78,6 +78,8 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
           }
+          // Clear AbortController ref after successful fetch
+          abortControllerRef.current = null;
           const data = await response.json();
           const placeName =
             data.address?.city ||
@@ -98,6 +100,8 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
           }
+          // Clear AbortController ref after error
+          abortControllerRef.current = null;
           // Fallback to basic coordinates on timeout or error
           setSelectedLocation({
             name: 'Current Location',

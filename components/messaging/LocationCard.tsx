@@ -31,13 +31,35 @@ export function LocationCard({
 }: LocationCardProps) {
   const { latitude, longitude, place_name } = metadata;
 
+  // Validate coordinates to prevent malformed URLs
+  const isValidCoordinate = (lat: number, lon: number): boolean => {
+    return (
+      typeof lat === 'number' &&
+      typeof lon === 'number' &&
+      isFinite(lat) &&
+      isFinite(lon) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180
+    );
+  };
+
+  const validCoords = isValidCoordinate(latitude, longitude);
+  const safeLat = validCoords ? latitude : 0;
+  const safeLon = validCoords ? longitude : 0;
+
   // Generate static map URL (OpenStreetMap tiles)
-  const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`;
+  const mapUrl = `https://www.openstreetmap.org/?mlat=${safeLat}&mlon=${safeLon}#map=15/${safeLat}/${safeLon}`;
 
   // Static map image from OpenStreetMap's static map service
-  const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=14&size=300x150&maptype=osmarenderer&markers=${latitude},${longitude},red-pushpin`;
+  const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${safeLat},${safeLon}&zoom=14&size=300x150&maptype=osmarenderer&markers=${safeLat},${safeLon},red-pushpin`;
 
   const handleOpenMap = () => {
+    if (!validCoords) {
+      console.error('[LocationCard] Invalid coordinates:', { latitude, longitude });
+      return;
+    }
     window.open(mapUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -71,7 +93,7 @@ export function LocationCard({
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-sm">{place_name}</p>
             <p className="text-xs text-muted-foreground">
-              {latitude.toFixed(4)}, {longitude.toFixed(4)}
+              {validCoords ? `${safeLat.toFixed(4)}, ${safeLon.toFixed(4)}` : 'Invalid location'}
             </p>
           </div>
           <Button

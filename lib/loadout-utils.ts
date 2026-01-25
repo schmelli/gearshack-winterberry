@@ -410,7 +410,7 @@ export function getSortedCategoryGroups(
  * FR-020: Display weight in grams with thousands separator (e.g., "1,483 g")
  */
 export function formatWeight(grams: number | null): string {
-  if (grams === null || grams === undefined) return '-- g';
+  if (grams === null || grams === undefined || !Number.isFinite(grams)) return '-- g';
   return `${grams.toLocaleString()} g`;
 }
 
