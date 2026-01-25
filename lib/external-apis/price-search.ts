@@ -175,7 +175,12 @@ async function searchManufacturerSite(
     // Validate and extract domain from brand URL
     let domain: string;
     try {
-      domain = new URL(brandUrl).hostname.replace('www.', '');
+      const url = new URL(brandUrl);
+      if (!url.hostname) {
+        console.error('Brand URL has no hostname:', brandUrl);
+        return [];
+      }
+      domain = url.hostname.replace('www.', '');
     } catch (urlError) {
       console.error('Invalid brand URL:', brandUrl, urlError);
       return [];

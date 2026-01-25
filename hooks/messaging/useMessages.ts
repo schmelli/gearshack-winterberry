@@ -128,9 +128,13 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
             .select('id, display_name, avatar_url')
             .eq('id', newMessage.sender_id)
             .single()
-            .then(({ data: profile }) => {
+            .then(({ data: profile, error }) => {
               // Guard against state updates after unmount
               if (!isMountedRef.current) return;
+
+              if (error) {
+                console.error('Failed to fetch sender profile:', error);
+              }
 
               const sender = profile ? {
                 id: profile.id,

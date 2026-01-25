@@ -159,18 +159,32 @@ function MessagesContent() {
   useEffect(() => {
     if (!recipientId || isStartingConversation) return;
 
+    let isCancelled = false;
+
     const startConversation = async () => {
       setIsStartingConversation(true);
-      const result = await startDirectConversation(recipientId);
-      if (result.success && result.conversationId) {
-        router.replace(`/messages/${result.conversationId}`);
-      } else {
-        setIsStartingConversation(false);
+      try {
+        const result = await startDirectConversation(recipientId);
+        if (isCancelled) return;
+        if (result.success && result.conversationId) {
+          router.replace(`/messages/${result.conversationId}`);
+        } else {
+          setIsStartingConversation(false);
+        }
+      } catch (error) {
+        console.error('Failed to start conversation:', error);
+        if (!isCancelled) {
+          setIsStartingConversation(false);
+        }
       }
     };
 
     startConversation();
-  }, [recipientId, startDirectConversation, router, isStartingConversation]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [recipientId, startDirectConversation, router]);
 
   // Show loading while starting conversation with recipient
   if (recipientId || isStartingConversation) {

@@ -72,9 +72,13 @@ export function UserOffersClient() {
       // Check if offer exists in the list
       const offerExists = offers.some((o) => o.id === offerIdFromUrl);
       if (offerExists && !selectedOffer) {
-        viewOffer(offerIdFromUrl).then(() => {
-          setIsSheetOpen(true);
-        });
+        viewOffer(offerIdFromUrl)
+          .then(() => {
+            setIsSheetOpen(true);
+          })
+          .catch((error) => {
+            console.error('Failed to view offer:', error);
+          });
       }
     }
   }, [offerIdFromUrl, isLoading, offers, selectedOffer, viewOffer]);

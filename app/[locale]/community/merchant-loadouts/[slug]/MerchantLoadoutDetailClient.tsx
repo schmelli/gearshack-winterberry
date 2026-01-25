@@ -67,7 +67,11 @@ export function MerchantLoadoutDetailClient({
 
   // Fetch user's wishlisted catalog items on mount
   useEffect(() => {
-    getWishlistedCatalogItemIds().then(setWishlistedItemIds);
+    getWishlistedCatalogItemIds()
+      .then(setWishlistedItemIds)
+      .catch((error) => {
+        console.error('Failed to fetch wishlisted items:', error);
+      });
   }, []);
 
   // Check if user has already shared location with this merchant

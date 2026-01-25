@@ -56,7 +56,11 @@ export function useWikiPage(slug: string): UseWikiPageReturn {
           .from('wiki_pages')
           .update({ view_count: (data.view_count || 0) + 1 })
           .eq('id', data.id)
-          .then(() => {});
+          .then(({ error }) => {
+            if (error) {
+              console.error('Failed to increment view count:', error);
+            }
+          });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch page';
