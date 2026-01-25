@@ -150,7 +150,8 @@ export function useConversations(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+    // Include includeArchived to recreate subscription when filter changes
+  }, [user?.id, includeArchived]);
 
   const startDirectConversation = useCallback(
     async (

@@ -113,6 +113,9 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
+          // Capture current conversationId to check after async operation
+          const currentConversationId = conversationId;
+
           // Fetch the full message with sender info
           const newMessage = payload.new as Message;
           if (!newMessage.sender_id) {
@@ -129,8 +132,10 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
             .eq('id', newMessage.sender_id)
             .single()
             .then(({ data: profile, error }) => {
-              // Guard against state updates after unmount
+              // Guard against state updates after unmount or conversation change
               if (!isMountedRef.current) return;
+              // Verify this profile fetch is still for the active conversation
+              if (newMessage.conversation_id !== currentConversationId) return;
 
               if (error) {
                 console.error('Failed to fetch sender profile:', error);

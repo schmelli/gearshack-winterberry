@@ -61,7 +61,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body with safeParse for proper error handling
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const parseResult = GenerateImageRequestSchema.safeParse(body);
 
     if (!parseResult.success) {

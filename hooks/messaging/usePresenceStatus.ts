@@ -115,15 +115,21 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
   }, []);
 
   // Auto-start tracking when user is authenticated
-  // Note: startTracking and stopTracking are intentionally excluded from deps
+  // Note: startTracking is intentionally excluded from deps
   // to prevent circular dependency causing subscription churn
   useEffect(() => {
     if (user?.id) {
       startTracking();
     }
 
+    // Direct cleanup using channelRef to avoid stale closure
     return () => {
-      stopTracking();
+      if (channelRef.current) {
+        const supabase = createClient();
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        setIsOnline(false);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);

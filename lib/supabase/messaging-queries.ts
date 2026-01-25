@@ -1041,7 +1041,7 @@ export async function leaveGroupConversation(
 
     if (!admins || admins.length === 0) {
       // No other admins - transfer admin to oldest member
-      const { data: oldestMember } = await supabase
+      const { data: oldestMember, error: memberError } = await supabase
         .from('conversation_participants')
         .select('user_id')
         .eq('conversation_id', conversationId)
@@ -1049,6 +1049,11 @@ export async function leaveGroupConversation(
         .order('joined_at', { ascending: true })
         .limit(1)
         .single();
+
+      // PGRST116 = no rows found (OK - no members to transfer to)
+      if (memberError && memberError.code !== 'PGRST116') {
+        throw new Error(`Failed to find oldest member: ${memberError.message}`);
+      }
 
       if (oldestMember) {
         // Transfer admin role

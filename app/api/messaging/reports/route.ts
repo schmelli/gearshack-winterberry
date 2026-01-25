@@ -30,7 +30,15 @@ export async function POST(request: Request) {
     }
 
     // Parse and validate request body
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validation = reportSchema.safeParse(body);
 
     if (!validation.success) {

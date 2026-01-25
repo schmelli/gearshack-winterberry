@@ -928,6 +928,7 @@ export function subscribeToFriendActivities(
   onActivity: (activity: FriendActivityWithProfile) => void
 ): () => void {
   const supabase = getSocialClient();
+  let isCleanedUp = false;
 
   const channel = supabase
     .channel(`friend_activities:${userId}`)
@@ -939,8 +940,14 @@ export function subscribeToFriendActivities(
         table: 'friend_activities',
       },
       async (payload: QueryResult) => {
+        // Skip if already cleaned up
+        if (isCleanedUp) return;
+
         // Fetch profile with caching (FIXED: reduces N+1 queries)
         const profile = await getCachedProfile(payload.new.user_id, supabase);
+
+        // Check again after async operation
+        if (isCleanedUp) return;
 
         const activity: FriendActivityWithProfile = {
           id: payload.new.id,
@@ -961,6 +968,8 @@ export function subscribeToFriendActivities(
     .subscribe();
 
   return () => {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
     supabase.removeChannel(channel);
   };
 }
@@ -974,6 +983,7 @@ export function subscribeToFriendRequests(
   onRequest: (request: FriendRequest, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
 ): () => void {
   const supabase = getSocialClient();
+  let isCleanedUp = false;
 
   const channel = supabase
     .channel(`friend_requests:${userId}`)
@@ -986,6 +996,9 @@ export function subscribeToFriendRequests(
         filter: `recipient_id=eq.${userId}`,
       },
       (payload: QueryResult) => {
+        // Skip if already cleaned up
+        if (isCleanedUp) return;
+
         const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
         const request = (eventType === 'DELETE' ? payload.old : payload.new) as FriendRequest;
         onRequest(request, eventType);
@@ -994,6 +1007,8 @@ export function subscribeToFriendRequests(
     .subscribe();
 
   return () => {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
     supabase.removeChannel(channel);
   };
 }
