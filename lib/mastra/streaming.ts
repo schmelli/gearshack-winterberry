@@ -290,9 +290,15 @@ export async function wrapMastraStreamForVercelAI(
       }
     },
 
-    cancel() {
+    async cancel() {
       // Cleanup when client disconnects
       console.log('[Mastra Streaming] Client disconnected, stream cancelled');
+      // Properly close the generator to release resources
+      try {
+        await mastraStream.return(undefined);
+      } catch {
+        // Ignore errors during cleanup - generator may already be closed
+      }
     },
   });
 }

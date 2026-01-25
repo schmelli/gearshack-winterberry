@@ -119,21 +119,30 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   /**
    * Accepts a friend request.
    * Creates a friendship and notifies the sender.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to accept
    */
   const acceptRequest = useCallback(
     async (requestId: string): Promise<void> => {
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingIncoming((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         const response = await respondToFriendRequest(requestId, true);
 
         if (!response.success) {
           throw new Error(response.error ?? 'Failed to accept request');
         }
-
-        // Optimistic update: remove from incoming list
-        setPendingIncoming((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingIncoming((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to accept friend request';
         setError(message);
         throw err;
@@ -145,21 +154,30 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   /**
    * Declines a friend request.
    * Silent action - no notification sent to sender.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to decline
    */
   const declineRequest = useCallback(
     async (requestId: string): Promise<void> => {
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingIncoming((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         const response = await respondToFriendRequest(requestId, false);
 
         if (!response.success) {
           throw new Error(response.error ?? 'Failed to decline request');
         }
-
-        // Optimistic update: remove from incoming list
-        setPendingIncoming((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingIncoming((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to decline friend request';
         setError(message);
         throw err;
@@ -170,6 +188,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
 
   /**
    * Cancels a pending outgoing friend request.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to cancel
    */
@@ -177,12 +196,20 @@ export function useFriendRequests(): UseFriendRequestsReturn {
     async (requestId: string): Promise<void> => {
       if (!user?.uid) return;
 
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingOutgoing((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         await cancelFriendRequest(requestId, user.uid);
-
-        // Optimistic update: remove from outgoing list
-        setPendingOutgoing((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingOutgoing((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to cancel friend request';
         setError(message);
         throw err;
