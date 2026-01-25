@@ -402,10 +402,25 @@ export async function canSendFriendRequest(
 // =============================================================================
 
 /**
+ * Validates that a string is a valid UUID v4 format.
+ * Prevents injection attacks in .or() clauses.
+ */
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+/**
  * Fetches user's friends list with profile info.
  */
 export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
   const supabase = getSocialClient();
+
+  // SECURITY: Validate userId is a valid UUID before using in .or() clause
+  // This prevents PostgREST filter injection via special characters
+  if (!isValidUUID(userId)) {
+    throw new Error('Invalid user ID format');
+  }
 
   // Friends can be on either side of the friendship due to canonical ordering
   const { data, error } = await supabase
