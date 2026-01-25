@@ -113,6 +113,37 @@ export function VoicePlayer({
     setCurrentTime(newTime);
   }, [duration]);
 
+  // ACCESSIBILITY: Keyboard navigation for slider (WCAG 2.1 AA)
+  const handleSliderKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!audioRef.current || duration === 0) return;
+
+    const STEP = 5; // seconds per arrow key press
+    let newTime = currentTime;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowUp':
+        newTime = Math.min(duration, currentTime + STEP);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        newTime = Math.max(0, currentTime - STEP);
+        break;
+      case 'Home':
+        newTime = 0;
+        break;
+      case 'End':
+        newTime = duration;
+        break;
+      default:
+        return; // Don't prevent default for other keys
+    }
+
+    e.preventDefault();
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [currentTime, duration]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -154,15 +185,18 @@ export function VoicePlayer({
 
       {/* Progress and time */}
       <div className="flex flex-1 flex-col gap-1">
-        {/* Progress bar */}
+        {/* Progress bar - ACCESSIBILITY: Full keyboard support */}
         <div
           role="slider"
+          aria-label="Voice message progress"
           aria-valuemin={0}
           aria-valuemax={duration}
           aria-valuenow={currentTime}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
           tabIndex={0}
-          className="relative h-2 w-full cursor-pointer rounded-full bg-muted-foreground/20"
+          className="relative h-2 w-full cursor-pointer rounded-full bg-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           onClick={handleSeek}
+          onKeyDown={handleSliderKeyDown}
         >
           <div
             className={cn(

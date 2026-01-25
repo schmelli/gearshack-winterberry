@@ -47,6 +47,29 @@ interface MessageBubbleProps {
 
 const REACTION_EMOJIS: ReactionEmoji[] = ['👍', '❤️', '😂', '😮', '😢'];
 
+// SECURITY: Trusted CDN domains for media uploads
+const TRUSTED_MEDIA_DOMAINS = [
+  'res.cloudinary.com',
+  'cloudinary.com',
+] as const;
+
+/**
+ * SECURITY: Validate that media URLs are from trusted CDN domains
+ * This prevents XSS via malicious URLs (javascript:, data:, etc.)
+ */
+function isValidMediaUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const urlObj = new URL(url);
+    // Must be HTTPS
+    if (urlObj.protocol !== 'https:') return false;
+    // Must be from trusted CDN
+    return TRUSTED_MEDIA_DOMAINS.some(domain => urlObj.host.includes(domain));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Displays a single message bubble with all associated metadata.
  */
@@ -254,6 +277,10 @@ function renderMessageContent(
       return <p className="whitespace-pre-wrap break-words">{message.content}</p>;
 
     case 'image':
+      // SECURITY: Only render images from trusted CDN domains
+      if (!isValidMediaUrl(message.media_url)) {
+        return <span className="text-sm text-muted-foreground">Image unavailable</span>;
+      }
       return (
         <div className="overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,7 +297,8 @@ function renderMessageContent(
 
     case 'voice': {
       const voiceMeta = message.metadata as VoiceMetadata | undefined;
-      if (message.media_url) {
+      // SECURITY: Only play audio from trusted CDN domains
+      if (message.media_url && isValidMediaUrl(message.media_url)) {
         return (
           <VoicePlayer
             audioUrl={message.media_url}
