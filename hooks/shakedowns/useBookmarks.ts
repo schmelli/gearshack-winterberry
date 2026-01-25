@@ -224,21 +224,27 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw new Error('Unauthorized');
       }
 
-      // Already bookmarked - no-op
-      if (state.bookmarkedIds.has(shakedownId)) {
+      // Use setState callback to check current state without stale closure
+      let isAlreadyBookmarked = false;
+      setState((prev) => {
+        isAlreadyBookmarked = prev.bookmarkedIds.has(shakedownId);
+        if (isAlreadyBookmarked) {
+          return prev; // No-op, already bookmarked
+        }
+        // Save previous state for rollback
+        previousStateRef.current = { ...prev };
+        // Optimistic update - add to bookmarkedIds immediately
+        return {
+          ...prev,
+          isOperating: true,
+          error: null,
+          bookmarkedIds: new Set(prev.bookmarkedIds).add(shakedownId),
+        };
+      });
+
+      if (isAlreadyBookmarked) {
         return;
       }
-
-      // Save previous state for rollback
-      previousStateRef.current = { ...state };
-
-      // Optimistic update - add to bookmarkedIds immediately
-      setState((prev) => ({
-        ...prev,
-        isOperating: true,
-        error: null,
-        bookmarkedIds: new Set(prev.bookmarkedIds).add(shakedownId),
-      }));
 
       try {
         const response = await fetch('/api/shakedowns/bookmarks', {
@@ -298,7 +304,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw err;
       }
     },
-    [user?.uid, state, t]
+    [user?.uid, t]
   );
 
   // =============================================================================
@@ -312,28 +318,30 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw new Error('Unauthorized');
       }
 
-      // Not bookmarked - no-op
-      if (!state.bookmarkedIds.has(shakedownId)) {
-        return;
-      }
+      // Use setState callback to check state and extract bookmark ID without stale closure
+      let isNotBookmarked = false;
+      let existingBookmarkId: string | null = null;
 
-      // Find the bookmark
-      const existingBookmark = state.bookmarks.find((b) => b.shakedownId === shakedownId);
-      if (!existingBookmark) {
-        // Stale state - just remove from IDs
-        setState((prev) => {
+      setState((prev) => {
+        isNotBookmarked = !prev.bookmarkedIds.has(shakedownId);
+        if (isNotBookmarked) {
+          return prev; // No-op, not bookmarked
+        }
+
+        const existingBookmark = prev.bookmarks.find((b) => b.shakedownId === shakedownId);
+        if (!existingBookmark) {
+          // Stale state - just remove from IDs
           const newIds = new Set(prev.bookmarkedIds);
           newIds.delete(shakedownId);
           return { ...prev, bookmarkedIds: newIds };
-        });
-        return;
-      }
+        }
 
-      // Save previous state for rollback
-      previousStateRef.current = { ...state };
+        existingBookmarkId = existingBookmark.bookmarkId;
 
-      // Optimistic update
-      setState((prev) => {
+        // Save previous state for rollback
+        previousStateRef.current = { ...prev };
+
+        // Optimistic update
         const newIds = new Set(prev.bookmarkedIds);
         newIds.delete(shakedownId);
         return {
@@ -345,8 +353,12 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         };
       });
 
+      if (isNotBookmarked || !existingBookmarkId) {
+        return;
+      }
+
       try {
-        const response = await fetch(`/api/shakedowns/bookmarks/${existingBookmark.bookmarkId}`, {
+        const response = await fetch(`/api/shakedowns/bookmarks/${existingBookmarkId}`, {
           method: 'DELETE',
         });
 
@@ -378,7 +390,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw err;
       }
     },
-    [user?.uid, state, t]
+    [user?.uid, t]
   );
 
   // =============================================================================
@@ -392,27 +404,39 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw new Error('Unauthorized');
       }
 
-      // Find the bookmark
-      const existingBookmark = state.bookmarks.find((b) => b.shakedownId === shakedownId);
-      if (!existingBookmark) {
+      // Use setState callback to find bookmark and set up optimistic update
+      let existingBookmarkId: string | null = null;
+      let bookmarkNotFound = false;
+
+      setState((prev) => {
+        const existingBookmark = prev.bookmarks.find((b) => b.shakedownId === shakedownId);
+        if (!existingBookmark) {
+          bookmarkNotFound = true;
+          return prev;
+        }
+
+        existingBookmarkId = existingBookmark.bookmarkId;
+
+        // Save previous state for rollback
+        previousStateRef.current = { ...prev };
+
+        // Optimistic update
+        return {
+          ...prev,
+          isOperating: true,
+          error: null,
+          bookmarks: prev.bookmarks.map((b) =>
+            b.shakedownId === shakedownId ? { ...b, note } : b
+          ),
+        };
+      });
+
+      if (bookmarkNotFound || !existingBookmarkId) {
         throw new Error('Bookmark not found');
       }
 
-      // Save previous state for rollback
-      previousStateRef.current = { ...state };
-
-      // Optimistic update
-      setState((prev) => ({
-        ...prev,
-        isOperating: true,
-        error: null,
-        bookmarks: prev.bookmarks.map((b) =>
-          b.shakedownId === shakedownId ? { ...b, note } : b
-        ),
-      }));
-
       try {
-        const response = await fetch(`/api/shakedowns/bookmarks/${existingBookmark.bookmarkId}`, {
+        const response = await fetch(`/api/shakedowns/bookmarks/${existingBookmarkId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -441,7 +465,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}): UseBookmarksRet
         throw err;
       }
     },
-    [user?.uid, state, t]
+    [user?.uid, t]
   );
 
   // =============================================================================

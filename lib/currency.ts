@@ -112,6 +112,11 @@ export function convertCurrency(
     return null;
   }
 
+  // Guard against division by zero (invalid rate)
+  if (fromRate === 0) {
+    return null;
+  }
+
   // Convert: amount in fromCurrency -> base currency -> toCurrency
   const amountInBase = amount / fromRate;
   const amountInTarget = amountInBase * toRate;

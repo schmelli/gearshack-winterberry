@@ -50,19 +50,34 @@ export async function uploadImageToCloudinary(
   );
 
   if (!response.ok) {
-    throw new Error(`Cloudinary upload failed: ${response.statusText}`);
+    // Try to extract error details from response body
+    let errorDetails = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorDetails = errorData.error.message;
+      }
+    } catch {
+      // JSON parsing failed, use status text
+    }
+    throw new Error(`Cloudinary upload failed: ${errorDetails}`);
   }
 
-  const data = await response.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Cloudinary upload failed: Invalid JSON response');
+  }
 
-  if (!data.secure_url) {
+  if (!data.secure_url || typeof data.secure_url !== 'string') {
     throw new Error('Cloudinary upload failed: No secure URL in response');
   }
 
   return {
     secure_url: data.secure_url,
-    width: data.width,
-    height: data.height,
+    width: typeof data.width === 'number' ? data.width : undefined,
+    height: typeof data.height === 'number' ? data.height : undefined,
   };
 }
 
@@ -95,17 +110,32 @@ export async function uploadVoiceToCloudinary(
   );
 
   if (!response.ok) {
-    throw new Error(`Cloudinary upload failed: ${response.statusText}`);
+    // Try to extract error details from response body
+    let errorDetails = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorDetails = errorData.error.message;
+      }
+    } catch {
+      // JSON parsing failed, use status text
+    }
+    throw new Error(`Cloudinary upload failed: ${errorDetails}`);
   }
 
-  const data = await response.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Cloudinary upload failed: Invalid JSON response');
+  }
 
-  if (!data.secure_url) {
+  if (!data.secure_url || typeof data.secure_url !== 'string') {
     throw new Error('Cloudinary upload failed: No secure URL in response');
   }
 
   return {
     secure_url: data.secure_url,
-    duration: data.duration,
+    duration: typeof data.duration === 'number' ? data.duration : undefined,
   };
 }

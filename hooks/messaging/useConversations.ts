@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   fetchConversations,
@@ -90,6 +90,10 @@ export function useConversations(
     refresh();
   }, [refresh]);
 
+  // Use ref to avoid subscription churn when refresh callback changes
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
   // Subscribe to real-time updates
   // Note: This subscription will silently fail if messaging tables don't exist yet
   useEffect(() => {
@@ -108,7 +112,7 @@ export function useConversations(
         },
         () => {
           // Refresh on any conversation change
-          refresh();
+          refreshRef.current();
         }
       )
       .on(
@@ -121,7 +125,7 @@ export function useConversations(
         },
         () => {
           // Refresh when our participation changes
-          refresh();
+          refreshRef.current();
         }
       )
       .on(
@@ -133,7 +137,7 @@ export function useConversations(
         },
         () => {
           // Refresh when new messages arrive (updates last_message)
-          refresh();
+          refreshRef.current();
         }
       )
       .subscribe((status, err) => {
@@ -146,7 +150,7 @@ export function useConversations(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refresh]);
+  }, [user?.id]);
 
   const startDirectConversation = useCallback(
     async (
