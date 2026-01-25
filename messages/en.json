@@ -1450,6 +1450,8 @@
       "mutualFriend": "1 mutual friend",
       "noMutualFriends": "No mutual friends",
       "seeAll": "See all",
+      "showLess": "Show less",
+      "loadingMutual": "Loading mutual friends...",
       "friendLimit": "You've reached the friend limit (1,000). Remove a friend to add a new one.",
       "rateLimit": "You've sent too many friend requests. Try again later.",
       "noMessageExchange": "You need to message {name} first before sending a friend request."

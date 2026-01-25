@@ -244,7 +244,7 @@ function CardMutualFriends({
       <div className={cn('rounded-lg border border-border p-4', className)}>
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading mutual friends...</span>
+          <span className="text-sm text-muted-foreground">{t('friends.loadingMutual')}</span>
         </div>
       </div>
     );
@@ -292,7 +292,7 @@ function CardMutualFriends({
           className="mt-2 w-full"
         >
           {showAll
-            ? 'Show less'
+            ? t('friends.showLess')
             : t('friends.seeAll')}
         </Button>
       )}

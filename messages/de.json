@@ -1450,6 +1450,8 @@
       "mutualFriend": "1 gemeinsamer Freund",
       "noMutualFriends": "Keine gemeinsamen Freunde",
       "seeAll": "Alle anzeigen",
+      "showLess": "Weniger anzeigen",
+      "loadingMutual": "Lade gemeinsame Freunde...",
       "friendLimit": "Du hast das Freundeslimit erreicht (1.000). Entferne einen Freund, um einen neuen hinzuzufügen.",
       "rateLimit": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
       "noMessageExchange": "Du musst zuerst {name} eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst."
