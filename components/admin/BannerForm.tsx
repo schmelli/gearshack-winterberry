@@ -250,7 +250,10 @@ export function BannerForm({
                     type="number"
                     min={0}
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value, 10);
+                      field.onChange(Number.isFinite(parsed) ? parsed : 0);
+                    }}
                   />
                 </FormControl>
                 <FormDescription>{t('fields.displayOrderHelp')}</FormDescription>

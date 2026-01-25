@@ -96,7 +96,8 @@ export function useOnboarding({
   const totalSteps = visibleSteps.length;
   const isFirstStep = state.currentStepIndex === 0;
   const isLastStep = state.currentStepIndex === totalSteps - 1;
-  const progress = ((state.currentStepIndex + 1) / totalSteps) * 100;
+  // Guard against division by zero (defensive - visibleSteps should always have items)
+  const progress = totalSteps > 0 ? ((state.currentStepIndex + 1) / totalSteps) * 100 : 0;
 
   // Actions
   const nextStep = useCallback(() => {

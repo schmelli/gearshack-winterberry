@@ -108,10 +108,11 @@ export async function POST(request: Request): Promise<Response> {
     // Early file size check via Content-Length header (before reading body into memory)
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE) {
+    const parsedContentLength = contentLength ? parseInt(contentLength, 10) : 0;
+    if (Number.isFinite(parsedContentLength) && parsedContentLength > MAX_FILE_SIZE) {
       logWarn('Audio file too large (Content-Length check)', {
         userId: user.id,
-        metadata: { contentLength: parseInt(contentLength, 10), maxSize: MAX_FILE_SIZE },
+        metadata: { contentLength: parsedContentLength, maxSize: MAX_FILE_SIZE },
       });
       return new Response(
         JSON.stringify({

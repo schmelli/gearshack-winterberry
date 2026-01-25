@@ -86,7 +86,7 @@ function validateRequest(body: unknown): {
   // Validate stability if provided (0.0 - 1.0)
   if (request.stability !== undefined) {
     const stability = Number(request.stability);
-    if (isNaN(stability) || stability < 0 || stability > 1) {
+    if (!Number.isFinite(stability) || stability < 0 || stability > 1) {
       return { valid: false, error: 'stability must be a number between 0.0 and 1.0' };
     }
   }
@@ -94,7 +94,7 @@ function validateRequest(body: unknown): {
   // Validate similarityBoost if provided (0.0 - 1.0)
   if (request.similarityBoost !== undefined) {
     const similarityBoost = Number(request.similarityBoost);
-    if (isNaN(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
+    if (!Number.isFinite(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
       return { valid: false, error: 'similarityBoost must be a number between 0.0 and 1.0' };
     }
   }
