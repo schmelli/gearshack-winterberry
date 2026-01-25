@@ -2990,6 +2990,15 @@
       "switchedToView": "Switched to {viewName} view. {count, plural, one {# item} other {# items}}."
     }
   },
+  "AIAssistant": {
+    "chatInput": {
+      "rateLimitReached": "Rate limit reached. Try again in {seconds}s.",
+      "listening": "Listening...",
+      "placeholder": "Ask me anything about your gear...",
+      "keyboardHint": "Press Enter to send, Shift+Enter for new line",
+      "sendMessage": "Send message"
+    }
+  },
   "Admin": {
     "navigation": {
       "dashboard": "Dashboard",
