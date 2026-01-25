@@ -539,11 +539,48 @@
       "newItem": "Your New Item",
       "existingItem": "Existing Item",
       "matchScore": "{score}% match",
+      "quantity": "Qty: {count}",
       "actions": {
         "cancel": "Cancel",
         "increaseQuantity": "+1 to Existing",
         "saveAsNew": "Save as New"
       }
+    },
+    "brandAutocomplete": {
+      "searching": "Searching...",
+      "noResults": "No matching brands found. You can use a custom name.",
+      "sourceGearGraph": "GearGraph",
+      "sourceInventory": "Your Inventory"
+    },
+    "productAutocomplete": {
+      "searching": "Searching products...",
+      "matchScore": "{score}% match"
+    },
+    "smartSearch": {
+      "title": "Smart Product Search",
+      "description": "Search GearGraph catalog and web for product information",
+      "placeholder": "Enter product name...",
+      "search": "Search",
+      "fromCatalog": "From GearGraph Catalog",
+      "fromWeb": "From Web",
+      "found": "{count} found",
+      "extracting": "Extracting data from {domain}...",
+      "noResults": "No products found. Try a different search term.",
+      "rateLimited": "Daily internet search limit reached. Catalog results are still available.",
+      "rateLimitedUpgrade": "Upgrade to Trailblazer for unlimited searches.",
+      "match": "{score}% match",
+      "webBadge": "Web",
+      "extractedData": "Extracted Product Data",
+      "confidence": "{level} confidence",
+      "fields": {
+        "name": "Name",
+        "brand": "Brand",
+        "weight": "Weight",
+        "price": "Price",
+        "description": "Description",
+        "image": "Image"
+      },
+      "applyToForm": "Apply to Form"
     },
     "cloudImport": {
       "buttonLabel": "Import from Cloud",

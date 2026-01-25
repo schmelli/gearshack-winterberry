@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ interface ProfileModalProps {
 // =============================================================================
 
 export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
+  const t = useTranslations('ProfileModal');
   const { user, profile } = useAuthContext();
   const { mergedUser, rawProfile, updateProfile, refreshProfile } = profile;
   const [mode, setMode] = useState<ProfileMode>('view');
@@ -162,7 +164,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
           />
         ) : (
           <div className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Edit Profile</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('editTitle')}</h2>
             <ProfileEditForm
               user={mergedUser}
               onSave={handleSave}

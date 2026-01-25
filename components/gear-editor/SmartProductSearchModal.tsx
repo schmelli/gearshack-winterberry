@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2, Database, Globe, Weight, DollarSign } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import {
   Dialog,
@@ -60,6 +61,8 @@ export function SmartProductSearchModal({
   onCatalogSelect,
   onInternetExtracted,
 }: SmartProductSearchModalProps) {
+  const t = useTranslations('GearEditor.smartSearch');
+  const tCommon = useTranslations('Common');
   const [searchInput, setSearchInput] = useState(initialQuery);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasAutoSearched = useRef(false);

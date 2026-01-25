@@ -540,11 +540,48 @@
       "newItem": "Dein neuer Gegenstand",
       "existingItem": "Vorhandener Gegenstand",
       "matchScore": "{score}% Übereinstimmung",
+      "quantity": "Anz.: {count}",
       "actions": {
         "cancel": "Abbrechen",
         "increaseQuantity": "+1 zum Vorhandenen",
         "saveAsNew": "Als neu speichern"
       }
+    },
+    "brandAutocomplete": {
+      "searching": "Suche...",
+      "noResults": "Keine passenden Marken gefunden. Du kannst einen eigenen Namen verwenden.",
+      "sourceGearGraph": "GearGraph",
+      "sourceInventory": "Dein Inventar"
+    },
+    "productAutocomplete": {
+      "searching": "Produkte werden gesucht...",
+      "matchScore": "{score}% Übereinstimmung"
+    },
+    "smartSearch": {
+      "title": "Intelligente Produktsuche",
+      "description": "GearGraph-Katalog und Web nach Produktinformationen durchsuchen",
+      "placeholder": "Produktname eingeben...",
+      "search": "Suchen",
+      "fromCatalog": "Aus GearGraph-Katalog",
+      "fromWeb": "Aus dem Web",
+      "found": "{count} gefunden",
+      "extracting": "Daten werden von {domain} extrahiert...",
+      "noResults": "Keine Produkte gefunden. Versuche einen anderen Suchbegriff.",
+      "rateLimited": "Tägliches Internet-Suchlimit erreicht. Katalogergebnisse sind weiterhin verfügbar.",
+      "rateLimitedUpgrade": "Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "match": "{score}% Übereinstimmung",
+      "webBadge": "Web",
+      "extractedData": "Extrahierte Produktdaten",
+      "confidence": "{level} Konfidenz",
+      "fields": {
+        "name": "Name",
+        "brand": "Marke",
+        "weight": "Gewicht",
+        "price": "Preis",
+        "description": "Beschreibung",
+        "image": "Bild"
+      },
+      "applyToForm": "Auf Formular anwenden"
     },
     "cloudImport": {
       "buttonLabel": "Aus Cloud importieren",

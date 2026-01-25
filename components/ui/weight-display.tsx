@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ArrowLeftRight } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ export function WeightDisplay({
   showToggle = false,
   className,
 }: WeightDisplayProps) {
+  const t = useTranslations('WeightDisplay')
   const { user } = useAuth()
   const { preferredUnit, formatForDisplay } = useWeightConversion(user?.id ?? null)
 
@@ -100,7 +102,7 @@ export function WeightDisplay({
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={4}>
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs opacity-70">Also:</span>
+            <span className="text-xs opacity-70">{t('also')}</span>
             <span className="font-medium">{tooltipContent}</span>
           </div>
         </TooltipContent>
@@ -112,7 +114,7 @@ export function WeightDisplay({
           variant="ghost"
           size="icon-sm"
           onClick={cycleUnit}
-          aria-label="Toggle weight unit display"
+          aria-label={t('toggleUnit')}
           className="size-7 shrink-0"
         >
           <ArrowLeftRight className="size-3.5" />
