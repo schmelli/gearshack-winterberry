@@ -212,7 +212,9 @@ export function AttentionNotification({
 
   // Use ref to access latest onDismiss without triggering effect re-runs
   const onDismissRef = useRef(onDismiss);
-  onDismissRef.current = onDismiss;
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
 
   // Auto-dismiss after animation - only run once on mount
   useEffect(() => {
