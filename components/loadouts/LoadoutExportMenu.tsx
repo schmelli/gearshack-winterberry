@@ -364,7 +364,8 @@ export function LoadoutExportMenu({
     link.href = url;
     link.download = `${buildFileName('loadout')}.csv`;
     link.click();
-    URL.revokeObjectURL(url);
+    // Delay revocation to ensure download starts (some browsers need this)
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   const renderPdf = (includeChecklist: boolean) => {

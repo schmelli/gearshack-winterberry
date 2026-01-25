@@ -23,7 +23,7 @@
 // This legacy component uses Firebase Storage and will be removed in a future version.
 // =============================================================================
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +112,15 @@ export function ImageUploadInput({
 
   // Firebase upload hook
   const { status: uploadStatus, upload } = useImageUpload();
+
+  // Cleanup tempPreview blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (tempPreview) {
+        URL.revokeObjectURL(tempPreview);
+      }
+    };
+  }, [tempPreview]);
 
   // Display preview
   const displayUrl = localPreview || tempPreview || value;

@@ -48,12 +48,19 @@ export { createSupabaseServerClient as createServerClient };
  * ```
  */
 export async function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set');
+  }
+  if (!supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is not set');
+  }
+
   const cookieStore = await cookies();
 
-  return createSupabaseServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  return createSupabaseServerClient<Database>(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -98,14 +105,17 @@ export async function createClient() {
  * ```
  */
 export function createServiceRoleClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set');
+  }
+  if (!serviceRoleKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for service role client');
   }
 
-  return createSupabaseServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
+  return createSupabaseServerClient<Database>(supabaseUrl, serviceRoleKey, {
       cookies: {
         getAll() {
           return [];

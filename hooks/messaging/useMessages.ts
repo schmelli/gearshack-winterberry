@@ -58,6 +58,8 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Load initial messages
   const loadMessages = useCallback(async () => {
@@ -86,6 +88,14 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
     loadMessages();
   }, [loadMessages]);
 
+  // Track mounted state for cleanup
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Subscribe to real-time message updates
   useEffect(() => {
     if (!conversationId || !user?.id) return;
@@ -106,7 +116,9 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           // Fetch the full message with sender info
           const newMessage = payload.new as Message;
           if (!newMessage.sender_id) {
-            setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            if (isMountedRef.current) {
+              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            }
             return;
           }
 
@@ -117,6 +129,9 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
             .eq('id', newMessage.sender_id)
             .single()
             .then(({ data: profile }) => {
+              // Guard against state updates after unmount
+              if (!isMountedRef.current) return;
+
               const sender = profile ? {
                 id: profile.id,
                 display_name: profile.display_name ?? 'Unknown',
