@@ -35,6 +35,27 @@ type AuthView = 'login' | 'register' | 'forgot-password';
 // Login Content Component (uses useSearchParams)
 // =============================================================================
 
+/**
+ * Sanitize return URL to prevent Open Redirect attacks.
+ * Only allows relative paths starting with / (not //).
+ */
+function sanitizeReturnUrl(url: string | null): string {
+  const defaultUrl = '/inventory';
+  if (!url) return defaultUrl;
+
+  try {
+    const decoded = decodeURIComponent(url);
+    // Only allow relative URLs starting with single /
+    // Reject: //, http://, https://, javascript:, data:, etc.
+    if (decoded.startsWith('/') && !decoded.startsWith('//') && !decoded.includes(':')) {
+      return decoded;
+    }
+  } catch {
+    // Invalid URL encoding - return default
+  }
+  return defaultUrl;
+}
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,19 +63,19 @@ function LoginContent() {
   const [view, setView] = useState<AuthView>('login');
   const t = useTranslations('Auth');
 
-  // Get return URL from query params (FR-009)
-  const returnUrl = searchParams.get('returnUrl') || '/inventory';
+  // Get return URL from query params (FR-009) - sanitized to prevent Open Redirect
+  const returnUrl = sanitizeReturnUrl(searchParams.get('returnUrl'));
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
-      router.replace(decodeURIComponent(returnUrl));
+      router.replace(returnUrl);
     }
   }, [user, loading, router, returnUrl]);
 
   // Handle successful auth
   function handleAuthSuccess() {
-    router.replace(decodeURIComponent(returnUrl));
+    router.replace(returnUrl);
   }
 
   // Feature 022: Removed blocking render gate (if loading || user)

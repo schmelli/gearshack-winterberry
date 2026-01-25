@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, Search, AlertCircle } from 'lucide-react';
 import {
   Dialog,
@@ -70,6 +70,9 @@ export function ProductSearchModal({
   // Track if we've auto-searched for this modal open
   const hasAutoSearchedRef = useRef(false);
 
+  // Timer ref for cleanup timeout
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Auto-search when modal opens with initial query
   useEffect(() => {
     if (open && initialQuery && !hasAutoSearchedRef.current) {
@@ -79,19 +82,26 @@ export function ProductSearchModal({
     }
   }, [open, initialQuery, searchWithQuery]);
 
+  // Reset state when modal closes - memoize to stabilize cleanup
+  const handleClose = useCallback(() => {
+    hasAutoSearchedRef.current = false;
+    clear();
+    resetUpload();
+    setUploadingUrl(null);
+  }, [clear, resetUpload]);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       // Use timeout to avoid setState during render
-      const timer = setTimeout(() => {
-        hasAutoSearchedRef.current = false;
-        clear();
-        resetUpload();
-        setUploadingUrl(null);
-      }, 0);
-      return () => clearTimeout(timer);
+      closeTimerRef.current = setTimeout(handleClose, 0);
+      return () => {
+        if (closeTimerRef.current) {
+          clearTimeout(closeTimerRef.current);
+        }
+      };
     }
-  }, [open, clear, resetUpload]);
+  }, [open, handleClose]);
 
   // Handle image selection - upload to Cloudinary
   const handleImageSelect = async (imageUrl: string) => {

@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import type {
@@ -86,6 +86,9 @@ export function useResellerPrices(
   const [error, setError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
 
+  // AbortController ref for cancelling fetch requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Search function
   const search = useCallback(async () => {
     // Only Trailblazers can use this feature
@@ -98,6 +101,13 @@ export function useResellerPrices(
       setError('Search query is required');
       return;
     }
+
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     setIsLoading(true);
     setError(null);
@@ -115,8 +125,8 @@ export function useResellerPrices(
         params.set('longitude', userLocation.longitude.toString());
       }
 
-      // Fetch from API
-      const response = await fetch(`/api/resellers/search?${params}`);
+      // Fetch from API with abort signal
+      const response = await fetch(`/api/resellers/search?${params}`, { signal });
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -134,6 +144,10 @@ export function useResellerPrices(
       setAllPrices(data.allPrices);
       setFromCache(data.fromCache);
     } catch (err) {
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Search failed';
       setError(message);
       setLocalPrices([]);
@@ -155,6 +169,13 @@ export function useResellerPrices(
     if (autoFetch && !subscriptionLoading && isTrailblazer && query) {
       search();
     }
+
+    // Cleanup: abort any in-flight request when effect re-runs or unmounts
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
     // Include all dependencies to ensure proper re-fetching when props change
   }, [autoFetch, subscriptionLoading, isTrailblazer, query, search, gearItemId, countryCode, userLocation]);
 

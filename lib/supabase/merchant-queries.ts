@@ -528,11 +528,14 @@ export async function fetchMerchantCatalog(
   }
 
   if (search) {
-    // Escape ILIKE special characters to prevent pattern injection
+    // Escape ILIKE special characters AND PostgREST operators to prevent injection
     const escapedSearch = search
-      .replace(/\\/g, '\\\\')
-      .replace(/%/g, '\\%')
-      .replace(/_/g, '\\_');
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/%/g, '\\%')    // Escape % wildcards
+      .replace(/_/g, '\\_')    // Escape _ wildcards
+      .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
+      .replace(/\(/g, '')      // Remove parentheses (PostgREST grouping)
+      .replace(/\)/g, '');     // Remove parentheses
     query = query.or(`name.ilike.%${escapedSearch}%,sku.ilike.%${escapedSearch}%,brand.ilike.%${escapedSearch}%`);
   }
 

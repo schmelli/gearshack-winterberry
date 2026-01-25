@@ -24,11 +24,20 @@ export default async function Home() {
 
   // If non-www domain (gearshack.app), redirect logged-in users to inventory
   if (!isWww) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const supabase = await createClient();
+      const { data: { user }, error } = await supabase.auth.getUser();
 
-    if (user) {
-      redirect('/inventory');
+      if (error) {
+        // Auth check failed - log and continue to show landing page
+        console.error('[Home] Auth check failed:', error.message);
+      } else if (user) {
+        redirect('/inventory');
+      }
+    } catch (error) {
+      // Critical error in Supabase client - log and continue to show landing page
+      console.error('[Home] Critical error:', error instanceof Error ? error.message : 'Unknown error');
+      // Continue to show landing page as safe fallback
     }
   }
 
