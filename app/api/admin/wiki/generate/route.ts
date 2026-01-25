@@ -294,7 +294,9 @@ async function findSimilarArticles(
           // Calculate word overlap similarity
           const matchWords = match.title_en.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
           const overlap = titleWords.filter(w => matchWords.includes(w)).length;
-          const similarity = overlap / Math.max(titleWords.length, matchWords.length);
+          // Guard against division by zero when both arrays are empty
+          const maxLength = Math.max(titleWords.length, matchWords.length);
+          const similarity = maxLength > 0 ? overlap / maxLength : 0;
 
           if (similarity >= DUPLICATE_SIMILARITY_THRESHOLD) {
             similarArticles.push({

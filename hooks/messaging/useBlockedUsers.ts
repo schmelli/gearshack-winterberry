@@ -101,11 +101,23 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
     }
   }, [user?.id]);
 
-  // Subscribe to block changes
+  // Use ref to avoid subscription churn when fetchBlockedUsers changes
+  const fetchBlockedUsersRef = useRef(fetchBlockedUsers);
+  fetchBlockedUsersRef.current = fetchBlockedUsers;
+
+  // Fetch blocked users when user changes
+  useEffect(() => {
+    if (!user?.id) {
+      setBlockedUsers([]);
+      setIsLoading(false);
+      return;
+    }
+    fetchBlockedUsersRef.current();
+  }, [user?.id]);
+
+  // Subscribe to block changes (separate effect)
   useEffect(() => {
     if (!user?.id) return;
-
-    fetchBlockedUsers();
 
     const supabase = createClient();
     const channel = supabase
@@ -120,7 +132,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
         },
         () => {
           // Refresh on any change
-          fetchBlockedUsers();
+          fetchBlockedUsersRef.current();
         }
       )
       .subscribe();
@@ -133,7 +145,7 @@ export function useBlockedUsers(): UseBlockedUsersReturn {
         channelRef.current = null;
       }
     };
-  }, [user?.id, fetchBlockedUsers]);
+  }, [user?.id]);
 
   // Check if user is blocked
   const isBlocked = useCallback(

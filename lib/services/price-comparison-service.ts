@@ -96,8 +96,11 @@ export async function calculatePriceTrend(
   const first = history[0].lowest_price;
   const last = history[history.length - 1].lowest_price;
 
-  // Guard against division by zero
-  if (!first || first === 0) {
+  // Guard against invalid values - both must be valid finite numbers
+  if (!first || first === 0 || !Number.isFinite(first)) {
+    return 'stable';
+  }
+  if (last === null || last === undefined || !Number.isFinite(last)) {
     return 'stable';
   }
 

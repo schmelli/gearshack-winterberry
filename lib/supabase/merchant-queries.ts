@@ -528,7 +528,12 @@ export async function fetchMerchantCatalog(
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,brand.ilike.%${search}%`);
+    // Escape ILIKE special characters to prevent pattern injection
+    const escapedSearch = search
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
+    query = query.or(`name.ilike.%${escapedSearch}%,sku.ilike.%${escapedSearch}%,brand.ilike.%${escapedSearch}%`);
   }
 
   query = query

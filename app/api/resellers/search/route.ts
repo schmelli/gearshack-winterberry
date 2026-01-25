@@ -114,13 +114,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userLocation =
-      latitudeRaw && longitudeRaw
-        ? {
-            latitude: parseFloat(latitudeRaw),
-            longitude: parseFloat(longitudeRaw),
-          }
-        : null;
+    // Parse and validate coordinates
+    let userLocation: { latitude: number; longitude: number } | null = null;
+    if (latitudeRaw && longitudeRaw) {
+      const latitude = parseFloat(latitudeRaw);
+      const longitude = parseFloat(longitudeRaw);
+      // Only use coordinates if both are valid finite numbers
+      if (!isNaN(latitude) && !isNaN(longitude) && isFinite(latitude) && isFinite(longitude)) {
+        userLocation = { latitude, longitude };
+      }
+    }
 
     // Fetch active resellers for user's country
     const { data: resellersData, error: resellersError } = await supabase
