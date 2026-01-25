@@ -210,7 +210,7 @@ export async function buildInventorySummary(
       max: weights[weights.length - 1],
       avg: Math.round(weights.reduce((sum, w) => sum + w, 0) / weights.length),
       median: weights.length % 2 === 0
-        ? Math.round((weights[weights.length / 2 - 1] + weights[weights.length / 2]) / 2)
+        ? Math.round((weights[Math.floor(weights.length / 2) - 1] + weights[Math.floor(weights.length / 2)]) / 2)
         : weights[Math.floor(weights.length / 2)],
     } : { min: 0, max: 0, avg: 0, median: 0 };
 

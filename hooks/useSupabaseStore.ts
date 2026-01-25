@@ -232,7 +232,10 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const previousLoadout = loadouts.find((l) => l.id === id);
         if (!previousLoadout) return;
 
-        set((state) => ({ loadouts: state.loadouts.map((l) => l.id === id ? { ...l, ...updates, updatedAt: new Date() } : l) }));
+        set((state) => ({
+          loadouts: state.loadouts.map((l) => l.id === id ? { ...l, ...updates, updatedAt: new Date() } : l),
+          syncState: startSyncOperation(state.syncState),
+        }));
 
         try {
           const updateData: TablesUpdate<'loadouts'> = {};
@@ -242,9 +245,13 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
           const { error } = await supabase.from('loadouts').update(updateData).eq('id', id).eq('user_id', userId);
           if (error) throw error;
+          set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
         } catch (error) {
           console.error('Failed to update loadout:', error);
-          set((state) => ({ loadouts: state.loadouts.map((l) => l.id === id ? previousLoadout : l) }));
+          set((state) => ({
+            loadouts: state.loadouts.map((l) => l.id === id ? previousLoadout : l),
+            syncState: failSyncOperation(state.syncState, 'Failed to update loadout'),
+          }));
           toast.error(t('updateLoadoutFailed'));
         }
       },
@@ -257,14 +264,21 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const deletedLoadout = loadouts.find((l) => l.id === id);
         if (!deletedLoadout) return;
 
-        set((state) => ({ loadouts: state.loadouts.filter((l) => l.id !== id) }));
+        set((state) => ({
+          loadouts: state.loadouts.filter((l) => l.id !== id),
+          syncState: startSyncOperation(state.syncState),
+        }));
 
         try {
           const { error } = await supabase.from('loadouts').delete().eq('id', id).eq('user_id', userId);
           if (error) throw error;
+          set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
         } catch (error) {
           console.error('Failed to delete loadout:', error);
-          set((state) => ({ loadouts: [...state.loadouts, deletedLoadout].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()) }));
+          set((state) => ({
+            loadouts: [...state.loadouts, deletedLoadout],
+            syncState: failSyncOperation(state.syncState, 'Failed to delete loadout'),
+          }));
           toast.error(t('deleteLoadoutFailed'));
         }
       },

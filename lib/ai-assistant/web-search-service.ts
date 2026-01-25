@@ -514,15 +514,20 @@ export async function searchWeb(
     // Only use expired cache for transient errors
     // Configuration and validation errors should fail immediately
     if (errorType === WebSearchErrorType.TRANSIENT) {
-      const expiredCache = await getCachedResult(cacheKey);
-      if (expiredCache) {
-        console.log('[Web Search] Returning expired cache due to transient API error');
-        return {
-          ...expiredCache.data,
-          cacheHit: true,
-          rateLimitStatus,
-          error: 'API error, returning cached result',
-        };
+      try {
+        const expiredCache = await getCachedResult(cacheKey);
+        if (expiredCache) {
+          console.log('[Web Search] Returning expired cache due to transient API error');
+          return {
+            ...expiredCache.data,
+            cacheHit: true,
+            rateLimitStatus,
+            error: 'API error, returning cached result',
+          };
+        }
+      } catch (cacheError) {
+        console.error('[Web Search] Failed to retrieve expired cache:', cacheError);
+        // Continue to error response below
       }
     }
 

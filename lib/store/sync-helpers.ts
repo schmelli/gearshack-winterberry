@@ -65,10 +65,12 @@ export function startSyncOperation(current: SyncState): SyncState {
  * ```
  */
 export function completeSyncOperation(current: SyncState): SyncState {
+  const newPendingCount = Math.max(0, current.pendingOperations - 1);
   return {
     ...current,
-    status: 'idle',
-    pendingOperations: Math.max(0, current.pendingOperations - 1),
+    // Only set to idle when all pending operations are complete
+    status: newPendingCount === 0 ? 'idle' : 'syncing',
+    pendingOperations: newPendingCount,
     lastSyncedAt: new Date(),
   };
 }

@@ -99,11 +99,19 @@ export async function calculatePriceTrend(
     return 'stable';
   }
 
-  const first = history[0].lowest_price;
-  const last = history[history.length - 1].lowest_price;
+  // Validate array elements exist before accessing properties
+  const firstEntry = history[0];
+  const lastEntry = history[history.length - 1];
 
-  // Guard against invalid values - both must be valid finite numbers
-  if (!first || first === 0 || !Number.isFinite(first)) {
+  if (!firstEntry || !lastEntry) {
+    return 'stable';
+  }
+
+  const first = firstEntry.lowest_price;
+  const last = lastEntry.lowest_price;
+
+  // Guard against invalid values - both must be valid finite numbers > 0
+  if (!first || first <= 0 || !Number.isFinite(first)) {
     return 'stable';
   }
   if (last === null || last === undefined || !Number.isFinite(last)) {
