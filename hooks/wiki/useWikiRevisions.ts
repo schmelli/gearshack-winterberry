@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { WikiRevisionWithEditor, UseWikiRevisionsReturn } from '@/types/wiki';
 
@@ -17,7 +17,8 @@ export function useWikiRevisions(pageId: string | undefined): UseWikiRevisionsRe
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchRevisions = useCallback(async () => {
     if (!pageId) {

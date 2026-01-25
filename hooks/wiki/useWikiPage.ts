@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { WikiPageWithAuthor, UseWikiPageReturn } from '@/types/wiki';
 
@@ -17,7 +17,8 @@ export function useWikiPage(slug: string): UseWikiPageReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchPage = useCallback(async () => {
     if (!slug) {
@@ -55,7 +56,11 @@ export function useWikiPage(slug: string): UseWikiPageReturn {
           .from('wiki_pages')
           .update({ view_count: (data.view_count || 0) + 1 })
           .eq('id', data.id)
-          .then(() => {});
+          .then(({ error }) => {
+            if (error) {
+              console.error('Failed to increment view count:', error);
+            }
+          });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch page';

@@ -122,7 +122,9 @@ export function useGearInsights({
     } finally {
       setIsLoading(false);
     }
-  }, [productTypeId, categoryId, brand, name, canFetch, lastFetchParams, allInsights]);
+  // INFINITE LOOP FIX: Removed allInsights from deps - lastFetchParams guard is sufficient
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productTypeId, categoryId, brand, name, canFetch, lastFetchParams]);
 
   // T053: Trigger fetch when modal opens with productTypeId or categoryId
   useEffect(() => {

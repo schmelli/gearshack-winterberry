@@ -36,34 +36,52 @@ export function VoicePlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(metadata?.duration_seconds ?? 0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Initialize audio element
   useEffect(() => {
+    isMountedRef.current = true;
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     audio.onloadedmetadata = () => {
+      if (!isMountedRef.current) return;
       setDuration(audio.duration);
       setIsLoading(false);
     };
 
     audio.ontimeupdate = () => {
+      if (!isMountedRef.current) return;
       setCurrentTime(audio.currentTime);
     };
 
     audio.onended = () => {
+      if (!isMountedRef.current) return;
       setIsPlaying(false);
       setCurrentTime(0);
     };
 
     audio.onerror = () => {
+      if (!isMountedRef.current) return;
       setIsLoading(false);
       console.error('Failed to load audio');
     };
 
     return () => {
+      isMountedRef.current = false;
+      // Stop playback
       audio.pause();
-      audio.src = '';
+      // Remove event listeners to prevent memory leaks
+      audio.onloadedmetadata = null;
+      audio.ontimeupdate = null;
+      audio.onended = null;
+      audio.onerror = null;
+      // Clear source and force unload
+      audio.removeAttribute('src');
+      audio.load();
+      // Clear ref
+      audioRef.current = null;
     };
   }, [audioUrl]);
 
@@ -94,6 +112,37 @@ export function VoicePlayer({
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   }, [duration]);
+
+  // ACCESSIBILITY: Keyboard navigation for slider (WCAG 2.1 AA)
+  const handleSliderKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!audioRef.current || duration === 0) return;
+
+    const STEP = 5; // seconds per arrow key press
+    let newTime = currentTime;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowUp':
+        newTime = Math.min(duration, currentTime + STEP);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        newTime = Math.max(0, currentTime - STEP);
+        break;
+      case 'Home':
+        newTime = 0;
+        break;
+      case 'End':
+        newTime = duration;
+        break;
+      default:
+        return; // Don't prevent default for other keys
+    }
+
+    e.preventDefault();
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [currentTime, duration]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -136,15 +185,18 @@ export function VoicePlayer({
 
       {/* Progress and time */}
       <div className="flex flex-1 flex-col gap-1">
-        {/* Progress bar */}
+        {/* Progress bar - ACCESSIBILITY: Full keyboard support */}
         <div
           role="slider"
+          aria-label="Voice message progress"
           aria-valuemin={0}
           aria-valuemax={duration}
           aria-valuenow={currentTime}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
           tabIndex={0}
-          className="relative h-2 w-full cursor-pointer rounded-full bg-muted-foreground/20"
+          className="relative h-2 w-full cursor-pointer rounded-full bg-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           onClick={handleSeek}
+          onKeyDown={handleSliderKeyDown}
         >
           <div
             className={cn(

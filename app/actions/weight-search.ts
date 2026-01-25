@@ -189,7 +189,10 @@ function findMostCommonWeight(weights: ParsedWeight[]): { weight: ParsedWeight; 
     }
   }
 
-  // Find largest group
+  // Find largest group (defensive guard against empty groups)
+  if (groups.length === 0) {
+    return null;
+  }
   let largestGroup = groups[0];
   for (const group of groups) {
     if (group.members.length > largestGroup.members.length) {
@@ -273,7 +276,6 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
     const mostCommon = findMostCommonWeight(allWeights);
 
     if (!mostCommon) {
-      console.log('[Weight Search] No weights found for:', trimmedQuery);
       return null;
     }
 
@@ -286,13 +288,6 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
     } else {
       confidence = 'low';
     }
-
-    console.log('[Weight Search] Found weight:', {
-      query: trimmedQuery,
-      grams: mostCommon.weight.grams,
-      sources: mostCommon.count,
-      confidence,
-    });
 
     return {
       weightGrams: Math.round(mostCommon.weight.grams),
@@ -307,10 +302,9 @@ export async function searchProductWeight(query: string): Promise<WeightSearchRe
       throw error;
     }
 
-    // Network error or other fetch failure
+    // Network error or other fetch failure - log details server-side only
     console.error('[Weight Search] Request failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Weight search failed: ${errorMessage}`);
+    throw new Error('Weight search failed. Please try again later.');
   }
 }
 

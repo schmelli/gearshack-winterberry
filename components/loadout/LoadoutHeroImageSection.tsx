@@ -62,11 +62,17 @@ export function LoadoutHeroImageSection({
 
   // Load history on mount
   useEffect(() => {
+    let isMounted = true;
     const initializeImage = async () => {
       await refreshHistory();
-      hasLoadedHistory.current = true;
+      if (isMounted) {
+        hasLoadedHistory.current = true;
+      }
     };
     initializeImage();
+    return () => {
+      isMounted = false;
+    };
   }, [refreshHistory]);
 
   // Auto-generate ONLY if:

@@ -262,12 +262,18 @@ export async function checkFriendship(
   const [smallerId, largerId] =
     userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
 
-  const { data: friendship } = await supabase
+  const { data: friendship, error } = await supabase
     .from('friendships')
     .select('id')
     .eq('user_id', smallerId)
     .eq('friend_id', largerId)
     .single();
+
+  // PGRST116 = no rows found (not an error for this check)
+  if (error && error.code !== 'PGRST116') {
+    console.error('[checkFriendship] Error checking friendship:', error);
+    throw new Error(`Failed to check friendship: ${error.message}`);
+  }
 
   return !!friendship;
 }

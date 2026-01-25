@@ -94,10 +94,17 @@ export function useLoadoutImageGeneration(
   // Prevents memory leaks when component unmounts during image generation
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Timer ref for retry delay cleanup
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -149,14 +156,18 @@ export function useLoadoutImageGeneration(
       // Reset retry counter for new generation attempt
       retryAttemptRef.current = 0;
 
+      // Abort any previous in-flight request before creating new one
+      abortControllerRef.current?.abort();
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
 
       try {
-        // Update state to generating
+        // FIXED: Reset ALL state fields when starting new generation to avoid stale data
         setState({
           status: 'generating',
           progress: 0,
+          error: undefined,
+          generatedImageId: undefined,
         });
 
         logMetric('generation_started', {
@@ -219,6 +230,10 @@ export function useLoadoutImageGeneration(
         // Refresh history
         await refreshHistory();
       } catch (error) {
+        // RACE CONDITION FIX: Check abort before error handling
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
         // Handle error with retry logic (T016)
         await handleGenerationError(error, stylePreferences, startTime);
       }
@@ -266,12 +281,37 @@ export function useLoadoutImageGeneration(
         });
 
         try {
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, AI_GENERATION_RETRY_DELAY_MS));
+          // Wait before retry with cleanup support
+          await new Promise<void>((resolve, reject) => {
+            // RACE CONDITION FIX: Check abort before creating timer
+            if (abortControllerRef.current?.signal.aborted) {
+              reject(new Error('Aborted'));
+              return;
+            }
+
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              // RACE CONDITION FIX: Check abort before resolving
+              if (abortControllerRef.current?.signal.aborted) {
+                reject(new Error('Aborted'));
+                return;
+              }
+              resolve();
+            }, AI_GENERATION_RETRY_DELAY_MS);
+          });
+
+          // RACE CONDITION FIX: Check abort before retry
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
 
           // Retry the generation
           await executeRetry(stylePreferences, startTime);
         } catch (retryError) {
+          // RACE CONDITION FIX: Don't fallback if aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
           // Retry also failed - use fallback (T017)
           await applyFallback(retryError, startTime);
         }
@@ -298,11 +338,13 @@ export function useLoadoutImageGeneration(
         stylePreferences,
       });
 
+      // Use the same AbortController signal for retry to allow cancellation
       const response = await fetch('/api/loadout-images/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: abortControllerRef.current?.signal,
         body: JSON.stringify({
           loadoutId,
           prompt,
@@ -320,6 +362,11 @@ export function useLoadoutImageGeneration(
 
       const result = await response.json();
 
+      // Check if aborted before state updates
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
+
       setState({
         status: 'success',
         generatedImageId: result.imageId,
@@ -335,7 +382,11 @@ export function useLoadoutImageGeneration(
       });
 
       toast.success(t('generateSuccess'));
-      await refreshHistory();
+
+      // Check again before refresh
+      if (!abortControllerRef.current?.signal.aborted) {
+        await refreshHistory();
+      }
     },
     [
       loadoutId,

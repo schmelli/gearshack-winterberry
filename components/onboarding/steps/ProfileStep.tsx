@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { User, Settings, Bell, Shield } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface ProfileStepProps extends Pick<OnboardingStepProps, 'onSkip'> {}
+type ProfileStepProps = Pick<OnboardingStepProps, 'onSkip'>;
 
 export function ProfileStep({ onSkip }: ProfileStepProps) {
   const t = useTranslations('Onboarding');

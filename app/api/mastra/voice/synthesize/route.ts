@@ -86,7 +86,7 @@ function validateRequest(body: unknown): {
   // Validate stability if provided (0.0 - 1.0)
   if (request.stability !== undefined) {
     const stability = Number(request.stability);
-    if (isNaN(stability) || stability < 0 || stability > 1) {
+    if (!Number.isFinite(stability) || stability < 0 || stability > 1) {
       return { valid: false, error: 'stability must be a number between 0.0 and 1.0' };
     }
   }
@@ -94,7 +94,7 @@ function validateRequest(body: unknown): {
   // Validate similarityBoost if provided (0.0 - 1.0)
   if (request.similarityBoost !== undefined) {
     const similarityBoost = Number(request.similarityBoost);
-    if (isNaN(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
+    if (!Number.isFinite(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
       return { valid: false, error: 'similarityBoost must be a number between 0.0 and 1.0' };
     }
   }
@@ -300,14 +300,14 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+    // Log detailed error internally but don't expose to client
     logError('Synthesis endpoint error', error instanceof Error ? error : undefined);
 
     return new Response(
       JSON.stringify({
         error: 'Synthesis failed',
-        message: errorMessage,
+        // Don't expose internal error details to clients
+        message: 'Unable to synthesize speech. Please try again later.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

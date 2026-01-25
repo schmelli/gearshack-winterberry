@@ -23,6 +23,35 @@ export interface CloudinaryUploadResult {
   duration?: number;
 }
 
+// =============================================================================
+// MIME Type Validation
+// =============================================================================
+
+/** Allowed image MIME types for upload */
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+] as const;
+
+/** Allowed audio MIME types for voice messages */
+const ALLOWED_AUDIO_TYPES = [
+  'audio/webm',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'video/webm', // WebM can contain audio-only streams
+] as const;
+
+/** Maximum file size for images (10MB) */
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Maximum file size for voice messages (5MB) */
+const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024;
+
 /**
  * Uploads an image to Cloudinary.
  *
@@ -39,6 +68,20 @@ export async function uploadImageToCloudinary(
     );
   }
 
+  // SECURITY: Validate file type to prevent malicious uploads
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type as typeof ALLOWED_IMAGE_TYPES[number])) {
+    throw new Error(
+      `Invalid file type: ${file.type}. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`
+    );
+  }
+
+  // SECURITY: Validate file size to prevent DoS
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    throw new Error(
+      `File too large: ${Math.round(file.size / 1024 / 1024)}MB. Maximum size: ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024}MB`
+    );
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -50,19 +93,34 @@ export async function uploadImageToCloudinary(
   );
 
   if (!response.ok) {
-    throw new Error(`Cloudinary upload failed: ${response.statusText}`);
+    // Try to extract error details from response body
+    let errorDetails = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorDetails = errorData.error.message;
+      }
+    } catch {
+      // JSON parsing failed, use status text
+    }
+    throw new Error(`Cloudinary upload failed: ${errorDetails}`);
   }
 
-  const data = await response.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Cloudinary upload failed: Invalid JSON response');
+  }
 
-  if (!data.secure_url) {
+  if (!data.secure_url || typeof data.secure_url !== 'string') {
     throw new Error('Cloudinary upload failed: No secure URL in response');
   }
 
   return {
     secure_url: data.secure_url,
-    width: data.width,
-    height: data.height,
+    width: typeof data.width === 'number' ? data.width : undefined,
+    height: typeof data.height === 'number' ? data.height : undefined,
   };
 }
 
@@ -84,6 +142,20 @@ export async function uploadVoiceToCloudinary(
     );
   }
 
+  // SECURITY: Validate audio type to prevent malicious uploads
+  if (!ALLOWED_AUDIO_TYPES.includes(audioBlob.type as typeof ALLOWED_AUDIO_TYPES[number])) {
+    throw new Error(
+      `Invalid audio type: ${audioBlob.type}. Allowed types: ${ALLOWED_AUDIO_TYPES.join(', ')}`
+    );
+  }
+
+  // SECURITY: Validate file size to prevent DoS
+  if (audioBlob.size > MAX_AUDIO_SIZE_BYTES) {
+    throw new Error(
+      `Audio file too large: ${Math.round(audioBlob.size / 1024 / 1024)}MB. Maximum size: ${MAX_AUDIO_SIZE_BYTES / 1024 / 1024}MB`
+    );
+  }
+
   const formData = new FormData();
   formData.append('file', audioBlob, filename);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -95,17 +167,32 @@ export async function uploadVoiceToCloudinary(
   );
 
   if (!response.ok) {
-    throw new Error(`Cloudinary upload failed: ${response.statusText}`);
+    // Try to extract error details from response body
+    let errorDetails = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorDetails = errorData.error.message;
+      }
+    } catch {
+      // JSON parsing failed, use status text
+    }
+    throw new Error(`Cloudinary upload failed: ${errorDetails}`);
   }
 
-  const data = await response.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error('Cloudinary upload failed: Invalid JSON response');
+  }
 
-  if (!data.secure_url) {
+  if (!data.secure_url || typeof data.secure_url !== 'string') {
     throw new Error('Cloudinary upload failed: No secure URL in response');
   }
 
   return {
     secure_url: data.secure_url,
-    duration: data.duration,
+    duration: typeof data.duration === 'number' ? data.duration : undefined,
   };
 }

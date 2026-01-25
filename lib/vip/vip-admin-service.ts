@@ -40,7 +40,10 @@ export async function getAllVips(): Promise<VipWithStats[]> {
     `)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to fetch VIP accounts:', error);
+    throw new Error('Failed to fetch VIP accounts');
+  }
 
   // Get loadout counts for claimed VIPs (those with claimed_by_user_id)
   // VIP loadouts are in the regular loadouts table with is_vip_loadout = true
@@ -236,8 +239,14 @@ export async function validateSourceUrl(url: string): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
+
+    if (!response.ok) {
+      console.error(`URL validation failed: ${response.status}`);
+      return false;
+    }
+
     const data = await response.json();
-    return data.isAvailable;
+    return typeof data.isAvailable === 'boolean' ? data.isAvailable : false;
   } catch {
     return false;
   }

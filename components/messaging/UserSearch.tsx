@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUserSearch, type SearchedUser } from '@/hooks/messaging/useUserSearch';
 import { useFriends } from '@/hooks/messaging/useFriends';
+import { toast } from 'sonner';
 
 interface UserSearchProps {
   /** Callback when user wants to message someone */
@@ -41,7 +42,12 @@ export function UserSearch({
   const inputPlaceholder = placeholder ?? t('placeholder');
 
   const handleAddFriend = async (userId: string) => {
-    await addFriend(userId);
+    try {
+      await addFriend(userId);
+    } catch (error) {
+      console.error('Failed to add friend:', error);
+      toast.error('Failed to send friend request');
+    }
   };
 
   return (

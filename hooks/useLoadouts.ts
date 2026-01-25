@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/types/database';
 import type { WeightSummary } from '@/lib/utils/weight';
@@ -115,7 +115,8 @@ export function useLoadouts(userId: string | null): UseLoadoutsReturn {
   const [loadouts, setLoadouts] = useState<Loadout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchLoadouts = useCallback(async () => {
     if (!userId) { setLoadouts([]); setIsLoading(false); return; }

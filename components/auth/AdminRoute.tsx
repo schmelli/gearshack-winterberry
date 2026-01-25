@@ -40,8 +40,6 @@ function _AccessDenied({ title, message }: { title: string; message: string }) {
 export function AdminRoute({ children, fallback: _fallback }: AdminRouteProps) {
   // TEMPORARY: Authentication disabled for testing
   // TODO: Re-enable authentication once admin access is working
-  console.log('[AdminRoute] ⚠️  AUTHENTICATION DISABLED - ALLOW ALL ACCESS');
-
   return <>{children}</>;
 
   /* DISABLED FOR TESTING - Re-enable later

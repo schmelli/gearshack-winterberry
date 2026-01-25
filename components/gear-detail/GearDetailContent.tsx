@@ -35,7 +35,7 @@ import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
 import { formatWeight } from '@/lib/loadout-utils';
 import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
 import { SpecIcon } from '@/components/gear/SpecIcon';
@@ -294,12 +294,12 @@ export function GearDetailContent({
               </Button>
             </div>
           </div>
-          {/* Brand with optional link */}
+          {/* Brand with optional link - SECURITY: Validate URL before rendering */}
           {item.brand && (
             <div>
-              {item.brandUrl ? (
+              {sanitizeExternalUrl(item.brandUrl) ? (
                 <a
-                  href={item.brandUrl}
+                  href={sanitizeExternalUrl(item.brandUrl)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
@@ -481,12 +481,13 @@ export function GearDetailContent({
               <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
                 {t('sections.externalLinks')}
               </AccordionTrigger>
+              {/* SECURITY: All external URLs validated before rendering */}
               <AccordionContent>
                 <div className="flex flex-wrap gap-2">
-                  {item.productUrl && (
+                  {sanitizeExternalUrl(item.productUrl) && (
                     <Button variant="outline" size="sm" asChild>
                       <a
-                        href={item.productUrl}
+                        href={sanitizeExternalUrl(item.productUrl)!}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -495,10 +496,10 @@ export function GearDetailContent({
                       </a>
                     </Button>
                   )}
-                  {item.brandUrl && (
+                  {sanitizeExternalUrl(item.brandUrl) && (
                     <Button variant="outline" size="sm" asChild>
                       <a
-                        href={item.brandUrl}
+                        href={sanitizeExternalUrl(item.brandUrl)!}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -507,10 +508,10 @@ export function GearDetailContent({
                       </a>
                     </Button>
                   )}
-                  {item.retailerUrl && (
+                  {sanitizeExternalUrl(item.retailerUrl) && (
                     <Button variant="outline" size="sm" asChild>
                       <a
-                        href={item.retailerUrl}
+                        href={sanitizeExternalUrl(item.retailerUrl)!}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

@@ -77,11 +77,17 @@ export const updatePostSchema = z.object({
 export const createReplySchema = z.object({
   post_id: z.string().uuid('bulletin.errors.invalidPostId'),
   parent_reply_id: z.string().uuid().optional(),
-  content: z.string().min(1, 'bulletin.errors.replyEmpty'),
+  content: z
+    .string()
+    .min(1, 'bulletin.errors.replyEmpty')
+    .max(BULLETIN_CONSTANTS.MAX_POST_LENGTH, 'bulletin.errors.replyTooLong'),
 });
 
 export const updateReplySchema = z.object({
-  content: z.string().min(1, 'bulletin.errors.replyEmpty'),
+  content: z
+    .string()
+    .min(1, 'bulletin.errors.replyEmpty')
+    .max(BULLETIN_CONSTANTS.MAX_POST_LENGTH, 'bulletin.errors.replyTooLong'),
 });
 
 // ============================================================================

@@ -101,7 +101,10 @@ export function MerchantBillingClient() {
   const handleYearChange = useCallback(
     (year: string) => {
       setSelectedYear(year);
-      setCycleFilters({ year: parseInt(year) });
+      const parsed = parseInt(year, 10);
+      if (Number.isFinite(parsed)) {
+        setCycleFilters({ year: parsed });
+      }
     },
     [setCycleFilters]
   );

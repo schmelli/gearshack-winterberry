@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,7 @@ import {
 import { LocationAutocomplete } from '@/components/profile/LocationAutocomplete';
 import type { LocationSelection } from '@/types/profile';
 import type { LocationMetadata } from '@/types/messaging';
+import { useTranslations } from 'next-intl';
 
 interface LocationPickerProps {
   open: boolean;
@@ -32,8 +33,25 @@ interface LocationPickerProps {
  * Dialog for selecting a location to share.
  */
 export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerProps) {
+  const t = useTranslations('Messaging');
+  const tCommon = useTranslations('Common');
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // Track timeout for cleanup on unmount
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleLocationSelect = (location: LocationSelection | null) => {
     setSelectedLocation(location);
@@ -47,20 +65,37 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        // Validate position data
+        if (!position?.coords?.latitude || !position?.coords?.longitude) {
+          console.error('[LocationPicker] Invalid position data received');
+          setIsGettingLocation(false);
+          return;
+        }
         const { latitude, longitude } = position.coords;
 
-        // Reverse geocode to get place name
+        // Reverse geocode to get place name with timeout protection
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        timeoutRef.current = setTimeout(() => controller.abort(), 10000);
+
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { signal: controller.signal }
           );
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          // Clear AbortController ref after successful fetch
+          abortControllerRef.current = null;
           const data = await response.json();
           const placeName =
             data.address?.city ||
             data.address?.town ||
             data.address?.village ||
             data.display_name?.split(',')[0] ||
-            'Current Location';
+            t('locationPicker.currentLocation');
 
           setSelectedLocation({
             name: placeName,
@@ -70,9 +105,17 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             placeId: '',
           });
         } catch {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          // Clear AbortController ref after error
+          abortControllerRef.current = null;
+          // Fallback to basic coordinates on timeout or error
+          const currentLocationText = t('locationPicker.currentLocation');
           setSelectedLocation({
-            name: 'Current Location',
-            formattedAddress: 'Current Location',
+            name: currentLocationText,
+            formattedAddress: currentLocationText,
             latitude,
             longitude,
             placeId: '',
@@ -111,7 +154,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Share Location</DialogTitle>
+          <DialogTitle>{t('locationPicker.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -119,7 +162,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
           <LocationAutocomplete
             value={selectedLocation?.formattedAddress ?? ''}
             onSelect={handleLocationSelect}
-            placeholder="Search for a location..."
+            placeholder={t('locationPicker.searchPlaceholder')}
           />
 
           {/* Current Location Button */}
@@ -130,7 +173,7 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             disabled={isGettingLocation}
           >
             <Navigation className="mr-2 h-4 w-4" />
-            {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+            {isGettingLocation ? t('locationPicker.gettingLocation') : t('locationPicker.useCurrentLocation')}
           </Button>
 
           {/* Selected Location Preview */}
@@ -150,10 +193,10 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
         {/* Actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={handleClose}>
-            Cancel
+            {tCommon('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!canConfirm}>
-            Share Location
+            {t('locationPicker.shareLocation')}
           </Button>
         </div>
       </DialogContent>

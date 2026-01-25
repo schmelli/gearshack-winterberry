@@ -127,24 +127,6 @@ function adaptMastraTool<TInput, TOutput>(
     jsonSchema.type = 'object';
   }
 
-  // DEBUG: Log the schemas for debugging
-  if (mastraTool.id === 'queryUserData') {
-    console.log('[adaptMastraTool] DEBUG - Full tool object keys:', Object.keys(mastraTool));
-    console.log('[adaptMastraTool] DEBUG - inputSchema type:', typeof mastraTool.inputSchema);
-    console.log('[adaptMastraTool] DEBUG - inputSchema constructor:', mastraTool.inputSchema?.constructor?.name);
-    // Access _def through type assertion for Zod internal structure
-    const zodSchema = mastraTool.inputSchema as unknown as { _def?: { typeName?: string } };
-    console.log('[adaptMastraTool] DEBUG - Is Zod schema?:', zodSchema._def !== undefined);
-
-    // Try to get the schema shape
-    if (zodSchema._def) {
-      console.log('[adaptMastraTool] DEBUG - Zod _def.typeName:', zodSchema._def.typeName);
-      console.log('[adaptMastraTool] DEBUG - Zod _def keys:', Object.keys(zodSchema._def));
-    }
-
-    console.log('[adaptMastraTool] DEBUG - Generated JSON Schema:', JSON.stringify(jsonSchema, null, 2));
-  }
-
   return {
     description: mastraTool.description,
     parameters: jsonSchema, // JSON Schema format for Claude compatibility
@@ -511,23 +493,6 @@ export async function generateStreamingAIResponse(
     if (enableTools && userId) {
       config.tools = getAITools(userId);
       config.maxSteps = AI_MAX_STEPS;
-
-      console.log('[AI Config] Tools enabled with maxSteps:', {
-        maxSteps: config.maxSteps,
-        toolCount: Object.keys(config.tools).length,
-        userId,
-      });
-
-      // AI SDK 5: onStepFinish callback for debugging multi-step execution
-      config.onStepFinish = (step) => {
-        console.log('[AI Multi-Step] Step finished:', {
-          stepType: step.stepType,
-          finishReason: step.finishReason,
-          textLength: step.text?.length || 0,
-          toolCallCount: step.toolCalls?.length || 0,
-          toolResultCount: step.toolResults?.length || 0,
-        });
-      };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

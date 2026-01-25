@@ -39,21 +39,31 @@ const optionalUrlSchema = z
 
 /**
  * Optional positive number from string input (no transform)
+ * Uses Number.isFinite() to reject NaN and Infinity values
  */
 const optionalPositiveNumberSchema = z
   .string()
   .refine(
-    (val) => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+    (val) => {
+      if (val === '') return true;
+      const parsed = parseFloat(val);
+      return Number.isFinite(parsed) && parsed >= 0;
+    },
     { message: 'Must be a positive number' }
   );
 
 /**
  * Optional strictly positive number (> 0) from string input (no transform)
+ * Uses Number.isFinite() to reject NaN and Infinity values
  */
 const optionalStrictPositiveNumberSchema = z
   .string()
   .refine(
-    (val) => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) > 0),
+    (val) => {
+      if (val === '') return true;
+      const parsed = parseFloat(val);
+      return Number.isFinite(parsed) && parsed > 0;
+    },
     { message: 'Must be a positive number greater than zero' }
   );
 
@@ -120,7 +130,11 @@ export const gearItemFormSchema = z.object({
   quantity: z
     .string()
     .refine(
-      (val) => val === '' || (!isNaN(parseInt(val)) && parseInt(val) >= 1),
+      (val) => {
+        if (val === '') return true;
+        const parsed = parseInt(val, 10);
+        return !isNaN(parsed) && parsed >= 1;
+      },
       { message: 'Quantity must be at least 1' }
     ),
   /** Whether this item is marked as favourite - Feature 041 */

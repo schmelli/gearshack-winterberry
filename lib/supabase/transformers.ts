@@ -286,7 +286,8 @@ export function parsePostGISLocation(
     if (match) {
       const lng = parseFloat(match[1]);
       const lat = parseFloat(match[2]);
-      if (!isNaN(lng) && !isNaN(lat)) {
+      // Use Number.isFinite() to reject NaN and Infinity
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
         return { latitude: lat, longitude: lng };
       }
     }

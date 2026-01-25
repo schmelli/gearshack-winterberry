@@ -126,9 +126,17 @@ interface VideoCardProps {
   video: YouTubeVideo;
 }
 
+// SECURITY: YouTube video IDs are exactly 11 characters, alphanumeric plus - and _
+const YOUTUBE_VIDEO_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
 function VideoCard({ video }: VideoCardProps) {
   // T038: Click-to-YouTube (opens video in new tab)
   const handleClick = () => {
+    // SECURITY: Validate videoId format to prevent XSS via malicious URLs
+    if (!YOUTUBE_VIDEO_ID_REGEX.test(video.videoId)) {
+      console.error('[YouTubeCarousel] Invalid videoId format:', video.videoId);
+      return;
+    }
     window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank');
   };
 

@@ -20,12 +20,12 @@ export type BannerStatus = 'scheduled' | 'active' | 'expired' | 'disabled';
 // UI Labels
 // =============================================================================
 
-export const BANNER_STATUS_LABELS: Record<BannerStatus, string> = {
+export const BANNER_STATUS_LABELS = {
   scheduled: 'Scheduled',
   active: 'Active',
   expired: 'Expired',
   disabled: 'Disabled',
-};
+} as const satisfies Record<BannerStatus, string>;
 
 // =============================================================================
 // Schemas

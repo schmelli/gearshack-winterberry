@@ -66,9 +66,10 @@ export function ProductAutocompleteInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // Refs for click outside detection
+  // Refs for click outside detection and timeout cleanup
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Watch the current name value
   const nameValue = useWatch({ control: form.control, name: 'name' });
@@ -181,13 +182,17 @@ export function ProductAutocompleteInput({
 
   // Handle blur - delay to allow click on suggestions
   const handleBlur = useCallback(() => {
-    setTimeout(() => {
+    // Clear any existing blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    blurTimeoutRef.current = setTimeout(() => {
       setShowSuggestions(false);
       setHighlightedIndex(-1);
     }, 200);
   }, []);
 
-  // Click outside to close suggestions
+  // Click outside to close suggestions and cleanup blur timeout on unmount
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -200,7 +205,13 @@ export function ProductAutocompleteInput({
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      // Cleanup blur timeout to prevent memory leaks
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (

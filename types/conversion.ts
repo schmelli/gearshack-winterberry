@@ -265,13 +265,13 @@ export interface BillingCycleFilters {
 
 export const logConversionSchema = z.object({
   offerId: z.string().uuid('Invalid offer ID'),
-  salePrice: z.number().positive('Sale price must be positive'),
+  salePrice: z.number().finite().positive('Sale price must be positive'),
   isLocalPickup: z.boolean().default(false),
   receiptReference: z.string().max(100).optional(),
 });
 
 export const conversionConfirmSchema = z.object({
-  rating: z.number().int().min(1).max(5).optional(),
+  rating: z.number().finite().int().min(1).max(5).optional(),
   feedback: z.string().max(500).optional(),
 });
 
@@ -357,8 +357,11 @@ export function detectFraudFlags(
     }
   }
 
-  // High value (> 3x average)
-  if (conversion.salePrice > averagePrice * 3) {
+  // High value (> 3x average) - only check if averagePrice is valid
+  if (Number.isFinite(averagePrice) &&
+      averagePrice > 0 &&
+      Number.isFinite(conversion.salePrice) &&
+      conversion.salePrice > averagePrice * 3) {
     flags.push('high_value');
   }
 

@@ -82,9 +82,8 @@ export async function searchGearImages(query: string): Promise<ImageSearchResult
       throw error;
     }
 
-    // Network error or other fetch failure
+    // Network error or other fetch failure - log details server-side only
     console.error('[Image Search] Request failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Image search failed: ${errorMessage}`);
+    throw new Error('Image search failed. Please try again later.');
   }
 }

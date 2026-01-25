@@ -226,6 +226,9 @@ export function useShakedownNotifications(
   // Channel ref for cleanup
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Mounted state ref for async operations
+  const isMountedRef = useRef(true);
+
   // =============================================================================
   // Add Notification Helper
   // =============================================================================
@@ -349,17 +352,29 @@ export function useShakedownNotifications(
         if (payload.new && 'feedback_id' in payload.new) {
           const vote = payload.new as HelpfulVoteRow;
 
-          // Verify this vote belongs to our shakedown by checking feedback
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: feedback } = await (supabase as any)
-            .from('shakedown_feedback')
-            .select('shakedown_id')
-            .eq('id', vote.feedback_id)
-            .single();
+          try {
+            // Verify this vote belongs to our shakedown by checking feedback
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: feedback, error } = await (supabase as any)
+              .from('shakedown_feedback')
+              .select('shakedown_id')
+              .eq('id', vote.feedback_id)
+              .single();
 
-          if (feedback?.shakedown_id === shakedownId) {
-            addNotification('helpful_added', { feedbackId: vote.feedback_id });
-            callbacksRef.current.onHelpfulVote?.(vote.feedback_id, true);
+            if (error) {
+              console.error('Failed to verify helpful vote feedback:', error);
+              return;
+            }
+
+            // Guard against unmount during async operation
+            if (!isMountedRef.current) return;
+
+            if (feedback?.shakedown_id === shakedownId) {
+              addNotification('helpful_added', { feedbackId: vote.feedback_id });
+              callbacksRef.current.onHelpfulVote?.(vote.feedback_id, true);
+            }
+          } catch (error) {
+            console.error('Error handling helpful vote notification:', error);
           }
         }
       }
@@ -376,17 +391,29 @@ export function useShakedownNotifications(
         if (payload.old && 'feedback_id' in payload.old) {
           const vote = payload.old as HelpfulVoteRow;
 
-          // Verify this vote belongs to our shakedown by checking feedback
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: feedback } = await (supabase as any)
-            .from('shakedown_feedback')
-            .select('shakedown_id')
-            .eq('id', vote.feedback_id)
-            .single();
+          try {
+            // Verify this vote belongs to our shakedown by checking feedback
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: feedback, error } = await (supabase as any)
+              .from('shakedown_feedback')
+              .select('shakedown_id')
+              .eq('id', vote.feedback_id)
+              .single();
 
-          if (feedback?.shakedown_id === shakedownId) {
-            addNotification('helpful_removed', { feedbackId: vote.feedback_id });
-            callbacksRef.current.onHelpfulVote?.(vote.feedback_id, false);
+            if (error) {
+              console.error('Failed to verify helpful vote feedback:', error);
+              return;
+            }
+
+            // Guard against unmount during async operation
+            if (!isMountedRef.current) return;
+
+            if (feedback?.shakedown_id === shakedownId) {
+              addNotification('helpful_removed', { feedbackId: vote.feedback_id });
+              callbacksRef.current.onHelpfulVote?.(vote.feedback_id, false);
+            }
+          } catch (error) {
+            console.error('Error handling helpful vote removal notification:', error);
           }
         }
       }
@@ -443,7 +470,11 @@ export function useShakedownNotifications(
     // Cleanup
     // =============================================================================
 
+    // Reset mounted state
+    isMountedRef.current = true;
+
     return () => {
+      isMountedRef.current = false;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

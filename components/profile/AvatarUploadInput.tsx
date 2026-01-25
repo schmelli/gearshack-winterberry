@@ -87,24 +87,26 @@ export function AvatarUploadInput({
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
 
-    // Upload to Cloudinary (no background removal for avatars)
-    const secureUrl = await uploadLocal(file, {
-      userId,
-      itemId: 'avatar',
-      removeBackground: false,
-    });
+    try {
+      // Upload to Cloudinary (no background removal for avatars)
+      const secureUrl = await uploadLocal(file, {
+        userId,
+        itemId: 'avatar',
+        removeBackground: false,
+      });
 
-    // Clean up preview
-    URL.revokeObjectURL(objectUrl);
-    setPreviewUrl(null);
+      if (secureUrl) {
+        onChange(secureUrl);
+      }
+    } finally {
+      // Always clean up preview blob URL to prevent memory leak
+      URL.revokeObjectURL(objectUrl);
+      setPreviewUrl(null);
 
-    if (secureUrl) {
-      onChange(secureUrl);
-    }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

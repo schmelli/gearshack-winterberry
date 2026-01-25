@@ -108,19 +108,29 @@ export function useInventory(): UseInventoryReturn {
   const MAX_RETRIES = 3;
 
   useEffect(() => {
+    // Clear any existing timeout when deps change to prevent orphaned timers
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+
     if (categoriesError && retryCountRef.current < MAX_RETRIES) {
       // Calculate exponential backoff delay (1s, 2s, 4s)
       const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
 
-      retryTimerRef.current = setTimeout(() => {
+      // MEMORY LEAK FIX: Capture timer ID in local variable before assigning to ref
+      // This ensures cleanup has the correct ID even if component unmounts mid-assignment
+      const timerId = setTimeout(() => {
+        retryTimerRef.current = null;
         refreshCategories();
         retryCountRef.current += 1;
       }, delay);
 
+      retryTimerRef.current = timerId;
+
       return () => {
-        if (retryTimerRef.current) {
-          clearTimeout(retryTimerRef.current);
-        }
+        clearTimeout(timerId); // Use captured timer ID for reliable cleanup
+        retryTimerRef.current = null;
       };
     }
 

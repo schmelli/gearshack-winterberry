@@ -22,17 +22,17 @@ export type ClaimInvitationStatus = 'pending' | 'verified' | 'claimed' | 'expire
 // UI Labels for Enumerations
 // =============================================================================
 
-export const VIP_STATUS_LABELS: Record<VipStatus, string> = {
+export const VIP_STATUS_LABELS = {
   curated: 'Curated Account',
   claimed: 'Verified VIP',
-};
+} as const satisfies Record<VipStatus, string>;
 
-export const CLAIM_INVITATION_STATUS_LABELS: Record<ClaimInvitationStatus, string> = {
+export const CLAIM_INVITATION_STATUS_LABELS = {
   pending: 'Pending',
   verified: 'Verified',
   claimed: 'Claimed',
   expired: 'Expired',
-};
+} as const satisfies Record<ClaimInvitationStatus, string>;
 
 // =============================================================================
 // Zod Schemas for Validation

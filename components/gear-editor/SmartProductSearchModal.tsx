@@ -89,7 +89,8 @@ export function SmartProductSearchModal({
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      const timerId = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timerId);
     }
   }, [open]);
 

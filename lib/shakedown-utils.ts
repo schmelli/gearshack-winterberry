@@ -28,9 +28,18 @@ export function buildFeedbackTree(feedback: FeedbackWithAuthor[]): FeedbackNode[
 
   // Second pass: build tree by linking children to parents
   feedback.forEach((f) => {
-    const node = map.get(f.id)!;
-    if (f.parentId && map.has(f.parentId)) {
-      map.get(f.parentId)!.children.push(node);
+    const node = map.get(f.id);
+    if (!node) {
+      console.error('[buildFeedbackTree] Missing node for ID:', f.id);
+      return;
+    }
+    if (f.parentId) {
+      const parent = map.get(f.parentId);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
     } else {
       roots.push(node);
     }
@@ -119,12 +128,26 @@ export function formatShakedownDateRange(
  * Calculates the trip duration in days
  * @param startDate - ISO date string
  * @param endDate - ISO date string
- * @returns Number of days (inclusive)
+ * @returns Number of days (inclusive), or 0 if dates are invalid
  */
 export function calculateTripDuration(startDate: string, endDate: string): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
+
+  // Validate dates are valid
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    console.warn('[calculateTripDuration] Invalid date format:', { startDate, endDate });
+    return 0;
+  }
+
   const diffMs = end.getTime() - start.getTime();
+
+  // Handle negative duration (end before start)
+  if (diffMs < 0) {
+    console.warn('[calculateTripDuration] End date before start date:', { startDate, endDate });
+    return 0;
+  }
+
   return Math.ceil(diffMs / (24 * 60 * 60 * 1000)) + 1; // +1 for inclusive
 }
 
@@ -176,14 +199,26 @@ export function canReplyAtDepth(parentDepth: number): boolean {
 // =============================================================================
 
 /**
- * Generates a random share token for public shakedowns
+ * Generates a cryptographically secure random share token for public shakedowns
  * @returns 32-character alphanumeric token
  */
 export function generateShareToken(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charsLength = chars.length;
   let token = '';
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
+
+  // Use crypto.getRandomValues for secure token generation
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const randomValues = new Uint32Array(32);
+    crypto.getRandomValues(randomValues);
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(randomValues[i] % charsLength);
+    }
+  } else {
+    // Fallback for environments without crypto (should not happen in browser/Node 15+)
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * charsLength));
+    }
   }
   return token;
 }

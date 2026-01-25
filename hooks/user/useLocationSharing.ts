@@ -126,13 +126,19 @@ export function useLocationSharing(): UseLocationSharingReturn {
 
       // Transform data - extract lat/lng from PostGIS point
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformed: LocationShare[] = (data ?? []).map((row: any) => ({
-        merchantId: row.merchant_id,
-        granularity: row.granularity as LocationGranularity,
-        latitude: row.location ? parseFloat(row.location.split('(')[1]?.split(' ')[1] ?? '0') : null,
-        longitude: row.location ? parseFloat(row.location.split('(')[1]?.split(' ')[0] ?? '0') : null,
-        updatedAt: row.updated_at,
-      }));
+      const transformed: LocationShare[] = (data ?? []).map((row: any) => {
+        // Safe coordinate parsing with Number.isFinite validation
+        const parsedLat = row.location ? parseFloat(row.location.split('(')[1]?.split(' ')[1] ?? '0') : NaN;
+        const parsedLng = row.location ? parseFloat(row.location.split('(')[1]?.split(' ')[0] ?? '0') : NaN;
+
+        return {
+          merchantId: row.merchant_id,
+          granularity: row.granularity as LocationGranularity,
+          latitude: Number.isFinite(parsedLat) ? parsedLat : null,
+          longitude: Number.isFinite(parsedLng) ? parsedLng : null,
+          updatedAt: row.updated_at,
+        };
+      });
 
       setShares(transformed);
     } catch (err) {
@@ -208,13 +214,17 @@ export function useLocationSharing(): UseLocationSharingReturn {
             // Don't add back if 'none' selected
             return filtered;
           }
+          // Safe coordinate parsing with Number.isFinite validation
+          const parsedLat = locationPoint ? parseFloat(locationPoint.split(' ')[1] ?? '0') : NaN;
+          const parsedLng = locationPoint ? parseFloat(locationPoint.split('(')[1]?.split(' ')[0] ?? '0') : NaN;
+
           return [
             ...filtered,
             {
               merchantId,
               granularity,
-              latitude: locationPoint ? parseFloat(locationPoint.split(' ')[1] ?? '0') : null,
-              longitude: locationPoint ? parseFloat(locationPoint.split('(')[1]?.split(' ')[0] ?? '0') : null,
+              latitude: Number.isFinite(parsedLat) ? parsedLat : null,
+              longitude: Number.isFinite(parsedLng) ? parsedLng : null,
               updatedAt: new Date().toISOString(),
             },
           ];

@@ -91,6 +91,10 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
       return;
     }
 
+    // Race condition fix: Track if this effect has been cancelled
+    // This prevents stale data from being set if user ID changes rapidly
+    let isCancelled = false;
+
     const fetchUserData = async () => {
       const supabase = createClient();
 
@@ -115,6 +119,9 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
           .eq('user_id', userId)
           .order('created_at', { ascending: false }),
       ]);
+
+      // Bail out if this effect was cancelled (user changed or component unmounted)
+      if (isCancelled) return;
 
       // Process gear items
       if (gearResult.error) {
@@ -148,6 +155,9 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
         .from('loadout_items')
         .select('*')
         .in('loadout_id', loadoutIds);
+
+      // Bail out if this effect was cancelled (user changed or component unmounted)
+      if (isCancelled) return;
 
       if (itemsError) {
         console.error('[SupabaseAuthProvider] Error fetching loadout items:', itemsError);
@@ -190,6 +200,11 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
     };
 
     fetchUserData();
+
+    // Cleanup: Cancel pending async operations when userId changes or component unmounts
+    return () => {
+      isCancelled = true;
+    };
   }, [supabaseAuth.user?.id, setRemoteGearItems, setRemoteLoadouts]);
 
   // Map Supabase user to AuthUser format

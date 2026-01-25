@@ -57,7 +57,8 @@ export async function GET(request: NextRequest) {
     const brandIdParam = searchParams.get('brand_id') || undefined;
     const brandNameParam = searchParams.get('brand_name') || undefined;
     const limitParam = searchParams.get('limit') || '8';
-    const limit = Math.min(Math.max(parseInt(limitParam, 10) || 8, 1), 20);
+    const parsedLimit = parseInt(limitParam, 10);
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 20) : 8;
 
     // Determine brand filtering strategy:
     // 1. If brand_name is provided, use it for ILIKE filtering (most reliable)
@@ -105,7 +106,12 @@ export async function GET(request: NextRequest) {
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
     // Build query - use ILIKE for case-insensitive search
-    const normalizedQuery = q.toLowerCase().trim();
+    // Escape ILIKE special characters to prevent injection
+    // Order matters: escape backslash first, then wildcards
+    const normalizedQuery = q.toLowerCase().trim()
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
 
     // Query catalog_products with FK joins to catalog_brands and categories
     // The product_type_id references categories at level 3 (product type)
@@ -164,7 +170,12 @@ export async function GET(request: NextRequest) {
 
         // Filter by brand name if we have a brand name filter
         if (brandNameFilter) {
-          inventoryQuery = inventoryQuery.ilike('brand', `%${brandNameFilter}%`);
+          // Escape ILIKE special characters in brand filter
+          const escapedBrandFilter = brandNameFilter
+            .replace(/\\/g, '\\\\')
+            .replace(/%/g, '\\%')
+            .replace(/_/g, '\\_');
+          inventoryQuery = inventoryQuery.ilike('brand', `%${escapedBrandFilter}%`);
         }
 
         const { data: inventoryItems, error: invError } = await inventoryQuery.limit(limit);

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
@@ -22,11 +23,30 @@ const log = createModuleLogger('cron:check-prices');
 // Rate limit concurrent searches
 const queue = new PQueue({ concurrency: RATE_LIMITING.MAX_CONCURRENT_SEARCHES });
 
+/**
+ * Timing-safe comparison of authorization header to prevent timing attacks.
+ * Uses constant-time comparison to avoid leaking secret length or content.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  const expected = `Bearer ${expectedSecret}`;
+  if (authHeader.length !== expected.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret using timing-safe comparison
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!verifyAuthHeader(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -97,10 +117,15 @@ export async function GET(request: NextRequest) {
     await batchCheckConversions(conversionData);
 
     // Update last_checked_at for all items
-    await (supabase as any)
+    const { error: updateError } = await (supabase as any)
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
       .in('id', trackingItems.map((item: any) => item.id));
+
+    if (updateError) {
+      log.warn('Failed to update last_checked_at timestamps', {}, updateError);
+      // Non-fatal: continue but log for monitoring
+    }
 
     log.info('Price check job completed', {
       processed: trackingItems.length,
@@ -140,7 +165,7 @@ async function processTrackingItem(
   }>
 ): Promise<void> {
   try {
-    const itemName = item.gear_items.name;
+    const itemName = item.gear_items?.name;
     if (!itemName) {
       log.warn('No name found for gear item', {
         tracking_id: item.id,
@@ -229,7 +254,11 @@ async function checkPersonalOffers(
   // Send notification for each offer (notification tracking handled in price_alerts table)
   for (const offer of offers as any[]) {
     try {
-      const partnerName = offer.partner_retailers.name;
+      const partnerName = offer.partner_retailers?.name;
+      if (!partnerName) {
+        log.warn('Partner retailer not found for offer', { offer_id: offer.id });
+        continue;
+      }
 
       await sendPersonalOfferAlert(
         userId,

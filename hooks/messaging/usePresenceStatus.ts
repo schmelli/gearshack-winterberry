@@ -115,24 +115,34 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
   }, []);
 
   // Auto-start tracking when user is authenticated
+  // Note: startTracking is intentionally excluded from deps
+  // to prevent circular dependency causing subscription churn
   useEffect(() => {
     if (user?.id) {
       startTracking();
     }
 
+    // Direct cleanup using channelRef to avoid stale closure
     return () => {
-      stopTracking();
+      if (channelRef.current) {
+        const supabase = createClient();
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        setIsOnline(false);
+      }
     };
-  }, [user?.id, startTracking, stopTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Store startTracking in ref to avoid stale closure
+  const startTrackingRef = useRef(startTracking);
+  startTrackingRef.current = startTracking;
 
   // Handle page visibility for presence accuracy
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        startTracking();
-      } else {
-        // Optionally stop tracking when tab is hidden
-        // stopTracking();
+        startTrackingRef.current();
       }
     };
 
@@ -140,7 +150,7 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [startTracking]);
+  }, []);
 
   const isUserOnline = useCallback(
     (userId: string): boolean => {

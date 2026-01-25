@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Users, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { FriendsList } from './FriendsList';
@@ -51,8 +52,17 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const { startDirectConversation } = useConversations();
 
-  // Detect mobile for responsive layout
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  // Detect mobile for responsive layout (SSR-safe: default to false, update after mount)
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Use useCallback for stable event handler reference to prevent listener churn
+  const checkMobile = useCallback(() => setIsMobile(window.innerWidth < 768), []);
+
+  useEffect(() => {
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [checkMobile]);
 
   const handleSelectConversation = (conversation: ConversationListItem) => {
     setSelectedConversation(conversation);
@@ -98,6 +108,9 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
       setSelectedConversation(tempConversation);
       setActiveTab('messages');
       setViewState('conversation');
+    } else {
+      // Handle error - show toast notification
+      toast.error(result.error ?? 'Failed to start conversation');
     }
   };
 

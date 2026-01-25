@@ -22,7 +22,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Upload, Loader2, X, Check, AlertCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -85,6 +85,18 @@ export function ImageUploadZone({
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Timeout ref for reset cleanup
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Build search query from brand + product name
   const searchQuery = [brand, productName].filter(Boolean).join(' ').trim();
 
@@ -105,7 +117,11 @@ export function ImageUploadZone({
 
       if (secureUrl) {
         onChange(secureUrl);
-        setTimeout(() => reset(), 2000);
+        // Clear any existing timeout before setting a new one
+        if (resetTimeoutRef.current) {
+          clearTimeout(resetTimeoutRef.current);
+        }
+        resetTimeoutRef.current = setTimeout(() => reset(), 2000);
       }
     },
     [uploadLocal, userId, itemId, removeBackground, onChange, reset]
@@ -195,7 +211,11 @@ export function ImageUploadZone({
     if (secureUrl) {
       onChange(secureUrl);
       setUrlInput('');
-      setTimeout(() => reset(), 2000);
+      // Clear any existing timeout before setting a new one
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+      resetTimeoutRef.current = setTimeout(() => reset(), 2000);
     }
   }, [urlInput, uploadUrl, userId, itemId, removeBackground, onChange, reset]);
 

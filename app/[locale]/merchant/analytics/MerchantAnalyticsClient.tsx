@@ -177,7 +177,12 @@ export function MerchantAnalyticsClient() {
           <CardTitle className="text-lg">{t('recentConversions')}</CardTitle>
           <Select
             value={pagination.limit.toString()}
-            onValueChange={(value) => setFilters({ limit: parseInt(value) })}
+            onValueChange={(value) => {
+              const parsed = parseInt(value, 10);
+              if (Number.isFinite(parsed) && parsed > 0) {
+                setFilters({ limit: parsed });
+              }
+            }}
           >
             <SelectTrigger className="w-[120px]">
               <SelectValue />

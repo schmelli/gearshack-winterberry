@@ -125,10 +125,12 @@ export function useFriendships(): UseFriendshipsReturn {
     await loadFriends();
   }, [loadFriends]);
 
-  // Initial load
+  // Initial load - depend only on user.uid to prevent infinite loops
+  // loadFriends is stable when user.uid is stable
   useEffect(() => {
     loadFriends();
-  }, [loadFriends]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   return {
     friends,

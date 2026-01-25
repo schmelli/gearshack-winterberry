@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { sanitizeExternalUrl } from '@/lib/utils';
 import type { EbayListing, EbayListingType, EbayCondition } from '@/types/ebay';
 
 // =============================================================================
@@ -248,13 +249,15 @@ export function EbayListingPopup({
 
         <Separator className="my-4" />
 
-        {/* CTA Button */}
-        <Button className="w-full" asChild>
-          <a href={listing.url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4 mr-2" />
-            {t('popup.viewOnEbay')}
-          </a>
-        </Button>
+        {/* CTA Button - SECURITY: Validate URL before rendering */}
+        {sanitizeExternalUrl(listing.url) && (
+          <Button className="w-full" asChild>
+            <a href={sanitizeExternalUrl(listing.url)!} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              {t('popup.viewOnEbay')}
+            </a>
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );

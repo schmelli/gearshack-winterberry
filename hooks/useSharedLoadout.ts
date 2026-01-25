@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getSharedLoadoutWithOwner } from '@/lib/supabase/queries/sharing';
 import type { SharedLoadoutWithOwner } from '@/types/sharing';
@@ -43,7 +43,8 @@ export function useSharedLoadout(shareToken: string): UseSharedLoadoutResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch shared loadout with owner
   const fetchSharedLoadout = useCallback(async () => {

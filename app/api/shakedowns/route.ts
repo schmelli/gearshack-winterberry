@@ -17,6 +17,7 @@ import {
   shakedownsQuerySchema,
 } from '@/lib/shakedown-schemas';
 import { generateShareToken } from '@/lib/shakedown-utils';
+import { shakedownCreationLimiter } from '@/lib/rate-limit';
 import type {
   Shakedown,
   ShakedownWithAuthor,
@@ -248,8 +249,23 @@ export async function GET(
 
     // Apply search filter (trigram search on trip_name)
     if (search && search.trim()) {
-      // Use ilike for basic search (trigram extension provides fuzzy matching)
-      query = query.ilike('trip_name', `%${search.trim()}%`);
+      // SECURITY: Comprehensive sanitization for ILIKE search
+      // Escape ILIKE wildcards, SQL special characters, and all PostgREST operators
+      const sanitizedSearch = search.trim()
+        .replace(/\\/g, '\\\\')           // Escape backslashes first
+        .replace(/'/g, "''")              // Escape single quotes for SQL
+        .replace(/%/g, '\\%')             // Escape % wildcards
+        .replace(/_/g, '\\_')             // Escape _ wildcards
+        .replace(/[(),\.\|&!<>@]/g, '');  // Remove PostgREST operators (extended set)
+
+      // Additional validation: limit search length to prevent DoS
+      const MAX_SEARCH_LENGTH = 100;
+      const truncatedSearch = sanitizedSearch.substring(0, MAX_SEARCH_LENGTH);
+
+      if (truncatedSearch.length > 0) {
+        // Use ilike for basic search (trigram extension provides fuzzy matching)
+        query = query.ilike('trip_name', `%${truncatedSearch}%`);
+      }
     }
 
     // Apply cursor-based pagination
@@ -311,12 +327,19 @@ export async function GET(
 
     // If friendsFirst is enabled and user is authenticated, reorder results
     if (friendsFirst && user) {
-      // Get user's friend IDs
-       
-      const { data: friendships } = await (supabase as any)
-        .from('friendships')
-        .select('user_id, friend_id')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+      // Get user's friend IDs - use separate queries to avoid string interpolation
+      // This prevents potential injection if user.id format changes in the future
+      const [{ data: friendships1 }, { data: friendships2 }] = await Promise.all([
+        (supabase as any)
+          .from('friendships')
+          .select('user_id, friend_id')
+          .eq('user_id', user.id),
+        (supabase as any)
+          .from('friendships')
+          .select('user_id, friend_id')
+          .eq('friend_id', user.id),
+      ]);
+      const friendships = [...(friendships1 || []), ...(friendships2 || [])];
 
       if (friendships && friendships.length > 0) {
         const friendIds = new Set<string>();
@@ -383,8 +406,34 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Rate limiting check
+    const rateLimitResult = shakedownCreationLimiter.check(user.id);
+    if (!rateLimitResult.allowed) {
+      const minutesUntilReset = Math.ceil((rateLimitResult.resetAt - Date.now()) / (60 * 1000));
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Try again in ${minutesUntilReset} minute(s).` },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
+
     // Parse and validate request body
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validation = createShakedownSchema.safeParse(body);
 
     if (!validation.success) {

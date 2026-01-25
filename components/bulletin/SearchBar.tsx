@@ -9,7 +9,7 @@
  * Keyword search input with debounce for filtering posts.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -30,19 +30,23 @@ export function SearchBar({
   const t = useTranslations('bulletin');
   const [value, setValue] = useState('');
 
-  // Debounced search
+  // Use ref to store latest onSearch callback to avoid recreating debounce timer
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
+
+  // Debounced search - uses ref to avoid dependency on onSearch callback
   useEffect(() => {
     const timer = setTimeout(() => {
-      onSearch(value.trim());
+      onSearchRef.current(value.trim());
     }, debounceMs);
 
     return () => clearTimeout(timer);
-  }, [value, debounceMs, onSearch]);
+  }, [value, debounceMs]);
 
   const handleClear = useCallback(() => {
     setValue('');
-    onSearch('');
-  }, [onSearch]);
+    onSearchRef.current('');
+  }, []);
 
   return (
     <div className={cn('relative', className)}>

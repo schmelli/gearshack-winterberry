@@ -20,9 +20,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { updateShakedownSchema } from '@/lib/shakedown-schemas';
 import {
   type ShakedownDetailDbRow,
-  type LoadoutDbRow,
   type LoadoutItemDbRow,
-  type GearItemDbRow,
   type GearItemApiResponse,
   type FeedbackDbRow,
   mapDbRowToShakedownWithAuthor,
@@ -92,6 +90,15 @@ export async function GET(
 ): Promise<NextResponse<ShakedownDetailResponse | ErrorResponse>> {
   try {
     const { id: shakedownId } = await params;
+
+    // Validate UUID format before querying database
+    if (!isValidUuid(shakedownId)) {
+      return NextResponse.json(
+        { error: 'Invalid shakedown ID format' },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createClient();
 
     // Get current user (optional - affects privacy checks)
@@ -261,7 +268,7 @@ export async function GET(
 
     // Fetch category names if any
     // The categories table uses i18n JSONB column with { en: string; de?: string } structure
-    let categoryMap: Record<string, { en: string; de?: string }> = {};
+    const categoryMap: Record<string, { en: string; de?: string }> = {};
     if (categoryIds.size > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: categoriesData, error: categoriesError } = await (serviceClient as any)
@@ -282,17 +289,9 @@ export async function GET(
       }
     }
 
-    let gearItems: ShakedownLoadoutItem[] = [];
+    const gearItems: ShakedownLoadoutItem[] = [];
     let totalWeightGrams = 0;
     let itemCount = 0;
-
-    // Debug: Log loadout items query result
-    console.log('[API] Shakedown loadout_id:', shakedown.loadout_id);
-    console.log('[API] Loadout items query result:', {
-      error: loadoutItemsError,
-      rowCount: loadoutItemRows?.length ?? 0,
-      firstRow: loadoutItemRows?.[0] ?? null,
-    });
 
     if (loadoutItemsError) {
       console.error('[API] Failed to fetch loadout items:', loadoutItemsError);

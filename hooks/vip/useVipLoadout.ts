@@ -80,11 +80,57 @@ export function useVipLoadout(
 
   // Fetch on mount and when slugs change
   useEffect(() => {
-    const controller = new AbortController();
+    if (!vipSlug || !loadoutSlug) {
+      setState({ status: 'idle', loadout: null, error: null });
+      return;
+    }
+
+    let isCancelled = false;
+
+    const doFetch = async () => {
+      setState((prev) => ({ ...prev, status: 'loading', error: null }));
+
+      try {
+        const loadout = await getVipLoadout(vipSlug, loadoutSlug);
+
+        // Check if cancelled before updating state
+        if (isCancelled) return;
+
+        if (!loadout) {
+          setState({
+            status: 'error',
+            loadout: null,
+            error: 'Loadout not found',
+          });
+          return;
+        }
+
+        setState({
+          status: 'success',
+          loadout,
+          error: null,
+        });
+      } catch (err) {
+        // Only handle error if not cancelled
+        if (isCancelled) return;
+
+        const message = err instanceof Error ? err.message : 'Failed to load loadout';
+        console.error('Error loading VIP loadout:', err);
+        setState({
+          status: 'error',
+          loadout: null,
+          error: message,
+        });
+      }
+    };
+
     // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching pattern
-    fetchLoadout();
-    return () => controller.abort();
-  }, [fetchLoadout]);
+    doFetch();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [vipSlug, loadoutSlug]);
 
   return {
     ...state,

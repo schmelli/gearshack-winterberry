@@ -44,21 +44,29 @@ export async function POST(
     }
 
     // Check admin role
-    const { data: profile } = await (supabase as any)
+    const { data: profile, error: profileError } = await (supabase as any)
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
+    if (profileError || profile?.role !== 'admin') {
       return NextResponse.json(
         { error: 'ADMIN_ACCESS_REQUIRED', message: 'Admin access required' },
         { status: 403 }
       );
     }
 
-    // Validate request body
-    const body = await request.json();
+    // Validate request body with JSON parse error handling
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'INVALID_JSON', message: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validation = inviteSchema.safeParse(body);
 
     if (!validation.success) {

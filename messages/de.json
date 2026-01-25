@@ -313,6 +313,11 @@
     },
     "addToWishlist": "Zur Wunschliste hinzufügen",
     "quantityBadge": "x {quantity}",
+    "emptyState": {
+      "noResults": "Keine Ausrüstung entspricht deinen Filtern",
+      "noResultsSubtext": "Versuche, deine Such- oder Kategoriefilter anzupassen",
+      "clearFilters": "Alle Filter löschen"
+    },
     "wishlist": {
       "title": "Wunschliste",
       "myGear": "Meine Ausrüstung",
@@ -546,6 +551,15 @@
       "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
       "importFailed": "Import fehlgeschlagen"
     },
+    "productSearch": {
+      "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "enterProductName": "Gib einen Produktnamen ein, um zu suchen",
+      "searching": "Suche...",
+      "products": "Produkte",
+      "searchWithLimit": "Suche nach {query} ({remaining} von {limit} heute übrig)",
+      "searchFor": "Suche nach {query}",
+      "ariaLabel": "Nach Produktinformationen suchen"
+    },
     "toasts": {
       "importingImage": "Bild wird importiert...",
       "imageImportSuccess": "Bild erfolgreich importiert!",
@@ -609,6 +623,14 @@
       "enterBrandName": "Marke/Name eingeben um Gewicht zu suchen",
       "searchFor": "Gewicht suchen für \"{query}\"",
       "searchForWithLimit": "Gewicht suchen für \"{query}\" ({remaining} von {limit} heute übrig)"
+    },
+    "productSearchModal": {
+      "title": "Produktbilder suchen",
+      "description": "Finde Produktbilder über Google. Klicke auf ein Bild, um es zu verwenden.",
+      "searchPlaceholder": "Nach Produktbildern suchen...",
+      "noResults": "Keine Bilder gefunden. Versuche einen anderen Suchbegriff.",
+      "removingBackground": "Hintergrund wird entfernt...",
+      "uploading": "Wird hochgeladen..."
     }
   },
   "ManufacturerPrice": {
@@ -788,6 +810,12 @@
       "noQuantityAvailable": "Keine Gegenstände verfügbar",
       "noQuantityAvailableDescription": "Dieser Gegenstand hat keine verfügbare Menge im Inventar."
     },
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden der Packliste aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen"
+    },
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "exportOptions": "Export-Optionen",
     "export": "Exportieren",
@@ -866,6 +894,45 @@
       "lighterAlternativeAvailable": "Leichtere Alternative verfügbar",
       "swapItem": "Gegenstand austauschen",
       "saveWeight": "Spare {weight}"
+    },
+    "dependencies": {
+      "title": "Abhängigkeiten hinzufügen?",
+      "description": "'{itemName}' hat {count, plural, one {# Gegenstand} other {# Gegenstände}}, die typischerweise dazugehören:",
+      "direct": "Direkt",
+      "transitive": "Indirekt",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Alle abwählen",
+      "selectedCount": "{selected} von {total} ausgewählt",
+      "skip": "Überspringen",
+      "addSelected": "Ausgewählte hinzufügen ({count})",
+      "addAll": "Alle hinzufügen ({count})"
+    },
+    "sortFilter": {
+      "sort": "Sortieren",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "weightLightest": "Gewicht (Leichteste)",
+      "weightHeaviest": "Gewicht (Schwerste)",
+      "category": "Kategorie",
+      "allCategories": "Alle Kategorien"
+    },
+    "heroImage": {
+      "generatingImage": "Bild wird generiert...",
+      "imageUnavailable": "Bild nicht verfügbar",
+      "tryAgain": "Erneut versuchen",
+      "noImage": "Kein Bild",
+      "generateNewImage": "Neues Bild generieren"
+    },
+    "stylePreferences": {
+      "title": "Stil-Präferenzen",
+      "subtitle": "Passe den visuellen Stil deines generierten Bildes an",
+      "visualStyle": "Visueller Stil",
+      "selectStyle": "Stil auswählen...",
+      "lightingTimeOfDay": "Beleuchtung / Tageszeit",
+      "selectLighting": "Beleuchtung auswählen...",
+      "atmosphereOptional": "Atmosphäre (Optional)",
+      "atmospherePlaceholder": "z.B., nebligen Morgen, dramatische Wolken...",
+      "atmosphereHint": "Füge benutzerdefinierte Atmosphären-Hinweise hinzu (max. 50 Zeichen)"
     }
   },
   "LoadoutCreation": {
@@ -884,7 +951,8 @@
       "spring": "Frühling",
       "summer": "Sommer",
       "fall": "Herbst",
-      "winter": "Winter"
+      "winter": "Winter",
+      "selectSeason": "Jahreszeit auswählen"
     },
     "activities": {
       "hiking": "Wandern",
@@ -1029,6 +1097,12 @@
       "passwordSet": "Passwort gesetzt",
       "passwordRemoveFailed": "Passwort konnte nicht entfernt werden",
       "passwordRemoved": "Passwort entfernt"
+    },
+    "ariaLabels": {
+      "shareOnX": "Auf X teilen",
+      "shareOnFacebook": "Auf Facebook teilen",
+      "shareOnWhatsApp": "Auf WhatsApp teilen",
+      "shareViaEmail": "Per E-Mail teilen"
     }
   },
   "SharedLoadout": {
@@ -1039,6 +1113,7 @@
     "totalItems": "Gegenstände",
     "totalWeight": "Gesamtgewicht",
     "signupCta": "Füge diese Packliste zu deiner Sammlung hinzu",
+    "signupDescription": "Registriere dich kostenlos, um diese Packliste und alle Gegenstände auf deiner Wunschliste zu speichern. Beginne noch heute mit dem Aufbau deiner perfekten Ausrüstungssammlung.",
     "signupButton": "Kostenlos registrieren",
     "loginButton": "Anmelden",
     "ownedBadge": "Besitzt du",
@@ -1311,6 +1386,9 @@
       "profileUpdatedDescription": "Dein Profil wurde erfolgreich gespeichert.",
       "saveFailed": "Speichern fehlgeschlagen",
       "saveFailedDefault": "Profil konnte nicht gespeichert werden"
+    },
+    "ariaLabels": {
+      "editProfile": "Profil bearbeiten"
     }
   },
   "SmartSearch": {
@@ -1391,6 +1469,86 @@
       "addParticipant": "Teilnehmer hinzufügen",
       "leaveGroup": "Gruppe verlassen",
       "reportConversation": "Unterhaltung melden"
+    },
+    "userProfile": {
+      "title": "Benutzerprofil",
+      "online": "Online",
+      "offline": "Offline",
+      "memberSince": "Mitglied {time}",
+      "sendMessage": "Nachricht senden",
+      "addFriend": "Als Freund hinzufügen",
+      "removeFriend": "Freund entfernen",
+      "blockUser": "Benutzer blockieren",
+      "loadFailed": "Profil konnte nicht geladen werden"
+    },
+    "groupChat": {
+      "groupName": "Gruppenname",
+      "groupNamePlaceholder": "Gruppenname eingeben...",
+      "participants": "Teilnehmer ({count})",
+      "addParticipants": "Teilnehmer hinzufügen",
+      "searchPlaceholder": "Nach Name suchen...",
+      "suggestedFriends": "Vorgeschlagen aus Freunden",
+      "cancel": "Abbrechen",
+      "createGroup": "Gruppe erstellen",
+      "errorNoName": "Bitte gib einen Gruppennamen ein",
+      "errorNoParticipants": "Bitte füge mindestens einen Teilnehmer hinzu",
+      "errorCreateFailed": "Gruppe konnte nicht erstellt werden"
+    },
+    "typing": {
+      "oneUser": "{name} tippt",
+      "twoUsers": "{name1} und {name2} tippen",
+      "several": "Mehrere Personen tippen"
+    },
+    "gearPicker": {
+      "title": "Ausrüstung teilen",
+      "searchPlaceholder": "Suche in deiner Ausrüstung...",
+      "noGearInInventory": "Keine Ausrüstung in deinem Inventar",
+      "noGearMatches": "Keine Ausrüstung entspricht deiner Suche",
+      "share": "Teilen"
+    },
+    "locationPicker": {
+      "title": "Standort teilen",
+      "searchPlaceholder": "Nach einem Ort suchen...",
+      "currentLocation": "Aktueller Standort",
+      "gettingLocation": "Standort wird ermittelt...",
+      "useCurrentLocation": "Aktuellen Standort verwenden",
+      "shareLocation": "Standort teilen"
+    },
+    "blocked": {
+      "noBlockedUsers": "Keine blockierten Benutzer",
+      "emptyDescription": "Wenn du jemanden blockierst, erscheint er hier",
+      "blockedTime": "Blockiert {time}",
+      "unblock": "Entsperren",
+      "unblockDialogTitle": "Benutzer entsperren",
+      "unblockDialogDescription": "Bist du sicher, dass du {name} entsperren möchtest? Diese Person kann dir dann wieder Nachrichten senden und dich in der Suche finden."
+    }
+  },
+  "Settings": {
+    "privacy": {
+      "whoCanMessage": "Wer kann mir schreiben",
+      "whoCanMessageDescription": "Kontrolliere, wer neue Unterhaltungen mit dir starten kann",
+      "selectWhoCanMessage": "Wähle aus, wer dir schreiben kann",
+      "everyone": "Alle",
+      "friendsOnly": "Nur Freunde",
+      "nobodyDisableDMs": "Niemand (DMs deaktivieren)",
+      "nobody": "Niemand",
+      "everyoneCanMessageHint": "Jeder auf GearShack kann eine Unterhaltung mit dir starten.",
+      "friendsOnlyCanMessageHint": "Nur Personen, die du als Freunde hinzugefügt hast, können dir schreiben.",
+      "nobodyCanMessageHint": "Niemand kann neue Unterhaltungen mit dir starten. Bestehende Unterhaltungen funktionieren weiterhin.",
+      "searchVisibility": "Sichtbarkeit in der Suche",
+      "searchVisibilityDescription": "Kontrolliere, ob andere dich in der Suche finden können",
+      "appearInSearch": "In Suchergebnissen erscheinen",
+      "appearInSearchHint": "Wenn deaktiviert, werden andere Benutzer dich bei der Suche nicht finden",
+      "onlineStatus": "Online-Status",
+      "onlineStatusDescription": "Kontrolliere die Sichtbarkeit deiner Online-Präsenz",
+      "whoCanSeeOnlineStatus": "Wer kann deinen Online-Status sehen",
+      "selectWhoCanSeeStatus": "Wähle aus, wer deinen Status sehen kann",
+      "everyoneCanSeeOnlineHint": "Jeder auf GearShack kann sehen, wenn du online bist.",
+      "friendsOnlyCanSeeOnlineHint": "Nur deine Freunde können sehen, wenn du online bist.",
+      "nobodyCanSeeOnlineHint": "Dein Online-Status ist für alle verborgen.",
+      "readReceipts": "Lesebestätigungen",
+      "readReceiptsHint": "Anderen mitteilen, wenn du ihre Nachrichten gelesen hast",
+      "saving": "Wird gespeichert..."
     }
   },
   "Social": {
@@ -1401,7 +1559,8 @@
       "loading": "Wird geladen...",
       "refresh": "Aktualisieren",
       "message": "Nachricht",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "moreOptions": "Weitere Optionen"
     },
     "following": {
       "title": "Folge ich",
@@ -1450,6 +1609,8 @@
       "mutualFriend": "1 gemeinsamer Freund",
       "noMutualFriends": "Keine gemeinsamen Freunde",
       "seeAll": "Alle anzeigen",
+      "showLess": "Weniger anzeigen",
+      "loadingMutual": "Lade gemeinsame Freunde...",
       "friendLimit": "Du hast das Freundeslimit erreicht (1.000). Entferne einen Freund, um einen neuen hinzuzufügen.",
       "rateLimit": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
       "noMessageExchange": "Du musst zuerst {name} eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst."
@@ -1538,6 +1699,14 @@
       "presetFailed": "Anwendung der Voreinstellung fehlgeschlagen",
       "settingUpdated": "Einstellung aktualisiert",
       "settingFailed": "Aktualisierung der Einstellung fehlgeschlagen"
+    },
+    "theme": {
+      "darkMode": "Dunkelmodus",
+      "usingDarkTheme": "Dunkles Design aktiv",
+      "usingLightTheme": "Helles Design aktiv"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Dunkelmodus umschalten"
     }
   },
   "Shakedowns": {
@@ -1621,6 +1790,9 @@
       "updateSuccess": "Feedback erfolgreich aktualisiert",
       "deleteSuccess": "Feedback gelöscht"
     },
+    "placeholder": {
+      "addNote": "Notiz hinzufügen..."
+    },
     "actions": {
       "edit": "Shakedown bearbeiten",
       "actionsButton": "Aktionen",
@@ -1652,7 +1824,12 @@
       "archiveFailed": "Shakedown konnte nicht archiviert werden",
       "deleteSuccess": "Shakedown gelöscht",
       "deleteFailed": "Shakedown konnte nicht gelöscht werden",
-      "reportComingSoon": "Meldefunktion kommt bald"
+      "reportComingSoon": "Meldefunktion kommt bald",
+      "editNote": "Notiz bearbeiten",
+      "addNote": "Notiz hinzufügen",
+      "clearNote": "Notiz löschen",
+      "save": "Speichern",
+      "close": "Schließen"
     },
     "filters": {
       "title": "Filter",
@@ -1945,6 +2122,12 @@
       "requestAttentionTooltip": "Andere auf diesen Artikel aufmerksam machen",
       "requestedAttention": "hat deine Aufmerksamkeit angefordert",
       "dismiss": "Schließen"
+    },
+    "ariaLabels": {
+      "moreActions": "Weitere Aktionen",
+      "hasNote": "Hat Notiz",
+      "clearSearch": "Suche löschen",
+      "editLoadoutMetadata": "Loadout-Metadaten bearbeiten"
     }
   },
   "Merchant": {
@@ -2022,6 +2205,8 @@
     "loadingMore": "Lade mehr...",
     "filters": {
       "tripType": "Reiseart",
+      "allTripTypes": "Alle Reisearten",
+      "allSeasons": "Alle Jahreszeiten",
       "priceRange": "Preisspanne",
       "merchant": "Händler",
       "featured": "Nur Empfohlene",
@@ -2949,6 +3134,76 @@
       "retailPrices": "Händlerpreise",
       "noPricesYet": "Noch keine Preise erfasst",
       "enableTracking": "Aktiviere Preisverfolgung, um Angebote zu sehen"
+    },
+    "move": {
+      "buttonText": "Ins Inventar verschieben",
+      "moving": "Wird verschoben...",
+      "dialogTitle": "Ins Inventar verschieben",
+      "dialogDescription": "Möchtest du <strong>{itemName}</strong> wirklich von deiner Wunschliste ins Inventar verschieben?",
+      "dialogNote": "Der Artikel wird als eigene Ausrüstung markiert. Du kannst den Status jederzeit ändern.",
+      "cancel": "Abbrechen",
+      "ariaLabelMove": "{itemName} ins Inventar verschieben",
+      "ariaLabelCancel": "Abbrechen und Artikel in der Wunschliste belassen",
+      "ariaLabelMoving": "Artikel wird ins Inventar verschoben",
+      "ariaLabelConfirm": "Verschieben von {itemName} ins Inventar bestätigen",
+      "successAnnouncement": "{itemName} wurde erfolgreich ins Inventar verschoben."
+    },
+    "toggle": {
+      "myGear": "Meine Ausrüstung",
+      "wishlist": "Wunschliste",
+      "viewModeToggle": "Ansichtsmodus umschalten",
+      "switchViewsAriaLabel": "Zwischen Inventar und Wunschliste wechseln",
+      "myGearTabAriaLabel": "Meine Ausrüstung Tab, {count, plural, one {# Artikel} other {# Artikel}}",
+      "wishlistTabAriaLabel": "Wunschliste Tab, {count, plural, one {# Artikel} other {# Artikel}}",
+      "myGearCount": "Meine Ausrüstung, {count, plural, one {# Artikel} other {# Artikel}}",
+      "wishlistCount": "Wunschliste, {count, plural, one {# Artikel} other {# Artikel}}",
+      "switchedToView": "Zu {viewName} gewechselt. {count, plural, one {# Artikel} other {# Artikel}}."
+    }
+  },
+  "AIAssistant": {
+    "chatInput": {
+      "rateLimitReached": "Limit erreicht. Versuche es in {seconds}s erneut.",
+      "listening": "Höre zu...",
+      "placeholder": "Frag mich alles über deine Ausrüstung...",
+      "keyboardHint": "Enter zum Senden, Shift+Enter für neue Zeile",
+      "sendMessage": "Nachricht senden"
+    },
+    "voice": {
+      "clickToStart": "Klicken, um Spracheingabe zu starten",
+      "clickToStop": "Klicken, um Aufnahme zu stoppen",
+      "processing": "Verarbeite deine Sprache...",
+      "notAvailable": "Spracheingabe nicht verfügbar",
+      "errorRetry": "Spracheingabe-Fehler – klicken zum Wiederholen",
+      "label": "Spracheingabe"
+    },
+    "actions": {
+      "addToWishlist": "Zur Wunschliste",
+      "compare": "Vergleichen",
+      "sendMessage": "Nachricht senden",
+      "viewDetails": "Details ansehen"
+    },
+    "modal": {
+      "title": "KI-Ausrüstungsassistent",
+      "description": "Stelle Fragen zu deiner Ausrüstung, hole dir Empfehlungen und optimiere deine Packlisten"
+    },
+    "welcome": {
+      "title": "Willkommen beim KI-Ausrüstungsassistenten!",
+      "description": "Ich kann dir helfen, deine Packlisten zu optimieren, leichtere Ausrüstungsalternativen zu finden und Fragen zu deinem Inventar zu beantworten.",
+      "tryAsking": "Probiere es mit:",
+      "suggestion1": "Was ist mein Basisgewicht?",
+      "suggestion2": "Empfiehl mir ein leichteres Zelt",
+      "suggestion3": "Zeig mir meine Schlafsäcke"
+    },
+    "thinking": "KI denkt nach...",
+    "ariaLabels": {
+      "aiAssistant": "KI-Assistent",
+      "trailblazerFeature": "Trailblazer-Funktion",
+      "play": "Abspielen",
+      "pause": "Pause",
+      "stop": "Stopp",
+      "volume": "Lautstärke",
+      "cancelRecording": "Aufnahme abbrechen",
+      "regenerateImage": "Bild neu generieren"
     }
   },
   "Admin": {

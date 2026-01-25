@@ -187,12 +187,16 @@ function ActivityCard({ activity }: ActivityCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm">
-              <Link
-                href={`/profile/${activity.user_id}`}
-                className="font-medium hover:underline"
-              >
-                {activity.display_name}
-              </Link>
+              {activity.user_id ? (
+                <Link
+                  href={`/profile/${activity.user_id}`}
+                  className="font-medium hover:underline"
+                >
+                  {activity.display_name || 'Unknown User'}
+                </Link>
+              ) : (
+                <span className="font-medium">{activity.display_name || 'Unknown User'}</span>
+              )}
               <span className="text-muted-foreground">
                 {' '}
                 {activityInfo.label.toLowerCase()}

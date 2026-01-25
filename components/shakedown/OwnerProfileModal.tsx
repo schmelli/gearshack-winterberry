@@ -105,7 +105,7 @@ export function OwnerProfileModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm overflow-hidden p-0">
         <DialogHeader className="sr-only">
-          <DialogTitle>Owner Profile</DialogTitle>
+          <DialogTitle>{t('ownerProfile')}</DialogTitle>
         </DialogHeader>
 
         {/* Owner unavailable state (T053) */}

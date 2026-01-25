@@ -18,13 +18,33 @@ class RateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private readonly maxAttempts: number;
   private readonly windowMs: number;
+  private readonly maxStoreSize: number;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private lastCleanup: number = 0;
+  private readonly cleanupIntervalMs: number = 5 * 60 * 1000;
 
-  constructor(maxAttempts: number, windowMs: number) {
+  constructor(maxAttempts: number, windowMs: number, maxStoreSize: number = 10000) {
     this.maxAttempts = maxAttempts;
     this.windowMs = windowMs;
+    this.maxStoreSize = maxStoreSize;
 
-    // Cleanup expired entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Note: In serverless environments, setInterval can cause memory leaks.
+    // We use lazy cleanup instead - cleanup runs during check() calls.
+    // Only start interval in long-running processes.
+    if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      this.cleanupIntervalId = setInterval(() => this.cleanup(), this.cleanupIntervalMs);
+    }
+  }
+
+  /**
+   * Clean up resources (call when rate limiter is no longer needed)
+   */
+  destroy(): void {
+    if (this.cleanupIntervalId !== null) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    this.store.clear();
   }
 
   /**
@@ -39,9 +59,33 @@ class RateLimiter {
     resetAt: number;
   } {
     const now = Date.now();
+
+    // Lazy cleanup in production (serverless) - run periodically during checks
+    if (now - this.lastCleanup > this.cleanupIntervalMs) {
+      this.cleanup();
+      this.lastCleanup = now;
+    }
+
     const entry = this.store.get(userId);
 
     if (!entry) {
+      // Enforce max store size to prevent unbounded memory growth
+      if (this.store.size >= this.maxStoreSize) {
+        // LRU eviction: Remove entry with oldest activity (least recently used)
+        let lruKey: string | null = null;
+        let oldestActivity = Infinity;
+
+        for (const [key, value] of this.store.entries()) {
+          const lastAttempt = value.attempts[value.attempts.length - 1] || 0;
+          if (lastAttempt < oldestActivity) {
+            oldestActivity = lastAttempt;
+            lruKey = key;
+          }
+        }
+
+        if (lruKey) this.store.delete(lruKey);
+      }
+
       // First attempt - create new entry
       this.store.set(userId, {
         attempts: [now],
@@ -59,23 +103,26 @@ class RateLimiter {
     const windowStart = now - this.windowMs;
     entry.attempts = entry.attempts.filter(timestamp => timestamp > windowStart);
 
-    // Check if limit exceeded
+    // Check if limit exceeded (JavaScript's single-threaded event loop makes this atomic
+    // within a single tick; NOTE: This is NOT thread-safe for multi-threaded environments)
     if (entry.attempts.length >= this.maxAttempts) {
+      // Update store with cleaned attempts
+      this.store.set(userId, entry);
       return {
         allowed: false,
         remaining: 0,
-        resetAt: entry.attempts[0] + this.windowMs,
+        resetAt: entry.attempts[0] ? entry.attempts[0] + this.windowMs : now + this.windowMs,
       };
     }
 
-    // Add current attempt
+    // Add current attempt atomically with check
     entry.attempts.push(now);
     this.store.set(userId, entry);
 
     return {
       allowed: true,
       remaining: this.maxAttempts - entry.attempts.length,
-      resetAt: entry.attempts[0] + this.windowMs,
+      resetAt: entry.attempts[0] ? entry.attempts[0] + this.windowMs : now + this.windowMs,
     };
   }
 
@@ -134,6 +181,33 @@ class RateLimiter {
  */
 export const imageGenerationLimiter = new RateLimiter(
   5, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for shakedown creation
+ * Limit: 10 shakedowns per hour per user
+ */
+export const shakedownCreationLimiter = new RateLimiter(
+  10, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for shakedown feedback creation
+ * Limit: 30 feedback posts per hour per user
+ */
+export const shakedownFeedbackLimiter = new RateLimiter(
+  30, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for AI assistant chat
+ * Limit: 50 messages per hour per user
+ */
+export const aiChatLimiter = new RateLimiter(
+  50, // maxAttempts
   60 * 60 * 1000 // windowMs (1 hour)
 );
 

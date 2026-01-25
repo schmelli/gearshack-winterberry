@@ -81,12 +81,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse optional params
+    // Parse optional params with NaN validation
     const productTypeKeywords = productTypeKeywordsRaw
       ? productTypeKeywordsRaw.split(',').map((k) => k.trim())
       : undefined;
-    const msrp = msrpRaw ? parseFloat(msrpRaw) : undefined;
-    const limit = limitRaw ? parseInt(limitRaw, 10) : 3;
+    const msrpParsed = msrpRaw ? parseFloat(msrpRaw) : undefined;
+    const msrp = msrpParsed !== undefined && Number.isFinite(msrpParsed) ? msrpParsed : undefined;
+    const limitParsed = limitRaw ? parseInt(limitRaw, 10) : 3;
+    const limit = Number.isFinite(limitParsed) && limitParsed > 0 ? limitParsed : 3;
 
     // Get eBay site config for locale
     const siteConfig = getEbaySiteForLocale(locale);
@@ -134,7 +136,7 @@ export async function GET(request: NextRequest) {
 
       // Store in cache (upsert)
       const expiresAt = new Date(Date.now() + CACHE_TTL_MS).toISOString();
-      await supabase
+      const { error: cacheError } = await supabase
         .from('ebay_price_cache')
         .upsert(
           {
@@ -150,7 +152,10 @@ export async function GET(request: NextRequest) {
           }
         );
 
-      if (process.env.NODE_ENV === 'development') {
+      if (cacheError) {
+        console.warn('[eBay API] Failed to cache results:', cacheError);
+        // Non-fatal: continue with response, but log for monitoring
+      } else if (process.env.NODE_ENV === 'development') {
         console.log(`[eBay API] Cached ${listings.length} results for "${normalizedQuery}"`);
       }
     }

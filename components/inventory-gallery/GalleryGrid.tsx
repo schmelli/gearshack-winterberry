@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
@@ -82,16 +83,6 @@ const GRID_CLASSES = {
 // Component
 // =============================================================================
 
-/**
- * Default empty state translations
- * T073: Separated to allow wishlist-specific overrides
- */
-const DEFAULT_EMPTY_STATE_TRANSLATIONS: EmptyStateTranslations = {
-  noResults: 'No gear matches your filters',
-  noResultsSubtext: 'Try adjusting your search or category filter',
-  clearFilters: 'Clear all filters',
-};
-
 export function GalleryGrid({
   items,
   groupedItems = [],
@@ -106,8 +97,14 @@ export function GalleryGrid({
   onMoveComplete,
   emptyStateTranslations,
 }: GalleryGridProps) {
-  // T073: Use provided translations or fall back to defaults
-  const emptyMessages = emptyStateTranslations ?? DEFAULT_EMPTY_STATE_TRANSLATIONS;
+  const t = useTranslations('Inventory');
+
+  // T073: Use provided translations or fall back to translated defaults
+  const emptyMessages = emptyStateTranslations ?? {
+    noResults: t('emptyState.noResults'),
+    noResultsSubtext: t('emptyState.noResultsSubtext'),
+    clearFilters: t('emptyState.clearFilters'),
+  };
 
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -135,70 +132,59 @@ export function GalleryGrid({
 
   // Feature 046: Render with category separators when sorting by category
   // Feature 054: Virtualize both groups AND items within groups for better performance
-  // Instead of rendering all items in a group at once, we virtualize each group's grid
+  // FIXED: GroupedVirtuoso's itemContent receives ITEM index, not group index.
+  // We use groupContent for group headers and itemContent for individual items.
   if (sortOption === 'category' && groupedItems.length > 0) {
-    // Flatten items while tracking group boundaries
-    const flattenedItems: GearItem[] = [];
-    const groupCounts: number[] = [];
+    // Build group counts array for GroupedVirtuoso
+    const groupCounts: number[] = groupedItems.map((group) => group.items.length);
 
-    groupedItems.forEach((group) => {
-      flattenedItems.push(...group.items);
-      groupCounts.push(group.items.length);
+    // Build flat items array with group index tracking
+    const flattenedItems: Array<{ item: GearItem; groupIndex: number }> = [];
+    groupedItems.forEach((group, groupIndex) => {
+      group.items.forEach((item) => {
+        flattenedItems.push({ item, groupIndex });
+      });
     });
-
-    // Custom List component for grid layout
-    const GridList = React.forwardRef<HTMLDivElement, ListProps>((props, ref) => (
-      <div ref={ref} className={cn(gridClass)}>
-        {props.children}
-      </div>
-    ));
-    GridList.displayName = 'GridList';
 
     return (
       <GroupedVirtuoso
         useWindowScroll
         groupCounts={groupCounts}
-        overscan={2}
-        itemContent={(index: number) => {
-          const group = groupedItems[index];
+        overscan={50}
+        groupContent={(groupIndex: number) => {
+          const group = groupedItems[groupIndex];
           if (!group) return null;
 
           return (
-            <section key={group.categoryId ?? 'uncategorized'} className="mb-8">
-              {/* Category Separator Header */}
-              <div className="mb-4 flex items-center gap-4">
-                <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
-                  {group.categoryLabel}
-                </h2>
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
-                  {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
-                </span>
-              </div>
-              {/* Virtualized Items Grid for this category */}
-              <VirtuosoGrid
-                useWindowScroll
-                totalCount={group.items.length}
-                overscan={50}
-                listClassName={cn(gridClass)}
-                itemContent={(itemIndex: number) => {
-                  const item = group.items[itemIndex];
-                  if (!item) return null;
+            <div className="mb-4 mt-8 first:mt-0 flex items-center gap-4 bg-background py-2">
+              <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
+                {group.categoryLabel}
+              </h2>
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
+              </span>
+            </div>
+          );
+        }}
+        itemContent={(index: number) => {
+          // FIXED: index is the flat item index, not group index
+          const flatItem = flattenedItems[index];
+          if (!flatItem) return null;
 
-                  return (
-                    <GearCard
-                      key={item.id}
-                      item={item}
-                      viewDensity={viewDensity}
-                      onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                      context={context}
-                      onMoveToInventory={onMoveToInventory}
-                      onMoveComplete={onMoveComplete}
-                    />
-                  );
-                }}
+          const { item } = flatItem;
+          return (
+            <div className={cn(gridClass, 'mb-2')}>
+              <GearCard
+                key={item.id}
+                item={item}
+                viewDensity={viewDensity}
+                onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                context={context}
+                onMoveToInventory={onMoveToInventory}
+                onMoveComplete={onMoveComplete}
               />
-            </section>
+            </div>
           );
         }}
       />

@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { Users, MessageSquare, Star, ShoppingBag } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface CommunityStepProps extends Pick<OnboardingStepProps, 'onSkip'> {}
+type CommunityStepProps = Pick<OnboardingStepProps, 'onSkip'>;
 
 export function CommunityStep({ onSkip }: CommunityStepProps) {
   const t = useTranslations('Onboarding');

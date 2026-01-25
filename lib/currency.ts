@@ -112,9 +112,24 @@ export function convertCurrency(
     return null;
   }
 
+  // Guard against division by zero (invalid rate)
+  if (fromRate === 0) {
+    return null;
+  }
+
+  // Guard against invalid input amount
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
   // Convert: amount in fromCurrency -> base currency -> toCurrency
   const amountInBase = amount / fromRate;
   const amountInTarget = amountInBase * toRate;
+
+  // Validate result is finite (guards against unexpected NaN/Infinity from edge cases)
+  if (!Number.isFinite(amountInTarget)) {
+    return null;
+  }
 
   return amountInTarget;
 }

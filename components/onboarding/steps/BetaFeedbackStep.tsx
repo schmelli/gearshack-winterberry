@@ -13,9 +13,9 @@ import { useTranslations } from 'next-intl';
 import { FlaskConical, Bug, MessageCircle, Heart } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface BetaFeedbackStepProps extends Pick<OnboardingStepProps, 'onComplete'> {}
+type BetaFeedbackStepProps = Pick<OnboardingStepProps, 'onComplete'>;
 
-export function BetaFeedbackStep({ onComplete }: BetaFeedbackStepProps) {
+export function BetaFeedbackStep({ onComplete: _onComplete }: BetaFeedbackStepProps) {
   const t = useTranslations('Onboarding');
 
   return (

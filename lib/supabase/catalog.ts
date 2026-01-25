@@ -14,16 +14,21 @@ import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
 // ============================================================================
 
 /**
- * Escapes special characters in LIKE/ILIKE patterns.
+ * Escapes special characters in LIKE/ILIKE patterns AND PostgREST .or() syntax.
  * Prevents user input containing %, _, or \ from being interpreted as wildcards.
+ * Also prevents PostgREST filter injection via commas, parens, and dots.
  * @param input - Raw user input
- * @returns Escaped string safe for LIKE patterns
+ * @returns Escaped string safe for LIKE patterns and .or() filter strings
  */
 function escapeLikePattern(input: string): string {
   return input
     .replace(/\\/g, '\\\\')  // Escape backslash first
     .replace(/%/g, '\\%')    // Escape percent
-    .replace(/_/g, '\\_');   // Escape underscore
+    .replace(/_/g, '\\_')    // Escape underscore
+    .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')      // Remove opening parens (PostgREST grouping)
+    .replace(/\)/g, '')      // Remove closing parens (PostgREST grouping)
+    .replace(/\./g, ' ');    // Replace dots with space (prevents .eq., .neq. injection)
 }
 
 // ============================================================================
@@ -81,12 +86,14 @@ export async function fuzzyBrandSearch(
   return (data || []).map((brand) => {
     // Calculate simple similarity score based on match position
     const normalized = brand.name_normalized || brand.name.toLowerCase();
+    // Guard against division by zero for empty names
+    const normalizedLength = normalized.length || 1;
     const matchIndex = normalized.indexOf(normalizedQuery);
     const similarity =
       matchIndex === 0
-        ? 0.9 + 0.1 * (normalizedQuery.length / normalized.length)
+        ? 0.9 + 0.1 * (normalizedQuery.length / normalizedLength)
         : matchIndex > 0
-          ? 0.5 + 0.3 * (normalizedQuery.length / normalized.length)
+          ? 0.5 + 0.3 * (normalizedQuery.length / normalizedLength)
           : 0.3;
 
     return {

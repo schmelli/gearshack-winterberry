@@ -12,7 +12,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  OnboardingStep,
   OnboardingStepConfig,
   UseOnboardingReturn,
   OnboardingState,
@@ -60,7 +59,8 @@ export function useOnboarding({
   hasCompletedOnboarding,
   onComplete,
 }: UseOnboardingOptions): UseOnboardingReturn {
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Filter steps based on visibility
   const visibleSteps = useMemo(
@@ -96,7 +96,8 @@ export function useOnboarding({
   const totalSteps = visibleSteps.length;
   const isFirstStep = state.currentStepIndex === 0;
   const isLastStep = state.currentStepIndex === totalSteps - 1;
-  const progress = ((state.currentStepIndex + 1) / totalSteps) * 100;
+  // Guard against division by zero (defensive - visibleSteps should always have items)
+  const progress = totalSteps > 0 ? ((state.currentStepIndex + 1) / totalSteps) * 100 : 0;
 
   // Actions
   const nextStep = useCallback(() => {

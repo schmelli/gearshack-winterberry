@@ -13,7 +13,7 @@
  * for URL-synced filter state.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchBulletinPosts } from '@/lib/supabase/bulletin-queries';
 import { useBulletinFilters } from './useBulletinFilters';
@@ -71,6 +71,9 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     error: null,
   });
 
+  // Track fetch ID to prevent race conditions in loadMore
+  const loadMoreFetchIdRef = useRef(0);
+
   /**
    * Load initial posts
    */
@@ -104,11 +107,15 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
 
   /**
    * Load more posts (infinite scroll)
+   * Uses fetchId to prevent race conditions when loadMore is called rapidly
    */
   const loadMore = useCallback(async () => {
     if (state.loadingState !== 'idle' || !state.hasMore || !state.nextCursor) {
       return;
     }
+
+    // Increment fetch ID and capture for this request
+    const fetchId = ++loadMoreFetchIdRef.current;
 
     setState((prev) => ({ ...prev, loadingState: 'loading-more' }));
 
@@ -120,6 +127,9 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
         limit: BULLETIN_CONSTANTS.POSTS_PER_PAGE,
       });
 
+      // Only update state if this is still the current fetch (prevent race condition)
+      if (fetchId !== loadMoreFetchIdRef.current) return;
+
       setState((prev) => ({
         ...prev,
         posts: [...prev.posts, ...result.posts],
@@ -128,6 +138,9 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
         loadingState: 'idle',
       }));
     } catch (err) {
+      // Only update state if this is still the current fetch
+      if (fetchId !== loadMoreFetchIdRef.current) return;
+
       const message =
         err instanceof Error ? err.message : 'Failed to load more posts';
       setState((prev) => ({

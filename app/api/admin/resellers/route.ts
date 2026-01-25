@@ -25,6 +25,21 @@ import type {
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+// SECURITY: Whitelist of allowed sort fields to prevent SQL injection
+// Only columns that exist in the resellers table are allowed
+const ALLOWED_SORT_FIELDS = [
+  'name',
+  'website_url',
+  'reseller_type',
+  'status',
+  'is_active',
+  'priority',
+  'created_at',
+  'updated_at',
+] as const;
+
+type AllowedSortField = typeof ALLOWED_SORT_FIELDS[number];
+
 // =============================================================================
 // GET - List Resellers
 // =============================================================================
@@ -41,27 +56,42 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const pageSize = Math.min(
-      MAX_PAGE_SIZE,
-      Math.max(1, parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE)))
-    );
+    const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(pageRaw) ? Math.max(1, pageRaw) : 1;
+    const pageSizeRaw = parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10);
+    const pageSize = Number.isFinite(pageSizeRaw)
+      ? Math.min(MAX_PAGE_SIZE, Math.max(1, pageSizeRaw))
+      : DEFAULT_PAGE_SIZE;
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type') as Reseller['resellerType'] | null;
     const status = searchParams.get('status') as Reseller['status'] | null;
     const country = searchParams.get('country') || '';
     const isActive = searchParams.get('isActive');
-    const sortField = searchParams.get('sortField') || 'name';
+    const sortFieldRaw = searchParams.get('sortField') || 'name';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
+
+    // SECURITY: Validate sortField against whitelist to prevent SQL injection
+    const sortField: AllowedSortField = ALLOWED_SORT_FIELDS.includes(sortFieldRaw as AllowedSortField)
+      ? (sortFieldRaw as AllowedSortField)
+      : 'name';
 
     // Build query
     let query = supabase
       .from('resellers')
       .select('*', { count: 'exact' });
 
-    // Apply filters
+    // Apply filters with sanitized search input
     if (search) {
-      query = query.or(`name.ilike.%${search}%,website_url.ilike.%${search}%`);
+      // Sanitize search: escape backslashes, ILIKE wildcards, and PostgREST operators
+      const sanitizedSearch = search
+        .slice(0, 100) // Limit length
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
+        .replace(/\(/g, '')      // Remove parentheses (PostgREST operators)
+        .replace(/\)/g, '');
+      query = query.or(`name.ilike.%${sanitizedSearch}%,website_url.ilike.%${sanitizedSearch}%`);
     }
 
     if (type) {
@@ -149,8 +179,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    // Parse and validate request body
-    const rawBody = await request.json();
+    // Parse and validate request body with JSON error handling
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validationResult = CreateResellerSchema.safeParse(rawBody);
 
     if (!validationResult.success) {

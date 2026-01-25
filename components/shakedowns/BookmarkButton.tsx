@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Bookmark, BookmarkCheck, Loader2, StickyNote, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -99,14 +99,20 @@ export function BookmarkButton({
   const [isNotePopoverOpen, setIsNotePopoverOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(note || '');
 
-  // Sync with props when they change (e.g., from server refresh)
-  if (isBookmarked !== optimisticIsBookmarked && !isLoading) {
-    setOptimisticIsBookmarked(isBookmarked);
-  }
-  if (note !== optimisticNote && !isLoading) {
-    setOptimisticNote(note || '');
-    setNoteInput(note || '');
-  }
+  // FIXED: Sync with props when they change - moved to useEffect to avoid
+  // state updates during render which can cause infinite loops
+  useEffect(() => {
+    if (!isLoading) {
+      setOptimisticIsBookmarked(isBookmarked);
+    }
+  }, [isBookmarked, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setOptimisticNote(note || '');
+      setNoteInput(note || '');
+    }
+  }, [note, isLoading]);
 
   // Determine if note features are enabled
   const hasNoteSupport = Boolean(onNoteUpdate);
@@ -331,7 +337,7 @@ export function BookmarkButton({
                       'bg-amber-500 dark:bg-amber-400',
                       'ring-2 ring-background'
                     )}
-                    aria-label="Has note"
+                    aria-label={t('ariaLabels.hasNote')}
                   />
                 )}
               </Button>
@@ -374,7 +380,7 @@ export function BookmarkButton({
                     className="gap-2"
                   >
                     <StickyNote className="size-4" />
-                    {hasNote ? 'Edit Note' : 'Add Note'}
+                    {hasNote ? t('actions.editNote') : t('actions.addNote')}
                   </DropdownMenuItem>
                 </PopoverTrigger>
                 <PopoverContent
@@ -389,7 +395,7 @@ export function BookmarkButton({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">
-                        {hasNote ? 'Edit Note' : 'Add Note'}
+                        {hasNote ? t('actions.editNote') : t('actions.addNote')}
                       </span>
                       <Button
                         variant="ghost"
@@ -398,13 +404,13 @@ export function BookmarkButton({
                         onClick={() => setIsNotePopoverOpen(false)}
                       >
                         <X className="size-3.5" />
-                        <span className="sr-only">Close</span>
+                        <span className="sr-only">{t('actions.close')}</span>
                       </Button>
                     </div>
                     <Textarea
                       value={noteInput}
                       onChange={(e) => setNoteInput(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-                      placeholder="Add a note..."
+                      placeholder={t('placeholder.addNote')}
                       className="min-h-[80px] text-sm resize-none"
                       maxLength={MAX_NOTE_LENGTH}
                     />
@@ -421,7 +427,7 @@ export function BookmarkButton({
                             disabled={isLoading}
                             className="text-destructive hover:text-destructive"
                           >
-                            Clear
+                            {t('actions.clearNote')}
                           </Button>
                         )}
                         <Button
@@ -432,7 +438,7 @@ export function BookmarkButton({
                           {isLoading ? (
                             <Loader2 className="size-3.5 animate-spin" />
                           ) : (
-                            'Save'
+                            t('actions.save')
                           )}
                         </Button>
                       </div>
@@ -450,7 +456,7 @@ export function BookmarkButton({
                   className="gap-2"
                 >
                   <X className="size-4" />
-                  Clear Note
+                  {t('actions.clearNote')}
                 </DropdownMenuItem>
               )}
             </>

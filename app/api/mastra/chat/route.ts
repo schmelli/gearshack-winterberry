@@ -51,7 +51,7 @@ import {
   classifyQuery,
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
-// Rate limiting is handled by middleware - imports removed
+import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 // MIGRATED TO MASTRA AGENT: import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
@@ -595,15 +595,9 @@ export async function POST(request: Request): Promise<Response> {
     // Using checkAndIncrementRateLimit for atomic rate limit check and increment
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
 
-    // TESTING: Temporarily bypass rate limiting
-    const rateLimitResult = {
-      allowed: true,
-      limit: null,
-      remaining: null,
-      resetAt: new Date(Date.now() + 3600000) // 1 hour from now
-    };
-    const [memoryContextResult] = await Promise.all([
-      // checkAndIncrementRateLimit(user.id, operationType as OperationType), // DISABLED FOR TESTING
+    // Rate limiting and memory context fetch in parallel
+    const [rateLimitResult, memoryContextResult] = await Promise.all([
+      checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
         'memory_retrieval',

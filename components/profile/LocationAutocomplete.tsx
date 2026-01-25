@@ -86,13 +86,19 @@ export function LocationAutocomplete({
 
   // Handle suggestion selection
   const handleSuggestionClick = async (placeId: string) => {
-    const location = await selectPlace(placeId);
-    if (location) {
-      setInputValue(location.formattedAddress);
-      onSelect(location);
+    try {
+      const location = await selectPlace(placeId);
+      if (location) {
+        setInputValue(location.formattedAddress);
+        onSelect(location);
+      }
+    } catch (error) {
+      console.error('Failed to select location:', error);
+      // Error will be shown via the searchError state from the hook
+    } finally {
+      setIsOpen(false);
+      clear();
     }
-    setIsOpen(false);
-    clear();
   };
 
   // Handle clear button

@@ -92,7 +92,8 @@ export async function GET(request: NextRequest) {
     let level: 1 | 2 | 3 | undefined;
     if (levelParam) {
       const parsed = parseInt(levelParam, 10);
-      if (![1, 2, 3].includes(parsed)) {
+      // Check for NaN first, then validate value is 1, 2, or 3
+      if (Number.isNaN(parsed) || ![1, 2, 3].includes(parsed)) {
         return NextResponse.json(
           { error: 'Invalid level parameter. Must be 1, 2, or 3.' },
           { status: 400 }
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[GearGraph Categories] Query error:', error);
       return NextResponse.json(
-        { error: `Database error: ${error.message}` },
+        { error: 'Failed to fetch categories' },
         { status: 500 }
       );
     }

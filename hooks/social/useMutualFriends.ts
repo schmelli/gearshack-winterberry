@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { fetchMutualFriends, getMutualFriendsCount } from '@/lib/supabase/social-queries';
@@ -64,28 +64,44 @@ export function useMutualFriendsCount(targetUserId: string): {
   const { user } = useAuthContext();
   const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (!user?.uid || !targetUserId || user.uid === targetUserId) {
       setCount(0);
       setIsLoading(false);
-      return;
+      return () => {
+        isMountedRef.current = false;
+      };
     }
 
     const loadCount = async () => {
       try {
         setIsLoading(true);
         const result = await getMutualFriendsCount(user.uid, targetUserId);
-        setCount(result);
+        if (isMountedRef.current) {
+          setCount(result);
+        }
       } catch (err) {
         console.error('Error loading mutual friends count:', err);
-        setCount(0);
+        if (isMountedRef.current) {
+          setCount(0);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadCount();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [user?.uid, targetUserId]);
 
   return { count, isLoading };

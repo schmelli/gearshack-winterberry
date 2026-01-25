@@ -168,15 +168,34 @@ export async function executeSearchCatalog(
     }
 
     // Apply text search (only if query provided)
+    // Sanitize query to prevent PostgREST filter injection via .or() delimiter (comma)
     if (query) {
-      dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+      const sanitizedQuery = query
+        .slice(0, 200) // Max length already validated by schema
+        .replace(/\\/g, '\\\\') // Escape backslash first
+        .replace(/%/g, '\\%')   // Escape percent
+        .replace(/_/g, '\\_')   // Escape underscore
+        .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+        .replace(/\(/g, '')     // Remove opening parens (PostgREST grouping)
+        .replace(/\)/g, '')     // Remove closing parens (PostgREST grouping)
+        .replace(/\./g, ' ')    // Replace dots with space (prevents .eq., .neq. injection)
+        .trim();
+
+      if (sanitizedQuery) {
+        dbQuery = dbQuery.or(`name.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`);
+      }
       appliedFilters.query = query;
     }
 
     // Apply filters
     if (filters) {
       if (filters.productType) {
-        dbQuery = dbQuery.ilike('product_type', filters.productType);
+        // Sanitize productType to prevent ILIKE injection
+        const sanitizedProductType = filters.productType
+          .replace(/\\/g, '\\\\')  // Escape backslash first
+          .replace(/%/g, '\\%')    // Escape percent (ILIKE wildcard)
+          .replace(/_/g, '\\_');   // Escape underscore (ILIKE single-char wildcard)
+        dbQuery = dbQuery.ilike('product_type', `%${sanitizedProductType}%`);
         appliedFilters.productType = filters.productType;
       }
       if (filters.weightMin !== undefined) {

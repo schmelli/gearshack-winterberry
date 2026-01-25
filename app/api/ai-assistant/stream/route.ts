@@ -53,7 +53,16 @@ export async function POST(request: Request) {
   const supabase = await createClient();
 
   try {
-    const body: StreamRequest = await request.json();
+    // Parse JSON with error handling
+    let body: StreamRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const { conversationId, message, context, enableTools = false } = body;
 
     // 1. Authenticate user

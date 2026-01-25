@@ -10,6 +10,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface TypingUser {
   userId: string;
@@ -26,6 +27,8 @@ interface TypingIndicatorProps {
  * Animated typing indicator showing who is typing.
  */
 export function TypingIndicator({ typingUsers, className }: TypingIndicatorProps) {
+  const t = useTranslations('Messaging');
+
   if (typingUsers.length === 0) {
     return null;
   }
@@ -33,11 +36,11 @@ export function TypingIndicator({ typingUsers, className }: TypingIndicatorProps
   // Build typing text
   let typingText: string;
   if (typingUsers.length === 1) {
-    typingText = `${typingUsers[0].displayName} is typing`;
+    typingText = t('typing.oneUser', { name: typingUsers[0].displayName });
   } else if (typingUsers.length === 2) {
-    typingText = `${typingUsers[0].displayName} and ${typingUsers[1].displayName} are typing`;
+    typingText = t('typing.twoUsers', { name1: typingUsers[0].displayName, name2: typingUsers[1].displayName });
   } else {
-    typingText = 'Several people are typing';
+    typingText = t('typing.several');
   }
 
   return (

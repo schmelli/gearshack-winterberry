@@ -30,6 +30,58 @@ export interface SourceUrlMetadata {
 }
 
 // =============================================================================
+// SSRF Protection
+// =============================================================================
+
+/**
+ * Check if a URL points to a private/internal network (SSRF protection)
+ */
+function isPrivateOrInternalUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost variations
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '[::1]' ||
+      hostname === '0.0.0.0'
+    ) {
+      return true;
+    }
+
+    // Block private IPv4 ranges
+    const ipv4Patterns = [
+      /^10\./,                              // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,     // 172.16.0.0/12
+      /^192\.168\./,                        // 192.168.0.0/16
+      /^169\.254\./,                        // Link-local 169.254.0.0/16
+      /^127\./,                             // Loopback 127.0.0.0/8
+    ];
+
+    if (ipv4Patterns.some((pattern) => pattern.test(hostname))) {
+      return true;
+    }
+
+    // Block cloud metadata endpoints
+    if (
+      hostname === '169.254.169.254' ||     // AWS/GCP metadata
+      hostname === 'metadata.google.internal' ||
+      hostname.endsWith('.internal')
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    // If parsing fails, treat as unsafe
+    return true;
+  }
+}
+
+// =============================================================================
 // URL Validation
 // =============================================================================
 
@@ -73,6 +125,16 @@ export function validateSourceUrl(url: string): SourceUrlValidation {
 
   // Normalize to HTTPS
   const normalizedUrl = trimmedUrl.replace(/^http:\/\//i, 'https://');
+
+  // SSRF Protection: Block private/internal URLs
+  if (isPrivateOrInternalUrl(normalizedUrl)) {
+    return {
+      isValid: false,
+      platform: 'unknown',
+      normalizedUrl: null,
+      error: 'URLs pointing to private or internal networks are not allowed',
+    };
+  }
 
   // Detect platform
   const platform = detectPlatform(normalizedUrl);

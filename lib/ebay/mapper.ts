@@ -12,7 +12,6 @@
 import type {
   BrowseApiSearchResponse,
   BrowseApiItemSummary,
-  EBAY_CONDITION_IDS,
 } from './types';
 import type {
   EbayListing,
@@ -33,11 +32,14 @@ function mapCondition(condition?: string, conditionId?: string): EbayCondition {
   // Map by condition ID first (more reliable)
   if (conditionId) {
     const id = parseInt(conditionId, 10);
-    if (id === 1000) return 'new';
-    if (id >= 1500 && id < 2000) return 'new'; // New (Other), New with defects
-    if (id >= 2000 && id < 3000) return 'refurbished';
-    if (id >= 2750 && id < 7000) return 'used';
-    if (id === 7000) return 'for_parts';
+    // Validate parsed ID before comparisons (NaN comparisons always return false)
+    if (Number.isFinite(id)) {
+      if (id === 1000) return 'new';
+      if (id >= 1500 && id < 2000) return 'new'; // New (Other), New with defects
+      if (id >= 2000 && id < 3000) return 'refurbished';
+      if (id >= 2750 && id < 7000) return 'used';
+      if (id === 7000) return 'for_parts';
+    }
   }
 
   // Fallback: map by condition string
@@ -128,10 +130,14 @@ function formatPrice(value: string | number, currency: string): string {
 function mapSeller(seller?: BrowseApiItemSummary['seller']): EbaySeller | null {
   if (!seller) return null;
 
+  const parsedFeedback = seller.feedbackPercentage
+    ? parseFloat(seller.feedbackPercentage)
+    : null;
+
   return {
     username: seller.username,
-    feedbackPercent: seller.feedbackPercentage
-      ? parseFloat(seller.feedbackPercentage)
+    feedbackPercent: parsedFeedback !== null && Number.isFinite(parsedFeedback)
+      ? parsedFeedback
       : null,
     feedbackCount: seller.feedbackScore ?? null,
     // Note: Top Rated status comes from topRatedBuyingExperience flag on item
@@ -176,7 +182,8 @@ function extractShippingCost(
   for (const option of shippingOptions) {
     if (option.shippingCostType === 'FIXED' && option.shippingCost) {
       const cost = parseFloat(option.shippingCost.value);
-      if (!isNaN(cost)) {
+      // Use Number.isFinite() instead of !isNaN() to also reject Infinity
+      if (Number.isFinite(cost)) {
         if (cheapestCost === null || cost < cheapestCost) {
           cheapestCost = cost;
         }
@@ -204,7 +211,8 @@ function mapItemSummary(
 ): EbayListing {
   // Get price (handle both regular price and bid price)
   const priceData = item.price || item.currentBidPrice;
-  const priceValue = priceData ? parseFloat(priceData.value) : 0;
+  const parsedPrice = priceData ? parseFloat(priceData.value) : 0;
+  const priceValue = Number.isFinite(parsedPrice) ? parsedPrice : 0;
   const priceCurrency = priceData?.currency || currency;
 
   return {

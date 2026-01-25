@@ -130,9 +130,10 @@ export function ConversionDashboard({
     }).format(amount);
   };
 
-  // Format percentage
+  // Format percentage with validation
   const formatPercent = (value: number) => {
-    return `${(value * 100).toFixed(1)}%`;
+    const percent = value * 100;
+    return Number.isFinite(percent) ? `${percent.toFixed(1)}%` : '0.0%';
   };
 
   return (

@@ -108,8 +108,15 @@ function CompactMutualFriends({
   className,
 }: Omit<MutualFriendsDisplayProps, 'variant'>) {
   const t = useTranslations('Social');
-  const { mutualFriends, count, isLoading } = useMutualFriends(targetUserId);
+  const { mutualFriends, count, isLoading } = useMutualFriends(targetUserId ?? '');
+  // IMPORTANT: All hooks must be called unconditionally before any early returns
+  // to comply with React's Rules of Hooks
   const [isOpen, setIsOpen] = useState(false);
+
+  // Guard against missing targetUserId
+  if (!targetUserId) {
+    return null;
+  }
 
   // T057: Don't render if no mutual friends
   if (!isLoading && count === 0) {
@@ -183,7 +190,12 @@ function InlineMutualFriends({
   className,
 }: Omit<MutualFriendsDisplayProps, 'variant'>) {
   const t = useTranslations('Social');
-  const { count, isLoading } = useMutualFriends(targetUserId);
+  const { count, isLoading } = useMutualFriends(targetUserId ?? '');
+
+  // Guard against missing targetUserId
+  if (!targetUserId) {
+    return null;
+  }
 
   // T057: Don't render if no mutual friends
   if (!isLoading && count === 0) {
@@ -232,7 +244,7 @@ function CardMutualFriends({
       <div className={cn('rounded-lg border border-border p-4', className)}>
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading mutual friends...</span>
+          <span className="text-sm text-muted-foreground">{t('friends.loadingMutual')}</span>
         </div>
       </div>
     );
@@ -280,7 +292,7 @@ function CardMutualFriends({
           className="mt-2 w-full"
         >
           {showAll
-            ? 'Show less'
+            ? t('friends.showLess')
             : t('friends.seeAll')}
         </Button>
       )}

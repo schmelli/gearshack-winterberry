@@ -10,12 +10,12 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Lightbulb, AlertCircle, ExternalLink, AlertTriangle, GitCompare, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import type { GearInsight, InsightType } from '@/types/geargraph';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -160,6 +160,17 @@ interface InsightCardProps {
 function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
   const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (dismissTimeoutRef.current) {
+        clearTimeout(dismissTimeoutRef.current);
+        dismissTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const config = INSIGHT_TYPE_CONFIG[insight.type] || INSIGHT_TYPE_CONFIG.tip;
   const Icon = config.icon;
@@ -186,7 +197,14 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
         setFeedbackState(isPositive ? 'positive' : 'negative');
         // If thumbs down, dismiss the insight after a short delay
         if (!isPositive && onDismiss) {
-          setTimeout(() => onDismiss(insight), 300);
+          // Clear any existing timeout before setting a new one
+          if (dismissTimeoutRef.current) {
+            clearTimeout(dismissTimeoutRef.current);
+          }
+          dismissTimeoutRef.current = setTimeout(() => {
+            onDismiss(insight);
+            dismissTimeoutRef.current = null;
+          }, 300);
         }
       }
     } catch (error) {
@@ -241,9 +259,10 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
             </div>
           </div>
           <p className="text-sm text-foreground">{insight.content}</p>
-          {insight.sourceUrl && (
+          {/* SECURITY: Validate sourceUrl before rendering */}
+          {sanitizeExternalUrl(insight.sourceUrl) && (
             <a
-              href={insight.sourceUrl}
+              href={sanitizeExternalUrl(insight.sourceUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(

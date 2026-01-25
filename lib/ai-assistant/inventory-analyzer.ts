@@ -144,7 +144,7 @@ export async function calculateBaseWeight(
       categoryName: categoryMap.get(categoryId) || 'Uncategorized',
       itemCount: items.length,
       totalWeight,
-      averageWeight: totalWeight / items.length,
+      averageWeight: items.length > 0 ? totalWeight / items.length : 0,
       heaviestItem: heaviest
         ? {
             id: heaviest.id,
@@ -396,7 +396,16 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   if (words.length === 0) return '';
 
   // Search for products matching any of the extracted terms
-  const searchTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  // SECURITY: Sanitize for ILIKE wildcards AND PostgREST .or() injection
+  const rawTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  const searchTerm = rawTerm
+    .slice(0, 100)            // Limit length to prevent DoS
+    .replace(/\\/g, '\\\\')   // Escape backslash first
+    .replace(/%/g, '\\%')     // Escape percent (ILIKE wildcard)
+    .replace(/_/g, '\\_')     // Escape underscore (ILIKE single-char wildcard)
+    .replace(/,/g, '')        // Remove commas (PostgREST .or() delimiter)
+    .replace(/[()]/g, '')     // Remove parens (PostgREST grouping)
+    .replace(/\./g, ' ');     // Replace dots (prevents .eq. injection)
 
   // Note: category_main/subcategory removed - use product_type for category display
   const { data: products, error } = await supabase

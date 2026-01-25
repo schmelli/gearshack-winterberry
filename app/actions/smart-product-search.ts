@@ -449,8 +449,8 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
       }
     }
 
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return { data: null, error: `Extraction failed: ${message}` };
+    // Log details server-side only, return generic message to client
+    return { data: null, error: 'Extraction failed. Please try again later.' };
   }
 }
 

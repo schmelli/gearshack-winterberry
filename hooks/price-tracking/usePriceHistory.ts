@@ -23,6 +23,7 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Manual fetch function for re-fetching with different days
   const fetchHistory = useCallback(async (days: number = HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS) => {
     try {
       setIsLoading(true);
@@ -36,14 +37,40 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
     }
   }, [trackingId]);
 
+  // Initial fetch with race condition protection
   useEffect(() => {
-    if (trackingId) {
-      fetchHistory();
-    } else {
-      // No tracking ID, nothing to fetch
+    if (!trackingId) {
       setIsLoading(false);
+      return;
     }
-  }, [trackingId, fetchHistory]);
+
+    let isCancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getPriceHistory(trackingId, HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS);
+        if (!isCancelled) {
+          setHistory(data);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err as Error);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadHistory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [trackingId]);
 
   return {
     history,

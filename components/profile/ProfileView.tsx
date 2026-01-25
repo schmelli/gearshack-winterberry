@@ -176,29 +176,54 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
   const hasForRent = forRent && forRent.length > 0;
   const hasForTrade = forTrade && forTrade.length > 0;
 
+  // SECURITY: Sanitize URLs to prevent javascript: XSS injection
+  const sanitizeSocialUrl = (url: string, defaultDomain?: string): string | null => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    const lowerUrl = trimmed.toLowerCase();
+
+    // Block dangerous URL schemes
+    if (
+      lowerUrl.startsWith('javascript:') ||
+      lowerUrl.startsWith('data:') ||
+      lowerUrl.startsWith('vbscript:') ||
+      lowerUrl.startsWith('file:')
+    ) {
+      return null;
+    }
+
+    // Allow http/https URLs
+    if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
+      return trimmed;
+    }
+
+    // Otherwise, prefix with default domain or https://
+    return defaultDomain ? `${defaultDomain}${trimmed}` : `https://${trimmed}`;
+  };
+
   // Social links
   const socialLinks = [
     user.instagram && {
-      href: user.instagram.startsWith('http') ? user.instagram : `https://instagram.com/${user.instagram}`,
+      href: sanitizeSocialUrl(user.instagram, 'https://instagram.com/'),
       icon: <Instagram className="h-5 w-5" />,
       label: 'Instagram',
     },
     user.facebook && {
-      href: user.facebook.startsWith('http') ? user.facebook : `https://facebook.com/${user.facebook}`,
+      href: sanitizeSocialUrl(user.facebook, 'https://facebook.com/'),
       icon: <Facebook className="h-5 w-5" />,
       label: 'Facebook',
     },
     user.youtube && {
-      href: user.youtube.startsWith('http') ? user.youtube : `https://youtube.com/${user.youtube}`,
+      href: sanitizeSocialUrl(user.youtube, 'https://youtube.com/'),
       icon: <Youtube className="h-5 w-5" />,
       label: 'YouTube',
     },
     user.website && {
-      href: user.website.startsWith('http') ? user.website : `https://${user.website}`,
+      href: sanitizeSocialUrl(user.website),
       icon: <Globe className="h-5 w-5" />,
       label: 'Website',
     },
-  ].filter(Boolean) as SocialLinkProps[];
+  ].filter(link => link && link.href) as SocialLinkProps[];
 
   const hasSocialLinks = socialLinks.length > 0;
 
@@ -216,7 +241,7 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
             size="icon"
             onClick={onEditClick}
             className="absolute top-3 left-3 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-sm"
-            aria-label="Edit profile"
+            aria-label={t('ariaLabels.editProfile')}
           >
             <Pencil className="h-4 w-4" />
           </Button>

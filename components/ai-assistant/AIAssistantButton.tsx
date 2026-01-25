@@ -11,6 +11,7 @@
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface AIAssistantButtonProps {
   onClick: () => void;
@@ -23,6 +24,8 @@ export function AIAssistantButton({
   isTrailblazer,
   className,
 }: AIAssistantButtonProps) {
+  const t = useTranslations('AIAssistant');
+
   return (
     <div className="relative">
       <Button
@@ -33,7 +36,7 @@ export function AIAssistantButton({
           'relative transition-colors hover:bg-accent',
           className
         )}
-        aria-label="AI Assistant"
+        aria-label={t('ariaLabels.aiAssistant')}
       >
         <Sparkles className="h-5 w-5" />
       </Button>
@@ -42,7 +45,7 @@ export function AIAssistantButton({
       {isTrailblazer && (
         <div
           className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-[8px] font-bold text-white shadow-sm"
-          aria-label="Trailblazer feature"
+          aria-label={t('ariaLabels.trailblazerFeature')}
         >
           T
         </div>

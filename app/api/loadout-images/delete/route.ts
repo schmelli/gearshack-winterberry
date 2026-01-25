@@ -28,7 +28,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Parse JSON with error handling
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+
     const validatedData = DeleteRequestSchema.parse(body);
 
     const { imageId, loadoutId } = validatedData;
@@ -88,7 +98,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete image' },
+      { error: 'Failed to delete image' },
       { status: 500 }
     );
   }

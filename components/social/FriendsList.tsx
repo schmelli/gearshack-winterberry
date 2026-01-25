@@ -168,6 +168,7 @@ function FriendsListItem({ friend, onUnfriend, onMessage, isUnfriending }: Frien
               size="icon"
               className="h-8 w-8"
               disabled={isUnfriending}
+              aria-label={t('common.moreOptions')}
             >
               {isUnfriending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

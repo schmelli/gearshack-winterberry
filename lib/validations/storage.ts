@@ -131,12 +131,27 @@ export function validateUploadFile(file: File): string | null {
 }
 
 /**
+ * Validates that a string is a valid UUID v4 format
+ * Used to prevent path traversal attacks via userId
+ */
+function isValidUUID(str: string): boolean {
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return UUID_REGEX.test(str);
+}
+
+/**
  * Generates a safe filename with timestamp prefix
+ * Validates userId to prevent path traversal attacks
  */
 export function generateStoragePath(
   userId: string,
   filename: string
 ): string {
+  // Validate userId is a valid UUID to prevent path traversal
+  if (!userId || !isValidUUID(userId)) {
+    throw new Error('Invalid userId: must be a valid UUID');
+  }
+
   const timestamp = Date.now();
   const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
   return `${STORAGE_CONFIG.BASE_PATH}/${userId}/${STORAGE_CONFIG.GEAR_SUBDIR}/${timestamp}-${safeName}`;

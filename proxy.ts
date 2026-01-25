@@ -25,53 +25,74 @@ const intlMiddleware = createIntlMiddleware({
 });
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
 
-  // Skip i18n middleware for API routes and auth callback
-  const isApiRoute = pathname.startsWith('/api') || pathname.startsWith('/auth');
+    // Skip i18n middleware for API routes and auth callback
+    const isApiRoute = pathname.startsWith('/api') || pathname.startsWith('/auth');
 
-  // First, run the intl middleware to get the response with locale handling
-  // But skip it for API routes
-  let response: NextResponse;
+    // First, run the intl middleware to get the response with locale handling
+    // But skip it for API routes
+    let response: NextResponse;
 
-  if (isApiRoute) {
-    response = NextResponse.next({ request });
-  } else {
-    response = intlMiddleware(request);
-    // If intl middleware didn't produce a response, create one
-    if (!response) {
+    if (isApiRoute) {
       response = NextResponse.next({ request });
+    } else {
+      response = intlMiddleware(request);
+      // If intl middleware didn't produce a response, create one
+      if (!response) {
+        response = NextResponse.next({ request });
+      }
     }
+
+    // Validate environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[Proxy] Missing Supabase environment variables');
+      return response; // Return response without session refresh
+    }
+
+    // Create Supabase client for session refresh
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            // Update cookies on the request (for downstream code)
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            // Update cookies on the response (for the browser)
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    // Refresh session if expired - this is the key Supabase middleware function
+    // IMPORTANT: Do not remove this - it refreshes the auth token
+    // Wrapped in try-catch to handle auth service failures gracefully
+    try {
+      await supabase.auth.getUser();
+    } catch (authError) {
+      console.warn('[Proxy] Session refresh failed:', authError);
+      // Continue without session refresh - user may need to re-authenticate
+    }
+
+    return response;
+  } catch (error) {
+    console.error('[Proxy] Fatal error:', error);
+    // Return basic response on critical failure
+    return NextResponse.next({ request });
   }
-
-  // Create Supabase client for session refresh
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          // Update cookies on the request (for downstream code)
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          // Update cookies on the response (for the browser)
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // Refresh session if expired - this is the key Supabase middleware function
-  // IMPORTANT: Do not remove this - it refreshes the auth token
-  await supabase.auth.getUser();
-
-  return response;
 }
 
 export const config = {

@@ -313,6 +313,11 @@
     },
     "addToWishlist": "Add to Wishlist",
     "quantityBadge": "x {quantity}",
+    "emptyState": {
+      "noResults": "No gear matches your filters",
+      "noResultsSubtext": "Try adjusting your search or category filter",
+      "clearFilters": "Clear all filters"
+    },
     "wishlist": {
       "title": "Wishlist",
       "myGear": "My Gear",
@@ -546,6 +551,15 @@
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
     },
+    "productSearch": {
+      "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
+      "enterProductName": "Enter a product name to search",
+      "searching": "Searching...",
+      "products": "products",
+      "searchWithLimit": "Search for {query} ({remaining} of {limit} left today)",
+      "searchFor": "Search for {query}",
+      "ariaLabel": "Search for product information"
+    },
     "toasts": {
       "importingImage": "Importing image...",
       "imageImportSuccess": "Image imported successfully!",
@@ -609,6 +623,14 @@
       "enterBrandName": "Enter brand/name to search weight",
       "searchFor": "Search weight for \"{query}\"",
       "searchForWithLimit": "Search weight for \"{query}\" ({remaining} of {limit} left today)"
+    },
+    "productSearchModal": {
+      "title": "Search Product Images",
+      "description": "Find product images via Google. Click an image to use it.",
+      "searchPlaceholder": "Search for product images...",
+      "noResults": "No images found. Try a different search term.",
+      "removingBackground": "Removing background...",
+      "uploading": "Uploading to Cloudinary..."
     }
   },
   "ManufacturerPrice": {
@@ -791,6 +813,12 @@
       "noQuantityAvailable": "No items available",
       "noQuantityAvailableDescription": "This item has no available quantity in inventory."
     },
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading the loadout.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again"
+    },
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "exportOptions": "Export options",
     "export": "Export",
@@ -866,6 +894,45 @@
       "lighterAlternativeAvailable": "Lighter alternative available",
       "swapItem": "Swap item",
       "saveWeight": "Save {weight}"
+    },
+    "dependencies": {
+      "title": "Add Dependencies?",
+      "description": "\"{itemName}\" has {count, plural, one {# item} other {# items}} that typically go with it:",
+      "direct": "Direct",
+      "transitive": "Transitive",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "selectedCount": "{selected} of {total} selected",
+      "skip": "Skip",
+      "addSelected": "Add Selected ({count})",
+      "addAll": "Add All ({count})"
+    },
+    "sortFilter": {
+      "sort": "Sort",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "weightLightest": "Weight (Lightest)",
+      "weightHeaviest": "Weight (Heaviest)",
+      "category": "Category",
+      "allCategories": "All Categories"
+    },
+    "heroImage": {
+      "generatingImage": "Generating image...",
+      "imageUnavailable": "Image unavailable",
+      "tryAgain": "Try again",
+      "noImage": "No image",
+      "generateNewImage": "Generate new image"
+    },
+    "stylePreferences": {
+      "title": "Style Preferences",
+      "subtitle": "Customize the visual style of your generated image",
+      "visualStyle": "Visual Style",
+      "selectStyle": "Select style...",
+      "lightingTimeOfDay": "Lighting / Time of Day",
+      "selectLighting": "Select lighting...",
+      "atmosphereOptional": "Atmosphere (Optional)",
+      "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
+      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)"
     }
   },
   "LoadoutCreation": {
@@ -884,7 +951,8 @@
       "spring": "Spring",
       "summer": "Summer",
       "fall": "Fall",
-      "winter": "Winter"
+      "winter": "Winter",
+      "selectSeason": "Select season"
     },
     "activities": {
       "hiking": "Hiking",
@@ -1029,6 +1097,12 @@
       "passwordSet": "Password set",
       "passwordRemoveFailed": "Failed to remove password",
       "passwordRemoved": "Password removed"
+    },
+    "ariaLabels": {
+      "shareOnX": "Share on X",
+      "shareOnFacebook": "Share on Facebook",
+      "shareOnWhatsApp": "Share on WhatsApp",
+      "shareViaEmail": "Share via email"
     }
   },
   "SharedLoadout": {
@@ -1039,6 +1113,7 @@
     "totalItems": "Total Items",
     "totalWeight": "Total Weight",
     "signupCta": "Add this loadout to your collection",
+    "signupDescription": "Sign up for free to save this loadout and all its items to your wishlist. Start building your perfect gear collection today.",
     "signupButton": "Sign Up Free",
     "loginButton": "Log In",
     "ownedBadge": "Owned",
@@ -1311,6 +1386,9 @@
       "profileUpdatedDescription": "Your profile has been saved successfully.",
       "saveFailed": "Save failed",
       "saveFailedDefault": "Failed to save profile"
+    },
+    "ariaLabels": {
+      "editProfile": "Edit profile"
     }
   },
   "SmartSearch": {
@@ -1391,6 +1469,86 @@
       "addParticipant": "Add Participant",
       "leaveGroup": "Leave Group",
       "reportConversation": "Report Conversation"
+    },
+    "userProfile": {
+      "title": "User Profile",
+      "online": "Online",
+      "offline": "Offline",
+      "memberSince": "Member {time}",
+      "sendMessage": "Send Message",
+      "addFriend": "Add Friend",
+      "removeFriend": "Remove Friend",
+      "blockUser": "Block User",
+      "loadFailed": "Failed to load profile"
+    },
+    "groupChat": {
+      "groupName": "Group Name",
+      "groupNamePlaceholder": "Enter group name...",
+      "participants": "Participants ({count})",
+      "addParticipants": "Add Participants",
+      "searchPlaceholder": "Search by name...",
+      "suggestedFriends": "Suggested from friends",
+      "cancel": "Cancel",
+      "createGroup": "Create Group",
+      "errorNoName": "Please enter a group name",
+      "errorNoParticipants": "Please add at least one participant",
+      "errorCreateFailed": "Failed to create group"
+    },
+    "typing": {
+      "oneUser": "{name} is typing",
+      "twoUsers": "{name1} and {name2} are typing",
+      "several": "Several people are typing"
+    },
+    "gearPicker": {
+      "title": "Share Gear Item",
+      "searchPlaceholder": "Search your gear...",
+      "noGearInInventory": "No gear in your inventory",
+      "noGearMatches": "No gear matches your search",
+      "share": "Share"
+    },
+    "locationPicker": {
+      "title": "Share Location",
+      "searchPlaceholder": "Search for a location...",
+      "currentLocation": "Current Location",
+      "gettingLocation": "Getting location...",
+      "useCurrentLocation": "Use Current Location",
+      "shareLocation": "Share Location"
+    },
+    "blocked": {
+      "noBlockedUsers": "No blocked users",
+      "emptyDescription": "When you block someone, they will appear here",
+      "blockedTime": "Blocked {time}",
+      "unblock": "Unblock",
+      "unblockDialogTitle": "Unblock User",
+      "unblockDialogDescription": "Are you sure you want to unblock {name}? They will be able to message you and find you in search again."
+    }
+  },
+  "Settings": {
+    "privacy": {
+      "whoCanMessage": "Who Can Message Me",
+      "whoCanMessageDescription": "Control who can start new conversations with you",
+      "selectWhoCanMessage": "Select who can message you",
+      "everyone": "Everyone",
+      "friendsOnly": "Friends Only",
+      "nobodyDisableDMs": "Nobody (Disable DMs)",
+      "nobody": "Nobody",
+      "everyoneCanMessageHint": "Anyone on GearShack can start a conversation with you.",
+      "friendsOnlyCanMessageHint": "Only people you have added as friends can message you.",
+      "nobodyCanMessageHint": "Nobody can start new conversations with you. Existing conversations will still work.",
+      "searchVisibility": "Search Visibility",
+      "searchVisibilityDescription": "Control whether others can find you in search",
+      "appearInSearch": "Appear in Search Results",
+      "appearInSearchHint": "When disabled, other users won't find you when searching",
+      "onlineStatus": "Online Status",
+      "onlineStatusDescription": "Control your online presence visibility",
+      "whoCanSeeOnlineStatus": "Who Can See Your Online Status",
+      "selectWhoCanSeeStatus": "Select who can see your status",
+      "everyoneCanSeeOnlineHint": "Anyone on GearShack can see when you are online.",
+      "friendsOnlyCanSeeOnlineHint": "Only your friends can see when you are online.",
+      "nobodyCanSeeOnlineHint": "Your online status is hidden from everyone.",
+      "readReceipts": "Read Receipts",
+      "readReceiptsHint": "Let others know when you've read their messages",
+      "saving": "Saving..."
     }
   },
   "Social": {
@@ -1401,7 +1559,8 @@
       "loading": "Loading...",
       "refresh": "Refresh",
       "message": "Message",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "moreOptions": "More options"
     },
     "following": {
       "title": "Following",
@@ -1450,6 +1609,8 @@
       "mutualFriend": "1 mutual friend",
       "noMutualFriends": "No mutual friends",
       "seeAll": "See all",
+      "showLess": "Show less",
+      "loadingMutual": "Loading mutual friends...",
       "friendLimit": "You've reached the friend limit (1,000). Remove a friend to add a new one.",
       "rateLimit": "You've sent too many friend requests. Try again later.",
       "noMessageExchange": "You need to message {name} first before sending a friend request."
@@ -1538,6 +1699,14 @@
       "presetFailed": "Failed to apply preset",
       "settingUpdated": "Setting updated",
       "settingFailed": "Failed to update setting"
+    },
+    "theme": {
+      "darkMode": "Dark Mode",
+      "usingDarkTheme": "Using dark theme",
+      "usingLightTheme": "Using light theme"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Toggle dark mode"
     }
   },
   "Shakedowns": {
@@ -1621,6 +1790,9 @@
       "updateSuccess": "Feedback updated successfully",
       "deleteSuccess": "Feedback deleted"
     },
+    "placeholder": {
+      "addNote": "Add a note..."
+    },
     "actions": {
       "edit": "Edit Shakedown",
       "actionsButton": "Actions",
@@ -1652,7 +1824,12 @@
       "archiveFailed": "Failed to archive shakedown",
       "deleteSuccess": "Shakedown deleted",
       "deleteFailed": "Failed to delete shakedown",
-      "reportComingSoon": "Report functionality coming soon"
+      "reportComingSoon": "Report functionality coming soon",
+      "editNote": "Edit Note",
+      "addNote": "Add Note",
+      "clearNote": "Clear Note",
+      "save": "Save",
+      "close": "Close"
     },
     "filters": {
       "title": "Filters",
@@ -1945,6 +2122,12 @@
       "requestAttentionTooltip": "Notify others about this item",
       "requestedAttention": "requested your attention",
       "dismiss": "Dismiss"
+    },
+    "ariaLabels": {
+      "moreActions": "More actions",
+      "hasNote": "Has note",
+      "clearSearch": "Clear search",
+      "editLoadoutMetadata": "Edit loadout metadata"
     }
   },
   "Merchant": {
@@ -2022,6 +2205,8 @@
     "loadingMore": "Loading more...",
     "filters": {
       "tripType": "Trip Type",
+      "allTripTypes": "All trip types",
+      "allSeasons": "All seasons",
       "priceRange": "Price Range",
       "merchant": "Merchant",
       "featured": "Featured Only",
@@ -2949,6 +3134,76 @@
       "retailPrices": "Retail Prices",
       "noPricesYet": "No prices tracked yet",
       "enableTracking": "Enable price tracking to see offers"
+    },
+    "move": {
+      "buttonText": "Move to Inventory",
+      "moving": "Moving...",
+      "dialogTitle": "Move to Inventory",
+      "dialogDescription": "Are you sure you want to move <strong>{itemName}</strong> from your wishlist to your inventory?",
+      "dialogNote": "This will mark the item as owned gear. You can always edit its status later.",
+      "cancel": "Cancel",
+      "ariaLabelMove": "Move {itemName} to inventory",
+      "ariaLabelCancel": "Cancel and keep item in wishlist",
+      "ariaLabelMoving": "Moving item to inventory",
+      "ariaLabelConfirm": "Confirm move {itemName} to inventory",
+      "successAnnouncement": "{itemName} moved to inventory successfully."
+    },
+    "toggle": {
+      "myGear": "My Gear",
+      "wishlist": "Wishlist",
+      "viewModeToggle": "View mode toggle",
+      "switchViewsAriaLabel": "Switch between inventory and wishlist views",
+      "myGearTabAriaLabel": "My Gear tab, {count, plural, one {# item} other {# items}}",
+      "wishlistTabAriaLabel": "Wishlist tab, {count, plural, one {# item} other {# items}}",
+      "myGearCount": "My Gear, {count, plural, one {# item} other {# items}}",
+      "wishlistCount": "Wishlist, {count, plural, one {# item} other {# items}}",
+      "switchedToView": "Switched to {viewName} view. {count, plural, one {# item} other {# items}}."
+    }
+  },
+  "AIAssistant": {
+    "chatInput": {
+      "rateLimitReached": "Rate limit reached. Try again in {seconds}s.",
+      "listening": "Listening...",
+      "placeholder": "Ask me anything about your gear...",
+      "keyboardHint": "Press Enter to send, Shift+Enter for new line",
+      "sendMessage": "Send message"
+    },
+    "voice": {
+      "clickToStart": "Click to start voice input",
+      "clickToStop": "Click to stop recording",
+      "processing": "Processing your voice...",
+      "notAvailable": "Voice input not available",
+      "errorRetry": "Voice input error - click to retry",
+      "label": "Voice input"
+    },
+    "actions": {
+      "addToWishlist": "Add to Wishlist",
+      "compare": "Compare",
+      "sendMessage": "Send Message",
+      "viewDetails": "View Details"
+    },
+    "modal": {
+      "title": "AI Gear Assistant",
+      "description": "Ask questions about your gear, get recommendations, and optimize your loadouts"
+    },
+    "welcome": {
+      "title": "Welcome to AI Gear Assistant!",
+      "description": "I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.",
+      "tryAsking": "Try asking:",
+      "suggestion1": "What's my base weight?",
+      "suggestion2": "Recommend a lighter tent",
+      "suggestion3": "Show me my sleeping bags"
+    },
+    "thinking": "AI is thinking...",
+    "ariaLabels": {
+      "aiAssistant": "AI Assistant",
+      "trailblazerFeature": "Trailblazer feature",
+      "play": "Play",
+      "pause": "Pause",
+      "stop": "Stop",
+      "volume": "Volume",
+      "cancelRecording": "Cancel recording",
+      "regenerateImage": "Regenerate image"
     }
   },
   "Admin": {

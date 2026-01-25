@@ -101,14 +101,21 @@ export function CatalogSearchModal({
 }: CatalogSearchModalProps) {
   const [searchInput, setSearchInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  // Timer ref for focus delay cleanup
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { results, status, error, search, clear } = useCatalogSearch();
 
   // Focus input when modal opens
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      focusTimeoutRef.current = setTimeout(() => inputRef.current?.focus(), 100);
     }
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
   }, [open]);
 
   // Handle search submit

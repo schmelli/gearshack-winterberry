@@ -339,7 +339,7 @@ export function ShakedownFilters({
               type="button"
               onClick={() => setSearchInput('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
+              aria-label={t('ariaLabels.clearSearch')}
             >
               <X className="h-4 w-4" />
             </button>

@@ -84,6 +84,7 @@ export function useFollowing(): UseFollowingReturn {
       try {
         await followUser(user.uid, userId);
         // Refresh to get actual profile data
+        // Note: loadFollowing is intentionally excluded from deps to prevent callback instability
         await loadFollowing();
       } catch (err) {
         // Rollback on error
@@ -93,7 +94,9 @@ export function useFollowing(): UseFollowingReturn {
         throw err;
       }
     },
-    [user?.uid, loadFollowing]
+    // loadFollowing excluded to maintain callback stability - it's called but doesn't affect closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.uid]
   );
 
   /**
@@ -106,23 +109,32 @@ export function useFollowing(): UseFollowingReturn {
         throw new Error('Must be logged in to unfollow users');
       }
 
-      // Store for rollback
-      const previousFollowing = [...following];
+      // Capture the removed item for precise rollback (avoids stale closure)
+      let removedItem: FollowInfo | undefined;
 
-      // Optimistic update
-      setFollowing((prev) => prev.filter((f) => f.id !== userId));
+      // Optimistic update - also capture the removed item
+      setFollowing((prev) => {
+        removedItem = prev.find((f) => f.id === userId);
+        return prev.filter((f) => f.id !== userId);
+      });
 
       try {
         await unfollowUser(user.uid, userId);
       } catch (err) {
-        // Rollback on error
-        setFollowing(previousFollowing);
+        // Rollback on error - re-add just the removed item
+        if (removedItem) {
+          setFollowing((prev) => {
+            // Avoid duplicates - only add back if not already present
+            if (prev.some((f) => f.id === removedItem!.id)) return prev;
+            return [...prev, removedItem!];
+          });
+        }
         const message = err instanceof Error ? err.message : 'Failed to unfollow user';
         setError(message);
         throw err;
       }
     },
-    [user?.uid, following]
+    [user?.uid]
   );
 
   /**
@@ -144,10 +156,12 @@ export function useFollowing(): UseFollowingReturn {
     await loadFollowing();
   }, [loadFollowing]);
 
-  // Initial load
+  // Initial load - depend only on user.uid to prevent infinite loops
+  // loadFollowing is stable when user.uid is stable
   useEffect(() => {
     loadFollowing();
-  }, [loadFollowing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   return {
     following,
@@ -218,9 +232,11 @@ export function useIsFollowing(targetUserId: string): {
     }
   }, [user?.uid, targetUserId, isFollowing]);
 
+  // Depend on actual values, not the callback to prevent infinite loops
   useEffect(() => {
     checkFollowing();
-  }, [checkFollowing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, targetUserId]);
 
   return { isFollowing, isLoading, toggle };
 }

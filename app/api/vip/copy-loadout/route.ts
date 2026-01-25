@@ -20,7 +20,15 @@ const requestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     // Validate request body with Zod
     const validation = requestSchema.safeParse(body);
@@ -49,9 +57,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to copy loadout';
+    // Don't expose internal error details to clients
     return NextResponse.json(
-      { error: message },
+      { error: 'Failed to copy loadout' },
       { status: 500 }
     );
   }

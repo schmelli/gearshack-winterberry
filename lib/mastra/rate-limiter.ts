@@ -420,14 +420,19 @@ export async function checkAndIncrementRateLimit(
   operationType: string
 ): Promise<RateLimitCheckResult> {
   // TESTING: Bypass rate limiting if disabled via environment variable
+  // SECURITY: Only allow bypass in non-production environments
   if (process.env.DISABLE_RATE_LIMITING === 'true') {
-    console.log('[RATE LIMITER] BYPASSED - DISABLE_RATE_LIMITING=true');
-    return {
-      allowed: true,
-      limit: null,
-      remaining: null,
-      resetAt: calculateResetTime(), // Provide proper Date object
-    };
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[RATE LIMITER] WARNING: Cannot disable rate limiting in production');
+    } else {
+      console.log('[RATE LIMITER] BYPASSED - DISABLE_RATE_LIMITING=true (development only)');
+      return {
+        allowed: true,
+        limit: null,
+        remaining: null,
+        resetAt: calculateResetTime(),
+      };
+    }
   }
 
   const resetAt = calculateResetTime();

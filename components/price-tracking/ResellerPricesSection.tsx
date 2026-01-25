@@ -29,6 +29,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { sanitizeExternalUrl } from '@/lib/utils';
 import { useResellerPrices } from '@/hooks/price-tracking/useResellerPrices';
 import { usePriceTracking } from '@/hooks/price-tracking/usePriceTracking';
 import type { ResellerPriceWithDetails } from '@/types/reseller';
@@ -122,16 +123,24 @@ function ResellerPriceCard({ price }: { price: ResellerPriceWithDetails }) {
             </div>
           </div>
 
-          {/* Action Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => window.open(price.productUrl || reseller.websiteUrl, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4 mr-1" />
-            {t('visitShop')}
-          </Button>
+          {/* Action Button - SECURITY: Validate URL before opening */}
+          {sanitizeExternalUrl(price.productUrl || reseller.websiteUrl) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0"
+              asChild
+            >
+              <a
+                href={sanitizeExternalUrl(price.productUrl || reseller.websiteUrl)!}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {t('visitShop')}
+              </a>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -23,7 +23,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /** Tables in the public catalog */
 const CATALOG_TABLES = ['catalog_products', 'catalog_brands', 'categories'] as const;
-type CatalogTable = (typeof CATALOG_TABLES)[number];
+type _CatalogTable = (typeof CATALOG_TABLES)[number];
 
 /** Maximum rows to return */
 const MAX_ROWS = 50;
@@ -102,11 +102,37 @@ interface ParsedCondition {
 }
 
 /**
+ * Dangerous SQL keywords that should never appear in WHERE clauses
+ * These could be used for SQL injection attacks
+ */
+const DANGEROUS_SQL_KEYWORDS = [
+  'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE',
+  'EXEC', 'EXECUTE', 'UNION', 'INTO', 'GRANT', 'REVOKE',
+  '--', ';', '/*', '*/',
+] as const;
+
+/**
+ * Validate WHERE clause for dangerous SQL keywords
+ * @throws Error if dangerous keywords are detected
+ */
+function validateWhereClause(whereStr: string): void {
+  const upper = whereStr.toUpperCase();
+  for (const keyword of DANGEROUS_SQL_KEYWORDS) {
+    if (upper.includes(keyword)) {
+      throw new Error(`Unsafe SQL keyword detected: ${keyword}`);
+    }
+  }
+}
+
+/**
  * Parse a simple WHERE clause string into conditions
  * Supports: =, !=, <, >, <=, >=, ILIKE, LIKE, IS NULL, IS NOT NULL
  */
 function parseWhereClause(whereStr: string): ParsedCondition[] {
   if (!whereStr.trim()) return [];
+
+  // Validate for SQL injection before parsing
+  validateWhereClause(whereStr);
 
   const conditions: ParsedCondition[] = [];
 
@@ -156,7 +182,10 @@ function parseWhereClause(whereStr: string): ParsedCondition[] {
         } else if (value !== undefined) {
           if (value.toLowerCase() === 'true') parsedValue = true;
           else if (value.toLowerCase() === 'false') parsedValue = false;
-          else if (/^-?\d+(?:\.\d+)?$/.test(value)) parsedValue = parseFloat(value);
+          else if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+            const parsed = parseFloat(value);
+            parsedValue = Number.isFinite(parsed) ? parsed : null;
+          }
         }
 
         conditions.push({

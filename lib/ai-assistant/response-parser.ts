@@ -66,38 +66,54 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
   const { toolName, args } = toolCall;
 
   switch (toolName) {
-    case 'addToWishlist':
+    case 'addToWishlist': {
+      const gearItemId = typeof args.gearItemId === 'string' ? args.gearItemId : null;
+      if (!gearItemId) return null;
       return {
         type: 'add_to_wishlist',
-        gearItemId: args.gearItemId as string,
+        gearItemId,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'compareGear':
+    case 'compareGear': {
+      const gearItemIds = Array.isArray(args.gearItemIds) &&
+        args.gearItemIds.every((id): id is string => typeof id === 'string')
+        ? args.gearItemIds
+        : null;
+      if (!gearItemIds || gearItemIds.length < 2) return null;
       return {
         type: 'compare',
-        gearItemIds: (args.gearItemIds || []) as string[],
+        gearItemIds,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'sendMessage':
+    case 'sendMessage': {
+      const recipientUserId = typeof args.recipientUserId === 'string' ? args.recipientUserId : null;
+      const messagePreview = typeof args.messagePreview === 'string' ? args.messagePreview : '';
+      if (!recipientUserId) return null;
       return {
         type: 'send_message',
-        recipientUserId: args.recipientUserId as string,
-        messagePreview: (args.messagePreview || '') as string,
+        recipientUserId,
+        messagePreview,
         status: 'pending',
         error: null,
       };
+    }
 
-    case 'navigate':
+    case 'navigate': {
+      const destination = typeof args.destination === 'string' ? args.destination : null;
+      if (!destination) return null;
       return {
         type: 'navigate',
-        destination: args.destination as string,
+        destination,
         status: 'pending',
         error: null,
       };
+    }
 
     // searchCommunity tool doesn't map to an Action - it returns inline cards instead
     case 'searchCommunity':
@@ -119,17 +135,20 @@ function extractActionFromToolCall(toolCall: ToolCall): Action | null {
       return null;
 
     // compareItems returns comparison data (could trigger compare UI in future)
-    case 'compareItems':
+    case 'compareItems': {
       // If we have item IDs, we could map this to a compare action
-      if (args.itemIds && Array.isArray(args.itemIds) && args.itemIds.length >= 2) {
-        return {
-          type: 'compare',
-          gearItemIds: args.itemIds,
-          status: 'pending',
-          error: null,
-        };
-      }
-      return null;
+      const itemIds = Array.isArray(args.itemIds) &&
+        args.itemIds.every((id): id is string => typeof id === 'string')
+        ? args.itemIds
+        : null;
+      if (!itemIds || itemIds.length < 2) return null;
+      return {
+        type: 'compare',
+        gearItemIds: itemIds,
+        status: 'pending',
+        error: null,
+      };
+    }
 
     // getCommunityOffers returns community availability (data tool)
     case 'getCommunityOffers':

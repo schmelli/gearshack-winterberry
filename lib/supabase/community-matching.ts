@@ -93,29 +93,37 @@ export async function fetchCommunityAvailability(
 
   const results = new Map<string, CommunityAvailabilityMatch[]>();
 
-  // Fetch availability for each wishlist item
-  // Note: We loop instead of batch RPC because PostgreSQL function is designed for single item
-  for (const itemId of wishlistItemIds) {
-    try {
-      const { data, error } = await supabase.rpc('find_community_availability', {
-        p_user_id: user.id,
-        p_wishlist_item_id: itemId,
-      });
+  // FIXED: Execute RPC calls in parallel to avoid N+1 query pattern
+  // Using Promise.allSettled to ensure graceful degradation for individual failures
+  const rpcPromises = wishlistItemIds.map(async (itemId) => {
+    const { data, error } = await supabase.rpc('find_community_availability', {
+      p_user_id: user.id,
+      p_wishlist_item_id: itemId,
+    });
+    return { itemId, data, error };
+  });
 
+  const rpcResults = await Promise.allSettled(rpcPromises);
+
+  // Process results
+  for (const result of rpcResults) {
+    if (result.status === 'fulfilled') {
+      const { itemId, data, error } = result.value;
       if (error) {
         console.error(`Failed to fetch availability for ${itemId}:`, error);
-        // Graceful degradation: store empty array for this item
         results.set(itemId, []);
-        continue;
+      } else {
+        try {
+          const matches = (data as unknown as CommunityAvailabilityRPCResult[] | null)?.map(transformCommunityMatch) ?? [];
+          results.set(itemId, matches);
+        } catch (err) {
+          console.error(`Error processing availability for ${itemId}:`, err);
+          results.set(itemId, []);
+        }
       }
-
-      // Transform and validate results
-      const matches = (data as unknown as CommunityAvailabilityRPCResult[] | null)?.map(transformCommunityMatch) ?? [];
-      results.set(itemId, matches);
-    } catch (err) {
-      // Graceful degradation: store empty array on validation error
-      console.error(`Error processing availability for ${itemId}:`, err);
-      results.set(itemId, []);
+    } else {
+      // Promise rejected - this shouldn't happen with Supabase client but handle gracefully
+      console.error('RPC promise rejected:', result.reason);
     }
   }
 

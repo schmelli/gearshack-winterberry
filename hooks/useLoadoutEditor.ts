@@ -13,7 +13,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useLocale, useTranslations } from 'next-intl';
-import { useStore, useLoadout, useItems, useSupabaseStore } from '@/hooks/useSupabaseStore';
+import { useStore, useLoadout, useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { CategoryWeight, LoadoutItemState, ActivityType, ActivityPriorities } from '@/types/loadout';
 import { calculateTotalWeight, calculateCategoryWeights, calculateWeightSummary, formatWeight, ACTIVITY_PRIORITY_MATRIX } from '@/lib/loadout-utils';
@@ -31,6 +31,7 @@ import { useCategories } from '@/hooks/useCategories';
 export function computeAveragePriorities(
   selectedActivities: ActivityType[]
 ): ActivityPriorities {
+  // Guard against empty array (division by zero)
   if (selectedActivities.length === 0) {
     return { weight: 50, comfort: 50, durability: 50, safety: 50 };
   }
@@ -48,6 +49,7 @@ export function computeAveragePriorities(
     { weight: 0, comfort: 0, durability: 0, safety: 0 }
   );
 
+  // Count is guaranteed > 0 due to early return above
   const count = selectedActivities.length;
   return {
     weight: Math.round(totals.weight / count),
@@ -98,6 +100,9 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
   const allItems = useItems();
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
   const removeItemFromLoadout = useStore((state) => state.removeItemFromLoadout);
+  // FIXED: Extract store functions at hook level instead of calling getState() inside callbacks
+  const setItemWorn = useStore((state) => state.setItemWorn);
+  const setItemConsumable = useStore((state) => state.setItemConsumable);
 
   // Cascading Category Refactor: Get categories for weight calculations
   const { categories } = useCategories();
@@ -184,10 +189,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
         // Add the lighter alternative first (safer - if this fails, we don't lose the original)
         await addItemToLoadout(loadoutId, alternativeItemId);
 
-        // Preserve the original item's state
-        const setItemWorn = useSupabaseStore.getState().setItemWorn;
-        const setItemConsumable = useSupabaseStore.getState().setItemConsumable;
-
+        // Preserve the original item's state (using hook-level extracted functions)
         if (isWorn) {
           await setItemWorn(loadoutId, alternativeItemId, true);
         }
@@ -222,7 +224,7 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
         throw error;
       }
     },
-    [loadoutId, removeItemFromLoadout, addItemToLoadout, allItems, itemStates, t]
+    [loadoutId, removeItemFromLoadout, addItemToLoadout, allItems, itemStates, t, setItemWorn, setItemConsumable]
   );
 
   return {

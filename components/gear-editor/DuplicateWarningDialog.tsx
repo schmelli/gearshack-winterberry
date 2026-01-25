@@ -131,7 +131,9 @@ export function DuplicateWarningDialog({
   const existingItem = bestMatch.existingItem;
   const matchPercentage = Math.round(bestMatch.score * 100);
   const existingQuantity = existingItem.quantity || 1;
-  const newQuantity = parseInt(newItem.quantity, 10) || 1;
+  // Use Number.isNaN to correctly handle "0" string input (which would incorrectly return 1 with || fallback)
+  const parsedQuantity = parseInt(newItem.quantity, 10);
+  const newQuantity = Number.isNaN(parsedQuantity) ? 1 : parsedQuantity;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>

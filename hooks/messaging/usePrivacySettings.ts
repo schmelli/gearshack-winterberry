@@ -110,6 +110,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
   }, [refresh]);
 
   // Update a single setting
+  // Use functional setState to capture previous value and avoid settings dependency
   const updateSetting = useCallback(
     async <K extends keyof PrivacySettings>(
       key: K,
@@ -117,9 +118,12 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
     ): Promise<boolean> => {
       if (!user?.id) return false;
 
-      // Optimistic update
-      const previousSettings = settings;
-      setSettings((prev) => ({ ...prev, [key]: value }));
+      // Capture previous settings for potential rollback using functional update
+      let previousSettings: PrivacySettings;
+      setSettings((prev) => {
+        previousSettings = prev;
+        return { ...prev, [key]: value };
+      });
 
       try {
         setIsSaving(true);
@@ -137,8 +141,8 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 
         return true;
       } catch (err) {
-        // Revert on error
-        setSettings(previousSettings);
+        // Revert on error using captured previous state
+        setSettings(previousSettings!);
         console.error('[usePrivacySettings] Failed to update setting:', err);
         setError('Failed to save setting');
         return false;
@@ -146,17 +150,21 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setIsSaving(false);
       }
     },
-    [user?.id, settings]
+    [user?.id]
   );
 
   // Update multiple settings at once
+  // Use functional setState to capture previous value and avoid settings dependency
   const updateSettings = useCallback(
     async (newSettings: Partial<PrivacySettings>): Promise<boolean> => {
       if (!user?.id) return false;
 
-      // Optimistic update
-      const previousSettings = settings;
-      setSettings((prev) => ({ ...prev, ...newSettings }));
+      // Capture previous settings for potential rollback using functional update
+      let previousSettings: PrivacySettings;
+      setSettings((prev) => {
+        previousSettings = prev;
+        return { ...prev, ...newSettings };
+      });
 
       try {
         setIsSaving(true);
@@ -174,8 +182,8 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 
         return true;
       } catch (err) {
-        // Revert on error
-        setSettings(previousSettings);
+        // Revert on error using captured previous state
+        setSettings(previousSettings!);
         console.error('[usePrivacySettings] Failed to update settings:', err);
         setError('Failed to save settings');
         return false;
@@ -183,7 +191,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
         setIsSaving(false);
       }
     },
-    [user?.id, settings]
+    [user?.id]
   );
 
   return {

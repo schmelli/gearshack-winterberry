@@ -13,8 +13,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import type { MissingBrand, MissingBrandRow, MissingBrandsResponse } from '@/types/contributions';
+
+// =============================================================================
+// Zod Schemas
+// =============================================================================
+
+const updateStatusSchema = z.object({
+  id: z.string().min(1, 'id is required'),
+  status: z.enum(['pending', 'added_to_catalog', 'rejected', 'merged'], {
+    errorMap: () => ({ message: 'status must be one of: pending, added_to_catalog, rejected, merged' })
+  }),
+});
 
 // =============================================================================
 // GET Handler - List Missing Brands
@@ -40,10 +52,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Parse query parameters
+    // Parse query parameters with validation
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+    const limitRaw = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : 20;
     const status = searchParams.get('status') || 'pending';
     const search = searchParams.get('search') || '';
 
@@ -60,9 +74,13 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    // Search by brand name
+    // Search by brand name - escape ILIKE special characters to prevent injection
     if (search) {
-      query = query.ilike('brand_name', `%${search}%`);
+      const sanitizedSearch = search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      query = query.ilike('brand_name', `%${sanitizedSearch}%`);
     }
 
     // Order and paginate
@@ -141,22 +159,24 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Parse request body
-    const body = await request.json();
-    const { id, status } = body as { id: string; status: string };
-
-    // Validate
-    if (!id) {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    // Parse request body with error handling
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const validStatuses = ['pending', 'added_to_catalog', 'rejected', 'merged'];
-    if (!status || !validStatuses.includes(status)) {
+    // Validate request body with Zod
+    const validation = updateStatusSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: `status must be one of: ${validStatuses.join(', ')}` },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { id, status } = validation.data;
 
     // Update the record - using raw query to avoid type issues with ungenerated table types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

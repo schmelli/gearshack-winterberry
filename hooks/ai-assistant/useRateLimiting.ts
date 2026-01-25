@@ -6,7 +6,7 @@
  * Displays countdown timer and prevents sending when limit exceeded.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface RateLimitState {
@@ -42,7 +42,8 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
     timeUntilReset: '',
   });
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Calculate human-readable time until reset
   const calculateTimeUntilReset = useCallback((resetsAt: Date): string => {

@@ -253,8 +253,14 @@ export function getFallbackImagesBySeason(season: string): FallbackImage[] {
  * @returns Random fallback image
  */
 export function getRandomFallbackImage(): FallbackImage {
+  // Guard against empty array (should never happen, but defensive)
+  if (FALLBACK_IMAGES.length === 0) {
+    throw new Error('CRITICAL: FALLBACK_IMAGES array is empty');
+  }
   const randomIndex = Math.floor(Math.random() * FALLBACK_IMAGES.length);
-  return FALLBACK_IMAGES[randomIndex];
+  // Clamp to valid range (Math.random() should never return 1.0, but be safe)
+  const safeIndex = Math.min(randomIndex, FALLBACK_IMAGES.length - 1);
+  return FALLBACK_IMAGES[safeIndex];
 }
 
 /**

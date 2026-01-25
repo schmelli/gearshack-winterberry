@@ -19,6 +19,7 @@ import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useVoiceInput } from '@/hooks/ai-assistant/useVoiceInput';
 import { VoiceInputButton, type VoiceButtonState } from './VoiceInputButton';
 import { VoiceRecordingIndicator } from './VoiceRecordingIndicator';
+import { useTranslations } from 'next-intl';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
@@ -34,6 +35,7 @@ export function ChatInput({
   isDisabled = false,
   enableVoice = true,
 }: ChatInputProps) {
+  const t = useTranslations('AIAssistant');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -151,7 +153,7 @@ export function ChatInput({
         {/* Rate Limit Warning */}
         {isRateLimited && (
           <div className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-            Rate limit reached. Try again in {remainingTime}s.
+            {t('chatInput.rateLimitReached', { seconds: remainingTime })}
           </div>
         )}
 
@@ -181,7 +183,7 @@ export function ChatInput({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? 'Listening...' : 'Ask me anything about your gear...'}
+              placeholder={isRecording ? t('chatInput.listening') : t('chatInput.placeholder')}
               className={cn(
                 'max-h-32 min-h-[60px] resize-none pr-12',
                 isOverLimit && 'border-red-500 focus-visible:ring-red-500',
@@ -200,7 +202,7 @@ export function ChatInput({
                 {characterCount}/{MAX_MESSAGE_LENGTH}
               </span>
               <span className="text-xs text-muted-foreground">
-                Press Enter to send, Shift+Enter for new line
+                {t('chatInput.keyboardHint')}
               </span>
             </div>
           </div>
@@ -227,7 +229,7 @@ export function ChatInput({
             ) : (
               <Send className="h-4 w-4" />
             )}
-            <span className="sr-only">Send message</span>
+            <span className="sr-only">{t('chatInput.sendMessage')}</span>
           </Button>
         </div>
       </form>

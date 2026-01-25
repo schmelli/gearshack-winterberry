@@ -176,9 +176,13 @@ export function LocationFormDialog({
                 type="number"
                 step="any"
                 value={form.latitude}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, latitude: parseFloat(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const parsed = parseFloat(e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    latitude: Number.isFinite(parsed) ? parsed : 0,
+                  }));
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -188,12 +192,13 @@ export function LocationFormDialog({
                 type="number"
                 step="any"
                 value={form.longitude}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const parsed = parseFloat(e.target.value);
                   setForm((prev) => ({
                     ...prev,
-                    longitude: parseFloat(e.target.value) || 0,
-                  }))
-                }
+                    longitude: Number.isFinite(parsed) ? parsed : 0,
+                  }));
+                }}
               />
             </div>
           </div>

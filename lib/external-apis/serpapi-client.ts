@@ -127,7 +127,14 @@ export async function searchGoogleShopping(
       throw new Error(`SerpApi error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    // Parse JSON with error handling
+    let data: { shopping_results?: SerpApiGoogleShoppingResult[] };
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[Google Shopping] Invalid JSON response from SerpApi');
+      return [];
+    }
     const results: SerpApiGoogleShoppingResult[] = data.shopping_results || [];
 
     // Filter results by product type before mapping (Feature 055)
@@ -197,7 +204,14 @@ export async function searchEbay(
       throw new Error(`SerpApi error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    // Parse JSON with error handling
+    let data: { organic_results?: SerpApiEbayResult[] };
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[eBay] Invalid JSON response from SerpApi');
+      return [];
+    }
     const results: SerpApiEbayResult[] = data.organic_results || [];
 
     // Filter results by product type before mapping (Feature 055)
@@ -209,7 +223,10 @@ export async function searchEbay(
       console.log(`[eBay] Filtered ${results.length} -> ${filteredResults.length} results by product type`);
     }
 
-    return filteredResults.map((result) => ({
+    // Filter out results without valid price data to prevent null access
+    return filteredResults
+      .filter((result) => result.price?.extracted != null)
+      .map((result) => ({
       id: crypto.randomUUID(),
       tracking_id: '', // Will be set by caller
       source_type: 'ebay' as const,
@@ -242,7 +259,9 @@ export async function searchEbay(
 function parseShippingCost(delivery: string): number {
   const match = delivery.match(/€(\d+(?:[.,]\d+)?)/);
   if (match) {
-    return parseFloat(match[1].replace(',', '.'));
+    const parsed = parseFloat(match[1].replace(',', '.'));
+    // Return 0 if parsing fails (NaN)
+    return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
 }
@@ -316,7 +335,9 @@ function parseEbayShippingCost(shipping: string | undefined): number | null {
   if (shipping.toLowerCase().includes('free')) return 0;
   const match = shipping.match(/[\d.,]+/);
   if (match) {
-    return parseFloat(match[0].replace(',', '.'));
+    const parsed = parseFloat(match[0].replace(',', '.'));
+    // Return null if parsing fails (NaN)
+    return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
 }
@@ -369,7 +390,14 @@ export async function searchEbayLocalized(
       throw new Error(`SerpApi error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    // Parse JSON with error handling
+    let data: { organic_results?: SerpApiEbayOrganic[] };
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[eBay Localized] Invalid JSON response from SerpApi');
+      return [];
+    }
     const results: SerpApiEbayOrganic[] = data.organic_results || [];
 
     if (process.env.NODE_ENV === 'development') {

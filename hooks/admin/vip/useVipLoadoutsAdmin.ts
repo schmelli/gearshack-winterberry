@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 // =============================================================================
@@ -72,7 +72,8 @@ export function useVipLoadoutsAdmin(userId?: string): UseVipLoadoutsAdminReturn 
     error: null,
   });
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch all VIP loadouts or loadouts for a specific VIP user
   const fetchLoadouts = useCallback(async () => {

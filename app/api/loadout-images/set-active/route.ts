@@ -27,7 +27,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Parse request body with proper error handling for malformed JSON
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validatedData = SetActiveRequestSchema.parse(body);
 
     const { imageId, loadoutId } = validatedData;
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to set active image' },
+      { error: 'Failed to set active image' },
       { status: 500 }
     );
   }

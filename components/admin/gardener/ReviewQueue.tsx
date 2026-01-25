@@ -99,15 +99,17 @@ export function ReviewQueue() {
 
   const handleJumpTo = () => {
     const pos = parseInt(jumpToPosition, 10);
-    if (!isNaN(pos) && pos >= 1 && pos <= total) {
+    if (Number.isFinite(pos) && pos >= 1 && pos <= total) {
       goToPosition(pos - 1); // Convert to 0-indexed
       setJumpToPosition('');
     }
   };
 
   const handleBatchApprove = async () => {
+    const limit = parseInt(batchLimit, 10);
+    if (!Number.isFinite(limit) || limit < 1) return;
     try {
-      const result = await batchApprove(filters.nodeType, parseInt(batchLimit, 10));
+      const result = await batchApprove(filters.nodeType, limit);
       toast.success(
         t('batchApproveSuccess', { count: result.processedCount })
       );
@@ -117,8 +119,10 @@ export function ReviewQueue() {
   };
 
   const handleSmartApprove = async () => {
+    const confidenceValue = parseInt(smartConfidence, 10);
+    if (!Number.isFinite(confidenceValue) || confidenceValue < 0 || confidenceValue > 100) return;
     try {
-      const minConfidence = parseInt(smartConfidence, 10) / 100;
+      const minConfidence = confidenceValue / 100;
       const result = await smartApprove(minConfidence, filters.nodeType, 500);
       setSmartDialogOpen(false);
       setPreviewCount(null);
@@ -167,8 +171,10 @@ export function ReviewQueue() {
   };
 
   const handleBatchReject = async () => {
+    const limit = parseInt(batchLimit, 10);
+    if (!Number.isFinite(limit) || limit < 1) return;
     try {
-      const result = await batchReject(filters.nodeType, parseInt(batchLimit, 10));
+      const result = await batchReject(filters.nodeType, limit);
       toast.success(
         t('batchRejectSuccess', { count: result.processedCount })
       );
@@ -178,8 +184,10 @@ export function ReviewQueue() {
   };
 
   const handleBatchDelete = async () => {
+    const limit = parseInt(batchLimit, 10);
+    if (!Number.isFinite(limit) || limit < 1) return;
     try {
-      const result = await batchDelete(filters.nodeType, parseInt(batchLimit, 10));
+      const result = await batchDelete(filters.nodeType, limit);
       toast.success(
         t('batchDeleteSuccess', { count: result.processedCount })
       );
@@ -190,9 +198,11 @@ export function ReviewQueue() {
 
   // Fetch preview when dialog opens or confidence changes
   const fetchPreview = useCallback(async () => {
+    const confidenceValue = parseInt(smartConfidence, 10);
+    if (!Number.isFinite(confidenceValue) || confidenceValue < 0 || confidenceValue > 100) return;
     setIsLoadingPreview(true);
     try {
-      const minConfidence = parseInt(smartConfidence, 10) / 100;
+      const minConfidence = confidenceValue / 100;
       const result = await smartApprovePreview(minConfidence, filters.nodeType, 500);
       setPreviewCount(result.count);
     } catch {

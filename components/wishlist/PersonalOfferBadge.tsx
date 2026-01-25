@@ -28,7 +28,15 @@ export function PersonalOfferBadge({
 
     const calculateTimeRemaining = () => {
       const now = new Date().getTime();
-      const expiry = new Date(validUntil).getTime();
+      const expiryDate = new Date(validUntil);
+
+      // Validate date is valid
+      if (isNaN(expiryDate.getTime())) {
+        setTimeRemaining('Invalid date');
+        return;
+      }
+
+      const expiry = expiryDate.getTime();
       const diff = expiry - now;
 
       if (diff <= 0) {

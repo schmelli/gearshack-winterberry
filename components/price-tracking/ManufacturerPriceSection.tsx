@@ -14,6 +14,7 @@ import { ExternalLink, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
+import { sanitizeExternalUrl } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -56,7 +57,10 @@ export function ManufacturerPriceSection({
   const hasManufacturerPrice = manufacturerPrice != null;
   const hasMsrp = msrpAmount != null;
   const hasAnyPrice = hasManufacturerPrice || hasMsrp;
-  const hasLink = productUrl || brandUrl;
+  // SECURITY: Validate URLs before using
+  const safeProductUrl = sanitizeExternalUrl(productUrl);
+  const safeBrandUrl = sanitizeExternalUrl(brandUrl);
+  const hasLink = safeProductUrl || safeBrandUrl;
 
   // If no data at all, show empty state
   if (!hasAnyPrice && !hasLink && !msrpLoading) {
@@ -122,7 +126,7 @@ export function ManufacturerPriceSection({
             </div>
           )}
 
-          {/* Product Link */}
+          {/* Product Link - SECURITY: URLs validated above */}
           {hasLink && (
             <Button
               variant="outline"
@@ -131,7 +135,7 @@ export function ManufacturerPriceSection({
               asChild
             >
               <a
-                href={productUrl || brandUrl || '#'}
+                href={(safeProductUrl || safeBrandUrl)!}
                 target="_blank"
                 rel="noopener noreferrer"
               >

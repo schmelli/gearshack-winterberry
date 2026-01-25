@@ -77,10 +77,8 @@ const CLIENT_INFO = {
 const DEFAULT_TOOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /** Default tool call timeout - configurable via MCP_TOOL_TIMEOUT_MS env var */
-const DEFAULT_TOOL_CALL_TIMEOUT_MS = parseInt(
-  process.env.MCP_TOOL_TIMEOUT_MS || '5000',
-  10
-);
+const rawToolTimeout = parseInt(process.env.MCP_TOOL_TIMEOUT_MS || '5000', 10);
+const DEFAULT_TOOL_CALL_TIMEOUT_MS = Number.isFinite(rawToolTimeout) ? rawToolTimeout : 5000;
 
 /**
  * MCP Client capabilities for SDK v1.25+
@@ -134,10 +132,11 @@ export class MCPClient {
     };
 
     // T057: Initialize cache TTL from environment or default
-    this.toolCacheTtlMs = parseInt(
+    const rawCacheTtl = parseInt(
       process.env.MCP_TOOL_CACHE_TTL_MS || String(DEFAULT_TOOL_CACHE_TTL_MS),
       10
     );
+    this.toolCacheTtlMs = Number.isFinite(rawCacheTtl) ? rawCacheTtl : DEFAULT_TOOL_CACHE_TTL_MS;
   }
 
   // ==========================================================================
@@ -489,21 +488,28 @@ export class MCPClient {
     });
 
     try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
+      // Create timeout promise with cleanup
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
           () => reject(new Error(`MCP tool call timed out after ${timeoutMs}ms`)),
           timeoutMs
-        )
-      );
+        );
+      });
 
       // Execute tool call with timeout
-      const callPromise = this.state.client!.callTool({
+      const client = this.state.client!;
+      const callPromise = client.callTool({
         name: toolName,
         arguments: args,
       });
 
-      const response = await Promise.race([callPromise, timeoutPromise]);
+      let response: Awaited<ReturnType<typeof client.callTool>>;
+      try {
+        response = await Promise.race([callPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
       const latencyMs = getElapsed();
 
       // Extract result content
@@ -736,8 +742,9 @@ export class MCPClient {
     client: Client,
     transport: StdioClientTransport | SSEClientTransport
   ): Promise<void> {
+    let timeoutId: NodeJS.Timeout;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(
           new MCPConnectionError(
             `Connection timeout after ${this.config.connectionTimeoutMs}ms`,
@@ -750,7 +757,11 @@ export class MCPClient {
 
     const connectPromise = client.connect(transport);
 
-    await Promise.race([connectPromise, timeoutPromise]);
+    try {
+      await Promise.race([connectPromise, timeoutPromise]);
+    } finally {
+      clearTimeout(timeoutId!);
+    }
   }
 }
 

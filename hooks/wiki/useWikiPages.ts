@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { WikiPageWithAuthor, WikiSearchParams, UseWikiPagesReturn } from '@/types/wiki';
 
@@ -21,7 +21,8 @@ export function useWikiPages(params: WikiSearchParams = {}): UseWikiPagesReturn 
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
   const { query, category_id, status = 'published', locale = 'en', limit = PAGE_SIZE } = params;
 
   const fetchPages = useCallback(async (resetOffset = true) => {

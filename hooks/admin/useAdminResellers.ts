@@ -97,6 +97,8 @@ export function useAdminResellers(
   const [sortOrder, setSortOrder] = useState<ResellerSortOrder>('asc');
 
   // Fetch resellers
+  // Using individual filter properties as dependencies instead of the object
+  // to prevent infinite loops from object reference changes
   const fetchResellers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -142,7 +144,8 @@ export function useAdminResellers(
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, filters, sortField, sortOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, filters.search, filters.type, filters.status, filters.country, filters.isActive, sortField, sortOrder]);
 
   // Set sort
   const setSort = useCallback((field: ResellerSortField, order: ResellerSortOrder) => {

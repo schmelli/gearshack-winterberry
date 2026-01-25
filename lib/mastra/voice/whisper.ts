@@ -139,12 +139,21 @@ export async function transcribeAudio(
       throw new Error(`ElevenLabs STT API error: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
+    let result: Record<string, unknown>;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      throw new Error('Invalid JSON response from ElevenLabs API');
+    }
+
+    if (!result || typeof result !== 'object') {
+      throw new Error('Invalid response structure from ElevenLabs API');
+    }
     const durationMs = Date.now() - startTime;
 
     // Extract text and language from response
-    const text = result.text || '';
-    const language = result.language_code || options.language || 'unknown';
+    const text = typeof result.text === 'string' ? result.text : '';
+    const language = typeof result.language_code === 'string' ? result.language_code : (options.language || 'unknown');
 
     // ElevenLabs provides confidence per word, calculate average
     const confidence = calculateConfidence(result);

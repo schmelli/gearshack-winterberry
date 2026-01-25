@@ -101,7 +101,7 @@ export function useWishlist(): UseWishlistReturn {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Fetch Wishlist Items on Mount
+  // Manual Refresh Function
   // ---------------------------------------------------------------------------
   const refresh = useCallback(async () => {
     try {
@@ -118,9 +118,39 @@ export function useWishlist(): UseWishlistReturn {
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Fetch Wishlist Items on Mount (with race condition protection)
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let isCancelled = false;
+
+    const loadWishlist = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const items = await fetchWishlistItems();
+        if (!isCancelled) {
+          setWishlistItems(items);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load wishlist';
+          setError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadWishlist();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   // ---------------------------------------------------------------------------
   // CRUD Actions
@@ -200,8 +230,10 @@ export function useWishlist(): UseWishlistReturn {
       // Feature 049 US3: Add the moved item to the inventory zustand store
       // Transform the database row to GearItem and add to inventory
       const transformedItem = gearItemFromDb(updatedDbRow as Tables<'gear_items'>);
-      // setRemoteGearItems expects an array, not a function updater
-      setRemoteGearItems([transformedItem, ...inventoryItems]);
+      // STALE CLOSURE FIX: Read fresh inventory items from store at execution time
+      // instead of using potentially stale `inventoryItems` from hook closure
+      const currentInventory = useSupabaseStore.getState().items;
+      setRemoteGearItems([transformedItem, ...currentInventory]);
 
       toast.success(t('movedToInventory', { name: itemName }));
     } catch (err) {
@@ -209,7 +241,7 @@ export function useWishlist(): UseWishlistReturn {
       toast.error(message);
       throw err;
     }
-  }, [wishlistItems, inventoryItems, setRemoteGearItems, t]);
+  }, [wishlistItems, setRemoteGearItems, t]);
 
   // ---------------------------------------------------------------------------
   // Duplicate Detection Helper

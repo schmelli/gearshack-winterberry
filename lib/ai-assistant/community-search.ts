@@ -37,11 +37,11 @@ export interface CommunitySearchResult {
 // =====================================================
 
 /**
- * Sanitize search query to prevent SQL injection
- * Escapes special characters used in PostgreSQL pattern matching
+ * Sanitize search query to prevent SQL injection and PostgREST filter injection
+ * Escapes special characters used in PostgreSQL pattern matching AND PostgREST .or() syntax
  *
  * @param query - Raw search query from user
- * @returns Sanitized query safe for ILIKE operations
+ * @returns Sanitized query safe for ILIKE operations and .or() filter strings
  */
 function sanitizeSearchQuery(query: string): string {
   if (!query || typeof query !== 'string') {
@@ -49,12 +49,18 @@ function sanitizeSearchQuery(query: string): string {
   }
 
   // Escape PostgreSQL LIKE special characters: % _ \
+  // Also escape comma which is PostgREST .or() delimiter (prevents filter injection)
+  // Also escape parentheses which are PostgREST grouping operators
   // Also limit length to prevent DoS
   return query
     .slice(0, 100) // Max 100 chars
     .replace(/\\/g, '\\\\') // Escape backslash first
     .replace(/%/g, '\\%')   // Escape percent
     .replace(/_/g, '\\_')   // Escape underscore
+    .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')     // Remove opening parens (PostgREST grouping)
+    .replace(/\)/g, '')     // Remove closing parens (PostgREST grouping)
+    .replace(/\./g, ' ')    // Replace dots with space (prevents .eq., .neq. injection)
     .trim();
 }
 
@@ -239,7 +245,10 @@ export async function searchCommunityForWishlistItem(
     forSale: match.is_for_sale,
     lendable: match.can_be_borrowed,
     tradeable: match.can_be_traded,
-    similarityScore: parseFloat(String(match.similarity_score)),
+    similarityScore: (() => {
+      const score = parseFloat(String(match.similarity_score));
+      return Number.isFinite(score) ? score : 0;
+    })(),
     primaryImageUrl: match.primary_image_url,
   }));
 }

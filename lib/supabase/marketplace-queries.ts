@@ -49,12 +49,17 @@ const sortFieldToColumn: Record<string, string> = {
 /**
  * Escape special characters in ILIKE pattern to prevent SQL injection
  * Escapes: % (wildcard), _ (single char wildcard), \ (escape char)
+ * Removes: , (PostgREST .or() delimiter) to prevent filter injection
  */
 function escapeILikePattern(pattern: string): string {
   return pattern
     .replace(/\\/g, '\\\\') // Escape backslashes first
     .replace(/%/g, '\\%')   // Escape % wildcards
-    .replace(/_/g, '\\_');  // Escape _ wildcards
+    .replace(/_/g, '\\_')   // Escape _ wildcards
+    .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')     // Remove parentheses (PostgREST grouping)
+    .replace(/\)/g, '')     // Remove parentheses
+    .replace(/\./g, ' ');   // Replace dots with space (prevents .eq. injection)
 }
 
 // ============================================================================

@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
@@ -42,6 +42,9 @@ export function useFriendActivity(
 
   // Track unsubscribe function
   const unsubscribeRef = useRef<(() => void) | null>(null);
+
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   /**
    * Loads initial activities.
@@ -117,13 +120,22 @@ export function useFriendActivity(
     console.log('Mark all as read - not yet implemented');
   }, []);
 
+  // Use ref for activity filter to avoid subscription churn
+  const activityTypeFilterRef = useRef(activityTypeFilter);
+  activityTypeFilterRef.current = activityTypeFilter;
+
   /**
    * Handles new activity from Realtime subscription.
+   * Uses ref to access filter without causing subscription churn.
    */
   const handleNewActivity = useCallback((activity: FriendActivityWithProfile) => {
-    // Only add if it matches the current filter
-    if (activityTypeFilter && activityTypeFilter !== 'all') {
-      if (activity.activity_type !== activityTypeFilter) {
+    // MEMORY SAFETY: Guard against state updates after unmount
+    if (!isMountedRef.current) return;
+
+    // Only add if it matches the current filter (read from ref)
+    const filter = activityTypeFilterRef.current;
+    if (filter && filter !== 'all') {
+      if (activity.activity_type !== filter) {
         return;
       }
     }
@@ -137,14 +149,53 @@ export function useFriendActivity(
       // Add to beginning and limit to MAX_ACTIVITIES
       return [activity, ...prev].slice(0, MAX_ACTIVITIES);
     });
-  }, [activityTypeFilter]);
+  }, []); // No dependencies - uses ref
 
-  // Initial load
+  // Initial load - depend only on user.uid and activityTypeFilter
   useEffect(() => {
-    loadActivities();
-  }, [loadActivities]);
+    let isCancelled = false;
 
-  // Setup Realtime subscription
+    const load = async () => {
+      if (!user?.uid) {
+        setActivities([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        setOffset(0);
+
+        const filterType = activityTypeFilter === 'all' ? undefined : activityTypeFilter as SocialActivityType | undefined;
+        const data = await fetchFriendActivities(PAGE_SIZE, 0, filterType);
+
+        if (isCancelled) return;
+
+        setActivities(data);
+        setHasMore(data.length === PAGE_SIZE);
+      } catch (err) {
+        if (isCancelled) return;
+        const message = err instanceof Error ? err.message : 'Failed to load activity feed';
+        setError(message);
+        console.error('Error loading friend activities:', err);
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isCancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, activityTypeFilter]);
+
+  // Setup Realtime subscription - only recreate when user changes
+  // Note: handleNewActivity is stable via ref pattern, so not needed in deps
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -157,12 +208,23 @@ export function useFriendActivity(
     unsubscribeRef.current = subscribeToFriendActivities(user.uid, handleNewActivity);
 
     return () => {
+      // MEMORY SAFETY: Mark as unmounted before cleanup to prevent race conditions
+      isMountedRef.current = false;
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
     };
-  }, [user?.uid, handleNewActivity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  // MEMORY SAFETY: Reset mounted state on mount (handles re-mounts)
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     activities,

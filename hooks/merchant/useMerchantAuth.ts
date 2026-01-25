@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { fetchMerchantByUserId } from '@/lib/supabase/merchant-queries';
 import type { Merchant, MerchantStatus } from '@/types/merchant';
@@ -98,12 +98,18 @@ export function useMerchantAuth(): UseMerchantAuthReturn {
     }
   }, [user?.id]);
 
+  // Store latest callback in ref to avoid infinite loops in useEffect
+  const fetchMerchantRef = useRef(fetchMerchant);
+  useEffect(() => {
+    fetchMerchantRef.current = fetchMerchant;
+  });
+
   // Fetch merchant data on mount and when user changes
   useEffect(() => {
     if (!authLoading) {
-      fetchMerchant();
+      fetchMerchantRef.current();
     }
-  }, [authLoading, fetchMerchant]);
+  }, [authLoading, user?.id]);
 
   // Compute status based on auth and merchant state
   const status = useMemo((): MerchantAuthStatus => {

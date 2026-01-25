@@ -198,7 +198,7 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
         label,
         weight: catData.weight,
         itemCount: catData.items.length,
-        percentage: (catData.weight / totalWeight) * 100,
+        percentage: totalWeight > 0 ? (catData.weight / totalWeight) * 100 : 0,
         color,
         subcategories,
       });

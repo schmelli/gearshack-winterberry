@@ -145,12 +145,23 @@ export async function generateAIImage(
     // Get gateway instance
     const gateway = getGateway();
 
-    // Generate image using Gemini 2.5 Flash Image via AI Gateway
-    // The model returns images in result.files array
-    const result = await generateText({
-      model: gateway(AI_IMAGE_MODEL),
-      prompt: validatedRequest.prompt,
-    });
+    // TIMEOUT: Image generation can take significant time; set reasonable timeout
+    const IMAGE_GENERATION_TIMEOUT_MS = 60000; // 60 seconds
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), IMAGE_GENERATION_TIMEOUT_MS);
+
+    let result;
+    try {
+      // Generate image using Gemini 2.5 Flash Image via AI Gateway
+      // The model returns images in result.files array
+      result = await generateText({
+        model: gateway(AI_IMAGE_MODEL),
+        prompt: validatedRequest.prompt,
+        abortSignal: abortController.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     console.log('[VercelAI] Generation complete, checking for images...');
     console.log('[VercelAI] Files returned:', result.files?.length || 0);
@@ -263,13 +274,34 @@ export async function generateAIImage(
  *
  * @param imageFile - Generated image file from AI SDK
  * @returns Cloudinary URL
+ * @throws AIGenerationError if upload fails
  */
 async function uploadImageToStorage(imageFile: { base64: string; mediaType: string }): Promise<string> {
+  // SECURITY: Validate MIME type before upload to prevent XSS/injection attacks
+  const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+  if (!ALLOWED_IMAGE_TYPES.includes(imageFile.mediaType)) {
+    throw new AIGenerationError(
+      `Invalid image type: ${imageFile.mediaType}. Allowed: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+      400,
+      false
+    );
+  }
+
   // Create data URL from base64 and media type
   const dataUrl = `data:${imageFile.mediaType};base64,${imageFile.base64}`;
 
   // Upload to Cloudinary (keep using Cloudinary for storage/CDN)
-  const cloudinary = await import('cloudinary');
+  let cloudinary;
+  try {
+    cloudinary = await import('cloudinary');
+  } catch (importError) {
+    console.error('[VercelAI] Failed to import cloudinary module:', importError);
+    throw new AIGenerationError(
+      'Cloudinary module not available',
+      500,
+      false
+    );
+  }
 
   cloudinary.v2.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -277,13 +309,33 @@ async function uploadImageToStorage(imageFile: { base64: string; mediaType: stri
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const result = await cloudinary.v2.uploader.upload(dataUrl, {
-    folder: CLOUDINARY_GENERATED_IMAGES_FOLDER,
-    resource_type: 'image',
-    format: 'jpg',
-  });
+  try {
+    const result = await cloudinary.v2.uploader.upload(dataUrl, {
+      folder: CLOUDINARY_GENERATED_IMAGES_FOLDER,
+      resource_type: 'image',
+      format: 'jpg',
+    });
 
-  return result.secure_url;
+    if (!result.secure_url) {
+      throw new AIGenerationError(
+        'Cloudinary upload returned no URL',
+        500,
+        true
+      );
+    }
+
+    return result.secure_url;
+  } catch (uploadError) {
+    if (uploadError instanceof AIGenerationError) {
+      throw uploadError;
+    }
+    console.error('[VercelAI] Cloudinary upload failed:', uploadError);
+    throw new AIGenerationError(
+      uploadError instanceof Error ? uploadError.message : 'Cloudinary upload failed',
+      500,
+      true
+    );
+  }
 }
 
 /**
@@ -293,7 +345,13 @@ async function uploadImageToStorage(imageFile: { base64: string; mediaType: stri
  */
 export async function deleteAIImage(publicId: string): Promise<void> {
   try {
-    const cloudinary = await import('cloudinary');
+    let cloudinary;
+    try {
+      cloudinary = await import('cloudinary');
+    } catch (importError) {
+      console.error('[VercelAI] Failed to import cloudinary module for deletion:', importError);
+      return; // Don't throw - deletion failures should not block user actions
+    }
 
     cloudinary.v2.config({
       cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -311,6 +369,10 @@ export async function deleteAIImage(publicId: string): Promise<void> {
   }
 }
 
+// SECURITY: Regex to validate Cloudinary public_id format
+// Allows alphanumeric characters, underscores, hyphens, and forward slashes (for folders)
+const CLOUDINARY_PUBLIC_ID_REGEX = /^[a-zA-Z0-9_\-/]+$/;
+
 /**
  * Get Cloudinary URL for a public_id with optimizations
  *
@@ -325,7 +387,26 @@ export async function getOptimizedImageUrl(
     quality?: 'auto' | 'auto:best' | 'auto:good';
   }
 ): Promise<string> {
-  const cloudinary = await import('cloudinary');
+  // SECURITY: Validate publicId format to prevent injection attacks
+  if (!publicId || !CLOUDINARY_PUBLIC_ID_REGEX.test(publicId)) {
+    throw new AIGenerationError(
+      'Invalid publicId format - must contain only alphanumeric characters, underscores, hyphens, and forward slashes',
+      400,
+      false
+    );
+  }
+
+  let cloudinary;
+  try {
+    cloudinary = await import('cloudinary');
+  } catch (importError) {
+    console.error('[VercelAI] Failed to import cloudinary module:', importError);
+    throw new AIGenerationError(
+      'Cloudinary module not available',
+      500,
+      false
+    );
+  }
 
   cloudinary.v2.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,

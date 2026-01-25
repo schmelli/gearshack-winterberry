@@ -24,6 +24,7 @@ import {
 import { useItems } from '@/hooks/useSupabaseStore';
 import type { GearItem } from '@/types/gear';
 import type { GearReferenceMetadata } from '@/types/messaging';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 interface GearPickerProps {
@@ -36,6 +37,8 @@ interface GearPickerProps {
  * Dialog for selecting gear items from inventory to share.
  */
 export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
+  const t = useTranslations('Messaging');
+  const tCommon = useTranslations('Common');
   const items = useItems();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Share Gear Item</DialogTitle>
+          <DialogTitle>{t('gearPicker.title')}</DialogTitle>
         </DialogHeader>
 
         {/* Search Input */}
@@ -88,7 +91,7 @@ export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search your gear..."
+            placeholder={t('gearPicker.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -102,8 +105,8 @@ export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
               <Package className="h-10 w-10 text-muted-foreground/50" />
               <p className="mt-2 text-sm text-muted-foreground">
                 {items.length === 0
-                  ? 'No gear in your inventory'
-                  : 'No gear matches your search'}
+                  ? t('gearPicker.noGearInInventory')
+                  : t('gearPicker.noGearMatches')}
               </p>
             </div>
           ) : (
@@ -123,10 +126,10 @@ export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
         {/* Actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={handleClose}>
-            Cancel
+            {tCommon('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!selectedId}>
-            Share
+            {t('gearPicker.share')}
           </Button>
         </div>
       </DialogContent>

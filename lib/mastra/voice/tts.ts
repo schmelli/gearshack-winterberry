@@ -223,7 +223,11 @@ export async function synthesizeSpeechStream(
     });
 
     // Return the response body as a stream
-    return response.body as ReadableStream<Uint8Array>;
+    // Guard against null response.body (can occur with network errors or certain response types)
+    if (!response.body) {
+      throw new SynthesisError('Response body is null - unable to stream audio', 'EMPTY_RESPONSE');
+    }
+    return response.body;
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
@@ -362,6 +366,8 @@ export function isCacheablePhrase(text: string): boolean {
 /**
  * In-memory cache for common TTS responses
  * Key: normalized text, Value: audio buffer
+ *
+ * MEMORY SAFETY: Cache is limited to MAX_CACHE_ENTRIES to prevent unbounded growth
  */
 const ttsCache = new Map<string, {
   audio: Buffer;
@@ -372,6 +378,9 @@ const ttsCache = new Map<string, {
 
 /** Cache TTL: 24 hours */
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Maximum cache entries to prevent memory exhaustion */
+const MAX_CACHE_ENTRIES = 100;
 
 /**
  * Get cached TTS audio if available
@@ -417,6 +426,27 @@ export function cacheAudio(
 ): void {
   const key = `${voice}:${text.toLowerCase().trim()}`;
 
+  // MEMORY SAFETY: Evict oldest entries if cache is at capacity
+  if (ttsCache.size >= MAX_CACHE_ENTRIES && !ttsCache.has(key)) {
+    // Find and delete the oldest entry
+    let oldestKey: string | null = null;
+    let oldestTime = Date.now();
+
+    for (const [entryKey, entry] of ttsCache.entries()) {
+      if (entry.cachedAt.getTime() < oldestTime) {
+        oldestTime = entry.cachedAt.getTime();
+        oldestKey = entryKey;
+      }
+    }
+
+    if (oldestKey) {
+      ttsCache.delete(oldestKey);
+      logDebug('TTS cache evicted oldest entry', {
+        metadata: { evictedKey: oldestKey.substring(0, 50), cacheSize: ttsCache.size },
+      });
+    }
+  }
+
   ttsCache.set(key, {
     audio,
     format,
@@ -429,6 +459,7 @@ export function cacheAudio(
       textLength: text.length,
       audioSize: audio.length,
       voice,
+      cacheSize: ttsCache.size,
     },
   });
 }

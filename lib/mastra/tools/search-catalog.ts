@@ -168,15 +168,26 @@ Examples:
       }
 
       // Apply text search (only if query provided)
+      // Escape ILIKE wildcards and PostgREST special characters to prevent injection
       if (query) {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+        const sanitizedQuery = query
+          .replace(/\\/g, '\\\\')  // Escape backslashes first
+          .replace(/%/g, '\\%')    // Escape % wildcards
+          .replace(/_/g, '\\_')    // Escape _ wildcards
+          .replace(/,/g, '');      // Remove commas (PostgREST .or() delimiter)
+        dbQuery = dbQuery.or(`name.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`);
         appliedFilters.query = query;
       }
 
       // Apply filters
       if (filters) {
         if (filters.productType) {
-          dbQuery = dbQuery.ilike('product_type', filters.productType);
+          // Sanitize productType to prevent ILIKE injection
+          const sanitizedProductType = filters.productType
+            .replace(/\\/g, '\\\\')  // Escape backslash first
+            .replace(/%/g, '\\%')    // Escape percent (ILIKE wildcard)
+            .replace(/_/g, '\\_');   // Escape underscore (ILIKE single-char wildcard)
+          dbQuery = dbQuery.ilike('product_type', `%${sanitizedProductType}%`);
           appliedFilters.productType = filters.productType;
         }
         if (filters.weightMin !== undefined) {

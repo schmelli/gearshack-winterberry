@@ -36,6 +36,30 @@ import type {
 } from '@/types/vip';
 
 // =============================================================================
+// Security Utilities
+// =============================================================================
+
+/**
+ * Sanitize search query to prevent PostgREST filter injection.
+ * Escapes special characters used in ILIKE patterns and .or() syntax.
+ */
+function sanitizeILikePattern(pattern: string): string {
+  if (!pattern || typeof pattern !== 'string') {
+    return '';
+  }
+  return pattern
+    .slice(0, 100) // Max 100 chars to prevent DoS
+    .replace(/\\/g, '\\\\') // Escape backslash first
+    .replace(/%/g, '\\%')   // Escape percent
+    .replace(/_/g, '\\_')   // Escape underscore
+    .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')     // Remove opening parens (PostgREST grouping)
+    .replace(/\)/g, '')     // Remove closing parens (PostgREST grouping)
+    .replace(/\./g, ' ')    // Replace dots with space (prevents .eq., .neq. injection)
+    .trim();
+}
+
+// =============================================================================
 // Internal Types for Database Results
 // =============================================================================
 
@@ -255,7 +279,11 @@ export async function searchVips(
     .is('archived_at', null);
 
   if (query) {
-    queryBuilder = queryBuilder.or(`name.ilike.%${query}%,bio.ilike.%${query}%`);
+    // Sanitize query to prevent PostgREST filter injection
+    const sanitized = sanitizeILikePattern(query);
+    if (sanitized) {
+      queryBuilder = queryBuilder.or(`name.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`);
+    }
   }
 
   if (featured !== undefined) {
@@ -619,10 +647,15 @@ export async function followVip(vipId: string): Promise<VipFollowResponse> {
   if (error && error.code !== '23505') throw error; // Ignore duplicate key error
 
   // Get updated follower count
-  const { count: followerCount } = await supabase
+  const { count: followerCount, error: countError } = await supabase
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
+
+  if (countError) {
+    console.error('[followVip] Failed to get follower count:', countError);
+    // Don't fail the follow operation, just return 0 for count
+  }
 
   return {
     isFollowing: true,
@@ -648,10 +681,15 @@ export async function unfollowVip(vipId: string): Promise<VipFollowResponse> {
   if (error) throw error;
 
   // Get updated follower count
-  const { count: followerCount } = await supabase
+  const { count: followerCount, error: countError } = await supabase
     .from('vip_follows')
     .select('*', { count: 'exact', head: true })
     .eq('vip_id', vipId);
+
+  if (countError) {
+    console.error('[unfollowVip] Failed to get follower count:', countError);
+    // Don't fail the unfollow operation, just return 0 for count
+  }
 
   return {
     isFollowing: false,

@@ -149,9 +149,24 @@ export async function fetchFollowers(userId: string): Promise<FollowInfo[] | nul
 }
 
 /**
+ * Validates that a string is a valid UUID v4 format.
+ * Used across social queries to prevent injection attacks.
+ */
+function validateUUID(str: string, paramName: string): void {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(str)) {
+    throw new Error(`Invalid ${paramName} format`);
+  }
+}
+
+/**
  * Follows a user (one-click, no approval needed).
  */
 export async function followUser(followerId: string, followedId: string): Promise<void> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase.from('user_follows').insert({
@@ -175,6 +190,10 @@ export async function followUser(followerId: string, followedId: string): Promis
  * Unfollows a user.
  */
 export async function unfollowUser(followerId: string, followedId: string): Promise<void> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase
@@ -195,6 +214,10 @@ export async function isFollowingUser(
   followerId: string,
   followedId: string
 ): Promise<boolean> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { count, error } = await supabase
@@ -402,10 +425,25 @@ export async function canSendFriendRequest(
 // =============================================================================
 
 /**
+ * Validates that a string is a valid UUID v4 format.
+ * Prevents injection attacks in .or() clauses.
+ */
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+/**
  * Fetches user's friends list with profile info.
  */
 export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
   const supabase = getSocialClient();
+
+  // SECURITY: Validate userId is a valid UUID before using in .or() clause
+  // This prevents PostgREST filter injection via special characters
+  if (!isValidUUID(userId)) {
+    throw new Error('Invalid user ID format');
+  }
 
   // Friends can be on either side of the friendship due to canonical ordering
   const { data, error } = await supabase
@@ -793,6 +831,9 @@ export async function updateOnlineStatus(
   userId: string,
   status: 'online' | 'away' | 'invisible' | 'offline'
 ): Promise<void> {
+  // SECURITY: Validate UUID before database operation
+  validateUUID(userId, 'user ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase
@@ -818,6 +859,19 @@ export async function getOnlineStatuses(
 
   if (userIds.length === 0) {
     return new Map();
+  }
+
+  // SECURITY: Limit array size to prevent DoS attacks
+  const MAX_USER_IDS = 1000;
+  if (userIds.length > MAX_USER_IDS) {
+    throw new Error(`Too many user IDs requested (max: ${MAX_USER_IDS})`);
+  }
+
+  // SECURITY: Validate each UUID in the array
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const invalidIds = userIds.filter(id => !uuidRegex.test(id));
+  if (invalidIds.length > 0) {
+    throw new Error('Invalid user ID format in array');
   }
 
   const { data, error } = await supabase
@@ -928,6 +982,7 @@ export function subscribeToFriendActivities(
   onActivity: (activity: FriendActivityWithProfile) => void
 ): () => void {
   const supabase = getSocialClient();
+  let isCleanedUp = false;
 
   const channel = supabase
     .channel(`friend_activities:${userId}`)
@@ -939,8 +994,14 @@ export function subscribeToFriendActivities(
         table: 'friend_activities',
       },
       async (payload: QueryResult) => {
+        // Skip if already cleaned up
+        if (isCleanedUp) return;
+
         // Fetch profile with caching (FIXED: reduces N+1 queries)
         const profile = await getCachedProfile(payload.new.user_id, supabase);
+
+        // Check again after async operation
+        if (isCleanedUp) return;
 
         const activity: FriendActivityWithProfile = {
           id: payload.new.id,
@@ -961,6 +1022,8 @@ export function subscribeToFriendActivities(
     .subscribe();
 
   return () => {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
     supabase.removeChannel(channel);
   };
 }
@@ -974,6 +1037,7 @@ export function subscribeToFriendRequests(
   onRequest: (request: FriendRequest, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
 ): () => void {
   const supabase = getSocialClient();
+  let isCleanedUp = false;
 
   const channel = supabase
     .channel(`friend_requests:${userId}`)
@@ -986,6 +1050,9 @@ export function subscribeToFriendRequests(
         filter: `recipient_id=eq.${userId}`,
       },
       (payload: QueryResult) => {
+        // Skip if already cleaned up
+        if (isCleanedUp) return;
+
         const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
         const request = (eventType === 'DELETE' ? payload.old : payload.new) as FriendRequest;
         onRequest(request, eventType);
@@ -994,6 +1061,8 @@ export function subscribeToFriendRequests(
     .subscribe();
 
   return () => {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
     supabase.removeChannel(channel);
   };
 }

@@ -23,13 +23,20 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /** Tables that contain user-specific data (require user_id filtering) */
 const USER_TABLES = ['gear_items', 'loadouts', 'loadout_items', 'profiles'] as const;
-type UserTable = typeof USER_TABLES[number];
+type _UserTable = typeof USER_TABLES[number];
 
 /** Maximum rows to return */
 const MAX_ROWS = 100;
 
 /** Query timeout in milliseconds */
 const QUERY_TIMEOUT_MS = 5000;
+
+/** Dangerous SQL keywords that should never appear in WHERE clauses */
+const DANGEROUS_SQL_KEYWORDS = [
+  'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE',
+  'EXEC', 'EXECUTE', 'UNION', 'INTO', 'GRANT', 'REVOKE',
+  '--', ';', '/*', '*/',
+] as const;
 
 // =============================================================================
 // Input Schema
@@ -100,11 +107,27 @@ interface ParsedCondition {
 }
 
 /**
+ * Validate WHERE clause for dangerous SQL keywords
+ * @throws Error if dangerous keywords are detected
+ */
+function validateWhereClause(whereStr: string): void {
+  const upper = whereStr.toUpperCase();
+  for (const keyword of DANGEROUS_SQL_KEYWORDS) {
+    if (upper.includes(keyword)) {
+      throw new Error(`Unsafe SQL keyword detected: ${keyword}`);
+    }
+  }
+}
+
+/**
  * Parse a simple WHERE clause string into conditions
  * Supports: =, !=, <, >, <=, >=, ILIKE, LIKE, IS NULL, IS NOT NULL
  */
 function parseWhereClause(whereStr: string): ParsedCondition[] {
   if (!whereStr.trim()) return [];
+
+  // Security: Validate for dangerous keywords before parsing
+  validateWhereClause(whereStr);
 
   const conditions: ParsedCondition[] = [];
 
@@ -154,7 +177,10 @@ function parseWhereClause(whereStr: string): ParsedCondition[] {
         } else if (value !== undefined) {
           if (value.toLowerCase() === 'true') parsedValue = true;
           else if (value.toLowerCase() === 'false') parsedValue = false;
-          else if (/^-?\d+(?:\.\d+)?$/.test(value)) parsedValue = parseFloat(value);
+          else if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+          const parsed = parseFloat(value);
+          parsedValue = Number.isFinite(parsed) ? parsed : null;
+        }
         }
 
         conditions.push({
@@ -293,13 +319,44 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       let query = supabase.from(table).select(select || '*');
 
       // Apply user_id filter (security)
+      // IMPORTANT: Using service role client bypasses RLS, so we must filter manually
       if (table === 'profiles') {
         query = query.eq('id', userId);
-      } else if (table !== 'loadout_items') {
+      } else if (table === 'loadout_items') {
+        // loadout_items doesn't have user_id - must filter via loadout ownership
+        // First get user's loadout IDs, then filter loadout_items
+        const { data: userLoadouts, error: loadoutsError } = await supabase
+          .from('loadouts')
+          .select('id')
+          .eq('user_id', userId);
+
+        // SECURITY FIX: Check for database errors before proceeding
+        if (loadoutsError) {
+          console.error('[query-user-data-sql] Failed to fetch user loadouts:', loadoutsError);
+          return {
+            success: false,
+            rowCount: 0,
+            data: [],
+            error: 'Database query failed',
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+
+        const loadoutIds = userLoadouts?.map((l) => l.id) ?? [];
+        if (loadoutIds.length === 0) {
+          // User has no loadouts - return empty result
+          return {
+            success: true,
+            rowCount: 0,
+            data: [],
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+        query = query.in('loadout_id', loadoutIds);
+      } else {
         // gear_items and loadouts have user_id
         query = query.eq('user_id', userId);
       }
-      // loadout_items: Security relies on RLS and proper joins
 
       // Parse and apply WHERE conditions
       if (where) {

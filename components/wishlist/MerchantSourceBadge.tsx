@@ -66,6 +66,8 @@ export function MerchantSourceBadge({
       return;
     }
 
+    let isCancelled = false;
+
     async function fetchSourceInfo() {
       setIsLoading(true);
       try {
@@ -77,6 +79,8 @@ export function MerchantSourceBadge({
           .select('business_name')
           .eq('id', sourceMerchantId)
           .single();
+
+        if (isCancelled) return;
 
         if (!merchant) {
           setSourceInfo(null);
@@ -98,24 +102,32 @@ export function MerchantSourceBadge({
             .eq('id', sourceLoadoutId)
             .single();
 
+          if (isCancelled) return;
           loadoutInfo = loadout;
         }
 
-        setSourceInfo({
-          merchantName: merchant.business_name,
-          loadoutName: loadoutInfo?.name ?? null,
-          loadoutSlug: loadoutInfo?.slug ?? null,
-          isAvailable: loadoutInfo?.status === 'published',
-        });
+        if (!isCancelled) {
+          setSourceInfo({
+            merchantName: merchant.business_name,
+            loadoutName: loadoutInfo?.name ?? null,
+            loadoutSlug: loadoutInfo?.slug ?? null,
+            isAvailable: loadoutInfo?.status === 'published',
+          });
+        }
       } catch (error) {
-        console.error('Failed to fetch merchant source info:', error);
-        setSourceInfo(null);
+        if (!isCancelled) {
+          console.error('Failed to fetch merchant source info:', error);
+          setSourceInfo(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     fetchSourceInfo();
+    return () => { isCancelled = true; };
   }, [sourceMerchantId, sourceLoadoutId]);
 
   // Don't render if no merchant source

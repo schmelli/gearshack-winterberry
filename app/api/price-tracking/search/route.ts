@@ -26,7 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body: SearchPricesRequest = await request.json();
+    let body: SearchPricesRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     if (!body.gear_item_id) {
       return NextResponse.json(
@@ -36,10 +44,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get gear item details including brand and category info (Issue #79, Feature 055)
+    // FIXED: Add user_id check to verify ownership - prevents information disclosure
     const { data: gearItem, error: gearError } = await (supabase as any)
       .from('gear_items')
       .select('name, brand, brand_url, product_type_id')
       .eq('id', body.gear_item_id)
+      .eq('user_id', user.id)
       .single();
 
     if (gearError || !gearItem) {

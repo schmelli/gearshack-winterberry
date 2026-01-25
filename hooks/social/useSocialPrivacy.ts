@@ -131,10 +131,12 @@ export function useSocialPrivacy(): UseSocialPrivacyReturn {
     [user?.uid, settings]
   );
 
-  // Initial load
+  // Initial load - depend only on user.uid to prevent infinite loops
+  // loadSettings is stable when user.uid is stable
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   return {
     settings,

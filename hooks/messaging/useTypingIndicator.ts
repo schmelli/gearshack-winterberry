@@ -42,7 +42,7 @@ export function useTypingIndicator(
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clean up stale typing indicators
+  // Clean up stale typing indicators and timeout refs on unmount
   useEffect(() => {
     cleanupIntervalRef.current = setInterval(() => {
       const now = Date.now();
@@ -54,6 +54,11 @@ export function useTypingIndicator(
     return () => {
       if (cleanupIntervalRef.current) {
         clearInterval(cleanupIntervalRef.current);
+      }
+      // Clean up typing timeout to prevent memory leaks on unmount
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
       }
     };
   }, []);

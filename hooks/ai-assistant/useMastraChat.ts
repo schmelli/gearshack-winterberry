@@ -122,6 +122,8 @@ export function useMastraChat(): UseMastraChatResult {
   // Refs for tracking request state
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
+  // Ref for text debounce timeout cleanup on abort
+  const textUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auth context - uses cookie-based authentication
   const { user } = useAuthContext();
@@ -130,6 +132,11 @@ export function useMastraChat(): UseMastraChatResult {
    * Abort any in-flight request
    */
   const abort = useCallback(() => {
+    // Clean up any pending text update timeout
+    if (textUpdateTimeoutRef.current) {
+      clearTimeout(textUpdateTimeoutRef.current);
+      textUpdateTimeoutRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -280,7 +287,6 @@ export function useMastraChat(): UseMastraChatResult {
         // Performance optimization: Debounce text updates to reduce re-renders
         // For long responses (1000+ tokens), this prevents 100+ state updates
         let textUpdateBuffer = '';
-        let textUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
         const DEBOUNCE_MS = 100; // Update UI every 100ms max
 
         const flushTextUpdates = () => {
@@ -305,16 +311,17 @@ export function useMastraChat(): UseMastraChatResult {
               fullContent += text;
               textUpdateBuffer += text;
 
-              // Debounce text updates
-              if (textUpdateTimeout) {
-                clearTimeout(textUpdateTimeout);
+              // Debounce text updates - use ref for cleanup on abort
+              if (textUpdateTimeoutRef.current) {
+                clearTimeout(textUpdateTimeoutRef.current);
               }
-              textUpdateTimeout = setTimeout(flushTextUpdates, DEBOUNCE_MS);
+              textUpdateTimeoutRef.current = setTimeout(flushTextUpdates, DEBOUNCE_MS);
             },
             (toolCall) => {
               // Flush pending text updates before adding tool call
-              if (textUpdateTimeout) {
-                clearTimeout(textUpdateTimeout);
+              if (textUpdateTimeoutRef.current) {
+                clearTimeout(textUpdateTimeoutRef.current);
+                textUpdateTimeoutRef.current = null;
                 flushTextUpdates();
               }
 
@@ -341,8 +348,9 @@ export function useMastraChat(): UseMastraChatResult {
         }
 
         // Flush any remaining text updates
-        if (textUpdateTimeout) {
-          clearTimeout(textUpdateTimeout);
+        if (textUpdateTimeoutRef.current) {
+          clearTimeout(textUpdateTimeoutRef.current);
+          textUpdateTimeoutRef.current = null;
         }
         flushTextUpdates();
 

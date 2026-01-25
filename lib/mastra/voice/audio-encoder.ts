@@ -177,16 +177,28 @@ export async function getAudioDuration(blob: Blob): Promise<number> {
   return new Promise((resolve, reject) => {
     const audio = new Audio();
     const url = URL.createObjectURL(blob);
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      clearTimeout(timeoutId);
+    };
 
     audio.addEventListener('loadedmetadata', () => {
-      URL.revokeObjectURL(url);
+      cleanup();
       resolve(audio.duration * 1000); // Convert to ms
     });
 
     audio.addEventListener('error', () => {
-      URL.revokeObjectURL(url);
+      cleanup();
       reject(new Error('Failed to load audio metadata'));
     });
+
+    // Timeout after 5 seconds to prevent hanging
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Audio metadata loading timed out'));
+    }, 5000);
 
     audio.src = url;
   });

@@ -16,6 +16,9 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import type { Action } from '@/types/ai-assistant';
+
+/** Translation function type for AI Assistant actions */
+type TranslateFunction = (key: string, params?: Record<string, string | number | Date>) => string;
 import {
   executeAddToWishlist,
   executeCompareGear,
@@ -127,15 +130,13 @@ export function useChatActions(): UseChatActionsResult {
 
 // Action handlers (T064: Inline confirmations, T065: Inline errors)
 
- 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleAddToWishlist(action: Action, t: any): Promise<Record<string, unknown>> {
+async function handleAddToWishlist(action: Action, t: TranslateFunction): Promise<Record<string, unknown>> {
   if (action.type !== 'add_to_wishlist') return {};
 
   const result = await executeAddToWishlist(action.gearItemId);
 
   if (!result.success) {
-    throw new Error(t('errors.addToWishlistFailed', { error: result.error }));
+    throw new Error(t('errors.addToWishlistFailed', { error: result.error ?? 'Unknown error' }));
   }
 
   // T064: Confirmation toast
@@ -145,14 +146,13 @@ async function handleAddToWishlist(action: Action, t: any): Promise<Record<strin
   return { gearItemId: action.gearItemId };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleCompareGear(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+async function handleCompareGear(action: Action, t: TranslateFunction, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
   if (action.type !== 'compare') return {};
 
   const result = await executeCompareGear(action.gearItemIds);
 
   if (!result.success) {
-    throw new Error(t('errors.compareFailed', { error: result.error }));
+    throw new Error(t('errors.compareFailed', { error: result.error ?? 'Unknown error' }));
   }
 
   // T066: Navigate to comparison page
@@ -165,14 +165,13 @@ async function handleCompareGear(action: Action, t: any, router: ReturnType<type
   return { gearItemIds: action.gearItemIds, compareUrl: result.compareUrl };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleSendMessage(action: Action, t: any): Promise<Record<string, unknown>> {
+async function handleSendMessage(action: Action, t: TranslateFunction): Promise<Record<string, unknown>> {
   if (action.type !== 'send_message') return {};
 
   const result = await executeSendMessage(action.recipientUserId, action.messagePreview);
 
   if (!result.success) {
-    throw new Error(t('errors.messageFailed', { error: result.error }));
+    throw new Error(t('errors.messageFailed', { error: result.error ?? 'Unknown error' }));
   }
 
   // T064: Confirmation toast
@@ -182,14 +181,13 @@ async function handleSendMessage(action: Action, t: any): Promise<Record<string,
   return { recipientUserId: action.recipientUserId, conversationId: result.conversationId };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleNavigate(action: Action, t: any, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
+async function handleNavigate(action: Action, t: TranslateFunction, router: ReturnType<typeof useRouter>): Promise<Record<string, unknown>> {
   if (action.type !== 'navigate') return {};
 
   const result = await executeNavigate(action.destination);
 
   if (!result.success) {
-    throw new Error(t('errors.navigationFailed', { error: result.error }));
+    throw new Error(t('errors.navigationFailed', { error: result.error ?? 'Unknown error' }));
   }
 
   // Execute navigation

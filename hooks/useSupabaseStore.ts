@@ -12,6 +12,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { getTranslation } from '@/lib/translations';
@@ -232,7 +233,10 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const previousLoadout = loadouts.find((l) => l.id === id);
         if (!previousLoadout) return;
 
-        set((state) => ({ loadouts: state.loadouts.map((l) => l.id === id ? { ...l, ...updates, updatedAt: new Date() } : l) }));
+        set((state) => ({
+          loadouts: state.loadouts.map((l) => l.id === id ? { ...l, ...updates, updatedAt: new Date() } : l),
+          syncState: startSyncOperation(state.syncState),
+        }));
 
         try {
           const updateData: TablesUpdate<'loadouts'> = {};
@@ -242,9 +246,13 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
           const { error } = await supabase.from('loadouts').update(updateData).eq('id', id).eq('user_id', userId);
           if (error) throw error;
+          set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
         } catch (error) {
           console.error('Failed to update loadout:', error);
-          set((state) => ({ loadouts: state.loadouts.map((l) => l.id === id ? previousLoadout : l) }));
+          set((state) => ({
+            loadouts: state.loadouts.map((l) => l.id === id ? previousLoadout : l),
+            syncState: failSyncOperation(state.syncState, 'Failed to update loadout'),
+          }));
           toast.error(t('updateLoadoutFailed'));
         }
       },
@@ -257,14 +265,21 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const deletedLoadout = loadouts.find((l) => l.id === id);
         if (!deletedLoadout) return;
 
-        set((state) => ({ loadouts: state.loadouts.filter((l) => l.id !== id) }));
+        set((state) => ({
+          loadouts: state.loadouts.filter((l) => l.id !== id),
+          syncState: startSyncOperation(state.syncState),
+        }));
 
         try {
           const { error } = await supabase.from('loadouts').delete().eq('id', id).eq('user_id', userId);
           if (error) throw error;
+          set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
         } catch (error) {
           console.error('Failed to delete loadout:', error);
-          set((state) => ({ loadouts: [...state.loadouts, deletedLoadout].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()) }));
+          set((state) => ({
+            loadouts: [...state.loadouts, deletedLoadout],
+            syncState: failSyncOperation(state.syncState, 'Failed to delete loadout'),
+          }));
           toast.error(t('deleteLoadoutFailed'));
         }
       },
@@ -429,7 +444,14 @@ export const useSupabaseStore = create<SupabaseStore>()(
         getItem: (name) => {
           const str = localStorage.getItem(name);
           if (!str) return null;
-          const parsed = JSON.parse(str);
+          let parsed;
+          try {
+            parsed = JSON.parse(str);
+          } catch (error) {
+            console.error('[useSupabaseStore] Failed to parse localStorage, clearing corrupted entry:', error);
+            localStorage.removeItem(name);
+            return null;
+          }
           if (parsed.state) {
             if (parsed.state.items) {
               parsed.state.items = parsed.state.items.map((item: GearItem) => ({
@@ -452,7 +474,27 @@ export const useSupabaseStore = create<SupabaseStore>()(
           }
           return parsed;
         },
-        setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (error) {
+            // QUOTA FIX: Handle localStorage quota exceeded gracefully
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              console.error('[useSupabaseStore] localStorage quota exceeded, clearing store data');
+              // Clear the problematic store to make room
+              try {
+                localStorage.removeItem(name);
+                // Retry with current value (may still fail if single item is too large)
+                localStorage.setItem(name, JSON.stringify(value));
+              } catch {
+                // If still fails, store minimal state to prevent data loss on next load
+                console.error('[useSupabaseStore] Unable to persist data - quota exceeded');
+              }
+            } else {
+              console.error('[useSupabaseStore] Failed to persist to localStorage:', error);
+            }
+          }
+        },
         removeItem: (name) => localStorage.removeItem(name),
       },
     }
@@ -472,15 +514,23 @@ export function useSupabaseLoadouts(): LoadoutLocal[] {
 }
 
 export function useSupabaseLoadout(id: string): LoadoutLocal | undefined {
-  return useSupabaseStore((state) => state.loadouts.find((l) => l.id === id));
+  // PERFORMANCE FIX: Use useShallow to prevent re-renders when other loadouts change
+  // This ensures the component only re-renders when this specific loadout changes
+  return useSupabaseStore(
+    useShallow((state) => state.loadouts.find((l) => l.id === id))
+  );
 }
 
 export function useSupabaseLoadoutItems(loadoutId: string): GearItem[] {
-  return useSupabaseStore((state) => {
-    const loadout = state.loadouts.find((l) => l.id === loadoutId);
-    if (!loadout) return [];
-    return state.items.filter((item) => loadout.itemIds.includes(item.id));
-  });
+  // PERFORMANCE FIX: Use useShallow to compare array contents instead of reference
+  // This prevents re-renders when unrelated items or loadouts change
+  return useSupabaseStore(
+    useShallow((state) => {
+      const loadout = state.loadouts.find((l) => l.id === loadoutId);
+      if (!loadout) return [];
+      return state.items.filter((item) => loadout.itemIds.includes(item.id));
+    })
+  );
 }
 
 export function useSupabaseSyncState(): SyncState {

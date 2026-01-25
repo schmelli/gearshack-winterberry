@@ -13,6 +13,7 @@ import { ChatInterface } from './ChatInterface';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useTranslations } from 'next-intl';
 
 interface AIAssistantModalProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface AIAssistantModalProps {
 }
 
 export function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
+  const t = useTranslations('AIAssistant');
   const { user } = useAuthContext();
   const { isTrailblazer, isLoading } = useSubscriptionCheck(user?.uid || null);
 
@@ -32,9 +34,9 @@ export function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="flex h-[90vh] max-h-[900px] w-[95vw] max-w-5xl flex-col overflow-hidden p-0">
         <VisuallyHidden>
-          <DialogTitle>AI Gear Assistant</DialogTitle>
+          <DialogTitle>{t('modal.title')}</DialogTitle>
           <DialogDescription>
-            Ask questions about your gear, get recommendations, and optimize your loadouts
+            {t('modal.description')}
           </DialogDescription>
         </VisuallyHidden>
         <ChatInterface onClose={onClose} />

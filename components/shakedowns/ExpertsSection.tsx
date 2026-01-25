@@ -239,10 +239,38 @@ export function ExpertsSection({ limit = 5, className }: ExpertsSectionProps) {
     }
   };
 
-  // Initial fetch on mount
+  // Initial fetch on mount with cancellation
   useEffect(() => {
-    fetchExperts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let isCancelled = false;
+
+    const loadExperts = async () => {
+      setLoadingState('loading');
+
+      try {
+        const response = await fetch(`/api/shakedowns/experts?limit=${limit}`);
+        if (isCancelled) return;
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch experts');
+        }
+
+        const data = await response.json();
+        if (isCancelled) return;
+
+        setExperts(data.experts ?? []);
+        setHasMore(data.hasMore ?? false);
+        setLoadingState('success');
+      } catch {
+        if (isCancelled) return;
+        setLoadingState('error');
+      }
+    };
+
+    loadExperts();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [limit]);
 
   // Retry handler

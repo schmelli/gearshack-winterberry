@@ -41,14 +41,14 @@ export const rsvpStatusSchema = z.enum(['going', 'maybe', 'not_going']);
 // ----- Message Metadata Schemas -----
 
 export const imageMetadataSchema = z.object({
-  width: z.number().positive(),
-  height: z.number().positive(),
+  width: z.number().int().positive().max(10000).finite(),
+  height: z.number().int().positive().max(10000).finite(),
   thumbnail_url: z.string().url(),
 });
 
 export const voiceMetadataSchema = z.object({
-  duration_seconds: z.number().positive().max(300), // 5 min max
-  waveform: z.array(z.number()),
+  duration_seconds: z.number().positive().max(300).finite(), // 5 min max
+  waveform: z.array(z.number().min(-1).max(1).finite()),
 });
 
 export const locationMetadataSchema = z.object({

@@ -311,6 +311,8 @@ export function parseTime(timeStr: string, format: TimeFormat): { hours: number;
     const minutes = parseInt(match[2], 10);
     const period = match[3];
 
+    // Validate parsed values are finite numbers within valid ranges
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
     if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
 
     if (period === 'PM' && hours !== 12) hours += 12;
@@ -324,6 +326,8 @@ export function parseTime(timeStr: string, format: TimeFormat): { hours: number;
     const hours = parseInt(match[1], 10);
     const minutes = parseInt(match[2], 10);
 
+    // Validate parsed values are finite numbers within valid ranges
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
     return { hours, minutes };

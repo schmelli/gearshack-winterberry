@@ -67,7 +67,7 @@ export function LoadoutHeroActionButtons({
         size="icon"
         onClick={onEditClick}
         className={heroButtonClass}
-        aria-label="Edit loadout metadata"
+        aria-label={tShakedowns('ariaLabels.editLoadoutMetadata')}
       >
         <Pencil className="h-4 w-4" />
       </Button>

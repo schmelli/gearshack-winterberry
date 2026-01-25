@@ -252,14 +252,14 @@ export const merchantLoadoutSchema = z.object({
   description: z.string().max(2000).optional(),
   tripType: z.string().optional(),
   season: z.array(z.string()).optional(),
-  discountPercent: z.number().min(0).max(100).default(0),
+  discountPercent: z.number().finite().min(0).max(100).default(0),
 });
 
 export const loadoutItemSchema = z.object({
   catalogItemId: z.string().uuid('Invalid catalog item ID'),
-  quantity: z.number().int().positive().default(1),
+  quantity: z.number().finite().int().positive().default(1),
   expertNote: z.string().max(500).optional(),
-  sortOrder: z.number().int().min(0).optional(),
+  sortOrder: z.number().finite().int().min(0).optional(),
 });
 
 export const loadoutAvailabilitySchema = z.object({

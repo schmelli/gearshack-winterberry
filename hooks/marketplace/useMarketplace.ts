@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchMarketplaceListings } from '@/lib/supabase/marketplace-queries';
@@ -64,10 +64,16 @@ export function useMarketplace(): UseMarketplaceReturn {
     filters: filters.filters,
   });
 
+  // Request ID ref to prevent stale data from race conditions
+  const requestIdRef = useRef(0);
+
   /**
    * Load initial listings
    */
   const loadListings = useCallback(async () => {
+    // Increment request ID to track this specific request
+    const currentRequestId = ++requestIdRef.current;
+
     setState((prev) => ({ ...prev, loadingState: 'loading', error: null }));
 
     try {
@@ -80,6 +86,9 @@ export function useMarketplace(): UseMarketplaceReturn {
         excludeUserId: user?.id,
       });
 
+      // Only update state if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       setState((prev) => ({
         ...prev,
         listings: result.listings,
@@ -89,6 +98,9 @@ export function useMarketplace(): UseMarketplaceReturn {
         filters: filters.filters,
       }));
     } catch (err) {
+      // Only handle error if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       const message =
         err instanceof Error ? err.message : 'Failed to load listings';
       setState((prev) => ({

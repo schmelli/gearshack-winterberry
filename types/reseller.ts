@@ -188,28 +188,28 @@ export type ResellerSortOrder = 'asc' | 'desc';
 /**
  * Labels for reseller status
  */
-export const RESELLER_STATUS_LABELS: Record<ResellerStatus, string> = {
+export const RESELLER_STATUS_LABELS = {
   standard: 'Standard',
   vip: 'VIP',
   partner: 'Partner',
   suspended: 'Suspended',
-};
+} as const satisfies Record<ResellerStatus, string>;
 
 /**
  * Colors for reseller status badges
  */
-export const RESELLER_STATUS_COLORS: Record<ResellerStatus, string> = {
+export const RESELLER_STATUS_COLORS = {
   standard: 'gray',
   vip: 'amber',
   partner: 'green',
   suspended: 'red',
-};
+} as const satisfies Record<ResellerStatus, string>;
 
 /**
  * Labels for reseller type
  */
-export const RESELLER_TYPE_LABELS: Record<ResellerType, string> = {
+export const RESELLER_TYPE_LABELS = {
   local: 'Local Shop',
   online: 'Online Store',
   chain: 'Retail Chain',
-};
+} as const satisfies Record<ResellerType, string>;

@@ -42,9 +42,26 @@ export function VoiceRecorder({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  // Clean up audio URL on unmount
+  // Clean up on unmount: stop recording, release media stream, revoke URLs
   useEffect(() => {
     return () => {
+      // Stop any active timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // Stop recording and release media stream tracks
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+        // Stop all tracks to release the microphone
+        const stream = mediaRecorderRef.current.stream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Revoke audio URL to free memory
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
@@ -52,9 +69,11 @@ export function VoiceRecorder({
   }, [audioUrl]);
 
   const startRecording = useCallback(async () => {
+    // Track stream separately to ensure cleanup on error
+    let stream: MediaStream | null = null;
     try {
       setIsPreparing(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm')
@@ -65,6 +84,8 @@ export function VoiceRecorder({
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
+      // Capture stream reference for onstop handler
+      const capturedStream = stream;
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
@@ -77,7 +98,7 @@ export function VoiceRecorder({
         setAudioUrl(URL.createObjectURL(blob));
 
         // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
+        capturedStream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start(100); // Collect data every 100ms
@@ -92,6 +113,10 @@ export function VoiceRecorder({
     } catch (error) {
       console.error('Failed to start recording:', error);
       setIsPreparing(false);
+      // Release media stream tracks on error to prevent microphone staying active
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     }
   }, []);
 
@@ -110,20 +135,22 @@ export function VoiceRecorder({
   const handleSend = useCallback(async () => {
     if (!audioBlob) return;
 
+    // Capture URL before async operation to ensure cleanup even on error
+    const urlToRevoke = audioUrl;
     try {
       setIsSending(true);
       await onSend(audioBlob, duration);
-
-      // Clean up
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
+    } catch (error) {
+      console.error('Failed to send voice message:', error);
+      // Don't rethrow - error is logged
+    } finally {
+      // Always clean up in finally block to prevent memory leaks
+      if (urlToRevoke) {
+        URL.revokeObjectURL(urlToRevoke);
       }
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
-    } catch (error) {
-      console.error('Failed to send voice message:', error);
-    } finally {
       setIsSending(false);
     }
   }, [audioBlob, duration, audioUrl, onSend]);

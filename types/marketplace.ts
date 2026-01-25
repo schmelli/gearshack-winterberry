@@ -23,24 +23,24 @@ export type MarketplaceSortOrder = 'asc' | 'desc';
 // UI Labels
 // =============================================================================
 
-export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
+export const LISTING_TYPE_LABELS = {
   for_sale: 'For Sale',
   for_trade: 'For Trade',
   for_borrow: 'Available to Borrow',
-};
+} as const satisfies Record<ListingType, string>;
 
-export const LISTING_TYPE_FILTER_LABELS: Record<ListingTypeFilter, string> = {
+export const LISTING_TYPE_FILTER_LABELS = {
   all: 'All Listings',
   for_sale: 'For Sale',
   for_trade: 'For Trade',
   for_borrow: 'For Borrow',
-};
+} as const satisfies Record<ListingTypeFilter, string>;
 
-export const SORT_FIELD_LABELS: Record<MarketplaceSortField, string> = {
+export const SORT_FIELD_LABELS = {
   date: 'Newest',
   price: 'Price',
   name: 'Name',
-};
+} as const satisfies Record<MarketplaceSortField, string>;
 
 // =============================================================================
 // Schemas

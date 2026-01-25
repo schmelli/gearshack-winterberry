@@ -41,8 +41,9 @@ export function useLocationAutocomplete(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Refs for debouncing
+  // Refs for debouncing and mounted state
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   // Load Google Maps script with the new Places API
   const { isLoaded, loadError } = useLoadScript({
@@ -76,12 +77,16 @@ export function useLocationAutocomplete(
 
       // Debounce the search
       debounceTimerRef.current = setTimeout(async () => {
+        if (!isMountedRef.current) return;
         setIsLoading(true);
         setError(null);
 
         try {
           // Use the NEW Places Autocomplete API
           const { AutocompleteSessionToken, AutocompleteSuggestion } = await google.maps.importLibrary('places') as google.maps.PlacesLibrary;
+
+          // Guard against unmount during async operation
+          if (!isMountedRef.current) return;
 
           // Create a session token for billing optimization
           const sessionToken = new AutocompleteSessionToken();
@@ -94,6 +99,9 @@ export function useLocationAutocomplete(
           };
 
           const { suggestions: autocompleteSuggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+
+          // Guard against unmount during async operation
+          if (!isMountedRef.current) return;
 
           if (autocompleteSuggestions && autocompleteSuggestions.length > 0) {
             const newSuggestions: LocationSuggestion[] = autocompleteSuggestions
@@ -114,11 +122,14 @@ export function useLocationAutocomplete(
             setSuggestions([]);
           }
         } catch (err) {
+          if (!isMountedRef.current) return;
           console.error('Places autocomplete error:', err);
           setError('Failed to search for locations');
           setSuggestions([]);
         } finally {
-          setIsLoading(false);
+          if (isMountedRef.current) {
+            setIsLoading(false);
+          }
         }
       }, debounceMs);
     },
@@ -184,7 +195,9 @@ export function useLocationAutocomplete(
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }

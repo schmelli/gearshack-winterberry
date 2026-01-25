@@ -21,25 +21,25 @@ export type GearStatus = 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
 // UI Labels for Enumerations
 // =============================================================================
 
-export const WEIGHT_UNIT_LABELS: Record<WeightUnit, string> = {
+export const WEIGHT_UNIT_LABELS = {
   g: 'Grams (g)',
   oz: 'Ounces (oz)',
   lb: 'Pounds (lb)',
-};
+} as const satisfies Record<WeightUnit, string>;
 
-export const GEAR_CONDITION_LABELS: Record<GearCondition, string> = {
+export const GEAR_CONDITION_LABELS = {
   new: 'New',
   used: 'Used',
   worn: 'Worn',
-};
+} as const satisfies Record<GearCondition, string>;
 
-export const GEAR_STATUS_LABELS: Record<GearStatus, string> = {
+export const GEAR_STATUS_LABELS = {
   own: 'Own',
   wishlist: 'Wishlist',
   sold: 'Sold',
   lent: 'Lent',
   retired: 'Retired',
-};
+} as const satisfies Record<GearStatus, string>;
 
 // =============================================================================
 // Cloud Function Processed Images (Feature: 019-image-perfection)

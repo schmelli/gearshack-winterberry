@@ -40,6 +40,9 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Request ID ref to prevent stale data from race conditions
+  const requestIdRef = useRef(0);
+
   /**
    * Loads all pending friend requests.
    */
@@ -51,19 +54,32 @@ export function useFriendRequests(): UseFriendRequestsReturn {
       return;
     }
 
+    // Increment request ID to track this specific request
+    const currentRequestId = ++requestIdRef.current;
+
     try {
       setIsLoading(true);
       setError(null);
       const { incoming, outgoing } = await fetchFriendRequests(user.uid);
+
+      // Only update state if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       setPendingIncoming(incoming);
       setPendingOutgoing(outgoing);
     } catch (err) {
+      // Only handle error if this is still the latest request
+      if (currentRequestId !== requestIdRef.current) return;
+
       const message = err instanceof Error ? err.message : 'Failed to load friend requests';
       setError(message);
       console.error('Error loading friend requests:', err);
       toast.error(t('loadFailed'));
     } finally {
-      setIsLoading(false);
+      // Only update loading state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [user?.uid, t]);
 
@@ -103,21 +119,30 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   /**
    * Accepts a friend request.
    * Creates a friendship and notifies the sender.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to accept
    */
   const acceptRequest = useCallback(
     async (requestId: string): Promise<void> => {
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingIncoming((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         const response = await respondToFriendRequest(requestId, true);
 
         if (!response.success) {
           throw new Error(response.error ?? 'Failed to accept request');
         }
-
-        // Optimistic update: remove from incoming list
-        setPendingIncoming((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingIncoming((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to accept friend request';
         setError(message);
         throw err;
@@ -129,21 +154,30 @@ export function useFriendRequests(): UseFriendRequestsReturn {
   /**
    * Declines a friend request.
    * Silent action - no notification sent to sender.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to decline
    */
   const declineRequest = useCallback(
     async (requestId: string): Promise<void> => {
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingIncoming((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         const response = await respondToFriendRequest(requestId, false);
 
         if (!response.success) {
           throw new Error(response.error ?? 'Failed to decline request');
         }
-
-        // Optimistic update: remove from incoming list
-        setPendingIncoming((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingIncoming((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to decline friend request';
         setError(message);
         throw err;
@@ -154,6 +188,7 @@ export function useFriendRequests(): UseFriendRequestsReturn {
 
   /**
    * Cancels a pending outgoing friend request.
+   * Uses true optimistic update pattern with rollback on failure.
    *
    * @param requestId - The ID of the friend request to cancel
    */
@@ -161,12 +196,20 @@ export function useFriendRequests(): UseFriendRequestsReturn {
     async (requestId: string): Promise<void> => {
       if (!user?.uid) return;
 
+      // Store request for potential rollback (true optimistic pattern)
+      let removedRequest: FriendRequestWithProfile | undefined;
+      setPendingOutgoing((prev) => {
+        removedRequest = prev.find((r) => r.id === requestId);
+        return prev.filter((r) => r.id !== requestId);
+      });
+
       try {
         await cancelFriendRequest(requestId, user.uid);
-
-        // Optimistic update: remove from outgoing list
-        setPendingOutgoing((prev) => prev.filter((r) => r.id !== requestId));
       } catch (err) {
+        // Rollback on error
+        if (removedRequest) {
+          setPendingOutgoing((prev) => [...prev, removedRequest!]);
+        }
         const message = err instanceof Error ? err.message : 'Failed to cancel friend request';
         setError(message);
         throw err;
@@ -245,35 +288,50 @@ export function useFriendRequestStatus(targetUserId: string): {
   const [canSendResult, setCanSendResult] = useState<boolean | null>(null);
   const [isCheckingCanSend, setIsCheckingCanSend] = useState(false);
   const lastTargetIdRef = useRef<string>(targetUserId);
+  // AbortController ref to cancel pending requests on unmount or target change
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check for existing requests
   const outgoingRequest = pendingOutgoing.find((r) => r.recipient_id === targetUserId);
   const incomingRequest = pendingIncoming.find((r) => r.sender_id === targetUserId);
 
   // Check if can send - exposed as a method for manual triggering
-  // FIXED: Cancellation token to prevent race conditions
+  // Uses AbortController to properly cancel pending operations
   const checkCanSend = useCallback(async () => {
+    // Cancel any previous pending request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsCheckingCanSend(true);
     const currentTargetId = targetUserId;
     try {
       const result = await canSendRequest(currentTargetId);
-      // Only update state if targetUserId hasn't changed
-      if (currentTargetId === targetUserId) {
+      // Only update state if not aborted and targetUserId hasn't changed
+      if (!signal.aborted && currentTargetId === targetUserId) {
         setCanSendResult(result.canSend);
       }
+    } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      console.error('Error checking friend request eligibility:', error);
     } finally {
-      // Only clear loading if targetUserId hasn't changed
-      if (currentTargetId === targetUserId) {
+      // Only clear loading if not aborted and targetUserId hasn't changed
+      if (!signal.aborted && currentTargetId === targetUserId) {
         setIsCheckingCanSend(false);
       }
     }
   }, [targetUserId, canSendRequest]);
 
-  // Reset when target changes (FIXED: moved to useEffect to prevent state update during render)
+  // Reset when target changes
   useEffect(() => {
     if (lastTargetIdRef.current !== targetUserId) {
       lastTargetIdRef.current = targetUserId;
       setCanSendResult(null);
+      // Abort any pending request when target changes
+      abortControllerRef.current?.abort();
     }
   }, [targetUserId]);
 
@@ -282,10 +340,9 @@ export function useFriendRequestStatus(targetUserId: string): {
     if (!isLoading && !outgoingRequest && !incomingRequest && canSendResult === null) {
       checkCanSend();
     }
-    // Cleanup: cancel pending operations when component unmounts or targetUserId changes
+    // Cleanup: abort pending operations when component unmounts
     return () => {
-      // Note: We can't actually cancel the Promise, but we prevent state updates above
-      setIsCheckingCanSend(false);
+      abortControllerRef.current?.abort();
     };
   }, [isLoading, outgoingRequest, incomingRequest, canSendResult, checkCanSend]);
 

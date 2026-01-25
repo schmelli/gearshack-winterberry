@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { WikiPage, WikiPageFormData, UseWikiEditorReturn } from '@/types/wiki';
@@ -30,7 +30,8 @@ export function useWikiEditor(): UseWikiEditorReturn {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   const createPage = useCallback(async (data: WikiPageFormData): Promise<WikiPage | null> => {
     if (!user) {

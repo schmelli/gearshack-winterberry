@@ -44,9 +44,16 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
     if (!confirmRemove) return;
 
     setRemovingId(confirmRemove.id);
-    await removeFriend(confirmRemove.id);
-    setRemovingId(null);
-    setConfirmRemove(null);
+    try {
+      await removeFriend(confirmRemove.id);
+    } catch (err) {
+      console.error('Failed to remove friend:', err);
+      // Error is handled by the hook, just log here
+    } finally {
+      // Always reset UI state even on error
+      setRemovingId(null);
+      setConfirmRemove(null);
+    }
   };
 
   if (isLoading) {

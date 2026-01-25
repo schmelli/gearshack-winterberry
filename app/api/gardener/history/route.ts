@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server';
 
 const GARDENER_BASE_URL = 'https://geargraph.gearshack.app/gardener';
-const AUTH_HEADER = 'Basic Z2VhcmdyYXBoYWRtaW46R0dBZG1pbjIwMjU=';
+const AUTH_HEADER = process.env.GARDENER_AUTH_TOKEN || '';
 
 export async function GET() {
   try {
@@ -20,9 +20,10 @@ export async function GET() {
     });
 
     if (!response.ok) {
+      console.error('[Gardener Proxy] Upstream error:', response.status);
       return NextResponse.json(
-        { error: `Gardener API error: ${response.status}` },
-        { status: response.status }
+        { error: 'Failed to fetch history' },
+        { status: 502 }
       );
     }
 
@@ -47,9 +48,10 @@ export async function DELETE() {
     });
 
     if (!response.ok) {
+      console.error('[Gardener Proxy] Upstream error:', response.status);
       return NextResponse.json(
-        { error: `Gardener API error: ${response.status}` },
-        { status: response.status }
+        { error: 'Failed to clear history' },
+        { status: 502 }
       );
     }
 

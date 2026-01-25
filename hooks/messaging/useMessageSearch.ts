@@ -59,6 +59,13 @@ export function useMessageSearch(): UseMessageSearchReturn {
 
         const supabase = createClient();
 
+        // SECURITY: Sanitize search query for ILIKE to prevent SQL injection
+        // Escape PostgreSQL LIKE special characters: % _ \
+        const sanitizedQuery = searchQuery
+          .replace(/\\/g, '\\\\') // Escape backslash first
+          .replace(/%/g, '\\%')   // Escape percent wildcard
+          .replace(/_/g, '\\_');  // Escape underscore wildcard
+
         // Build query
         let queryBuilder = (supabase as ReturnType<typeof createClient>)
           .from('messages')
@@ -73,7 +80,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
               type
             )
           `)
-          .ilike('content', `%${searchQuery}%`)
+          .ilike('content', `%${sanitizedQuery}%`)
           .eq('deletion_state', 'active')
           .not('content', 'is', null)
           .order('created_at', { ascending: false })
@@ -145,6 +152,10 @@ export function useMessageSearch(): UseMessageSearchReturn {
     [user]
   );
 
+  // Use ref to access performSearch without causing effect re-runs
+  const performSearchRef = useRef(performSearch);
+  performSearchRef.current = performSearch;
+
   // Debounced search effect
   useEffect(() => {
     if (debounceRef.current) {
@@ -157,7 +168,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
     }
 
     debounceRef.current = setTimeout(() => {
-      performSearch(query, conversationFilter);
+      performSearchRef.current(query, conversationFilter);
     }, 300);
 
     return () => {
@@ -165,7 +176,7 @@ export function useMessageSearch(): UseMessageSearchReturn {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, conversationFilter, performSearch]);
+  }, [query, conversationFilter]); // Remove performSearch - use ref instead
 
   const searchInConversation = useCallback((conversationId: string) => {
     setConversationFilter(conversationId);

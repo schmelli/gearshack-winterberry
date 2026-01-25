@@ -332,16 +332,23 @@ export async function deleteWishlistItem(itemId: string): Promise<void> {
     throw new Error('User must be authenticated to delete wishlist items');
   }
 
-  // Delete from database
-  const { error } = await supabase
+  // Delete from database with count verification
+  // FIXED: Using select() after delete() to verify rows were actually deleted
+  const { data: deletedRows, error } = await supabase
     .from('gear_items')
     .delete()
     .eq('id', itemId)
     .eq('user_id', user.id)
-    .eq('status', 'wishlist');
+    .eq('status', 'wishlist')
+    .select('id');
 
   if (error) {
     throw new Error(`Failed to delete wishlist item: ${error.message}`);
+  }
+
+  // Verify the item was actually deleted
+  if (!deletedRows || deletedRows.length === 0) {
+    throw new NotFoundError(itemId);
   }
 }
 
@@ -418,14 +425,25 @@ export async function checkWishlistDuplicate(
     return null;
   }
 
+  // Escape ILIKE special characters to prevent injection
+  // Order matters: escape backslash first, then wildcards
+  const escapedBrand = normalizedBrand
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+  const escapedModel = normalizedModel
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+
   // Query with case-insensitive matching using ilike
   const { data, error } = await supabase
     .from('gear_items')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', 'wishlist')
-    .ilike('brand', normalizedBrand)
-    .ilike('model_number', normalizedModel)
+    .ilike('brand', escapedBrand)
+    .ilike('model_number', escapedModel)
     .maybeSingle();
 
   if (error) {

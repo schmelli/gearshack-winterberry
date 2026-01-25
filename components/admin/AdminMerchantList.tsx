@@ -306,7 +306,7 @@ export const AdminMerchantList = memo(function AdminMerchantList({
             <span className="text-sm">
               {t('page', {
                 current: pagination.page,
-                total: Math.ceil(pagination.total / pagination.limit),
+                total: pagination.limit > 0 ? Math.ceil(pagination.total / pagination.limit) : 1,
               })}
             </span>
             <Button

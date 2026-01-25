@@ -92,8 +92,11 @@ export function MerchantDashboard({
       publishedLoadouts: published.length,
       totalViews,
       totalWishlistAdds,
-      conversionRate:
-        totalViews > 0 ? ((totalWishlistAdds / totalViews) * 100).toFixed(1) : '0.0',
+      conversionRate: (() => {
+        if (totalViews <= 0) return '0.0';
+        const rate = (totalWishlistAdds / totalViews) * 100;
+        return Number.isFinite(rate) ? rate.toFixed(1) : '0.0';
+      })(),
     };
   }, [loadouts]);
 
