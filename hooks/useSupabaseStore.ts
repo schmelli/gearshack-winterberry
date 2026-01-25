@@ -429,7 +429,14 @@ export const useSupabaseStore = create<SupabaseStore>()(
         getItem: (name) => {
           const str = localStorage.getItem(name);
           if (!str) return null;
-          const parsed = JSON.parse(str);
+          let parsed;
+          try {
+            parsed = JSON.parse(str);
+          } catch (error) {
+            console.error('[useSupabaseStore] Failed to parse localStorage, clearing corrupted entry:', error);
+            localStorage.removeItem(name);
+            return null;
+          }
           if (parsed.state) {
             if (parsed.state.items) {
               parsed.state.items = parsed.state.items.map((item: GearItem) => ({

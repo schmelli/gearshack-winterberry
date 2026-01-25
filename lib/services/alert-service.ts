@@ -44,12 +44,18 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
       return;
     }
 
-    // Check quiet hours
+    // Check quiet hours (handles overnight ranges like 22:00 to 06:00)
     if (prefs.quiet_hours_start && prefs.quiet_hours_end) {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const start = prefs.quiet_hours_start;
+      const end = prefs.quiet_hours_end;
 
-      if (currentTime >= prefs.quiet_hours_start && currentTime <= prefs.quiet_hours_end) {
+      const isInQuietHours = start <= end
+        ? currentTime >= start && currentTime <= end
+        : currentTime >= start || currentTime <= end;
+
+      if (isInQuietHours) {
         console.log(`Quiet hours active for user ${params.user_id}, skipping alert`);
         return;
       }
