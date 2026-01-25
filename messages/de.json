@@ -1501,6 +1501,61 @@
       "messageUser": "Nutzer kontaktieren",
       "viewInventory": "Inventar ansehen",
       "seePriceComparison": "Preisvergleich ansehen"
+    },
+    "matchConfirmation": {
+      "title": "Produktübereinstimmung bestätigen",
+      "description": "Wir haben mehrere mögliche Übereinstimmungen für deinen Artikel gefunden. Bitte wähle das richtige Produkt aus.",
+      "matchPercent": "{score}% Übereinstimmung",
+      "skip": "Überspringen - Später manuell suchen",
+      "cancel": "Abbrechen"
+    },
+    "priceAlerts": {
+      "title": "Preissenkungsalarme",
+      "description": "Werde benachrichtigt, wenn die Preise unter den niedrigsten aufgezeichneten Preis fallen"
+    },
+    "priceHistory": {
+      "stubTitle": "Preisverlauf",
+      "comingSoon": "Preisverlauf-Verfolgung kommt bald"
+    },
+    "priceMonitoring": {
+      "title": "Preisüberwachung",
+      "comingSoon": "Demnächst verfügbar"
+    },
+    "personalOffer": {
+      "badge": "Persönliches Angebot",
+      "expired": "Abgelaufen",
+      "invalidDate": "Ungültiges Datum",
+      "daysRemaining": "{days}T verbleibend",
+      "hoursMinutesRemaining": "{hours}Std {minutes}Min verbleibend",
+      "minutesRemaining": "{minutes}Min verbleibend"
+    },
+    "priceResults": {
+      "lowest": "Niedrigster",
+      "local": "Lokal",
+      "shipping": "+ {price} Versand",
+      "total": "Gesamt: {price}"
+    },
+    "retailPrices": {
+      "loading": "Preise werden geladen...",
+      "noData": "Noch keine Preisdaten verfügbar",
+      "bestRetailPrices": "Beste Einzelhandelspreise",
+      "best": "BESTER",
+      "viewOffer": "Angebot ansehen"
+    },
+    "priceComparison": {
+      "finding": "Preise werden gesucht...",
+      "exclusiveOffers": "Exklusive persönliche Angebote",
+      "from": "von {name}",
+      "save": "Spare {percent}%",
+      "sourcesUnavailable": "Einige Quellen nicht verfügbar: {sources}",
+      "noResults": "Keine Preise gefunden. Versuche, den Artikelnamen anzupassen, oder komm später wieder."
+    },
+    "errorBoundary": {
+      "title": "Etwas ist schiefgelaufen",
+      "priceTrackingError": "Beim Laden der Preisverfolgungsfunktionen ist ein Fehler aufgetreten.",
+      "wishlistError": "Bei der Wunschliste ist etwas schiefgelaufen",
+      "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten",
+      "tryAgain": "Erneut versuchen"
     }
   },
   "Profile": {

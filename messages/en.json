@@ -1497,6 +1497,61 @@
       "messageUser": "Message user",
       "viewInventory": "View inventory",
       "seePriceComparison": "See price comparison"
+    },
+    "matchConfirmation": {
+      "title": "Confirm Product Match",
+      "description": "We found several possible matches for your item. Please select the correct product.",
+      "matchPercent": "{score}% match",
+      "skip": "Skip - Search manually later",
+      "cancel": "Cancel"
+    },
+    "priceAlerts": {
+      "title": "Price Drop Alerts",
+      "description": "Get notified when prices drop below the lowest recorded price"
+    },
+    "priceHistory": {
+      "stubTitle": "Price History",
+      "comingSoon": "Price history tracking coming soon"
+    },
+    "priceMonitoring": {
+      "title": "Price Monitoring",
+      "comingSoon": "Coming soon"
+    },
+    "personalOffer": {
+      "badge": "Personal Offer",
+      "expired": "Expired",
+      "invalidDate": "Invalid date",
+      "daysRemaining": "{days}d remaining",
+      "hoursMinutesRemaining": "{hours}h {minutes}m remaining",
+      "minutesRemaining": "{minutes}m remaining"
+    },
+    "priceResults": {
+      "lowest": "Lowest",
+      "local": "Local",
+      "shipping": "+ {price} shipping",
+      "total": "Total: {price}"
+    },
+    "retailPrices": {
+      "loading": "Loading prices...",
+      "noData": "No price data available yet",
+      "bestRetailPrices": "Best Retail Prices",
+      "best": "BEST",
+      "viewOffer": "View offer"
+    },
+    "priceComparison": {
+      "finding": "Finding prices...",
+      "exclusiveOffers": "Exclusive Personal Offers",
+      "from": "from {name}",
+      "save": "Save {percent}%",
+      "sourcesUnavailable": "Some sources unavailable: {sources}",
+      "noResults": "No prices found. Try adjusting the item name or check back later."
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "priceTrackingError": "An error occurred while loading price tracking features.",
+      "wishlistError": "Something went wrong with wishlist",
+      "unexpectedError": "An unexpected error occurred",
+      "tryAgain": "Try again"
     }
   },
   "Profile": {

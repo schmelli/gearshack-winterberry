@@ -13,6 +13,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,8 @@ export interface PriceStubIndicatorProps {
 // =============================================================================
 
 export function PriceStubIndicator({ className }: PriceStubIndicatorProps) {
+  const t = useTranslations('Wishlist.priceMonitoring');
+
   return (
     <div
       className={cn(
@@ -50,10 +53,10 @@ export function PriceStubIndicator({ className }: PriceStubIndicatorProps) {
       {/* Coming soon message */}
       <div className="flex flex-col min-w-0">
         <span className="text-xs font-medium text-muted-foreground">
-          Price Monitoring
+          {t('title')}
         </span>
         <span className="text-[10px] text-muted-foreground/70">
-          Coming soon
+          {t('comingSoon')}
         </span>
       </div>
     </div>
