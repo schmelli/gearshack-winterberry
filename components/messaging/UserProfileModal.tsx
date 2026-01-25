@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useFriends } from '@/hooks/messaging/useFriends';
 import { usePresenceStatus } from '@/hooks/messaging/usePresenceStatus';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
 interface UserProfile {
   id: string;
@@ -56,6 +57,7 @@ export function UserProfileModal({
   onSendMessage,
   onBlock,
 }: UserProfileModalProps) {
+  const t = useTranslations('Messaging');
   const { isFriend, addFriend, removeFriend } = useFriends();
   const { isUserOnline } = usePresenceStatus();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -83,7 +85,7 @@ export function UserProfileModal({
         setProfile(data);
       } catch (err) {
         console.error('[UserProfileModal] Failed to fetch profile:', err);
-        setError('Failed to load profile');
+        setError(t('userProfile.loadFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -132,7 +134,7 @@ export function UserProfileModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="sr-only">User Profile</DialogTitle>
+          <DialogTitle className="sr-only">{t('userProfile.title')}</DialogTitle>
         </DialogHeader>
 
         {isLoading && (
@@ -167,7 +169,7 @@ export function UserProfileModal({
             <div className="text-center">
               <h3 className="text-lg font-semibold">{displayName}</h3>
               <p className="text-sm text-muted-foreground">
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? t('userProfile.online') : t('userProfile.offline')}
               </p>
             </div>
 
@@ -188,9 +190,10 @@ export function UserProfileModal({
               )}
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                Member{' '}
-                {formatDistanceToNow(new Date(profile.created_at), {
-                  addSuffix: true,
+                {t('userProfile.memberSince', {
+                  time: formatDistanceToNow(new Date(profile.created_at), {
+                    addSuffix: true,
+                  }),
                 })}
               </span>
             </div>
@@ -199,7 +202,7 @@ export function UserProfileModal({
             <div className="mt-4 flex w-full flex-col gap-2">
               <Button onClick={handleSendMessage} className="w-full">
                 <MessageCircle className="mr-2 h-4 w-4" />
-                Send Message
+                {t('userProfile.sendMessage')}
               </Button>
 
               <Button
@@ -215,7 +218,7 @@ export function UserProfileModal({
                 ) : (
                   <UserPlus className="mr-2 h-4 w-4" />
                 )}
-                {friendStatus ? 'Remove Friend' : 'Add Friend'}
+                {friendStatus ? t('userProfile.removeFriend') : t('userProfile.addFriend')}
               </Button>
 
               <Button
@@ -224,7 +227,7 @@ export function UserProfileModal({
                 className="w-full text-destructive hover:text-destructive"
               >
                 <Shield className="mr-2 h-4 w-4" />
-                Block User
+                {t('userProfile.blockUser')}
               </Button>
             </div>
           </div>

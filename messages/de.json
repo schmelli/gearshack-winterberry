@@ -1392,6 +1392,17 @@
       "addParticipant": "Teilnehmer hinzufügen",
       "leaveGroup": "Gruppe verlassen",
       "reportConversation": "Unterhaltung melden"
+    },
+    "userProfile": {
+      "title": "Benutzerprofil",
+      "online": "Online",
+      "offline": "Offline",
+      "memberSince": "Mitglied {time}",
+      "sendMessage": "Nachricht senden",
+      "addFriend": "Als Freund hinzufügen",
+      "removeFriend": "Freund entfernen",
+      "blockUser": "Benutzer blockieren",
+      "loadFailed": "Profil konnte nicht geladen werden"
     }
   },
   "Social": {
