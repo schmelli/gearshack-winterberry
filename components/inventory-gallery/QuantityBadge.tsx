@@ -30,7 +30,7 @@ export function QuantityBadge({ quantity, className }: QuantityBadgeProps): Reac
         'shadow-sm',
         className
       )}
-      title={`Quantity: ${quantity}`}
+      title={t('quantityTooltip', { quantity })}
     >
       {t('quantityBadge', { quantity })}
     </span>
