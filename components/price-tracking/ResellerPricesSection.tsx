@@ -216,17 +216,17 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
       }
     } catch (error) {
       console.error('Failed to toggle price monitoring:', error);
-      toast.error('Failed to update price monitoring settings');
+      toast.error(t('priceMonitoring.updateFailed'));
     }
   };
 
   const handleToggleAlerts = async (enabled: boolean) => {
     try {
       await toggleAlerts(enabled);
-      toast.success(enabled ? 'Notifications enabled' : 'Notifications disabled');
+      toast.success(enabled ? t('priceMonitoring.notificationsEnabled') : t('priceMonitoring.notificationsDisabled'));
     } catch (error) {
       console.error('Failed to toggle notifications:', error);
-      toast.error('Failed to update notification settings');
+      toast.error(t('priceMonitoring.notificationUpdateFailed'));
     }
   };
 
@@ -281,7 +281,7 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
               <div className="space-y-3 pt-2 border-t">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="notify-alerts" className="text-sm">
-                    Enable Notifications
+                    {t('priceMonitoring.enableNotifications')}
                   </Label>
                   <Switch
                     id="notify-alerts"
