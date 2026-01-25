@@ -23,6 +23,35 @@ export interface CloudinaryUploadResult {
   duration?: number;
 }
 
+// =============================================================================
+// MIME Type Validation
+// =============================================================================
+
+/** Allowed image MIME types for upload */
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+] as const;
+
+/** Allowed audio MIME types for voice messages */
+const ALLOWED_AUDIO_TYPES = [
+  'audio/webm',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'video/webm', // WebM can contain audio-only streams
+] as const;
+
+/** Maximum file size for images (10MB) */
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Maximum file size for voice messages (5MB) */
+const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024;
+
 /**
  * Uploads an image to Cloudinary.
  *
@@ -36,6 +65,20 @@ export async function uploadImageToCloudinary(
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error(
       'Cloudinary configuration missing. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.'
+    );
+  }
+
+  // SECURITY: Validate file type to prevent malicious uploads
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type as typeof ALLOWED_IMAGE_TYPES[number])) {
+    throw new Error(
+      `Invalid file type: ${file.type}. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`
+    );
+  }
+
+  // SECURITY: Validate file size to prevent DoS
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    throw new Error(
+      `File too large: ${Math.round(file.size / 1024 / 1024)}MB. Maximum size: ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024}MB`
     );
   }
 
@@ -96,6 +139,20 @@ export async function uploadVoiceToCloudinary(
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error(
       'Cloudinary configuration missing. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.'
+    );
+  }
+
+  // SECURITY: Validate audio type to prevent malicious uploads
+  if (!ALLOWED_AUDIO_TYPES.includes(audioBlob.type as typeof ALLOWED_AUDIO_TYPES[number])) {
+    throw new Error(
+      `Invalid audio type: ${audioBlob.type}. Allowed types: ${ALLOWED_AUDIO_TYPES.join(', ')}`
+    );
+  }
+
+  // SECURITY: Validate file size to prevent DoS
+  if (audioBlob.size > MAX_AUDIO_SIZE_BYTES) {
+    throw new Error(
+      `Audio file too large: ${Math.round(audioBlob.size / 1024 / 1024)}MB. Maximum size: ${MAX_AUDIO_SIZE_BYTES / 1024 / 1024}MB`
     );
   }
 
