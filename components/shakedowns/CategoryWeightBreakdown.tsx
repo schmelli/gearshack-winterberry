@@ -165,7 +165,7 @@ export function CategoryWeightBreakdown({
                         value={category.percentage}
                         className="h-1.5 flex-1"
                         style={{
-                          // @ts-ignore - CSS custom property
+                          // @ts-expect-error - CSS custom property
                           '--progress-background': getCategoryColor(category.hue),
                         }}
                       />

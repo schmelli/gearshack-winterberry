@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { Compass } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface WelcomeStepProps extends Pick<OnboardingStepProps, 'onSkip'> {}
+type WelcomeStepProps = Pick<OnboardingStepProps, 'onSkip'>;
 
 export function WelcomeStep({ onSkip }: WelcomeStepProps) {
   const t = useTranslations('Onboarding');

@@ -24,6 +24,67 @@ const RequestSchema = z.object({
 });
 
 // =============================================================================
+// SSRF Protection
+// =============================================================================
+
+/** Maximum content size to prevent memory exhaustion (50MB) */
+const MAX_CONTENT_SIZE = 50 * 1024 * 1024;
+
+/**
+ * SSRF protection: validate URL is not targeting internal resources
+ */
+function validateExternalUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow HTTP/HTTPS
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return 'Only HTTP/HTTPS URLs are allowed';
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost variations
+    const BLOCKED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'];
+    if (BLOCKED_HOSTS.includes(hostname)) {
+      return 'Internal URLs are not allowed';
+    }
+
+    // Block private IP ranges
+    const BLOCKED_IP_PATTERNS = [
+      /^10\./, // 10.0.0.0/8
+      /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12
+      /^192\.168\./, // 192.168.0.0/16
+      /^127\./, // 127.0.0.0/8
+      /^169\.254\./, // Link-local
+      /^fc00:/i, // IPv6 unique local
+      /^fe80:/i, // IPv6 link-local
+      /^fd[0-9a-f]{2}:/i, // IPv6 unique local (fd00::/8)
+    ];
+
+    for (const pattern of BLOCKED_IP_PATTERNS) {
+      if (pattern.test(hostname)) {
+        return 'Private network URLs are not allowed';
+      }
+    }
+
+    // Block cloud metadata endpoints
+    const METADATA_HOSTS = [
+      '169.254.169.254', // AWS/GCP/Azure metadata
+      'metadata.google.internal',
+      'metadata.internal',
+    ];
+    if (METADATA_HOSTS.includes(hostname)) {
+      return 'Cloud metadata URLs are not allowed';
+    }
+
+    return null; // URL is valid
+  } catch {
+    return 'Invalid URL format';
+  }
+}
+
+// =============================================================================
 // Constants
 // =============================================================================
 
@@ -335,25 +396,62 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { sourceUrl } = RequestSchema.parse(body);
 
-    console.log('[Wiki Generate] Fetching URL:', sourceUrl);
-
-    // Fetch URL content
-    const fetchResponse = await fetch(sourceUrl, {
-      headers: {
-        'User-Agent': 'GearShack Wiki Bot/1.0',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    });
-
-    if (!fetchResponse.ok) {
+    // SSRF protection: validate URL is not targeting internal resources
+    const ssrfError = validateExternalUrl(sourceUrl);
+    if (ssrfError) {
+      console.warn('[Wiki Generate] SSRF protection blocked URL:', sourceUrl, ssrfError);
       return NextResponse.json(
-        { error: `Failed to fetch URL: ${fetchResponse.status}` },
+        { error: ssrfError },
         { status: 400 }
       );
     }
 
-    const html = await fetchResponse.text();
-    const textContent = extractTextFromHtml(html);
+    console.log('[Wiki Generate] Fetching URL:', sourceUrl);
+
+    // Fetch URL content with timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    let textContent: string;
+
+    try {
+      const fetchResponse = await fetch(sourceUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'GearShack Wiki Bot/1.0',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      });
+
+      if (!fetchResponse.ok) {
+        return NextResponse.json(
+          { error: `Failed to fetch URL: ${fetchResponse.status}` },
+          { status: 400 }
+        );
+      }
+
+      // Check Content-Length header to prevent memory exhaustion
+      const contentLength = fetchResponse.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > MAX_CONTENT_SIZE) {
+        return NextResponse.json(
+          { error: 'URL content too large (max 50MB)' },
+          { status: 413 }
+        );
+      }
+
+      const html = await fetchResponse.text();
+
+      // Double-check size after download (Content-Length may be missing or wrong)
+      if (html.length > MAX_CONTENT_SIZE) {
+        return NextResponse.json(
+          { error: 'URL content too large (max 50MB)' },
+          { status: 413 }
+        );
+      }
+
+      textContent = extractTextFromHtml(html);
+    } finally {
+      clearTimeout(timeout);
+    }
 
     // Limit content size (AI context limits)
     const truncatedContent = textContent.substring(0, 15000);

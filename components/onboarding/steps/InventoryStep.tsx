@@ -9,10 +9,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Package, Plus, Search, Image } from 'lucide-react';
+import { Package, Plus, Search, Image as ImageIcon } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface InventoryStepProps extends Pick<OnboardingStepProps, 'onSkip'> {}
+type InventoryStepProps = Pick<OnboardingStepProps, 'onSkip'>;
 
 export function InventoryStep({ onSkip }: InventoryStepProps) {
   const t = useTranslations('Onboarding');
@@ -47,7 +47,7 @@ export function InventoryStep({ onSkip }: InventoryStepProps) {
           description={t('inventory.feature2.description')}
         />
         <FeatureCard
-          icon={<Image className="h-5 w-5" />}
+          icon={<ImageIcon className="h-5 w-5" />}
           title={t('inventory.feature3.title')}
           description={t('inventory.feature3.description')}
         />

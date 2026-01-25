@@ -9,7 +9,7 @@
  * - Current loadout ID (if viewing loadout)
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
@@ -36,7 +36,8 @@ export function useContextDetection(
 
   const pathname = usePathname();
   const locale = useLocale();
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (!userId) {

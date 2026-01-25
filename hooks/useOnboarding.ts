@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type {
   OnboardingStep,
@@ -60,7 +60,8 @@ export function useOnboarding({
   hasCompletedOnboarding,
   onComplete,
 }: UseOnboardingOptions): UseOnboardingReturn {
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Filter steps based on visibility
   const visibleSteps = useMemo(

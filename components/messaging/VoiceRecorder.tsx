@@ -42,9 +42,26 @@ export function VoiceRecorder({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  // Clean up audio URL on unmount
+  // Clean up on unmount: stop recording, release media stream, revoke URLs
   useEffect(() => {
     return () => {
+      // Stop any active timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // Stop recording and release media stream tracks
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+        // Stop all tracks to release the microphone
+        const stream = mediaRecorderRef.current.stream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Revoke audio URL to free memory
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }

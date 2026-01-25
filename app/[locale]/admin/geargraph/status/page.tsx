@@ -167,7 +167,7 @@ export default function GearGraphStatusPage() {
     return <Badge variant="secondary">Unbekannt</Badge>;
   };
 
-  const getStatusIcon = () => {
+  const _getStatusIcon = () => {
     if (loading) return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
     if (healthError) return <XCircle className="h-5 w-5 text-destructive" />;
     if (health?.status === 'ok' || health?.status === 'healthy') {

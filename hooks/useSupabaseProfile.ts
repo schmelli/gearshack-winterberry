@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesUpdate } from '@/types/supabase';
 
@@ -55,7 +55,8 @@ export function useSupabaseProfile(userId: string | null): UseSupabaseProfileRet
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch profile from database
   const fetchProfile = useCallback(async () => {

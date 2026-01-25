@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { ClipboardList, Scale, Calendar, Sparkles } from 'lucide-react';
 import type { OnboardingStepProps } from '@/types/onboarding';
 
-interface LoadoutsStepProps extends Pick<OnboardingStepProps, 'onSkip'> {}
+type LoadoutsStepProps = Pick<OnboardingStepProps, 'onSkip'>;
 
 export function LoadoutsStep({ onSkip }: LoadoutsStepProps) {
   const t = useTranslations('Onboarding');

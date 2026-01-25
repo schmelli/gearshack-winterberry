@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   gearItemFromDb,
@@ -65,7 +65,8 @@ export function useGearItems(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Fetch all items (T029)

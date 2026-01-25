@@ -62,8 +62,18 @@ export function VoicePlayer({
     };
 
     return () => {
+      // Stop playback
       audio.pause();
-      audio.src = '';
+      // Remove event listeners to prevent memory leaks
+      audio.onloadedmetadata = null;
+      audio.ontimeupdate = null;
+      audio.onended = null;
+      audio.onerror = null;
+      // Clear source and force unload
+      audio.removeAttribute('src');
+      audio.load();
+      // Clear ref
+      audioRef.current = null;
     };
   }, [audioUrl]);
 

@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'BLOCKED_URL', message: 'URL is blocked for security' }, { status: 400 });
   }
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  try {
     // Extract origin for Referer header (bypasses hotlink protection)
     const parsedUrl = new URL(url);
     const referer = `${parsedUrl.protocol}//${parsedUrl.hostname}/`;
@@ -103,7 +103,6 @@ export async function GET(request: NextRequest) {
       redirect: 'follow',
     });
 
-    clearTimeout(timeout);
     console.log('[Proxy] Fetch response:', { status: response.status, ok: response.ok });
 
     if (!response.ok) {
@@ -157,5 +156,8 @@ export async function GET(request: NextRequest) {
       { error: 'INTERNAL_ERROR', message: `Proxy error: ${errorMessage}` },
       { status: 500 }
     );
+  } finally {
+    // Always clear the timeout to prevent memory leaks
+    clearTimeout(timeout);
   }
 }
