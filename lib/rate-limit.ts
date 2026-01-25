@@ -18,10 +18,12 @@ class RateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private readonly maxAttempts: number;
   private readonly windowMs: number;
+  private readonly maxStoreSize: number;
 
-  constructor(maxAttempts: number, windowMs: number) {
+  constructor(maxAttempts: number, windowMs: number, maxStoreSize: number = 10000) {
     this.maxAttempts = maxAttempts;
     this.windowMs = windowMs;
+    this.maxStoreSize = maxStoreSize;
 
     // Cleanup expired entries every 5 minutes
     setInterval(() => this.cleanup(), 5 * 60 * 1000);
@@ -42,6 +44,13 @@ class RateLimiter {
     const entry = this.store.get(userId);
 
     if (!entry) {
+      // Enforce max store size to prevent unbounded memory growth
+      if (this.store.size >= this.maxStoreSize) {
+        // Remove oldest entry (first key in Map maintains insertion order)
+        const oldestKey = this.store.keys().next().value;
+        if (oldestKey) this.store.delete(oldestKey);
+      }
+
       // First attempt - create new entry
       this.store.set(userId, {
         attempts: [now],

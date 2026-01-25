@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to copy loadout';
+    // Don't expose internal error details to clients
     return NextResponse.json(
-      { error: message },
+      { error: 'Failed to copy loadout' },
       { status: 500 }
     );
   }

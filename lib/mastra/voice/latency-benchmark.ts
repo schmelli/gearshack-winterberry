@@ -159,31 +159,34 @@ export class LatencyTracker {
  * Analyze latency metrics and generate a report
  */
 export function analyzeLatency(metrics: LatencyMetrics): LatencyReport {
+  // Guard against division by zero if totalMs is 0
+  const safeTotalMs = metrics.totalMs > 0 ? metrics.totalMs : 1;
+
   const breakdown: LatencyBreakdown[] = [
     {
       phase: 'Recording Start',
       durationMs: metrics.recordingStartMs,
-      percentage: (metrics.recordingStartMs / metrics.totalMs) * 100,
+      percentage: (metrics.recordingStartMs / safeTotalMs) * 100,
     },
     {
       phase: 'Upload',
       durationMs: metrics.uploadMs,
-      percentage: (metrics.uploadMs / metrics.totalMs) * 100,
+      percentage: (metrics.uploadMs / safeTotalMs) * 100,
     },
     {
       phase: 'Transcription',
       durationMs: metrics.transcriptionMs,
-      percentage: (metrics.transcriptionMs / metrics.totalMs) * 100,
+      percentage: (metrics.transcriptionMs / safeTotalMs) * 100,
     },
     {
       phase: 'AI Response',
       durationMs: metrics.responseMs,
-      percentage: (metrics.responseMs / metrics.totalMs) * 100,
+      percentage: (metrics.responseMs / safeTotalMs) * 100,
     },
     {
       phase: 'TTS Synthesis',
       durationMs: metrics.ttsMs,
-      percentage: (metrics.ttsMs / metrics.totalMs) * 100,
+      percentage: (metrics.ttsMs / safeTotalMs) * 100,
     },
   ];
 
@@ -227,6 +230,10 @@ export function analyzeLatency(metrics: LatencyMetrics): LatencyReport {
  * Get latency status for a value against a target
  */
 export function getLatencyStatus(valueMs: number, targetMs: number): 'excellent' | 'good' | 'acceptable' | 'slow' | 'critical' {
+  // Guard against division by zero
+  if (targetMs <= 0) {
+    return valueMs <= 0 ? 'excellent' : 'critical';
+  }
   const ratio = valueMs / targetMs;
 
   if (ratio < LATENCY_STATUS.excellent) return 'excellent';

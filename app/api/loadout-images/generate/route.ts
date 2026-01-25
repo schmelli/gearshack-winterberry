@@ -158,11 +158,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generic error (ZodError is now handled by safeParse above)
+    // Generic error - don't expose internal error details to clients
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to generate image',
-      },
+      { error: 'Failed to generate image' },
       { status: 500 }
     );
   }

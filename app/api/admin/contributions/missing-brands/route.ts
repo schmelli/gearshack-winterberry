@@ -60,9 +60,13 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    // Search by brand name
+    // Search by brand name - escape ILIKE special characters to prevent injection
     if (search) {
-      query = query.ilike('brand_name', `%${search}%`);
+      const sanitizedSearch = search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      query = query.ilike('brand_name', `%${sanitizedSearch}%`);
     }
 
     // Order and paginate

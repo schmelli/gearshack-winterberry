@@ -86,6 +86,9 @@ export type WeatherQueryParams = z.infer<typeof weatherQuerySchema>;
 /** Cache TTL in milliseconds (1 hour) */
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
+/** Maximum cache size to prevent unbounded memory growth */
+const MAX_CACHE_SIZE = 100;
+
 /** In-memory cache for weather data */
 const weatherCache = new Map<string, { data: WeatherData; expiresAt: number }>();
 
@@ -434,7 +437,12 @@ export async function getWeatherData(
     expiresAt,
   };
 
-  // Store in cache
+  // Store in cache with size limit enforcement
+  if (weatherCache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entry (first key in Map maintains insertion order)
+    const oldestKey = weatherCache.keys().next().value;
+    if (oldestKey) weatherCache.delete(oldestKey);
+  }
   weatherCache.set(cacheKey, {
     data: weatherData,
     expiresAt: Date.now() + CACHE_TTL_MS,

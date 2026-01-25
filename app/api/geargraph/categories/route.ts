@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('[GearGraph Categories] Query error:', error);
       return NextResponse.json(
-        { error: `Database error: ${error.message}` },
+        { error: 'Failed to fetch categories' },
         { status: 500 }
       );
     }
