@@ -142,7 +142,7 @@ export async function transcribeAudio(
     let result: Record<string, unknown>;
     try {
       result = await response.json();
-    } catch (jsonError) {
+    } catch (_jsonError) {
       throw new Error('Invalid JSON response from ElevenLabs API');
     }
 
