@@ -248,15 +248,23 @@ export async function GET(
 
     // Apply search filter (trigram search on trip_name)
     if (search && search.trim()) {
-      // Escape ILIKE wildcards, SQL special characters, and PostgREST operators
+      // SECURITY: Comprehensive sanitization for ILIKE search
+      // Escape ILIKE wildcards, SQL special characters, and all PostgREST operators
       const sanitizedSearch = search.trim()
-        .replace(/\\/g, '\\\\')  // Escape backslashes first
-        .replace(/'/g, "''")     // Escape single quotes for SQL
-        .replace(/%/g, '\\%')    // Escape % wildcards
-        .replace(/_/g, '\\_')    // Escape _ wildcards
-        .replace(/[(),\.]/g, ''); // Remove PostgREST operators
-      // Use ilike for basic search (trigram extension provides fuzzy matching)
-      query = query.ilike('trip_name', `%${sanitizedSearch}%`);
+        .replace(/\\/g, '\\\\')           // Escape backslashes first
+        .replace(/'/g, "''")              // Escape single quotes for SQL
+        .replace(/%/g, '\\%')             // Escape % wildcards
+        .replace(/_/g, '\\_')             // Escape _ wildcards
+        .replace(/[(),\.\|&!<>@]/g, '');  // Remove PostgREST operators (extended set)
+
+      // Additional validation: limit search length to prevent DoS
+      const MAX_SEARCH_LENGTH = 100;
+      const truncatedSearch = sanitizedSearch.substring(0, MAX_SEARCH_LENGTH);
+
+      if (truncatedSearch.length > 0) {
+        // Use ilike for basic search (trigram extension provides fuzzy matching)
+        query = query.ilike('trip_name', `%${truncatedSearch}%`);
+      }
     }
 
     // Apply cursor-based pagination
