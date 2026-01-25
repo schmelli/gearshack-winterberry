@@ -274,7 +274,7 @@ export function FeedbackItem({
                   variant="secondary"
                   className="text-[10px] px-1.5 py-0"
                 >
-                  Expert
+                  {t('feedback.expertBadge')}
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">
@@ -282,7 +282,7 @@ export function FeedbackItem({
               </span>
               {feedback.isEdited && (
                 <span className="text-xs text-muted-foreground italic">
-                  ({t('feedback.edit')}ed)
+                  ({t('feedback.edited')})
                 </span>
               )}
             </div>
@@ -448,11 +448,10 @@ export function FeedbackItem({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t('feedback.delete')} Feedback
+              {t('feedback.deleteTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Your feedback will be permanently
-              removed from this shakedown.
+              {t('feedback.deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -467,7 +466,7 @@ export function FeedbackItem({
               {isDeleting ? (
                 <span className="flex items-center gap-2">
                   <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Deleting...
+                  {tCommon('deleting')}
                 </span>
               ) : (
                 <>

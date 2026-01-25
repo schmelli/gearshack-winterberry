@@ -58,15 +58,17 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function getTimeAgo(dateString: string): string {
+type TranslationFunction = (key: string, values?: Record<string, string | number>) => string;
+
+function getTimeAgo(dateString: string, t: TranslationFunction): string {
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return t('time.justNow');
+  if (seconds < 3600) return t('time.minutesAgo', { count: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t('time.hoursAgo', { count: Math.floor(seconds / 3600) });
+  if (seconds < 604800) return t('time.daysAgo', { count: Math.floor(seconds / 86400) });
   return date.toLocaleDateString();
 }
 

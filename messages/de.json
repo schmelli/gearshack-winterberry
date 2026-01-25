@@ -840,6 +840,17 @@
       "consumables": "Verbrauchsgüter"
     },
     "noActivities": "Keine Aktivitäten angegeben",
+    "pdfLabels": {
+      "date": "Datum",
+      "activities": "Aktivitäten",
+      "seasons": "Jahreszeiten",
+      "generated": "Erstellt",
+      "items": "Gegenstände",
+      "activitiesAndSeasons": "Aktivitäten & Jahreszeiten",
+      "pack": "Packen",
+      "worn": "Getragen",
+      "consumable": "Verbrauchsgut"
+    },
     "backToLoadouts": "Zurück zu Packlisten",
     "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
     "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",

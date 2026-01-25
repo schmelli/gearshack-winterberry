@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -27,12 +28,14 @@ export function AlertPreferencesForm({
   error,
   onUpdate,
 }: AlertPreferencesFormProps) {
+  const t = useTranslations('AlertPreferences');
+
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-12">
           <div className="flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading preferences...</p>
+            <p className="text-sm text-muted-foreground">{t('loading')}</p>
           </div>
         </CardContent>
       </Card>
@@ -42,7 +45,7 @@ export function AlertPreferencesForm({
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>Failed to load preferences: {error.message}</AlertDescription>
+        <AlertDescription>{t('loadError', { message: error.message })}</AlertDescription>
       </Alert>
     );
   }
@@ -64,10 +67,8 @@ export function AlertPreferencesForm({
       {/* Notification Channels */}
       <Card>
         <CardHeader>
-          <CardTitle>Notification Channels</CardTitle>
-          <CardDescription>
-            Choose how you want to receive price alerts
-          </CardDescription>
+          <CardTitle>{t('channels.title')}</CardTitle>
+          <CardDescription>{t('channels.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -75,10 +76,10 @@ export function AlertPreferencesForm({
               <Bell className="h-5 w-5 text-muted-foreground" />
               <div>
                 <Label htmlFor="push-enabled" className="text-base font-medium">
-                  Push Notifications
+                  {t('channels.push.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive instant alerts in your browser
+                  {t('channels.push.description')}
                 </p>
               </div>
             </div>
@@ -96,10 +97,10 @@ export function AlertPreferencesForm({
               <Mail className="h-5 w-5 text-muted-foreground" />
               <div>
                 <Label htmlFor="email-enabled" className="text-base font-medium">
-                  Email Notifications
+                  {t('channels.email.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive alerts via email
+                  {t('channels.email.description')}
                 </p>
               </div>
             </div>
@@ -115,10 +116,8 @@ export function AlertPreferencesForm({
       {/* Alert Types */}
       <Card>
         <CardHeader>
-          <CardTitle>Alert Types</CardTitle>
-          <CardDescription>
-            Control which events trigger notifications
-          </CardDescription>
+          <CardTitle>{t('types.title')}</CardTitle>
+          <CardDescription>{t('types.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -126,10 +125,10 @@ export function AlertPreferencesForm({
               <TrendingDown className="h-5 w-5 text-green-600" />
               <div>
                 <Label htmlFor="price-drop-enabled" className="text-base font-medium">
-                  Price Drops
+                  {t('types.priceDrop.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Get notified when prices decrease
+                  {t('types.priceDrop.description')}
                 </p>
               </div>
             </div>
@@ -147,10 +146,10 @@ export function AlertPreferencesForm({
               <MapPin className="h-5 w-5 text-blue-600" />
               <div>
                 <Label htmlFor="local-shop-enabled" className="text-base font-medium">
-                  Local Shop Availability
+                  {t('types.localShop.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Alert when items are available nearby
+                  {t('types.localShop.description')}
                 </p>
               </div>
             </div>
@@ -168,10 +167,10 @@ export function AlertPreferencesForm({
               <Users className="h-5 w-5 text-purple-600" />
               <div>
                 <Label htmlFor="community-enabled" className="text-base font-medium">
-                  Community Availability
+                  {t('types.community.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Alert when community members have the item
+                  {t('types.community.description')}
                 </p>
               </div>
             </div>
@@ -189,10 +188,10 @@ export function AlertPreferencesForm({
               <Sparkles className="h-5 w-5 text-amber-600" />
               <div>
                 <Label htmlFor="personal-offer-enabled" className="text-base font-medium">
-                  Personal Offers
+                  {t('types.personalOffer.label')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Get exclusive deals from partner retailers
+                  {t('types.personalOffer.description')}
                 </p>
               </div>
             </div>
@@ -210,17 +209,12 @@ export function AlertPreferencesForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Moon className="h-5 w-5" />
-            Quiet Hours
+            {t('quietHours.title')}
           </CardTitle>
-          <CardDescription>
-            Coming soon: Set hours when you don&apos;t want to receive notifications
-          </CardDescription>
+          <CardDescription>{t('quietHours.comingSoon')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            This feature will allow you to configure quiet hours (e.g., 10 PM - 7 AM) when
-            notifications will be held until the next day.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('quietHours.description')}</p>
         </CardContent>
       </Card>
     </div>

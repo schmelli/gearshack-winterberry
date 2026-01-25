@@ -843,6 +843,17 @@
       "consumables": "Consumables"
     },
     "noActivities": "No activities specified",
+    "pdfLabels": {
+      "date": "Date",
+      "activities": "Activities",
+      "seasons": "Seasons",
+      "generated": "Generated",
+      "items": "Items",
+      "activitiesAndSeasons": "Activities & Seasons",
+      "pack": "Pack",
+      "worn": "Worn",
+      "consumable": "Consumable"
+    },
     "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
     "addCommentFirst": "Add a comment before sending",
     "yes": "Yes",

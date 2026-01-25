@@ -326,10 +326,10 @@ export function CompletionModal({
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <CheckCircle2 className="size-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">
-                No feedback to review yet.
+                {t('completion.noFeedback')}
               </p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                You can still complete the shakedown to close it.
+                {t('completion.noFeedbackHint')}
               </p>
             </div>
           )}
@@ -370,7 +370,7 @@ export function CompletionModal({
             {isCompleting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Completing...
+                {t('completion.completing')}
               </>
             ) : (
               <>
