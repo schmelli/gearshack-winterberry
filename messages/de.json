@@ -23,7 +23,16 @@
     "newMessage": "Neue Nachricht",
     "darkMode": "Dunkelmodus",
     "lightMode": "Hellmodus",
-    "themeToggle": "Design"
+    "themeToggle": "Design",
+    "switchToGerman": "Zu Deutsch wechseln",
+    "switchToEnglish": "Zu Englisch wechseln"
+  },
+  "SyncStatus": {
+    "syncing": "Synchronisiere mit Cloud...",
+    "error": "Sync-Fehler: {error}",
+    "unknownError": "Unbekannter Fehler",
+    "lastSynced": "Zuletzt synchronisiert: {time}",
+    "connected": "Mit Cloud verbunden"
   },
   "FeatureGate": {
     "comingSoon": "Demnächst verfügbar",
@@ -1835,7 +1844,8 @@
       "viewDetails": "Artikeldetails anzeigen",
       "noItemsMatch": "Keine Artikel entsprechen deinen Filtern",
       "clearFilters": "Filter zurücksetzen",
-      "items": "Gegenstände"
+      "items": "Gegenstände",
+      "shareToBulletinContent": "Schau dir meinen Loadout-Shakedown an: \"{tripName}\" - Ich freue mich über Feedback!"
     },
     "gearToolbar": {
       "searchPlaceholder": "Ausrüstung suchen...",
@@ -2038,7 +2048,10 @@
       "selectHelpful": "Wähle hilfreiches Feedback zur Anerkennung aus",
       "thankYouNote": "Dankesnachricht (optional)",
       "thankYouPlaceholder": "Drücke deine Wertschätzung aus...",
-      "confirm": "Abschließen & Reviewern danken"
+      "confirm": "Abschließen & Reviewern danken",
+      "noFeedback": "Noch kein Feedback zum Überprüfen vorhanden.",
+      "noFeedbackHint": "Du kannst den Shakedown trotzdem abschließen.",
+      "completing": "Wird abgeschlossen..."
     },
     "notifications": {
       "newFeedback": "{author} hat deinen Shakedown kommentiert",
@@ -2980,6 +2993,7 @@
       "metaDescription": "Entdecke {name}s Ausrüstungs-Loadouts und Outdoor-Expertise auf GearShack",
       "curatedBanner": "{name}s Profil wird von der GearShack-Community gepflegt",
       "verifiedBadge": "Verifiziert",
+      "featured": "Empfohlen",
       "followers": "{count, plural, one {Follower} other {Follower}}",
       "loadouts": "{count, plural, one {Loadout} other {Loadouts}}",
       "socialLinks": "Soziale Links",

@@ -23,7 +23,16 @@
     "newMessage": "New message",
     "darkMode": "Dark mode",
     "lightMode": "Light mode",
-    "themeToggle": "Theme"
+    "themeToggle": "Theme",
+    "switchToGerman": "Switch to German",
+    "switchToEnglish": "Switch to English"
+  },
+  "SyncStatus": {
+    "syncing": "Syncing with cloud...",
+    "error": "Sync error: {error}",
+    "unknownError": "Unknown error",
+    "lastSynced": "Last synced: {time}",
+    "connected": "Connected to cloud"
   },
   "FeatureGate": {
     "comingSoon": "Coming Soon",
@@ -2980,6 +2989,7 @@
       "metaDescription": "Explore {name}'s gear loadouts and outdoor expertise on GearShack",
       "curatedBanner": "{name}'s profile is maintained by the GearShack community",
       "verifiedBadge": "Verified",
+      "featured": "Featured",
       "followers": "{count, plural, one {follower} other {followers}}",
       "loadouts": "{count, plural, one {loadout} other {loadouts}}",
       "socialLinks": "Social Links",

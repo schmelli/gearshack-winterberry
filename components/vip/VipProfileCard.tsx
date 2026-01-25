@@ -101,7 +101,7 @@ export function VipProfileCard({ vip, showBadge = true }: VipProfileCardProps) {
           {vip.isFeatured && (
             <div className="mt-3">
               <Badge variant="secondary" className="text-xs">
-                Featured
+                {t('profile.featured')}
               </Badge>
             </div>
           )}
