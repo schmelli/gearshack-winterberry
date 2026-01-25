@@ -246,10 +246,10 @@ export interface MerchantOfferFilters {
 
 export const createOffersSchema = z.object({
   catalogItemId: z.string().uuid('Invalid catalog item ID'),
-  regularPrice: z.number().positive().optional(),
-  offerPrice: z.number().positive('Offer price must be positive'),
+  regularPrice: z.number().finite().positive().optional(),
+  offerPrice: z.number().finite().positive('Offer price must be positive'),
   message: z.string().max(500, 'Message cannot exceed 500 characters').optional(),
-  expiresInDays: z.number().int().min(1).max(30).default(14),
+  expiresInDays: z.number().finite().int().min(1).max(30).default(14),
   userIds: z.array(z.string()).min(1, 'At least one user must be selected'),
 }).refine(
   (data) => !data.regularPrice || data.offerPrice < data.regularPrice,
@@ -272,6 +272,7 @@ export function calculateDiscountPercent(
   regularPrice: number,
   offerPrice: number
 ): number {
+  if (!Number.isFinite(regularPrice) || !Number.isFinite(offerPrice)) return 0;
   if (regularPrice <= 0) return 0;
   return Math.round(((regularPrice - offerPrice) / regularPrice) * 100);
 }

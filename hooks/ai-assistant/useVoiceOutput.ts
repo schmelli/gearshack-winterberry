@@ -96,6 +96,15 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  // Refs for callbacks to avoid stale closure issues
+  const onStartRef = useRef(onStart);
+  const onEndRef = useRef(onEnd);
+  const onErrorRef = useRef(onError);
+
+  // Keep refs updated
+  onStartRef.current = onStart;
+  onEndRef.current = onEnd;
+  onErrorRef.current = onError;
 
   // Cleanup audio resources
   const cleanup = useCallback(() => {
@@ -220,21 +229,22 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
       sourceNode.connect(gainNodeRef.current!);
       sourceNodeRef.current = sourceNode;
 
-      // Set up event handlers
+      // Set up event handlers (use refs to avoid stale closures)
       audio.onplay = () => {
         setState('playing');
-        onStart?.();
+        onStartRef.current?.();
       };
 
       audio.onpause = () => {
-        if (state !== 'idle') {
+        // Check current audio state instead of React state to avoid stale closure
+        if (audioRef.current && !audioRef.current.ended) {
           setState('paused');
         }
       };
 
       audio.onended = () => {
         setState('idle');
-        onEnd?.();
+        onEndRef.current?.();
         cleanup();
       };
 
@@ -243,7 +253,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
         console.error('Audio error:', event);
         setError(errorMessage);
         setState('error');
-        onError?.(new Error(errorMessage));
+        onErrorRef.current?.(new Error(errorMessage));
         cleanup();
       };
 
@@ -257,12 +267,11 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}): UseVoiceOutput
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
       setState('error');
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
+      onErrorRef.current?.(err instanceof Error ? err : new Error(errorMessage));
       cleanup();
     }
-  // speed is captured by closure but not a reactive dependency here
-   
-  }, [voice, autoPlay, cleanup, initAudioContext, state, onStart, onEnd, onError]);
+  // Using refs for callbacks, so they don't need to be in dependencies
+  }, [voice, autoPlay, cleanup, initAudioContext]);
 
   // Pause playback
   const pause = useCallback(() => {

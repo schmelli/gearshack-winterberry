@@ -23,10 +23,10 @@ export function extractPublicId(
     throw new Error('Cloudinary URL is required');
   }
 
-  // Validate URL format
+  // Validate URL format (don't expose full URL in error messages)
   if (!cloudinaryUrl.startsWith('https://res.cloudinary.com/')) {
     throw new Error(
-      `Invalid Cloudinary URL format: expected URL to start with 'https://res.cloudinary.com/', got: ${cloudinaryUrl}`
+      `Invalid Cloudinary URL format: expected URL to start with 'https://res.cloudinary.com/'`
     );
   }
 
@@ -35,7 +35,7 @@ export function extractPublicId(
 
   if (folderIndex === -1) {
     throw new Error(
-      `Invalid Cloudinary URL format: expected folder prefix '${folderPrefix}' not found in URL: ${cloudinaryUrl}`
+      `Invalid Cloudinary URL format: expected folder prefix '${folderPrefix}' not found`
     );
   }
 
@@ -48,7 +48,7 @@ export function extractPublicId(
 
   if (!publicId) {
     throw new Error(
-      `Failed to extract public ID from Cloudinary URL: ${cloudinaryUrl}`
+      `Failed to extract public ID from Cloudinary URL`
     );
   }
 

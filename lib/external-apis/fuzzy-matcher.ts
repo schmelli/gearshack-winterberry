@@ -39,8 +39,8 @@ export async function findFuzzyMatches(
     price_amount: 0, // Not available from catalog search
   }));
 
-  // High confidence: similarity > 0.7
-  if (matches[0].similarity > 0.7) {
+  // High confidence: similarity > 0.7 (with Number.isFinite check for safety)
+  if (Number.isFinite(matches[0].similarity) && matches[0].similarity > 0.7) {
     return {
       type: 'auto_match',
       matches: [matches[0]],

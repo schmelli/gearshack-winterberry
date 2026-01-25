@@ -233,8 +233,8 @@ export const merchantLocationSchema = z.object({
   city: z.string().min(1, 'City is required'),
   postalCode: z.string().min(1, 'Postal code is required'),
   country: z.string().default('DE'),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
   phone: z.string().optional(),
   hours: z.record(z.string(), z.object({
     open: z.string(),
@@ -249,8 +249,8 @@ export const catalogItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   brand: z.string().optional(),
   description: z.string().optional(),
-  price: z.number().positive('Price must be positive'),
-  weightGrams: z.number().int().positive().optional(),
+  price: z.number().finite().positive('Price must be positive'),
+  weightGrams: z.number().finite().int().positive().optional(),
   categoryId: z.string().uuid().optional(),
   externalUrl: z.string().url().optional().or(z.literal('')),
 });

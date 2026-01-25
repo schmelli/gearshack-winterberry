@@ -24,13 +24,26 @@ class RateLimiter {
   private requests = new Map<string, RateLimitEntry>();
   private readonly maxRequests: number;
   private readonly windowMs: number;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: RateLimitOptions) {
     this.maxRequests = options.maxRequests;
     this.windowMs = options.windowMs;
 
     // Cleanup expired entries every minute
-    setInterval(() => this.cleanup(), 60 * 1000);
+    // Store interval ID for potential cleanup (though singletons typically live forever)
+    this.cleanupIntervalId = setInterval(() => this.cleanup(), 60 * 1000);
+  }
+
+  /**
+   * Stop the cleanup interval (for graceful shutdown)
+   */
+  destroy() {
+    if (this.cleanupIntervalId !== null) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    this.requests.clear();
   }
 
   /**

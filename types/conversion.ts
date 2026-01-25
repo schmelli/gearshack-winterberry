@@ -265,13 +265,13 @@ export interface BillingCycleFilters {
 
 export const logConversionSchema = z.object({
   offerId: z.string().uuid('Invalid offer ID'),
-  salePrice: z.number().positive('Sale price must be positive'),
+  salePrice: z.number().finite().positive('Sale price must be positive'),
   isLocalPickup: z.boolean().default(false),
   receiptReference: z.string().max(100).optional(),
 });
 
 export const conversionConfirmSchema = z.object({
-  rating: z.number().int().min(1).max(5).optional(),
+  rating: z.number().finite().int().min(1).max(5).optional(),
   feedback: z.string().max(500).optional(),
 });
 
