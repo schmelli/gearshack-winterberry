@@ -30,43 +30,55 @@ const OUNCES_PER_POUND = 16;
 
 /**
  * Convert grams to ounces
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function gramsToOunces(grams: number): number {
+  if (!Number.isFinite(grams)) return 0;
   return grams / GRAMS_PER_OUNCE;
 }
 
 /**
  * Convert grams to pounds
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function gramsToPounds(grams: number): number {
+  if (!Number.isFinite(grams)) return 0;
   return grams / GRAMS_PER_POUND;
 }
 
 /**
  * Convert ounces to grams
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function ouncesToGrams(ounces: number): number {
+  if (!Number.isFinite(ounces)) return 0;
   return ounces * GRAMS_PER_OUNCE;
 }
 
 /**
  * Convert pounds to grams
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function poundsToGrams(pounds: number): number {
+  if (!Number.isFinite(pounds)) return 0;
   return pounds * GRAMS_PER_POUND;
 }
 
 /**
  * Convert ounces to pounds
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function ouncesToPounds(ounces: number): number {
+  if (!Number.isFinite(ounces)) return 0;
   return ounces / OUNCES_PER_POUND;
 }
 
 /**
  * Convert pounds to ounces
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function poundsToOunces(pounds: number): number {
+  if (!Number.isFinite(pounds)) return 0;
   return pounds * OUNCES_PER_POUND;
 }
 

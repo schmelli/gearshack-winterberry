@@ -66,10 +66,15 @@ export async function GET(request: NextRequest) {
 
     // Search users - Using ilike for case-insensitive search
     // Filter by discoverable=true (T043)
-    // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+    // Escape ILIKE special characters to prevent injection
+    // Order matters: escape backslash first, then wildcards, then PostgREST operators
     const sanitizedQuery = query
+      .replace(/\\/g, '\\\\')
       .replace(/%/g, '\\%')
-      .replace(/_/g, '\\_');
+      .replace(/_/g, '\\_')
+      .replace(/,/g, '')
+      .replace(/\(/g, '')
+      .replace(/\)/g, '');
     const { data: users, error: searchError } = await (supabase as any)
       .from('profiles')
       .select('id, display_name, avatar_url, trail_name, bio, discoverable')

@@ -81,12 +81,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse optional params
+    // Parse optional params with NaN validation
     const productTypeKeywords = productTypeKeywordsRaw
       ? productTypeKeywordsRaw.split(',').map((k) => k.trim())
       : undefined;
-    const msrp = msrpRaw ? parseFloat(msrpRaw) : undefined;
-    const limit = limitRaw ? parseInt(limitRaw, 10) : 3;
+    const msrpParsed = msrpRaw ? parseFloat(msrpRaw) : undefined;
+    const msrp = msrpParsed !== undefined && Number.isFinite(msrpParsed) ? msrpParsed : undefined;
+    const limitParsed = limitRaw ? parseInt(limitRaw, 10) : 3;
+    const limit = Number.isFinite(limitParsed) && limitParsed > 0 ? limitParsed : 3;
 
     // Get eBay site config for locale
     const siteConfig = getEbaySiteForLocale(locale);

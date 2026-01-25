@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -524,25 +524,36 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
     setIsLoading(false);
   }, [fetchTransactions, calculateBillingCycles, calculateSummary]);
 
-  // Initial fetch
-  useEffect(() => {
-    if (merchant?.id) {
-      refresh();
-    }
-  }, [merchant?.id, refresh]);
-
-  // Refetch when filters change
-  useEffect(() => {
-    if (merchant?.id) {
-      fetchTransactions();
-    }
-  }, [merchant?.id, transactionFilters, fetchTransactions]);
+  // Store latest callbacks in refs to avoid infinite loops in useEffect
+  const refreshRef = useRef(refresh);
+  const fetchTransactionsRef = useRef(fetchTransactions);
+  const calculateBillingCyclesRef = useRef(calculateBillingCycles);
 
   useEffect(() => {
+    refreshRef.current = refresh;
+    fetchTransactionsRef.current = fetchTransactions;
+    calculateBillingCyclesRef.current = calculateBillingCycles;
+  });
+
+  // Initial fetch - use ref to avoid infinite loop
+  useEffect(() => {
     if (merchant?.id) {
-      calculateBillingCycles();
+      refreshRef.current();
     }
-  }, [merchant?.id, cycleFilters, calculateBillingCycles]);
+  }, [merchant?.id]);
+
+  // Refetch when filters change - use ref to avoid infinite loop
+  useEffect(() => {
+    if (merchant?.id) {
+      fetchTransactionsRef.current();
+    }
+  }, [merchant?.id, transactionFilters]);
+
+  useEffect(() => {
+    if (merchant?.id) {
+      calculateBillingCyclesRef.current();
+    }
+  }, [merchant?.id, cycleFilters]);
 
   return {
     transactions,

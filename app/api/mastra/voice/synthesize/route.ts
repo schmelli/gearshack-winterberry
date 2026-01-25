@@ -300,14 +300,14 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+    // Log detailed error internally but don't expose to client
     logError('Synthesis endpoint error', error instanceof Error ? error : undefined);
 
     return new Response(
       JSON.stringify({
         error: 'Synthesis failed',
-        message: errorMessage,
+        // Don't expose internal error details to clients
+        message: 'Unable to synthesize speech. Please try again later.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
