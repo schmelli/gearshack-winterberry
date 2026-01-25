@@ -322,6 +322,7 @@
     },
     "addToWishlist": "Zur Wunschliste hinzufügen",
     "quantityBadge": "x {quantity}",
+    "quantityTooltip": "Anzahl: {quantity}",
     "wishlist": {
       "title": "Wunschliste",
       "myGear": "Meine Ausrüstung",
@@ -652,6 +653,18 @@
       "noResults": "Keine Bilder gefunden. Versuche einen anderen Suchbegriff.",
       "removingBackground": "Hintergrund wird entfernt...",
       "uploading": "Wird hochgeladen..."
+    },
+    "imageUpload": {
+      "invalidFileType": "Bitte wähle eine gültige Bilddatei (JPG, PNG, WebP oder GIF)",
+      "fileTooLarge": "Die Dateigröße muss unter {maxSize}MB liegen",
+      "uploadFailed": "Upload fehlgeschlagen. Bitte versuche es erneut.",
+      "pasteUrl": "URL einfügen",
+      "upload": "Hochladen",
+      "uploading": "Wird hochgeladen...",
+      "imageSelected": "Bild ausgewählt",
+      "removeImage": "Bild entfernen",
+      "dragOrClick": "Klicken oder Bild hierher ziehen",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)"
     }
   },
   "ManufacturerPrice": {
@@ -811,6 +824,9 @@
       "description": "Beschreibung",
       "myNotes": "Meine Notizen",
       "visitWebsite": "Website besuchen"
+    },
+    "actions": {
+      "edit": "Bearbeiten"
     }
   },
   "Loadouts": {
@@ -3185,7 +3201,9 @@
       "processing": "Verarbeite deine Sprache...",
       "notAvailable": "Spracheingabe nicht verfügbar",
       "errorRetry": "Spracheingabe-Fehler – klicken zum Wiederholen",
-      "label": "Spracheingabe"
+      "label": "Spracheingabe",
+      "recording": "Aufnahme",
+      "loading": "Laden..."
     },
     "actions": {
       "addToWishlist": "Zur Wunschliste",
@@ -3208,7 +3226,24 @@
     "thinking": "KI denkt nach...",
     "ariaLabels": {
       "aiAssistant": "KI-Assistent",
-      "trailblazerFeature": "Trailblazer-Funktion"
+      "trailblazerFeature": "Trailblazer-Funktion",
+      "cancelRecording": "Aufnahme abbrechen",
+      "pause": "Pause",
+      "play": "Wiedergabe",
+      "stop": "Stopp",
+      "volume": "Lautstärke",
+      "playAudio": "Audio abspielen"
+    },
+    "title": "KI-Ausrüstungsassistent",
+    "subtitle": "Frag mich alles über deine Ausrüstung",
+    "enableVoice": "Sprache aktivieren",
+    "disableVoice": "Sprache deaktivieren",
+    "enableVoiceResponses": "Sprachantworten aktivieren",
+    "disableVoiceResponses": "Sprachantworten deaktivieren",
+    "chat": {
+      "newConversation": "Neuer Chat",
+      "title": "KI-Ausrüstungsassistent",
+      "subtitle": "Frag mich alles über deine Ausrüstung"
     }
   },
   "Admin": {
