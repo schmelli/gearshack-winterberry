@@ -473,7 +473,27 @@ export const useSupabaseStore = create<SupabaseStore>()(
           }
           return parsed;
         },
-        setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (error) {
+            // QUOTA FIX: Handle localStorage quota exceeded gracefully
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              console.error('[useSupabaseStore] localStorage quota exceeded, clearing store data');
+              // Clear the problematic store to make room
+              try {
+                localStorage.removeItem(name);
+                // Retry with current value (may still fail if single item is too large)
+                localStorage.setItem(name, JSON.stringify(value));
+              } catch {
+                // If still fails, store minimal state to prevent data loss on next load
+                console.error('[useSupabaseStore] Unable to persist data - quota exceeded');
+              }
+            } else {
+              console.error('[useSupabaseStore] Failed to persist to localStorage:', error);
+            }
+          }
+        },
         removeItem: (name) => localStorage.removeItem(name),
       },
     }

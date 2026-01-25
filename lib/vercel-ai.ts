@@ -369,6 +369,10 @@ export async function deleteAIImage(publicId: string): Promise<void> {
   }
 }
 
+// SECURITY: Regex to validate Cloudinary public_id format
+// Allows alphanumeric characters, underscores, hyphens, and forward slashes (for folders)
+const CLOUDINARY_PUBLIC_ID_REGEX = /^[a-zA-Z0-9_\-/]+$/;
+
 /**
  * Get Cloudinary URL for a public_id with optimizations
  *
@@ -383,6 +387,15 @@ export async function getOptimizedImageUrl(
     quality?: 'auto' | 'auto:best' | 'auto:good';
   }
 ): Promise<string> {
+  // SECURITY: Validate publicId format to prevent injection attacks
+  if (!publicId || !CLOUDINARY_PUBLIC_ID_REGEX.test(publicId)) {
+    throw new AIGenerationError(
+      'Invalid publicId format - must contain only alphanumeric characters, underscores, hyphens, and forward slashes',
+      400,
+      false
+    );
+  }
+
   let cloudinary;
   try {
     cloudinary = await import('cloudinary');

@@ -72,6 +72,9 @@ export function completeSyncOperation(current: SyncState): SyncState {
     status: newPendingCount === 0 ? 'idle' : 'syncing',
     pendingOperations: newPendingCount,
     lastSyncedAt: new Date(),
+    // STALE ERROR FIX: Clear error on successful operation to avoid showing
+    // stale error messages when operations recover after previous failures
+    error: null,
   };
 }
 
