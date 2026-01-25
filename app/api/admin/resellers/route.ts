@@ -61,11 +61,15 @@ export async function GET(request: NextRequest) {
 
     // Apply filters with sanitized search input
     if (search) {
-      // Sanitize search: escape ILIKE wildcards and limit length
+      // Sanitize search: escape backslashes, ILIKE wildcards, and PostgREST operators
       const sanitizedSearch = search
         .slice(0, 100) // Limit length
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
         .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_');
+        .replace(/_/g, '\\_')
+        .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
+        .replace(/\(/g, '')      // Remove parentheses (PostgREST operators)
+        .replace(/\)/g, '');
       query = query.or(`name.ilike.%${sanitizedSearch}%,website_url.ilike.%${sanitizedSearch}%`);
     }
 

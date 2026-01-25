@@ -92,8 +92,14 @@ export async function GET(request: Request) {
             redirectUrl = redirectTarget.pathname + redirectTarget.search;
           }
         } catch {
-          // Invalid URL - use safe default
-          redirectUrl = next.startsWith('/') ? next : `/${next}`;
+          // Invalid URL - validate it's a safe relative path
+          // Block protocol-relative URLs (//evil.com) and paths with colons (javascript:)
+          if (next.startsWith('/') && !next.startsWith('//') && !next.includes(':')) {
+            redirectUrl = next;
+          } else {
+            console.warn('[Auth] Blocked potentially unsafe redirect:', next);
+            redirectUrl = await getStartPageRedirect(supabase, locale);
+          }
         }
       } else {
         // Otherwise, get the user's start page preference

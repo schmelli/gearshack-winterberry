@@ -63,6 +63,12 @@ export function formatTimeAgo(
 ): string {
   const now = new Date();
   const date = new Date(dateString);
+
+  // Validate date is valid
+  if (isNaN(date.getTime())) {
+    return t ? t('time.unknown') : 'unknown';
+  }
+
   const diffMs = now.getTime() - date.getTime();
 
   const seconds = Math.floor(diffMs / 1000);

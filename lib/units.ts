@@ -17,8 +17,12 @@ const GRAMS_PER_KG = 1000;
 
 /**
  * Convert weight to grams (base unit)
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function toGrams(value: number, fromUnit: WeightUnit): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
   switch (fromUnit) {
     case 'g':
       return value;
@@ -35,8 +39,12 @@ export function toGrams(value: number, fromUnit: WeightUnit): number {
 
 /**
  * Convert grams to target unit
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function fromGrams(grams: number, toUnit: WeightUnit): number {
+  if (!Number.isFinite(grams)) {
+    return 0;
+  }
   switch (toUnit) {
     case 'g':
       return grams;
@@ -95,8 +103,12 @@ const KM_PER_MILE = 1.60934;
 
 /**
  * Convert kilometers to miles
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function kmToMiles(km: number): number {
+  if (!Number.isFinite(km)) {
+    return 0;
+  }
   return km / KM_PER_MILE;
 }
 
@@ -186,8 +198,12 @@ const CM_PER_INCH = 2.54;
 
 /**
  * Convert centimeters to inches
+ * Returns 0 for invalid input (NaN/Infinity)
  */
 export function cmToInches(cm: number): number {
+  if (!Number.isFinite(cm)) {
+    return 0;
+  }
   return cm / CM_PER_INCH;
 }
 
