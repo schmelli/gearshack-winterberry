@@ -869,7 +869,8 @@
       "activitiesAndSeasons": "Activities & Seasons",
       "pack": "Pack",
       "worn": "Worn",
-      "consumable": "Consumable"
+      "consumable": "Consumable",
+      "notSet": "Not set"
     },
     "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
     "addCommentFirst": "Add a comment before sending",
@@ -4355,5 +4356,50 @@
       },
       "feedbackHint": "You can report bugs or share feedback anytime via the Feedback option in your profile menu."
     }
+  },
+  "AlertPreferences": {
+    "loading": "Loading preferences...",
+    "loadError": "Failed to load preferences: {message}",
+    "channels": {
+      "title": "Notification Channels",
+      "description": "Choose how you want to receive price alerts",
+      "push": {
+        "label": "Push Notifications",
+        "description": "Receive instant alerts in your browser"
+      },
+      "email": {
+        "label": "Email Notifications",
+        "description": "Receive alerts via email"
+      }
+    },
+    "types": {
+      "title": "Alert Types",
+      "description": "Control which events trigger notifications",
+      "priceDrop": {
+        "label": "Price Drops",
+        "description": "Get notified when prices decrease"
+      },
+      "localShop": {
+        "label": "Local Shop Availability",
+        "description": "Alert when items are available nearby"
+      },
+      "community": {
+        "label": "Community Availability",
+        "description": "Alert when community members have the item"
+      },
+      "personalOffer": {
+        "label": "Personal Offers",
+        "description": "Get exclusive deals from partner retailers"
+      }
+    },
+    "quietHours": {
+      "title": "Quiet Hours",
+      "comingSoon": "Coming soon: Set hours when you don't want to receive notifications",
+      "description": "This feature will allow you to configure quiet hours (e.g., 10 PM - 7 AM) when notifications will be held until the next day."
+    }
+  },
+  "WeightDisplay": {
+    "also": "Also:",
+    "toggleUnit": "Toggle weight unit display"
   }
 }

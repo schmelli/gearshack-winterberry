@@ -866,7 +866,8 @@
       "activitiesAndSeasons": "Aktivitäten & Jahreszeiten",
       "pack": "Packen",
       "worn": "Getragen",
-      "consumable": "Verbrauchsgut"
+      "consumable": "Verbrauchsgut",
+      "notSet": "Nicht festgelegt"
     },
     "backToLoadouts": "Zurück zu Packlisten",
     "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
