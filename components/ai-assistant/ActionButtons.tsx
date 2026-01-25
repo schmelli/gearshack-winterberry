@@ -10,6 +10,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, Scale, MessageCircle, ExternalLink } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Action } from '@/types/ai-assistant';
 
 interface ActionButtonsProps {
@@ -42,30 +43,32 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ action, onClick, disabled }: ActionButtonProps) {
+  const t = useTranslations('AIAssistant');
+
   const getButtonConfig = () => {
     switch (action.type) {
       case 'add_to_wishlist':
         return {
           icon: Plus,
-          label: 'Add to Wishlist',
+          label: t('actions.addToWishlist'),
           variant: 'default' as const,
         };
       case 'compare':
         return {
           icon: Scale,
-          label: 'Compare',
+          label: t('actions.compare'),
           variant: 'outline' as const,
         };
       case 'send_message':
         return {
           icon: MessageCircle,
-          label: 'Send Message',
+          label: t('actions.sendMessage'),
           variant: 'outline' as const,
         };
       case 'navigate':
         return {
           icon: ExternalLink,
-          label: 'View Details',
+          label: t('actions.viewDetails'),
           variant: 'outline' as const,
         };
     }

@@ -546,6 +546,15 @@
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
     },
+    "productSearch": {
+      "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
+      "enterProductName": "Enter a product name to search",
+      "searching": "Searching...",
+      "products": "products",
+      "searchWithLimit": "Search for {query} ({remaining} of {limit} left today)",
+      "searchFor": "Search for {query}",
+      "ariaLabel": "Search for product information"
+    },
     "toasts": {
       "importingImage": "Importing image...",
       "imageImportSuccess": "Image imported successfully!",
@@ -1058,6 +1067,7 @@
     "totalItems": "Total Items",
     "totalWeight": "Total Weight",
     "signupCta": "Add this loadout to your collection",
+    "signupDescription": "Sign up for free to save this loadout and all its items to your wishlist. Start building your perfect gear collection today.",
     "signupButton": "Sign Up Free",
     "loginButton": "Log In",
     "ownedBadge": "Owned",
@@ -1434,6 +1444,11 @@
       "errorNoName": "Please enter a group name",
       "errorNoParticipants": "Please add at least one participant",
       "errorCreateFailed": "Failed to create group"
+    },
+    "typing": {
+      "oneUser": "{name} is typing",
+      "twoUsers": "{name1} and {name2} are typing",
+      "several": "Several people are typing"
     }
   },
   "Settings": {
@@ -3064,6 +3079,12 @@
       "notAvailable": "Voice input not available",
       "errorRetry": "Voice input error - click to retry",
       "label": "Voice input"
+    },
+    "actions": {
+      "addToWishlist": "Add to Wishlist",
+      "compare": "Compare",
+      "sendMessage": "Send Message",
+      "viewDetails": "View Details"
     }
   },
   "Admin": {

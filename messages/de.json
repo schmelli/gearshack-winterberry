@@ -546,6 +546,15 @@
       "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
       "importFailed": "Import fehlgeschlagen"
     },
+    "productSearch": {
+      "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "enterProductName": "Gib einen Produktnamen ein, um zu suchen",
+      "searching": "Suche...",
+      "products": "Produkte",
+      "searchWithLimit": "Suche nach {query} ({remaining} von {limit} heute übrig)",
+      "searchFor": "Suche nach {query}",
+      "ariaLabel": "Nach Produktinformationen suchen"
+    },
     "toasts": {
       "importingImage": "Bild wird importiert...",
       "imageImportSuccess": "Bild erfolgreich importiert!",
@@ -1058,6 +1067,7 @@
     "totalItems": "Gegenstände",
     "totalWeight": "Gesamtgewicht",
     "signupCta": "Füge diese Packliste zu deiner Sammlung hinzu",
+    "signupDescription": "Registriere dich kostenlos, um diese Packliste und alle Gegenstände auf deiner Wunschliste zu speichern. Beginne noch heute mit dem Aufbau deiner perfekten Ausrüstungssammlung.",
     "signupButton": "Kostenlos registrieren",
     "loginButton": "Anmelden",
     "ownedBadge": "Besitzt du",
@@ -1434,6 +1444,11 @@
       "errorNoName": "Bitte gib einen Gruppennamen ein",
       "errorNoParticipants": "Bitte füge mindestens einen Teilnehmer hinzu",
       "errorCreateFailed": "Gruppe konnte nicht erstellt werden"
+    },
+    "typing": {
+      "oneUser": "{name} tippt",
+      "twoUsers": "{name1} und {name2} tippen",
+      "several": "Mehrere Personen tippen"
     }
   },
   "Settings": {
@@ -3064,6 +3079,12 @@
       "notAvailable": "Spracheingabe nicht verfügbar",
       "errorRetry": "Spracheingabe-Fehler – klicken zum Wiederholen",
       "label": "Spracheingabe"
+    },
+    "actions": {
+      "addToWishlist": "Zur Wunschliste",
+      "compare": "Vergleichen",
+      "sendMessage": "Nachricht senden",
+      "viewDetails": "Details ansehen"
     }
   },
   "Admin": {

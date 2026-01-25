@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTranslations } from 'next-intl';
 import type { RateLimitInfo } from '@/app/actions/weight-search';
 
 // =============================================================================
@@ -52,31 +53,33 @@ export function SmartProductSearchButton({
   disabled = false,
   searchQuery = '',
 }: SmartProductSearchButtonProps) {
+  const t = useTranslations('GearEditor');
+
   /**
    * Build tooltip message based on state
    */
   const getTooltipMessage = (): string => {
     if (isRateLimited) {
-      return 'Daily search limit reached. Upgrade to Trailblazer for unlimited searches.';
+      return t('productSearch.rateLimitReached');
     }
 
     if (disabled && !searchQuery) {
-      return 'Enter a product name to search';
+      return t('productSearch.enterProductName');
     }
 
     if (isSearching) {
-      return 'Searching...';
+      return t('productSearch.searching');
     }
 
     // Show remaining searches for free tier
     if (rateLimit && !rateLimit.isUnlimited) {
-      const queryPart = searchQuery ? `"${searchQuery}"` : 'products';
-      return `Search for ${queryPart} (${rateLimit.remaining} of ${rateLimit.limit} left today)`;
+      const queryPart = searchQuery ? `"${searchQuery}"` : t('productSearch.products');
+      return t('productSearch.searchWithLimit', { query: queryPart, remaining: rateLimit.remaining, limit: rateLimit.limit });
     }
 
     // Unlimited tier or no rate limit info yet
-    const queryPart = searchQuery ? `"${searchQuery}"` : 'products';
-    return `Search for ${queryPart}`;
+    const queryPart = searchQuery ? `"${searchQuery}"` : t('productSearch.products');
+    return t('productSearch.searchFor', { query: queryPart });
   };
 
   const isDisabled = disabled || isSearching || isRateLimited;
@@ -92,7 +95,7 @@ export function SmartProductSearchButton({
             onClick={onClick}
             disabled={isDisabled}
             className="shrink-0"
-            aria-label="Search for product information"
+            aria-label={t('productSearch.ariaLabel')}
           >
             {isSearching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
