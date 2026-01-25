@@ -1424,6 +1424,34 @@
       "errorCreateFailed": "Failed to create group"
     }
   },
+  "Settings": {
+    "privacy": {
+      "whoCanMessage": "Who Can Message Me",
+      "whoCanMessageDescription": "Control who can start new conversations with you",
+      "selectWhoCanMessage": "Select who can message you",
+      "everyone": "Everyone",
+      "friendsOnly": "Friends Only",
+      "nobodyDisableDMs": "Nobody (Disable DMs)",
+      "nobody": "Nobody",
+      "everyoneCanMessageHint": "Anyone on GearShack can start a conversation with you.",
+      "friendsOnlyCanMessageHint": "Only people you have added as friends can message you.",
+      "nobodyCanMessageHint": "Nobody can start new conversations with you. Existing conversations will still work.",
+      "searchVisibility": "Search Visibility",
+      "searchVisibilityDescription": "Control whether others can find you in search",
+      "appearInSearch": "Appear in Search Results",
+      "appearInSearchHint": "When disabled, other users won't find you when searching",
+      "onlineStatus": "Online Status",
+      "onlineStatusDescription": "Control your online presence visibility",
+      "whoCanSeeOnlineStatus": "Who Can See Your Online Status",
+      "selectWhoCanSeeStatus": "Select who can see your status",
+      "everyoneCanSeeOnlineHint": "Anyone on GearShack can see when you are online.",
+      "friendsOnlyCanSeeOnlineHint": "Only your friends can see when you are online.",
+      "nobodyCanSeeOnlineHint": "Your online status is hidden from everyone.",
+      "readReceipts": "Read Receipts",
+      "readReceiptsHint": "Let others know when you've read their messages",
+      "saving": "Saving..."
+    }
+  },
   "Social": {
     "common": {
       "back": "Back",

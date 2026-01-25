@@ -1424,6 +1424,34 @@
       "errorCreateFailed": "Gruppe konnte nicht erstellt werden"
     }
   },
+  "Settings": {
+    "privacy": {
+      "whoCanMessage": "Wer kann mir schreiben",
+      "whoCanMessageDescription": "Kontrolliere, wer neue Unterhaltungen mit dir starten kann",
+      "selectWhoCanMessage": "Wähle aus, wer dir schreiben kann",
+      "everyone": "Alle",
+      "friendsOnly": "Nur Freunde",
+      "nobodyDisableDMs": "Niemand (DMs deaktivieren)",
+      "nobody": "Niemand",
+      "everyoneCanMessageHint": "Jeder auf GearShack kann eine Unterhaltung mit dir starten.",
+      "friendsOnlyCanMessageHint": "Nur Personen, die du als Freunde hinzugefügt hast, können dir schreiben.",
+      "nobodyCanMessageHint": "Niemand kann neue Unterhaltungen mit dir starten. Bestehende Unterhaltungen funktionieren weiterhin.",
+      "searchVisibility": "Sichtbarkeit in der Suche",
+      "searchVisibilityDescription": "Kontrolliere, ob andere dich in der Suche finden können",
+      "appearInSearch": "In Suchergebnissen erscheinen",
+      "appearInSearchHint": "Wenn deaktiviert, werden andere Benutzer dich bei der Suche nicht finden",
+      "onlineStatus": "Online-Status",
+      "onlineStatusDescription": "Kontrolliere die Sichtbarkeit deiner Online-Präsenz",
+      "whoCanSeeOnlineStatus": "Wer kann deinen Online-Status sehen",
+      "selectWhoCanSeeStatus": "Wähle aus, wer deinen Status sehen kann",
+      "everyoneCanSeeOnlineHint": "Jeder auf GearShack kann sehen, wenn du online bist.",
+      "friendsOnlyCanSeeOnlineHint": "Nur deine Freunde können sehen, wenn du online bist.",
+      "nobodyCanSeeOnlineHint": "Dein Online-Status ist für alle verborgen.",
+      "readReceipts": "Lesebestätigungen",
+      "readReceiptsHint": "Anderen mitteilen, wenn du ihre Nachrichten gelesen hast",
+      "saving": "Wird gespeichert..."
+    }
+  },
   "Social": {
     "common": {
       "back": "Zurück",

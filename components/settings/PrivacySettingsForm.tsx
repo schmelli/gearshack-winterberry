@@ -22,12 +22,14 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrivacySettings } from '@/hooks/messaging/usePrivacySettings';
+import { useTranslations } from 'next-intl';
 import type { MessagingPrivacy } from '@/types/messaging';
 
 /**
  * Privacy settings form component.
  */
 export function PrivacySettingsForm() {
+  const t = useTranslations('Settings');
   const { settings, isLoading, isSaving, error, updateSetting } = usePrivacySettings();
 
   if (isLoading) {
@@ -47,10 +49,10 @@ export function PrivacySettingsForm() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">Who Can Message Me</CardTitle>
+            <CardTitle className="text-base">{t('privacy.whoCanMessage')}</CardTitle>
           </div>
           <CardDescription>
-            Control who can start new conversations with you
+            {t('privacy.whoCanMessageDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,21 +64,18 @@ export function PrivacySettingsForm() {
             disabled={isSaving}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select who can message you" />
+              <SelectValue placeholder={t('privacy.selectWhoCanMessage')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="everyone">Everyone</SelectItem>
-              <SelectItem value="friends_only">Friends Only</SelectItem>
-              <SelectItem value="nobody">Nobody (Disable DMs)</SelectItem>
+              <SelectItem value="everyone">{t('privacy.everyone')}</SelectItem>
+              <SelectItem value="friends_only">{t('privacy.friendsOnly')}</SelectItem>
+              <SelectItem value="nobody">{t('privacy.nobodyDisableDMs')}</SelectItem>
             </SelectContent>
           </Select>
           <p className="mt-2 text-xs text-muted-foreground">
-            {settings.messaging_privacy === 'everyone' &&
-              'Anyone on GearShack can start a conversation with you.'}
-            {settings.messaging_privacy === 'friends_only' &&
-              'Only people you have added as friends can message you.'}
-            {settings.messaging_privacy === 'nobody' &&
-              'Nobody can start new conversations with you. Existing conversations will still work.'}
+            {settings.messaging_privacy === 'everyone' && t('privacy.everyoneCanMessageHint')}
+            {settings.messaging_privacy === 'friends_only' && t('privacy.friendsOnlyCanMessageHint')}
+            {settings.messaging_privacy === 'nobody' && t('privacy.nobodyCanMessageHint')}
           </p>
         </CardContent>
       </Card>
@@ -86,18 +85,18 @@ export function PrivacySettingsForm() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Search className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">Search Visibility</CardTitle>
+            <CardTitle className="text-base">{t('privacy.searchVisibility')}</CardTitle>
           </div>
           <CardDescription>
-            Control whether others can find you in search
+            {t('privacy.searchVisibilityDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="discoverable">Appear in Search Results</Label>
+              <Label htmlFor="discoverable">{t('privacy.appearInSearch')}</Label>
               <p className="text-xs text-muted-foreground">
-                When disabled, other users won&apos;t find you when searching
+                {t('privacy.appearInSearchHint')}
               </p>
             </div>
             <Switch
@@ -115,15 +114,15 @@ export function PrivacySettingsForm() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">Online Status</CardTitle>
+            <CardTitle className="text-base">{t('privacy.onlineStatus')}</CardTitle>
           </div>
           <CardDescription>
-            Control your online presence visibility
+            {t('privacy.onlineStatusDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="online-status-privacy">Who Can See Your Online Status</Label>
+            <Label htmlFor="online-status-privacy">{t('privacy.whoCanSeeOnlineStatus')}</Label>
             <Select
               value={settings.online_status_privacy}
               onValueChange={(value) =>
@@ -132,29 +131,26 @@ export function PrivacySettingsForm() {
               disabled={isSaving}
             >
               <SelectTrigger id="online-status-privacy" className="w-full">
-                <SelectValue placeholder="Select who can see your status" />
+                <SelectValue placeholder={t('privacy.selectWhoCanSeeStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="everyone">Everyone</SelectItem>
-                <SelectItem value="friends_only">Friends Only</SelectItem>
-                <SelectItem value="nobody">Nobody</SelectItem>
+                <SelectItem value="everyone">{t('privacy.everyone')}</SelectItem>
+                <SelectItem value="friends_only">{t('privacy.friendsOnly')}</SelectItem>
+                <SelectItem value="nobody">{t('privacy.nobody')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {settings.online_status_privacy === 'everyone' &&
-                'Anyone on GearShack can see when you are online.'}
-              {settings.online_status_privacy === 'friends_only' &&
-                'Only your friends can see when you are online.'}
-              {settings.online_status_privacy === 'nobody' &&
-                'Your online status is hidden from everyone.'}
+              {settings.online_status_privacy === 'everyone' && t('privacy.everyoneCanSeeOnlineHint')}
+              {settings.online_status_privacy === 'friends_only' && t('privacy.friendsOnlyCanSeeOnlineHint')}
+              {settings.online_status_privacy === 'nobody' && t('privacy.nobodyCanSeeOnlineHint')}
             </p>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="read-receipts">Read Receipts</Label>
+              <Label htmlFor="read-receipts">{t('privacy.readReceipts')}</Label>
               <p className="text-xs text-muted-foreground">
-                Let others know when you&apos;ve read their messages
+                {t('privacy.readReceiptsHint')}
               </p>
             </div>
             <Switch
@@ -171,7 +167,7 @@ export function PrivacySettingsForm() {
       {isSaving && (
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Saving...
+          {t('privacy.saving')}
         </div>
       )}
     </div>
