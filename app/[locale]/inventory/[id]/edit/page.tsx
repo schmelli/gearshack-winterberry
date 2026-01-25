@@ -68,7 +68,7 @@ function EditGearItemContent({ id }: EditGearItemContentProps) {
     <main className="container py-8">
       <GearEditorForm
         initialItem={gearItem}
-        title={`Edit: ${gearItem.name}`}
+        title={t('editTitle')}
       />
     </main>
   );
