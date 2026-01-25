@@ -91,8 +91,11 @@ export function generateProactiveSuggestions(
     // Suggest category optimization if one category dominates
     const categoryEntries = Object.entries(loadoutContext.categoryWeights);
     const totalWeight = loadoutContext.loadout.totalWeight;
-    for (const [category, weight] of categoryEntries) {
-      if (weight / totalWeight > 0.4) { // Category is > 40% of total weight
+
+    // Guard against division by zero (empty loadout or all items have null weight)
+    if (totalWeight > 0) {
+      for (const [category, weight] of categoryEntries) {
+        if (weight / totalWeight > 0.4) { // Category is > 40% of total weight
         suggestions.push({
           text: isGerman
             ? `Deine ${category}-Ausruestung macht ${Math.round((weight / totalWeight) * 100)}% des Gewichts aus. Soll ich Optimierungsvorschlaege machen?`
@@ -100,7 +103,8 @@ export function generateProactiveSuggestions(
           category: 'optimization',
           priority: 2,
         });
-        break; // Only suggest for the heaviest category
+          break; // Only suggest for the heaviest category
+        }
       }
     }
   }

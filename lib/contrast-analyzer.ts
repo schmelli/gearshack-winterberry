@@ -136,6 +136,12 @@ export function analyzeImageBrightness(imageElement: HTMLImageElement): number {
     let totalB = 0;
     const pixelCount = pixels.length / 4;
 
+    // Guard against division by zero (empty canvas or zero dimensions)
+    if (pixelCount === 0) {
+      console.warn('[ContrastAnalyzer] No pixels to analyze (empty canvas)');
+      return 0.5; // Return mid-value as fallback
+    }
+
     for (let i = 0; i < pixels.length; i += 4) {
       totalR += pixels[i];
       totalG += pixels[i + 1];

@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MessageCircle, User, Loader2 } from 'lucide-react';
@@ -149,23 +149,31 @@ function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const recipientId = searchParams.get('recipient');
+  const [isStartingConversation, setIsStartingConversation] = useState(false);
 
   const { conversations, isLoading, error, startDirectConversation } =
     useConversations();
 
   // Handle recipient query param - start conversation with that user
-  const handleStartConversation = useCallback(async () => {
-    if (!recipientId) return;
+  // Must be in useEffect to avoid calling async function during render
+  useEffect(() => {
+    if (!recipientId || isStartingConversation) return;
 
-    const result = await startDirectConversation(recipientId);
-    if (result.success && result.conversationId) {
-      router.replace(`/messages/${result.conversationId}`);
-    }
-  }, [recipientId, startDirectConversation, router]);
+    const startConversation = async () => {
+      setIsStartingConversation(true);
+      const result = await startDirectConversation(recipientId);
+      if (result.success && result.conversationId) {
+        router.replace(`/messages/${result.conversationId}`);
+      } else {
+        setIsStartingConversation(false);
+      }
+    };
 
-  // Auto-start conversation if recipient is provided
-  if (recipientId) {
-    handleStartConversation();
+    startConversation();
+  }, [recipientId, startDirectConversation, router, isStartingConversation]);
+
+  // Show loading while starting conversation with recipient
+  if (recipientId || isStartingConversation) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
