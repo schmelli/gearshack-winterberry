@@ -115,6 +115,8 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
   }, []);
 
   // Auto-start tracking when user is authenticated
+  // Note: startTracking and stopTracking are intentionally excluded from deps
+  // to prevent circular dependency causing subscription churn
   useEffect(() => {
     if (user?.id) {
       startTracking();
@@ -123,9 +125,12 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     return () => {
       stopTracking();
     };
-  }, [user?.id, startTracking, stopTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Handle page visibility for presence accuracy
+  // Note: startTracking is intentionally excluded from deps
+  // to prevent circular dependency
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -140,7 +145,8 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [startTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isUserOnline = useCallback(
     (userId: string): boolean => {
