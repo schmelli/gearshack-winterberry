@@ -31,19 +31,19 @@ export interface AnnouncementDismissal {
 // ===== Announcement Admin Types =====
 export type AnnouncementStatus = 'scheduled' | 'active' | 'expired' | 'disabled';
 
-export const ANNOUNCEMENT_STATUS_LABELS: Record<AnnouncementStatus, string> = {
+export const ANNOUNCEMENT_STATUS_LABELS = {
   scheduled: 'Scheduled',
   active: 'Active',
   expired: 'Expired',
   disabled: 'Disabled',
-};
+} as const satisfies Record<AnnouncementStatus, string>;
 
-export const ANNOUNCEMENT_TYPE_LABELS: Record<AnnouncementType, string> = {
+export const ANNOUNCEMENT_TYPE_LABELS = {
   info: 'Info',
   warning: 'Warning',
   success: 'Success',
   promo: 'Promo',
-};
+} as const satisfies Record<AnnouncementType, string>;
 
 export interface CreateAnnouncementInput {
   title: string;

@@ -28,24 +28,23 @@ export type FeatureUserGroup =
   | 'vip'
   | 'merchant';
 
-export const FEATURE_USER_GROUP_LABELS: Record<FeatureUserGroup, string> = {
+export const FEATURE_USER_GROUP_LABELS = {
   all: 'Everyone',
   admins: 'Admins',
   trailblazer: 'Trailblazer',
   beta: 'Beta Users',
   vip: 'VIP',
   merchant: 'Merchants',
-};
+} as const satisfies Record<FeatureUserGroup, string>;
 
-export const FEATURE_USER_GROUP_DESCRIPTIONS: Record<FeatureUserGroup, string> =
-  {
-    all: 'All registered users',
-    admins: 'Users with admin role',
-    trailblazer: 'Users with Trailblazer subscription',
-    beta: 'Users participating in beta testing',
-    vip: 'VIP account holders',
-    merchant: 'Merchant account holders',
-  };
+export const FEATURE_USER_GROUP_DESCRIPTIONS = {
+  all: 'All registered users',
+  admins: 'Users with admin role',
+  trailblazer: 'Users with Trailblazer subscription',
+  beta: 'Users participating in beta testing',
+  vip: 'VIP account holders',
+  merchant: 'Merchant account holders',
+} as const satisfies Record<FeatureUserGroup, string>;
 
 // ============================================================================
 // Feature Flag Types

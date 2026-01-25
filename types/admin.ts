@@ -13,17 +13,17 @@
 
 export type AccountStatus = 'active' | 'suspended' | 'banned';
 
-export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
+export const ACCOUNT_STATUS_LABELS = {
   active: 'Active',
   suspended: 'Suspended',
   banned: 'Banned',
-};
+} as const satisfies Record<AccountStatus, string>;
 
-export const ACCOUNT_STATUS_COLORS: Record<AccountStatus, string> = {
+export const ACCOUNT_STATUS_COLORS = {
   active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   suspended: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
   banned: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
+} as const satisfies Record<AccountStatus, string>;
 
 // ============================================================================
 // User Management Types
@@ -95,7 +95,7 @@ export type AdminActionType =
   | 'wiki_unlock'
   | 'report_resolve';
 
-export const ADMIN_ACTION_LABELS: Record<AdminActionType, string> = {
+export const ADMIN_ACTION_LABELS = {
   role_change: 'Role Change',
   tier_change: 'Tier Change',
   suspend: 'Suspended',
@@ -106,7 +106,7 @@ export const ADMIN_ACTION_LABELS: Record<AdminActionType, string> = {
   wiki_lock: 'Wiki Page Locked',
   wiki_unlock: 'Wiki Page Unlocked',
   report_resolve: 'Report Resolved',
-};
+} as const satisfies Record<AdminActionType, string>;
 
 // ============================================================================
 // User Management Inputs

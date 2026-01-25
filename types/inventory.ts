@@ -65,11 +65,11 @@ export type ViewDensity = 'compact' | 'standard' | 'detailed';
 /**
  * UI Labels for view density options
  */
-export const VIEW_DENSITY_LABELS: Record<ViewDensity, string> = {
+export const VIEW_DENSITY_LABELS = {
   compact: 'Compact',
   standard: 'Standard',
   detailed: 'Detailed',
-};
+} as const satisfies Record<ViewDensity, string>;
 
 /**
  * All view density options for iteration
