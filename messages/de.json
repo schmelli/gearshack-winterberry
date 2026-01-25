@@ -1001,6 +1001,31 @@
       "weightHeaviest": "Gewicht (Schwerste)",
       "category": "Kategorie",
       "allCategories": "Alle Kategorien"
+    },
+    "fallbackImage": {
+      "altText": "Platzhalter-Packlisten-Bild",
+      "errorMessage": "Bildgenerierung fehlgeschlagen",
+      "generatingImage": "Bild wird generiert...",
+      "generationFailed": "Generierung fehlgeschlagen",
+      "defaultImage": "Standardbild",
+      "noImage": "Kein Bild"
+    },
+    "generatedImage": {
+      "altText": "Generiertes Packlisten-Bild",
+      "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
+      "noImageGenerated": "Kein Bild generiert"
+    },
+    "imageGeneration": {
+      "generateImage": "Bild generieren",
+      "generatingAriaLabel": "Bild wird generiert...",
+      "generating": "Generieren..."
+    },
+    "imageHistory": {
+      "title": "Bildverlauf ({count}/{max})",
+      "selectImage": "Bild {number} auswählen",
+      "imageVariationAlt": "Generierte Bildvariante",
+      "maxHistoryReached": "Maximaler Verlauf erreicht. Neue Bilder ersetzen die ältesten.",
+      "clickToSelect": "Klicke auf ein Bild, um es zu aktivieren."
     }
   },
   "LoadoutCreation": {
