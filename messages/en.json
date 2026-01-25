@@ -1403,6 +1403,19 @@
       "removeFriend": "Remove Friend",
       "blockUser": "Block User",
       "loadFailed": "Failed to load profile"
+    },
+    "groupChat": {
+      "groupName": "Group Name",
+      "groupNamePlaceholder": "Enter group name...",
+      "participants": "Participants ({count})",
+      "addParticipants": "Add Participants",
+      "searchPlaceholder": "Search by name...",
+      "suggestedFriends": "Suggested from friends",
+      "cancel": "Cancel",
+      "createGroup": "Create Group",
+      "errorNoName": "Please enter a group name",
+      "errorNoParticipants": "Please add at least one participant",
+      "errorCreateFailed": "Failed to create group"
     }
   },
   "Social": {

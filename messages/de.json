@@ -1403,6 +1403,19 @@
       "removeFriend": "Freund entfernen",
       "blockUser": "Benutzer blockieren",
       "loadFailed": "Profil konnte nicht geladen werden"
+    },
+    "groupChat": {
+      "groupName": "Gruppenname",
+      "groupNamePlaceholder": "Gruppenname eingeben...",
+      "participants": "Teilnehmer ({count})",
+      "addParticipants": "Teilnehmer hinzufügen",
+      "searchPlaceholder": "Nach Name suchen...",
+      "suggestedFriends": "Vorgeschlagen aus Freunden",
+      "cancel": "Abbrechen",
+      "createGroup": "Gruppe erstellen",
+      "errorNoName": "Bitte gib einen Gruppennamen ein",
+      "errorNoParticipants": "Bitte füge mindestens einen Teilnehmer hinzu",
+      "errorCreateFailed": "Gruppe konnte nicht erstellt werden"
     }
   },
   "Social": {

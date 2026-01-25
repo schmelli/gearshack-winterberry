@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConversations } from '@/hooks/messaging/useConversations';
 import { useUserSearch, type SearchedUser } from '@/hooks/messaging/useUserSearch';
 import { useFriends } from '@/hooks/messaging/useFriends';
+import { useTranslations } from 'next-intl';
 
 interface GroupChatCreateProps {
   /** Callback when group is successfully created */
@@ -29,6 +30,7 @@ interface GroupChatCreateProps {
 }
 
 export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreateProps) {
+  const t = useTranslations('Messaging');
   const { createGroup } = useConversations();
   const { friends } = useFriends();
   const { query, setQuery, results, isSearching } = useUserSearch();
@@ -50,12 +52,12 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
-      setError('Please enter a group name');
+      setError(t('groupChat.errorNoName'));
       return;
     }
 
     if (selectedUsers.length === 0) {
-      setError('Please add at least one participant');
+      setError(t('groupChat.errorNoParticipants'));
       return;
     }
 
@@ -72,7 +74,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
     if (result.success && result.conversationId) {
       onGroupCreated?.(result.conversationId);
     } else {
-      setError(result.error || 'Failed to create group');
+      setError(result.error || t('groupChat.errorCreateFailed'));
     }
   };
 
@@ -90,10 +92,10 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
     <div className="flex flex-col gap-4">
       {/* Group Name */}
       <div className="space-y-2">
-        <Label htmlFor="group-name">Group Name</Label>
+        <Label htmlFor="group-name">{t('groupChat.groupName')}</Label>
         <Input
           id="group-name"
-          placeholder="Enter group name..."
+          placeholder={t('groupChat.groupNamePlaceholder')}
           value={groupName}
           onChange={(e) => setGroupName(e.target.value)}
           maxLength={50}
@@ -103,7 +105,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
       {/* Selected Participants */}
       {selectedUsers.length > 0 && (
         <div className="space-y-2">
-          <Label>Participants ({selectedUsers.length})</Label>
+          <Label>{t('groupChat.participants', { count: selectedUsers.length })}</Label>
           <div className="flex flex-wrap gap-2">
             {selectedUsers.map((user) => (
               <Badge
@@ -132,12 +134,12 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
 
       {/* Add Participants Search */}
       <div className="space-y-2">
-        <Label htmlFor="participant-search">Add Participants</Label>
+        <Label htmlFor="participant-search">{t('groupChat.addParticipants')}</Label>
         <div className="relative">
           <UserPlus className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="participant-search"
-            placeholder="Search by name..."
+            placeholder={t('groupChat.searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-10"
@@ -166,7 +168,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
       {/* Suggested Friends */}
       {query.length < 2 && suggestedFriends.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-muted-foreground">Suggested from friends</Label>
+          <Label className="text-muted-foreground">{t('groupChat.suggestedFriends')}</Label>
           <div className="space-y-1">
             {suggestedFriends.map((friend) => (
               <UserRow
@@ -199,7 +201,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
       {/* Actions */}
       <div className="flex gap-2 pt-2">
         <Button variant="outline" onClick={onCancel} className="flex-1">
-          Cancel
+          {t('groupChat.cancel')}
         </Button>
         <Button
           onClick={handleCreateGroup}
@@ -211,7 +213,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
           ) : (
             <Users className="mr-2 h-4 w-4" />
           )}
-          Create Group
+          {t('groupChat.createGroup')}
         </Button>
       </div>
     </div>
