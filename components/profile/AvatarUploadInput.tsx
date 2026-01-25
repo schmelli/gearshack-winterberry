@@ -11,6 +11,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Camera, Loader2, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ export function AvatarUploadInput({
   onChange,
   disabled = false,
 }: AvatarUploadInputProps) {
+  const t = useTranslations('AvatarUpload');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -159,9 +161,9 @@ export function AvatarUploadInput({
 
       {/* Source indicator */}
       <p className="text-xs text-muted-foreground">
-        {avatarSource === 'custom' && 'Custom avatar'}
-        {avatarSource === 'provider' && 'Google account photo'}
-        {avatarSource === 'initials' && 'No photo set'}
+        {avatarSource === 'custom' && t('sourceCustom')}
+        {avatarSource === 'provider' && t('sourceProvider')}
+        {avatarSource === 'initials' && t('sourceInitials')}
       </p>
 
       {/* Action buttons */}
@@ -174,7 +176,7 @@ export function AvatarUploadInput({
           disabled={disabled || isUploading}
         >
           <Camera className="mr-2 h-4 w-4" />
-          {value ? 'Change photo' : 'Upload photo'}
+          {value ? t('changePhoto') : t('uploadPhoto')}
         </Button>
 
         {value && (
@@ -186,7 +188,7 @@ export function AvatarUploadInput({
             disabled={disabled || isUploading}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Remove
+            {t('remove')}
           </Button>
         )}
       </div>
@@ -203,7 +205,7 @@ export function AvatarUploadInput({
 
       {/* Help text */}
       <p className="text-xs text-muted-foreground text-center">
-        JPG, PNG or WebP. Max {MAX_FILE_SIZE_MB}MB.
+        {t('helpText', { maxSize: MAX_FILE_SIZE_MB })}
       </p>
     </div>
   );

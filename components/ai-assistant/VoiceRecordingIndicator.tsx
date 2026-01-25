@@ -11,6 +11,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,8 @@ export function VoiceRecordingIndicator({
   isRecording,
   className,
 }: VoiceRecordingIndicatorProps) {
+  const t = useTranslations('AIAssistant');
+
   if (!isRecording) {
     return null;
   }
@@ -76,7 +79,7 @@ export function VoiceRecordingIndicator({
 
       {/* Recording text */}
       <span className="text-sm font-medium text-destructive">
-        Recording
+        {t('voice.recording')}
       </span>
 
       {/* Duration */}
@@ -91,7 +94,7 @@ export function VoiceRecordingIndicator({
         size="icon"
         onClick={onCancel}
         className="h-6 w-6 rounded-full hover:bg-destructive/20"
-        aria-label="Cancel recording"
+        aria-label={t('ariaLabels.cancelRecording')}
       >
         <X className="h-4 w-4 text-destructive" />
       </Button>

@@ -424,14 +424,17 @@ export function LoadoutExportMenu({
       .filter((state) => state.isConsumable)
       .reduce((sum, state) => sum + (itemWeightMap.get(state.itemId) ?? 0), 0);
 
+    const wornLabel = t('pdfLabels.worn');
+    const consumableLabel = t('pdfLabels.consumable');
+
     const rows = items
       .map((item) => {
         const state = itemStates.find((s) => s.itemId === item.id);
         const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
         const checklistCell = includeChecklist ? '<td class="checkbox-cell"><div class="checkbox"></div></td>' : '';
         const statusParts = [];
-        if (state?.isWorn) statusParts.push('Worn');
-        if (state?.isConsumable) statusParts.push('Consumable');
+        if (state?.isWorn) statusParts.push(wornLabel);
+        if (state?.isConsumable) statusParts.push(consumableLabel);
 
         return `
           <tr>
@@ -448,7 +451,29 @@ export function LoadoutExportMenu({
       })
       .join('');
 
-    const checklistHeader = includeChecklist ? '<th class="checkbox-cell">Pack</th>' : '';
+    const checklistHeader = includeChecklist ? `<th class="checkbox-cell">${escape(t('pdfLabels.pack'))}</th>` : '';
+
+    // Build labels object for PDF template
+    const labels: PdfTemplateLabels = {
+      date: t('pdfLabels.date'),
+      activities: t('pdfLabels.activities'),
+      seasons: t('pdfLabels.seasons'),
+      generated: t('pdfLabels.generated'),
+      items: t('pdfLabels.items'),
+      totalWeight: t('weightStats.totalWeight'),
+      baseWeight: t('weightStats.baseWeight'),
+      wornItems: t('weightStats.wornItems'),
+      consumables: t('weightStats.consumables'),
+      activitiesAndSeasons: t('pdfLabels.activitiesAndSeasons'),
+      packList: t('packList'),
+      tableItem: t('tableHeaders.item'),
+      tableCategory: t('tableHeaders.category'),
+      tableWeight: t('tableHeaders.weight'),
+      tableStatus: t('tableHeaders.status'),
+      noActivities: t('noActivities'),
+      pack: t('pdfLabels.pack'),
+    };
+
     const html = buildPdfHtml({
       loadout: {
         ...loadout,
@@ -468,6 +493,7 @@ export function LoadoutExportMenu({
       checklistHeader,
       includeChecklist,
       formattedDate,
+      labels,
     });
 
     printWindow.document.write(html);
