@@ -25,6 +25,21 @@ import type {
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+// SECURITY: Whitelist of allowed sort fields to prevent SQL injection
+// Only columns that exist in the resellers table are allowed
+const ALLOWED_SORT_FIELDS = [
+  'name',
+  'website_url',
+  'reseller_type',
+  'status',
+  'is_active',
+  'priority',
+  'created_at',
+  'updated_at',
+] as const;
+
+type AllowedSortField = typeof ALLOWED_SORT_FIELDS[number];
+
 // =============================================================================
 // GET - List Resellers
 // =============================================================================
@@ -52,8 +67,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as Reseller['status'] | null;
     const country = searchParams.get('country') || '';
     const isActive = searchParams.get('isActive');
-    const sortField = searchParams.get('sortField') || 'name';
+    const sortFieldRaw = searchParams.get('sortField') || 'name';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
+
+    // SECURITY: Validate sortField against whitelist to prevent SQL injection
+    const sortField: AllowedSortField = ALLOWED_SORT_FIELDS.includes(sortFieldRaw as AllowedSortField)
+      ? (sortFieldRaw as AllowedSortField)
+      : 'name';
 
     // Build query
     let query = supabase

@@ -18,7 +18,8 @@ interface PriceResultItemProps {
 }
 
 /**
- * SECURITY: Validate URL is safe to open (prevents javascript: XSS)
+ * SECURITY: Validate URL is safe to use (prevents javascript: XSS, data: URI attacks)
+ * Only allows http/https protocols
  */
 function isValidHttpUrl(url: string): boolean {
   try {
@@ -41,8 +42,8 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
     <Card className={isLowest ? 'border-green-500 border-2' : ''}>
       <div className="p-4">
         <div className="flex items-start justify-between gap-4">
-          {/* Product Image */}
-          {result.product_image_url && (
+          {/* Product Image - SECURITY: Only render if URL is valid HTTP(S) */}
+          {result.product_image_url && isValidHttpUrl(result.product_image_url) && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={result.product_image_url}

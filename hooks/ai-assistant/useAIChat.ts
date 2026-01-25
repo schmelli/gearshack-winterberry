@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
@@ -210,6 +210,17 @@ export function useAIChat(): UseAIChatResult {
 
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  // CLEANUP: Abort any in-flight requests when component unmounts
+  // This prevents memory leaks and state updates on unmounted components
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, []);
 
   return {
