@@ -230,6 +230,10 @@ export function useLoadoutImageGeneration(
         // Refresh history
         await refreshHistory();
       } catch (error) {
+        // RACE CONDITION FIX: Check abort before error handling
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
         // Handle error with retry logic (T016)
         await handleGenerationError(error, stylePreferences, startTime);
       }
@@ -279,15 +283,35 @@ export function useLoadoutImageGeneration(
         try {
           // Wait before retry with cleanup support
           await new Promise<void>((resolve, reject) => {
+            // RACE CONDITION FIX: Check abort before creating timer
+            if (abortControllerRef.current?.signal.aborted) {
+              reject(new Error('Aborted'));
+              return;
+            }
+
             retryTimerRef.current = setTimeout(() => {
               retryTimerRef.current = null;
+              // RACE CONDITION FIX: Check abort before resolving
+              if (abortControllerRef.current?.signal.aborted) {
+                reject(new Error('Aborted'));
+                return;
+              }
               resolve();
             }, AI_GENERATION_RETRY_DELAY_MS);
           });
 
+          // RACE CONDITION FIX: Check abort before retry
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
+
           // Retry the generation
           await executeRetry(stylePreferences, startTime);
         } catch (retryError) {
+          // RACE CONDITION FIX: Don't fallback if aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
           // Retry also failed - use fallback (T017)
           await applyFallback(retryError, startTime);
         }

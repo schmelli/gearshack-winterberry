@@ -11,10 +11,15 @@ import { insertGeneratedImage } from '@/lib/supabase/loadout-images';
 
 const SaveFallbackRequestSchema = z.object({
   loadoutId: z.string().uuid(),
-  // Allow both relative paths (/fallback-images/...) and full URLs
-  fallbackImageUrl: z.string().min(1),
+  // SECURITY: Validate URL to prevent XSS via javascript:/data: schemes
+  // Allow relative paths starting with / or HTTPS Cloudinary URLs only
+  fallbackImageUrl: z.string().min(1).refine(
+    (url) => url.startsWith('/') || (url.startsWith('https://') && url.includes('res.cloudinary.com')),
+    { message: 'URL must be a relative path or HTTPS Cloudinary URL' }
+  ),
   fallbackImageId: z.string(),
-  altText: z.string(),
+  // SECURITY: Add length limit to prevent UI/DB issues
+  altText: z.string().min(1).max(200),
   // userId is sent by client but not used (we get it from auth)
   userId: z.string().optional(),
 });
