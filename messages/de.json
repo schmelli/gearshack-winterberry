@@ -884,7 +884,8 @@
       "spring": "Frühling",
       "summer": "Sommer",
       "fall": "Herbst",
-      "winter": "Winter"
+      "winter": "Winter",
+      "selectSeason": "Jahreszeit auswählen"
     },
     "activities": {
       "hiking": "Wandern",
@@ -1401,7 +1402,8 @@
       "loading": "Wird geladen...",
       "refresh": "Aktualisieren",
       "message": "Nachricht",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "moreOptions": "Weitere Optionen"
     },
     "following": {
       "title": "Folge ich",

@@ -10,6 +10,11 @@ const TIMEOUT_MS = 30000; // 30 seconds
 /**
  * SSRF protection: block internal/private URLs
  * Covers RFC 1918, RFC 4193, RFC 6598, and other reserved ranges
+ *
+ * NOTE: DNS rebinding attacks are a known limitation. A fully secure solution
+ * would require resolving DNS before fetch and validating the resolved IP.
+ * Current mitigations: comprehensive IP range blocking, timeout limits,
+ * and this route should only be used for image URLs from trusted search APIs.
  */
 function isBlockedUrl(url: string): boolean {
   try {
