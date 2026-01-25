@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -53,6 +54,7 @@ export function ProductAutocompleteInput({
   brandId,
   brandName,
 }: ProductAutocompleteInputProps) {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
   const { suggestions, isLoading, search, clear } = useProductAutocomplete({
     brandId,
@@ -222,11 +224,11 @@ export function ProductAutocompleteInput({
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Name <span className="text-destructive">*</span>
+              {t('nameLabel')} <span className="text-destructive">*</span>
             </FormLabel>
             <FormControl>
               <Input
-                placeholder="e.g., Nemo Hornet Elite 2P"
+                placeholder={t('namePlaceholder')}
                 {...field}
                 ref={(el) => {
                   field.ref(el);
@@ -299,7 +301,7 @@ export function ProductAutocompleteInput({
                       </>
                     )}
                     <span className="ml-auto">
-                      {Math.round(suggestion.score * 100)}% match
+                      {t('productAutocomplete.matchScore', { score: Math.round(suggestion.score * 100) })}
                     </span>
                   </div>
                   {suggestion.description && (
@@ -318,7 +320,7 @@ export function ProductAutocompleteInput({
       {isLoading && showSuggestions && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-lg">
           <p className="text-center text-sm text-muted-foreground">
-            Searching products...
+            {t('productAutocomplete.searching')}
           </p>
         </div>
       )}

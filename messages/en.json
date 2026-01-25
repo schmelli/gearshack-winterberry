@@ -999,6 +999,31 @@
       "loadoutItems": "Loadout Items",
       "clearFilter": "Clear filter",
       "addItems": "Add Items"
+    },
+    "fallbackImage": {
+      "altText": "Fallback loadout image",
+      "errorMessage": "Failed to generate image",
+      "generatingImage": "Generating image...",
+      "generationFailed": "Generation Failed",
+      "defaultImage": "Default Image",
+      "noImage": "No image"
+    },
+    "generatedImage": {
+      "altText": "Generated loadout image",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "noImageGenerated": "No image generated"
+    },
+    "imageGeneration": {
+      "generateImage": "Generate Image",
+      "generatingAriaLabel": "Generating image...",
+      "generating": "Generating..."
+    },
+    "imageHistory": {
+      "title": "Image History ({count}/{max})",
+      "selectImage": "Select image {number}",
+      "imageVariationAlt": "Generated image variation",
+      "maxHistoryReached": "Maximum history reached. Generating new images will replace the oldest.",
+      "clickToSelect": "Click an image to set it as active."
     }
   },
   "LoadoutCreation": {
@@ -2021,7 +2046,8 @@
       "viewDetails": "View item details",
       "noItemsMatch": "No items match your filters",
       "clearFilters": "Clear filters",
-      "items": "Items"
+      "items": "Items",
+      "shareToBulletinContent": "Check out my loadout shakedown: \"{tripName}\" - Looking for feedback!"
     },
     "gearToolbar": {
       "searchPlaceholder": "Search gear items...",
@@ -3242,7 +3268,10 @@
     },
     "search": {
       "placeholder": "Search VIPs...",
-      "clearSearch": "Clear search"
+      "clearSearch": "Clear search",
+      "noResults": "No VIPs found",
+      "tryBroader": "Try a broader search term",
+      "resultsCount": "{count, plural, =1 {1 result} other {# results}} for \"{query}\""
     }
   },
   "Wishlist": {

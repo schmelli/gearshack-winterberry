@@ -63,10 +63,11 @@ interface ItemCardProps {
   brand: string | null;
   imageUrl: string | null;
   quantity: number;
+  quantityLabel: string;
   isNew?: boolean;
 }
 
-function ItemCard({ label, name, brand, imageUrl, quantity, isNew }: ItemCardProps) {
+function ItemCard({ label, name, brand, imageUrl, quantity, quantityLabel, isNew }: ItemCardProps) {
   return (
     <Card className={isNew ? 'border-primary/50 bg-primary/5' : ''}>
       <CardContent className="p-3">
@@ -100,7 +101,7 @@ function ItemCard({ label, name, brand, imageUrl, quantity, isNew }: ItemCardPro
             <div className="text-xs text-muted-foreground truncate">{brand}</div>
           )}
           <div className="text-xs text-muted-foreground">
-            Qty: {quantity}
+            {quantityLabel}
           </div>
         </div>
       </CardContent>
@@ -154,6 +155,7 @@ export function DuplicateWarningDialog({
             brand={newItem.brand || null}
             imageUrl={newItem.primaryImageUrl || null}
             quantity={newQuantity}
+            quantityLabel={t('quantity', { count: newQuantity })}
             isNew
           />
           <ItemCard
@@ -162,6 +164,7 @@ export function DuplicateWarningDialog({
             brand={existingItem.brand}
             imageUrl={existingItem.primaryImageUrl}
             quantity={existingQuantity}
+            quantityLabel={t('quantity', { count: existingQuantity })}
           />
         </div>
 

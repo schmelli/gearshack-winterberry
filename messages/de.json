@@ -478,6 +478,7 @@
   },
   "GearEditor": {
     "addTitle": "Neue Ausrüstung hinzufügen",
+    "addToWishlistTitle": "Zur Wunschliste hinzufügen",
     "editTitle": "Ausrüstung bearbeiten",
     "tabs": {
       "general": "Allgemein",
@@ -1814,6 +1815,45 @@
     },
     "ariaLabels": {
       "toggleDarkMode": "Dunkelmodus umschalten"
+    },
+    "time": {
+      "justNow": "gerade eben",
+      "minutesAgo": "vor {count} Min.",
+      "hoursAgo": "vor {count} Std.",
+      "daysAgo": "vor {count} Tagen"
+    },
+    "emptyState": {
+      "default": {
+        "title": "Nichts anzuzeigen",
+        "description": "Keine Einträge verfügbar."
+      },
+      "following": {
+        "title": "Du folgst noch niemandem",
+        "description": "Folge Community-Mitgliedern, um ihre Updates und Aktivitäten in deinem Feed zu sehen.",
+        "cta": "Leute entdecken"
+      },
+      "followers": {
+        "title": "Noch keine Follower",
+        "description": "Teile deine Loadouts und engagiere dich in der Community, um Follower zu gewinnen."
+      },
+      "friends": {
+        "title": "Noch keine Freunde",
+        "description": "Sende Freundschaftsanfragen an Nutzer, mit denen du Nachrichten ausgetauscht hast.",
+        "cta": "Nachricht schreiben"
+      },
+      "friendRequests": {
+        "title": "Keine ausstehenden Anfragen",
+        "description": "Freundschaftsanfragen, die du sendest oder erhältst, erscheinen hier."
+      },
+      "activity": {
+        "title": "Noch keine Aktivitäten",
+        "description": "Aktivitäten deiner Freunde erscheinen hier. Füge Freunde hinzu, um ihre Updates zu sehen!",
+        "cta": "Freunde finden"
+      },
+      "search": {
+        "title": "Keine Ergebnisse gefunden",
+        "description": "Versuche, deine Suche oder Filter anzupassen, um das Gesuchte zu finden."
+      }
     }
   },
   "Shakedowns": {

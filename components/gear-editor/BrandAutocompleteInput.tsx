@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -47,6 +48,7 @@ interface BrandAutocompleteInputProps {
 export function BrandAutocompleteInput({
   onBrandSelect,
 }: BrandAutocompleteInputProps = {}) {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
   const { suggestions, isLoading, search, clear } = useBrandAutocomplete();
 
@@ -181,10 +183,10 @@ export function BrandAutocompleteInput({
         name="brand"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Brand</FormLabel>
+            <FormLabel>{t('brandLabel')}</FormLabel>
             <FormControl>
               <Input
-                placeholder="e.g., Nemo Equipment"
+                placeholder={t('brandPlaceholder')}
                 {...field}
                 ref={(el) => {
                   // Combine refs: react-hook-form's ref and our local ref
@@ -225,7 +227,7 @@ export function BrandAutocompleteInput({
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{suggestion.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {suggestion.source === 'catalog' ? 'GearGraph' : 'Your Inventory'}
+                    {suggestion.source === 'catalog' ? t('brandAutocomplete.sourceGearGraph') : t('brandAutocomplete.sourceInventory')}
                   </span>
                 </div>
               </li>
@@ -238,7 +240,7 @@ export function BrandAutocompleteInput({
       {isLoading && showSuggestions && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-lg">
           <p className="text-center text-sm text-muted-foreground">
-            Searching...
+            {t('brandAutocomplete.searching')}
           </p>
         </div>
       )}
@@ -251,7 +253,7 @@ export function BrandAutocompleteInput({
         brandValue.length >= 2 && (
           <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-lg">
             <p className="text-center text-sm text-muted-foreground">
-              No matching brands found. You can use a custom name.
+              {t('brandAutocomplete.noResults')}
             </p>
           </div>
         )}
