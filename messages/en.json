@@ -791,6 +791,12 @@
       "noQuantityAvailable": "No items available",
       "noQuantityAvailableDescription": "This item has no available quantity in inventory."
     },
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading the loadout.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again"
+    },
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "exportOptions": "Export options",
     "export": "Export",

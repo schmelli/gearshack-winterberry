@@ -788,6 +788,12 @@
       "noQuantityAvailable": "Keine Gegenstände verfügbar",
       "noQuantityAvailableDescription": "Dieser Gegenstand hat keine verfügbare Menge im Inventar."
     },
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden der Packliste aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen"
+    },
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "exportOptions": "Export-Optionen",
     "export": "Exportieren",
