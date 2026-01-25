@@ -76,9 +76,11 @@ export function sortByDistance(results: PriceResult[]): PriceResult[] {
     if (!a.is_local && b.is_local) return 1;
 
     // Among local shops, sort by distance
+    // Use nullish coalescing (??) to handle distance_km = 0 correctly
+    // (0 || 999 would incorrectly return 999 because 0 is falsy)
     if (a.is_local && b.is_local) {
-      const distA = a.distance_km || 999;
-      const distB = b.distance_km || 999;
+      const distA = a.distance_km ?? 999;
+      const distB = b.distance_km ?? 999;
       return distA - distB;
     }
 

@@ -204,11 +204,16 @@ export async function batchCheckConversions(
   // Get all gear items in one query
   const gearItemIds = trackingItems.map((t) => t.gear_item_id);
 
-  const { data: gearItems } = await supabase
+  const { data: gearItems, error: gearItemsError } = await supabase
     .from('gear_items')
     .select('id, user_id, status')
     .in('id', gearItemIds)
     .eq('status', 'own');
+
+  if (gearItemsError) {
+    console.error('Failed to fetch gear items for conversion check:', gearItemsError);
+    return [];
+  }
 
   if (!gearItems || gearItems.length === 0) {
     return [];
@@ -238,10 +243,15 @@ export async function batchCheckConversions(
 
   // Batch disable tracking for converted items
   const trackingIds = convertedTracking.map((t) => t.tracking_id);
-  await supabase
+  const { error: updateError } = await supabase
     .from('price_tracking')
     .update({ enabled: false })
     .in('id', trackingIds);
+
+  if (updateError) {
+    console.error('Failed to disable tracking for converted items:', updateError);
+    // Don't throw - alerts were already created, log for monitoring
+  }
 
   console.log(`Tracked ${convertedTracking.length} conversions`);
 
