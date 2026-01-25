@@ -71,9 +71,19 @@ class RateLimiter {
     if (!entry) {
       // Enforce max store size to prevent unbounded memory growth
       if (this.store.size >= this.maxStoreSize) {
-        // Remove oldest entry (first key in Map maintains insertion order)
-        const oldestKey = this.store.keys().next().value;
-        if (oldestKey) this.store.delete(oldestKey);
+        // LRU eviction: Remove entry with oldest activity (least recently used)
+        let lruKey: string | null = null;
+        let oldestActivity = Infinity;
+
+        for (const [key, value] of this.store.entries()) {
+          const lastAttempt = value.attempts[value.attempts.length - 1] || 0;
+          if (lastAttempt < oldestActivity) {
+            oldestActivity = lastAttempt;
+            lruKey = key;
+          }
+        }
+
+        if (lruKey) this.store.delete(lruKey);
       }
 
       // First attempt - create new entry
@@ -93,7 +103,8 @@ class RateLimiter {
     const windowStart = now - this.windowMs;
     entry.attempts = entry.attempts.filter(timestamp => timestamp > windowStart);
 
-    // Check if limit exceeded (check BEFORE incrementing to avoid race condition)
+    // Check if limit exceeded (JavaScript's single-threaded event loop makes this atomic
+    // within a single tick; NOTE: This is NOT thread-safe for multi-threaded environments)
     if (entry.attempts.length >= this.maxAttempts) {
       // Update store with cleaned attempts
       this.store.set(userId, entry);
