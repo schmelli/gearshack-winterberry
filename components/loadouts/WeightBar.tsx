@@ -11,6 +11,7 @@
 'use client';
 
 import { Scale, Package } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { WeightDisplay } from '@/components/ui/weight-display';
 import {
@@ -32,16 +33,12 @@ interface WeightBarProps {
 // =============================================================================
 
 export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
+  const t = useTranslations('Loadouts');
   const weightCategory = getWeightCategory(totalWeight);
   const bgColorClass = getWeightCategoryBgColor(weightCategory);
 
   // Get category label for accessibility
-  const categoryLabel =
-    weightCategory === 'ultralight'
-      ? 'Ultralight'
-      : weightCategory === 'moderate'
-        ? 'Moderate'
-        : 'Heavy';
+  const categoryLabel = t(`weightBar.${weightCategory}`);
 
   return (
     <div
@@ -55,7 +52,7 @@ export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
         <div className="flex items-center gap-2 text-sm font-medium text-primary-foreground">
           <Package className="h-4 w-4" />
           <span>
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            {t('itemCount', { count: itemCount })}
           </span>
         </div>
 
