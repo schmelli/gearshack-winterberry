@@ -105,8 +105,10 @@ export async function GET(request: NextRequest) {
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
     // Build query - use ILIKE for case-insensitive search
-    // Escape ILIKE wildcards to prevent SQL injection via wildcard characters
+    // Escape ILIKE special characters to prevent injection
+    // Order matters: escape backslash first, then wildcards
     const normalizedQuery = q.toLowerCase().trim()
+      .replace(/\\/g, '\\\\')
       .replace(/%/g, '\\%')
       .replace(/_/g, '\\_');
 
@@ -167,7 +169,12 @@ export async function GET(request: NextRequest) {
 
         // Filter by brand name if we have a brand name filter
         if (brandNameFilter) {
-          inventoryQuery = inventoryQuery.ilike('brand', `%${brandNameFilter}%`);
+          // Escape ILIKE special characters in brand filter
+          const escapedBrandFilter = brandNameFilter
+            .replace(/\\/g, '\\\\')
+            .replace(/%/g, '\\%')
+            .replace(/_/g, '\\_');
+          inventoryQuery = inventoryQuery.ilike('brand', `%${escapedBrandFilter}%`);
         }
 
         const { data: inventoryItems, error: invError } = await inventoryQuery.limit(limit);

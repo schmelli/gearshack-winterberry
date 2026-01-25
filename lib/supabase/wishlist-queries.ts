@@ -418,14 +418,25 @@ export async function checkWishlistDuplicate(
     return null;
   }
 
+  // Escape ILIKE special characters to prevent injection
+  // Order matters: escape backslash first, then wildcards
+  const escapedBrand = normalizedBrand
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+  const escapedModel = normalizedModel
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+
   // Query with case-insensitive matching using ilike
   const { data, error } = await supabase
     .from('gear_items')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', 'wishlist')
-    .ilike('brand', normalizedBrand)
-    .ilike('model_number', normalizedModel)
+    .ilike('brand', escapedBrand)
+    .ilike('model_number', escapedModel)
     .maybeSingle();
 
   if (error) {

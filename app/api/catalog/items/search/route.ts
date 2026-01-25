@@ -102,6 +102,13 @@ async function performFuzzySearch(
 ): Promise<ProductSearchResult[]> {
   const normalizedQuery = query.toLowerCase().trim();
 
+  // Escape ILIKE special characters to prevent injection
+  // Order matters: escape backslash first, then wildcards
+  const escapedQuery = normalizedQuery
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+
   let queryBuilder = supabase
     .from('catalog_products')
     .select(`
@@ -118,7 +125,7 @@ async function performFuzzySearch(
         name
       )
     `)
-    .ilike('name', `%${normalizedQuery}%`)
+    .ilike('name', `%${escapedQuery}%`)
     .limit(options.limit);
 
   if (options.brand_id) {

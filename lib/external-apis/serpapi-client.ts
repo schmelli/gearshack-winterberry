@@ -245,7 +245,9 @@ export async function searchEbay(
 function parseShippingCost(delivery: string): number {
   const match = delivery.match(/€(\d+(?:[.,]\d+)?)/);
   if (match) {
-    return parseFloat(match[1].replace(',', '.'));
+    const parsed = parseFloat(match[1].replace(',', '.'));
+    // Return 0 if parsing fails (NaN)
+    return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
 }
@@ -319,7 +321,9 @@ function parseEbayShippingCost(shipping: string | undefined): number | null {
   if (shipping.toLowerCase().includes('free')) return 0;
   const match = shipping.match(/[\d.,]+/);
   if (match) {
-    return parseFloat(match[0].replace(',', '.'));
+    const parsed = parseFloat(match[0].replace(',', '.'));
+    // Return null if parsing fails (NaN)
+    return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
 }

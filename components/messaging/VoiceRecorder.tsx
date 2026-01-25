@@ -69,9 +69,11 @@ export function VoiceRecorder({
   }, [audioUrl]);
 
   const startRecording = useCallback(async () => {
+    // Track stream separately to ensure cleanup on error
+    let stream: MediaStream | null = null;
     try {
       setIsPreparing(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm')
@@ -82,6 +84,8 @@ export function VoiceRecorder({
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
+      // Capture stream reference for onstop handler
+      const capturedStream = stream;
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
@@ -94,7 +98,7 @@ export function VoiceRecorder({
         setAudioUrl(URL.createObjectURL(blob));
 
         // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
+        capturedStream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start(100); // Collect data every 100ms
@@ -109,6 +113,10 @@ export function VoiceRecorder({
     } catch (error) {
       console.error('Failed to start recording:', error);
       setIsPreparing(false);
+      // Release media stream tracks on error to prevent microphone staying active
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     }
   }, []);
 

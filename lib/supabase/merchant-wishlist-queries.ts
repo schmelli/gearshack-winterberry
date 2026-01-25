@@ -60,12 +60,18 @@ export async function addMerchantItemToWishlist(
   }
 
   // Check for duplicate by name + brand
+  // Escape ILIKE special characters to prevent injection
+  const escapedName = loadoutItem.catalogItem.name
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+
   let duplicateQuery = supabase
     .from('gear_items')
     .select('id')
     .eq('user_id', user.id)
     .eq('status', 'wishlist')
-    .ilike('name', loadoutItem.catalogItem.name);
+    .ilike('name', escapedName);
 
   // Handle nullable brand
   if (loadoutItem.catalogItem.brand) {
