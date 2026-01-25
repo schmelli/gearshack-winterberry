@@ -182,7 +182,12 @@ Examples:
       // Apply filters
       if (filters) {
         if (filters.productType) {
-          dbQuery = dbQuery.ilike('product_type', filters.productType);
+          // Sanitize productType to prevent ILIKE injection
+          const sanitizedProductType = filters.productType
+            .replace(/\\/g, '\\\\')  // Escape backslash first
+            .replace(/%/g, '\\%')    // Escape percent (ILIKE wildcard)
+            .replace(/_/g, '\\_');   // Escape underscore (ILIKE single-char wildcard)
+          dbQuery = dbQuery.ilike('product_type', `%${sanitizedProductType}%`);
           appliedFilters.productType = filters.productType;
         }
         if (filters.weightMin !== undefined) {

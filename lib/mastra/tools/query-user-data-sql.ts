@@ -319,13 +319,31 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       let query = supabase.from(table).select(select || '*');
 
       // Apply user_id filter (security)
+      // IMPORTANT: Using service role client bypasses RLS, so we must filter manually
       if (table === 'profiles') {
         query = query.eq('id', userId);
-      } else if (table !== 'loadout_items') {
+      } else if (table === 'loadout_items') {
+        // loadout_items doesn't have user_id - must filter via loadout ownership
+        // First get user's loadout IDs, then filter loadout_items
+        const { data: userLoadouts } = await supabase
+          .from('loadouts')
+          .select('id')
+          .eq('user_id', userId);
+        const loadoutIds = userLoadouts?.map((l) => l.id) ?? [];
+        if (loadoutIds.length === 0) {
+          // User has no loadouts - return empty result
+          return {
+            success: true,
+            rowCount: 0,
+            data: [],
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+        query = query.in('loadout_id', loadoutIds);
+      } else {
         // gear_items and loadouts have user_id
         query = query.eq('user_id', userId);
       }
-      // loadout_items: Security relies on RLS and proper joins
 
       // Parse and apply WHERE conditions
       if (where) {

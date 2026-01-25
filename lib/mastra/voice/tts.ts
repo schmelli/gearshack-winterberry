@@ -223,7 +223,11 @@ export async function synthesizeSpeechStream(
     });
 
     // Return the response body as a stream
-    return response.body as ReadableStream<Uint8Array>;
+    // Guard against null response.body (can occur with network errors or certain response types)
+    if (!response.body) {
+      throw new SynthesisError('Response body is null - unable to stream audio', 'EMPTY_RESPONSE');
+    }
+    return response.body;
   } catch (error) {
     const durationMs = Date.now() - startTime;
 

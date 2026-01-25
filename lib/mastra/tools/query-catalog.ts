@@ -102,11 +102,37 @@ interface ParsedCondition {
 }
 
 /**
+ * Dangerous SQL keywords that should never appear in WHERE clauses
+ * These could be used for SQL injection attacks
+ */
+const DANGEROUS_SQL_KEYWORDS = [
+  'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE',
+  'EXEC', 'EXECUTE', 'UNION', 'INTO', 'GRANT', 'REVOKE',
+  '--', ';', '/*', '*/',
+] as const;
+
+/**
+ * Validate WHERE clause for dangerous SQL keywords
+ * @throws Error if dangerous keywords are detected
+ */
+function validateWhereClause(whereStr: string): void {
+  const upper = whereStr.toUpperCase();
+  for (const keyword of DANGEROUS_SQL_KEYWORDS) {
+    if (upper.includes(keyword)) {
+      throw new Error(`Unsafe SQL keyword detected: ${keyword}`);
+    }
+  }
+}
+
+/**
  * Parse a simple WHERE clause string into conditions
  * Supports: =, !=, <, >, <=, >=, ILIKE, LIKE, IS NULL, IS NOT NULL
  */
 function parseWhereClause(whereStr: string): ParsedCondition[] {
   if (!whereStr.trim()) return [];
+
+  // Validate for SQL injection before parsing
+  validateWhereClause(whereStr);
 
   const conditions: ParsedCondition[] = [];
 
