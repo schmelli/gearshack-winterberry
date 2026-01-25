@@ -13,12 +13,28 @@ interface Coordinates {
 }
 
 /**
+ * Validate that coordinates are within valid ranges and are finite numbers
+ */
+function validateCoordinates(coords: Coordinates, name: string): void {
+  if (!Number.isFinite(coords.latitude) || coords.latitude < -90 || coords.latitude > 90) {
+    throw new Error(`${name} latitude must be between -90 and 90, got ${coords.latitude}`);
+  }
+  if (!Number.isFinite(coords.longitude) || coords.longitude < -180 || coords.longitude > 180) {
+    throw new Error(`${name} longitude must be between -180 and 180, got ${coords.longitude}`);
+  }
+}
+
+/**
  * Calculate distance between two points in kilometers
  */
 export function calculateDistance(
   from: Coordinates,
   to: Coordinates
 ): number {
+  // Validate coordinate bounds
+  validateCoordinates(from, 'from');
+  validateCoordinates(to, 'to');
+
   const distanceInMeters = getDistance(
     { latitude: from.latitude, longitude: from.longitude },
     { latitude: to.latitude, longitude: to.longitude }

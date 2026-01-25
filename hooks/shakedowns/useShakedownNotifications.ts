@@ -226,6 +226,9 @@ export function useShakedownNotifications(
   // Channel ref for cleanup
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Mounted state ref for async operations
+  const isMountedRef = useRef(true);
+
   // =============================================================================
   // Add Notification Helper
   // =============================================================================
@@ -357,6 +360,9 @@ export function useShakedownNotifications(
             .eq('id', vote.feedback_id)
             .single();
 
+          // Guard against unmount during async operation
+          if (!isMountedRef.current) return;
+
           if (feedback?.shakedown_id === shakedownId) {
             addNotification('helpful_added', { feedbackId: vote.feedback_id });
             callbacksRef.current.onHelpfulVote?.(vote.feedback_id, true);
@@ -383,6 +389,9 @@ export function useShakedownNotifications(
             .select('shakedown_id')
             .eq('id', vote.feedback_id)
             .single();
+
+          // Guard against unmount during async operation
+          if (!isMountedRef.current) return;
 
           if (feedback?.shakedown_id === shakedownId) {
             addNotification('helpful_removed', { feedbackId: vote.feedback_id });
@@ -443,7 +452,11 @@ export function useShakedownNotifications(
     // Cleanup
     // =============================================================================
 
+    // Reset mounted state
+    isMountedRef.current = true;
+
     return () => {
+      isMountedRef.current = false;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

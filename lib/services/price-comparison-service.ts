@@ -95,6 +95,12 @@ export async function calculatePriceTrend(
 
   const first = history[0].lowest_price;
   const last = history[history.length - 1].lowest_price;
+
+  // Guard against division by zero
+  if (!first || first === 0) {
+    return 'stable';
+  }
+
   const change = ((last - first) / first) * 100;
 
   if (change > 5) return 'rising';

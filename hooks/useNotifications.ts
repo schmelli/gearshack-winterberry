@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getUserNotifications, mapDbNotificationToNotification } from '@/lib/supabase/queries/notifications';
 import { markNotificationRead } from '@/app/actions/notifications';
@@ -71,6 +71,8 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingEnrichmentId, setProcessingEnrichmentId] = useState<string | null>(null);
+  // Track abort controller for enrichment actions
+  const enrichmentAbortRef = useRef<AbortController | null>(null);
 
   /**
    * Fetches notifications from the database
@@ -192,6 +194,11 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
       suggestionId: string,
       action: 'accept' | 'dismiss'
     ): Promise<EnrichmentActionResult> => {
+      // Abort any previous in-flight request
+      enrichmentAbortRef.current?.abort();
+      const abortController = new AbortController();
+      enrichmentAbortRef.current = abortController;
+
       setProcessingEnrichmentId(suggestionId);
 
       // Optimistic removal - save current state for potential rollback
@@ -202,6 +209,7 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
         const response = await fetch('/api/gear-items/apply-enrichment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: abortController.signal,
           body: JSON.stringify({
             suggestion_id: suggestionId,
             action,
@@ -226,6 +234,10 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
           updatedFields: data.updated_fields,
         };
       } catch (error) {
+        // Don't rollback on abort - component is unmounting
+        if (error instanceof Error && error.name === 'AbortError') {
+          return { success: false, error: 'Request cancelled' };
+        }
         // Rollback on network/unexpected error
         setNotifications(previousNotifications);
         console.error('[useNotifications] Enrichment action error:', error);

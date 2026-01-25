@@ -128,16 +128,15 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Store startTracking in ref to avoid stale closure
+  const startTrackingRef = useRef(startTracking);
+  startTrackingRef.current = startTracking;
+
   // Handle page visibility for presence accuracy
-  // Note: startTracking is intentionally excluded from deps
-  // to prevent circular dependency
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        startTracking();
-      } else {
-        // Optionally stop tracking when tab is hidden
-        // stopTracking();
+        startTrackingRef.current();
       }
     };
 
@@ -145,7 +144,6 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isUserOnline = useCallback(

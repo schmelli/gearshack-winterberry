@@ -364,8 +364,9 @@ export function LoadoutExportMenu({
     link.href = url;
     link.download = `${buildFileName('loadout')}.csv`;
     link.click();
-    // Delay revocation to ensure download starts (some browsers need this)
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // Revoke immediately - modern browsers handle this correctly
+    // Delayed revocation can leak if component unmounts
+    URL.revokeObjectURL(url);
   };
 
   const renderPdf = (includeChecklist: boolean) => {

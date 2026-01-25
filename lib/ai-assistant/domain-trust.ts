@@ -146,11 +146,19 @@ const blacklistSet = new Set<string>(BLACKLISTED_DOMAINS);
  * @returns Root domain or null if invalid
  */
 export function extractRootDomain(urlOrDomain: string): string | null {
+  // Input validation to prevent DoS with extremely long strings
+  if (!urlOrDomain || typeof urlOrDomain !== 'string' || urlOrDomain.length > 2000) {
+    return null;
+  }
+
+  // Sanitize input - remove null bytes and control characters
+  const sanitized = urlOrDomain.replace(/[\x00-\x1F\x7F]/g, '');
+
   try {
     // Handle full URLs
-    let domain = urlOrDomain;
-    if (urlOrDomain.includes('://')) {
-      domain = new URL(urlOrDomain).hostname;
+    let domain = sanitized;
+    if (sanitized.includes('://')) {
+      domain = new URL(sanitized).hostname;
     }
 
     // Remove www. prefix

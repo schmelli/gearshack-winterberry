@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +34,21 @@ interface LocationPickerProps {
 export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerProps) {
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // Track timeout for cleanup on unmount
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleLocationSelect = (location: LocationSelection | null) => {
     setSelectedLocation(location);
@@ -51,14 +66,18 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
 
         // Reverse geocode to get place name with timeout protection
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        abortControllerRef.current = controller;
+        timeoutRef.current = setTimeout(() => controller.abort(), 10000);
 
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             { signal: controller.signal }
           );
-          clearTimeout(timeoutId);
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           const data = await response.json();
           const placeName =
             data.address?.city ||
@@ -75,7 +94,10 @@ export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerP
             placeId: '',
           });
         } catch {
-          clearTimeout(timeoutId);
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           // Fallback to basic coordinates on timeout or error
           setSelectedLocation({
             name: 'Current Location',

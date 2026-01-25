@@ -90,6 +90,15 @@ export async function GET(
 ): Promise<NextResponse<ShakedownDetailResponse | ErrorResponse>> {
   try {
     const { id: shakedownId } = await params;
+
+    // Validate UUID format before querying database
+    if (!isValidUuid(shakedownId)) {
+      return NextResponse.json(
+        { error: 'Invalid shakedown ID format' },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createClient();
 
     // Get current user (optional - affects privacy checks)

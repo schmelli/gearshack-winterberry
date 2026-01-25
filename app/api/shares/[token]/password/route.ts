@@ -76,8 +76,8 @@ export async function POST(
       return authResult; // Return error response
     }
 
-    // Hash the password
-    const saltRounds = 10;
+    // Hash the password (using 12 rounds per 2025 security best practices)
+    const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Update the share

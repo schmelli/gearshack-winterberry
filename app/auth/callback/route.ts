@@ -80,8 +80,21 @@ export async function GET(request: Request) {
       let redirectUrl: string;
 
       if (next) {
-        // If next param is provided, use it
-        redirectUrl = next.startsWith('/') ? next : `/${next}`;
+        // Open redirect protection: validate that redirect stays on same origin
+        try {
+          const redirectTarget = new URL(next, origin);
+          // Only allow redirects to same origin
+          if (redirectTarget.origin !== origin) {
+            console.warn('[Auth] Blocked open redirect attempt to:', next);
+            redirectUrl = await getStartPageRedirect(supabase, locale);
+          } else {
+            // Use the pathname only to ensure we stay on same origin
+            redirectUrl = redirectTarget.pathname + redirectTarget.search;
+          }
+        } catch {
+          // Invalid URL - use safe default
+          redirectUrl = next.startsWith('/') ? next : `/${next}`;
+        }
       } else {
         // Otherwise, get the user's start page preference
         redirectUrl = await getStartPageRedirect(supabase, locale);
