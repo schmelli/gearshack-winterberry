@@ -947,6 +947,35 @@
       "atmosphereOptional": "Atmosphere (Optional)",
       "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
       "atmosphereHint": "Add custom atmosphere hints (max 50 characters)"
+    },
+    "weightBar": {
+      "ultralight": "Ultralight",
+      "moderate": "Moderate",
+      "heavy": "Heavy"
+    },
+    "weightDonut": {
+      "grams": "grams"
+    },
+    "header": {
+      "activity": "Activity",
+      "season": "Season"
+    },
+    "picker": {
+      "add": "Add"
+    },
+    "page": {
+      "createNewLoadout": "Create New Loadout",
+      "noLoadoutsYet": "No loadouts yet",
+      "noLoadoutsDescription": "Create your first loadout to start planning your next adventure. Combine gear from your inventory to track weight and categories.",
+      "noMatchingLoadouts": "No matching loadouts found",
+      "noMatchingDescription": "No loadouts match your search criteria. Try adjusting your filters.",
+      "clearFilters": "Clear Filters"
+    },
+    "editor": {
+      "addFromInventory": "Add from Inventory",
+      "loadoutItems": "Loadout Items",
+      "clearFilter": "Clear filter",
+      "addItems": "Add Items"
     }
   },
   "LoadoutCreation": {
@@ -1681,7 +1710,14 @@
       "offline": "Offline",
       "lastActive": "Last active {time}",
       "updating": "Updating...",
-      "updateFailed": "Failed to update status"
+      "updateFailed": "Failed to update status",
+      "yourStatus": "Your Status",
+      "appearDescription": "Set how you appear to other users",
+      "status": "Status",
+      "onlineDesc": "You appear online to everyone.",
+      "awayDesc": "You appear as away. Auto-set after 5 min inactivity.",
+      "invisibleDesc": "You appear offline but can still use the app.",
+      "offlineDesc": "You appear offline to everyone."
     },
     "privacy": {
       "title": "Privacy Settings",
@@ -4484,5 +4520,46 @@
   },
   "ProfileModal": {
     "editTitle": "Edit Profile"
+  },
+  "AlertPreferences": {
+    "loading": "Loading preferences...",
+    "loadError": "Failed to load preferences: {message}",
+    "channels": {
+      "title": "Notification Channels",
+      "description": "Choose how you want to receive price alerts",
+      "push": {
+        "label": "Push Notifications",
+        "description": "Receive instant alerts in your browser"
+      },
+      "email": {
+        "label": "Email Notifications",
+        "description": "Receive alerts via email"
+      }
+    },
+    "types": {
+      "title": "Alert Types",
+      "description": "Control which events trigger notifications",
+      "priceDrop": {
+        "label": "Price Drops",
+        "description": "Get notified when prices decrease"
+      },
+      "localShop": {
+        "label": "Local Shop Availability",
+        "description": "Alert when items are available nearby"
+      },
+      "community": {
+        "label": "Community Availability",
+        "description": "Alert when community members have the item"
+      },
+      "personalOffer": {
+        "label": "Personal Offers",
+        "description": "Get exclusive deals from partner retailers"
+      }
+    },
+    "quietHours": {
+      "title": "Quiet Hours",
+      "comingSoon": "Coming soon: Set hours when you don't want to receive notifications",
+      "description": "This feature will allow you to configure quiet hours (e.g., 10 PM - 7 AM) when notifications will be held until the next day."
+    }
   }
 }

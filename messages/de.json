@@ -23,7 +23,16 @@
     "newMessage": "Neue Nachricht",
     "darkMode": "Dunkelmodus",
     "lightMode": "Hellmodus",
-    "themeToggle": "Design"
+    "themeToggle": "Design",
+    "switchToGerman": "Zu Deutsch wechseln",
+    "switchToEnglish": "Zu Englisch wechseln"
+  },
+  "SyncStatus": {
+    "syncing": "Synchronisiere mit Cloud...",
+    "error": "Sync-Fehler: {error}",
+    "unknownError": "Unbekannter Fehler",
+    "lastSynced": "Zuletzt synchronisiert: {time}",
+    "connected": "Mit Cloud verbunden"
   },
   "FeatureGate": {
     "comingSoon": "Demnächst verfügbar",
@@ -938,6 +947,35 @@
       "atmosphereOptional": "Atmosphäre (Optional)",
       "atmospherePlaceholder": "z.B., nebligen Morgen, dramatische Wolken...",
       "atmosphereHint": "Füge benutzerdefinierte Atmosphären-Hinweise hinzu (max. 50 Zeichen)"
+    },
+    "weightBar": {
+      "ultralight": "Ultraleicht",
+      "moderate": "Moderat",
+      "heavy": "Schwer"
+    },
+    "weightDonut": {
+      "grams": "Gramm"
+    },
+    "header": {
+      "activity": "Aktivität",
+      "season": "Saison"
+    },
+    "picker": {
+      "add": "Hinzufügen"
+    },
+    "page": {
+      "createNewLoadout": "Neue Packliste erstellen",
+      "noLoadoutsYet": "Noch keine Packlisten",
+      "noLoadoutsDescription": "Erstelle deine erste Packliste, um dein nächstes Abenteuer zu planen. Kombiniere Ausrüstung aus deinem Inventar, um Gewicht und Kategorien zu verfolgen.",
+      "noMatchingLoadouts": "Keine passenden Packlisten gefunden",
+      "noMatchingDescription": "Keine Packlisten entsprechen deinen Suchkriterien. Versuche, deine Filter anzupassen.",
+      "clearFilters": "Filter löschen"
+    },
+    "editor": {
+      "addFromInventory": "Aus Inventar hinzufügen",
+      "loadoutItems": "Packlisten-Gegenstände",
+      "clearFilter": "Filter löschen",
+      "addItems": "Gegenstände hinzufügen"
     }
   },
   "LoadoutCreation": {
@@ -1533,6 +1571,18 @@
       "gettingLocation": "Standort wird ermittelt...",
       "useCurrentLocation": "Aktuellen Standort verwenden",
       "shareLocation": "Standort teilen"
+    },
+    "friendsList": {
+      "empty": "Noch keine Freunde",
+      "emptyHint": "Finde GearShack-Mitglieder und füge sie als Freunde hinzu",
+      "online": "Online",
+      "addedTime": "Hinzugefügt {time}",
+      "sendMessage": "Nachricht senden",
+      "removeFriend": "Freund entfernen",
+      "removeDialogTitle": "Freund entfernen",
+      "removeDialogDescription": "Bist du sicher, dass du {name} aus deinen Freunden entfernen möchtest? Du kannst sie später wieder hinzufügen.",
+      "cancel": "Abbrechen",
+      "remove": "Entfernen"
     },
     "blocked": {
       "noBlockedUsers": "Keine blockierten Benutzer",
@@ -4382,5 +4432,105 @@
       },
       "feedbackHint": "Du kannst jederzeit Fehler melden oder Feedback teilen über die Feedback-Option in deinem Profilmenü."
     }
+  },
+  "PriceTracking": {
+    "title": "Preisverfolgung",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "priceDropAlerts": "Preissenkungsbenachrichtigungen",
+    "currentPrices": "Aktuelle Preise",
+    "found": "({count} gefunden)",
+    "moreResults": "+{count} weitere Ergebnisse",
+    "noResults": "Keine Preise gefunden. Füge Marken- und Modellinformationen hinzu.",
+    "similarProducts": "Ähnliche Produkte gefunden (möglicherweise nicht exakt übereinstimmend):",
+    "highMatch": "Hohe",
+    "lowMatch": "Niedrige",
+    "match": "Übereinstimmung",
+    "enableTracking": "Aktiviere Preisverfolgung, um Preise bei Händlern zu überwachen",
+    "getAlerts": "Erhalte Benachrichtigungen bei Preissenkungen",
+    "loadingError": "Preisverfolgung konnte nicht geladen werden",
+    "searchError": "Preissuche fehlgeschlagen",
+    "someSourcesUnavailable": "Einige Quellen nicht verfügbar: {sources}",
+    "aria": {
+      "refreshPrices": "Preise aktualisieren"
+    }
+  },
+  "PriceHistory": {
+    "title": "Preisverlauf",
+    "noHistory": "Noch kein Preisverlauf. Preise werden täglich aufgezeichnet.",
+    "trend": {
+      "dropping": "Preis fallend",
+      "rising": "Preis steigend",
+      "stable": "Stabil"
+    },
+    "stats": {
+      "low": "Tief",
+      "avg": "Durchschn.",
+      "high": "Hoch"
+    },
+    "legend": {
+      "lowest": "Niedrigster",
+      "average": "Durchschnitt",
+      "highest": "Höchster"
+    }
+  },
+  "PriceResult": {
+    "conditions": {
+      "new": "Neu",
+      "used": "Gebraucht",
+      "refurbished": "Generalüberholt",
+      "openBox": "Offene Verpackung"
+    },
+    "lowestPrice": "Günstigster Preis",
+    "shipping": "Versand",
+    "total": "Gesamt",
+    "kmAway": "{distance} km entfernt",
+    "view": "Ansehen"
+  },
+  "ImageGallery": {
+    "aria": {
+      "previousImage": "Vorheriges Bild",
+      "nextImage": "Nächstes Bild"
+    }
+  },
+  "YouTubeReviews": {
+    "quotaExhausted": "Video-Reviews vorübergehend nicht verfügbar (Kontingent wird um Mitternacht PT zurückgesetzt)",
+    "noReviews": "Keine Reviews für dieses Produkt gefunden",
+    "tryAgain": "Erneut versuchen"
+  },
+  "GearInsights": {
+    "unavailable": "Insights vorübergehend nicht verfügbar",
+    "notYetAvailable": "Insights für dieses Produkt noch nicht verfügbar",
+    "types": {
+      "tip": "Tipp",
+      "comparison": "Vergleich",
+      "warning": "Warnung",
+      "recommendation": "Empfehlung"
+    },
+    "source": "Quelle",
+    "aria": {
+      "thumbsUp": "Als hilfreich markieren",
+      "thumbsDown": "Als nicht hilfreich markieren"
+    }
+  },
+  "AvatarUpload": {
+    "sourceCustom": "Eigenes Avatar",
+    "sourceProvider": "Google-Kontofoto",
+    "sourceInitials": "Kein Foto festgelegt",
+    "changePhoto": "Foto ändern",
+    "uploadPhoto": "Foto hochladen",
+    "remove": "Entfernen",
+    "helpText": "JPG, PNG oder WebP. Max {maxSize}MB."
+  },
+  "LocationSearch": {
+    "noCitiesFound": "Keine Städte gefunden. Versuche eine andere Suche."
+  },
+  "ProfileStats": {
+    "items": "Artikel",
+    "loadouts": "Packlisten",
+    "shakedowns": "Shakedowns"
+  },
+  "ProfileModal": {
+    "editTitle": "Profil bearbeiten"
   }
 }
