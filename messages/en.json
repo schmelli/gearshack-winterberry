@@ -1478,7 +1478,25 @@
         "unauthorized": "You must be logged in to track prices",
         "notFound": "Item not found",
         "rateLimited": "Rate limit exceeded. Try again later."
+      },
+      "card": {
+        "titleDisabled": "Price Tracking",
+        "titleEnabled": "Price Tracking Enabled",
+        "description": "Enable price tracking to discover prices from online retailers, eBay, and local outdoor shops.",
+        "trackPrices": "Track Prices",
+        "priceDropAlerts": "Price drop alerts",
+        "searchPricesNow": "Search Prices Now",
+        "disable": "Disable"
       }
+    },
+    "communityAvailability": {
+      "title": "Community Availability",
+      "usersHaveItem": "{count, plural, =1 {# user has} other {# users have}} this item",
+      "peerPriceRange": "Peer price range: {range}",
+      "priceDataUnavailable": "Price data unavailable",
+      "messageUser": "Message user",
+      "viewInventory": "View inventory",
+      "seePriceComparison": "See price comparison"
     }
   },
   "Profile": {
@@ -1585,6 +1603,18 @@
       "sendMessage": "Send message",
       "addFriend": "Add friend",
       "unknown": "Unknown"
+    },
+    "modal": {
+      "tabs": {
+        "messages": "Messages",
+        "friends": "Friends"
+      },
+      "searchMessages": "Search messages...",
+      "new": "New",
+      "back": "Back",
+      "newConversation": "New Conversation",
+      "searchMessagesTitle": "Search Messages",
+      "searchForSomeone": "Search for someone to message..."
     },
     "messageBubble": {
       "copy": "Copy",

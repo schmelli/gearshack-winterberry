@@ -1482,7 +1482,25 @@
         "unauthorized": "Du musst angemeldet sein, um Preise zu verfolgen",
         "notFound": "Artikel nicht gefunden",
         "rateLimited": "Ratenlimit überschritten. Bitte später erneut versuchen."
+      },
+      "card": {
+        "titleDisabled": "Preisverfolgung",
+        "titleEnabled": "Preisverfolgung aktiviert",
+        "description": "Aktiviere die Preisverfolgung, um Preise von Online-Händlern, eBay und lokalen Outdoor-Shops zu finden.",
+        "trackPrices": "Preise verfolgen",
+        "priceDropAlerts": "Preissenkungsalarme",
+        "searchPricesNow": "Jetzt Preise suchen",
+        "disable": "Deaktivieren"
       }
+    },
+    "communityAvailability": {
+      "title": "Community-Verfügbarkeit",
+      "usersHaveItem": "{count, plural, =1 {# Nutzer hat} other {# Nutzer haben}} diesen Artikel",
+      "peerPriceRange": "Preisspanne der Community: {range}",
+      "priceDataUnavailable": "Keine Preisdaten verfügbar",
+      "messageUser": "Nutzer kontaktieren",
+      "viewInventory": "Inventar ansehen",
+      "seePriceComparison": "Preisvergleich ansehen"
     }
   },
   "Profile": {
