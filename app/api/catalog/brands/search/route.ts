@@ -81,8 +81,12 @@ export async function GET(request: NextRequest) {
     if (rpcError || !rpcData || rpcData.length === 0) {
       // Fallback to ILIKE search if RPC function not available
       const normalizedQuery = q.toLowerCase().trim();
-      // Escape SQL wildcards to prevent unintended pattern matching
-      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
+      // Escape ILIKE special characters to prevent injection
+      // Order matters: escape backslash first, then wildcards
+      const escapedQuery = normalizedQuery
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
       // Use ILIKE on 'name' column directly (case-insensitive) as most reliable fallback
       const { data: fallbackData, error: fallbackError } = await publicSupabase
         .from('catalog_brands')
@@ -135,8 +139,12 @@ export async function GET(request: NextRequest) {
     let inventoryResults: BrandSearchResult[] = [];
     if (user) {
       const normalizedQuery = q.toLowerCase().trim();
-      // Escape SQL wildcards to prevent unintended pattern matching
-      const escapedQuery = normalizedQuery.replace(/[%_]/g, '\\$&');
+      // Escape ILIKE special characters to prevent injection
+      // Order matters: escape backslash first, then wildcards
+      const escapedQuery = normalizedQuery
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
 
       // Try RPC function first, fall back to direct query if function doesn't exist
       let userBrands: { brand: string }[] | null = null;

@@ -74,6 +74,13 @@ export function useNotifications(userId: string | null): UseNotificationsResult 
   // Track abort controller for enrichment actions
   const enrichmentAbortRef = useRef<AbortController | null>(null);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      enrichmentAbortRef.current?.abort();
+    };
+  }, []);
+
   /**
    * Fetches notifications from the database
    */

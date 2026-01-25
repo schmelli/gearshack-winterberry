@@ -119,8 +119,15 @@ export async function GET(request: NextRequest) {
     if (latitudeRaw && longitudeRaw) {
       const latitude = parseFloat(latitudeRaw);
       const longitude = parseFloat(longitudeRaw);
-      // Only use coordinates if both are valid finite numbers
-      if (!isNaN(latitude) && !isNaN(longitude) && isFinite(latitude) && isFinite(longitude)) {
+      // Only use coordinates if both are valid finite numbers within valid ranges
+      if (
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+      ) {
         userLocation = { latitude, longitude };
       }
     }

@@ -445,7 +445,8 @@ export async function POST(request: NextRequest) {
 
       // Check Content-Length header to prevent memory exhaustion
       const contentLength = fetchResponse.headers.get('content-length');
-      if (contentLength && parseInt(contentLength, 10) > MAX_CONTENT_SIZE) {
+      const parsedLength = contentLength ? parseInt(contentLength, 10) : NaN;
+      if (!Number.isNaN(parsedLength) && parsedLength > MAX_CONTENT_SIZE) {
         clearTimeout(timeout); // Clear timeout before early return
         return NextResponse.json(
           { error: 'URL content too large (max 50MB)' },
