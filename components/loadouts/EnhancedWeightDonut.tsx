@@ -17,10 +17,12 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { formatWeight } from '@/lib/loadout-utils';
 import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel, getParentCategoryIds } from '@/lib/utils/category-helpers';
 import type { GearItem } from '@/types/gear';
+import type { LoadoutItemState } from '@/types/loadout';
 
 // =============================================================================
 // Types
@@ -54,6 +56,8 @@ interface SubcategoryData {
 
 interface EnhancedWeightDonutProps {
   items: GearItem[];
+  /** Item states (worn/consumable flags) - required for weight filtering */
+  itemStates?: LoadoutItemState[];
   /** Callback when a category/subcategory is clicked for filtering */
   onSegmentClick?: (categoryId: string, level: 'category' | 'subcategory') => void;
   /** Currently selected segment for highlighting */
@@ -122,6 +126,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 
 export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
   items,
+  itemStates = [],
   onSegmentClick,
   selectedId,
   size = 300,
@@ -133,9 +138,37 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
   // Drill-down state
   const [drillDownCategoryId, setDrillDownCategoryId] = useState<string | null>(null);
 
+  // Weight display mode state: true = Pack Weight (baseweight + consumables), false = Baseweight only
+  const [showPackWeight, setShowPackWeight] = useState(true);
+
+  // Filter items based on weight mode (Pack Weight vs Baseweight)
+  const filteredItems = useMemo(() => {
+    // Create Map for O(1) lookup
+    const itemStateMap = new Map(itemStates.map(s => [s.itemId, s]));
+
+    // Always exclude worn items from the chart
+    // If showPackWeight = true: include consumables
+    // If showPackWeight = false: exclude consumables (baseweight only)
+    return items.filter(item => {
+      const state = itemStateMap.get(item.id);
+
+      // Always exclude worn items from the donut chart
+      if (state?.isWorn) {
+        return false;
+      }
+
+      // If showing baseweight only, also exclude consumables
+      if (!showPackWeight && state?.isConsumable) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [items, itemStates, showPackWeight]);
+
   // Calculate category data with subcategories
   const categoryData = useMemo(() => {
-    const totalWeight = items.reduce((sum, item) => sum + (item.weightGrams ?? 0), 0);
+    const totalWeight = filteredItems.reduce((sum, item) => sum + (item.weightGrams ?? 0), 0);
     if (totalWeight === 0) return [];
 
     // Group by category
@@ -145,7 +178,7 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
       subcategories: Map<string, { weight: number; items: GearItem[] }>;
     }>();
 
-    for (const item of items) {
+    for (const item of filteredItems) {
       const { categoryId, subcategoryId } = getParentCategoryIds(item.productTypeId, categories);
       const catId = categoryId ?? 'miscellaneous';
       const subId = subcategoryId ?? 'other';
@@ -208,7 +241,7 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
 
     // Sort by weight descending
     return result.sort((a, b) => b.weight - a.weight);
-  }, [items, categories, locale, t]);
+  }, [filteredItems, categories, locale, t]);
 
   // Get current view data (category or subcategory level)
   const currentData = useMemo(() => {
@@ -228,10 +261,10 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
     }));
   }, [categoryData, drillDownCategoryId]);
 
-  // Total weight
+  // Total weight (based on filtered items)
   const totalWeight = useMemo(
-    () => items.reduce((sum, item) => sum + (item.weightGrams ?? 0), 0),
-    [items]
+    () => filteredItems.reduce((sum, item) => sum + (item.weightGrams ?? 0), 0),
+    [filteredItems]
   );
 
   // Handlers
@@ -279,6 +312,21 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
 
   return (
     <div className="flex flex-col items-center gap-4">
+      {/* Weight Mode Toggle */}
+      <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-2.5">
+        <span className={cn("text-sm font-medium transition-colors", showPackWeight && "text-muted-foreground")}>
+          {t('weightMode.baseweight')}
+        </span>
+        <Switch
+          checked={showPackWeight}
+          onCheckedChange={setShowPackWeight}
+          aria-label={t('weightMode.toggleLabel')}
+        />
+        <span className={cn("text-sm font-medium transition-colors", !showPackWeight && "text-muted-foreground")}>
+          {t('weightMode.packWeight')}
+        </span>
+      </div>
+
       {/* Back button when drilled down */}
       {drillDownCategoryId && (
         <Button

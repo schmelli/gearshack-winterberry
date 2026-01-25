@@ -222,6 +222,7 @@ export function LoadoutHeader({
             <div className="hidden shrink-0 md:flex md:items-start md:justify-end">
               <EnhancedWeightDonut
                 items={items}
+                itemStates={itemStates}
                 selectedId={selectedCategoryId}
                 onSegmentClick={onSegmentClick}
                 size={260}
@@ -233,6 +234,7 @@ export function LoadoutHeader({
           <div className="flex justify-center md:hidden">
             <EnhancedWeightDonut
               items={items}
+              itemStates={itemStates}
               selectedId={selectedCategoryId}
               onSegmentClick={onSegmentClick}
               size={220}
