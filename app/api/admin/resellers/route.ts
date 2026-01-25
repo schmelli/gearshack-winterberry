@@ -59,9 +59,14 @@ export async function GET(request: NextRequest) {
       .from('resellers')
       .select('*', { count: 'exact' });
 
-    // Apply filters
+    // Apply filters with sanitized search input
     if (search) {
-      query = query.or(`name.ilike.%${search}%,website_url.ilike.%${search}%`);
+      // Sanitize search: escape ILIKE wildcards and limit length
+      const sanitizedSearch = search
+        .slice(0, 100) // Limit length
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      query = query.or(`name.ilike.%${sanitizedSearch}%,website_url.ilike.%${sanitizedSearch}%`);
     }
 
     if (type) {

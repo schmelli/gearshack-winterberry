@@ -9,6 +9,7 @@ const TIMEOUT_MS = 30000; // 30 seconds
 
 /**
  * SSRF protection: block internal/private URLs
+ * Covers RFC 1918, RFC 4193, RFC 6598, and other reserved ranges
  */
 function isBlockedUrl(url: string): boolean {
   try {
@@ -16,26 +17,60 @@ function isBlockedUrl(url: string): boolean {
     const hostname = parsed.hostname.toLowerCase();
 
     // Block localhost variations
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname === '0.0.0.0'
-    ) {
+    const localhostPatterns = [
+      'localhost',
+      '127.0.0.1',
+      '::1',
+      '0.0.0.0',
+      '[::1]',
+    ];
+    if (localhostPatterns.includes(hostname)) {
       return true;
     }
 
-    // Block private IP ranges
+    // Block .local and .internal domains
+    if (hostname.endsWith('.local') || hostname.endsWith('.internal') || hostname.endsWith('.localhost')) {
+      return true;
+    }
+
+    // Block private and reserved IP ranges (comprehensive list)
     const privatePatterns = [
-      /^10\./,
-      /^172\.(1[6-9]|2\d|3[01])\./,
-      /^192\.168\./,
-      /^169\.254\./,
-      /^fc00:/,
-      /^fe80:/,
+      // RFC 1918 - Private networks
+      /^10\./,                            // 10.0.0.0/8
+      /^172\.(1[6-9]|2\d|3[01])\./,       // 172.16.0.0/12
+      /^192\.168\./,                       // 192.168.0.0/16
+      // RFC 6598 - Shared Address Space (CGNAT)
+      /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,  // 100.64.0.0/10
+      // Link-local
+      /^169\.254\./,                       // 169.254.0.0/16
+      // Loopback
+      /^127\./,                            // 127.0.0.0/8
+      // RFC 5737 - Documentation
+      /^192\.0\.2\./,                      // 192.0.2.0/24 (TEST-NET-1)
+      /^198\.51\.100\./,                   // 198.51.100.0/24 (TEST-NET-2)
+      /^203\.0\.113\./,                    // 203.0.113.0/24 (TEST-NET-3)
+      // RFC 3927 - Link-local (zeroconf)
+      /^0\./,                              // 0.0.0.0/8
+      // Benchmarking
+      /^198\.18\./,                        // 198.18.0.0/15
+      /^198\.19\./,
+      // Reserved
+      /^224\./,                            // 224.0.0.0/4 (Multicast)
+      /^240\./,                            // 240.0.0.0/4 (Reserved)
+      // IPv6 private/reserved
+      /^fc00:/i,                           // ULA
+      /^fd[0-9a-f]{2}:/i,                  // ULA
+      /^fe80:/i,                           // Link-local
+      /^ff[0-9a-f]{2}:/i,                  // Multicast
+      /^::ffff:/i,                         // IPv4-mapped
     ];
 
     if (privatePatterns.some((pattern) => pattern.test(hostname))) {
+      return true;
+    }
+
+    // Block non-http(s) protocols that might be in the URL
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
       return true;
     }
 

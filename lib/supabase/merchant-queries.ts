@@ -41,6 +41,36 @@ function getMerchantClient(): any {
 }
 
 // =============================================================================
+// VALIDATION HELPERS
+// =============================================================================
+
+/**
+ * Validates and sanitizes geographic coordinates.
+ * Prevents injection attacks in PostGIS POINT strings.
+ *
+ * @param latitude - Latitude value (-90 to 90)
+ * @param longitude - Longitude value (-180 to 180)
+ * @returns Sanitized POINT string or throws error
+ */
+function validateAndFormatPoint(latitude: number, longitude: number): string {
+  // Ensure values are finite numbers
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error('Invalid coordinates: values must be finite numbers');
+  }
+
+  // Validate coordinate ranges
+  if (latitude < -90 || latitude > 90) {
+    throw new Error('Invalid latitude: must be between -90 and 90');
+  }
+  if (longitude < -180 || longitude > 180) {
+    throw new Error('Invalid longitude: must be between -180 and 180');
+  }
+
+  // Format with fixed precision to prevent scientific notation injection
+  return `POINT(${longitude.toFixed(8)} ${latitude.toFixed(8)})`;
+}
+
+// =============================================================================
 // MERCHANT PROFILE QUERIES
 // =============================================================================
 
@@ -345,7 +375,7 @@ export async function createMerchantLocation(
       city: input.city,
       postal_code: input.postalCode,
       country: input.country ?? 'DE',
-      location: `POINT(${input.longitude} ${input.latitude})`,
+      location: validateAndFormatPoint(input.latitude, input.longitude),
       phone: input.phone ?? null,
       hours: input.hours ?? null,
       is_primary: input.isPrimary ?? false,
@@ -388,7 +418,7 @@ export async function updateMerchantLocation(
   if (input.postalCode !== undefined) updateData.postal_code = input.postalCode;
   if (input.country !== undefined) updateData.country = input.country;
   if (input.latitude !== undefined && input.longitude !== undefined) {
-    updateData.location = `POINT(${input.longitude} ${input.latitude})`;
+    updateData.location = validateAndFormatPoint(input.latitude, input.longitude);
   }
   if (input.phone !== undefined) updateData.phone = input.phone;
   if (input.hours !== undefined) updateData.hours = input.hours;
