@@ -1438,6 +1438,21 @@
     }
   },
   "Messaging": {
+    "conversationList": {
+      "loadError": "Konversationen konnten nicht geladen werden: {error}",
+      "empty": "Noch keine Konversationen",
+      "emptyHint": "Starte eine neue Konversation, um dich mit anderen Outdoor-Enthusiasten zu verbinden!",
+      "muted": "Stumm",
+      "friend": "Freund",
+      "noMessagesYet": "Noch keine Nachrichten",
+      "sentAnImage": "Hat ein Bild gesendet",
+      "sentVoiceMessage": "Hat eine Sprachnachricht gesendet",
+      "sharedLocation": "Hat einen Standort geteilt",
+      "sharedGearItem": "Hat Ausrüstung geteilt",
+      "postedGearTrade": "Hat einen Ausrüstungstausch gepostet",
+      "sentTripInvitation": "Hat eine Trip-Einladung gesendet",
+      "newMessage": "Neue Nachricht"
+    },
     "userSearch": {
       "placeholder": "Nach Name oder Trail-Name suchen...",
       "noUsersFound": "Keine Benutzer gefunden für \"{query}\"",

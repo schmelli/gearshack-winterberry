@@ -23,7 +23,16 @@
     "newMessage": "New message",
     "darkMode": "Dark mode",
     "lightMode": "Light mode",
-    "themeToggle": "Theme"
+    "themeToggle": "Theme",
+    "switchToGerman": "Switch to German",
+    "switchToEnglish": "Switch to English"
+  },
+  "SyncStatus": {
+    "syncing": "Syncing with cloud...",
+    "error": "Sync error: {error}",
+    "unknownError": "Unknown error",
+    "lastSynced": "Last synced: {time}",
+    "connected": "Connected to cloud"
   },
   "FeatureGate": {
     "comingSoon": "Coming Soon",
@@ -1438,6 +1447,21 @@
     }
   },
   "Messaging": {
+    "conversationList": {
+      "loadError": "Failed to load conversations: {error}",
+      "empty": "No conversations yet",
+      "emptyHint": "Start a new conversation to connect with other gear enthusiasts!",
+      "muted": "Muted",
+      "friend": "Friend",
+      "noMessagesYet": "No messages yet",
+      "sentAnImage": "Sent an image",
+      "sentVoiceMessage": "Sent a voice message",
+      "sharedLocation": "Shared a location",
+      "sharedGearItem": "Shared gear item",
+      "postedGearTrade": "Posted a gear trade",
+      "sentTripInvitation": "Sent a trip invitation",
+      "newMessage": "New message"
+    },
     "userSearch": {
       "placeholder": "Search by name or trail name...",
       "noUsersFound": "No users found matching \"{query}\"",
@@ -4360,5 +4384,105 @@
       },
       "feedbackHint": "You can report bugs or share feedback anytime via the Feedback option in your profile menu."
     }
+  },
+  "PriceTracking": {
+    "title": "Price Tracking",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "priceDropAlerts": "Price drop alerts",
+    "currentPrices": "Current Prices",
+    "found": "({count} found)",
+    "moreResults": "+{count} more results",
+    "noResults": "No prices found. Try adding brand and model information.",
+    "similarProducts": "Similar products found (may not be exact match):",
+    "highMatch": "High",
+    "lowMatch": "Low",
+    "match": "match",
+    "enableTracking": "Enable price tracking to monitor prices across retailers",
+    "getAlerts": "Get alerts when prices drop",
+    "loadingError": "Failed to load price tracking",
+    "searchError": "Failed to search prices",
+    "someSourcesUnavailable": "Some sources unavailable: {sources}",
+    "aria": {
+      "refreshPrices": "Refresh prices"
+    }
+  },
+  "PriceHistory": {
+    "title": "Price History",
+    "noHistory": "No price history yet. Prices are recorded daily.",
+    "trend": {
+      "dropping": "Price dropping",
+      "rising": "Price rising",
+      "stable": "Stable"
+    },
+    "stats": {
+      "low": "Low",
+      "avg": "Avg",
+      "high": "High"
+    },
+    "legend": {
+      "lowest": "Lowest",
+      "average": "Average",
+      "highest": "Highest"
+    }
+  },
+  "PriceResult": {
+    "conditions": {
+      "new": "New",
+      "used": "Used",
+      "refurbished": "Refurbished",
+      "openBox": "Open Box"
+    },
+    "lowestPrice": "Lowest Price",
+    "shipping": "shipping",
+    "total": "Total",
+    "kmAway": "{distance} km away",
+    "view": "View"
+  },
+  "ImageGallery": {
+    "aria": {
+      "previousImage": "Previous image",
+      "nextImage": "Next image"
+    }
+  },
+  "YouTubeReviews": {
+    "quotaExhausted": "Video reviews temporarily unavailable (quota reset at midnight PT)",
+    "noReviews": "No reviews found for this product",
+    "tryAgain": "Try again"
+  },
+  "GearInsights": {
+    "unavailable": "Insights temporarily unavailable",
+    "notYetAvailable": "Insights not yet available for this product",
+    "types": {
+      "tip": "Tip",
+      "comparison": "Comparison",
+      "warning": "Warning",
+      "recommendation": "Recommendation"
+    },
+    "source": "Source",
+    "aria": {
+      "thumbsUp": "Mark as helpful",
+      "thumbsDown": "Mark as not helpful"
+    }
+  },
+  "AvatarUpload": {
+    "sourceCustom": "Custom avatar",
+    "sourceProvider": "Google account photo",
+    "sourceInitials": "No photo set",
+    "changePhoto": "Change photo",
+    "uploadPhoto": "Upload photo",
+    "remove": "Remove",
+    "helpText": "JPG, PNG or WebP. Max {maxSize}MB."
+  },
+  "LocationSearch": {
+    "noCitiesFound": "No cities found. Try a different search."
+  },
+  "ProfileStats": {
+    "items": "Items",
+    "loadouts": "Loadouts",
+    "shakedowns": "Shakedowns"
+  },
+  "ProfileModal": {
+    "editTitle": "Edit Profile"
   }
 }
