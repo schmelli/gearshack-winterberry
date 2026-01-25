@@ -15,13 +15,16 @@ import { MessageBubble } from './MessageBubble';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+interface InlineCard {
+  id: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inline_cards?: any[];
+  inline_cards?: InlineCard[];
 }
 
 interface MessageListProps {

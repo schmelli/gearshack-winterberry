@@ -20,8 +20,7 @@ import type { ShakedownGearItem } from '@/hooks/shakedowns/useShakedown';
 
 export interface UseAddToInventoryOptions {
   /** Translation function for error messages */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: (key: string, params?: any) => string;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
   /** Callback after successful addition */
   onSuccess?: () => void;
 }
