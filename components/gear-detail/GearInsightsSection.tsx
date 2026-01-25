@@ -15,7 +15,7 @@ import { Lightbulb, AlertCircle, ExternalLink, AlertTriangle, GitCompare, Sparkl
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import type { GearInsight, InsightType } from '@/types/geargraph';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -259,9 +259,10 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
             </div>
           </div>
           <p className="text-sm text-foreground">{insight.content}</p>
-          {insight.sourceUrl && (
+          {/* SECURITY: Validate sourceUrl before rendering */}
+          {sanitizeExternalUrl(insight.sourceUrl) && (
             <a
-              href={insight.sourceUrl}
+              href={sanitizeExternalUrl(insight.sourceUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
