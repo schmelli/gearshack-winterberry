@@ -91,11 +91,15 @@ function buildSearchUrl(params: BrowseApiSearchParams): string {
 
 /**
  * Create abort controller with timeout
+ * Returns both controller and timeout ID for cleanup
  */
-function createTimeoutController(timeoutMs: number): AbortController {
+function createTimeoutController(timeoutMs: number): {
+  controller: AbortController;
+  timeoutId: ReturnType<typeof setTimeout>;
+} {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), timeoutMs);
-  return controller;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return { controller, timeoutId };
 }
 
 // =============================================================================
@@ -122,19 +126,24 @@ export async function searchEbayBrowseApi(
     console.log(`[eBay Browse API] Searching: ${query} on ${marketplaceId}`);
   }
 
-  const controller = createTimeoutController(EBAY_API_CONFIG.timeoutMs);
+  const { controller, timeoutId } = createTimeoutController(EBAY_API_CONFIG.timeoutMs);
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'X-EBAY-C-MARKETPLACE-ID': marketplaceId,
-      'X-EBAY-C-ENDUSERCTX': 'affiliateCampaignId=<ePNCampaignId>,affiliateReferenceId=<referenceId>',
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    signal: controller.signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-EBAY-C-MARKETPLACE-ID': marketplaceId,
+        'X-EBAY-C-ENDUSERCTX': 'affiliateCampaignId=<ePNCampaignId>,affiliateReferenceId=<referenceId>',
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

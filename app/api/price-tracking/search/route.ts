@@ -26,7 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body: SearchPricesRequest = await request.json();
+    let body: SearchPricesRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     if (!body.gear_item_id) {
       return NextResponse.json(

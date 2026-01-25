@@ -140,9 +140,19 @@ function ConversationContent() {
 
   // Mark as read when viewing
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      markAsRead();
-    }
+    if (!conversationId || messages.length === 0) return;
+
+    let isCancelled = false;
+    const doMarkAsRead = async () => {
+      if (!isCancelled) {
+        await markAsRead();
+      }
+    };
+    doMarkAsRead();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [conversationId, messages.length, markAsRead]);
 
   const handleSend = useCallback(async () => {

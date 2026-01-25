@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -120,6 +120,12 @@ export function useEnrichmentSuggestions(): UseEnrichmentSuggestionsReturn {
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
+  // Track current suggestions with ref to avoid stale closures in async operations
+  const suggestionsRef = useRef(suggestions);
+  useEffect(() => {
+    suggestionsRef.current = suggestions;
+  }, [suggestions]);
+
   /**
    * Fetches pending suggestions with joined gear item data
    */
@@ -185,8 +191,8 @@ export function useEnrichmentSuggestions(): UseEnrichmentSuggestionsReturn {
     async (suggestionId: string, action: 'accept' | 'dismiss'): Promise<ProcessResult> => {
       setProcessingId(suggestionId);
 
-      // Optimistic removal
-      const previousSuggestions = suggestions;
+      // Capture current suggestions from ref for rollback (avoids stale closure)
+      const previousSuggestions = suggestionsRef.current;
       setSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
 
       try {
@@ -203,7 +209,7 @@ export function useEnrichmentSuggestions(): UseEnrichmentSuggestionsReturn {
         const data = await response.json();
 
         if (!response.ok) {
-          // Rollback on error
+          // Rollback on error using captured state
           setSuggestions(previousSuggestions);
           return { success: false, error: data.error || 'Failed to process suggestion' };
         }
@@ -213,7 +219,7 @@ export function useEnrichmentSuggestions(): UseEnrichmentSuggestionsReturn {
           updatedFields: data.updated_fields,
         };
       } catch (error) {
-        // Rollback on network error
+        // Rollback on network error using captured state
         setSuggestions(previousSuggestions);
         console.error('[useEnrichmentSuggestions] Process error:', error);
         return {
@@ -224,7 +230,7 @@ export function useEnrichmentSuggestions(): UseEnrichmentSuggestionsReturn {
         setProcessingId(null);
       }
     },
-    [suggestions]
+    []
   );
 
   /**

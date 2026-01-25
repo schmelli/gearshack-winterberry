@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { followVip, unfollowVip } from '@/lib/vip/vip-service';
 
 // =============================================================================
@@ -38,6 +38,24 @@ export function useVipFollow(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track current values with refs to avoid stale closures in rapid toggles
+  const isFollowingRef = useRef(isFollowing);
+  const followerCountRef = useRef(followerCount);
+  const isLoadingRef = useRef(isLoading);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    isFollowingRef.current = isFollowing;
+  }, [isFollowing]);
+
+  useEffect(() => {
+    followerCountRef.current = followerCount;
+  }, [followerCount]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
   // Sync with initial values when they change
   useEffect(() => {
     setIsFollowing(initialIsFollowing);
@@ -45,19 +63,21 @@ export function useVipFollow(
   }, [initialIsFollowing, initialFollowerCount]);
 
   const toggleFollow = useCallback(async () => {
-    if (!vipId || isLoading) return;
+    if (!vipId || isLoadingRef.current) return;
 
     setIsLoading(true);
     setError(null);
 
+    // Capture current values from refs for rollback
+    const previousFollowing = isFollowingRef.current;
+    const previousCount = followerCountRef.current;
+
     // Optimistic update
-    const previousFollowing = isFollowing;
-    const previousCount = followerCount;
-    setIsFollowing(!isFollowing);
-    setFollowerCount(isFollowing ? followerCount - 1 : followerCount + 1);
+    setIsFollowing(!previousFollowing);
+    setFollowerCount(previousFollowing ? previousCount - 1 : previousCount + 1);
 
     try {
-      const result = isFollowing
+      const result = previousFollowing
         ? await unfollowVip(vipId)
         : await followVip(vipId);
 
@@ -73,7 +93,7 @@ export function useVipFollow(
     } finally {
       setIsLoading(false);
     }
-  }, [vipId, isFollowing, followerCount, isLoading]);
+  }, [vipId]);
 
   return {
     isFollowing,
