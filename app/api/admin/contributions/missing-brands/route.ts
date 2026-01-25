@@ -24,7 +24,7 @@ import type { MissingBrand, MissingBrandRow, MissingBrandsResponse } from '@/typ
 const updateStatusSchema = z.object({
   id: z.string().min(1, 'id is required'),
   status: z.enum(['pending', 'added_to_catalog', 'rejected', 'merged'], {
-    errorMap: () => ({ message: 'status must be one of: pending, added_to_catalog, rejected, merged' })
+    message: 'status must be one of: pending, added_to_catalog, rejected, merged'
   }),
 });
 
