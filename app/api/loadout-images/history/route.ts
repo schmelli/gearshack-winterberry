@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     console.error('[API] Get history failed:', error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch history' },
+      { error: 'Failed to fetch history' },
       { status: 500 }
     );
   }

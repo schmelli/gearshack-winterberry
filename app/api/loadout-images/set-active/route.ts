@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to set active image' },
+      { error: 'Failed to set active image' },
       { status: 500 }
     );
   }

@@ -41,11 +41,12 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const pageSize = Math.min(
-      MAX_PAGE_SIZE,
-      Math.max(1, parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE)))
-    );
+    const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isFinite(pageRaw) ? Math.max(1, pageRaw) : 1;
+    const pageSizeRaw = parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10);
+    const pageSize = Number.isFinite(pageSizeRaw)
+      ? Math.min(MAX_PAGE_SIZE, Math.max(1, pageSizeRaw))
+      : DEFAULT_PAGE_SIZE;
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type') as Reseller['resellerType'] | null;
     const status = searchParams.get('status') as Reseller['status'] | null;

@@ -75,10 +75,17 @@ export interface UseMerchantOffersReturn {
   calculateOfferFee: (offerPrice: number, userCount: number) => number;
 }
 
+// Helper to safely parse env floats with validation
+function safeParseEnvFloat(value: string | undefined, defaultValue: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
 // Constants - configurable via environment variables
-const OFFER_FEE_RATE = parseFloat(process.env.NEXT_PUBLIC_OFFER_FEE_RATE || '0.02'); // Default 2%
-const MIN_OFFER_FEE = parseFloat(process.env.NEXT_PUBLIC_MIN_OFFER_FEE || '0.5'); // Default €0.50
-const MAX_OFFER_FEE = parseFloat(process.env.NEXT_PUBLIC_MAX_OFFER_FEE || '5.0'); // Default €5.00
+const OFFER_FEE_RATE = safeParseEnvFloat(process.env.NEXT_PUBLIC_OFFER_FEE_RATE, 0.02); // Default 2%
+const MIN_OFFER_FEE = safeParseEnvFloat(process.env.NEXT_PUBLIC_MIN_OFFER_FEE, 0.5); // Default €0.50
+const MAX_OFFER_FEE = safeParseEnvFloat(process.env.NEXT_PUBLIC_MAX_OFFER_FEE, 5.0); // Default €5.00
 const DEFAULT_LIMIT = 20;
 
 // =============================================================================
@@ -181,9 +188,9 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
               price: row.regular_price,
               imageUrl: null,
             },
-        discountPercent: Math.round(
-          ((row.regular_price - row.offer_price) / row.regular_price) * 100
-        ),
+        discountPercent: row.regular_price > 0
+          ? Math.round(((row.regular_price - row.offer_price) / row.regular_price) * 100)
+          : 0,
       }));
 
       setOffers(transformed);
@@ -405,9 +412,9 @@ export function useMerchantOffers(): UseMerchantOffersReturn {
             price: data.catalog_item.price,
             imageUrl: data.catalog_item.image_url,
           },
-          discountPercent: Math.round(
-            ((data.regular_price - data.offer_price) / data.regular_price) * 100
-          ),
+          discountPercent: data.regular_price > 0
+            ? Math.round(((data.regular_price - data.offer_price) / data.regular_price) * 100)
+            : 0,
           userProximityBucket: null, // Would need location calculation
           conversion: conversionData
             ? {

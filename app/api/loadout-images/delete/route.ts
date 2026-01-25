@@ -88,7 +88,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete image' },
+      { error: 'Failed to delete image' },
       { status: 500 }
     );
   }

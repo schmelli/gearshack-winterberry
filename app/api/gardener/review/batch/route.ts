@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GARDENER_BASE_URL = 'https://geargraph.gearshack.app/gardener';
-const AUTH_HEADER = 'Basic Z2VhcmdyYXBoYWRtaW46R0dBZG1pbjIwMjU=';
+const AUTH_HEADER = process.env.GARDENER_AUTH_TOKEN || '';
 
 export async function POST(request: NextRequest) {
   try {
