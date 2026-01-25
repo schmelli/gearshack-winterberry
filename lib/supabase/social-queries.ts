@@ -149,9 +149,24 @@ export async function fetchFollowers(userId: string): Promise<FollowInfo[] | nul
 }
 
 /**
+ * Validates that a string is a valid UUID v4 format.
+ * Used across social queries to prevent injection attacks.
+ */
+function validateUUID(str: string, paramName: string): void {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(str)) {
+    throw new Error(`Invalid ${paramName} format`);
+  }
+}
+
+/**
  * Follows a user (one-click, no approval needed).
  */
 export async function followUser(followerId: string, followedId: string): Promise<void> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase.from('user_follows').insert({
@@ -175,6 +190,10 @@ export async function followUser(followerId: string, followedId: string): Promis
  * Unfollows a user.
  */
 export async function unfollowUser(followerId: string, followedId: string): Promise<void> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { error } = await supabase
@@ -195,6 +214,10 @@ export async function isFollowingUser(
   followerId: string,
   followedId: string
 ): Promise<boolean> {
+  // SECURITY: Validate UUIDs before database operation
+  validateUUID(followerId, 'follower ID');
+  validateUUID(followedId, 'followed ID');
+
   const supabase = getSocialClient();
 
   const { count, error } = await supabase

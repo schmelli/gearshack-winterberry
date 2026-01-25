@@ -294,6 +294,7 @@ export interface CategoryIssue {
 export async function getCategoryIssues(): Promise<CategoryIssue[]> {
   const supabase = createClient();
 
+  // PERFORMANCE FIX: Avoid N+1 query by fetching all data in 2 queries total
   const { data: allCategories } = await supabase
     .from('categories')
     .select('*')
@@ -301,6 +302,17 @@ export async function getCategoryIssues(): Promise<CategoryIssue[]> {
     .order('sort_order');
 
   if (!allCategories) return [];
+
+  // Single query to get all parent IDs that have children (eliminates N+1)
+  const { data: childParentIds } = await supabase
+    .from('categories')
+    .select('parent_id')
+    .not('parent_id', 'is', null);
+
+  // Build Set for O(1) lookup of categories with children
+  const parentsWithChildren = new Set(
+    childParentIds?.map(c => c.parent_id).filter(Boolean) ?? []
+  );
 
   const issues: CategoryIssue[] = [];
 
@@ -312,17 +324,9 @@ export async function getCategoryIssues(): Promise<CategoryIssue[]> {
     if (!i18n?.en) catIssues.push('Missing English translation');
     if (!i18n?.de) catIssues.push('Missing German translation');
 
-    // Check for empty parent categories
-    if (cat.level < 3) {
-      const { data: children } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('parent_id', cat.id)
-        .limit(1);
-
-      if (!children || children.length === 0) {
-        catIssues.push('Empty category (no children)');
-      }
+    // Check for empty parent categories (O(1) lookup instead of query)
+    if (cat.level < 3 && !parentsWithChildren.has(cat.id)) {
+      catIssues.push('Empty category (no children)');
     }
 
     if (catIssues.length > 0) {
