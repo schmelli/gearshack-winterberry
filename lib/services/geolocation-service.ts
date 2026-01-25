@@ -51,16 +51,30 @@ export function enrichWithDistance(
   userLocation: Coordinates
 ): PriceResult[] {
   return results.map((result) => {
-    if (result.is_local && result.shop_latitude && result.shop_longitude) {
-      const distance = calculateDistance(userLocation, {
-        latitude: result.shop_latitude,
-        longitude: result.shop_longitude,
-      });
+    // COORDINATE VALIDATION FIX: Use explicit null/undefined checks and type validation
+    // instead of truthy checks, since 0 is a valid coordinate (equator/prime meridian)
+    if (
+      result.is_local &&
+      typeof result.shop_latitude === 'number' &&
+      typeof result.shop_longitude === 'number' &&
+      Number.isFinite(result.shop_latitude) &&
+      Number.isFinite(result.shop_longitude)
+    ) {
+      try {
+        const distance = calculateDistance(userLocation, {
+          latitude: result.shop_latitude,
+          longitude: result.shop_longitude,
+        });
 
-      return {
-        ...result,
-        distance_km: Math.round(distance * 10) / 10, // Round to 1 decimal
-      };
+        return {
+          ...result,
+          distance_km: Math.round(distance * 10) / 10, // Round to 1 decimal
+        };
+      } catch (error) {
+        // If calculateDistance throws (invalid coordinates), skip enrichment
+        console.error('[Geolocation] Invalid coordinates for shop:', error);
+        return result;
+      }
     }
     return result;
   });
