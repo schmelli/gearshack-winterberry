@@ -127,7 +127,18 @@ export async function GET(request: NextRequest) {
     url.searchParams.set('key', apiKey);
 
     const apiResponse = await fetch(url.toString());
-    const apiData: YouTubeApiResponse = await apiResponse.json();
+
+    // Parse response JSON with error handling
+    let apiData: YouTubeApiResponse;
+    try {
+      apiData = await apiResponse.json();
+    } catch {
+      console.error('YouTube API returned non-JSON response');
+      return NextResponse.json(
+        { error: 'SERVICE_UNAVAILABLE', message: 'YouTube API returned invalid response' },
+        { status: 503 }
+      );
+    }
 
     // T032: Handle API errors (quota, unavailable)
     if (apiData.error) {

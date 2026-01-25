@@ -22,8 +22,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body: ConfirmMatchRequest = await request.json();
+    // Parse request body with error handling
+    let body: ConfirmMatchRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     if (!body.tracking_id || !body.selected_product_id) {
       return NextResponse.json(

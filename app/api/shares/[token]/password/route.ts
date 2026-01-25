@@ -58,7 +58,18 @@ export async function POST(
 ) {
   try {
     const { token } = await params;
-    const body = await request.json();
+
+    // Parse JSON with error handling
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+
     const { password } = body as { password?: string };
 
     if (!password || password.length < 8) {

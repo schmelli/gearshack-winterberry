@@ -30,9 +30,20 @@ function verifyAuthHeader(authHeader: string | null, expectedToken: string): boo
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate service role key is configured
+    const authServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!authServiceRoleKey || authServiceRoleKey.length < 10) {
+      console.error('[sync-catalog/brands] SUPABASE_SERVICE_ROLE_KEY not configured');
+      const response: SyncResponse = {
+        success: false,
+        error: 'Server configuration error',
+      };
+      return NextResponse.json(response, { status: 500 });
+    }
+
     // Validate authorization using timing-safe comparison
     const authHeader = request.headers.get('Authorization');
-    const expectedToken = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
+    const expectedToken = `Bearer ${authServiceRoleKey}`;
 
     if (!verifyAuthHeader(authHeader, expectedToken)) {
       const response: SyncResponse = {
