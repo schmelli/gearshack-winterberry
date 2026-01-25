@@ -10,6 +10,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -90,7 +91,8 @@ const DEFAULT_LIMIT = 20;
 export function useConversionTracking(
   merchantId?: string
 ): UseConversionTrackingReturn {
-  const supabase = useMemo(() => getMerchantClient(), []);
+  // Create stable client reference - createClient returns singleton
+  const supabaseRef = React.useRef(getMerchantClient());
   const { user } = useAuth();
 
   // State
@@ -122,6 +124,7 @@ export function useConversionTracking(
     setError(null);
 
     try {
+      const supabase = supabaseRef.current;
       let query = supabase
         .from('conversions')
         .select(
@@ -240,7 +243,7 @@ export function useConversionTracking(
     } finally {
       setIsLoading(false);
     }
-  }, [user, merchantId, filters, supabase]);
+  }, [user, merchantId, filters]);
 
   /**
    * Fetch analytics for merchant
@@ -249,6 +252,7 @@ export function useConversionTracking(
     if (!merchantId) return;
 
     try {
+      const supabase = supabaseRef.current;
       // Use RPC for analytics
       const { data, error: rpcError } = await supabase.rpc(
         'get_merchant_analytics',
@@ -283,7 +287,7 @@ export function useConversionTracking(
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     }
-  }, [merchantId, supabase]);
+  }, [merchantId]);
 
   /**
    * Log a new conversion
@@ -296,6 +300,7 @@ export function useConversionTracking(
       setError(null);
 
       try {
+        const supabase = supabaseRef.current;
         // Fetch offer details to calculate commission
         const { data: offer, error: offerError } = await supabase
           .from('merchant_offers')
@@ -384,7 +389,7 @@ export function useConversionTracking(
         setIsProcessing(false);
       }
     },
-    [user, supabase, fetchConversions]
+    [user, fetchConversions]
   );
 
   /**
@@ -400,6 +405,7 @@ export function useConversionTracking(
       setIsProcessing(true);
 
       try {
+        const supabase = supabaseRef.current;
         const { error: updateError } = await supabase
           .from('conversions')
           .update({
@@ -432,7 +438,7 @@ export function useConversionTracking(
         setIsProcessing(false);
       }
     },
-    [user, supabase]
+    [user]
   );
 
   /**
@@ -448,6 +454,7 @@ export function useConversionTracking(
       setIsProcessing(true);
 
       try {
+        const supabase = supabaseRef.current;
         const { error: updateError } = await supabase
           .from('conversions')
           .update({
@@ -483,7 +490,7 @@ export function useConversionTracking(
         setIsProcessing(false);
       }
     },
-    [user, supabase]
+    [user]
   );
 
   /**

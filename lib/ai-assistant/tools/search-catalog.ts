@@ -168,8 +168,22 @@ export async function executeSearchCatalog(
     }
 
     // Apply text search (only if query provided)
+    // Sanitize query to prevent PostgREST filter injection via .or() delimiter (comma)
     if (query) {
-      dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+      const sanitizedQuery = query
+        .slice(0, 200) // Max length already validated by schema
+        .replace(/\\/g, '\\\\') // Escape backslash first
+        .replace(/%/g, '\\%')   // Escape percent
+        .replace(/_/g, '\\_')   // Escape underscore
+        .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+        .replace(/\(/g, '')     // Remove opening parens (PostgREST grouping)
+        .replace(/\)/g, '')     // Remove closing parens (PostgREST grouping)
+        .replace(/\./g, ' ')    // Replace dots with space (prevents .eq., .neq. injection)
+        .trim();
+
+      if (sanitizedQuery) {
+        dbQuery = dbQuery.or(`name.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`);
+      }
       appliedFilters.query = query;
     }
 
