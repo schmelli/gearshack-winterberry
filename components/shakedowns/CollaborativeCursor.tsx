@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { MousePointer2, Bell } from 'lucide-react';
 
@@ -210,15 +210,19 @@ export function AttentionNotification({
   const t = useTranslations('Shakedowns.presence');
   const [isVisible, setIsVisible] = useState(true);
 
-  // Auto-dismiss after animation
+  // Use ref to access latest onDismiss without triggering effect re-runs
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
+  // Auto-dismiss after animation - only run once on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      onDismiss();
+      onDismissRef.current();
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, []); // Empty deps - use ref to access callback
 
   if (!isVisible) return <></>;
 
