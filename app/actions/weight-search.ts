@@ -189,7 +189,10 @@ function findMostCommonWeight(weights: ParsedWeight[]): { weight: ParsedWeight; 
     }
   }
 
-  // Find largest group
+  // Find largest group (defensive guard against empty groups)
+  if (groups.length === 0) {
+    return null;
+  }
   let largestGroup = groups[0];
   for (const group of groups) {
     if (group.members.length > largestGroup.members.length) {
