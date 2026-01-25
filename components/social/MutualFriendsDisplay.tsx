@@ -109,12 +109,14 @@ function CompactMutualFriends({
 }: Omit<MutualFriendsDisplayProps, 'variant'>) {
   const t = useTranslations('Social');
   const { mutualFriends, count, isLoading } = useMutualFriends(targetUserId ?? '');
+  // IMPORTANT: All hooks must be called unconditionally before any early returns
+  // to comply with React's Rules of Hooks
+  const [isOpen, setIsOpen] = useState(false);
 
   // Guard against missing targetUserId
   if (!targetUserId) {
     return null;
   }
-  const [isOpen, setIsOpen] = useState(false);
 
   // T057: Don't render if no mutual friends
   if (!isLoading && count === 0) {

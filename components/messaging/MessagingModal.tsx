@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Users, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { FriendsList } from './FriendsList';
@@ -107,6 +108,9 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
       setSelectedConversation(tempConversation);
       setActiveTab('messages');
       setViewState('conversation');
+    } else {
+      // Handle error - show toast notification
+      toast.error(result.error ?? 'Failed to start conversation');
     }
   };
 

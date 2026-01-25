@@ -40,9 +40,16 @@ export function BlockedUsersList() {
     if (!confirmUnblock) return;
 
     setUnblockingId(confirmUnblock.id);
-    await unblockUser(confirmUnblock.id);
-    setUnblockingId(null);
-    setConfirmUnblock(null);
+    try {
+      await unblockUser(confirmUnblock.id);
+    } catch (err) {
+      console.error('Failed to unblock user:', err);
+      // Error is handled by the hook, just log here
+    } finally {
+      // Always reset UI state even on error
+      setUnblockingId(null);
+      setConfirmUnblock(null);
+    }
   };
 
   if (isLoading) {
