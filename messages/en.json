@@ -2977,6 +2977,17 @@
       "retailPrices": "Retail Prices",
       "noPricesYet": "No prices tracked yet",
       "enableTracking": "Enable price tracking to see offers"
+    },
+    "toggle": {
+      "myGear": "My Gear",
+      "wishlist": "Wishlist",
+      "viewModeToggle": "View mode toggle",
+      "switchViewsAriaLabel": "Switch between inventory and wishlist views",
+      "myGearTabAriaLabel": "My Gear tab, {count, plural, one {# item} other {# items}}",
+      "wishlistTabAriaLabel": "Wishlist tab, {count, plural, one {# item} other {# items}}",
+      "myGearCount": "My Gear, {count, plural, one {# item} other {# items}}",
+      "wishlistCount": "Wishlist, {count, plural, one {# item} other {# items}}",
+      "switchedToView": "Switched to {viewName} view. {count, plural, one {# item} other {# items}}."
     }
   },
   "Admin": {

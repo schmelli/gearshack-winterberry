@@ -2977,6 +2977,17 @@
       "retailPrices": "Händlerpreise",
       "noPricesYet": "Noch keine Preise erfasst",
       "enableTracking": "Aktiviere Preisverfolgung, um Angebote zu sehen"
+    },
+    "toggle": {
+      "myGear": "Meine Ausrüstung",
+      "wishlist": "Wunschliste",
+      "viewModeToggle": "Ansichtsmodus umschalten",
+      "switchViewsAriaLabel": "Zwischen Inventar und Wunschliste wechseln",
+      "myGearTabAriaLabel": "Meine Ausrüstung Tab, {count, plural, one {# Artikel} other {# Artikel}}",
+      "wishlistTabAriaLabel": "Wunschliste Tab, {count, plural, one {# Artikel} other {# Artikel}}",
+      "myGearCount": "Meine Ausrüstung, {count, plural, one {# Artikel} other {# Artikel}}",
+      "wishlistCount": "Wunschliste, {count, plural, one {# Artikel} other {# Artikel}}",
+      "switchedToView": "Zu {viewName} gewechselt. {count, plural, one {# Artikel} other {# Artikel}}."
     }
   },
   "Admin": {
