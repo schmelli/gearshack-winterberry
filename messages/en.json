@@ -555,6 +555,23 @@
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
     },
+    "imageUpload": {
+      "removingBackground": "Removing background...",
+      "uploadingToCloudinary": "Uploading to Cloudinary...",
+      "uploadSuccessful": "Upload successful!",
+      "dragAndDrop": "Drag and drop an image or click to browse",
+      "fileTypes": "PNG, JPG, WebP up to 10MB",
+      "removeBackground": "Remove Background",
+      "removeBackgroundDescription": "Automatically remove the image background using local processing",
+      "or": "Or",
+      "enterImageUrl": "Enter image URL or search for product images",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchTooltipEmpty": "Enter brand/product name first",
+      "useThisUrl": "Use this URL",
+      "uploading": "Uploading...",
+      "tryAgain": "Try Again"
+    },
     "productSearch": {
       "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
       "enterProductName": "Enter a product name to search",
