@@ -23,7 +23,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /** Tables in the public catalog */
 const CATALOG_TABLES = ['catalog_products', 'catalog_brands', 'categories'] as const;
-type CatalogTable = (typeof CATALOG_TABLES)[number];
+type _CatalogTable = (typeof CATALOG_TABLES)[number];
 
 /** Maximum rows to return */
 const MAX_ROWS = 50;

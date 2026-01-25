@@ -23,7 +23,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /** Tables that contain user-specific data (require user_id filtering) */
 const USER_TABLES = ['gear_items', 'loadouts', 'loadout_items', 'profiles'] as const;
-type UserTable = typeof USER_TABLES[number];
+type _UserTable = typeof USER_TABLES[number];
 
 /** Maximum rows to return */
 const MAX_ROWS = 100;

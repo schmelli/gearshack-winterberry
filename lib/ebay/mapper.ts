@@ -12,7 +12,6 @@
 import type {
   BrowseApiSearchResponse,
   BrowseApiItemSummary,
-  EBAY_CONDITION_IDS,
 } from './types';
 import type {
   EbayListing,

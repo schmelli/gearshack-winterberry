@@ -9,10 +9,9 @@
 
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  OnboardingStep,
   OnboardingStepConfig,
   UseOnboardingReturn,
   OnboardingState,
