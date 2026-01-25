@@ -27,11 +27,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useBlockedUsers, type BlockedUserInfo } from '@/hooks/messaging/useBlockedUsers';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
 /**
  * Component for viewing and managing blocked users.
  */
 export function BlockedUsersList() {
+  const t = useTranslations('Messaging');
+  const tCommon = useTranslations('Common');
   const { blockedUsers, isLoading, error, unblockUser } = useBlockedUsers();
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [confirmUnblock, setConfirmUnblock] = useState<BlockedUserInfo | null>(null);
@@ -72,9 +75,9 @@ export function BlockedUsersList() {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
         <Users className="h-10 w-10 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No blocked users</p>
+        <p className="text-sm text-muted-foreground">{t('blocked.noBlockedUsers')}</p>
         <p className="text-xs text-muted-foreground/70">
-          When you block someone, they will appear here
+          {t('blocked.emptyDescription')}
         </p>
       </div>
     );
@@ -110,7 +113,7 @@ export function BlockedUsersList() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{blockedUser.display_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Blocked {formatDistanceToNow(new Date(blockedUser.blocked_at), { addSuffix: true })}
+                      {t('blocked.blockedTime', { time: formatDistanceToNow(new Date(blockedUser.blocked_at), { addSuffix: true }) })}
                     </p>
                   </div>
 
@@ -125,7 +128,7 @@ export function BlockedUsersList() {
                     ) : (
                       <>
                         <ShieldOff className="mr-1 h-4 w-4" />
-                        Unblock
+                        {t('blocked.unblock')}
                       </>
                     )}
                   </Button>
@@ -142,17 +145,15 @@ export function BlockedUsersList() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Unblock User</AlertDialogTitle>
+            <AlertDialogTitle>{t('blocked.unblockDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to unblock{' '}
-              <strong>{confirmUnblock?.display_name}</strong>? They will be able
-              to message you and find you in search again.
+              {t('blocked.unblockDialogDescription', { name: confirmUnblock?.display_name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleUnblockUser}>
-              Unblock
+              {t('blocked.unblock')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

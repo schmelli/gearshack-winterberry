@@ -618,6 +618,14 @@
       "enterBrandName": "Enter brand/name to search weight",
       "searchFor": "Search weight for \"{query}\"",
       "searchForWithLimit": "Search weight for \"{query}\" ({remaining} of {limit} left today)"
+    },
+    "productSearchModal": {
+      "title": "Search Product Images",
+      "description": "Find product images via Google. Click an image to use it.",
+      "searchPlaceholder": "Search for product images...",
+      "noResults": "No images found. Try a different search term.",
+      "removingBackground": "Removing background...",
+      "uploading": "Uploading to Cloudinary..."
     }
   },
   "ManufacturerPrice": {
@@ -1066,6 +1074,12 @@
       "passwordSet": "Password set",
       "passwordRemoveFailed": "Failed to remove password",
       "passwordRemoved": "Password removed"
+    },
+    "ariaLabels": {
+      "shareOnX": "Share on X",
+      "shareOnFacebook": "Share on Facebook",
+      "shareOnWhatsApp": "Share on WhatsApp",
+      "shareViaEmail": "Share via email"
     }
   },
   "SharedLoadout": {
@@ -1349,6 +1363,9 @@
       "profileUpdatedDescription": "Your profile has been saved successfully.",
       "saveFailed": "Save failed",
       "saveFailedDefault": "Failed to save profile"
+    },
+    "ariaLabels": {
+      "editProfile": "Edit profile"
     }
   },
   "SmartSearch": {
@@ -1473,6 +1490,14 @@
       "gettingLocation": "Getting location...",
       "useCurrentLocation": "Use Current Location",
       "shareLocation": "Share Location"
+    },
+    "blocked": {
+      "noBlockedUsers": "No blocked users",
+      "emptyDescription": "When you block someone, they will appear here",
+      "blockedTime": "Blocked {time}",
+      "unblock": "Unblock",
+      "unblockDialogTitle": "Unblock User",
+      "unblockDialogDescription": "Are you sure you want to unblock {name}? They will be able to message you and find you in search again."
     }
   },
   "Settings": {
@@ -1651,6 +1676,14 @@
       "presetFailed": "Failed to apply preset",
       "settingUpdated": "Setting updated",
       "settingFailed": "Failed to update setting"
+    },
+    "theme": {
+      "darkMode": "Dark Mode",
+      "usingDarkTheme": "Using dark theme",
+      "usingLightTheme": "Using light theme"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Toggle dark mode"
     }
   },
   "Shakedowns": {
@@ -2058,6 +2091,12 @@
       "requestAttentionTooltip": "Notify others about this item",
       "requestedAttention": "requested your attention",
       "dismiss": "Dismiss"
+    },
+    "ariaLabels": {
+      "moreActions": "More actions",
+      "hasNote": "Has note",
+      "clearSearch": "Clear search",
+      "editLoadoutMetadata": "Edit loadout metadata"
     }
   },
   "Merchant": {
@@ -3122,7 +3161,11 @@
       "suggestion2": "Recommend a lighter tent",
       "suggestion3": "Show me my sleeping bags"
     },
-    "thinking": "AI is thinking..."
+    "thinking": "AI is thinking...",
+    "ariaLabels": {
+      "aiAssistant": "AI Assistant",
+      "trailblazerFeature": "Trailblazer feature"
+    }
   },
   "Admin": {
     "navigation": {

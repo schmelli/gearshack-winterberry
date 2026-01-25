@@ -618,6 +618,14 @@
       "enterBrandName": "Marke/Name eingeben um Gewicht zu suchen",
       "searchFor": "Gewicht suchen für \"{query}\"",
       "searchForWithLimit": "Gewicht suchen für \"{query}\" ({remaining} von {limit} heute übrig)"
+    },
+    "productSearchModal": {
+      "title": "Produktbilder suchen",
+      "description": "Finde Produktbilder über Google. Klicke auf ein Bild, um es zu verwenden.",
+      "searchPlaceholder": "Nach Produktbildern suchen...",
+      "noResults": "Keine Bilder gefunden. Versuche einen anderen Suchbegriff.",
+      "removingBackground": "Hintergrund wird entfernt...",
+      "uploading": "Wird hochgeladen..."
     }
   },
   "ManufacturerPrice": {
@@ -1066,6 +1074,12 @@
       "passwordSet": "Passwort gesetzt",
       "passwordRemoveFailed": "Passwort konnte nicht entfernt werden",
       "passwordRemoved": "Passwort entfernt"
+    },
+    "ariaLabels": {
+      "shareOnX": "Auf X teilen",
+      "shareOnFacebook": "Auf Facebook teilen",
+      "shareOnWhatsApp": "Auf WhatsApp teilen",
+      "shareViaEmail": "Per E-Mail teilen"
     }
   },
   "SharedLoadout": {
@@ -1349,6 +1363,9 @@
       "profileUpdatedDescription": "Dein Profil wurde erfolgreich gespeichert.",
       "saveFailed": "Speichern fehlgeschlagen",
       "saveFailedDefault": "Profil konnte nicht gespeichert werden"
+    },
+    "ariaLabels": {
+      "editProfile": "Profil bearbeiten"
     }
   },
   "SmartSearch": {
@@ -1473,6 +1490,14 @@
       "gettingLocation": "Standort wird ermittelt...",
       "useCurrentLocation": "Aktuellen Standort verwenden",
       "shareLocation": "Standort teilen"
+    },
+    "blocked": {
+      "noBlockedUsers": "Keine blockierten Benutzer",
+      "emptyDescription": "Wenn du jemanden blockierst, erscheint er hier",
+      "blockedTime": "Blockiert {time}",
+      "unblock": "Entsperren",
+      "unblockDialogTitle": "Benutzer entsperren",
+      "unblockDialogDescription": "Bist du sicher, dass du {name} entsperren möchtest? Diese Person kann dir dann wieder Nachrichten senden und dich in der Suche finden."
     }
   },
   "Settings": {
@@ -1651,6 +1676,14 @@
       "presetFailed": "Anwendung der Voreinstellung fehlgeschlagen",
       "settingUpdated": "Einstellung aktualisiert",
       "settingFailed": "Aktualisierung der Einstellung fehlgeschlagen"
+    },
+    "theme": {
+      "darkMode": "Dunkelmodus",
+      "usingDarkTheme": "Dunkles Design aktiv",
+      "usingLightTheme": "Helles Design aktiv"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Dunkelmodus umschalten"
     }
   },
   "Shakedowns": {
@@ -2058,6 +2091,12 @@
       "requestAttentionTooltip": "Andere auf diesen Artikel aufmerksam machen",
       "requestedAttention": "hat deine Aufmerksamkeit angefordert",
       "dismiss": "Schließen"
+    },
+    "ariaLabels": {
+      "moreActions": "Weitere Aktionen",
+      "hasNote": "Hat Notiz",
+      "clearSearch": "Suche löschen",
+      "editLoadoutMetadata": "Loadout-Metadaten bearbeiten"
     }
   },
   "Merchant": {
@@ -3122,7 +3161,11 @@
       "suggestion2": "Empfiehl mir ein leichteres Zelt",
       "suggestion3": "Zeig mir meine Schlafsäcke"
     },
-    "thinking": "KI denkt nach..."
+    "thinking": "KI denkt nach...",
+    "ariaLabels": {
+      "aiAssistant": "KI-Assistent",
+      "trailblazerFeature": "Trailblazer-Funktion"
+    }
   },
   "Admin": {
     "navigation": {

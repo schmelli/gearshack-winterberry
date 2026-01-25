@@ -167,7 +167,7 @@ export function SocialShareButtons({
         asChild
         className="text-muted-foreground hover:text-[#1DA1F2]"
       >
-        <a href={twitterUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on X">
+        <a href={twitterUrl} target="_blank" rel="noopener noreferrer" aria-label={t('ariaLabels.shareOnX')}>
           <TwitterIcon className="h-4 w-4" />
           {showLabels && <span className="ml-2">X</span>}
         </a>
@@ -180,7 +180,7 @@ export function SocialShareButtons({
         asChild
         className="text-muted-foreground hover:text-[#1877F2]"
       >
-        <a href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook">
+        <a href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label={t('ariaLabels.shareOnFacebook')}>
           <FacebookIcon className="h-4 w-4" />
           {showLabels && <span className="ml-2">Facebook</span>}
         </a>
@@ -193,7 +193,7 @@ export function SocialShareButtons({
         asChild
         className="text-muted-foreground hover:text-[#25D366]"
       >
-        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp">
+        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label={t('ariaLabels.shareOnWhatsApp')}>
           <WhatsAppIcon className="h-4 w-4" />
           {showLabels && <span className="ml-2">WhatsApp</span>}
         </a>
@@ -206,7 +206,7 @@ export function SocialShareButtons({
         asChild
         className="text-muted-foreground hover:text-foreground"
       >
-        <a href={emailUrl} aria-label="Share via email">
+        <a href={emailUrl} aria-label={t('ariaLabels.shareViaEmail')}>
           <Mail className="h-4 w-4" />
           {showLabels && <span className="ml-2">Email</span>}
         </a>

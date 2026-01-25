@@ -388,7 +388,7 @@ export function FeedbackItem({
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0"
-                      aria-label="More actions"
+                      aria-label={t('ariaLabels.moreActions')}
                     >
                       <MoreHorizontal className="size-4" />
                     </Button>

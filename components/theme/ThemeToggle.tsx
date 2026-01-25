@@ -5,6 +5,7 @@ import { Moon, Sun } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useThemePreference } from '@/hooks/useThemePreference';
+import { useTranslations } from 'next-intl';
 
 // Client-side mount detection using useSyncExternalStore
 const emptySubscribe = () => () => {};
@@ -23,6 +24,7 @@ function useIsMounted() {
  * Shows current theme state with appropriate icon feedback.
  */
 export function ThemeToggle() {
+  const t = useTranslations('Settings');
   const { isDarkMode, toggleTheme } = useThemePreference();
   const mounted = useIsMounted();
 
@@ -52,10 +54,10 @@ export function ThemeToggle() {
         )}
         <div className="space-y-0.5">
           <Label htmlFor="dark-mode" className="text-sm font-medium">
-            Dark Mode
+            {t('theme.darkMode')}
           </Label>
           <p className="text-xs text-muted-foreground">
-            {isDarkMode ? 'Using dark theme' : 'Using light theme'}
+            {isDarkMode ? t('theme.usingDarkTheme') : t('theme.usingLightTheme')}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ export function ThemeToggle() {
         id="dark-mode"
         checked={isDarkMode}
         onCheckedChange={toggleTheme}
-        aria-label="Toggle dark mode"
+        aria-label={t('ariaLabels.toggleDarkMode')}
       />
     </div>
   );

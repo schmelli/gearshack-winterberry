@@ -337,7 +337,7 @@ export function BookmarkButton({
                       'bg-amber-500 dark:bg-amber-400',
                       'ring-2 ring-background'
                     )}
-                    aria-label="Has note"
+                    aria-label={t('ariaLabels.hasNote')}
                   />
                 )}
               </Button>
