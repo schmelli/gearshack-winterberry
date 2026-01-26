@@ -14,6 +14,7 @@
 'use client';
 
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { RefreshCw, ImageOff, Loader2, ArrowLeft } from 'lucide-react';
@@ -121,6 +122,8 @@ export function LoadoutHeroImage({
   badges,
   className,
 }: LoadoutHeroImageProps) {
+  const t = useTranslations('Loadouts.heroImage');
+  const tAriaLabels = useTranslations('AIAssistant.ariaLabels');
   const hasImage = !!imageUrl && !errorMessage;
   const showError = !!errorMessage && !isGenerating;
 
@@ -132,7 +135,7 @@ export function LoadoutHeroImage({
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-forest-50 to-moss-100 dark:from-forest-900 dark:to-moss-900">
             <Loader2 className="h-8 w-8 animate-spin text-forest-600 dark:text-forest-400" />
             <p className="mt-3 text-sm font-medium text-forest-700 dark:text-forest-300">
-              Generating image...
+              {t('generatingImage')}
             </p>
           </div>
         )}
@@ -142,7 +145,7 @@ export function LoadoutHeroImage({
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30">
             <ImageOff className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-300">
-              Image unavailable
+              {t('imageUnavailable')}
             </p>
             {onRegenerate && (
               <Button
@@ -152,7 +155,7 @@ export function LoadoutHeroImage({
                 className="mt-3"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Try again
+                {t('tryAgain')}
               </Button>
             )}
           </div>
@@ -191,7 +194,7 @@ export function LoadoutHeroImage({
               <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-900">
                 <ImageOff className="h-12 w-12 text-stone-400 dark:text-stone-600" />
                 <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
-                  No image
+                  {t('noImage')}
                 </p>
               </div>
               {/* Still show overlays for text readability on placeholder */}
@@ -269,8 +272,8 @@ export function LoadoutHeroImage({
               'opacity-70 transition-opacity hover:opacity-100',
               'focus:opacity-100 focus:ring-2 focus:ring-forest-500'
             )}
-            aria-label="Regenerate image"
-            title="Generate new image"
+            aria-label={tAriaLabels('regenerateImage')}
+            title={t('generateNewImage')}
           >
             <RefreshCw className="h-4 w-4 text-stone-700 dark:text-stone-300" />
           </Button>

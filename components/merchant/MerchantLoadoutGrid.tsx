@@ -129,7 +129,7 @@ function FilterPanel({
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="All trip types" />
+            <SelectValue placeholder={t('allTripTypes')} />
           </SelectTrigger>
           <SelectContent>
             {TRIP_TYPE_OPTIONS.map((option) => (
@@ -151,7 +151,7 @@ function FilterPanel({
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="All seasons" />
+            <SelectValue placeholder={t('allSeasons')} />
           </SelectTrigger>
           <SelectContent>
             {SEASON_OPTIONS.map((option) => (

@@ -325,10 +325,23 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       } else if (table === 'loadout_items') {
         // loadout_items doesn't have user_id - must filter via loadout ownership
         // First get user's loadout IDs, then filter loadout_items
-        const { data: userLoadouts } = await supabase
+        const { data: userLoadouts, error: loadoutsError } = await supabase
           .from('loadouts')
           .select('id')
           .eq('user_id', userId);
+
+        // SECURITY FIX: Check for database errors before proceeding
+        if (loadoutsError) {
+          console.error('[query-user-data-sql] Failed to fetch user loadouts:', loadoutsError);
+          return {
+            success: false,
+            rowCount: 0,
+            data: [],
+            error: 'Database query failed',
+            executionTimeMs: Date.now() - startTime,
+          };
+        }
+
         const loadoutIds = userLoadouts?.map((l) => l.id) ?? [];
         if (loadoutIds.length === 0) {
           // User has no loadouts - return empty result

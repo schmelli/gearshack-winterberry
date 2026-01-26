@@ -13,8 +13,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import type { MissingBrand, MissingBrandRow, MissingBrandsResponse } from '@/types/contributions';
+
+// =============================================================================
+// Zod Schemas
+// =============================================================================
+
+const updateStatusSchema = z.object({
+  id: z.string().min(1, 'id is required'),
+  status: z.enum(['pending', 'added_to_catalog', 'rejected', 'merged'], {
+    errorMap: () => ({ message: 'status must be one of: pending, added_to_catalog, rejected, merged' })
+  }),
+});
 
 // =============================================================================
 // GET Handler - List Missing Brands
@@ -155,20 +167,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { id, status } = body as { id: string; status: string };
-
-    // Validate
-    if (!id) {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 });
-    }
-
-    const validStatuses = ['pending', 'added_to_catalog', 'rejected', 'merged'];
-    if (!status || !validStatuses.includes(status)) {
+    // Validate request body with Zod
+    const validation = updateStatusSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: `status must be one of: ${validStatuses.join(', ')}` },
+        { error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { id, status } = validation.data;
 
     // Update the record - using raw query to avoid type issues with ungenerated table types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
