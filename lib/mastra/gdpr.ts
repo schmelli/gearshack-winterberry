@@ -255,6 +255,35 @@ export async function executeGdprDeletion(
       logError('Failed to delete rate limit tracking', rateLimitResult.error, { userId });
     }
 
+    // Delete working memory profile (from Feature 002: Three-tier Memory System)
+    const workingMemoryResult = await client
+      .from('user_working_memory')
+      .delete()
+      .eq('user_id', userId) as { error: Error | null; count: number | null };
+
+    if (!workingMemoryResult.error) {
+      logInfo('Working memory deleted', {
+        userId,
+        metadata: { count: workingMemoryResult.count ?? 0 },
+      });
+    } else {
+      if (workingMemoryResult.error.message.includes('does not exist')) {
+        logWarn('user_working_memory table not found (skipping)', { userId });
+      } else {
+        logError('Failed to delete working memory', workingMemoryResult.error, { userId });
+      }
+    }
+
+    // Delete embedding queue entries (from Feature 002: Three-tier Memory System)
+    const embeddingQueueResult = await client
+      .from('embedding_queue')
+      .delete()
+      .eq('user_id', userId) as { error: Error | null; count: number | null };
+
+    if (embeddingQueueResult.error && !embeddingQueueResult.error.message.includes('does not exist')) {
+      logError('Failed to delete embedding queue', embeddingQueueResult.error, { userId });
+    }
+
     // Delete generated images (from Feature 048: AI Loadout Image Generation)
     // NOTE: This only deletes database records. Cloudinary CDN cleanup requires
     // additional steps as we don't store public_ids in the database.

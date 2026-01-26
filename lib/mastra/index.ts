@@ -1,23 +1,21 @@
 /**
  * Mastra Agent Module
- * Feature: 001-mastra-agentic-voice
+ * Feature: 001-mastra-agentic-voice, 002-mastra-memory-system
  *
  * This module provides the public API for the Mastra AI agent configuration.
  * All exports are re-exported from this index file for clean imports.
  *
+ * Storage: Supabase PostgreSQL only (LibSQL removed in Feature 002)
+ *
  * Usage:
  * ```typescript
  * import {
- *   mastraStorage,
  *   mastraAgentConfig,
  *   buildMastraSystemPrompt,
  *   createMastraAgentConfig,
  * } from '@/lib/mastra';
  * ```
  */
-
-// Mastra storage for memory persistence
-export { mastraStorage, getMastraStorage, isStoragePersistent } from './instance';
 
 // Main configuration exports
 export {
@@ -38,3 +36,9 @@ export {
   LOCALIZED_CONTENT,
   type PromptContext,
 } from './config';
+
+// Three-tier memory system (Feature 002)
+export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
+export { getWorkingMemory, saveWorkingMemory, deleteWorkingMemory } from './memory/working-memory-adapter';
+export { searchSimilarMessages, embedAndStoreMessage } from './memory/semantic-recall';
+export { generateEmbedding, generateEmbeddings, isEmbeddingAvailable } from './memory/embedding-service';

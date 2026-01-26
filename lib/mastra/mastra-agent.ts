@@ -1,9 +1,13 @@
 /**
- * Mastra Agent with Native Tool Support and Memory
+ * Mastra Agent with Three-Tier Memory System
+ * Feature: 002-mastra-memory-system
  *
- * Uses Mastra's Agent class for proper tool integration with Memory
- * for conversation context persistence. The agent now "learns" from
- * previous messages in the conversation.
+ * Uses Mastra's Agent class with:
+ * 1. Working Memory: Structured user profile (Zod schema) - resource-scoped
+ * 2. Conversation History: Last N messages - thread-scoped
+ * 3. Semantic Recall: Vector similarity search - resource-scoped
+ *
+ * Storage: Supabase PostgreSQL only (LibSQL removed)
  *
  * @see https://mastra.ai/docs/memory/overview
  */
@@ -16,10 +20,15 @@ import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryCatalogTool } from './tools/query-catalog';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
-// Mastra storage for memory persistence
-import { mastraStorage } from './instance';
+// Three-tier memory system
+import {
+  GearshackUserProfileSchema,
+} from './schemas/working-memory';
 
-// Environment configuration
+// =============================================================================
+// Environment Configuration
+// =============================================================================
+
 const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 
@@ -27,8 +36,15 @@ const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5'
 const parsedMessages = parseInt(process.env.MASTRA_MEMORY_LAST_MESSAGES || '20', 10);
 const MEMORY_LAST_MESSAGES = Number.isFinite(parsedMessages) && parsedMessages > 0 ? parsedMessages : 20;
 
-// FIXED: Throw error instead of warning + non-null assertion
-// This prevents runtime crashes with a clear error message
+// Semantic recall configuration
+const SEMANTIC_TOP_K = parseInt(process.env.SEMANTIC_RECALL_TOP_K || '5', 10);
+const SEMANTIC_THRESHOLD = parseFloat(process.env.SEMANTIC_RECALL_THRESHOLD || '0.7');
+const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANGE || '2', 10);
+
+// Working memory feature flag
+const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
+
+// Validate API key at module load
 if (!AI_GATEWAY_KEY) {
   throw new Error(
     'AI_GATEWAY_KEY is required for Mastra Agent. ' +
@@ -36,56 +52,100 @@ if (!AI_GATEWAY_KEY) {
   );
 }
 
-// Create AI Gateway provider
+// =============================================================================
+// AI Gateway Setup
+// =============================================================================
+
 const gateway = createGateway({
   apiKey: AI_GATEWAY_KEY,
 });
 
+// =============================================================================
+// Three-Tier Memory Configuration
+// =============================================================================
+
 /**
- * Shared Memory instance for conversation context
+ * Create Memory instance with three-tier configuration
  *
- * Configuration:
- * - lastMessages: Number of recent messages the agent can "see" (default: 20)
- * - Uses LibSQLStore for persistent storage
+ * Tier 1: Working Memory (resource-scoped)
+ *   - Structured user profile the agent can read/update
+ *   - Persists across all conversations
+ *   - Uses Zod schema for type safety
  *
- * This enables the agent to:
- * - Remember previous questions in the conversation
- * - Maintain context across multiple exchanges
- * - Provide more coherent, accurate replies
+ * Tier 2: Conversation History (thread-scoped)
+ *   - Last N messages from current conversation
+ *   - Provides immediate dialogue context
+ *
+ * Tier 3: Semantic Recall (resource-scoped)
+ *   - Vector similarity search across ALL past conversations
+ *   - Finds relevant context from weeks/months ago
+ *   - Uses text-embedding-3-small via Vercel AI Gateway
+ *
+ * Note: Mastra Memory with Supabase storage requires @mastra/memory
+ * to handle storage internally. Our custom Supabase adapters
+ * (working-memory-adapter.ts, semantic-recall.ts) supplement this
+ * with pgvector search and structured profile management at the
+ * route level (chat/route.ts).
  */
-const agentMemory = new Memory({
-  storage: mastraStorage,
-  options: {
+function createAgentMemory(): Memory {
+  // Build memory options
+  const memoryOptions: Record<string, unknown> = {
     lastMessages: MEMORY_LAST_MESSAGES,
-  },
-});
+  };
 
-console.log(`[Mastra Memory] Configured with lastMessages: ${MEMORY_LAST_MESSAGES}`);
+  // Enable semantic recall with Vercel AI Gateway embeddings
+  memoryOptions.semanticRecall = {
+    topK: SEMANTIC_TOP_K,
+    messageRange: SEMANTIC_MESSAGE_RANGE,
+    threshold: SEMANTIC_THRESHOLD,
+  };
+
+  // Enable working memory with Zod schema
+  if (WORKING_MEMORY_ENABLED) {
+    memoryOptions.workingMemory = {
+      enabled: true,
+      schema: GearshackUserProfileSchema,
+    };
+  }
+
+  const memory = new Memory({
+    options: memoryOptions,
+    // Embedder for semantic recall via Vercel AI Gateway
+    embedder: gateway.textEmbeddingModel('openai/text-embedding-3-small'),
+  });
+
+  const features: string[] = [
+    `history(last ${MEMORY_LAST_MESSAGES})`,
+    `semantic(topK=${SEMANTIC_TOP_K}, threshold=${SEMANTIC_THRESHOLD})`,
+  ];
+  if (WORKING_MEMORY_ENABLED) {
+    features.push('workingMemory(schema)');
+  }
+
+  console.log(`[Mastra Memory] Three-tier system: ${features.join(', ')}`);
+  return memory;
+}
+
+const agentMemory = createAgentMemory();
+
+// =============================================================================
+// Agent Creation
+// =============================================================================
 
 /**
- * Create Mastra Agent with registered tools and memory
- *
- * The agent now has memory enabled, allowing it to:
- * - See the last N messages from the conversation
- * - Maintain context across multiple exchanges
- * - Learn from previous interactions in the session
+ * Create Mastra Agent with three-tier memory and tools
  *
  * @param userId - Current user ID for runtimeContext
- * @param systemPrompt - Dynamic system prompt based on context
+ * @param systemPrompt - Dynamic system prompt (includes working memory context)
  */
 export function createGearAgent(userId: string, systemPrompt: string) {
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
-    model: gateway(AI_CHAT_MODEL), // Use Vercel AI Gateway
-    memory: agentMemory, // Enable conversation memory
+    model: gateway(AI_CHAT_MODEL),
+    memory: agentMemory,
     tools: {
-      // Simplified tools with free query formulation
-      // - queryUserData: SQL-like queries for user tables (gear_items, loadouts, etc.)
-      // - queryCatalog: SQL-like queries for public catalog (catalog_products, categories)
-      // - queryGearGraph: Cypher queries for product relationships
-      // - searchWeb: Web search for current info (kept as-is)
       queryUserData: queryUserDataSqlTool,
       queryCatalog: queryCatalogTool,
       queryGearGraph: queryGearGraphTool,
@@ -93,9 +153,15 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     },
   });
 
-  console.log(`[Mastra Agent] Created with ${AI_CHAT_MODEL} via AI Gateway, 4 tools, and memory (last ${MEMORY_LAST_MESSAGES} messages)`);
+  console.log(
+    `[Mastra Agent] Created with ${AI_CHAT_MODEL}, 4 tools, three-tier memory`
+  );
   return agent;
 }
+
+// =============================================================================
+// Streaming Interface
+// =============================================================================
 
 /**
  * Stream response from Mastra Agent
@@ -107,12 +173,10 @@ export async function streamMastraResponse(
   userId: string
 ) {
   // Set runtime context for tool execution
-  // RuntimeContext uses Map<string, unknown> for type safety
   const runtimeContext = new Map<string, unknown>();
   runtimeContext.set('userId', userId);
 
   // Generate streaming response
-  // Type assertion for runtimeContext: Mastra expects specific internal type
   const stream = await agent.stream(message, {
     resourceId: userId,
     runtimeContext: runtimeContext,
