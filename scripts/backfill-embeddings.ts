@@ -190,6 +190,7 @@ async function backfillEmbeddings() {
       // If batch fails, skip those messages to avoid infinite loop
       // Mark them in the queue for retry
       for (const msg of messages) {
+        // @ts-ignore - embedding_queue table not yet in generated types
         await supabase.from('embedding_queue').upsert(
           {
             message_id: msg.id,

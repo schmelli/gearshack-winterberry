@@ -29,7 +29,26 @@ import {
 // Environment Configuration
 // =============================================================================
 
-const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+// Lazy-loaded gateway instance (initialized on first use to avoid build-time errors)
+let gatewayInstance: ReturnType<typeof createGateway> | null = null;
+
+function getGateway() {
+  if (!gatewayInstance) {
+    const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+    if (!AI_GATEWAY_KEY) {
+      throw new Error(
+        'AI_GATEWAY_KEY is required for Mastra Agent. ' +
+        'Please set AI_GATEWAY_API_KEY or AI_GATEWAY_KEY in your environment.'
+      );
+    }
+    gatewayInstance = createGateway({
+      apiKey: AI_GATEWAY_KEY,
+    });
+  }
+  return gatewayInstance;
+}
+
+// Configuration constants (safe to read at module load)
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 
 // Memory configuration
@@ -43,22 +62,6 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
-
-// Validate API key at module load
-if (!AI_GATEWAY_KEY) {
-  throw new Error(
-    'AI_GATEWAY_KEY is required for Mastra Agent. ' +
-    'Please set AI_GATEWAY_API_KEY or AI_GATEWAY_KEY in your environment.'
-  );
-}
-
-// =============================================================================
-// AI Gateway Setup
-// =============================================================================
-
-const gateway = createGateway({
-  apiKey: AI_GATEWAY_KEY,
-});
 
 // =============================================================================
 // Three-Tier Memory Configuration
@@ -113,7 +116,7 @@ function createAgentMemory(): Memory {
   const memory = new Memory({
     options: memoryOptions,
     // Embedder for semantic recall via Vercel AI Gateway
-    embedder: gateway.textEmbeddingModel('openai/text-embedding-3-small'),
+    embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
   });
 
   return memory;
@@ -141,7 +144,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
-    model: gateway(AI_CHAT_MODEL),
+    model: getGateway()(AI_CHAT_MODEL),
     memory: agentMemory,
     tools: {
       queryUserData: queryUserDataSqlTool,
