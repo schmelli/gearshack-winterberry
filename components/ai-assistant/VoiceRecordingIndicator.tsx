@@ -56,7 +56,7 @@ export function VoiceRecordingIndicator({
   isRecording,
   className,
 }: VoiceRecordingIndicatorProps) {
-  const t = useTranslations('AIAssistant');
+  const t = useTranslations('AIAssistant.ariaLabels');
 
   if (!isRecording) {
     return null;
@@ -79,7 +79,7 @@ export function VoiceRecordingIndicator({
 
       {/* Recording text */}
       <span className="text-sm font-medium text-destructive">
-        {t('voice.recording')}
+        Recording
       </span>
 
       {/* Duration */}
@@ -94,7 +94,7 @@ export function VoiceRecordingIndicator({
         size="icon"
         onClick={onCancel}
         className="h-6 w-6 rounded-full hover:bg-destructive/20"
-        aria-label={t('ariaLabels.cancelRecording')}
+        aria-label={t('cancelRecording')}
       >
         <X className="h-4 w-4 text-destructive" />
       </Button>

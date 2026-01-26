@@ -70,7 +70,7 @@ export function AudioPlaybackControls({
   size = 'default',
   className,
 }: AudioPlaybackControlsProps) {
-  const t = useTranslations('AIAssistant');
+  const t = useTranslations('AIAssistant.ariaLabels');
   const isPlaying = state === 'playing';
   const isLoading = state === 'loading';
   const isMuted = volume === 0;
@@ -98,7 +98,7 @@ export function AudioPlaybackControls({
               onClick={isPlaying ? onPause : onPlay}
               disabled={disabled || isLoading}
               className={cn(buttonSize, 'rounded-full')}
-              aria-label={isPlaying ? t('ariaLabels.pause') : t('ariaLabels.play')}
+              aria-label={isPlaying ? t('pause') : t('play')}
             >
               {isLoading ? (
                 <Loader2 className={cn(iconSize, 'animate-spin')} />
@@ -110,7 +110,7 @@ export function AudioPlaybackControls({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p>{isLoading ? t('voice.loading') : isPlaying ? t('ariaLabels.pause') : t('ariaLabels.play')}</p>
+            <p>{isLoading ? 'Loading...' : isPlaying ? t('pause') : t('play')}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -124,13 +124,13 @@ export function AudioPlaybackControls({
               onClick={onStop}
               disabled={disabled || state === 'idle'}
               className={cn(buttonSize, 'rounded-full')}
-              aria-label={t('ariaLabels.stop')}
+              aria-label={t('stop')}
             >
               <Square className={iconSize} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p>{t('ariaLabels.stop')}</p>
+            <p>{t('stop')}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -145,7 +145,7 @@ export function AudioPlaybackControls({
                   size="icon"
                   disabled={disabled}
                   className={cn(buttonSize, 'rounded-full')}
-                  aria-label={t('ariaLabels.volume')}
+                  aria-label={t('volume')}
                 >
                   {isMuted ? (
                     <VolumeX className={iconSize} />
@@ -156,13 +156,13 @@ export function AudioPlaybackControls({
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{t('ariaLabels.volume')}: {Math.round(volume * 100)}%</p>
+              <p>{t('volume')}: {Math.round(volume * 100)}%</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent side="top" className="w-32 p-3">
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">
-                {t('ariaLabels.volume')}
+                {t('volume')}
               </p>
               <Slider
                 value={[volume * 100]}
@@ -170,7 +170,7 @@ export function AudioPlaybackControls({
                 max={100}
                 step={5}
                 className="w-full"
-                aria-label={t('ariaLabels.volume')}
+                aria-label={t('volume')}
               />
               <p className="text-xs text-center text-muted-foreground">
                 {Math.round(volume * 100)}%
@@ -210,7 +210,7 @@ export function InlinePlayButton({
   disabled = false,
   className,
 }: InlinePlayButtonProps) {
-  const t = useTranslations('AIAssistant');
+  const t = useTranslations('AIAssistant.ariaLabels');
 
   return (
     <Button
@@ -224,7 +224,7 @@ export function InlinePlayButton({
         'hover:bg-primary/10',
         className
       )}
-      aria-label={isPlaying ? t('ariaLabels.pause') : t('ariaLabels.playAudio')}
+      aria-label={isPlaying ? t('pause') : t('play')}
     >
       {isLoading ? (
         <Loader2 className="h-3 w-3 animate-spin" />
