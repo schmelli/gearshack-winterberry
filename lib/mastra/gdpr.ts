@@ -285,31 +285,63 @@ export async function executeGdprDeletion(
     }
 
     // Delete generated images (from Feature 048: AI Loadout Image Generation)
-    // NOTE: This only deletes database records. Cloudinary CDN cleanup requires
-    // additional steps as we don't store public_ids in the database.
-    // Options:
-    // 1. Store cloudinary_public_id in generated_images table for deletion
-    // 2. Use Cloudinary's upload API with user_id tag for bulk deletion
-    // 3. Implement cleanup via Cloudinary Admin API with user folder prefix
+    // First fetch the image URLs to extract public IDs for Cloudinary deletion
     const generatedImagesResult = await client
+      .from('generated_images')
+      .select('image_url')
+      .eq('user_id', userId) as { data: { image_url: string }[] | null; error: Error | null };
+
+    let cloudinaryDeleteCount = 0;
+    if (!generatedImagesResult.error && generatedImagesResult.data) {
+      // Delete from Cloudinary CDN before deleting database records
+      const { extractPublicId, deleteCloudinaryImage } = await import('@/lib/cloudinary-utils');
+
+      for (const image of generatedImagesResult.data) {
+        try {
+          const publicId = extractPublicId(image.image_url);
+          const deleted = await deleteCloudinaryImage(publicId);
+          if (deleted) cloudinaryDeleteCount++;
+        } catch (error) {
+          logWarn('Failed to delete Cloudinary image', {
+            userId,
+            metadata: {
+              url: image.image_url,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            },
+          });
+        }
+      }
+
+      logInfo('Cloudinary images deleted', {
+        userId,
+        metadata: {
+          total: generatedImagesResult.data.length,
+          deleted: cloudinaryDeleteCount
+        },
+      });
+    }
+
+    // Now delete database records
+    const dbDeleteResult = await client
       .from('generated_images')
       .delete()
       .eq('user_id', userId) as { error: Error | null; count: number | null };
 
-    if (!generatedImagesResult.error) {
-      counts.generatedImages = generatedImagesResult.count ?? 0;
-      // TODO: Implement Cloudinary CDN deletion for AI-generated images
-      // This requires storing public_id in database or using Cloudinary Admin API
-      logInfo('Generated images deleted from database (CDN cleanup pending)', {
+    if (!dbDeleteResult.error) {
+      counts.generatedImages = dbDeleteResult.count ?? 0;
+      logInfo('Generated images deleted from database and CDN', {
         userId,
-        metadata: { count: counts.generatedImages },
+        metadata: {
+          dbRecords: counts.generatedImages,
+          cdnImages: cloudinaryDeleteCount
+        },
       });
     } else {
       // Table might not exist if Feature 048 hasn't been deployed
-      if (generatedImagesResult.error.message.includes('does not exist')) {
+      if (dbDeleteResult.error.message.includes('does not exist')) {
         logWarn('generated_images table not found (skipping deletion)', { userId });
       } else {
-        logError('Failed to delete generated images', generatedImagesResult.error, { userId });
+        logError('Failed to delete generated images', dbDeleteResult.error, { userId });
       }
     }
 

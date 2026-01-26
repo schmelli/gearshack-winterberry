@@ -86,6 +86,8 @@ const gateway = createGateway({
  * (working-memory-adapter.ts, semantic-recall.ts) supplement this
  * with pgvector search and structured profile management at the
  * route level (chat/route.ts).
+ *
+ * IMPORTANT: This should be called per-agent to avoid shared state between users
  */
 function createAgentMemory(): Memory {
   // Build memory options
@@ -114,19 +116,8 @@ function createAgentMemory(): Memory {
     embedder: gateway.textEmbeddingModel('openai/text-embedding-3-small'),
   });
 
-  const features: string[] = [
-    `history(last ${MEMORY_LAST_MESSAGES})`,
-    `semantic(topK=${SEMANTIC_TOP_K}, threshold=${SEMANTIC_THRESHOLD})`,
-  ];
-  if (WORKING_MEMORY_ENABLED) {
-    features.push('workingMemory(schema)');
-  }
-
-  console.log(`[Mastra Memory] Three-tier system: ${features.join(', ')}`);
   return memory;
 }
-
-const agentMemory = createAgentMemory();
 
 // =============================================================================
 // Agent Creation
@@ -135,10 +126,17 @@ const agentMemory = createAgentMemory();
 /**
  * Create Mastra Agent with three-tier memory and tools
  *
+ * IMPORTANT: Creates a NEW memory instance for each agent to avoid
+ * cross-user data leakage in serverless/multi-user environments.
+ *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
  */
 export function createGearAgent(userId: string, systemPrompt: string) {
+  // BUGFIX: Create a new memory instance for each agent to prevent
+  // shared state between users in serverless environments
+  const agentMemory = createAgentMemory();
+
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
@@ -154,7 +152,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created with ${AI_CHAT_MODEL}, 4 tools, three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 4 tools, three-tier memory`
   );
   return agent;
 }

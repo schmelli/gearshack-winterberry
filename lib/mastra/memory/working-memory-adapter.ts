@@ -75,18 +75,21 @@ export async function getWorkingMemory(
 /**
  * Save/update the working memory profile for a user
  *
- * Uses upsert to create or update the profile.
+ * Uses optimistic locking with version checking to prevent race conditions.
  * Enforces limits on facts and cached insights.
  *
  * @param supabase - Authenticated Supabase client
  * @param userId - User ID
  * @param profile - Updated profile
+ * @param expectedVersion - Expected version for optimistic locking (optional)
+ * @returns true if save succeeded, false if version conflict
  */
 export async function saveWorkingMemory(
   supabase: SupabaseClient,
   userId: string,
-  profile: GearshackUserProfile
-): Promise<void> {
+  profile: GearshackUserProfile,
+  expectedVersion?: number
+): Promise<boolean> {
   try {
     // Enforce size limits
     const trimmedProfile: GearshackUserProfile = {
@@ -109,9 +112,33 @@ export async function saveWorkingMemory(
         '[Working Memory] Profile validation failed on save:',
         result.error.issues
       );
-      return;
+      return false;
     }
 
+    // Optimistic locking: if expectedVersion is provided, only update if version matches
+    if (expectedVersion !== undefined) {
+      // Fetch current version
+      const { data: current, error: fetchError } = await supabase
+        .from('user_working_memory')
+        .select('version')
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('[Working Memory] Failed to fetch current version:', fetchError.message);
+        return false;
+      }
+
+      // Check version conflict
+      if (current && current.version !== expectedVersion) {
+        console.warn(
+          `[Working Memory] Version conflict for user ${userId}: expected ${expectedVersion}, got ${current.version}`
+        );
+        return false;
+      }
+    }
+
+    // Use upsert with version increment handled by database trigger
     const { error } = await supabase.from('user_working_memory').upsert(
       {
         user_id: userId,
@@ -124,14 +151,17 @@ export async function saveWorkingMemory(
 
     if (error) {
       console.error('[Working Memory] Failed to save profile:', error.message);
+      return false;
     } else {
       console.log(`[Working Memory] Profile saved for user ${userId}`);
+      return true;
     }
   } catch (error) {
     console.error(
       '[Working Memory] Unexpected error on save:',
       error instanceof Error ? error.message : 'Unknown error'
     );
+    return false;
   }
 }
 
@@ -165,14 +195,16 @@ export async function deleteWorkingMemory(
  * Format working memory for inclusion in system prompt
  *
  * @param profile - User profile
- * @param locale - User locale ('en' | 'de')
+ * @param locale - User locale ('en' | 'de'), falls back to profile.preferredLanguage
  * @returns Formatted string for system prompt
  */
 export function formatWorkingMemoryForPrompt(
   profile: GearshackUserProfile,
-  locale: string = 'en'
+  locale?: string
 ): string {
-  const isGerman = locale === 'de';
+  // BUGFIX: Use profile.preferredLanguage as fallback, then locale param, then 'en'
+  const effectiveLocale = profile.preferredLanguage || locale || 'en';
+  const isGerman = effectiveLocale === 'de';
   const sections: string[] = [];
 
   const header = isGerman

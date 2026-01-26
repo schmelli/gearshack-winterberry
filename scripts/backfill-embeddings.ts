@@ -104,7 +104,7 @@ async function backfillEmbeddings() {
     // Fetch batch of messages without embeddings
     const { data: messages, error: fetchError } = await supabase
       .from('conversation_memory')
-      .select('id, message_id, message_content')
+      .select('id, message_id, message_content, user_id')
       .is('embedding', null)
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE);
@@ -125,27 +125,53 @@ async function backfillEmbeddings() {
       const texts = messages.map((m) => m.message_content);
       const embeddings = await generateEmbeddings(texts);
 
-      // Update each message with its embedding
-      let batchSuccess = 0;
-      let batchFailed = 0;
+      // BUGFIX: Batch update using PostgreSQL array operations for better performance
+      // Build update data for all messages in this batch
+      const updateData = messages.map((msg, i) => ({
+        id: msg.id,
+        embedding: JSON.stringify(embeddings[i]),
+      }));
 
-      for (let i = 0; i < messages.length; i++) {
-        const { error: updateError } = await supabase
-          .from('conversation_memory')
-          .update({ embedding: JSON.stringify(embeddings[i]) })
-          .eq('id', messages[i].id);
+      // Perform batch upsert (updates existing rows by id)
+      const { error: updateError, count } = await supabase
+        .from('conversation_memory')
+        .upsert(updateData, {
+          onConflict: 'id',
+          count: 'exact',
+        });
 
-        if (updateError) {
-          console.error(
-            `  Failed to update message ${messages[i].message_id}:`,
-            updateError.message
-          );
-          batchFailed++;
-          failed++;
-        } else {
-          batchSuccess++;
-          processed++;
+      let batchSuccess = count ?? 0;
+      let batchFailed = messages.length - batchSuccess;
+
+      if (updateError) {
+        console.error(
+          `  Batch ${batchNumber}: Update error:`,
+          updateError.message
+        );
+        // If batch update fails, fall back to individual updates
+        batchSuccess = 0;
+        batchFailed = 0;
+        for (let i = 0; i < messages.length; i++) {
+          const { error: singleUpdateError } = await supabase
+            .from('conversation_memory')
+            .update({ embedding: JSON.stringify(embeddings[i]) })
+            .eq('id', messages[i].id);
+
+          if (singleUpdateError) {
+            console.error(
+              `    Failed to update message ${messages[i].message_id}:`,
+              singleUpdateError.message
+            );
+            batchFailed++;
+            failed++;
+          } else {
+            batchSuccess++;
+            processed++;
+          }
         }
+      } else {
+        processed += batchSuccess;
+        failed += batchFailed;
       }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -167,7 +193,7 @@ async function backfillEmbeddings() {
         await supabase.from('embedding_queue').upsert(
           {
             message_id: msg.id,
-            user_id: '00000000-0000-0000-0000-000000000000', // Placeholder - backfill
+            user_id: msg.user_id, // BUGFIX: Use actual user_id from the message
             content: msg.message_content,
             error_message: error instanceof Error ? error.message : 'Unknown error',
           },

@@ -159,7 +159,7 @@ export async function searchSimilarMessages(
  * Embed and store a new message for future semantic recall
  *
  * @param supabase - Supabase client
- * @param messageId - UUID of the conversation_memory row
+ * @param messageId - UUID of the conversation_memory row (from the 'id' column, not 'message_id')
  * @param content - Message content to embed
  */
 export async function embedAndStoreMessage(
@@ -172,23 +172,23 @@ export async function embedAndStoreMessage(
   try {
     const embedding = await generateEmbedding(content);
 
+    // BUGFIX: Use 'id' column instead of 'message_id' to match the primary key
     const { error } = await supabase
       .from('conversation_memory')
       .update({ embedding: JSON.stringify(embedding) })
-      .eq('message_id', messageId);
+      .eq('id', messageId);
 
     if (error) {
       console.error(
         `[Semantic Recall] Failed to store embedding for message ${messageId}:`,
         error.message
       );
+      // Throw error so it can be caught and queued for retry
+      throw error;
     }
   } catch (error) {
-    // Non-blocking: log but don't fail the request
-    console.error(
-      '[Semantic Recall] Embedding generation failed:',
-      error instanceof Error ? error.message : 'Unknown error'
-    );
+    // Re-throw to allow retry queue logic in the caller
+    throw error;
   }
 }
 

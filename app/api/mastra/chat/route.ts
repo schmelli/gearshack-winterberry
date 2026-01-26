@@ -233,12 +233,13 @@ async function fetchMemoryContext(
       metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
     });
 
-    // Fetch all three memory tiers in parallel:
+    // Fetch all three memory tiers in parallel with error boundaries:
     // 1. Conversation history (thread-scoped)
     // 2. User context cache
     // 3. Working memory profile (resource-scoped)
     // 4. Semantic recall (resource-scoped, needs current message)
-    const [messages, cachedContext, workingMemoryProfile, semanticMatches] = await Promise.all([
+    // Using Promise.allSettled for graceful degradation if any tier fails
+    const results = await Promise.allSettled([
       adapter.getMessages({
         userId,
         conversationId,
@@ -247,15 +248,26 @@ async function fetchMemoryContext(
       adapter.getUserContext(userId, conversationId),
       getWorkingMemory(supabaseClient, userId),
       currentMessage
-        ? searchSimilarMessages(supabaseClient, userId, currentMessage).catch((err) => {
-            logWarn('Semantic recall failed, continuing without', {
-              userId,
-              metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-            });
-            return [];
-          })
+        ? searchSimilarMessages(supabaseClient, userId, currentMessage)
         : Promise.resolve([]),
     ]);
+
+    // Extract results with fallbacks
+    const messages = results[0].status === 'fulfilled' ? results[0].value : [];
+    const cachedContext = results[1].status === 'fulfilled' ? results[1].value : null;
+    const workingMemoryProfile = results[2].status === 'fulfilled' ? results[2].value : null;
+    const semanticMatches = results[3].status === 'fulfilled' ? results[3].value : [];
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const tierNames = ['conversation history', 'user context', 'working memory', 'semantic recall'];
+        logWarn(`${tierNames[index]} fetch failed, continuing without`, {
+          userId,
+          metadata: { error: result.reason instanceof Error ? result.reason.message : 'Unknown' },
+        });
+      }
+    });
 
     // Reverse to get chronological order (oldest first)
     const history = messages.reverse().map(msg => ({
@@ -360,6 +372,8 @@ function detectCorrectionIntent(message: string): boolean {
 
 /**
  * T026: Save messages to memory after response
+ *
+ * @returns Object with message IDs for embedding generation
  */
 async function saveToMemory(
   adapter: SupabaseMemoryAdapter | null,
@@ -368,10 +382,10 @@ async function saveToMemory(
   userMessage: string,
   assistantResponse: string,
   isCorrection: boolean
-): Promise<void> {
+): Promise<{ userMessageId: string; assistantMessageId: string } | null> {
   if (!adapter) {
     logDebug('Skipping memory save - adapter unavailable', { userId, conversationId });
-    return;
+    return null;
   }
 
   const getElapsed = createTimer();
@@ -380,9 +394,13 @@ async function saveToMemory(
     const now = new Date();
     const metadata = isCorrection ? { isCorrection: true } : {};
 
+    // Generate UUIDs that will be used for both saving and embedding
+    const userMessageId = crypto.randomUUID();
+    const assistantMessageId = crypto.randomUUID();
+
     await adapter.saveMessages([
       {
-        id: crypto.randomUUID(), // BUGFIX: Use pure UUID without prefix for database compatibility
+        id: userMessageId,
         userId,
         conversationId,
         role: 'user',
@@ -392,7 +410,7 @@ async function saveToMemory(
         updatedAt: now,
       },
       {
-        id: crypto.randomUUID(), // BUGFIX: Use pure UUID without prefix for database compatibility
+        id: assistantMessageId,
         userId,
         conversationId,
         role: 'assistant',
@@ -411,6 +429,8 @@ async function saveToMemory(
         latencyMs: getElapsed(),
       },
     });
+
+    return { userMessageId, assistantMessageId };
   } catch (error) {
     // Log but don't fail the request
     logError('Failed to save messages to memory', error, {
@@ -418,6 +438,7 @@ async function saveToMemory(
       conversationId,
       metadata: { latencyMs: getElapsed() },
     });
+    return null;
   }
 }
 
@@ -864,8 +885,8 @@ export async function POST(request: Request): Promise<Response> {
             `chat-${conversationId}`,
             'memory_save',
             async () => {
-              // Save conversation messages
-              await saveToMemory(
+              // Save conversation messages and get their IDs
+              const messageIds = await saveToMemory(
                 memoryContext.adapter,
                 user.id,
                 conversationId,
@@ -876,17 +897,37 @@ export async function POST(request: Request): Promise<Response> {
 
               // Generate embeddings for both messages (non-blocking)
               // This enables semantic recall to find these messages in future conversations
-              const userMsgId = crypto.randomUUID();
-              const assistantMsgId = crypto.randomUUID();
-              Promise.all([
-                embedAndStoreMessage(supabaseClient, userMsgId, message),
-                embedAndStoreMessage(supabaseClient, assistantMsgId, fullResponse),
-              ]).catch((err) => {
-                logWarn('Embedding generation failed (non-blocking)', {
-                  userId: user.id,
-                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+              // BUGFIX: Use the actual message IDs returned from saveToMemory
+              if (messageIds) {
+                Promise.all([
+                  embedAndStoreMessage(supabaseClient, messageIds.userMessageId, message),
+                  embedAndStoreMessage(supabaseClient, messageIds.assistantMessageId, fullResponse),
+                ]).catch((err) => {
+                  logWarn('Embedding generation failed, queued for retry', {
+                    userId: user.id,
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  });
+                  // Queue failed embeddings for retry
+                  Promise.all([
+                    supabaseClient.from('embedding_queue').upsert({
+                      message_id: messageIds.userMessageId,
+                      user_id: user.id,
+                      content: message,
+                      error_message: err instanceof Error ? err.message : 'Unknown error',
+                    }, { onConflict: 'message_id' }),
+                    supabaseClient.from('embedding_queue').upsert({
+                      message_id: messageIds.assistantMessageId,
+                      user_id: user.id,
+                      content: fullResponse,
+                      error_message: err instanceof Error ? err.message : 'Unknown error',
+                    }, { onConflict: 'message_id' }),
+                  ]).catch((queueErr) => {
+                    logError('Failed to queue embeddings for retry', queueErr instanceof Error ? queueErr : undefined, {
+                      userId: user.id,
+                    });
+                  });
                 });
-              });
+              }
 
               // Save working memory profile if it was loaded
               // The agent may have updated it via tool calls during the conversation

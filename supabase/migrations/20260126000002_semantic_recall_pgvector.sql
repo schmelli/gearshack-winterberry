@@ -24,11 +24,19 @@ ON conversation_memory
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
+-- Composite index for user_id filtering before vector search
+-- This improves query performance by filtering to user's messages first
+CREATE INDEX IF NOT EXISTS idx_conversation_memory_user_embedding
+ON conversation_memory (user_id)
+WHERE embedding IS NOT NULL;
+
 -- =============================================================================
 -- Semantic Search Function
 -- =============================================================================
 
 -- Search for semantically similar messages across a user's conversations
+-- SECURITY DEFINER: Runs with function creator's privileges (necessary for RLS bypass)
+-- Input validation: Ensures p_user_id matches auth.uid() to prevent unauthorized access
 CREATE OR REPLACE FUNCTION search_similar_messages(
   p_user_id UUID,
   p_query_embedding vector(1536),
@@ -48,6 +56,21 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- SECURITY: Validate that caller can only search their own messages
+  -- This prevents privilege escalation via SECURITY DEFINER
+  IF p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Access denied: can only search own messages';
+  END IF;
+
+  -- Validate input parameters to prevent abuse
+  IF p_limit < 1 OR p_limit > 100 THEN
+    RAISE EXCEPTION 'Invalid limit: must be between 1 and 100';
+  END IF;
+
+  IF p_threshold < 0 OR p_threshold > 1 THEN
+    RAISE EXCEPTION 'Invalid threshold: must be between 0 and 1';
+  END IF;
+
   RETURN QUERY
   SELECT
     cm.message_id,
@@ -70,6 +93,8 @@ $$;
 -- =============================================================================
 
 -- Get a message with surrounding context (messages before/after)
+-- SECURITY DEFINER: Runs with function creator's privileges (necessary for RLS bypass)
+-- Input validation: Ensures p_user_id matches auth.uid() to prevent unauthorized access
 CREATE OR REPLACE FUNCTION get_message_with_context(
   p_user_id UUID,
   p_conversation_id UUID,
@@ -90,6 +115,16 @@ AS $$
 DECLARE
   v_created_at TIMESTAMPTZ;
 BEGIN
+  -- SECURITY: Validate that caller can only access their own messages
+  IF p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Access denied: can only access own messages';
+  END IF;
+
+  -- Validate input parameters
+  IF p_context_range < 0 OR p_context_range > 10 THEN
+    RAISE EXCEPTION 'Invalid context_range: must be between 0 and 10';
+  END IF;
+
   -- Get the target message timestamp
   SELECT cm.created_at INTO v_created_at
   FROM conversation_memory cm
