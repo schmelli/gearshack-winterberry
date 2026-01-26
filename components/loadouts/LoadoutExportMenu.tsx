@@ -67,6 +67,26 @@ function _formatBoolean(value: boolean | undefined): string {
   return value ? 'Yes' : 'No';
 }
 
+interface PdfTemplateLabels {
+  date: string;
+  activities: string;
+  seasons: string;
+  generated: string;
+  items: string;
+  totalWeight: string;
+  baseWeight: string;
+  wornItems: string;
+  consumables: string;
+  activitiesAndSeasons: string;
+  packList: string;
+  tableItem: string;
+  tableCategory: string;
+  tableWeight: string;
+  tableStatus: string;
+  noActivities: string;
+  pack: string;
+}
+
 interface PdfTemplateOptions {
   loadout: Loadout;
   activitiesLabel: string;
@@ -82,6 +102,7 @@ interface PdfTemplateOptions {
   checklistHeader: string;
   includeChecklist: boolean;
   formattedDate: string;
+  labels: PdfTemplateLabels;
 }
 
 function buildPdfHtml({
@@ -98,6 +119,7 @@ function buildPdfHtml({
   rows,
   checklistHeader,
   formattedDate,
+  labels,
 }: PdfTemplateOptions): string {
   return `
     <!DOCTYPE html>
@@ -226,14 +248,14 @@ function buildPdfHtml({
             <div>
               <h1 class="title">${escape(loadout.name)}</h1>
               <div class="meta">
-                <div><strong>Date:</strong> ${escape(formattedDate)}</div>
-                <div><strong>Activities:</strong> ${activitiesLabel}</div>
-                <div><strong>Seasons:</strong> ${seasonsLabel}</div>
+                <div><strong>${escape(labels.date)}:</strong> ${escape(formattedDate)}</div>
+                <div><strong>${escape(labels.activities)}:</strong> ${activitiesLabel}</div>
+                <div><strong>${escape(labels.seasons)}:</strong> ${seasonsLabel}</div>
               </div>
             </div>
             <div class="meta" style="text-align: right;">
-              <div><strong>Generated:</strong> ${escape(generatedAt)}</div>
-              <div><strong>Items:</strong> ${escape(String(itemCount))}</div>
+              <div><strong>${escape(labels.generated)}:</strong> ${escape(generatedAt)}</div>
+              <div><strong>${escape(labels.items)}:</strong> ${escape(String(itemCount))}</div>
             </div>
           </header>
 
@@ -245,30 +267,30 @@ function buildPdfHtml({
 
           <div class="summary">
             <div class="pill">
-              <div class="label">Total Weight</div>
+              <div class="label">${escape(labels.totalWeight)}</div>
               <div class="value">${formatWeight(totalWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Base Weight</div>
+              <div class="label">${escape(labels.baseWeight)}</div>
               <div class="value">${formatWeight(baseWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Worn Items</div>
+              <div class="label">${escape(labels.wornItems)}</div>
               <div class="value">${formatWeight(wornWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Consumables</div>
+              <div class="label">${escape(labels.consumables)}</div>
               <div class="value">${formatWeight(consumableWeight)}</div>
             </div>
           </div>
 
           <div>
-            <p class="label" style="margin: 0;">Activities & Seasons</p>
+            <p class="label" style="margin: 0;">${escape(labels.activitiesAndSeasons)}</p>
             <div class="badge-row">
               ${
                 loadout.activityTypes?.length
                   ? loadout.activityTypes.map((activity) => `<span class="badge">${escape(activity)}</span>`).join('')
-                  : '<span class="muted">No activities specified</span>'
+                  : `<span class="muted">${escape(labels.noActivities)}</span>`
               }
               ${
                 loadout.seasons?.length
@@ -279,15 +301,15 @@ function buildPdfHtml({
           </div>
 
           <div style="margin-top: 18px;">
-            <p class="section-title">Pack List</p>
+            <p class="section-title">${escape(labels.packList)}</p>
             <table>
               <thead>
                 <tr>
                   ${checklistHeader}
-                  <th>Item</th>
-                  <th>Category</th>
-                  <th class="right">Weight</th>
-                  <th>Status</th>
+                  <th>${escape(labels.tableItem)}</th>
+                  <th>${escape(labels.tableCategory)}</th>
+                  <th class="right">${escape(labels.tableWeight)}</th>
+                  <th>${escape(labels.tableStatus)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -381,17 +403,18 @@ export function LoadoutExportMenu({
       return;
     }
 
-    const formattedDate = formatTripDate(loadout.tripDate) ?? 'Not set';
+    const notSetLabel = t('pdfLabels.notSet') || 'Not set';
+    const formattedDate = formatTripDate(loadout.tripDate) ?? notSetLabel;
     const activitiesLabel =
       activityTypes.length > 0
         ? activityTypes
             .map((activity) => escape(activity.charAt(0).toUpperCase() + activity.slice(1)))
             .join(', ')
-        : 'Not set';
+        : notSetLabel;
     const seasonsLabel =
       seasons.length > 0
         ? seasons.map((season) => escape(season.charAt(0).toUpperCase() + season.slice(1))).join(', ')
-        : 'Not set';
+        : notSetLabel;
 
     const itemWeightMap = new Map(items.map((item) => [item.id, item.weightGrams ?? 0]));
     const wornWeight = itemStates
@@ -401,14 +424,17 @@ export function LoadoutExportMenu({
       .filter((state) => state.isConsumable)
       .reduce((sum, state) => sum + (itemWeightMap.get(state.itemId) ?? 0), 0);
 
+    const wornLabel = t('pdfLabels.worn');
+    const consumableLabel = t('pdfLabels.consumable');
+
     const rows = items
       .map((item) => {
         const state = itemStates.find((s) => s.itemId === item.id);
         const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
         const checklistCell = includeChecklist ? '<td class="checkbox-cell"><div class="checkbox"></div></td>' : '';
         const statusParts = [];
-        if (state?.isWorn) statusParts.push('Worn');
-        if (state?.isConsumable) statusParts.push('Consumable');
+        if (state?.isWorn) statusParts.push(wornLabel);
+        if (state?.isConsumable) statusParts.push(consumableLabel);
 
         return `
           <tr>
@@ -425,7 +451,29 @@ export function LoadoutExportMenu({
       })
       .join('');
 
-    const checklistHeader = includeChecklist ? '<th class="checkbox-cell">Pack</th>' : '';
+    const checklistHeader = includeChecklist ? `<th class="checkbox-cell">${escape(t('pdfLabels.pack'))}</th>` : '';
+
+    // Build labels object for PDF template
+    const labels: PdfTemplateLabels = {
+      date: t('pdfLabels.date'),
+      activities: t('pdfLabels.activities'),
+      seasons: t('pdfLabels.seasons'),
+      generated: t('pdfLabels.generated'),
+      items: t('pdfLabels.items'),
+      totalWeight: t('weightStats.totalWeight'),
+      baseWeight: t('weightStats.baseWeight'),
+      wornItems: t('weightStats.wornItems'),
+      consumables: t('weightStats.consumables'),
+      activitiesAndSeasons: t('pdfLabels.activitiesAndSeasons'),
+      packList: t('packList'),
+      tableItem: t('tableHeaders.item'),
+      tableCategory: t('tableHeaders.category'),
+      tableWeight: t('tableHeaders.weight'),
+      tableStatus: t('tableHeaders.status'),
+      noActivities: t('noActivities'),
+      pack: t('pdfLabels.pack'),
+    };
+
     const html = buildPdfHtml({
       loadout: {
         ...loadout,
@@ -445,6 +493,7 @@ export function LoadoutExportMenu({
       checklistHeader,
       includeChecklist,
       formattedDate,
+      labels,
     });
 
     printWindow.document.write(html);

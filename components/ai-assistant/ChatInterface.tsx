@@ -154,9 +154,9 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">AI Gear Assistant</h2>
+              <h2 className="text-lg font-semibold">{t('title')}</h2>
               <p className="text-xs text-muted-foreground">
-                Ask me anything about your gear
+                {t('subtitle')}
               </p>
             </div>
           </div>
@@ -176,12 +176,12 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
                     <VolumeX className="h-4 w-4" />
                   )}
                   <span className="sr-only">
-                    {voiceEnabled ? 'Disable voice' : 'Enable voice'}
+                    {voiceEnabled ? t('disableVoice') : t('enableVoice')}
                   </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{voiceEnabled ? 'Disable voice responses' : 'Enable voice responses'}</p>
+                <p>{voiceEnabled ? t('disableVoiceResponses') : t('enableVoiceResponses')}</p>
               </TooltipContent>
             </Tooltip>
 

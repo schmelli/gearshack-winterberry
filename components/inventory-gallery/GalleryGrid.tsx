@@ -23,7 +23,7 @@ import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
 import { cn } from '@/lib/utils';
-import { VirtuosoGrid, GroupedVirtuoso, type ListProps } from 'react-virtuoso';
+import { VirtuosoGrid, GroupedVirtuoso } from 'react-virtuoso';
 
 // =============================================================================
 // Types

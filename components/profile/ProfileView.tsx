@@ -164,6 +164,7 @@ interface ProfileViewProps {
 
 export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade, shakedownStats }: ProfileViewProps) {
   const t = useTranslations('Profile');
+  const tStats = useTranslations('ProfileStats');
   // Feature 041: Use avatar fallback chain
   const displayAvatarUrl = getDisplayAvatarUrl(user.avatarUrl, user.providerAvatarUrl);
   // Feature 041: Show locationName if available, fallback to legacy location
@@ -321,17 +322,17 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
           <StatTile
             icon={<Package className="h-5 w-5" />}
             value={displayStats.itemCount}
-            label="Items"
+            label={tStats('items')}
           />
           <StatTile
             icon={<Backpack className="h-5 w-5" />}
             value={displayStats.loadoutCount}
-            label="Loadouts"
+            label={tStats('loadouts')}
           />
           <StatTile
             icon={<CheckCircle2 className="h-5 w-5" />}
             value={displayStats.shakedownCount}
-            label="Shakedowns"
+            label={tStats('shakedowns')}
           />
         </div>
 

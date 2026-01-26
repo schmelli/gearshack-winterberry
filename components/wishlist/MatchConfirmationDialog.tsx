@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -34,8 +35,11 @@ export function MatchConfirmationDialog({
   onSkip,
   onClose,
 }: MatchConfirmationDialogProps) {
+  const t = useTranslations('Wishlist.matchConfirmation');
+  const locale = useLocale();
+
   const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : 'en-US', {
       style: 'currency',
       currency: 'EUR',
     }).format(amount);
@@ -51,9 +55,9 @@ export function MatchConfirmationDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Confirm Product Match</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            We found several possible matches for your item. Please select the correct product.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -79,7 +83,7 @@ export function MatchConfirmationDialog({
                       variant="secondary"
                       className={`text-xs ${getConfidenceColor(match.similarity)}`}
                     >
-                      {Math.round(match.similarity * 100)}% match
+                      {t('matchPercent', { score: Math.round(match.similarity * 100) })}
                     </Badge>
                   </div>
                 </div>
@@ -90,10 +94,10 @@ export function MatchConfirmationDialog({
 
         <DialogFooter className="flex justify-between sm:justify-between">
           <Button variant="outline" onClick={onSkip}>
-            Skip - Search manually later
+            {t('skip')}
           </Button>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   X,
@@ -52,25 +52,16 @@ export function VipProfileModal() {
     toggleFollow,
   } = useVipFollow(vip?.id, vip?.isFollowing, vip?.followerCount);
 
-  // Close on Escape key - use ref pattern to avoid event listener accumulation
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         close();
       }
-    },
-    [isOpen, close]
-  );
-
-  // Store the latest handleKeyDown in a ref to avoid recreating event listeners
-  const handleKeyDownRef = useRef(handleKeyDown);
-  handleKeyDownRef.current = handleKeyDown;
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => handleKeyDownRef.current(e);
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, []);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, close]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>

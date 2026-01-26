@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2, Database, Globe, Weight, DollarSign } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import {
   Dialog,
@@ -60,6 +61,8 @@ export function SmartProductSearchModal({
   onCatalogSelect,
   onInternetExtracted,
 }: SmartProductSearchModalProps) {
+  const t = useTranslations('GearEditor.smartSearch');
+  const tCommon = useTranslations('Common');
   const [searchInput, setSearchInput] = useState(initialQuery);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasAutoSearched = useRef(false);
@@ -149,10 +152,10 @@ export function SmartProductSearchModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Smart Product Search
+            {t('title')}
           </DialogTitle>
           <DialogDescription>
-            Search GearGraph catalog and web for product information
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -163,7 +166,7 @@ export function SmartProductSearchModal({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Enter product name..."
+            placeholder={t('placeholder')}
             disabled={isSearching || isExtracting}
             className="flex-1"
           />
@@ -176,7 +179,7 @@ export function SmartProductSearchModal({
             ) : (
               <Search className="h-4 w-4 mr-2" />
             )}
-            Search
+            {t('search')}
           </Button>
         </div>
 
@@ -195,7 +198,7 @@ export function SmartProductSearchModal({
               <div className="flex flex-col items-center justify-center py-8 gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  Extracting data from {smartSearch.selectedInternetResult.domain}...
+                  {t('extracting', { domain: smartSearch.selectedInternetResult.domain })}
                 </p>
               </div>
             )}
@@ -206,6 +209,18 @@ export function SmartProductSearchModal({
                 data={smartSearch.extractedData}
                 onConfirm={handleConfirmExtraction}
                 onCancel={smartSearch.clearExtractedData}
+                labels={{
+                  title: t('extractedData'),
+                  confidence: t('confidence', { level: smartSearch.extractedData.confidence }),
+                  name: t('fields.name'),
+                  brand: t('fields.brand'),
+                  weight: t('fields.weight'),
+                  price: t('fields.price'),
+                  description: t('fields.description'),
+                  image: t('fields.image'),
+                  apply: t('applyToForm'),
+                  cancel: tCommon('cancel'),
+                }}
               />
             )}
 
@@ -217,9 +232,9 @@ export function SmartProductSearchModal({
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Database className="h-4 w-4 text-green-600" />
-                      <h3 className="font-medium">From GearGraph Catalog</h3>
+                      <h3 className="font-medium">{t('fromCatalog')}</h3>
                       <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        {smartSearch.catalogResults.length} found
+                        {t('found', { count: smartSearch.catalogResults.length })}
                       </Badge>
                     </div>
                     <div className="grid gap-2">
@@ -228,6 +243,7 @@ export function SmartProductSearchModal({
                           key={result.id}
                           result={result}
                           onClick={() => handleCatalogSelect(result)}
+                          matchLabel={t('match', { score: Math.round(result.score * 100) })}
                         />
                       ))}
                     </div>
@@ -239,9 +255,9 @@ export function SmartProductSearchModal({
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Globe className="h-4 w-4 text-blue-600" />
-                      <h3 className="font-medium">From Web</h3>
+                      <h3 className="font-medium">{t('fromWeb')}</h3>
                       <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {smartSearch.internetResults.length} found
+                        {t('found', { count: smartSearch.internetResults.length })}
                       </Badge>
                     </div>
                     <div className="grid gap-2">
@@ -251,6 +267,7 @@ export function SmartProductSearchModal({
                           result={result}
                           onClick={() => handleInternetSelect(result)}
                           disabled={isExtracting}
+                          webBadgeLabel={t('webBadge')}
                         />
                       ))}
                     </div>
@@ -262,7 +279,7 @@ export function SmartProductSearchModal({
             {/* No Results */}
             {!isSearching && !hasResults && smartSearch.status === 'success' && (
               <div className="text-center py-8 text-muted-foreground">
-                <p>No products found. Try a different search term.</p>
+                <p>{t('noResults')}</p>
               </div>
             )}
 
@@ -270,9 +287,9 @@ export function SmartProductSearchModal({
             {smartSearch.isRateLimited && (
               <div className="text-center py-4 px-6 bg-yellow-50 rounded-lg border border-yellow-200">
                 <p className="text-sm text-yellow-800">
-                  Daily internet search limit reached. Catalog results are still available.
+                  {t('rateLimited')}
                   <br />
-                  <span className="font-medium">Upgrade to Trailblazer for unlimited searches.</span>
+                  <span className="font-medium">{t('rateLimitedUpgrade')}</span>
                 </p>
               </div>
             )}
@@ -290,9 +307,10 @@ export function SmartProductSearchModal({
 interface CatalogResultCardProps {
   result: CatalogProductResult;
   onClick: () => void;
+  matchLabel: string;
 }
 
-function CatalogResultCard({ result, onClick }: CatalogResultCardProps) {
+function CatalogResultCard({ result, onClick, matchLabel }: CatalogResultCardProps) {
   return (
     <button
       type="button"
@@ -311,7 +329,7 @@ function CatalogResultCard({ result, onClick }: CatalogResultCardProps) {
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <Badge variant="outline" className="text-xs">
-            {Math.round(result.score * 100)}% match
+            {matchLabel}
           </Badge>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {result.weightGrams && (
@@ -337,9 +355,10 @@ interface InternetResultCardProps {
   result: InternetProductResult;
   onClick: () => void;
   disabled: boolean;
+  webBadgeLabel: string;
 }
 
-function InternetResultCard({ result, onClick, disabled }: InternetResultCardProps) {
+function InternetResultCard({ result, onClick, disabled, webBadgeLabel }: InternetResultCardProps) {
   return (
     <button
       type="button"
@@ -358,7 +377,7 @@ function InternetResultCard({ result, onClick, disabled }: InternetResultCardPro
           )}
         </div>
         <Badge variant="outline" className="shrink-0 text-xs bg-blue-50">
-          Web
+          {webBadgeLabel}
         </Badge>
       </div>
     </button>
@@ -369,9 +388,21 @@ interface ExtractedDataPreviewProps {
   data: ExtractedProductData;
   onConfirm: () => void;
   onCancel: () => void;
+  labels: {
+    title: string;
+    confidence: string;
+    name: string;
+    brand: string;
+    weight: string;
+    price: string;
+    description: string;
+    image: string;
+    apply: string;
+    cancel: string;
+  };
 }
 
-function ExtractedDataPreview({ data, onConfirm, onCancel }: ExtractedDataPreviewProps) {
+function ExtractedDataPreview({ data, onConfirm, onCancel, labels }: ExtractedDataPreviewProps) {
   const confidenceColors = {
     high: 'bg-green-100 text-green-800',
     medium: 'bg-yellow-100 text-yellow-800',
@@ -381,48 +412,48 @@ function ExtractedDataPreview({ data, onConfirm, onCancel }: ExtractedDataPrevie
   return (
     <div className="border rounded-lg p-4 bg-muted/30">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium">Extracted Product Data</h3>
+        <h3 className="font-medium">{labels.title}</h3>
         <Badge className={confidenceColors[data.confidence]}>
-          {data.confidence} confidence
+          {labels.confidence}
         </Badge>
       </div>
 
       <div className="grid gap-3 text-sm">
         {data.name && (
           <div>
-            <span className="text-muted-foreground">Name:</span>{' '}
+            <span className="text-muted-foreground">{labels.name}:</span>{' '}
             <span className="font-medium">{data.name}</span>
           </div>
         )}
         {data.brand && (
           <div>
-            <span className="text-muted-foreground">Brand:</span>{' '}
+            <span className="text-muted-foreground">{labels.brand}:</span>{' '}
             <span>{data.brand}</span>
           </div>
         )}
         {data.weightGrams && (
           <div className="flex items-center gap-1">
             <Weight className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Weight:</span>{' '}
+            <span className="text-muted-foreground">{labels.weight}:</span>{' '}
             <span>{data.weightGrams}g</span>
           </div>
         )}
         {data.priceValue && (
           <div className="flex items-center gap-1">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Price:</span>{' '}
+            <span className="text-muted-foreground">{labels.price}:</span>{' '}
             <span>{data.currency} {data.priceValue}</span>
           </div>
         )}
         {data.description && (
           <div>
-            <span className="text-muted-foreground">Description:</span>
+            <span className="text-muted-foreground">{labels.description}:</span>
             <p className="mt-1 text-xs line-clamp-3">{data.description}</p>
           </div>
         )}
         {data.imageUrl && (
           <div>
-            <span className="text-muted-foreground">Image:</span>
+            <span className="text-muted-foreground">{labels.image}:</span>
             <p className="mt-1 text-xs truncate text-blue-600">{data.imageUrl}</p>
           </div>
         )}
@@ -430,10 +461,10 @@ function ExtractedDataPreview({ data, onConfirm, onCancel }: ExtractedDataPrevie
 
       <div className="flex gap-2 mt-4">
         <Button onClick={onConfirm} className="flex-1">
-          Apply to Form
+          {labels.apply}
         </Button>
         <Button onClick={onCancel} variant="outline" className="flex-1">
-          Cancel
+          {labels.cancel}
         </Button>
       </div>
     </div>

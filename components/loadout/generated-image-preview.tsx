@@ -7,6 +7,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ export interface GeneratedImagePreviewProps {
  */
 export function GeneratedImagePreview({
   imageUrl,
-  altText = 'Generated loadout image',
+  altText,
   isLoading = false,
   loadoutTitle,
   itemCount,
@@ -59,6 +60,9 @@ export function GeneratedImagePreview({
   onClick,
   isPriority = false,
 }: GeneratedImagePreviewProps) {
+  const t = useTranslations('Loadouts.generatedImage');
+  const resolvedAltText = altText ?? t('altText');
+
   return (
     <div className={cn('w-full', className)}>
       <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg">
@@ -72,7 +76,7 @@ export function GeneratedImagePreview({
             onClick={onClick}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick ? 0 : undefined}
-            aria-label={onClick ? `View loadout image: ${altText}` : undefined}
+            aria-label={onClick ? `View loadout image: ${resolvedAltText}` : undefined}
             onKeyDown={(e) => {
               if (onClick && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
@@ -83,7 +87,7 @@ export function GeneratedImagePreview({
             {/* Background image */}
             <Image
               src={imageUrl}
-              alt={altText}
+              alt={resolvedAltText}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -116,7 +120,7 @@ export function GeneratedImagePreview({
                       textColorClass
                     )}
                   >
-                    {itemCount !== undefined && `${itemCount} items`}
+                    {itemCount !== undefined && t('itemCount', { count: itemCount })}
                     {itemCount !== undefined && totalWeight && ' • '}
                     {totalWeight}
                   </p>
@@ -127,7 +131,7 @@ export function GeneratedImagePreview({
         ) : (
           // No image placeholder
           <div className="flex h-full w-full items-center justify-center bg-muted">
-            <p className="text-sm text-muted-foreground">No image generated</p>
+            <p className="text-sm text-muted-foreground">{t('noImageGenerated')}</p>
           </div>
         )}
       </AspectRatio>

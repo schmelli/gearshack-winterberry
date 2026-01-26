@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ type ViewState = 'conversations' | 'conversation' | 'new' | 'search';
  * Uses Dialog on desktop, Sheet on mobile.
  */
 export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
+  const t = useTranslations('Messaging.modal');
   const [activeTab, setActiveTab] = useState<'messages' | 'friends'>('messages');
   const [viewState, setViewState] = useState<ViewState>('conversations');
   const [selectedConversation, setSelectedConversation] =
@@ -122,11 +124,11 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="messages" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              <span>Messages</span>
+              <span>{t('tabs.messages')}</span>
             </TabsTrigger>
             <TabsTrigger value="friends" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span>Friends</span>
+              <span>{t('tabs.friends')}</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -147,10 +149,10 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
                     onClick={() => setViewState('search')}
                   >
                     <Search className="mr-2 h-4 w-4" />
-                    Search messages...
+                    {t('searchMessages')}
                   </Button>
                   <Button size="sm" onClick={handleNewConversation}>
-                    New
+                    {t('new')}
                   </Button>
                 </div>
 
@@ -166,7 +168,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
                 {/* Conversation header */}
                 <div className="flex items-center gap-2 border-b p-3">
                   <Button variant="ghost" size="sm" onClick={handleBack}>
-                    Back
+                    {t('back')}
                   </Button>
                   <div className="flex-1">
                     <h3 className="font-medium">
@@ -193,16 +195,16 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
               <div className="flex h-full flex-col">
                 <div className="flex items-center gap-2 border-b p-3">
                   <Button variant="ghost" size="sm" onClick={handleBack}>
-                    Back
+                    {t('back')}
                   </Button>
-                  <h3 className="flex-1 font-medium">New Conversation</h3>
+                  <h3 className="flex-1 font-medium">{t('newConversation')}</h3>
                 </div>
 
                 <div className="flex-1 overflow-hidden p-4">
                   <UserSearch
                     onMessageUser={handleMessageFriend}
                     onViewProfile={(userId) => setProfileUserId(userId)}
-                    placeholder="Search for someone to message..."
+                    placeholder={t('searchForSomeone')}
                   />
                 </div>
               </div>
@@ -212,9 +214,9 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
               <div className="flex h-full flex-col">
                 <div className="flex items-center gap-2 border-b p-3">
                   <Button variant="ghost" size="sm" onClick={handleBack}>
-                    Back
+                    {t('back')}
                   </Button>
-                  <h3 className="flex-1 font-medium">Search Messages</h3>
+                  <h3 className="flex-1 font-medium">{t('searchMessagesTitle')}</h3>
                 </div>
 
                 <div className="flex-1 overflow-hidden p-4">

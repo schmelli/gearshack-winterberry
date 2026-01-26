@@ -276,10 +276,10 @@ export function ShakedownFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.anySeason')}</SelectItem>
-            <SelectItem value="spring">Spring</SelectItem>
-            <SelectItem value="summer">Summer</SelectItem>
-            <SelectItem value="fall">Fall</SelectItem>
-            <SelectItem value="winter">Winter</SelectItem>
+            <SelectItem value="spring">{t('filters.seasons.spring')}</SelectItem>
+            <SelectItem value="summer">{t('filters.seasons.summer')}</SelectItem>
+            <SelectItem value="fall">{t('filters.seasons.fall')}</SelectItem>
+            <SelectItem value="winter">{t('filters.seasons.winter')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -295,10 +295,10 @@ export function ShakedownFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filters.anyTripType')}</SelectItem>
-            <SelectItem value="day-hike">Day Hike</SelectItem>
-            <SelectItem value="overnight">Overnight</SelectItem>
-            <SelectItem value="multi-day">Multi-day</SelectItem>
-            <SelectItem value="thru-hike">Thru-hike</SelectItem>
+            <SelectItem value="day-hike">{t('filters.tripTypes.dayHike')}</SelectItem>
+            <SelectItem value="overnight">{t('filters.tripTypes.overnight')}</SelectItem>
+            <SelectItem value="multi-day">{t('filters.tripTypes.multiDay')}</SelectItem>
+            <SelectItem value="thru-hike">{t('filters.tripTypes.thruHike')}</SelectItem>
           </SelectContent>
         </Select>
       </div>

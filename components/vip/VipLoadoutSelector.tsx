@@ -164,7 +164,7 @@ export function VipLoadoutSelector({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{option.loadout.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      by {option.vip.name}
+                      {t('byVip', { name: option.vip.name })}
                     </p>
                   </div>
                 </button>

@@ -23,7 +23,16 @@
     "newMessage": "New message",
     "darkMode": "Dark mode",
     "lightMode": "Light mode",
-    "themeToggle": "Theme"
+    "themeToggle": "Theme",
+    "switchToGerman": "Switch to German",
+    "switchToEnglish": "Switch to English"
+  },
+  "SyncStatus": {
+    "syncing": "Syncing with cloud...",
+    "error": "Sync error: {error}",
+    "unknownError": "Unknown error",
+    "lastSynced": "Last synced: {time}",
+    "connected": "Connected to cloud"
   },
   "FeatureGate": {
     "comingSoon": "Coming Soon",
@@ -313,11 +322,6 @@
     },
     "addToWishlist": "Add to Wishlist",
     "quantityBadge": "x {quantity}",
-    "emptyState": {
-      "noResults": "No gear matches your filters",
-      "noResultsSubtext": "Try adjusting your search or category filter",
-      "clearFilters": "Clear all filters"
-    },
     "wishlist": {
       "title": "Wishlist",
       "myGear": "My Gear",
@@ -535,11 +539,48 @@
       "newItem": "Your New Item",
       "existingItem": "Existing Item",
       "matchScore": "{score}% match",
+      "quantity": "Qty: {count}",
       "actions": {
         "cancel": "Cancel",
         "increaseQuantity": "+1 to Existing",
         "saveAsNew": "Save as New"
       }
+    },
+    "brandAutocomplete": {
+      "searching": "Searching...",
+      "noResults": "No matching brands found. You can use a custom name.",
+      "sourceGearGraph": "GearGraph",
+      "sourceInventory": "Your Inventory"
+    },
+    "productAutocomplete": {
+      "searching": "Searching products...",
+      "matchScore": "{score}% match"
+    },
+    "smartSearch": {
+      "title": "Smart Product Search",
+      "description": "Search GearGraph catalog and web for product information",
+      "placeholder": "Enter product name...",
+      "search": "Search",
+      "fromCatalog": "From GearGraph Catalog",
+      "fromWeb": "From Web",
+      "found": "{count} found",
+      "extracting": "Extracting data from {domain}...",
+      "noResults": "No products found. Try a different search term.",
+      "rateLimited": "Daily internet search limit reached. Catalog results are still available.",
+      "rateLimitedUpgrade": "Upgrade to Trailblazer for unlimited searches.",
+      "match": "{score}% match",
+      "webBadge": "Web",
+      "extractedData": "Extracted Product Data",
+      "confidence": "{level} confidence",
+      "fields": {
+        "name": "Name",
+        "brand": "Brand",
+        "weight": "Weight",
+        "price": "Price",
+        "description": "Description",
+        "image": "Image"
+      },
+      "applyToForm": "Apply to Form"
     },
     "cloudImport": {
       "buttonLabel": "Import from Cloud",
@@ -550,6 +591,23 @@
       "noUrlReceived": "No image URL received from Cloudinary",
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
+    },
+    "imageUpload": {
+      "removingBackground": "Removing background...",
+      "uploadingToCloudinary": "Uploading to Cloudinary...",
+      "uploadSuccessful": "Upload successful!",
+      "dragAndDrop": "Drag and drop an image or click to browse",
+      "fileTypes": "PNG, JPG, WebP up to 10MB",
+      "removeBackground": "Remove Background",
+      "removeBackgroundDescription": "Automatically remove the image background using local processing",
+      "or": "Or",
+      "enterImageUrl": "Enter image URL or search for product images",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchTooltipEmpty": "Enter brand/product name first",
+      "useThisUrl": "Use this URL",
+      "uploading": "Uploading...",
+      "tryAgain": "Try Again"
     },
     "productSearch": {
       "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
@@ -631,6 +689,18 @@
       "noResults": "No images found. Try a different search term.",
       "removingBackground": "Removing background...",
       "uploading": "Uploading to Cloudinary..."
+    },
+    "imageUpload": {
+      "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
+      "fileTooLarge": "File size must be less than {maxSize}MB",
+      "uploadFailed": "Upload failed. Please try again.",
+      "pasteUrl": "Paste URL",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "imageSelected": "Image selected",
+      "removeImage": "Remove image",
+      "dragOrClick": "Click or drag image here",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
     }
   },
   "ManufacturerPrice": {
@@ -704,7 +774,12 @@
       "disabled": "Price monitoring disabled",
       "notifyEmail": "Notify via Email",
       "notifyApp": "Notify in App",
-      "tooltip": "Get notified when prices drop"
+      "tooltip": "Get notified when prices drop",
+      "enableNotifications": "Enable Notifications",
+      "notificationsEnabled": "Notifications enabled",
+      "notificationsDisabled": "Notifications disabled",
+      "updateFailed": "Failed to update price monitoring settings",
+      "notificationUpdateFailed": "Failed to update notification settings"
     },
     "urlImport": {
       "title": "Import from URL",
@@ -839,6 +914,18 @@
       "consumables": "Consumables"
     },
     "noActivities": "No activities specified",
+    "pdfLabels": {
+      "date": "Date",
+      "activities": "Activities",
+      "seasons": "Seasons",
+      "generated": "Generated",
+      "items": "Items",
+      "activitiesAndSeasons": "Activities & Seasons",
+      "pack": "Pack",
+      "worn": "Worn",
+      "consumable": "Consumable",
+      "notSet": "Not set"
+    },
     "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
     "addCommentFirst": "Add a comment before sending",
     "yes": "Yes",
@@ -852,11 +939,6 @@
       "worn": "Worn",
       "consumable": "Consumable",
       "baseWeight": "Base Weight"
-    },
-    "weightMode": {
-      "baseweight": "Baseweight",
-      "packWeight": "Pack Weight",
-      "toggleLabel": "Toggle between Baseweight and Pack Weight"
     },
     "noWornItemsInCategory": "No worn items in this category",
     "lighterAlternative": "Lighter option available",
@@ -921,12 +1003,30 @@
       "category": "Category",
       "allCategories": "All Categories"
     },
-    "heroImage": {
+    "fallbackImage": {
+      "altText": "Fallback loadout image",
+      "errorMessage": "Failed to generate image",
       "generatingImage": "Generating image...",
-      "imageUnavailable": "Image unavailable",
-      "tryAgain": "Try again",
-      "noImage": "No image",
-      "generateNewImage": "Generate new image"
+      "generationFailed": "Generation Failed",
+      "defaultImage": "Default Image",
+      "noImage": "No image"
+    },
+    "generatedImage": {
+      "altText": "Generated loadout image",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "noImageGenerated": "No image generated"
+    },
+    "imageGeneration": {
+      "generateImage": "Generate Image",
+      "generatingAriaLabel": "Generating image...",
+      "generating": "Generating..."
+    },
+    "imageHistory": {
+      "title": "Image History ({count}/{max})",
+      "selectImage": "Select image {number}",
+      "imageVariationAlt": "Generated image variation",
+      "maxHistoryReached": "Maximum history reached. Generating new images will replace the oldest.",
+      "clickToSelect": "Click an image to set it as active."
     },
     "stylePreferences": {
       "title": "Style Preferences",
@@ -937,7 +1037,49 @@
       "selectLighting": "Select lighting...",
       "atmosphereOptional": "Atmosphere (Optional)",
       "atmospherePlaceholder": "e.g., misty morning, dramatic clouds...",
-      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)"
+      "atmosphereHint": "Add custom atmosphere hints (max 50 characters)",
+      "templates": {
+        "default": "Default (Natural)",
+        "cinematic": {
+          "name": "Cinematic",
+          "description": "Dramatic, wide-angle, movie-like"
+        },
+        "documentary": {
+          "name": "Documentary",
+          "description": "Natural, realistic, photojournalistic"
+        },
+        "magazine": {
+          "name": "Magazine",
+          "description": "Polished, editorial, striking"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "description": "Vibrant, trendy, social media"
+        }
+      },
+      "timeOfDay": {
+        "default": "Default (Season-based)",
+        "goldenHour": {
+          "name": "Golden Hour",
+          "description": "Warm, low-angle sun"
+        },
+        "blueHour": {
+          "name": "Blue Hour",
+          "description": "Twilight, cool tones"
+        },
+        "midday": {
+          "name": "Midday",
+          "description": "Bright, high contrast"
+        },
+        "dawn": {
+          "name": "Dawn",
+          "description": "Early morning, soft"
+        },
+        "dusk": {
+          "name": "Dusk",
+          "description": "Sunset, fading light"
+        }
+      }
     }
   },
   "LoadoutCreation": {
@@ -1312,6 +1454,8 @@
       "offerExpires": "Expires: {date}",
       "alerts": {
         "title": "Alert Preferences",
+        "description": "Manage how and when you receive price tracking notifications",
+        "back": "Back",
         "priceDropEnabled": "Price Drop Alerts",
         "localShopEnabled": "Local Shop Alerts",
         "communityEnabled": "Community Alerts",
@@ -1339,7 +1483,80 @@
         "unauthorized": "You must be logged in to track prices",
         "notFound": "Item not found",
         "rateLimited": "Rate limit exceeded. Try again later."
+      },
+      "card": {
+        "titleDisabled": "Price Tracking",
+        "titleEnabled": "Price Tracking Enabled",
+        "description": "Enable price tracking to discover prices from online retailers, eBay, and local outdoor shops.",
+        "trackPrices": "Track Prices",
+        "priceDropAlerts": "Price drop alerts",
+        "searchPricesNow": "Search Prices Now",
+        "disable": "Disable"
       }
+    },
+    "communityAvailability": {
+      "title": "Community Availability",
+      "usersHaveItem": "{count, plural, =1 {# user has} other {# users have}} this item",
+      "peerPriceRange": "Peer price range: {range}",
+      "priceDataUnavailable": "Price data unavailable",
+      "messageUser": "Message user",
+      "viewInventory": "View inventory",
+      "seePriceComparison": "See price comparison"
+    },
+    "matchConfirmation": {
+      "title": "Confirm Product Match",
+      "description": "We found several possible matches for your item. Please select the correct product.",
+      "matchPercent": "{score}% match",
+      "skip": "Skip - Search manually later",
+      "cancel": "Cancel"
+    },
+    "priceAlerts": {
+      "title": "Price Drop Alerts",
+      "description": "Get notified when prices drop below the lowest recorded price"
+    },
+    "priceHistory": {
+      "stubTitle": "Price History",
+      "comingSoon": "Price history tracking coming soon"
+    },
+    "priceMonitoring": {
+      "title": "Price Monitoring",
+      "comingSoon": "Coming soon"
+    },
+    "personalOffer": {
+      "badge": "Personal Offer",
+      "expired": "Expired",
+      "invalidDate": "Invalid date",
+      "daysRemaining": "{days}d remaining",
+      "hoursMinutesRemaining": "{hours}h {minutes}m remaining",
+      "minutesRemaining": "{minutes}m remaining"
+    },
+    "priceResults": {
+      "lowest": "Lowest",
+      "local": "Local",
+      "shipping": "+ {price} shipping",
+      "total": "Total: {price}"
+    },
+    "retailPrices": {
+      "loading": "Loading prices...",
+      "noData": "No price data available yet",
+      "bestRetailPrices": "Best Retail Prices",
+      "best": "BEST",
+      "viewOffer": "View offer"
+    },
+    "priceComparison": {
+      "finding": "Finding prices...",
+      "exclusiveOffers": "Exclusive Personal Offers",
+      "from": "from {name}",
+      "save": "Save {percent}%",
+      "sourcesUnavailable": "Some sources unavailable: {sources}",
+      "noResults": "No prices found. Try adjusting the item name or check back later."
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "priceTrackingError": "An error occurred while loading price tracking features.",
+      "wishlistError": "Something went wrong with wishlist",
+      "unexpectedError": "An unexpected error occurred",
+      "tryAgain": "Try again"
     }
   },
   "Profile": {
@@ -1446,6 +1663,31 @@
       "sendMessage": "Send message",
       "addFriend": "Add friend",
       "unknown": "Unknown"
+    },
+    "modal": {
+      "tabs": {
+        "messages": "Messages",
+        "friends": "Friends"
+      },
+      "searchMessages": "Search messages...",
+      "new": "New",
+      "back": "Back",
+      "newConversation": "New Conversation",
+      "searchMessagesTitle": "Search Messages",
+      "searchForSomeone": "Search for someone to message..."
+    },
+    "messageBubble": {
+      "copy": "Copy",
+      "deleteForMe": "Delete for me",
+      "deleteForEveryone": "Delete for everyone",
+      "report": "Report",
+      "imageUnavailable": "Image unavailable",
+      "sharedImageAlt": "Shared image",
+      "voiceMessageUnavailable": "Voice message unavailable",
+      "sharedLocation": "Shared location",
+      "sharedGearItem": "Shared gear item",
+      "gearTradePost": "Gear trade post",
+      "tripInvitation": "Trip invitation"
     },
     "conversationView": {
       "sendFailed": "Failed to send message",
@@ -1793,10 +2035,11 @@
       "itemFeedback": "Item Feedback",
       "submitSuccess": "Feedback submitted successfully",
       "updateSuccess": "Feedback updated successfully",
-      "deleteSuccess": "Feedback deleted"
-    },
-    "placeholder": {
-      "addNote": "Add a note..."
+      "deleteSuccess": "Feedback deleted",
+      "edited": "edited",
+      "expertBadge": "Expert",
+      "deleteTitle": "Delete Feedback",
+      "deleteDescription": "This action cannot be undone. Your feedback will be permanently removed from this shakedown."
     },
     "actions": {
       "edit": "Edit Shakedown",
@@ -1829,12 +2072,7 @@
       "archiveFailed": "Failed to archive shakedown",
       "deleteSuccess": "Shakedown deleted",
       "deleteFailed": "Failed to delete shakedown",
-      "reportComingSoon": "Report functionality coming soon",
-      "editNote": "Edit Note",
-      "addNote": "Add Note",
-      "clearNote": "Clear Note",
-      "save": "Save",
-      "close": "Close"
+      "reportComingSoon": "Report functionality coming soon"
     },
     "filters": {
       "title": "Filters",
@@ -1855,7 +2093,19 @@
       "anyStatus": "Any Status",
       "anyExperience": "Any Experience",
       "anySeason": "Any Season",
-      "anyTripType": "Any Trip Type"
+      "anyTripType": "Any Trip Type",
+      "seasons": {
+        "spring": "Spring",
+        "summer": "Summer",
+        "fall": "Fall",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Day Hike",
+        "overnight": "Overnight",
+        "multiDay": "Multi-day",
+        "thruHike": "Thru-hike"
+      }
     },
     "detail": {
       "postedBy": "Posted by {author}",
@@ -1871,7 +2121,8 @@
       "viewDetails": "View item details",
       "noItemsMatch": "No items match your filters",
       "clearFilters": "Clear filters",
-      "items": "Items"
+      "items": "Items",
+      "shareToBulletinContent": "Check out my loadout shakedown: \"{tripName}\" - Looking for feedback!"
     },
     "gearToolbar": {
       "searchPlaceholder": "Search gear items...",
@@ -2074,7 +2325,10 @@
       "selectHelpful": "Select helpful feedback to recognize",
       "thankYouNote": "Thank You Note (optional)",
       "thankYouPlaceholder": "Express your appreciation...",
-      "confirm": "Complete & Thank Reviewers"
+      "confirm": "Complete & Thank Reviewers",
+      "noFeedback": "No feedback to review yet.",
+      "noFeedbackHint": "You can still complete the shakedown to close it.",
+      "completing": "Completing..."
     },
     "notifications": {
       "newFeedback": "{author} commented on your shakedown",
@@ -2175,6 +2429,29 @@
       "allUsersReceivedOffer": "All users have already received an offer for this product in the last 30 days",
       "usersSkipped": "{count} user(s) skipped - already received offer in last 30 days",
       "offersSent": "{count, plural, one {# offer} other {# offers}} sent"
+    },
+    "badge": {
+      "verified": "Verified",
+      "verifiedTooltip": "Verified merchant - identity and business confirmed",
+      "businessTypes": {
+        "local": "Local",
+        "localDescription": "Local store with physical location",
+        "chain": "Chain",
+        "chainDescription": "Retail chain with multiple locations",
+        "online": "Online",
+        "onlineDescription": "Online-only retailer"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "suspended": "Suspended",
+        "rejected": "Rejected"
+      }
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred in the merchant portal",
+      "tryAgain": "Try again"
     }
   },
   "MerchantLoadouts": {
@@ -2210,8 +2487,6 @@
     "loadingMore": "Loading more...",
     "filters": {
       "tripType": "Trip Type",
-      "allTripTypes": "All trip types",
-      "allSeasons": "All seasons",
       "priceRange": "Price Range",
       "merchant": "Merchant",
       "featured": "Featured Only",
@@ -3002,6 +3277,7 @@
       "selectYourLoadout": "Select your loadout",
       "noVipsFound": "No VIPs found",
       "noLoadoutsFound": "No loadouts found",
+      "byVip": "by {name}",
       "loadoutItems": "{count} items",
       "loadoutWeight": "{weight}",
       "loading": "Loading...",
@@ -3018,6 +3294,7 @@
       "metaDescription": "Explore {name}'s gear loadouts and outdoor expertise on GearShack",
       "curatedBanner": "{name}'s profile is maintained by the GearShack community",
       "verifiedBadge": "Verified",
+      "featured": "Featured",
       "followers": "{count, plural, one {follower} other {followers}}",
       "loadouts": "{count, plural, one {loadout} other {loadouts}}",
       "socialLinks": "Social Links",
@@ -3179,7 +3456,9 @@
       "processing": "Processing your voice...",
       "notAvailable": "Voice input not available",
       "errorRetry": "Voice input error - click to retry",
-      "label": "Voice input"
+      "label": "Voice input",
+      "recording": "Recording",
+      "loading": "Loading..."
     },
     "actions": {
       "addToWishlist": "Add to Wishlist",
@@ -3203,12 +3482,23 @@
     "ariaLabels": {
       "aiAssistant": "AI Assistant",
       "trailblazerFeature": "Trailblazer feature",
-      "play": "Play",
+      "cancelRecording": "Cancel recording",
       "pause": "Pause",
+      "play": "Play",
       "stop": "Stop",
       "volume": "Volume",
-      "cancelRecording": "Cancel recording",
-      "regenerateImage": "Regenerate image"
+      "playAudio": "Play audio"
+    },
+    "title": "AI Gear Assistant",
+    "subtitle": "Ask me anything about your gear",
+    "enableVoice": "Enable voice",
+    "disableVoice": "Disable voice",
+    "enableVoiceResponses": "Enable voice responses",
+    "disableVoiceResponses": "Disable voice responses",
+    "chat": {
+      "newConversation": "New Chat",
+      "title": "AI Gear Assistant",
+      "subtitle": "Ask me anything about your gear"
     }
   },
   "Admin": {
@@ -3231,6 +3521,19 @@
       "backToApp": "Back to App"
     },
     "categories": {
+      "pageTitle": "Category Management",
+      "pageDescription": "Manage the gear classification taxonomy",
+      "refreshIssues": "Refresh Issues",
+      "categoryIssues": "Category Issues",
+      "issuesCount": "{count} categories with issues detected",
+      "noIssuesFound": "No issues found. All categories have complete translations and structure.",
+      "highlightIssues": "Highlight issues",
+      "moreIssues": "+{count} more issues. Enable highlighting to see them in the tree.",
+      "totalCategories": "Total Categories",
+      "byLevel": "By Level",
+      "issues": "Issues",
+      "categoryHierarchy": "Category Hierarchy",
+      "hierarchyDescription": "Expand categories to view subcategories and product types. Use action buttons to edit, delete, or reorder.",
       "deleteTitle": "Delete Category",
       "confirmDeleteMessage": "Are you sure you want to delete <strong>{category}</strong>?",
       "cannotDeleteChildrenWarning": "You must delete all child categories first. Categories with children cannot be deleted.",
@@ -4360,5 +4663,50 @@
       },
       "feedbackHint": "You can report bugs or share feedback anytime via the Feedback option in your profile menu."
     }
+  },
+  "AlertPreferences": {
+    "loading": "Loading preferences...",
+    "loadError": "Failed to load preferences: {message}",
+    "channels": {
+      "title": "Notification Channels",
+      "description": "Choose how you want to receive price alerts",
+      "push": {
+        "label": "Push Notifications",
+        "description": "Receive instant alerts in your browser"
+      },
+      "email": {
+        "label": "Email Notifications",
+        "description": "Receive alerts via email"
+      }
+    },
+    "types": {
+      "title": "Alert Types",
+      "description": "Control which events trigger notifications",
+      "priceDrop": {
+        "label": "Price Drops",
+        "description": "Get notified when prices decrease"
+      },
+      "localShop": {
+        "label": "Local Shop Availability",
+        "description": "Alert when items are available nearby"
+      },
+      "community": {
+        "label": "Community Availability",
+        "description": "Alert when community members have the item"
+      },
+      "personalOffer": {
+        "label": "Personal Offers",
+        "description": "Get exclusive deals from partner retailers"
+      }
+    },
+    "quietHours": {
+      "title": "Quiet Hours",
+      "comingSoon": "Coming soon: Set hours when you don't want to receive notifications",
+      "description": "This feature will allow you to configure quiet hours (e.g., 10 PM - 7 AM) when notifications will be held until the next day."
+    }
+  },
+  "WeightDisplay": {
+    "also": "Also:",
+    "toggleUnit": "Toggle weight unit display"
   }
 }

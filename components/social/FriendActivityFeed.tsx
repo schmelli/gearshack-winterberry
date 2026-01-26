@@ -261,13 +261,13 @@ function ActivityFeedSkeleton({ count = 5 }: { count?: number }) {
 // Filter Options
 // =============================================================================
 
-const FILTER_OPTIONS: { value: SocialActivityTypeFilter; label: string }[] = [
-  { value: 'all', label: 'All Activity' },
-  { value: 'new_loadout', label: 'New Loadouts' },
-  { value: 'loadout_shared', label: 'Shared Loadouts' },
-  { value: 'marketplace_listing', label: 'Marketplace' },
-  { value: 'gear_added', label: 'New Gear' },
-  { value: 'friend_added', label: 'New Friends' },
+const FILTER_OPTION_KEYS: { value: SocialActivityTypeFilter; labelKey: string }[] = [
+  { value: 'all', labelKey: 'activity.filterAll' },
+  { value: 'new_loadout', labelKey: 'activity.filterNewLoadouts' },
+  { value: 'loadout_shared', labelKey: 'activity.filterSharedLoadouts' },
+  { value: 'marketplace_listing', labelKey: 'activity.filterMarketplace' },
+  { value: 'gear_added', labelKey: 'activity.filterNewGear' },
+  { value: 'friend_added', labelKey: 'activity.filterNewFriends' },
 ];
 
 // =============================================================================
@@ -297,7 +297,8 @@ export function FriendActivityFeed({
   const canLoadMore = hasMore && (!limit || activities.length < limit);
 
   // Get current filter label
-  const currentFilterLabel = FILTER_OPTIONS.find((o) => o.value === filter)?.label ?? 'All Activity';
+  const currentFilterLabelKey = FILTER_OPTION_KEYS.find((o) => o.value === filter)?.labelKey ?? 'activity.filterAll';
+  const currentFilterLabel = t(currentFilterLabelKey);
 
   // Handle refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -372,13 +373,13 @@ export function FriendActivityFeed({
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{t('activity.filterBy')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {FILTER_OPTIONS.map((option) => (
+                  {FILTER_OPTION_KEYS.map((option) => (
                     <DropdownMenuItem
                       key={option.value}
                       onClick={() => setFilter(option.value)}
                       className={cn(filter === option.value && 'bg-muted')}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

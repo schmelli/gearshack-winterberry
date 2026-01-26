@@ -23,7 +23,16 @@
     "newMessage": "Neue Nachricht",
     "darkMode": "Dunkelmodus",
     "lightMode": "Hellmodus",
-    "themeToggle": "Design"
+    "themeToggle": "Design",
+    "switchToGerman": "Zu Deutsch wechseln",
+    "switchToEnglish": "Zu Englisch wechseln"
+  },
+  "SyncStatus": {
+    "syncing": "Synchronisiere mit Cloud...",
+    "error": "Sync-Fehler: {error}",
+    "unknownError": "Unbekannter Fehler",
+    "lastSynced": "Zuletzt synchronisiert: {time}",
+    "connected": "Mit Cloud verbunden"
   },
   "FeatureGate": {
     "comingSoon": "Demnächst verfügbar",
@@ -313,11 +322,7 @@
     },
     "addToWishlist": "Zur Wunschliste hinzufügen",
     "quantityBadge": "x {quantity}",
-    "emptyState": {
-      "noResults": "Keine Ausrüstung entspricht deinen Filtern",
-      "noResultsSubtext": "Versuche, deine Such- oder Kategoriefilter anzupassen",
-      "clearFilters": "Alle Filter löschen"
-    },
+    "quantityTooltip": "Anzahl: {quantity}",
     "wishlist": {
       "title": "Wunschliste",
       "myGear": "Meine Ausrüstung",
@@ -535,11 +540,48 @@
       "newItem": "Dein neuer Gegenstand",
       "existingItem": "Vorhandener Gegenstand",
       "matchScore": "{score}% Übereinstimmung",
+      "quantity": "Anz.: {count}",
       "actions": {
         "cancel": "Abbrechen",
         "increaseQuantity": "+1 zum Vorhandenen",
         "saveAsNew": "Als neu speichern"
       }
+    },
+    "brandAutocomplete": {
+      "searching": "Suche...",
+      "noResults": "Keine passenden Marken gefunden. Du kannst einen eigenen Namen verwenden.",
+      "sourceGearGraph": "GearGraph",
+      "sourceInventory": "Dein Inventar"
+    },
+    "productAutocomplete": {
+      "searching": "Produkte werden gesucht...",
+      "matchScore": "{score}% Übereinstimmung"
+    },
+    "smartSearch": {
+      "title": "Intelligente Produktsuche",
+      "description": "GearGraph-Katalog und Web nach Produktinformationen durchsuchen",
+      "placeholder": "Produktname eingeben...",
+      "search": "Suchen",
+      "fromCatalog": "Aus GearGraph-Katalog",
+      "fromWeb": "Aus dem Web",
+      "found": "{count} gefunden",
+      "extracting": "Daten werden von {domain} extrahiert...",
+      "noResults": "Keine Produkte gefunden. Versuche einen anderen Suchbegriff.",
+      "rateLimited": "Tägliches Internet-Suchlimit erreicht. Katalogergebnisse sind weiterhin verfügbar.",
+      "rateLimitedUpgrade": "Upgrade auf Trailblazer für unbegrenzte Suchen.",
+      "match": "{score}% Übereinstimmung",
+      "webBadge": "Web",
+      "extractedData": "Extrahierte Produktdaten",
+      "confidence": "{level} Konfidenz",
+      "fields": {
+        "name": "Name",
+        "brand": "Marke",
+        "weight": "Gewicht",
+        "price": "Preis",
+        "description": "Beschreibung",
+        "image": "Bild"
+      },
+      "applyToForm": "Auf Formular anwenden"
     },
     "cloudImport": {
       "buttonLabel": "Aus Cloud importieren",
@@ -550,6 +592,23 @@
       "noUrlReceived": "Keine Bild-URL von Cloudinary erhalten",
       "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
       "importFailed": "Import fehlgeschlagen"
+    },
+    "imageUpload": {
+      "removingBackground": "Hintergrund wird entfernt...",
+      "uploadingToCloudinary": "Hochladen zu Cloudinary...",
+      "uploadSuccessful": "Upload erfolgreich!",
+      "dragAndDrop": "Bild hierher ziehen oder klicken zum Durchsuchen",
+      "fileTypes": "PNG, JPG, WebP bis zu 10MB",
+      "removeBackground": "Hintergrund entfernen",
+      "removeBackgroundDescription": "Hintergrund automatisch mit lokaler Verarbeitung entfernen",
+      "or": "Oder",
+      "enterImageUrl": "Bild-URL eingeben oder nach Produktbildern suchen",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Nach \"{query}\" suchen",
+      "searchTooltipEmpty": "Zuerst Marke/Produktname eingeben",
+      "useThisUrl": "Diese URL verwenden",
+      "uploading": "Hochladen...",
+      "tryAgain": "Erneut versuchen"
     },
     "productSearch": {
       "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
@@ -631,6 +690,18 @@
       "noResults": "Keine Bilder gefunden. Versuche einen anderen Suchbegriff.",
       "removingBackground": "Hintergrund wird entfernt...",
       "uploading": "Wird hochgeladen..."
+    },
+    "imageUpload": {
+      "invalidFileType": "Bitte wähle eine gültige Bilddatei (JPG, PNG, WebP oder GIF)",
+      "fileTooLarge": "Die Dateigröße muss unter {maxSize}MB liegen",
+      "uploadFailed": "Upload fehlgeschlagen. Bitte versuche es erneut.",
+      "pasteUrl": "URL einfügen",
+      "upload": "Hochladen",
+      "uploading": "Wird hochgeladen...",
+      "imageSelected": "Bild ausgewählt",
+      "removeImage": "Bild entfernen",
+      "dragOrClick": "Klicken oder Bild hierher ziehen",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)"
     }
   },
   "ManufacturerPrice": {
@@ -704,7 +775,12 @@
       "disabled": "Preisüberwachung deaktiviert",
       "notifyEmail": "Per E-Mail benachrichtigen",
       "notifyApp": "In der App benachrichtigen",
-      "tooltip": "Benachrichtigung bei Preissenkung erhalten"
+      "tooltip": "Benachrichtigung bei Preissenkung erhalten",
+      "enableNotifications": "Benachrichtigungen aktivieren",
+      "notificationsEnabled": "Benachrichtigungen aktiviert",
+      "notificationsDisabled": "Benachrichtigungen deaktiviert",
+      "updateFailed": "Fehler beim Aktualisieren der Preisüberwachung",
+      "notificationUpdateFailed": "Fehler beim Aktualisieren der Benachrichtigungseinstellungen"
     },
     "urlImport": {
       "title": "Von URL importieren",
@@ -790,6 +866,9 @@
       "description": "Beschreibung",
       "myNotes": "Meine Notizen",
       "visitWebsite": "Website besuchen"
+    },
+    "actions": {
+      "edit": "Bearbeiten"
     }
   },
   "Loadouts": {
@@ -836,6 +915,18 @@
       "consumables": "Verbrauchsgüter"
     },
     "noActivities": "Keine Aktivitäten angegeben",
+    "pdfLabels": {
+      "date": "Datum",
+      "activities": "Aktivitäten",
+      "seasons": "Jahreszeiten",
+      "generated": "Erstellt",
+      "items": "Gegenstände",
+      "activitiesAndSeasons": "Aktivitäten & Jahreszeiten",
+      "pack": "Packen",
+      "worn": "Getragen",
+      "consumable": "Verbrauchsgut",
+      "notSet": "Nicht festgelegt"
+    },
     "backToLoadouts": "Zurück zu Packlisten",
     "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
     "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
@@ -853,11 +944,6 @@
       "worn": "Getragen",
       "consumable": "Verbrauchbar",
       "baseWeight": "Basisgewicht"
-    },
-    "weightMode": {
-      "baseweight": "Basisgewicht",
-      "packWeight": "Packgewicht",
-      "toggleLabel": "Zwischen Basisgewicht und Packgewicht umschalten"
     },
     "lighterAlternative": "Leichtere Option verfügbar",
     "lighterAlternativeTooltip": "Du hast einen leichteren {productType} im Inventar: {itemName} ({weight})",
@@ -921,23 +1007,83 @@
       "category": "Kategorie",
       "allCategories": "Alle Kategorien"
     },
-    "heroImage": {
+    "fallbackImage": {
+      "altText": "Platzhalter-Packlisten-Bild",
+      "errorMessage": "Bildgenerierung fehlgeschlagen",
       "generatingImage": "Bild wird generiert...",
-      "imageUnavailable": "Bild nicht verfügbar",
-      "tryAgain": "Erneut versuchen",
-      "noImage": "Kein Bild",
-      "generateNewImage": "Neues Bild generieren"
+      "generationFailed": "Generierung fehlgeschlagen",
+      "defaultImage": "Standardbild",
+      "noImage": "Kein Bild"
+    },
+    "generatedImage": {
+      "altText": "Generiertes Packlisten-Bild",
+      "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
+      "noImageGenerated": "Kein Bild generiert"
+    },
+    "imageGeneration": {
+      "generateImage": "Bild generieren",
+      "generatingAriaLabel": "Bild wird generiert...",
+      "generating": "Generieren..."
+    },
+    "imageHistory": {
+      "title": "Bildverlauf ({count}/{max})",
+      "selectImage": "Bild {number} auswählen",
+      "imageVariationAlt": "Generierte Bildvariante",
+      "maxHistoryReached": "Maximaler Verlauf erreicht. Neue Bilder ersetzen die ältesten.",
+      "clickToSelect": "Klicke auf ein Bild, um es zu aktivieren."
     },
     "stylePreferences": {
-      "title": "Stil-Präferenzen",
+      "title": "Stileinstellungen",
       "subtitle": "Passe den visuellen Stil deines generierten Bildes an",
       "visualStyle": "Visueller Stil",
       "selectStyle": "Stil auswählen...",
       "lightingTimeOfDay": "Beleuchtung / Tageszeit",
       "selectLighting": "Beleuchtung auswählen...",
       "atmosphereOptional": "Atmosphäre (Optional)",
-      "atmospherePlaceholder": "z.B., nebligen Morgen, dramatische Wolken...",
-      "atmosphereHint": "Füge benutzerdefinierte Atmosphären-Hinweise hinzu (max. 50 Zeichen)"
+      "atmospherePlaceholder": "z.B. nebeliger Morgen, dramatische Wolken...",
+      "atmosphereHint": "Füge benutzerdefinierte Atmosphäre-Hinweise hinzu (max. 50 Zeichen)",
+      "templates": {
+        "default": "Standard (Natürlich)",
+        "cinematic": {
+          "name": "Filmisch",
+          "description": "Dramatisch, Weitwinkel, filmreif"
+        },
+        "documentary": {
+          "name": "Dokumentarisch",
+          "description": "Natürlich, realistisch, fotojournalistisch"
+        },
+        "magazine": {
+          "name": "Magazin",
+          "description": "Poliert, redaktionell, auffällig"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "description": "Lebendig, trendy, Social Media"
+        }
+      },
+      "timeOfDay": {
+        "default": "Standard (Saisonabhängig)",
+        "goldenHour": {
+          "name": "Goldene Stunde",
+          "description": "Warm, tiefstehende Sonne"
+        },
+        "blueHour": {
+          "name": "Blaue Stunde",
+          "description": "Dämmerung, kühle Töne"
+        },
+        "midday": {
+          "name": "Mittag",
+          "description": "Hell, hoher Kontrast"
+        },
+        "dawn": {
+          "name": "Morgendämmerung",
+          "description": "Früher Morgen, weich"
+        },
+        "dusk": {
+          "name": "Abenddämmerung",
+          "description": "Sonnenuntergang, schwindendes Licht"
+        }
+      }
     }
   },
   "LoadoutCreation": {
@@ -1312,6 +1458,8 @@
       "offerExpires": "Läuft ab: {date}",
       "alerts": {
         "title": "Alarm-Einstellungen",
+        "description": "Verwalte, wie und wann du Preisverfolgungs-Benachrichtigungen erhältst",
+        "back": "Zurück",
         "priceDropEnabled": "Preissenkungsalarme",
         "localShopEnabled": "Lokale Shop-Alarme",
         "communityEnabled": "Community-Alarme",
@@ -1339,7 +1487,80 @@
         "unauthorized": "Du musst angemeldet sein, um Preise zu verfolgen",
         "notFound": "Artikel nicht gefunden",
         "rateLimited": "Ratenlimit überschritten. Bitte später erneut versuchen."
+      },
+      "card": {
+        "titleDisabled": "Preisverfolgung",
+        "titleEnabled": "Preisverfolgung aktiviert",
+        "description": "Aktiviere die Preisverfolgung, um Preise von Online-Händlern, eBay und lokalen Outdoor-Shops zu finden.",
+        "trackPrices": "Preise verfolgen",
+        "priceDropAlerts": "Preissenkungsalarme",
+        "searchPricesNow": "Jetzt Preise suchen",
+        "disable": "Deaktivieren"
       }
+    },
+    "communityAvailability": {
+      "title": "Community-Verfügbarkeit",
+      "usersHaveItem": "{count, plural, =1 {# Nutzer hat} other {# Nutzer haben}} diesen Artikel",
+      "peerPriceRange": "Preisspanne der Community: {range}",
+      "priceDataUnavailable": "Keine Preisdaten verfügbar",
+      "messageUser": "Nutzer kontaktieren",
+      "viewInventory": "Inventar ansehen",
+      "seePriceComparison": "Preisvergleich ansehen"
+    },
+    "matchConfirmation": {
+      "title": "Produktübereinstimmung bestätigen",
+      "description": "Wir haben mehrere mögliche Übereinstimmungen für deinen Artikel gefunden. Bitte wähle das richtige Produkt aus.",
+      "matchPercent": "{score}% Übereinstimmung",
+      "skip": "Überspringen - Später manuell suchen",
+      "cancel": "Abbrechen"
+    },
+    "priceAlerts": {
+      "title": "Preissenkungsalarme",
+      "description": "Werde benachrichtigt, wenn die Preise unter den niedrigsten aufgezeichneten Preis fallen"
+    },
+    "priceHistory": {
+      "stubTitle": "Preisverlauf",
+      "comingSoon": "Preisverlauf-Verfolgung kommt bald"
+    },
+    "priceMonitoring": {
+      "title": "Preisüberwachung",
+      "comingSoon": "Demnächst verfügbar"
+    },
+    "personalOffer": {
+      "badge": "Persönliches Angebot",
+      "expired": "Abgelaufen",
+      "invalidDate": "Ungültiges Datum",
+      "daysRemaining": "{days}T verbleibend",
+      "hoursMinutesRemaining": "{hours}Std {minutes}Min verbleibend",
+      "minutesRemaining": "{minutes}Min verbleibend"
+    },
+    "priceResults": {
+      "lowest": "Niedrigster",
+      "local": "Lokal",
+      "shipping": "+ {price} Versand",
+      "total": "Gesamt: {price}"
+    },
+    "retailPrices": {
+      "loading": "Preise werden geladen...",
+      "noData": "Noch keine Preisdaten verfügbar",
+      "bestRetailPrices": "Beste Einzelhandelspreise",
+      "best": "BESTER",
+      "viewOffer": "Angebot ansehen"
+    },
+    "priceComparison": {
+      "finding": "Preise werden gesucht...",
+      "exclusiveOffers": "Exklusive persönliche Angebote",
+      "from": "von {name}",
+      "save": "Spare {percent}%",
+      "sourcesUnavailable": "Einige Quellen nicht verfügbar: {sources}",
+      "noResults": "Keine Preise gefunden. Versuche, den Artikelnamen anzupassen, oder komm später wieder."
+    },
+    "errorBoundary": {
+      "title": "Etwas ist schiefgelaufen",
+      "priceTrackingError": "Beim Laden der Preisverfolgungsfunktionen ist ein Fehler aufgetreten.",
+      "wishlistError": "Bei der Wunschliste ist etwas schiefgelaufen",
+      "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten",
+      "tryAgain": "Erneut versuchen"
     }
   },
   "Profile": {
@@ -1446,6 +1667,31 @@
       "sendMessage": "Nachricht senden",
       "addFriend": "Als Freund hinzufügen",
       "unknown": "Unbekannt"
+    },
+    "modal": {
+      "tabs": {
+        "messages": "Nachrichten",
+        "friends": "Freunde"
+      },
+      "searchMessages": "Nachrichten suchen...",
+      "new": "Neu",
+      "back": "Zurück",
+      "newConversation": "Neue Konversation",
+      "searchMessagesTitle": "Nachrichten suchen",
+      "searchForSomeone": "Nach jemandem suchen, um eine Nachricht zu senden..."
+    },
+    "messageBubble": {
+      "copy": "Kopieren",
+      "deleteForMe": "Für mich löschen",
+      "deleteForEveryone": "Für alle löschen",
+      "report": "Melden",
+      "imageUnavailable": "Bild nicht verfügbar",
+      "sharedImageAlt": "Geteiltes Bild",
+      "voiceMessageUnavailable": "Sprachnachricht nicht verfügbar",
+      "sharedLocation": "Geteilter Standort",
+      "sharedGearItem": "Geteilte Ausrüstung",
+      "gearTradePost": "Ausrüstungstausch-Post",
+      "tripInvitation": "Trip-Einladung"
     },
     "conversationView": {
       "sendFailed": "Nachricht konnte nicht gesendet werden",
@@ -1793,10 +2039,11 @@
       "itemFeedback": "Artikel-Feedback",
       "submitSuccess": "Feedback erfolgreich gesendet",
       "updateSuccess": "Feedback erfolgreich aktualisiert",
-      "deleteSuccess": "Feedback gelöscht"
-    },
-    "placeholder": {
-      "addNote": "Notiz hinzufügen..."
+      "deleteSuccess": "Feedback gelöscht",
+      "edited": "bearbeitet",
+      "expertBadge": "Experte",
+      "deleteTitle": "Feedback löschen",
+      "deleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Dein Feedback wird dauerhaft von diesem Shakedown entfernt."
     },
     "actions": {
       "edit": "Shakedown bearbeiten",
@@ -1829,12 +2076,7 @@
       "archiveFailed": "Shakedown konnte nicht archiviert werden",
       "deleteSuccess": "Shakedown gelöscht",
       "deleteFailed": "Shakedown konnte nicht gelöscht werden",
-      "reportComingSoon": "Meldefunktion kommt bald",
-      "editNote": "Notiz bearbeiten",
-      "addNote": "Notiz hinzufügen",
-      "clearNote": "Notiz löschen",
-      "save": "Speichern",
-      "close": "Schließen"
+      "reportComingSoon": "Meldefunktion kommt bald"
     },
     "filters": {
       "title": "Filter",
@@ -1855,7 +2097,19 @@
       "anyStatus": "Beliebiger Status",
       "anyExperience": "Beliebige Erfahrung",
       "anySeason": "Beliebige Jahreszeit",
-      "anyTripType": "Beliebige Tourart"
+      "anyTripType": "Beliebige Tourart",
+      "seasons": {
+        "spring": "Frühling",
+        "summer": "Sommer",
+        "fall": "Herbst",
+        "winter": "Winter"
+      },
+      "tripTypes": {
+        "dayHike": "Tagestour",
+        "overnight": "Übernachtung",
+        "multiDay": "Mehrtägig",
+        "thruHike": "Fernwanderung"
+      }
     },
     "detail": {
       "postedBy": "Gepostet von {author}",
@@ -1871,7 +2125,8 @@
       "viewDetails": "Artikeldetails anzeigen",
       "noItemsMatch": "Keine Artikel entsprechen deinen Filtern",
       "clearFilters": "Filter zurücksetzen",
-      "items": "Gegenstände"
+      "items": "Gegenstände",
+      "shareToBulletinContent": "Schau dir meinen Loadout-Shakedown an: \"{tripName}\" - Ich freue mich über Feedback!"
     },
     "gearToolbar": {
       "searchPlaceholder": "Ausrüstung suchen...",
@@ -2074,7 +2329,10 @@
       "selectHelpful": "Wähle hilfreiches Feedback zur Anerkennung aus",
       "thankYouNote": "Dankesnachricht (optional)",
       "thankYouPlaceholder": "Drücke deine Wertschätzung aus...",
-      "confirm": "Abschließen & Reviewern danken"
+      "confirm": "Abschließen & Reviewern danken",
+      "noFeedback": "Noch kein Feedback zum Überprüfen vorhanden.",
+      "noFeedbackHint": "Du kannst den Shakedown trotzdem abschließen.",
+      "completing": "Wird abgeschlossen..."
     },
     "notifications": {
       "newFeedback": "{author} hat deinen Shakedown kommentiert",
@@ -2175,6 +2433,29 @@
       "allUsersReceivedOffer": "Alle Benutzer haben in den letzten 30 Tagen bereits ein Angebot für dieses Produkt erhalten",
       "usersSkipped": "{count} Benutzer übersprungen - haben in den letzten 30 Tagen bereits ein Angebot erhalten",
       "offersSent": "{count, plural, one {# Angebot} other {# Angebote}} gesendet"
+    },
+    "badge": {
+      "verified": "Verifiziert",
+      "verifiedTooltip": "Verifizierter Händler - Identität und Geschäft bestätigt",
+      "businessTypes": {
+        "local": "Lokal",
+        "localDescription": "Lokales Geschäft mit physischem Standort",
+        "chain": "Kette",
+        "chainDescription": "Einzelhandelskette mit mehreren Standorten",
+        "online": "Online",
+        "onlineDescription": "Reiner Online-Händler"
+      },
+      "status": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "suspended": "Gesperrt",
+        "rejected": "Abgelehnt"
+      }
+    },
+    "errorBoundary": {
+      "title": "Etwas ist schief gelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist im Händlerportal aufgetreten",
+      "tryAgain": "Erneut versuchen"
     }
   },
   "MerchantLoadouts": {
@@ -2210,8 +2491,6 @@
     "loadingMore": "Lade mehr...",
     "filters": {
       "tripType": "Reiseart",
-      "allTripTypes": "Alle Reisearten",
-      "allSeasons": "Alle Jahreszeiten",
       "priceRange": "Preisspanne",
       "merchant": "Händler",
       "featured": "Nur Empfohlene",
@@ -3002,6 +3281,7 @@
       "selectYourLoadout": "Dein Loadout auswählen",
       "noVipsFound": "Keine VIPs gefunden",
       "noLoadoutsFound": "Keine Loadouts gefunden",
+      "byVip": "von {name}",
       "loadoutItems": "{count} Artikel",
       "loadoutWeight": "{weight}",
       "loading": "Laden...",
@@ -3018,6 +3298,7 @@
       "metaDescription": "Entdecke {name}s Ausrüstungs-Loadouts und Outdoor-Expertise auf GearShack",
       "curatedBanner": "{name}s Profil wird von der GearShack-Community gepflegt",
       "verifiedBadge": "Verifiziert",
+      "featured": "Empfohlen",
       "followers": "{count, plural, one {Follower} other {Follower}}",
       "loadouts": "{count, plural, one {Loadout} other {Loadouts}}",
       "socialLinks": "Soziale Links",
@@ -3179,7 +3460,9 @@
       "processing": "Verarbeite deine Sprache...",
       "notAvailable": "Spracheingabe nicht verfügbar",
       "errorRetry": "Spracheingabe-Fehler – klicken zum Wiederholen",
-      "label": "Spracheingabe"
+      "label": "Spracheingabe",
+      "recording": "Aufnahme",
+      "loading": "Laden..."
     },
     "actions": {
       "addToWishlist": "Zur Wunschliste",
@@ -3203,12 +3486,23 @@
     "ariaLabels": {
       "aiAssistant": "KI-Assistent",
       "trailblazerFeature": "Trailblazer-Funktion",
-      "play": "Abspielen",
+      "cancelRecording": "Aufnahme abbrechen",
       "pause": "Pause",
+      "play": "Wiedergabe",
       "stop": "Stopp",
       "volume": "Lautstärke",
-      "cancelRecording": "Aufnahme abbrechen",
-      "regenerateImage": "Bild neu generieren"
+      "playAudio": "Audio abspielen"
+    },
+    "title": "KI-Ausrüstungsassistent",
+    "subtitle": "Frag mich alles über deine Ausrüstung",
+    "enableVoice": "Sprache aktivieren",
+    "disableVoice": "Sprache deaktivieren",
+    "enableVoiceResponses": "Sprachantworten aktivieren",
+    "disableVoiceResponses": "Sprachantworten deaktivieren",
+    "chat": {
+      "newConversation": "Neuer Chat",
+      "title": "KI-Ausrüstungsassistent",
+      "subtitle": "Frag mich alles über deine Ausrüstung"
     }
   },
   "Admin": {
@@ -3231,6 +3525,19 @@
       "backToApp": "Zurück zur App"
     },
     "categories": {
+      "pageTitle": "Kategorieverwaltung",
+      "pageDescription": "Verwalte die Ausrüstungsklassifizierungs-Taxonomie",
+      "refreshIssues": "Probleme aktualisieren",
+      "categoryIssues": "Kategorieprobleme",
+      "issuesCount": "{count} Kategorien mit erkannten Problemen",
+      "noIssuesFound": "Keine Probleme gefunden. Alle Kategorien haben vollständige Übersetzungen und Struktur.",
+      "highlightIssues": "Probleme hervorheben",
+      "moreIssues": "+{count} weitere Probleme. Aktiviere die Hervorhebung, um sie im Baum zu sehen.",
+      "totalCategories": "Kategorien gesamt",
+      "byLevel": "Nach Ebene",
+      "issues": "Probleme",
+      "categoryHierarchy": "Kategoriehierarchie",
+      "hierarchyDescription": "Erweitere Kategorien, um Unterkategorien und Produkttypen anzuzeigen. Benutze die Aktionsschaltflächen zum Bearbeiten, Löschen oder Neuordnen.",
       "deleteTitle": "Kategorie löschen",
       "confirmDeleteMessage": "Bist du sicher, dass du <strong>{category}</strong> löschen möchtest?",
       "cannotDeleteChildrenWarning": "Du musst zuerst alle Unterkategorien löschen. Kategorien mit Unterkategorien können nicht gelöscht werden.",
@@ -4367,5 +4674,50 @@
       },
       "feedbackHint": "Du kannst jederzeit Fehler melden oder Feedback teilen über die Feedback-Option in deinem Profilmenü."
     }
+  },
+  "AlertPreferences": {
+    "loading": "Einstellungen werden geladen...",
+    "loadError": "Einstellungen konnten nicht geladen werden: {message}",
+    "channels": {
+      "title": "Benachrichtigungskanäle",
+      "description": "Wähle, wie du Preisbenachrichtigungen erhalten möchtest",
+      "push": {
+        "label": "Push-Benachrichtigungen",
+        "description": "Erhalte sofortige Benachrichtigungen in deinem Browser"
+      },
+      "email": {
+        "label": "E-Mail-Benachrichtigungen",
+        "description": "Erhalte Benachrichtigungen per E-Mail"
+      }
+    },
+    "types": {
+      "title": "Benachrichtigungstypen",
+      "description": "Wähle, welche Ereignisse Benachrichtigungen auslösen",
+      "priceDrop": {
+        "label": "Preissenkungen",
+        "description": "Werde benachrichtigt, wenn Preise sinken"
+      },
+      "localShop": {
+        "label": "Verfügbarkeit im lokalen Geschäft",
+        "description": "Benachrichtigung, wenn Artikel in der Nähe verfügbar sind"
+      },
+      "community": {
+        "label": "Community-Verfügbarkeit",
+        "description": "Benachrichtigung, wenn Community-Mitglieder den Artikel haben"
+      },
+      "personalOffer": {
+        "label": "Persönliche Angebote",
+        "description": "Erhalte exklusive Angebote von Partnerhändlern"
+      }
+    },
+    "quietHours": {
+      "title": "Ruhezeiten",
+      "comingSoon": "Demnächst: Lege Zeiten fest, in denen du keine Benachrichtigungen erhalten möchtest",
+      "description": "Mit dieser Funktion kannst du Ruhezeiten konfigurieren (z.B. 22:00 - 7:00 Uhr), in denen Benachrichtigungen bis zum nächsten Tag zurückgehalten werden."
+    }
+  },
+  "WeightDisplay": {
+    "also": "Auch:",
+    "toggleUnit": "Gewichtseinheit wechseln"
   }
 }

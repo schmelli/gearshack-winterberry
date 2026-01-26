@@ -12,6 +12,7 @@
 
 import { ReactNode } from 'react';
 import { Users, UserPlus, Heart, Bell, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -50,52 +51,46 @@ interface EmptyStateCardProps {
 // Configuration
 // =============================================================================
 
-interface EmptyStateConfig {
+interface EmptyStateConfigKeys {
   icon: ReactNode;
-  title: string;
-  description: string;
-  ctaText?: string;
+  titleKey: string;
+  descriptionKey: string;
+  ctaTextKey?: string;
 }
 
-const emptyStateConfigs: Record<Exclude<EmptyStateType, 'custom'>, EmptyStateConfig> = {
+const emptyStateConfigKeys: Record<Exclude<EmptyStateType, 'custom'>, EmptyStateConfigKeys> = {
   following: {
     icon: <UserPlus className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'Not following anyone yet',
-    description:
-      'Start following community members to see their updates and activities in your feed.',
-    ctaText: 'Discover People',
+    titleKey: 'emptyState.following.title',
+    descriptionKey: 'emptyState.following.description',
+    ctaTextKey: 'emptyState.following.cta',
   },
   followers: {
     icon: <Users className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'No followers yet',
-    description:
-      'Share your loadouts and engage with the community to attract followers.',
+    titleKey: 'emptyState.followers.title',
+    descriptionKey: 'emptyState.followers.description',
   },
   friends: {
     icon: <Heart className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'No friends yet',
-    description:
-      'Send friend requests to users you\'ve exchanged messages with to build your network.',
-    ctaText: 'Start Messaging',
+    titleKey: 'emptyState.friends.title',
+    descriptionKey: 'emptyState.friends.description',
+    ctaTextKey: 'emptyState.friends.cta',
   },
   'friend-requests': {
     icon: <UserPlus className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'No pending requests',
-    description:
-      'Friend requests you send or receive will appear here.',
+    titleKey: 'emptyState.friendRequests.title',
+    descriptionKey: 'emptyState.friendRequests.description',
   },
   activity: {
     icon: <Bell className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'No activity yet',
-    description:
-      'Activity from your friends will appear here. Add friends to see their updates!',
-    ctaText: 'Find Friends',
+    titleKey: 'emptyState.activity.title',
+    descriptionKey: 'emptyState.activity.description',
+    ctaTextKey: 'emptyState.activity.cta',
   },
   search: {
     icon: <Search className="h-12 w-12 text-muted-foreground/50" />,
-    title: 'No results found',
-    description:
-      'Try adjusting your search or filters to find what you\'re looking for.',
+    titleKey: 'emptyState.search.title',
+    descriptionKey: 'emptyState.search.description',
   },
 };
 
@@ -112,14 +107,16 @@ export function EmptyStateCard({
   onCtaClick,
   className,
 }: EmptyStateCardProps) {
+  const t = useTranslations('Social');
+
   // Get config based on type
-  const config = type === 'custom' ? null : emptyStateConfigs[type];
+  const config = type === 'custom' ? null : emptyStateConfigKeys[type];
 
   // Use custom values or fall back to config
   const displayIcon = icon ?? config?.icon;
-  const displayTitle = title ?? config?.title ?? 'Nothing to show';
-  const displayDescription = description ?? config?.description ?? 'No items available.';
-  const displayCtaText = ctaText ?? config?.ctaText;
+  const displayTitle = title ?? (config?.titleKey ? t(config.titleKey) : t('emptyState.default.title'));
+  const displayDescription = description ?? (config?.descriptionKey ? t(config.descriptionKey) : t('emptyState.default.description'));
+  const displayCtaText = ctaText ?? (config?.ctaTextKey ? t(config.ctaTextKey) : undefined);
 
   return (
     <Card className={cn('border-dashed', className)}>

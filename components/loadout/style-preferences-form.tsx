@@ -82,36 +82,36 @@ export function StylePreferencesForm({
             <SelectValue placeholder={t('selectStyle')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Default (Natural)</SelectItem>
+            <SelectItem value="">{t('templates.default')}</SelectItem>
             <SelectItem value="cinematic">
               <div>
-                <div className="font-medium">Cinematic</div>
+                <div className="font-medium">{t('templates.cinematic.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Dramatic, wide-angle, movie-like
+                  {t('templates.cinematic.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="documentary">
               <div>
-                <div className="font-medium">Documentary</div>
+                <div className="font-medium">{t('templates.documentary.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Natural, realistic, photojournalistic
+                  {t('templates.documentary.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="magazine">
               <div>
-                <div className="font-medium">Magazine</div>
+                <div className="font-medium">{t('templates.magazine.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Polished, editorial, striking
+                  {t('templates.magazine.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="instagram">
               <div>
-                <div className="font-medium">Instagram</div>
+                <div className="font-medium">{t('templates.instagram.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Vibrant, trendy, social media
+                  {t('templates.instagram.description')}
                 </div>
               </div>
             </SelectItem>
@@ -130,44 +130,44 @@ export function StylePreferencesForm({
             <SelectValue placeholder={t('selectLighting')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Default (Season-based)</SelectItem>
+            <SelectItem value="">{t('timeOfDay.default')}</SelectItem>
             <SelectItem value="golden_hour">
               <div>
-                <div className="font-medium">Golden Hour</div>
+                <div className="font-medium">{t('timeOfDay.goldenHour.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Warm, low-angle sun
+                  {t('timeOfDay.goldenHour.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="blue_hour">
               <div>
-                <div className="font-medium">Blue Hour</div>
+                <div className="font-medium">{t('timeOfDay.blueHour.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Twilight, cool tones
+                  {t('timeOfDay.blueHour.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="midday">
               <div>
-                <div className="font-medium">Midday</div>
+                <div className="font-medium">{t('timeOfDay.midday.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Bright, high contrast
+                  {t('timeOfDay.midday.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="dawn">
               <div>
-                <div className="font-medium">Dawn</div>
+                <div className="font-medium">{t('timeOfDay.dawn.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Early morning, soft
+                  {t('timeOfDay.dawn.description')}
                 </div>
               </div>
             </SelectItem>
             <SelectItem value="dusk">
               <div>
-                <div className="font-medium">Dusk</div>
+                <div className="font-medium">{t('timeOfDay.dusk.name')}</div>
                 <div className="text-xs text-muted-foreground">
-                  Sunset, fading light
+                  {t('timeOfDay.dusk.description')}
                 </div>
               </div>
             </SelectItem>

@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,6 +85,7 @@ export function MessageBubble({
   onCopy,
   onViewGear,
 }: MessageBubbleProps) {
+  const t = useTranslations('Messaging.messageBubble');
   const [showActions, setShowActions] = useState(false);
 
   const sender = message.sender;
@@ -159,7 +161,11 @@ export function MessageBubble({
           )}
         >
           {/* Message content based on type */}
-          {renderMessageContent(message, isOwnMessage, onViewGear)}
+          <MessageContent
+            message={message}
+            isOwnMessage={isOwnMessage}
+            onViewGear={onViewGear}
+          />
 
           {/* Actions dropdown */}
           <div
@@ -199,7 +205,7 @@ export function MessageBubble({
                 {message.content && (
                   <DropdownMenuItem onClick={handleCopy}>
                     <Copy className="mr-2 h-4 w-4" />
-                    Copy
+                    {t('copy')}
                   </DropdownMenuItem>
                 )}
 
@@ -207,14 +213,14 @@ export function MessageBubble({
                   <>
                     <DropdownMenuItem onClick={() => onDelete(false)}>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete for me
+                      {t('deleteForMe')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(true)}
                       className="text-destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete for everyone
+                      {t('deleteForEveryone')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -222,7 +228,7 @@ export function MessageBubble({
                 {!isOwnMessage && onReport && (
                   <DropdownMenuItem onClick={onReport} className="text-destructive">
                     <Flag className="mr-2 h-4 w-4" />
-                    Report
+                    {t('report')}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -267,11 +273,15 @@ export function MessageBubble({
   );
 }
 
-function renderMessageContent(
-  message: MessageWithSender,
-  isOwnMessage: boolean,
-  onViewGear?: (gearItemId: string) => void
-) {
+interface MessageContentProps {
+  message: MessageWithSender;
+  isOwnMessage: boolean;
+  onViewGear?: (gearItemId: string) => void;
+}
+
+function MessageContent({ message, isOwnMessage, onViewGear }: MessageContentProps) {
+  const t = useTranslations('Messaging.messageBubble');
+
   switch (message.message_type) {
     case 'text':
       return <p className="whitespace-pre-wrap break-words">{message.content}</p>;
@@ -279,14 +289,14 @@ function renderMessageContent(
     case 'image':
       // SECURITY: Only render images from trusted CDN domains
       if (!isValidMediaUrl(message.media_url)) {
-        return <span className="text-sm text-muted-foreground">Image unavailable</span>;
+        return <span className="text-sm text-muted-foreground">{t('imageUnavailable')}</span>;
       }
       return (
         <div className="overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={message.media_url ?? ''}
-            alt="Shared image"
+            alt={t('sharedImageAlt')}
             className="max-h-64 max-w-full object-contain"
           />
           {message.content && (
@@ -307,7 +317,7 @@ function renderMessageContent(
           />
         );
       }
-      return <span className="text-sm">Voice message unavailable</span>;
+      return <span className="text-sm">{t('voiceMessageUnavailable')}</span>;
     }
 
     case 'location': {
@@ -320,7 +330,7 @@ function renderMessageContent(
           />
         );
       }
-      return <span className="text-sm">Shared location</span>;
+      return <span className="text-sm">{t('sharedLocation')}</span>;
     }
 
     case 'gear_reference': {
@@ -334,13 +344,13 @@ function renderMessageContent(
           />
         );
       }
-      return <span className="text-sm">Shared gear item</span>;
+      return <span className="text-sm">{t('sharedGearItem')}</span>;
     }
 
     case 'gear_trade':
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm">Gear trade post</span>
+          <span className="text-sm">{t('gearTradePost')}</span>
           {/* Trade post will be added in Phase 14 */}
         </div>
       );
@@ -348,7 +358,7 @@ function renderMessageContent(
     case 'trip_invitation':
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm">Trip invitation</span>
+          <span className="text-sm">{t('tripInvitation')}</span>
           {/* Trip invite will be added in Phase 14 */}
         </div>
       );

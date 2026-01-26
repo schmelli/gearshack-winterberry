@@ -92,7 +92,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   // Issue #77: Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Feature: Admin Feature Activation - check which features are enabled
-  const { isFeatureEnabled, isLoading: isFlagsLoading } = useFeatureFlags();
+  const { isFeatureEnabled } = useFeatureFlags();
 
   // Derive feature-enabled flags (always check, even while loading - defaults to disabled)
   const isMessagingEnabled = isFeatureEnabled('messaging');

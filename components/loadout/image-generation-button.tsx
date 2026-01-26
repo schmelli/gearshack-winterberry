@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,25 +41,28 @@ export function ImageGenerationButton({
   isGenerating = false,
   variant = 'default',
   className,
-  label = 'Generate Image',
+  label,
 }: ImageGenerationButtonProps) {
+  const t = useTranslations('Loadouts.imageGeneration');
+  const resolvedLabel = label ?? t('generateImage');
+
   return (
     <Button
       onClick={onClick}
       disabled={disabled || isGenerating}
       variant={variant}
       className={cn('gap-2', className)}
-      aria-label={isGenerating ? 'Generating image...' : label}
+      aria-label={isGenerating ? t('generatingAriaLabel') : resolvedLabel}
     >
       {isGenerating ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          <span>Generating...</span>
+          <span>{t('generating')}</span>
         </>
       ) : (
         <>
           <Sparkles className="h-4 w-4" aria-hidden="true" />
-          <span>{label}</span>
+          <span>{resolvedLabel}</span>
         </>
       )}
     </Button>

@@ -170,7 +170,7 @@ export function UserLoadoutSelector({
                     <p className="font-medium truncate">{loadout.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatWeightFromGrams(loadout.totalWeightGrams, 'g')} •{' '}
-                      {loadout.items.length} items
+                      {t('loadoutItems', { count: loadout.items.length })}
                     </p>
                   </div>
                 </button>

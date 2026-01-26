@@ -105,7 +105,7 @@ export function VipProfileHeader({
               </div>
             )}
             {vip.isFeatured && (
-              <Badge variant="secondary">Featured</Badge>
+              <Badge variant="secondary">{t('profile.featured')}</Badge>
             )}
           </div>
 

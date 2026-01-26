@@ -9,6 +9,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   LineChart,
   Line,
@@ -40,6 +41,8 @@ export function PriceHistoryChart({
   currency = 'USD',
   className,
 }: PriceHistoryChartProps) {
+  const t = useTranslations('PriceHistory');
+
   // Format data for recharts
   const chartData = useMemo(() => {
     return history.map((entry) => ({
@@ -90,7 +93,7 @@ export function PriceHistoryChart({
     return (
       <Card className={className}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Price History</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[200px] w-full" />
@@ -103,7 +106,7 @@ export function PriceHistoryChart({
     return (
       <Card className={className}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Price History</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -116,11 +119,11 @@ export function PriceHistoryChart({
     return (
       <Card className={className}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Price History</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No price history yet. Prices are recorded daily.
+            {t('noHistory')}
           </p>
         </CardContent>
       </Card>
@@ -131,7 +134,7 @@ export function PriceHistoryChart({
     <Card className={className}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">Price History</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
           <div className={cn(
             'flex items-center gap-1 text-xs font-medium',
             trend === 'down' && 'text-green-600',
@@ -141,9 +144,9 @@ export function PriceHistoryChart({
             {trend === 'down' && <TrendingDown className="h-3 w-3" />}
             {trend === 'up' && <TrendingUp className="h-3 w-3" />}
             {trend === 'stable' && <Minus className="h-3 w-3" />}
-            {trend === 'down' && 'Price dropping'}
-            {trend === 'up' && 'Price rising'}
-            {trend === 'stable' && 'Stable'}
+            {trend === 'down' && t('trend.dropping')}
+            {trend === 'up' && t('trend.rising')}
+            {trend === 'stable' && t('trend.stable')}
           </div>
         </div>
 
@@ -151,13 +154,13 @@ export function PriceHistoryChart({
         {stats && (
           <div className="flex gap-4 text-xs text-muted-foreground mt-2">
             <span>
-              Low: <span className="font-medium text-green-600">{formatCurrency(stats.lowest)}</span>
+              {t('stats.low')}: <span className="font-medium text-green-600">{formatCurrency(stats.lowest)}</span>
             </span>
             <span>
-              Avg: <span className="font-medium">{formatCurrency(stats.current)}</span>
+              {t('stats.avg')}: <span className="font-medium">{formatCurrency(stats.current)}</span>
             </span>
             <span>
-              High: <span className="font-medium text-red-600">{formatCurrency(stats.highest)}</span>
+              {t('stats.high')}: <span className="font-medium text-red-600">{formatCurrency(stats.highest)}</span>
             </span>
           </div>
         )}
@@ -196,7 +199,7 @@ export function PriceHistoryChart({
               <Line
                 type="monotone"
                 dataKey="lowest"
-                name="Lowest"
+                name={t('legend.lowest')}
                 stroke="#22c55e"
                 strokeWidth={2}
                 dot={false}
@@ -204,7 +207,7 @@ export function PriceHistoryChart({
               <Line
                 type="monotone"
                 dataKey="average"
-                name="Average"
+                name={t('legend.average')}
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
@@ -212,7 +215,7 @@ export function PriceHistoryChart({
               <Line
                 type="monotone"
                 dataKey="highest"
-                name="Highest"
+                name={t('legend.highest')}
                 stroke="#ef4444"
                 strokeWidth={1}
                 strokeDasharray="3 3"

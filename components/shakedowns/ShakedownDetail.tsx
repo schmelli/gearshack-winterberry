@@ -186,7 +186,7 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
 
       const result = await createPost(
         {
-          content: `Check out my loadout shakedown: "${shakedown.tripName}" - Looking for feedback!`,
+          content: tDetail('shareToBulletinContent', { tripName: shakedown.tripName }),
           tag: 'shakedown',
           linked_content_type: 'shakedown',
           linked_content_id: shakedown.id,
@@ -213,7 +213,7 @@ export function ShakedownDetail({ shakedownId, shareToken }: ShakedownDetailProp
     } finally {
       setIsSharing(false);
     }
-  }, [shakedown, user, authProfile, createPost, t, tActions, tCommon]);
+  }, [shakedown, user, authProfile, createPost, t, tActions, tCommon, tDetail]);
 
   const handleItemClick = useCallback((item: SelectedGearItem) => {
     setSelectedItem(item);

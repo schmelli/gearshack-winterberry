@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { AlertPreferencesForm } from '@/components/settings/AlertPreferencesForm';
 import { useAlertPreferences } from '@/hooks/price-tracking/useAlertPreferences';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
 
 export default function AlertSettingsPage() {
+  const t = useTranslations('Wishlist.priceTracking.alerts');
   const router = useRouter();
   const { preferences, isLoading, error, updatePreferences } = useAlertPreferences();
 
@@ -26,14 +28,14 @@ export default function AlertSettingsPage() {
           onClick={() => router.back()}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('back')}
         </Button>
       </div>
 
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Alert Preferences</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage how and when you receive price tracking notifications
+          {t('description')}
         </p>
       </div>
 

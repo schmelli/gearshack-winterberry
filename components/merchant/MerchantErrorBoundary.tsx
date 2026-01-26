@@ -25,6 +25,12 @@ import { AlertTriangle, RefreshCw, Store } from 'lucide-react';
 // Types
 // =============================================================================
 
+interface MerchantErrorBoundaryLabels {
+  title?: string;
+  defaultMessage?: string;
+  tryAgain?: string;
+}
+
 interface MerchantErrorBoundaryProps {
   /** Child components to render */
   children: ReactNode;
@@ -36,6 +42,8 @@ interface MerchantErrorBoundaryProps {
   onReset?: () => void;
   /** Custom title for the error message */
   title?: string;
+  /** i18n labels for error boundary */
+  labels?: MerchantErrorBoundaryLabels;
 }
 
 interface MerchantErrorBoundaryState {
@@ -96,7 +104,14 @@ export class MerchantErrorBoundary extends Component<
 
   render(): ReactNode {
     const { hasError, error } = this.state;
-    const { children, fallback, title } = this.props;
+    const { children, fallback, title, labels } = this.props;
+
+    // Merge default labels with provided ones
+    const mergedLabels = {
+      title: title || labels?.title || 'Something went wrong',
+      defaultMessage: labels?.defaultMessage || 'An unexpected error occurred in the merchant portal',
+      tryAgain: labels?.tryAgain || 'Try again',
+    };
 
     if (hasError) {
       // Custom fallback UI if provided
@@ -114,10 +129,10 @@ export class MerchantErrorBoundary extends Component<
             </div>
           </div>
           <h3 className="mb-2 text-base font-medium text-amber-800 dark:text-amber-200">
-            {title || 'Something went wrong'}
+            {mergedLabels.title}
           </h3>
           <p className="mb-6 text-sm text-amber-700/80 dark:text-amber-300/70 max-w-sm">
-            {error?.message || 'An unexpected error occurred in the merchant portal'}
+            {error?.message || mergedLabels.defaultMessage}
           </p>
           <Button
             variant="outline"
@@ -126,7 +141,7 @@ export class MerchantErrorBoundary extends Component<
             className="gap-2 border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"
           >
             <RefreshCw className="h-4 w-4" />
-            Try again
+            {mergedLabels.tryAgain}
           </Button>
         </div>
       );
@@ -148,6 +163,7 @@ export interface MerchantErrorFallbackProps {
   error: Error;
   resetErrorBoundary: () => void;
   title?: string;
+  labels?: MerchantErrorBoundaryLabels;
 }
 
 /**
@@ -158,7 +174,15 @@ export function MerchantErrorFallback({
   error,
   resetErrorBoundary,
   title,
+  labels,
 }: MerchantErrorFallbackProps): ReactNode {
+  // Merge default labels with provided ones
+  const mergedLabels = {
+    title: title || labels?.title || 'Something went wrong',
+    defaultMessage: labels?.defaultMessage || 'An unexpected error occurred in the merchant portal',
+    tryAgain: labels?.tryAgain || 'Try again',
+  };
+
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20 p-8 text-center">
       <div className="mb-4 rounded-full bg-amber-100 dark:bg-amber-900/50 p-4">
@@ -168,10 +192,10 @@ export function MerchantErrorFallback({
         </div>
       </div>
       <h3 className="mb-2 text-base font-medium text-amber-800 dark:text-amber-200">
-        {title || 'Something went wrong'}
+        {mergedLabels.title}
       </h3>
       <p className="mb-6 text-sm text-amber-700/80 dark:text-amber-300/70 max-w-sm">
-        {error.message || 'An unexpected error occurred in the merchant portal'}
+        {error.message || mergedLabels.defaultMessage}
       </p>
       <Button
         variant="outline"
@@ -180,7 +204,7 @@ export function MerchantErrorFallback({
         className="gap-2 border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"
       >
         <RefreshCw className="h-4 w-4" />
-        Try again
+        {mergedLabels.tryAgain}
       </Button>
     </div>
   );

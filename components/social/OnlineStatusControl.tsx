@@ -146,9 +146,9 @@ function CardStatusControl({ className }: { className?: string }) {
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Your Status</CardTitle>
+        <CardTitle className="text-base">{t('presence.yourStatus')}</CardTitle>
         <CardDescription>
-          Set how you appear to other users
+          {t('presence.appearDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -180,10 +180,10 @@ function CardStatusControl({ className }: { className?: string }) {
 
         {/* Status descriptions */}
         <div className="mt-4 text-xs text-muted-foreground">
-          {status === 'online' && 'You appear online to everyone.'}
-          {status === 'away' && 'You appear as away. Auto-set after 5 min inactivity.'}
-          {status === 'invisible' && 'You appear offline but can still use the app.'}
-          {status === 'offline' && 'You appear offline to everyone.'}
+          {status === 'online' && t('presence.onlineDesc')}
+          {status === 'away' && t('presence.awayDesc')}
+          {status === 'invisible' && t('presence.invisibleDesc')}
+          {status === 'offline' && t('presence.offlineDesc')}
         </div>
       </CardContent>
     </Card>
@@ -230,7 +230,7 @@ export function StatusMenuItems({ onStatusChange }: StatusMenuItemProps) {
   return (
     <>
       <DropdownMenuLabel className="text-xs text-muted-foreground">
-        Status
+        {t('presence.status')}
       </DropdownMenuLabel>
       {STATUS_OPTIONS.slice(0, 3).map(({ value, icon: Icon, colorClass }) => (
         <DropdownMenuItem
