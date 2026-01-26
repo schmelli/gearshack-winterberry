@@ -94,7 +94,7 @@ export async function searchSimilarMessages(
       'search_similar_messages',
       {
         p_user_id: userId,
-        p_query_embedding: JSON.stringify(queryEmbedding),
+        p_query_embedding: queryEmbedding,
         p_limit: config.topK,
         p_threshold: config.threshold,
       }
