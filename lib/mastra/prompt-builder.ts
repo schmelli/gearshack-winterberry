@@ -10,6 +10,11 @@
  */
 
 import type { UserContext } from '@/types/ai-assistant';
+import type { GearshackUserProfile } from './schemas/working-memory';
+import {
+  formatWorkingMemoryForPrompt,
+  buildWorkingMemoryInstructions,
+} from './memory/working-memory-adapter';
 
 // =============================================================================
 // Localized Content Types
@@ -666,6 +671,10 @@ export interface PromptContext {
   };
   gearList?: string;
   catalogResults?: string;
+  /** Working memory profile (three-tier memory system) */
+  workingMemoryProfile?: GearshackUserProfile;
+  /** Semantic recall context from past conversations */
+  semanticRecallContext?: string;
 }
 
 // =============================================================================
@@ -699,6 +708,24 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 1. Core Identity and Role
   sections.push(content.identity);
+
+  // 1b. Working Memory (three-tier memory system)
+  if (context.workingMemoryProfile) {
+    const workingMemorySection = formatWorkingMemoryForPrompt(
+      context.workingMemoryProfile,
+      locale
+    );
+    sections.push(`\n${workingMemorySection}`);
+
+    // Add working memory update instructions
+    const wmInstructions = buildWorkingMemoryInstructions(locale);
+    sections.push(wmInstructions);
+  }
+
+  // 1c. Semantic Recall context from past conversations
+  if (context.semanticRecallContext) {
+    sections.push(context.semanticRecallContext);
+  }
 
   // 2. Current Context Awareness
   const contextInfo: string[] = [];

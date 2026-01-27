@@ -54,7 +54,17 @@ import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-// MIGRATED TO MASTRA AGENT: import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
+// Three-tier memory system (Feature 002-mastra-memory-system)
+import {
+  getWorkingMemory,
+  saveWorkingMemory,
+} from '@/lib/mastra/memory/working-memory-adapter';
+import {
+  searchSimilarMessages,
+  embedAndStoreMessage,
+  formatSemanticRecallForPrompt,
+} from '@/lib/mastra/memory/semantic-recall';
+import type { GearshackUserProfile } from '@/lib/mastra/schemas/working-memory';
 import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
@@ -117,6 +127,10 @@ interface MemoryContext {
   adapter: SupabaseMemoryAdapter | null;
   history: Array<{ role: string; content: string }>;
   userContext: MastraUserContext | null;
+  /** Three-tier memory: Working memory profile */
+  workingMemoryProfile: GearshackUserProfile | null;
+  /** Three-tier memory: Semantic recall context string */
+  semanticRecallContext: string | null;
   warning?: string;
 }
 
@@ -204,34 +218,67 @@ async function fetchMemoryContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   conversationId: string,
-  currentLoadoutId?: string
+  currentLoadoutId?: string,
+  currentMessage?: string
 ): Promise<MemoryContext> {
   const getElapsed = createTimer();
 
   try {
     const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
+    const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
 
-    logDebug('Fetching conversation history and user context', {
+    logDebug('Fetching three-tier memory context', {
       userId,
       conversationId,
       metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
     });
 
-    // Fetch conversation history and cached user context in parallel
-    const [messages, cachedContext] = await Promise.all([
+    // Fetch all three memory tiers in parallel with error boundaries:
+    // 1. Conversation history (thread-scoped)
+    // 2. User context cache
+    // 3. Working memory profile (resource-scoped)
+    // 4. Semantic recall (resource-scoped, needs current message)
+    // Using Promise.allSettled for graceful degradation if any tier fails
+    const results = await Promise.allSettled([
       adapter.getMessages({
         userId,
         conversationId,
         limit: MEMORY_HISTORY_LIMIT,
       }),
       adapter.getUserContext(userId, conversationId),
+      getWorkingMemory(supabaseClient, userId),
+      currentMessage
+        ? searchSimilarMessages(supabaseClient, userId, currentMessage)
+        : Promise.resolve([]),
     ]);
+
+    // Extract results with fallbacks
+    const messages = results[0].status === 'fulfilled' ? results[0].value : [];
+    const cachedContext = results[1].status === 'fulfilled' ? results[1].value : null;
+    const workingMemoryProfile = results[2].status === 'fulfilled' ? results[2].value : null;
+    const semanticMatches = results[3].status === 'fulfilled' ? results[3].value : [];
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const tierNames = ['conversation history', 'user context', 'working memory', 'semantic recall'];
+        logWarn(`${tierNames[index]} fetch failed, continuing without`, {
+          userId,
+          metadata: { error: result.reason instanceof Error ? result.reason.message : 'Unknown' },
+        });
+      }
+    });
 
     // Reverse to get chronological order (oldest first)
     const history = messages.reverse().map(msg => ({
       role: msg.role,
       content: msg.content,
     }));
+
+    // Format semantic recall results for prompt injection
+    const semanticRecallContext = semanticMatches.length > 0
+      ? formatSemanticRecallForPrompt(semanticMatches)
+      : null;
 
     // Check if cached context exists and is fresh
     let userContext: MastraUserContext | null = null;
@@ -240,7 +287,6 @@ async function fetchMemoryContext(
     if (cachedContext) {
       const cachedUserContext = cachedContext as MastraUserContext;
 
-      // Check if any cached context is fresh (inventory, wishlist, or loadout)
       const hasValidCache =
         (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
         (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
@@ -258,12 +304,11 @@ async function fetchMemoryContext(
       logDebug('Building fresh user context', { userId, conversationId });
 
       userContext = await buildUserContext(
-        supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>,
+        supabaseClient,
         userId,
         currentLoadoutId
       );
 
-      // Extract preferences from conversation history
       if (history.length > 0 && userContext.preferences) {
         userContext.preferences = extractPreferencesFromConversation(
           history,
@@ -271,17 +316,18 @@ async function fetchMemoryContext(
         );
       }
 
-      // Store updated context in memory
       await adapter.storeUserContext(userId, conversationId, userContext);
       logDebug('User context cached in memory', { userId, conversationId });
     }
 
-    logInfo('Memory retrieval completed', {
+    logInfo('Three-tier memory retrieval completed', {
       userId,
       conversationId,
       metadata: {
         messageCount: history.length,
         userContextCached: !!userContext,
+        workingMemoryLoaded: !!workingMemoryProfile,
+        semanticMatchCount: semanticMatches.length,
         latencyMs: getElapsed(),
       },
     });
@@ -291,6 +337,8 @@ async function fetchMemoryContext(
       adapter,
       history,
       userContext,
+      workingMemoryProfile,
+      semanticRecallContext,
     };
   } catch (error) {
     // T029: Graceful degradation - continue without memory
@@ -308,6 +356,8 @@ async function fetchMemoryContext(
       adapter: null,
       history: [],
       userContext: null,
+      workingMemoryProfile: null,
+      semanticRecallContext: null,
       warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
     };
   }
@@ -322,6 +372,8 @@ function detectCorrectionIntent(message: string): boolean {
 
 /**
  * T026: Save messages to memory after response
+ *
+ * @returns Object with message IDs for embedding generation
  */
 async function saveToMemory(
   adapter: SupabaseMemoryAdapter | null,
@@ -330,10 +382,10 @@ async function saveToMemory(
   userMessage: string,
   assistantResponse: string,
   isCorrection: boolean
-): Promise<void> {
+): Promise<{ userMessageId: string; assistantMessageId: string } | null> {
   if (!adapter) {
     logDebug('Skipping memory save - adapter unavailable', { userId, conversationId });
-    return;
+    return null;
   }
 
   const getElapsed = createTimer();
@@ -342,9 +394,13 @@ async function saveToMemory(
     const now = new Date();
     const metadata = isCorrection ? { isCorrection: true } : {};
 
+    // Generate UUIDs that will be used for both saving and embedding
+    const userMessageId = crypto.randomUUID();
+    const assistantMessageId = crypto.randomUUID();
+
     await adapter.saveMessages([
       {
-        id: crypto.randomUUID(), // BUGFIX: Use pure UUID without prefix for database compatibility
+        id: userMessageId,
         userId,
         conversationId,
         role: 'user',
@@ -354,7 +410,7 @@ async function saveToMemory(
         updatedAt: now,
       },
       {
-        id: crypto.randomUUID(), // BUGFIX: Use pure UUID without prefix for database compatibility
+        id: assistantMessageId,
         userId,
         conversationId,
         role: 'assistant',
@@ -373,6 +429,8 @@ async function saveToMemory(
         latencyMs: getElapsed(),
       },
     });
+
+    return { userMessageId, assistantMessageId };
   } catch (error) {
     // Log but don't fail the request
     logError('Failed to save messages to memory', error, {
@@ -380,6 +438,7 @@ async function saveToMemory(
       conversationId,
       metadata: { latencyMs: getElapsed() },
     });
+    return null;
   }
 }
 
@@ -394,7 +453,9 @@ async function buildPromptContext(
   mastraUserContext: MastraUserContext | null,
   memoryWarning?: string,
   subscriptionTier?: 'standard' | 'trailblazer',
-  parsedQuery?: ParsedQuery
+  parsedQuery?: ParsedQuery,
+  workingMemoryProfile?: GearshackUserProfile | null,
+  semanticRecallContext?: string | null
 ): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
@@ -413,6 +474,9 @@ async function buildPromptContext(
 
   const promptContext: PromptContext = {
     userContext: promptUserContext,
+    // Three-tier memory: inject working memory and semantic recall
+    workingMemoryProfile: workingMemoryProfile ?? undefined,
+    semanticRecallContext: semanticRecallContext ?? undefined,
   };
 
   // Add user context summary to system prompt (Issue #110)
@@ -596,12 +660,13 @@ export async function POST(request: Request): Promise<Response> {
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
 
     // Rate limiting and memory context fetch in parallel
+    // Pass current message for semantic recall search
     const [rateLimitResult, memoryContextResult] = await Promise.all([
       checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
         'memory_retrieval',
-        () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId),
+        () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId, message),
         { userId: user.id }
       ).then(r => r.result),
     ]);
@@ -679,7 +744,9 @@ export async function POST(request: Request): Promise<Response> {
       memoryContext.userContext,
       memoryContext.warning,
       undefined, // subscriptionTier
-      parsedQuery // Pass parsed query for constraint-aware prompting
+      parsedQuery, // Pass parsed query for constraint-aware prompting
+      memoryContext.workingMemoryProfile, // Three-tier: working memory
+      memoryContext.semanticRecallContext // Three-tier: semantic recall
     );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
@@ -812,17 +879,73 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // Save to memory after successful response (T026)
+          // Also generate embeddings for semantic recall and persist working memory
+          const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
           await traceWorkflowStep(
             `chat-${conversationId}`,
             'memory_save',
-            () => saveToMemory(
-              memoryContext.adapter,
-              user.id,
-              conversationId,
-              message,
-              fullResponse,
-              isCorrection
-            ),
+            async () => {
+              // Save conversation messages and get their IDs
+              const messageIds = await saveToMemory(
+                memoryContext.adapter,
+                user.id,
+                conversationId,
+                message,
+                fullResponse,
+                isCorrection
+              );
+
+              // Generate embeddings for both messages (non-blocking)
+              // This enables semantic recall to find these messages in future conversations
+              // BUGFIX: Use the actual message IDs returned from saveToMemory
+              if (messageIds) {
+                Promise.all([
+                  embedAndStoreMessage(supabaseClient, messageIds.userMessageId, message),
+                  embedAndStoreMessage(supabaseClient, messageIds.assistantMessageId, fullResponse),
+                ]).catch((err) => {
+                  logWarn('Embedding generation failed, queued for retry', {
+                    userId: user.id,
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  });
+                  // Queue failed embeddings for retry
+                  Promise.all([
+                    // @ts-ignore - embedding_queue table not yet in generated types
+                    supabaseClient.from('embedding_queue').upsert({
+                      message_id: messageIds.userMessageId,
+                      user_id: user.id,
+                      content: message,
+                      error_message: err instanceof Error ? err.message : 'Unknown error',
+                    }, { onConflict: 'message_id' }),
+                    // @ts-ignore - embedding_queue table not yet in generated types
+                    supabaseClient.from('embedding_queue').upsert({
+                      message_id: messageIds.assistantMessageId,
+                      user_id: user.id,
+                      content: fullResponse,
+                      error_message: err instanceof Error ? err.message : 'Unknown error',
+                    }, { onConflict: 'message_id' }),
+                  ]).catch((queueErr) => {
+                    logError('Failed to queue embeddings for retry', queueErr instanceof Error ? queueErr : undefined, {
+                      userId: user.id,
+                    });
+                  });
+                });
+              }
+
+              // Save working memory profile if it was loaded
+              // The agent may have updated it via tool calls during the conversation
+              if (memoryContext.workingMemoryProfile) {
+                saveWorkingMemory(
+                  supabaseClient,
+                  user.id,
+                  memoryContext.workingMemoryProfile
+                ).catch((err) => {
+                  logWarn('Working memory save failed (non-blocking)', {
+                    userId: user.id,
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  });
+                });
+              }
+            },
             { userId: user.id }
           );
 
