@@ -7,13 +7,15 @@
  * 2. Conversation History: Last N messages - thread-scoped
  * 3. Semantic Recall: Vector similarity search - resource-scoped
  *
- * Storage: Supabase PostgreSQL only (LibSQL removed)
+ * Storage: Supabase PostgreSQL with pgvector via @mastra/pg
  *
  * @see https://mastra.ai/docs/memory/overview
+ * @see https://mastra.ai/docs/memory/semantic-recall
  */
 
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
+import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
 // Simplified tools (AI Assistant Simplification feature)
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
@@ -51,6 +53,11 @@ function getGateway() {
 // Configuration constants (safe to read at module load)
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 
+// Database configuration for Mastra storage
+// Uses Supabase's direct PostgreSQL connection string
+// Format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+const DATABASE_URL = process.env.DATABASE_URL;
+
 // Memory configuration
 const parsedMessages = parseInt(process.env.MASTRA_MEMORY_LAST_MESSAGES || '20', 10);
 const MEMORY_LAST_MESSAGES = Number.isFinite(parsedMessages) && parsedMessages > 0 ? parsedMessages : 20;
@@ -62,6 +69,44 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
+
+// Lazy-loaded storage instances (initialized on first use)
+let pgStoreInstance: PostgresStore | null = null;
+let pgVectorInstance: PgVector | null = null;
+
+function getPgStore(): PostgresStore {
+  if (!pgStoreInstance) {
+    if (!DATABASE_URL) {
+      throw new Error(
+        'DATABASE_URL is required for Mastra Memory storage. ' +
+        'Get the PostgreSQL connection string from your Supabase dashboard: ' +
+        'Settings > Database > Connection string (URI)'
+      );
+    }
+    pgStoreInstance = new PostgresStore({
+      id: 'gearshack-memory-storage',
+      connectionString: DATABASE_URL,
+    });
+  }
+  return pgStoreInstance;
+}
+
+function getPgVector(): PgVector {
+  if (!pgVectorInstance) {
+    if (!DATABASE_URL) {
+      throw new Error(
+        'DATABASE_URL is required for Mastra Vector storage. ' +
+        'Get the PostgreSQL connection string from your Supabase dashboard: ' +
+        'Settings > Database > Connection string (URI)'
+      );
+    }
+    pgVectorInstance = new PgVector({
+      id: 'gearshack-memory-vector',
+      connectionString: DATABASE_URL,
+    });
+  }
+  return pgVectorInstance;
+}
 
 // =============================================================================
 // Three-Tier Memory Configuration
@@ -83,14 +128,15 @@ const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
  *   - Vector similarity search across ALL past conversations
  *   - Finds relevant context from weeks/months ago
  *   - Uses text-embedding-3-small via Vercel AI Gateway
+ *   - Powered by pgvector in Supabase PostgreSQL
  *
- * Note: Mastra Memory with Supabase storage requires @mastra/memory
- * to handle storage internally. Our custom Supabase adapters
- * (working-memory-adapter.ts, semantic-recall.ts) supplement this
- * with pgvector search and structured profile management at the
- * route level (chat/route.ts).
+ * Storage Architecture:
+ * - PostgresStore: Message history, conversation metadata
+ * - PgVector: Embedding storage with HNSW index for fast similarity search
+ * - Both use the same Supabase PostgreSQL database via DATABASE_URL
  *
- * IMPORTANT: This should be called per-agent to avoid shared state between users
+ * @see https://mastra.ai/docs/memory/semantic-recall
+ * @see https://mastra.ai/reference/vectors/pg
  */
 function createAgentMemory(): Memory {
   // Build memory options
@@ -98,11 +144,19 @@ function createAgentMemory(): Memory {
     lastMessages: MEMORY_LAST_MESSAGES,
   };
 
-  // Enable semantic recall with Vercel AI Gateway embeddings
+  // Enable semantic recall with pgvector backend
+  // Uses HNSW index with dotproduct metric (optimal for OpenAI embeddings)
   memoryOptions.semanticRecall = {
     topK: SEMANTIC_TOP_K,
     messageRange: SEMANTIC_MESSAGE_RANGE,
     threshold: SEMANTIC_THRESHOLD,
+    // HNSW index configuration for optimized vector search
+    indexConfig: {
+      type: 'hnsw',
+      metric: 'dotproduct', // Recommended for OpenAI text-embedding-3-small
+      m: 16,
+      efConstruction: 64,
+    },
   };
 
   // Enable working memory with Zod schema
@@ -114,9 +168,13 @@ function createAgentMemory(): Memory {
   }
 
   const memory = new Memory({
-    options: memoryOptions,
+    // PostgreSQL storage for message history and metadata
+    storage: getPgStore(),
+    // pgvector for semantic recall embeddings
+    vector: getPgVector(),
     // Embedder for semantic recall via Vercel AI Gateway
     embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
+    options: memoryOptions,
   });
 
   return memory;
