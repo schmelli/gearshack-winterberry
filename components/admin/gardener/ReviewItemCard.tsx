@@ -301,14 +301,14 @@ function ReviewItemCardComponent({
 
 /**
  * Custom comparison function for ReviewItemCard memoization.
- * Compares item by id and processing state to detect meaningful changes.
+ * Compares item by approvalId and processing state to detect meaningful changes.
  */
 function areReviewItemCardPropsEqual(
   prevProps: ReviewItemCardProps,
   nextProps: ReviewItemCardProps
 ): boolean {
   return (
-    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.approvalId === nextProps.item.approvalId &&
     prevProps.item.name === nextProps.item.name &&
     prevProps.item.confidence === nextProps.item.confidence &&
     prevProps.isProcessing === nextProps.isProcessing
