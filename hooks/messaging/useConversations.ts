@@ -220,6 +220,62 @@ export function useConversations(
           });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          // Surgical update: handle message updates (e.g., deletion_state changes)
+          const updatedMessage = payload.new as {
+            id: string;
+            conversation_id: string;
+            content: string | null;
+            message_type: string;
+            sender_id: string | null;
+            deletion_state: string | null;
+            created_at: string;
+          };
+
+          setConversations((prev) =>
+            prev.map((item) => {
+              // Only update if this message is the last_message for this conversation
+              if (
+                item.conversation.id === updatedMessage.conversation_id &&
+                item.last_message?.id === updatedMessage.id
+              ) {
+                // If message was deleted for all, clear the preview content
+                if (updatedMessage.deletion_state === 'deleted_for_all') {
+                  return {
+                    ...item,
+                    last_message: {
+                      ...item.last_message,
+                      content: null, // Clear content to indicate deletion
+                    },
+                  };
+                }
+
+                // Otherwise update the message preview with new data
+                return {
+                  ...item,
+                  last_message: {
+                    id: updatedMessage.id,
+                    content: updatedMessage.content,
+                    message_type: updatedMessage.message_type as 'text' | 'image' | 'voice' | 'location' | 'gear_reference' | 'gear_trade' | 'trip_invitation',
+                    sender_id: updatedMessage.sender_id,
+                    sender_name: item.last_message.sender_name,
+                    created_at: updatedMessage.created_at,
+                  },
+                };
+              }
+
+              return item;
+            })
+          );
+        }
+      )
       .subscribe((status, err) => {
         // Silently handle subscription errors (e.g., tables don't exist)
         if (status === 'CHANNEL_ERROR' && err) {
