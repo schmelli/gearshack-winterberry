@@ -401,7 +401,7 @@ function areGearCardPropsEqual(
     prevProps.viewDensity === nextProps.viewDensity &&
     prevProps.context === nextProps.context &&
     prevProps.communityAvailabilityLoading === nextProps.communityAvailabilityLoading &&
-    prevProps.communityAvailability?.count === nextProps.communityAvailability?.count
+    prevProps.communityAvailability?.matchCount === nextProps.communityAvailability?.matchCount
   );
 }
 

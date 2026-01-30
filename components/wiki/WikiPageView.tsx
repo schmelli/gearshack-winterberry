@@ -22,10 +22,14 @@ import { de, enUS } from 'date-fns/locale';
 import type { WikiPageWithAuthor } from '@/types/wiki';
 
 // Dynamic import for react-markdown with remark-gfm to reduce bundle size
+// Load both modules in parallel using Promise.all for ESM compatibility
 const ReactMarkdown = dynamic(
-  () => import('react-markdown').then((mod) => {
-    const remarkGfm = require('remark-gfm').default;
-    const MarkdownComponent = mod.default;
+  () => Promise.all([
+    import('react-markdown'),
+    import('remark-gfm')
+  ]).then(([mdMod, gfmMod]) => {
+    const MarkdownComponent = mdMod.default;
+    const remarkGfm = gfmMod.default;
     // Return a wrapper that includes remark-gfm
     return function MarkdownWithGfm({ children }: { children: string }) {
       return <MarkdownComponent remarkPlugins={[remarkGfm]}>{children}</MarkdownComponent>;

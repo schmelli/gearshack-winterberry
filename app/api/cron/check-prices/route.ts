@@ -187,9 +187,10 @@ async function processTrackingItem(
 
     // Run comparison and snapshot recording in parallel for better performance
     // These operations are independent - both use searchResults but don't depend on each other
-    const [comparison] = await Promise.all([
+    // Note: Second result intentionally ignored - snapshot recording is fire-and-forget
+    const [comparison, _snapshotResult] = await Promise.all([
       compareWithHistory(item.id, searchResults.results),
-      recordPriceSnapshot(item.id, searchResults.results),
+      recordPriceSnapshot(item.id, searchResults.results), // Fire-and-forget operation
     ]);
 
     // Collect alert if price dropped (will be batch created later)
