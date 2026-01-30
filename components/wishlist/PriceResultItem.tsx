@@ -6,6 +6,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ function isValidHttpUrl(url: string): boolean {
   }
 }
 
-export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
+function PriceResultItemComponent({ result, isLowest }: PriceResultItemProps) {
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -119,3 +120,21 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
     </Card>
   );
 }
+
+/**
+ * Custom comparison function for PriceResultItem memoization.
+ * Compares result by id and price to detect meaningful changes.
+ */
+function arePriceResultItemPropsEqual(
+  prevProps: PriceResultItemProps,
+  nextProps: PriceResultItemProps
+): boolean {
+  return (
+    prevProps.result.id === nextProps.result.id &&
+    prevProps.result.price_amount === nextProps.result.price_amount &&
+    prevProps.result.total_price === nextProps.result.total_price &&
+    prevProps.isLowest === nextProps.isLowest
+  );
+}
+
+export const PriceResultItem = memo(PriceResultItemComponent, arePriceResultItemPropsEqual);

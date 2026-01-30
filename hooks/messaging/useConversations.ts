@@ -94,7 +94,7 @@ export function useConversations(
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates with surgical updates
   // Note: This subscription will silently fail if messaging tables don't exist yet
   useEffect(() => {
     if (!user?.id) return;
@@ -106,13 +106,50 @@ export function useConversations(
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'conversations',
         },
         () => {
-          // Refresh on any conversation change
+          // New conversation - need full data with participants, so refresh
           refreshRef.current();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+        },
+        (payload) => {
+          // Surgical update: only update the affected conversation
+          const updated = payload.new as { id: string; name?: string | null; updated_at?: string };
+          setConversations((prev) =>
+            prev.map((item) =>
+              item.conversation.id === updated.id
+                ? {
+                    ...item,
+                    conversation: { ...item.conversation, ...updated },
+                  }
+                : item
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'conversations',
+        },
+        (payload) => {
+          // Surgical delete: remove the conversation from list
+          const deleted = payload.old as { id: string };
+          setConversations((prev) =>
+            prev.filter((item) => item.conversation.id !== deleted.id)
+          );
         }
       )
       .on(
@@ -124,7 +161,7 @@ export function useConversations(
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          // Refresh when our participation changes
+          // Refresh when our participation changes (join/leave/role change)
           refreshRef.current();
         }
       )
@@ -135,9 +172,52 @@ export function useConversations(
           schema: 'public',
           table: 'messages',
         },
-        () => {
-          // Refresh when new messages arrive (updates last_message)
-          refreshRef.current();
+        (payload) => {
+          // Surgical update: update only last_message for the affected conversation
+          const newMessage = payload.new as {
+            id: string;
+            conversation_id: string;
+            content: string | null;
+            message_type: string;
+            sender_id: string | null;
+            created_at: string;
+          };
+
+          setConversations((prev) => {
+            // Find the conversation and update its last_message
+            const updatedList = prev.map((item) => {
+              if (item.conversation.id !== newMessage.conversation_id) {
+                return item;
+              }
+
+              // Create a message preview from the new message
+              const lastMessage = {
+                id: newMessage.id,
+                content: newMessage.content,
+                message_type: newMessage.message_type as 'text' | 'image' | 'voice' | 'location' | 'gear_reference' | 'gear_trade' | 'trip_invitation',
+                sender_id: newMessage.sender_id,
+                sender_name: null, // Will be populated on next full load
+                created_at: newMessage.created_at,
+              };
+
+              return {
+                ...item,
+                last_message: lastMessage,
+                // Increment unread if message is from someone else
+                unread_count:
+                  newMessage.sender_id !== user.id
+                    ? item.unread_count + 1
+                    : item.unread_count,
+              };
+            });
+
+            // Sort by last message time (most recent first)
+            return updatedList.sort((a, b) => {
+              const aTime = a.last_message?.created_at || a.conversation.created_at;
+              const bTime = b.last_message?.created_at || b.conversation.created_at;
+              return new Date(bTime).getTime() - new Date(aTime).getTime();
+            });
+          });
         }
       )
       .subscribe((status, err) => {

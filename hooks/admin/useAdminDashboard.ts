@@ -51,7 +51,8 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
       const sevenDaysAgo = getDaysAgo(7);
       const thirtyDaysAgo = getDaysAgo(30);
 
-      // Parallel queries for all stats
+      // Parallel queries for all stats - using COUNT queries only (no row fetching)
+      // All queries use { count: 'exact', head: true } for optimal performance
       const [
         // User stats
         totalUsersResult,
@@ -73,31 +74,28 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
         newGear7dResult,
         newLoadouts7dResult,
         newPosts7dResult,
-        // For averages
-        usersWithGearResult,
-        usersWithLoadoutsResult,
       ] = await Promise.all([
         // Total users
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
         // New users (7 days)
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', sevenDaysAgo),
         // New users (30 days)
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', thirtyDaysAgo),
         // Admins
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('role', 'admin'),
         // Trailblazers
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('subscription_tier', 'trailblazer'),
         // VIPs (from vip_accounts table)
         supabase
@@ -106,75 +104,63 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
         // Merchants
         supabase
           .from('merchants')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('status', 'approved'),
         // Suspended users
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('account_status', 'suspended'),
         // Banned users
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('account_status', 'banned'),
         // Total gear items
         supabase
           .from('gear_items')
-          .select('*', { count: 'exact', head: true }),
+          .select('id', { count: 'exact', head: true }),
         // Total loadouts
-        supabase.from('loadouts').select('*', { count: 'exact', head: true }),
+        supabase.from('loadouts').select('id', { count: 'exact', head: true }),
         // Total wiki pages
         supabase
           .from('wiki_pages')
-          .select('*', { count: 'exact', head: true }),
+          .select('id', { count: 'exact', head: true }),
         // Total bulletin posts
         supabase
           .from('bulletin_posts')
-          .select('*', { count: 'exact', head: true }),
+          .select('id', { count: 'exact', head: true }),
         // Total shakedowns
-        supabase.from('shakedowns').select('*', { count: 'exact', head: true }),
+        supabase.from('shakedowns').select('id', { count: 'exact', head: true }),
         // New gear items (7 days)
         supabase
           .from('gear_items')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', sevenDaysAgo),
         // New loadouts (7 days)
         supabase
           .from('loadouts')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', sevenDaysAgo),
         // New posts (7 days)
         supabase
           .from('bulletin_posts')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', sevenDaysAgo),
-        // Users with gear (for average calculation)
-        supabase.from('gear_items').select('user_id').limit(10000),
-        // Users with loadouts (for average calculation)
-        supabase.from('loadouts').select('user_id').limit(10000),
       ]);
 
-      // Calculate averages
+      // Extract counts
+      const totalUsers = totalUsersResult.count || 0;
       const gearItems = gearItemsResult.count || 0;
       const loadouts = loadoutsResult.count || 0;
 
-      // Count unique users with gear/loadouts
-      const uniqueGearUsers = new Set(
-        (usersWithGearResult.data || []).map((r) => r.user_id)
-      ).size;
-      const uniqueLoadoutUsers = new Set(
-        (usersWithLoadoutsResult.data || []).map((r) => r.user_id)
-      ).size;
+      // Calculate averages per total user (avoids fetching rows for distinct count)
+      // Note: This gives average across all users, not just users with items
+      const avgGearPerUser = totalUsers > 0 ? gearItems / totalUsers : 0;
+      const avgLoadoutsPerUser = totalUsers > 0 ? loadouts / totalUsers : 0;
 
-      // Averages (per user that has at least one item)
-      const avgGearPerUser =
-        uniqueGearUsers > 0 ? gearItems / uniqueGearUsers : 0;
-      const avgLoadoutsPerUser =
-        uniqueLoadoutUsers > 0 ? loadouts / uniqueLoadoutUsers : 0;
-
-      // Get active users (users who logged in the last 7 days)
-      // This would require a last_login field - for now estimate from new content
+      // Estimate active users from recent activity
+      // Note: A proper implementation would track last_login in profiles
       const activeUsers7d = Math.max(
         newUsers7dResult.count || 0,
         newGear7dResult.count || 0,
@@ -183,7 +169,7 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
 
       setStats({
         // User stats
-        totalUsers: totalUsersResult.count || 0,
+        totalUsers,
         newUsers7d: newUsers7dResult.count || 0,
         newUsers30d: newUsers30dResult.count || 0,
         activeUsers7d,

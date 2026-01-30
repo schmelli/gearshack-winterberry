@@ -9,22 +9,22 @@
 'use client';
 
 import { useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PriceHistoryEntry } from '@/types/price-tracking';
+
+// Dynamic import for chart component to reduce bundle size (recharts is heavy)
+const PriceHistoryChartInner = dynamic(
+  () => import('./PriceHistoryChartInner').then((mod) => mod.PriceHistoryChartInner),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[200px] w-full" />,
+  }
+);
 
 interface PriceHistoryChartProps {
   history: PriceHistoryEntry[];
@@ -80,14 +80,16 @@ export function PriceHistoryChart({
     return { lowest: allLowest, highest: allHighest, current: currentAvg };
   }, [history]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const formatCurrency = useMemo(() => {
+    return (value: number) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    };
+  }, [currency]);
 
   if (isLoading) {
     return (
@@ -167,62 +169,10 @@ export function PriceHistoryChart({
       </CardHeader>
       <CardContent>
         <div className="h-[200px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10 }}
-                className="text-muted-foreground"
-              />
-              <YAxis
-                tick={{ fontSize: 10 }}
-                tickFormatter={(value) => formatCurrency(value)}
-                className="text-muted-foreground"
-                width={60}
-              />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-                labelClassName="font-medium"
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px',
-                }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: '11px' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="lowest"
-                name={t('legend.lowest')}
-                stroke="#22c55e"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="average"
-                name={t('legend.average')}
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="highest"
-                name={t('legend.highest')}
-                stroke="#ef4444"
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <PriceHistoryChartInner
+            chartData={chartData}
+            formatCurrency={formatCurrency}
+          />
         </div>
       </CardContent>
     </Card>

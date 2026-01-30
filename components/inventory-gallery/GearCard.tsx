@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, ExternalLink, StickyNote, FileText, ChevronRight } from 'lucide-react';
 
@@ -51,7 +51,7 @@ interface GearCardProps {
 // Component
 // =============================================================================
 
-export function GearCard({
+function GearCardComponent({
   item,
   viewDensity,
   onClick,
@@ -123,6 +123,7 @@ export function GearCard({
               loading="lazy"
               className="object-contain p-1.5"
               sizes="80px"
+              placeholder="empty"
               onError={() => setImageError(true)}
             />
           ) : (
@@ -217,6 +218,7 @@ export function GearCard({
             loading="lazy"
             className="object-contain p-4 transition-transform group-hover:scale-105 duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            placeholder="empty"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -384,3 +386,23 @@ export function GearCard({
     </Card>
   );
 }
+
+/**
+ * Custom comparison function for GearCard memoization.
+ * Compares item by id and updatedAt to detect meaningful changes.
+ */
+function areGearCardPropsEqual(
+  prevProps: GearCardProps,
+  nextProps: GearCardProps
+): boolean {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.updatedAt === nextProps.item.updatedAt &&
+    prevProps.viewDensity === nextProps.viewDensity &&
+    prevProps.context === nextProps.context &&
+    prevProps.communityAvailabilityLoading === nextProps.communityAvailabilityLoading &&
+    prevProps.communityAvailability?.count === nextProps.communityAvailability?.count
+  );
+}
+
+export const GearCard = memo(GearCardComponent, areGearCardPropsEqual);

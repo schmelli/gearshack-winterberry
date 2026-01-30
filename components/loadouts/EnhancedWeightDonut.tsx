@@ -12,8 +12,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, memo } from 'react';
+import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,17 @@ import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel, getParentCategoryIds } from '@/lib/utils/category-helpers';
 import type { GearItem } from '@/types/gear';
 import type { LoadoutItemState } from '@/types/loadout';
+
+// Dynamic import for chart component to reduce bundle size (recharts is heavy)
+const EnhancedWeightDonutChart = dynamic(
+  () => import('./EnhancedWeightDonutChart').then((mod) => mod.EnhancedWeightDonutChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse rounded-full bg-muted" style={{ width: 300, height: 300 }} />
+    ),
+  }
+);
 
 // =============================================================================
 // Types
@@ -91,33 +102,6 @@ const CHART_COLORS = [
 const OUTER_RADIUS_RATIO = 0.38;
 /** Inner radius as fraction of chart size (creates donut hole) */
 const INNER_RADIUS_RATIO = 0.22;
-
-// =============================================================================
-// Custom Tooltip
-// =============================================================================
-
-interface TooltipProps {
-  active?: boolean;
-  payload?: Array<{ payload: CategoryData | SubcategoryData }>;
-}
-
-function CustomTooltip({ active, payload }: TooltipProps) {
-  const t = useTranslations('Loadouts');
-  if (!active || !payload || payload.length === 0) return null;
-
-  const data = payload[0].payload;
-  return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-lg">
-      <p className="font-medium">{data.label}</p>
-      <p className="text-sm text-muted-foreground">
-        {formatWeight(data.weight)} ({data.percentage.toFixed(1)}%)
-      </p>
-      <p className="text-xs text-muted-foreground">
-        {t('itemCount', { count: data.itemCount })}
-      </p>
-    </div>
-  );
-}
 
 // =============================================================================
 // Component - Memoized to prevent unnecessary re-renders
@@ -285,6 +269,10 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
     }
   }, [drillDownCategoryId, onSegmentClick]);
 
+  const handleSegmentClick = useCallback((index: number) => {
+    handlePieClick(currentData[index]);
+  }, [currentData, handlePieClick]);
+
   const handleBackClick = useCallback(() => {
     setDrillDownCategoryId(null);
   }, []);
@@ -340,47 +328,15 @@ export const EnhancedWeightDonut = memo(function EnhancedWeightDonut({
         </Button>
       )}
 
-      {/* Donut Chart */}
-      <div
-        style={{ width: size, height: size }}
-        role="img"
-        aria-label={`Weight distribution chart showing ${currentData.length} categories. Use the legend below for details.`}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={currentData}
-              dataKey="weight"
-              nameKey="label"
-              cx="50%"
-              cy="50%"
-              outerRadius={outerRadius}
-              innerRadius={innerRadius}
-              paddingAngle={2}
-              onClick={(_, index) => handlePieClick(currentData[index])}
-              animationDuration={400}
-              animationEasing="ease-out"
-            >
-              {currentData.map((entry, _index) => {
-                const isSelected = selectedId === entry.id;
-                const isOtherSelected = selectedId && !isSelected;
-
-                return (
-                  <Cell
-                    key={`cell-${entry.id}`}
-                    fill={entry.color}
-                    opacity={isOtherSelected ? 0.3 : 1}
-                    stroke={isSelected ? 'hsl(var(--foreground))' : 'transparent'}
-                    strokeWidth={isSelected ? 2 : 0}
-                    style={{ cursor: 'pointer' }}
-                  />
-                );
-              })}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+      {/* Donut Chart - Dynamically loaded */}
+      <EnhancedWeightDonutChart
+        data={currentData}
+        size={size}
+        outerRadius={outerRadius}
+        innerRadius={innerRadius}
+        selectedId={selectedId}
+        onSegmentClick={handleSegmentClick}
+      />
 
       {/* Legend */}
       <div className="w-full max-w-sm space-y-1" role="list" aria-label="Weight breakdown by category">

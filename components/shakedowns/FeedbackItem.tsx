@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   Reply,
@@ -151,7 +151,7 @@ function getInitials(name: string): string {
 // Component
 // =============================================================================
 
-export function FeedbackItem({
+function FeedbackItemComponent({
   feedback,
   depth = 0,
   maxDepth = SHAKEDOWN_CONSTANTS.MAX_REPLY_DEPTH,
@@ -482,8 +482,28 @@ export function FeedbackItem({
   );
 }
 
+/**
+ * Custom comparison function for FeedbackItem memoization.
+ * Compares feedback by id, content, and metadata to detect meaningful changes.
+ */
+function areFeedbackItemPropsEqual(
+  prevProps: FeedbackItemProps,
+  nextProps: FeedbackItemProps
+): boolean {
+  return (
+    prevProps.feedback.id === nextProps.feedback.id &&
+    prevProps.feedback.content === nextProps.feedback.content &&
+    prevProps.feedback.isEdited === nextProps.feedback.isEdited &&
+    prevProps.feedback.helpfulCount === nextProps.feedback.helpfulCount &&
+    prevProps.feedback.children.length === nextProps.feedback.children.length &&
+    prevProps.depth === nextProps.depth &&
+    prevProps.shakedownOwnerId === nextProps.shakedownOwnerId
+  );
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
+export const FeedbackItem = memo(FeedbackItemComponent, areFeedbackItemPropsEqual);
 export default FeedbackItem;

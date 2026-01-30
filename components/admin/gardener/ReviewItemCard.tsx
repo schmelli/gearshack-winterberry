@@ -1,7 +1,7 @@
 'use client';
 
+import { memo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -72,7 +72,7 @@ function ConfidenceIndicator({ confidence }: { confidence: number }) {
  * ReviewItemCard component
  * Displays details of a single review item with approve/reject actions
  */
-export function ReviewItemCard({
+function ReviewItemCardComponent({
   item,
   onApprove,
   onReject,
@@ -298,3 +298,21 @@ export function ReviewItemCard({
     </Card>
   );
 }
+
+/**
+ * Custom comparison function for ReviewItemCard memoization.
+ * Compares item by id and processing state to detect meaningful changes.
+ */
+function areReviewItemCardPropsEqual(
+  prevProps: ReviewItemCardProps,
+  nextProps: ReviewItemCardProps
+): boolean {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.name === nextProps.item.name &&
+    prevProps.item.confidence === nextProps.item.confidence &&
+    prevProps.isProcessing === nextProps.isProcessing
+  );
+}
+
+export const ReviewItemCard = memo(ReviewItemCardComponent, areReviewItemCardPropsEqual);

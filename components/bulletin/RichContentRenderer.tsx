@@ -13,10 +13,19 @@
  */
 
 import { useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import dynamic from 'next/dynamic';
 import { YouTubePreview } from './YouTubePreview';
 import { VipMention } from './VipMention';
 import { GearItemReference } from './GearItemReference';
+
+// Dynamic import for react-markdown to reduce bundle size
+const ReactMarkdown = dynamic(
+  () => import('react-markdown').then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => <div className="animate-pulse h-4 bg-muted rounded" />,
+  }
+);
 
 interface RichContentRendererProps {
   content: string;

@@ -139,7 +139,7 @@ export function AvatarUploadInput({
                 width={96}
                 height={96}
                 className="object-cover"
-                unoptimized
+                placeholder="empty"
               />
             </AvatarImage>
           ) : null}
