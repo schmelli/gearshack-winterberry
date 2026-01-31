@@ -47,6 +47,8 @@ interface LocalizedContent {
   loadoutAnalysis: string;
   /** Supportive safety guidance (gentle warnings) */
   safetyGuidance: string;
+  /** Category hierarchy reference for accurate searches */
+  categoryReference: string;
 }
 
 // =============================================================================
@@ -335,6 +337,40 @@ When analyzing gear for trips, gently check these areas:
    - Still frame constructively: "I'd strongly suggest..." not "This is dangerous"
 
 **Goal: Enthusiastic support + thoughtful preparation guidance. Help them have an amazing trip!**`,
+
+  categoryReference: `**Category Structure Reference:**
+
+The gear_items table uses a 3-level category hierarchy via category_id:
+- **Level 1 (Main)**: shelter, sleeping, packs, clothing, cooking, etc.
+- **Level 2 (Subcategory)**: tents, tarps, quilts, sleeping_bags, backpacks, etc.
+- **Level 3 (Product Type)**: 1_person_tents, 2_person_tents, ultralight_tents, etc.
+
+**CRITICAL: When searching user inventory by category:**
+1. NEVER search for category names directly - they are hierarchical!
+2. First query the categories table to find matching slugs
+3. Then use those category_ids in gear_items queries
+
+**Common Category Mappings (slug → English → German):**
+| Slug | English | German | Level |
+|------|---------|--------|-------|
+| shelter | Shelter | Unterkunft | 1 |
+| tents | Tents | Zelte | 2 |
+| 1_person_tents | 1-person Tents | 1-Personen-Zelte | 3 |
+| 2_person_tents | 2-person Tents | 2-Personen-Zelte | 3 |
+| tarps | Tarps | Tarps | 2 |
+| sleeping | Sleeping | Schlafsysteme | 1 |
+| quilts | Quilts | Quilts | 2 |
+| sleeping_bags | Sleeping Bags | Schlafsäcke | 2 |
+| packs | Packs | Rucksäcke | 1 |
+| backpacks | Backpacks | Rucksäcke | 2 |
+
+**Example: "How many tents do I have?"**
+1. Query categories: SELECT id FROM categories WHERE slug = 'tents' OR i18n->>'de' ILIKE '%zelt%'
+2. Also get child categories (Level 3): SELECT id FROM categories WHERE parent_id IN (above results)
+3. Query gear_items: SELECT * FROM gear_items WHERE category_id IN (all_tent_category_ids) AND status = 'own'
+
+**Shortcut - Search by name as fallback:**
+If category lookup is complex, also search by name: WHERE name ILIKE '%tent%' OR name ILIKE '%zelt%'`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -619,6 +655,40 @@ Bei der Ausruestungsanalyse fuer Trips sanft diese Bereiche pruefen:
    - Trotzdem konstruktiv: "Ich wuerde stark empfehlen..." nicht "Das ist gefaehrlich"
 
 **Ziel: Begeisterte Unterstuetzung + durchdachte Vorbereitungs-Tipps. Hilf ihnen, eine tolle Tour zu haben!**`,
+
+  categoryReference: `**Kategoriestruktur-Referenz:**
+
+Die gear_items Tabelle verwendet eine 3-stufige Kategorie-Hierarchie via category_id:
+- **Level 1 (Haupt)**: shelter, sleeping, packs, clothing, cooking, etc.
+- **Level 2 (Unterkategorie)**: tents, tarps, quilts, sleeping_bags, backpacks, etc.
+- **Level 3 (Produkttyp)**: 1_person_tents, 2_person_tents, ultralight_tents, etc.
+
+**KRITISCH: Bei der Suche im Nutzer-Inventar nach Kategorie:**
+1. NIEMALS nach Kategorienamen direkt suchen - sie sind hierarchisch!
+2. Zuerst die categories-Tabelle abfragen um passende Slugs zu finden
+3. Dann diese category_ids in gear_items-Abfragen verwenden
+
+**Wichtige Kategorie-Zuordnungen (slug → Englisch → Deutsch):**
+| Slug | Englisch | Deutsch | Level |
+|------|----------|---------|-------|
+| shelter | Shelter | Unterkunft | 1 |
+| tents | Tents | Zelte | 2 |
+| 1_person_tents | 1-person Tents | 1-Personen-Zelte | 3 |
+| 2_person_tents | 2-person Tents | 2-Personen-Zelte | 3 |
+| tarps | Tarps | Tarps | 2 |
+| sleeping | Sleeping | Schlafsysteme | 1 |
+| quilts | Quilts | Quilts | 2 |
+| sleeping_bags | Sleeping Bags | Schlafsaecke | 2 |
+| packs | Packs | Rucksaecke | 1 |
+| backpacks | Backpacks | Rucksaecke | 2 |
+
+**Beispiel: "Wie viele Zelte habe ich?"**
+1. Categories abfragen: SELECT id FROM categories WHERE slug = 'tents' OR i18n->>'de' ILIKE '%zelt%'
+2. Kind-Kategorien (Level 3) holen: SELECT id FROM categories WHERE parent_id IN (obige Ergebnisse)
+3. gear_items abfragen: SELECT * FROM gear_items WHERE category_id IN (alle_zelt_category_ids) AND status = 'own'
+
+**Shortcut - Nach Name suchen als Fallback:**
+Wenn Kategorie-Suche komplex ist, auch nach Name suchen: WHERE name ILIKE '%tent%' OR name ILIKE '%zelt%'`,
 };
 
 /**
@@ -811,6 +881,9 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 8. Data Validation Guidelines (new - reliability improvements)
   sections.push(`\n${content.dataValidation}`);
+
+  // 8b. Category Reference (helps agent understand hierarchical category structure)
+  sections.push(`\n${content.categoryReference}`);
 
   // 9. Loadout Analysis Guidance (only when viewing a loadout)
   // This enables deep trip analysis with destination research and safety feedback
