@@ -150,11 +150,11 @@ Fuzzy Search:
     const startTime = Date.now();
     const { table, operation, select, filters, search, orderBy, limit, range } = input;
 
-    // Get userId from execution context's runtimeContext (set by chat route)
-    // Note: runtimeContext is passed at runtime but not exposed in ToolExecutionContext type
+    // Get userId from execution context's requestContext (renamed from runtimeContext in Mastra v1.0+)
+    // Note: requestContext is passed at runtime but not exposed in ToolExecutionContext type
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const runtimeContext = (executionContext as any)?.runtimeContext as Map<string, unknown> | undefined;
-    const userId = runtimeContext?.get('userId') as string | undefined;
+    const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
+    const userId = requestContext?.get('userId') as string | undefined;
 
     if (!userId) {
       return {

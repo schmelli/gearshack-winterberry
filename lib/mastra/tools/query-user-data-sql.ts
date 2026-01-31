@@ -297,11 +297,11 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
     const startTime = Date.now();
     const { table, select, where, orderBy, limit } = input;
 
-    // Get userId from execution context's runtimeContext
-    // Note: runtimeContext is passed at runtime but not exposed in ToolExecutionContext type
+    // Get userId from execution context's requestContext (renamed from runtimeContext in Mastra v1.0+)
+    // Note: requestContext is passed at runtime but not exposed in ToolExecutionContext type
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const runtimeContext = (executionContext as any)?.runtimeContext as Map<string, unknown> | undefined;
-    const userId = runtimeContext?.get('userId') as string | undefined;
+    const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
+    const userId = requestContext?.get('userId') as string | undefined;
 
     if (!userId) {
       return {

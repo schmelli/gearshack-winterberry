@@ -231,14 +231,14 @@ export async function streamMastraResponse(
   message: string,
   userId: string
 ) {
-  // Set runtime context for tool execution
-  const runtimeContext = new Map<string, unknown>();
-  runtimeContext.set('userId', userId);
+  // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)
+  const requestContext = new Map<string, unknown>();
+  requestContext.set('userId', userId);
 
   // Generate streaming response
   const stream = await agent.stream(message, {
     resourceId: userId,
-    runtimeContext: runtimeContext,
+    requestContext: requestContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
