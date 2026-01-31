@@ -179,13 +179,65 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'message_reactions',
         },
-        () => {
-          // Refresh messages to get updated reactions
-          loadMessages();
+        (payload) => {
+          // Surgical update: add the new reaction to the specific message
+          const newReaction = payload.new as {
+            id: string;
+            message_id: string;
+            user_id: string;
+            emoji: string;
+            created_at: string;
+          };
+
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== newReaction.message_id) return m;
+              // Check if reaction already exists (avoid duplicates)
+              if (m.reactions.some((r) => r.id === newReaction.id)) return m;
+              return {
+                ...m,
+                reactions: [
+                  ...m.reactions,
+                  {
+                    id: newReaction.id,
+                    message_id: newReaction.message_id,
+                    user_id: newReaction.user_id,
+                    emoji: newReaction.emoji as '👍' | '❤️' | '😂' | '😮' | '😢',
+                    created_at: newReaction.created_at,
+                  },
+                ],
+              };
+            })
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'message_reactions',
+        },
+        (payload) => {
+          // Surgical update: remove the reaction from the specific message
+          const deletedReaction = payload.old as {
+            id: string;
+            message_id: string;
+          };
+
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== deletedReaction.message_id) return m;
+              return {
+                ...m,
+                reactions: m.reactions.filter((r) => r.id !== deletedReaction.id),
+              };
+            })
+          );
         }
       )
       .subscribe();
@@ -193,7 +245,7 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, user?.id, loadMessages]);
+  }, [conversationId, user?.id]);
 
   // Send text message
   const send = useCallback(

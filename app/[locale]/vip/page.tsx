@@ -9,6 +9,9 @@
  */
 
 import { Suspense } from 'react';
+
+// ISR: Revalidate every 5 minutes for public page performance
+export const revalidate = 300;
 import { getTranslations } from 'next-intl/server';
 import { Users } from 'lucide-react';
 import { VipDirectoryContent } from '@/components/vip/VipDirectoryContent';

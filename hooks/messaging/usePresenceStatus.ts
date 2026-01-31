@@ -22,8 +22,8 @@ interface PresenceState {
 interface UsePresenceStatusReturn {
   /** Current user's online status */
   isOnline: boolean;
-  /** Map of user IDs to their online status */
-  onlineUsers: Map<string, boolean>;
+  /** Set of online user IDs (more efficient than Map<string, boolean>) */
+  onlineUsers: Set<string>;
   /** Check if a specific user is online */
   isUserOnline: (userId: string) => boolean;
   /** Start tracking presence (auto-called on mount) */
@@ -39,15 +39,15 @@ interface UsePresenceStatusReturn {
 export function usePresenceStatus(): UsePresenceStatusReturn {
   const { user } = useSupabaseAuth();
   const [isOnline, setIsOnline] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<Map<string, boolean>>(new Map());
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const updateOnlineUsers = useCallback((presences: Record<string, PresenceState[]>) => {
-    const newOnlineUsers = new Map<string, boolean>();
+    const newOnlineUsers = new Set<string>();
 
     Object.values(presences).forEach((presence) => {
       presence.forEach((p) => {
-        newOnlineUsers.set(p.userId, true);
+        newOnlineUsers.add(p.userId);
       });
     });
 
@@ -75,16 +75,16 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
         setOnlineUsers((prev) => {
-          const next = new Map(prev);
+          const next = new Set(prev);
           (newPresences as unknown as PresenceState[]).forEach((p) => {
-            next.set(p.userId, true);
+            next.add(p.userId);
           });
           return next;
         });
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
         setOnlineUsers((prev) => {
-          const next = new Map(prev);
+          const next = new Set(prev);
           (leftPresences as unknown as PresenceState[]).forEach((p) => {
             next.delete(p.userId);
           });

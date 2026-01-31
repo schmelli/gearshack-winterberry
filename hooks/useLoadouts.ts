@@ -125,29 +125,20 @@ export function useLoadouts(userId: string | null): UseLoadoutsReturn {
     setError(null);
 
     try {
+      // Single query with JOIN to fix N+1 pattern - fetches loadouts and their items in one request
       const { data: loadoutData, error: loadoutError } = await supabase
         .from('loadouts')
-        .select('*')
+        .select(`
+          *,
+          loadout_items (*)
+        `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (loadoutError) { setError(loadoutError.message); return; }
 
-      const typedLoadoutData = (loadoutData || []) as LoadoutRow[];
-      if (typedLoadoutData.length === 0) { setLoadouts([]); return; }
-
-      const loadoutIds = typedLoadoutData.map((l) => l.id);
-      const { data: itemsData } = await supabase.from('loadout_items').select('*').in('loadout_id', loadoutIds);
-
-      const typedItemsData = (itemsData || []) as LoadoutItemRow[];
-      const itemsByLoadout = new Map<string, LoadoutItemRow[]>();
-      typedItemsData.forEach((item) => {
-        const existing = itemsByLoadout.get(item.loadout_id) || [];
-        existing.push(item);
-        itemsByLoadout.set(item.loadout_id, existing);
-      });
-
-      setLoadouts(typedLoadoutData.map((row) => loadoutFromDb(row, itemsByLoadout.get(row.id) || [])));
+      const typedLoadoutData = (loadoutData || []) as (LoadoutRow & { loadout_items: LoadoutItemRow[] })[];
+      setLoadouts(typedLoadoutData.map((row) => loadoutFromDb(row, row.loadout_items || [])));
     } catch (err) {
       setError(getErrorMsg(err, 'Failed to fetch loadouts'));
     } finally {

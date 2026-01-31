@@ -19,9 +19,9 @@ const nextConfig: NextConfig = {
   ],
 
   images: {
-    // Feature 025: Allow all HTTPS domains for external product images
-    // Users need to paste image URLs from any retailer (fjellsport.no, REI, etc.)
-    // Feature 038: Explicit Cloudinary CDN support
+    // Feature 038: Cloudinary CDN for user uploads
+    // Feature 040: Supabase storage for app data
+    // Google auth: User avatars from Google accounts
     remotePatterns: [
       {
         protocol: 'https',
@@ -29,9 +29,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
       },
     ],
+    minimumCacheTTL: 60,
   },
   // Feature 026: Enable WASM support for @imgly/background-removal
   webpack: (config, { isServer }) => {

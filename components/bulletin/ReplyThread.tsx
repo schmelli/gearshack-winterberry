@@ -9,7 +9,7 @@
  * Reply list with 2-level nesting and client-side tree construction.
  */
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { Loader2, Reply, MoreHorizontal, Trash2, Flag } from 'lucide-react';
@@ -154,7 +154,7 @@ interface ReplyItemProps {
   depth?: number;
 }
 
-function ReplyItem({
+const ReplyItem = memo(function ReplyItem({
   reply,
   currentUserId,
   onReply,
@@ -259,7 +259,16 @@ function ReplyItem({
       )}
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.reply.id === nextProps.reply.id &&
+    prevProps.reply.content === nextProps.reply.content &&
+    prevProps.reply.is_deleted === nextProps.reply.is_deleted &&
+    prevProps.reply.children.length === nextProps.reply.children.length &&
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.depth === nextProps.depth
+  );
+});
 
 function getInitials(name: string): string {
   const parts = name.split(' ').filter(Boolean);

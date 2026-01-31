@@ -336,7 +336,12 @@ export async function GET(request: NextRequest) {
       count: results.length,
     };
 
-    return NextResponse.json(response);
+    // Cache catalog search results for 1 hour (public data)
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (err) {
     console.error('Product search error:', err);
     return NextResponse.json(

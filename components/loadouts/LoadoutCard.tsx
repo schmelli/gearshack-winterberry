@@ -10,6 +10,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Calendar, Package, Scale } from 'lucide-react';
@@ -55,7 +56,7 @@ interface LoadoutCardProps {
 // Component
 // =============================================================================
 
-export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
+function LoadoutCardComponent({ loadout, items }: LoadoutCardProps) {
   const t = useTranslations('Loadouts');
   const deleteLoadout = useStore((state) => state.deleteLoadout);
 
@@ -165,3 +166,22 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
     </div>
   );
 }
+
+/**
+ * Custom comparison function for LoadoutCard memoization.
+ * Compares loadout by id, updatedAt, and hero image to detect meaningful changes.
+ */
+function areLoadoutCardPropsEqual(
+  prevProps: LoadoutCardProps,
+  nextProps: LoadoutCardProps
+): boolean {
+  return (
+    prevProps.loadout.id === nextProps.loadout.id &&
+    prevProps.loadout.updatedAt === nextProps.loadout.updatedAt &&
+    prevProps.loadout.heroImageUrl === nextProps.loadout.heroImageUrl &&
+    prevProps.loadout.itemIds.length === nextProps.loadout.itemIds.length &&
+    prevProps.items.length === nextProps.items.length
+  );
+}
+
+export const LoadoutCard = memo(LoadoutCardComponent, areLoadoutCardPropsEqual);

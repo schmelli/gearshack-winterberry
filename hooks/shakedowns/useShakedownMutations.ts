@@ -246,8 +246,11 @@ export function useShakedownMutations(): UseShakedownMutationsReturn {
       if (!data) { setError('isCompleting', 'Shakedown not found or archived'); return { data: null, error: 'Shakedown not found or archived' }; }
 
       if (helpfulFeedbackIds?.length) {
-        await supabase.from('shakedown_feedback').update({ is_helpful: true, updated_at: now }).in('id', helpfulFeedbackIds).eq('shakedown_id', id);
-        await supabase.from('shakedowns').update({ helpful_count: helpfulFeedbackIds.length }).eq('id', id);
+        // Run feedback and count updates in parallel for better performance
+        await Promise.all([
+          supabase.from('shakedown_feedback').update({ is_helpful: true, updated_at: now }).in('id', helpfulFeedbackIds).eq('shakedown_id', id),
+          supabase.from('shakedowns').update({ helpful_count: helpfulFeedbackIds.length }).eq('id', id),
+        ]);
       }
 
       setState((prev) => ({ ...prev, isCompleting: false }));

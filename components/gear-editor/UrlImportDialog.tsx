@@ -206,7 +206,7 @@ export function UrlImportDialog({
                     width={64}
                     height={64}
                     className="w-16 h-16 object-cover rounded-md border"
-                    unoptimized
+                    placeholder="empty"
                   />
                 )}
                 <div className="flex-1 min-w-0">

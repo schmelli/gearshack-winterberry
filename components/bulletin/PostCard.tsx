@@ -10,7 +10,7 @@
  * content, tag badge, reply count, and actions menu.
  */
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
@@ -45,7 +45,7 @@ const TAG_COLORS: Record<PostTag, string> = {
   other: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
 };
 
-export function PostCard({
+function PostCardComponent({
   post,
   currentUserId,
   onEdit,
@@ -182,3 +182,24 @@ function getInitials(name: string): string {
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
+
+/**
+ * Custom comparison function for PostCard memoization.
+ * Compares post by id, updated_at, and reply_count to detect meaningful changes.
+ */
+function arePostCardPropsEqual(
+  prevProps: PostCardProps,
+  nextProps: PostCardProps
+): boolean {
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.updated_at === nextProps.post.updated_at &&
+    prevProps.post.reply_count === nextProps.post.reply_count &&
+    prevProps.post.is_deleted === nextProps.post.is_deleted &&
+    prevProps.post.is_archived === nextProps.post.is_archived &&
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.isExpanded === nextProps.isExpanded
+  );
+}
+
+export const PostCard = memo(PostCardComponent, arePostCardPropsEqual);

@@ -12,7 +12,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useShallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { getTranslation } from '@/lib/translations';
@@ -506,11 +506,15 @@ export const useSupabaseStore = create<SupabaseStore>()(
 // =============================================================================
 
 export function useSupabaseItems(): GearItem[] {
-  return useSupabaseStore((state) => state.items);
+  // PERFORMANCE FIX: Use useShallow to prevent re-renders when array reference changes
+  // but content is the same (e.g., after hydration or unrelated state updates)
+  return useSupabaseStore(useShallow((state) => state.items));
 }
 
 export function useSupabaseLoadouts(): LoadoutLocal[] {
-  return useSupabaseStore((state) => state.loadouts);
+  // PERFORMANCE FIX: Use useShallow to prevent re-renders when array reference changes
+  // but content is the same (e.g., after hydration or unrelated state updates)
+  return useSupabaseStore(useShallow((state) => state.loadouts));
 }
 
 export function useSupabaseLoadout(id: string): LoadoutLocal | undefined {
@@ -534,7 +538,9 @@ export function useSupabaseLoadoutItems(loadoutId: string): GearItem[] {
 }
 
 export function useSupabaseSyncState(): SyncState {
-  return useSupabaseStore((state) => state.syncState);
+  // PERFORMANCE FIX: Use useShallow to prevent re-renders when object reference changes
+  // but content is the same (shallow comparison of syncState properties)
+  return useSupabaseStore(useShallow((state) => state.syncState));
 }
 
 // Compatibility exports

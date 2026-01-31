@@ -8,6 +8,7 @@
 
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Edit, History, Calendar, Eye, FolderOpen, Flag } from 'lucide-react';
@@ -16,11 +17,35 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow, format } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 import type { WikiPageWithAuthor } from '@/types/wiki';
+
+// Dynamic import for react-markdown with remark-gfm to reduce bundle size
+// Load both modules in parallel using Promise.all for ESM compatibility
+const ReactMarkdown = dynamic(
+  () => Promise.all([
+    import('react-markdown'),
+    import('remark-gfm')
+  ]).then(([mdMod, gfmMod]) => {
+    const MarkdownComponent = mdMod.default;
+    const remarkGfm = gfmMod.default;
+    // Return a wrapper that includes remark-gfm
+    return function MarkdownWithGfm({ children }: { children: string }) {
+      return <MarkdownComponent remarkPlugins={[remarkGfm]}>{children}</MarkdownComponent>;
+    };
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+      </div>
+    ),
+  }
+);
 
 interface WikiPageViewProps {
   page: WikiPageWithAuthor;
@@ -114,7 +139,7 @@ export function WikiPageView({ page }: WikiPageViewProps) {
       {/* Content */}
       <div className="p-6">
         <div className="prose prose-neutral dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown>{content}</ReactMarkdown>
         </div>
       </div>
 

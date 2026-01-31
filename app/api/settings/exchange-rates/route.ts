@@ -37,13 +37,20 @@ export async function GET() {
     if (!cacheError && cachedRates) {
       const expiresAt = new Date(cachedRates.expires_at);
       if (new Date() < expiresAt) {
-        return NextResponse.json({
-          rates: cachedRates.rates,
-          base: cachedRates.base_currency,
-          fetchedAt: cachedRates.fetched_at,
-          expiresAt: cachedRates.expires_at,
-          source: 'cache',
-        });
+        return NextResponse.json(
+          {
+            rates: cachedRates.rates,
+            base: cachedRates.base_currency,
+            fetchedAt: cachedRates.fetched_at,
+            expiresAt: cachedRates.expires_at,
+            source: 'cache',
+          },
+          {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          }
+        );
       }
     }
 
@@ -81,24 +88,38 @@ export async function GET() {
       // Ignore cache errors - rates still work
     }
 
-    return NextResponse.json({
-      rates,
-      base: 'EUR',
-      fetchedAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      source: 'api',
-    });
+    return NextResponse.json(
+      {
+        rates,
+        base: 'EUR',
+        fetchedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        source: 'api',
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
 
     // Return fallback rates on error
     const fallbackRates = getFallbackRates();
-    return NextResponse.json({
-      rates: fallbackRates,
-      base: 'EUR',
-      fetchedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      source: 'fallback',
-    });
+    return NextResponse.json(
+      {
+        rates: fallbackRates,
+        base: 'EUR',
+        fetchedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        source: 'fallback',
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   }
 }

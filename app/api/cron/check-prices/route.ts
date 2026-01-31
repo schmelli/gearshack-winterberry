@@ -185,11 +185,13 @@ async function processTrackingItem(
       return;
     }
 
-    // Compare with history
-    const comparison = await compareWithHistory(item.id, searchResults.results);
-
-    // Record new price snapshot
-    await recordPriceSnapshot(item.id, searchResults.results);
+    // Run comparison and snapshot recording in parallel for better performance
+    // These operations are independent - both use searchResults but don't depend on each other
+    // Note: Second result intentionally ignored - snapshot recording is fire-and-forget
+    const [comparison, _snapshotResult] = await Promise.all([
+      compareWithHistory(item.id, searchResults.results),
+      recordPriceSnapshot(item.id, searchResults.results), // Fire-and-forget operation
+    ]);
 
     // Collect alert if price dropped (will be batch created later)
     if (comparison.hasPriceDrop && item.alerts_enabled) {
