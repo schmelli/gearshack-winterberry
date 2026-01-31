@@ -53,7 +53,12 @@
     "conversation": {
       "noMessages": "No messages yet. Send the first message!",
       "placeholder": "Type a message..."
-    }
+    },
+    "compose": "Compose",
+    "send": "Send",
+    "typeMessage": "Type a message...",
+    "noConversations": "No conversations yet",
+    "startConversation": "Start a conversation"
   },
   "Notifications": {
     "title": "Notifications",
@@ -286,7 +291,8 @@
       "accessDeniedTitle": "Access Denied",
       "accessDeniedMessage": "You do not have permission to access this area.",
       "accessDeniedToast": "Access denied. Admin privileges required."
-    }
+    },
+    "returnUrl": "Return URL"
   },
   "Inventory": {
     "title": "My Inventory",
@@ -372,7 +378,24 @@
       "purchaseLogged": "Purchase logged successfully!",
       "purchaseFailed": "Failed to log purchase. Please try again.",
       "invalidPrice": "Please enter a valid price"
-    }
+    },
+    "importFromUrl": "Import from URL",
+    "importUrlDescription": "Paste a product URL to automatically extract details",
+    "productUrl": "Product URL",
+    "importUrlPlaceholder": "https://example.com/product",
+    "importProgress": "Extracting product data...",
+    "catalogMatchFound": "Catalog match found",
+    "highConfidence": "High confidence",
+    "mediumConfidence": "Medium confidence",
+    "lowConfidence": "Low confidence",
+    "unknownProduct": "Unknown Product",
+    "proceedToForm": "Proceed to Form",
+    "usingCatalogData": "Using verified catalog data for accurate categorization",
+    "usingExtractedData": "Using extracted data from product page",
+    "cancel": "Cancel",
+    "tryAgain": "Try Again",
+    "weight": "Weight",
+    "price": "Price"
   },
   "ProductSearch": {
     "enterSearchTerm": "Please enter a search term",
@@ -593,21 +616,16 @@
       "importFailed": "Import failed"
     },
     "imageUpload": {
-      "removingBackground": "Removing background...",
-      "uploadingToCloudinary": "Uploading to Cloudinary...",
-      "uploadSuccessful": "Upload successful!",
-      "dragAndDrop": "Drag and drop an image or click to browse",
-      "fileTypes": "PNG, JPG, WebP up to 10MB",
-      "removeBackground": "Remove Background",
-      "removeBackgroundDescription": "Automatically remove the image background using local processing",
-      "or": "Or",
-      "enterImageUrl": "Enter image URL or search for product images",
-      "urlPlaceholder": "https://example.com/image.jpg",
-      "searchTooltip": "Search for \"{query}\"",
-      "searchTooltipEmpty": "Enter brand/product name first",
-      "useThisUrl": "Use this URL",
+      "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
+      "fileTooLarge": "File size must be less than {maxSize}MB",
+      "uploadFailed": "Upload failed. Please try again.",
+      "pasteUrl": "Paste URL",
+      "upload": "Upload",
       "uploading": "Uploading...",
-      "tryAgain": "Try Again"
+      "imageSelected": "Image selected",
+      "removeImage": "Remove image",
+      "dragOrClick": "Click or drag image here",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
     },
     "productSearch": {
       "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
@@ -690,18 +708,9 @@
       "removingBackground": "Removing background...",
       "uploading": "Uploading to Cloudinary..."
     },
-    "imageUpload": {
-      "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
-      "fileTooLarge": "File size must be less than {maxSize}MB",
-      "uploadFailed": "Upload failed. Please try again.",
-      "pasteUrl": "Paste URL",
-      "upload": "Upload",
-      "uploading": "Uploading...",
-      "imageSelected": "Image selected",
-      "removeImage": "Remove image",
-      "dragOrClick": "Click or drag image here",
-      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
-    }
+    "mode": "Mode",
+    "prefill": "Prefill",
+    "addToWishlistTitle": "Add to Wishlist"
   },
   "ManufacturerPrice": {
     "title": "Manufacturer Price",
@@ -1080,6 +1089,28 @@
           "description": "Sunset, fading light"
         }
       }
+    },
+    "editor": {
+      "addFromInventory": "Add from Inventory",
+      "addItems": "Add Items",
+      "clearFilter": "Clear Filter",
+      "loadoutItems": "Loadout Items"
+    },
+    "createLoadoutFirst": "Create a loadout first",
+    "noLoadouts": "No loadouts yet",
+    "loadMore": "Load More",
+    "markAsConsumable": "Mark as Consumable",
+    "markAsWorn": "Mark as Worn",
+    "requestShakedown": "Request Shakedown",
+    "allShakedowns": "All Shakedowns",
+    "loadoutId": "Loadout ID",
+    "page": {
+      "clearFilters": "Clear Filters",
+      "createNewLoadout": "Create New Loadout",
+      "noLoadoutsDescription": "Start by creating your first loadout",
+      "noLoadoutsYet": "No loadouts yet",
+      "noMatchingDescription": "Try adjusting your filters",
+      "noMatchingLoadouts": "No matching loadouts"
     }
   },
   "LoadoutCreation": {
@@ -1137,7 +1168,11 @@
         "title": "Wiki Updates",
         "description": "Recent edits and additions"
       }
-    }
+    },
+    "T": "Community",
+    "noResults": "No results found",
+    "searchPlaceholder": "Search community...",
+    "emptyState": "No community content yet"
   },
   "Wiki": {
     "title": "Community Wiki",
@@ -1611,7 +1646,12 @@
     },
     "ariaLabels": {
       "editProfile": "Edit profile"
-    }
+    },
+    "editProfile": "Edit Profile",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "bio": "Bio",
+    "location": "Location"
   },
   "SmartSearch": {
     "title": "Smart Product Search",
@@ -1796,7 +1836,11 @@
       "readReceipts": "Read Receipts",
       "readReceiptsHint": "Let others know when you've read their messages",
       "saving": "Saving..."
-    }
+    },
+    "title": "Settings",
+    "save": "Save",
+    "cancel": "Cancel",
+    "general": "General"
   },
   "Social": {
     "common": {
@@ -4708,5 +4752,13 @@
   "WeightDisplay": {
     "also": "Also:",
     "toggleUnit": "Toggle weight unit display"
+  },
+  "AvatarUpload": {
+    "changePhoto": "Change Photo",
+    "remove": "Remove",
+    "sourceCustom": "Custom Upload",
+    "sourceInitials": "Initials",
+    "sourceProvider": "Use Provider Photo",
+    "uploadPhoto": "Upload Photo"
   }
 }

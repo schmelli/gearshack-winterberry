@@ -53,7 +53,12 @@
     "conversation": {
       "noMessages": "Noch keine Nachrichten. Schreibe die erste Nachricht!",
       "placeholder": "Nachricht eingeben..."
-    }
+    },
+    "compose": "Verfassen",
+    "send": "Senden",
+    "typeMessage": "Nachricht eingeben...",
+    "noConversations": "Noch keine Unterhaltungen",
+    "startConversation": "Unterhaltung beginnen"
   },
   "Notifications": {
     "title": "Benachrichtigungen",
@@ -286,7 +291,8 @@
       "accessDeniedTitle": "Zugriff verweigert",
       "accessDeniedMessage": "Du hast keine Berechtigung, auf diesen Bereich zuzugreifen.",
       "accessDeniedToast": "Zugriff verweigert. Admin-Rechte erforderlich."
-    }
+    },
+    "returnUrl": "Rückkehr-URL"
   },
   "Inventory": {
     "title": "Mein Inventar",
@@ -373,7 +379,24 @@
       "purchaseLogged": "Kauf erfolgreich geloggt!",
       "purchaseFailed": "Kauf konnte nicht geloggt werden. Bitte versuche es erneut.",
       "invalidPrice": "Bitte gib einen gültigen Preis ein"
-    }
+    },
+    "importFromUrl": "Von URL importieren",
+    "importUrlDescription": "Fügen Sie eine Produkt-URL ein, um Details automatisch zu extrahieren",
+    "productUrl": "Produkt-URL",
+    "importUrlPlaceholder": "https://beispiel.de/produkt",
+    "importProgress": "Extrahiere Produktdaten...",
+    "catalogMatchFound": "Katalog-Übereinstimmung gefunden",
+    "highConfidence": "Hohe Konfidenz",
+    "mediumConfidence": "Mittlere Konfidenz",
+    "lowConfidence": "Niedrige Konfidenz",
+    "unknownProduct": "Unbekanntes Produkt",
+    "proceedToForm": "Zum Formular",
+    "usingCatalogData": "Verwende verifizierte Katalogdaten für präzise Kategorisierung",
+    "usingExtractedData": "Verwende extrahierte Daten von der Produktseite",
+    "cancel": "Abbrechen",
+    "tryAgain": "Erneut versuchen",
+    "weight": "Gewicht",
+    "price": "Preis"
   },
   "ProductSearch": {
     "enterSearchTerm": "Bitte gib einen Suchbegriff ein",
@@ -594,21 +617,16 @@
       "importFailed": "Import fehlgeschlagen"
     },
     "imageUpload": {
-      "removingBackground": "Hintergrund wird entfernt...",
-      "uploadingToCloudinary": "Hochladen zu Cloudinary...",
-      "uploadSuccessful": "Upload erfolgreich!",
-      "dragAndDrop": "Bild hierher ziehen oder klicken zum Durchsuchen",
-      "fileTypes": "PNG, JPG, WebP bis zu 10MB",
-      "removeBackground": "Hintergrund entfernen",
-      "removeBackgroundDescription": "Hintergrund automatisch mit lokaler Verarbeitung entfernen",
-      "or": "Oder",
-      "enterImageUrl": "Bild-URL eingeben oder nach Produktbildern suchen",
-      "urlPlaceholder": "https://example.com/image.jpg",
-      "searchTooltip": "Nach \"{query}\" suchen",
-      "searchTooltipEmpty": "Zuerst Marke/Produktname eingeben",
-      "useThisUrl": "Diese URL verwenden",
-      "uploading": "Hochladen...",
-      "tryAgain": "Erneut versuchen"
+      "invalidFileType": "Bitte wähle eine gültige Bilddatei (JPG, PNG, WebP oder GIF)",
+      "fileTooLarge": "Die Dateigröße muss unter {maxSize}MB liegen",
+      "uploadFailed": "Upload fehlgeschlagen. Bitte versuche es erneut.",
+      "pasteUrl": "URL einfügen",
+      "upload": "Hochladen",
+      "uploading": "Wird hochgeladen...",
+      "imageSelected": "Bild ausgewählt",
+      "removeImage": "Bild entfernen",
+      "dragOrClick": "Klicken oder Bild hierher ziehen",
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)"
     },
     "productSearch": {
       "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
@@ -691,18 +709,9 @@
       "removingBackground": "Hintergrund wird entfernt...",
       "uploading": "Wird hochgeladen..."
     },
-    "imageUpload": {
-      "invalidFileType": "Bitte wähle eine gültige Bilddatei (JPG, PNG, WebP oder GIF)",
-      "fileTooLarge": "Die Dateigröße muss unter {maxSize}MB liegen",
-      "uploadFailed": "Upload fehlgeschlagen. Bitte versuche es erneut.",
-      "pasteUrl": "URL einfügen",
-      "upload": "Hochladen",
-      "uploading": "Wird hochgeladen...",
-      "imageSelected": "Bild ausgewählt",
-      "removeImage": "Bild entfernen",
-      "dragOrClick": "Klicken oder Bild hierher ziehen",
-      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)"
-    }
+    "mode": "Modus",
+    "prefill": "Vorbefüllen",
+    "addToWishlistTitle": "Zur Wunschliste hinzufügen"
   },
   "ManufacturerPrice": {
     "title": "Herstellerpreis",
@@ -1084,6 +1093,28 @@
           "description": "Sonnenuntergang, schwindendes Licht"
         }
       }
+    },
+    "editor": {
+      "addFromInventory": "Aus Inventar hinzufügen",
+      "addItems": "Gegenstände hinzufügen",
+      "clearFilter": "Filter löschen",
+      "loadoutItems": "Loadout-Gegenstände"
+    },
+    "createLoadoutFirst": "Erstelle zuerst eine Loadout",
+    "noLoadouts": "Noch keine Loadouts",
+    "loadMore": "Mehr laden",
+    "markAsConsumable": "Als Verbrauchsmaterial markieren",
+    "markAsWorn": "Als getragen markieren",
+    "requestShakedown": "Shakedown anfordern",
+    "allShakedowns": "Alle Shakedowns",
+    "loadoutId": "Loadout-ID",
+    "page": {
+      "clearFilters": "Filter löschen",
+      "createNewLoadout": "Neue Loadout erstellen",
+      "noLoadoutsDescription": "Beginne mit der Erstellung deiner ersten Loadout",
+      "noLoadoutsYet": "Noch keine Loadouts",
+      "noMatchingDescription": "Versuche, deine Filter anzupassen",
+      "noMatchingLoadouts": "Keine passenden Loadouts"
     }
   },
   "LoadoutCreation": {
@@ -1141,7 +1172,11 @@
         "title": "Wiki-Updates",
         "description": "Letzte Bearbeitungen und Ergänzungen"
       }
-    }
+    },
+    "T": "Community",
+    "noResults": "Keine Ergebnisse gefunden",
+    "searchPlaceholder": "Community durchsuchen...",
+    "emptyState": "Noch keine Community-Inhalte"
   },
   "Wiki": {
     "title": "Community Wiki",
@@ -1615,7 +1650,12 @@
     },
     "ariaLabels": {
       "editProfile": "Profil bearbeiten"
-    }
+    },
+    "editProfile": "Profil bearbeiten",
+    "saveChanges": "Änderungen speichern",
+    "cancel": "Abbrechen",
+    "bio": "Biografie",
+    "location": "Standort"
   },
   "SmartSearch": {
     "title": "Intelligente Produktsuche",
@@ -1800,7 +1840,11 @@
       "readReceipts": "Lesebestätigungen",
       "readReceiptsHint": "Anderen mitteilen, wenn du ihre Nachrichten gelesen hast",
       "saving": "Wird gespeichert..."
-    }
+    },
+    "title": "Einstellungen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "general": "Allgemein"
   },
   "Social": {
     "common": {
@@ -4719,5 +4763,13 @@
   "WeightDisplay": {
     "also": "Auch:",
     "toggleUnit": "Gewichtseinheit wechseln"
+  },
+  "AvatarUpload": {
+    "changePhoto": "Foto ändern",
+    "remove": "Entfernen",
+    "sourceCustom": "Eigenes Foto hochladen",
+    "sourceInitials": "Initialen",
+    "sourceProvider": "Anbieter-Foto verwenden",
+    "uploadPhoto": "Foto hochladen"
   }
 }
