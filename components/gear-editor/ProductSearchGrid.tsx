@@ -68,6 +68,7 @@ export function ProductSearchGrid({
               fill
               className="object-cover"
               sizes="(max-width: 768px) 33vw, 200px"
+              unoptimized
             />
 
             {/* Upload Indicator Overlay */}
