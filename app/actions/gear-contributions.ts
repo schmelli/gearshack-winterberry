@@ -153,7 +153,7 @@ export async function processGearContribution(
   // 6. Contribution speichern
   // Build base insert data (columns in generated types)
   const baseInsertData = {
-    contributor_hash: generateContributorHash(user.id),
+    contributor_hash: await generateContributorHash(user.id),
     brand_name: input.userData.brand || 'Unknown',
     product_name: input.userData.name,
     source_url: input.sourceUrl ?? null,
@@ -308,18 +308,23 @@ function computeDelta(
 }
 
 /**
- * Generate a privacy-preserving contributor hash.
+ * Generate a privacy-preserving hash of the user ID.
  *
- * Uses a simple hash of the user ID to allow tracking contribution patterns
- * without exposing user identity.
+ * Uses SHA-256 with a salt to prevent identification across contributions.
+ * The salt should be set via CONTRIBUTOR_HASH_SALT environment variable in production.
  *
  * @param userId - User UUID
- * @returns Hashed contributor identifier
+ * @returns Hashed contributor identifier (32 hex characters)
  */
-function generateContributorHash(userId: string): string {
-  // Simple hash for privacy - in production, use crypto.subtle.digest
-  // For now, use a prefix + truncated user ID
-  const prefix = 'contrib';
-  const truncatedId = userId.slice(0, 8);
-  return `${prefix}_${truncatedId}`;
+async function generateContributorHash(userId: string): Promise<string> {
+  const salt = process.env.CONTRIBUTOR_HASH_SALT ?? 'gearshack-default-salt-change-in-prod';
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${salt}:${userId}`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // Take first 16 bytes (32 hex chars) for reasonable uniqueness
+  return hashArray
+    .slice(0, 16)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }

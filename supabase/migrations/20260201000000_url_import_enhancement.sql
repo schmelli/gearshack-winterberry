@@ -8,7 +8,7 @@
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS firecrawl_cache (
-  id TEXT PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   query_hash TEXT NOT NULL UNIQUE,
   query_text TEXT NOT NULL,
   response_json JSONB,

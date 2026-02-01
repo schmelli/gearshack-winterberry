@@ -75,6 +75,18 @@ function SuggestionCard({
   const locale = useLocale();
   const dateLocale = locale === 'de' ? de : enUS;
 
+  // Safe data access with fallbacks to prevent runtime errors from malformed data
+  const safeEnrichmentData = {
+    name: suggestion.enrichmentData?.name,
+    brand: suggestion.enrichmentData?.brand,
+    weightGrams: suggestion.enrichmentData?.weightGrams,
+    priceValue: suggestion.enrichmentData?.priceValue,
+    currency: suggestion.enrichmentData?.currency ?? 'EUR',
+    description: suggestion.enrichmentData?.description,
+    sourceUrl: suggestion.enrichmentData?.sourceUrl,
+    delta: suggestion.enrichmentData?.delta,
+  };
+
   // Icons for contribution types
   const typeIcon: Record<ContributionType, React.ReactNode> = {
     new_product: <Package className="h-4 w-4 text-green-500" />,
@@ -91,15 +103,15 @@ function SuggestionCard({
     rejected: 'destructive',
   };
 
-  // Get display name for product
+  // Get display name for product with safe fallbacks
   const displayName =
-    suggestion.enrichmentData.name ||
+    safeEnrichmentData.name ||
     suggestion.productName ||
     t('unnamed');
 
   // Get source URL from enrichment data or direct field
   const sourceUrl =
-    suggestion.enrichmentData.sourceUrl || suggestion.sourceUrl;
+    safeEnrichmentData.sourceUrl || suggestion.sourceUrl;
 
   // Handle actions with toast notifications
   const handleSendToGardener = async () => {
@@ -146,10 +158,10 @@ function SuggestionCard({
           </div>
         </div>
         <CardDescription className="text-xs flex items-center gap-1 flex-wrap">
-          {suggestion.enrichmentData.brand && (
-            <span className="font-medium">{suggestion.enrichmentData.brand}</span>
+          {safeEnrichmentData.brand && (
+            <span className="font-medium">{safeEnrichmentData.brand}</span>
           )}
-          {suggestion.enrichmentData.brand && <span className="text-muted-foreground/50">|</span>}
+          {safeEnrichmentData.brand && <span className="text-muted-foreground/50">|</span>}
           <span>
             {formatDistanceToNow(new Date(suggestion.createdAt), {
               addSuffix: true,
@@ -193,24 +205,24 @@ function SuggestionCard({
       <CardContent className="pt-2">
         {/* Specs Grid */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
-          {suggestion.enrichmentData.weightGrams && (
+          {safeEnrichmentData.weightGrams && (
             <div className="text-muted-foreground">
               <span className="font-medium">{t('weight')}:</span>{' '}
-              {suggestion.enrichmentData.weightGrams}g
+              {safeEnrichmentData.weightGrams}g
             </div>
           )}
-          {suggestion.enrichmentData.priceValue && (
+          {safeEnrichmentData.priceValue && (
             <div className="text-muted-foreground">
               <span className="font-medium">{t('price')}:</span>{' '}
-              {suggestion.enrichmentData.currency || '€'}
-              {suggestion.enrichmentData.priceValue}
+              {safeEnrichmentData.currency}
+              {safeEnrichmentData.priceValue}
             </div>
           )}
-          {suggestion.enrichmentData.description && (
-            <div className="col-span-2 text-muted-foreground truncate" title={suggestion.enrichmentData.description}>
+          {safeEnrichmentData.description && (
+            <div className="col-span-2 text-muted-foreground truncate" title={safeEnrichmentData.description}>
               <span className="font-medium">{t('description')}:</span>{' '}
-              {suggestion.enrichmentData.description.slice(0, 80)}
-              {suggestion.enrichmentData.description.length > 80 && '...'}
+              {safeEnrichmentData.description.slice(0, 80)}
+              {safeEnrichmentData.description.length > 80 && '...'}
             </div>
           )}
         </div>
@@ -234,12 +246,12 @@ function SuggestionCard({
         )}
 
         {/* Delta (for data_update type) */}
-        {suggestion.enrichmentData.delta &&
-          Object.keys(suggestion.enrichmentData.delta).length > 0 && (
+        {safeEnrichmentData.delta &&
+          Object.keys(safeEnrichmentData.delta).length > 0 && (
             <div className="bg-muted/50 rounded-md p-2 mb-3 text-xs">
               <div className="font-medium mb-1">{t('changes')}:</div>
               <div className="space-y-0.5">
-                {Object.entries(suggestion.enrichmentData.delta).map(
+                {Object.entries(safeEnrichmentData.delta).map(
                   ([key, { old: oldVal, new: newVal }]) => (
                     <div key={key} className="flex items-center gap-1">
                       <span className="text-muted-foreground">{key}:</span>

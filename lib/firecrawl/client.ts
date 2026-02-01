@@ -12,6 +12,28 @@
 import { z } from 'zod';
 
 // =============================================================================
+// Internal Logger
+// =============================================================================
+
+/**
+ * Internal logger for Firecrawl client.
+ * Only logs in development mode to avoid production noise.
+ */
+const logger = {
+  debug: (message: string, ...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Firecrawl] ${message}`, ...args);
+    }
+  },
+  warn: (message: string, ...args: unknown[]) => {
+    console.warn(`[Firecrawl] ${message}`, ...args);
+  },
+  error: (message: string, ...args: unknown[]) => {
+    console.error(`[Firecrawl] ${message}`, ...args);
+  },
+};
+
+// =============================================================================
 // Configuration Schema
 // =============================================================================
 
@@ -391,11 +413,9 @@ export class FirecrawlClient {
         );
 
         // Log retry attempt (in development)
-        if (process.env.NODE_ENV === 'development') {
-          console.log(
-            `[Firecrawl] Retry attempt ${attempt + 1}/${this.retryConfig.maxRetries} after ${Math.round(delay)}ms`
-          );
-        }
+        logger.debug(
+          `Retry attempt ${attempt + 1}/${this.retryConfig.maxRetries} after ${Math.round(delay)}ms`
+        );
 
         await this.sleep(delay);
       }

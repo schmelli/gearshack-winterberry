@@ -47,6 +47,14 @@ interface KeywordMapping {
 // ============================================================================
 
 /**
+ * Keyword to category mapping for intelligent category suggestions.
+ *
+ * IMPORTANT: These slugs must match the `slug` column in the `categories` table.
+ * If category slugs change in the database, this mapping must be updated.
+ *
+ * TODO: Consider moving this to a database table for dynamic updates,
+ * or add startup validation to verify all slugs exist.
+ *
  * Comprehensive keyword mappings for category detection.
  * Covers all major gear categories with German and English terms.
  *
@@ -799,8 +807,12 @@ export async function buildCategoryPath(
 // ============================================================================
 
 /**
- * Normalizes text for keyword matching.
- * Converts to lowercase and removes special characters.
+ * Normalize text for keyword matching.
+ * Converts to lowercase, preserves German umlauts, removes special characters,
+ * and normalizes whitespace.
+ *
+ * @param text - The text to normalize
+ * @returns Normalized text suitable for keyword matching
  */
 function normalizeText(text: string): string {
   return text
@@ -811,18 +823,19 @@ function normalizeText(text: string): string {
 }
 
 /**
- * Finds matching keywords in the input text.
+ * Find matching keywords in normalized text.
+ * Returns all keywords that appear in the text along with match metadata.
  *
- * @param text - Normalized input text
- * @param keywords - Array of keywords to match
+ * @param normalizedText - Pre-normalized text to search in
+ * @param keywords - Array of keywords to search for
  * @returns Array of matched keywords
  */
-function findMatchingKeywords(text: string, keywords: string[]): string[] {
+function findMatchingKeywords(normalizedText: string, keywords: string[]): string[] {
   const matches: string[] = [];
 
   for (const keyword of keywords) {
     const normalizedKeyword = normalizeText(keyword);
-    if (text.includes(normalizedKeyword)) {
+    if (normalizedText.includes(normalizedKeyword)) {
       matches.push(keyword);
     }
   }

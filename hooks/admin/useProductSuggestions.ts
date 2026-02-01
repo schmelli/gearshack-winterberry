@@ -15,6 +15,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 
 // =============================================================================
@@ -34,7 +37,7 @@ export type SuggestionStatus =
 
 /** Enrichment data structure from Firecrawl */
 export interface EnrichmentData {
-  name: string;
+  name?: string;
   brand?: string;
   weightGrams?: number;
   priceValue?: number;
@@ -43,8 +46,30 @@ export interface EnrichmentData {
   description?: string;
   sourceUrl?: string;
   operationType?: string;
+  categoryId?: string;
   delta?: Record<string, { old: unknown; new: unknown }>;
 }
+
+/**
+ * Zod schema for validating enrichment_data from database.
+ * Uses passthrough() to allow additional fields while ensuring core fields are typed.
+ */
+const EnrichmentDataSchema = z.object({
+  name: z.string().optional(),
+  brand: z.string().optional(),
+  weightGrams: z.number().optional(),
+  priceValue: z.number().optional(),
+  currency: z.string().optional(),
+  imageUrl: z.string().optional(),
+  description: z.string().optional(),
+  sourceUrl: z.string().optional(),
+  operationType: z.string().optional(),
+  categoryId: z.string().optional(),
+  delta: z.record(z.string(), z.object({
+    old: z.unknown(),
+    new: z.unknown()
+  })).optional(),
+}).passthrough();
 
 /** Product suggestion row mapped from user_contributions */
 export interface ProductSuggestion {
@@ -75,6 +100,9 @@ export interface SuggestionFilters {
   offset?: number;
 }
 
+/** Subscription status for realtime connection */
+export type SubscriptionStatus = 'connecting' | 'connected' | 'disconnected';
+
 /** Hook return type */
 export interface UseProductSuggestionsReturn {
   /** List of product suggestions */
@@ -97,6 +125,8 @@ export interface UseProductSuggestionsReturn {
   rejectSuggestion: (contributionId: string) => Promise<void>;
   /** Whether an action is currently processing */
   isProcessing: boolean;
+  /** Realtime subscription status */
+  subscriptionStatus: SubscriptionStatus;
 }
 
 // =============================================================================
@@ -132,21 +162,57 @@ interface DatabaseRow {
  * Maps database rows to ProductSuggestion objects
  */
 function mapToProductSuggestions(rows: DatabaseRow[]): ProductSuggestion[] {
-  return rows.map((row) => ({
-    id: row.id,
-    contributionType: (row.contribution_type ?? 'new_product') as ContributionType,
-    suggestionStatus: (row.suggestion_status ?? 'pending') as SuggestionStatus,
-    catalogMatchScore: row.catalog_match_score,
-    catalogMatchId: row.catalog_match_id,
-    enrichmentData: (row.enrichment_data as EnrichmentData) ?? {},
-    createdAt: row.created_at,
-    queuedAt: row.queued_at,
-    processedAt: row.processed_at,
-    brandName: row.brand_name,
-    productName: row.product_name,
-    sourceUrl: row.source_url,
-    countryCode: row.contributor_country_code,
-  }));
+  return rows.map((row) => {
+    // Safely parse enrichment_data with fallback to empty object
+    const enrichmentResult = EnrichmentDataSchema.safeParse(row.enrichment_data);
+    const enrichmentData: EnrichmentData = enrichmentResult.success
+      ? enrichmentResult.data as EnrichmentData
+      : {};
+
+    return {
+      id: row.id,
+      contributionType: (row.contribution_type ?? 'new_product') as ContributionType,
+      suggestionStatus: (row.suggestion_status ?? 'pending') as SuggestionStatus,
+      catalogMatchScore: row.catalog_match_score,
+      catalogMatchId: row.catalog_match_id,
+      enrichmentData,
+      createdAt: row.created_at,
+      queuedAt: row.queued_at,
+      processedAt: row.processed_at,
+      brandName: row.brand_name,
+      productName: row.product_name,
+      sourceUrl: row.source_url,
+      countryCode: row.contributor_country_code,
+    };
+  });
+}
+
+/**
+ * Determines whether the payload change should trigger a refetch based on current filters.
+ * This prevents unnecessary refetches when changes are unrelated to the current view.
+ */
+function shouldRefetchForPayload(
+  payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> },
+  filters: SuggestionFilters
+): boolean {
+  // Always refetch on INSERT to ensure new items are captured
+  if (payload.eventType === 'INSERT') return true;
+
+  // For UPDATE/DELETE, check if the record matches our filters
+  const record = payload.new ?? payload.old;
+  if (!record) return true;
+
+  // Check contribution type filter
+  if (filters.contributionType && record.contribution_type !== filters.contributionType) {
+    return false;
+  }
+
+  // Check status filter
+  if (filters.status && record.suggestion_status !== filters.status) {
+    return false;
+  }
+
+  return true;
 }
 
 // =============================================================================
@@ -202,6 +268,10 @@ export function useProductSuggestions(
   const [filters, setFilters] = useState<SuggestionFilters>(initialFilters ?? {});
   const [totalCount, setTotalCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('disconnected');
+
+  // Translations for toast messages
+  const t = useTranslations('Admin.ingestion.productSuggestions');
 
   // Memoize Supabase client to prevent recreation on every render
   const supabase = useMemo(() => createClient(), []);
@@ -256,7 +326,8 @@ export function useProductSuggestions(
   }, [filters, supabase]);
 
   /**
-   * Sends a contribution to the gardener queue for manual review
+   * Sends a contribution to the gardener queue for manual review.
+   * Creates a gardener_approvals record and updates the contribution status.
    */
   const sendToGardener = useCallback(
     async (contributionId: string) => {
@@ -264,10 +335,41 @@ export function useProductSuggestions(
       setError(null);
 
       try {
-        // Use type assertion for columns added by migration not yet in generated types
+        // 1. Get the contribution data for the approval record
+        const contribution = suggestions.find((s) => s.id === contributionId);
+        if (!contribution) {
+          throw new Error('Contribution not found');
+        }
+
+        // 2. Create gardener_approvals record
+        // Use type assertion for table not yet in generated types
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: approval, error: approvalError } = await (supabase as any)
+          .from('gardener_approvals')
+          .insert({
+            type: 'product_enrichment',
+            contribution_id: contributionId,
+            status: 'pending',
+            data: {
+              contributionType: contribution.contributionType,
+              enrichmentData: contribution.enrichmentData,
+              catalogMatchScore: contribution.catalogMatchScore,
+              catalogMatchId: contribution.catalogMatchId,
+            },
+          })
+          .select('id')
+          .single();
+
+        if (approvalError) {
+          console.error('[ProductSuggestions] Failed to create gardener approval:', approvalError);
+          // Continue anyway - the status update is more important
+        }
+
+        // 3. Update contribution status
         const updatePayload = {
           suggestion_status: 'in_gardener_queue',
           queued_at: new Date().toISOString(),
+          gardener_task_id: approval?.id ?? null,
         } as Record<string, unknown>;
 
         const { error: updateError } = await supabase
@@ -280,33 +382,23 @@ export function useProductSuggestions(
           throw new Error(updateError.message);
         }
 
-        // Optimistically update local state
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === contributionId
-              ? {
-                  ...s,
-                  suggestionStatus: 'in_gardener_queue' as SuggestionStatus,
-                  queuedAt: new Date().toISOString(),
-                }
-              : s
-          )
-        );
+        // Optimistic update - remove from current list
+        setSuggestions((prev) => prev.filter((s) => s.id !== contributionId));
+        setTotalCount((prev) => Math.max(0, prev - 1));
 
-        // If filtering by status, the item may need to be removed from list
-        if (filters.status && filters.status !== 'in_gardener_queue') {
-          setSuggestions((prev) => prev.filter((s) => s.id !== contributionId));
-          setTotalCount((prev) => prev - 1);
-        }
+        toast.success(t('sentToGardener'));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to send to gardener';
+        console.error('[ProductSuggestions] Send to gardener failed:', err);
         setError(message);
-        throw err;
+        toast.error(t('error'));
+        // Refetch to ensure state consistency
+        await fetchSuggestions();
       } finally {
         setIsProcessing(false);
       }
     },
-    [supabase, filters.status]
+    [supabase, suggestions, fetchSuggestions, t]
   );
 
   /**
@@ -369,78 +461,98 @@ export function useProductSuggestions(
   }, [fetchSuggestions]);
 
   // Real-time subscription for user_contributions changes
+  // Uses debouncing to prevent rapid subscription changes when filters change quickly
   useEffect(() => {
-    const channel = supabase
-      .channel('product_suggestions')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_contributions',
-        },
-        (payload) => {
-          // Handle different event types
-          switch (payload.eventType) {
-            case 'INSERT': {
-              // Add new suggestion if it matches current filters
-              const newRow = payload.new as DatabaseRow;
-              const shouldInclude =
-                (!filters.contributionType ||
-                  newRow.contribution_type === filters.contributionType) &&
-                (!filters.status || newRow.suggestion_status === filters.status);
-
-              if (shouldInclude) {
-                const newSuggestion = mapToProductSuggestions([newRow])[0];
-                setSuggestions((prev) => [newSuggestion, ...prev]);
-                setTotalCount((prev) => prev + 1);
-              }
-              break;
+    // Small delay to prevent rapid subscription changes when filters change quickly
+    const timeoutId = setTimeout(() => {
+      // Use unique channel name to prevent conflicts
+      const channel = supabase
+        .channel(`product_suggestions_${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_contributions',
+          },
+          (payload) => {
+            // Only process changes that are relevant to current filters
+            if (!shouldRefetchForPayload(payload, filters)) {
+              return;
             }
-            case 'UPDATE': {
-              // Update existing suggestion in local state
-              const updatedRow = payload.new as DatabaseRow;
-              const updatedSuggestion = mapToProductSuggestions([updatedRow])[0];
 
-              // Check if updated item still matches current filters
-              const stillMatches =
-                (!filters.contributionType ||
-                  updatedRow.contribution_type === filters.contributionType) &&
-                (!filters.status || updatedRow.suggestion_status === filters.status);
+            // Handle different event types
+            switch (payload.eventType) {
+              case 'INSERT': {
+                // Add new suggestion if it matches current filters
+                const newRow = payload.new as DatabaseRow;
+                const shouldInclude =
+                  (!filters.contributionType ||
+                    newRow.contribution_type === filters.contributionType) &&
+                  (!filters.status || newRow.suggestion_status === filters.status);
 
-              if (stillMatches) {
-                setSuggestions((prev) =>
-                  prev.map((s) => (s.id === updatedSuggestion.id ? updatedSuggestion : s))
-                );
-              } else {
-                // Remove from list if no longer matches filters
-                setSuggestions((prev) => prev.filter((s) => s.id !== updatedSuggestion.id));
-                setTotalCount((prev) => Math.max(0, prev - 1));
-              }
-              break;
-            }
-            case 'DELETE': {
-              // Remove deleted suggestion from local state
-              const deletedId = (payload.old as { id: string }).id;
-              setSuggestions((prev) => {
-                const wasPresent = prev.some((s) => s.id === deletedId);
-                if (wasPresent) {
-                  setTotalCount((c) => Math.max(0, c - 1));
+                if (shouldInclude) {
+                  const newSuggestion = mapToProductSuggestions([newRow])[0];
+                  setSuggestions((prev) => [newSuggestion, ...prev]);
+                  setTotalCount((prev) => prev + 1);
                 }
-                return prev.filter((s) => s.id !== deletedId);
-              });
-              break;
+                break;
+              }
+              case 'UPDATE': {
+                // Update existing suggestion in local state
+                const updatedRow = payload.new as DatabaseRow;
+                const updatedSuggestion = mapToProductSuggestions([updatedRow])[0];
+
+                // Check if updated item still matches current filters
+                const stillMatches =
+                  (!filters.contributionType ||
+                    updatedRow.contribution_type === filters.contributionType) &&
+                  (!filters.status || updatedRow.suggestion_status === filters.status);
+
+                if (stillMatches) {
+                  setSuggestions((prev) =>
+                    prev.map((s) => (s.id === updatedSuggestion.id ? updatedSuggestion : s))
+                  );
+                } else {
+                  // Remove from list if no longer matches filters
+                  setSuggestions((prev) => prev.filter((s) => s.id !== updatedSuggestion.id));
+                  setTotalCount((prev) => Math.max(0, prev - 1));
+                }
+                break;
+              }
+              case 'DELETE': {
+                // Remove deleted suggestion from local state
+                const deletedId = (payload.old as { id: string }).id;
+                setSuggestions((prev) => {
+                  const wasPresent = prev.some((s) => s.id === deletedId);
+                  if (wasPresent) {
+                    setTotalCount((c) => Math.max(0, c - 1));
+                  }
+                  return prev.filter((s) => s.id !== deletedId);
+                });
+                break;
+              }
             }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          // Track subscription status for debugging and UI feedback
+          setSubscriptionStatus(status === 'SUBSCRIBED' ? 'connected' : 'connecting');
+        });
 
-    // Cleanup subscription on unmount
+      // Store channel reference for cleanup
+      return () => {
+        setSubscriptionStatus('disconnected');
+        supabase.removeChannel(channel);
+      };
+    }, 100); // 100ms debounce to prevent rapid subscription changes
+
+    // Cleanup timeout and subscription on filter change or unmount
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(timeoutId);
+      setSubscriptionStatus('disconnected');
     };
-  }, [supabase, filters.contributionType, filters.status]);
+  }, [supabase, filters]);
 
   return {
     suggestions,
@@ -453,5 +565,6 @@ export function useProductSuggestions(
     sendToGardener,
     rejectSuggestion,
     isProcessing,
+    subscriptionStatus,
   };
 }

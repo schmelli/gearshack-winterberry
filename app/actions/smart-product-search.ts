@@ -200,8 +200,13 @@ function parseWeight(text: string): { grams: number; unit: 'g' | 'kg' | 'oz' | '
  * - "£149.00" or "GBP 149.00"
  *
  * Detection logic:
+ * - If both separators present: last separator determines format
  * - If last separator is comma AND followed by exactly 2 digits → German format (comma = decimal)
  * - If last separator is period AND followed by exactly 2 digits → English format (period = decimal)
+ *
+ * Regional format detection for ambiguous cases (single separator):
+ * - If EUR/CHF symbol found → prefer German format (comma = decimal, period = thousands)
+ * - If USD/GBP symbol found → prefer English format (period = decimal, comma = thousands)
  */
 function parsePrice(text: string): { value: number; currency: string } | null {
   // Detect currency from text fragment
@@ -212,6 +217,11 @@ function parsePrice(text: string): { value: number; currency: string } | null {
     if (str.includes('£') || upperStr.includes('GBP')) return 'GBP';
     if (upperStr.includes('CHF')) return 'CHF';
     return 'USD'; // Default fallback
+  };
+
+  // Determine if currency typically uses German format (comma as decimal separator)
+  const isGermanFormatCurrency = (currency: string): boolean => {
+    return ['EUR', 'CHF'].includes(currency);
   };
 
   // Pattern to match price-like strings with various formats
@@ -234,40 +244,89 @@ function parsePrice(text: string): { value: number; currency: string } | null {
 
     if (!hasCurrencyIndicator) continue;
 
+    // Detect currency early for ambiguous format resolution
+    const currency = detectCurrency(fullMatch);
+    const preferGermanFormat = isGermanFormatCurrency(currency);
+
     // Determine if this is German or English format by analyzing the last separator
     // German: 1.234,56 (period = thousands, comma = decimal)
     // English: 1,234.56 (comma = thousands, period = decimal)
 
     const lastCommaIndex = numberPart.lastIndexOf(',');
     const lastPeriodIndex = numberPart.lastIndexOf('.');
+    const hasComma = lastCommaIndex !== -1;
+    const hasPeriod = lastPeriodIndex !== -1;
 
     let normalizedValue: number;
 
-    if (lastCommaIndex > lastPeriodIndex) {
-      // Last separator is comma
-      // Check if exactly 2 digits after comma → German decimal format
+    if (hasComma && hasPeriod) {
+      // Both separators present - use position-based detection
+      if (lastCommaIndex > lastPeriodIndex) {
+        // Last separator is comma - German format
+        const afterComma = numberPart.slice(lastCommaIndex + 1);
+        if (afterComma.length === 2 && /^\d{2}$/.test(afterComma)) {
+          // German format: remove period (thousands), replace comma with period (decimal)
+          const cleaned = numberPart.replace(/\./g, '').replace(',', '.');
+          normalizedValue = parseFloat(cleaned);
+        } else {
+          // Comma is thousands separator (English style without decimal)
+          const cleaned = numberPart.replace(/,/g, '');
+          normalizedValue = parseFloat(cleaned);
+        }
+      } else {
+        // Last separator is period - English format
+        const afterPeriod = numberPart.slice(lastPeriodIndex + 1);
+        if (afterPeriod.length === 2 && /^\d{2}$/.test(afterPeriod)) {
+          // English format: remove comma (thousands), period is decimal
+          const cleaned = numberPart.replace(/,/g, '');
+          normalizedValue = parseFloat(cleaned);
+        } else {
+          // Period is thousands separator (German style without decimal)
+          const cleaned = numberPart.replace(/\./g, '');
+          normalizedValue = parseFloat(cleaned);
+        }
+      }
+    } else if (hasComma && !hasPeriod) {
+      // Only comma present - ambiguous case, use currency hint
       const afterComma = numberPart.slice(lastCommaIndex + 1);
       if (afterComma.length === 2 && /^\d{2}$/.test(afterComma)) {
-        // German format: remove period (thousands), replace comma with period (decimal)
-        const cleaned = numberPart.replace(/\./g, '').replace(',', '.');
-        normalizedValue = parseFloat(cleaned);
+        // Could be German decimal (e.g., "299,95 €") or English thousands (e.g., "$1,234")
+        // Use currency hint: EUR/CHF → German (comma = decimal), USD/GBP → English (comma = thousands)
+        if (preferGermanFormat) {
+          // German format: comma is decimal separator
+          const cleaned = numberPart.replace(',', '.');
+          normalizedValue = parseFloat(cleaned);
+        } else {
+          // English format: comma is thousands separator
+          const cleaned = numberPart.replace(/,/g, '');
+          normalizedValue = parseFloat(cleaned);
+        }
       } else {
-        // Comma is thousands separator (English style without decimal)
+        // More than 2 digits after comma - definitely thousands separator
         const cleaned = numberPart.replace(/,/g, '');
         normalizedValue = parseFloat(cleaned);
       }
-    } else if (lastPeriodIndex > lastCommaIndex) {
-      // Last separator is period
-      // Check if exactly 2 digits after period → English decimal format
+    } else if (hasPeriod && !hasComma) {
+      // Only period present - ambiguous case, use currency hint
       const afterPeriod = numberPart.slice(lastPeriodIndex + 1);
       if (afterPeriod.length === 2 && /^\d{2}$/.test(afterPeriod)) {
-        // English format: remove comma (thousands), period is decimal
-        const cleaned = numberPart.replace(/,/g, '');
-        normalizedValue = parseFloat(cleaned);
-      } else {
-        // Period is thousands separator (German style without decimal)
+        // Could be English decimal (e.g., "$299.95") or German thousands (e.g., "1.234 €")
+        // Use currency hint: EUR/CHF → German (period = thousands), USD/GBP → English (period = decimal)
+        if (preferGermanFormat) {
+          // German format: period is thousands separator (e.g., "1.234 €" = 1234)
+          const cleaned = numberPart.replace(/\./g, '');
+          normalizedValue = parseFloat(cleaned);
+        } else {
+          // English format: period is decimal separator (e.g., "$1.23" = 1.23)
+          normalizedValue = parseFloat(numberPart);
+        }
+      } else if (afterPeriod.length === 3 && /^\d{3}$/.test(afterPeriod)) {
+        // Exactly 3 digits after period - likely thousands separator (e.g., "1.234")
         const cleaned = numberPart.replace(/\./g, '');
         normalizedValue = parseFloat(cleaned);
+      } else {
+        // Other cases - assume decimal separator
+        normalizedValue = parseFloat(numberPart);
       }
     } else {
       // No separators
@@ -276,7 +335,6 @@ function parsePrice(text: string): { value: number; currency: string } | null {
 
     // Validate the parsed value
     if (!isNaN(normalizedValue) && normalizedValue > 0 && normalizedValue < 100000) {
-      const currency = detectCurrency(fullMatch);
       return { value: normalizedValue, currency };
     }
   }

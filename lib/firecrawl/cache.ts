@@ -18,6 +18,10 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
+import type { GearSpecs } from './gear-specs';
+
+// Re-export GearSpecs for backwards compatibility
+export type { GearSpecs };
 
 // =============================================================================
 // Table Name Constant
@@ -32,74 +36,6 @@ const FIRECRAWL_CACHE_TABLE = 'firecrawl_cache' as const;
 // =============================================================================
 // Types
 // =============================================================================
-
-/**
- * GearSpecs type representing structured gear data extracted from web pages.
- * This matches the GearSpecsSchema defined in gear-specs.ts.
- */
-export interface GearSpecs {
-  name?: string;
-  brand?: string;
-  category?: string;
-  weight?: {
-    value: number;
-    unit: 'g' | 'kg' | 'oz' | 'lb';
-  };
-  price?: {
-    value: number;
-    currency: string;
-  };
-  dimensions?: {
-    length?: number;
-    width?: number;
-    height?: number;
-    unit: 'cm' | 'in' | 'mm';
-  };
-  capacity?: {
-    value: number;
-    unit: 'L' | 'ml' | 'cu in';
-  };
-  temperatureRating?: {
-    value: number;
-    unit: 'C' | 'F';
-  };
-  materials?: string[];
-  features?: string[];
-  description?: string;
-  imageUrl?: string;
-  sourceUrl?: string;
-  scrapedAt?: string;
-  confidence?: number;
-  // Category-specific fields
-  capacityPersons?: number;
-  seasonRating?: '3-season' | '3.5-season' | '4-season' | 'summer' | 'winter';
-  frameType?: 'internal' | 'external' | 'frameless' | 'removable';
-  fuelType?:
-    | 'canister'
-    | 'alcohol'
-    | 'wood'
-    | 'solid'
-    | 'multi-fuel'
-    | 'white-gas'
-    | 'propane';
-  connectorType?:
-    | 'usb-c'
-    | 'usb-a'
-    | 'micro-usb'
-    | 'usb-mini'
-    | 'lightning'
-    | 'proprietary';
-  constructionType?:
-    | 'freestanding'
-    | 'semi-freestanding'
-    | 'non-freestanding'
-    | 'trekking-pole'
-    | 'a-frame'
-    | 'tunnel'
-    | 'dome'
-    | 'pyramid';
-  size?: string;
-}
 
 /**
  * Cached gear result returned from the cache.
@@ -536,6 +472,19 @@ export async function getCacheStats(): Promise<CacheStats> {
 // =============================================================================
 
 /**
+ * Field weights for confidence calculation.
+ * Core fields are most important, secondary are useful, optional are nice-to-have.
+ */
+const CONFIDENCE_WEIGHTS = {
+  /** Weight for core fields (name, weight, price) */
+  core: 2,
+  /** Weight for secondary fields (brand, dimensions, materials) */
+  secondary: 1,
+  /** Weight for optional category-specific fields */
+  optional: 0.5,
+} as const;
+
+/**
  * Calculates a confidence score based on specs completeness.
  *
  * The score is based on which fields are present and populated.
@@ -555,9 +504,9 @@ function calculateConfidence(specs: GearSpecs | null): number {
   // Core fields (higher weight)
   const coreFields: (keyof GearSpecs)[] = ['name', 'brand', 'weight', 'price'];
   for (const field of coreFields) {
-    maxScore += 2;
+    maxScore += CONFIDENCE_WEIGHTS.core;
     if (specs[field] !== undefined && specs[field] !== null) {
-      score += 2;
+      score += CONFIDENCE_WEIGHTS.core;
     }
   }
 
@@ -570,9 +519,9 @@ function calculateConfidence(specs: GearSpecs | null): number {
     'capacity',
   ];
   for (const field of secondaryFields) {
-    maxScore += 1;
+    maxScore += CONFIDENCE_WEIGHTS.secondary;
     if (specs[field] !== undefined && specs[field] !== null) {
-      score += 1;
+      score += CONFIDENCE_WEIGHTS.secondary;
     }
   }
 
@@ -584,14 +533,14 @@ function calculateConfidence(specs: GearSpecs | null): number {
     'seasonRating',
   ];
   for (const field of optionalFields) {
-    maxScore += 0.5;
+    maxScore += CONFIDENCE_WEIGHTS.optional;
     const value = specs[field];
     if (
       value !== undefined &&
       value !== null &&
       (!Array.isArray(value) || value.length > 0)
     ) {
-      score += 0.5;
+      score += CONFIDENCE_WEIGHTS.optional;
     }
   }
 
