@@ -8,8 +8,10 @@
 
 'use server';
 
+import { z } from 'zod';
+
 // =============================================================================
-// Types
+// Types & Validation
 // =============================================================================
 
 export interface ImageSearchResult {
@@ -18,16 +20,20 @@ export interface ImageSearchResult {
   title: string;
 }
 
-interface SerperImageResponse {
-  images: Array<{
-    title: string;
-    imageUrl: string;
-    thumbnailUrl: string;
-    source: string;
-    domain: string;
-    link: string;
-  }>;
-}
+// Zod schema for validating Serper API image results
+const SerperImageSchema = z.object({
+  title: z.string().default('Product image'),
+  imageUrl: z.string().url(),
+  thumbnailUrl: z.string().url(),
+  source: z.string().optional(),
+  domain: z.string().optional(),
+  link: z.string().optional(),
+});
+
+const SerperResponseSchema = z.object({
+  images: z.array(SerperImageSchema),
+});
+
 
 // =============================================================================
 // Server Action
@@ -65,16 +71,24 @@ export async function searchGearImages(query: string): Promise<ImageSearchResult
       throw new Error('Image search is temporarily unavailable. Please try again later.');
     }
 
-    const data: SerperImageResponse = await response.json();
+    const rawData = await response.json();
 
-    // Transform to our schema, filtering out invalid entries (3x2 grid = 6 images)
-    return (data.images || [])
-      .filter((img) => img.imageUrl && img.thumbnailUrl)
+    // Validate API response with Zod
+    const parseResult = SerperResponseSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      console.error('[Image Search] Invalid API response:', parseResult.error);
+      throw new Error('Image search returned invalid data. Please try again later.');
+    }
+
+    const data = parseResult.data;
+
+    // Transform to our schema (3x2 grid = 6 images, already validated by Zod)
+    return data.images
       .slice(0, 6)
       .map((img) => ({
         imageUrl: img.imageUrl,
         thumbnailUrl: img.thumbnailUrl,
-        title: img.title || 'Product image',
+        title: img.title,
       }));
   } catch (error) {
     // Preserve existing error message if already thrown
