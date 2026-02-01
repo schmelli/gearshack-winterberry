@@ -4,7 +4,7 @@
  * Feature: URL-Import & Contributions Tracking
  *
  * Displays contribution statistics, missing brands management,
- * and data quality insights for administrators.
+ * product suggestions, and data quality insights for administrators.
  */
 
 'use client';
@@ -14,9 +14,12 @@ import { Button } from '@/components/ui/button';
 import { useContributionsDashboard } from '@/hooks/admin/useContributionsDashboard';
 import { ContributionsOverview } from '@/components/admin/contributions/ContributionsOverview';
 import { MissingBrandsTable } from '@/components/admin/contributions/MissingBrandsTable';
+import { ProductSuggestionsTab } from './ProductSuggestionsTab';
 import { RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function AdminContributionsPage() {
+  const t = useTranslations('Admin.contributions');
   const {
     stats,
     isLoadingStats,
@@ -42,9 +45,9 @@ export default function AdminContributionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Contributions Dashboard</h1>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">
-            Track user contributions and manage missing brands
+            {t('description')}
           </p>
         </div>
         <Button
@@ -54,21 +57,24 @@ export default function AdminContributionsPage() {
           disabled={isLoadingStats}
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingStats ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('refresh')}
         </Button>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t('tabs.overview')}</TabsTrigger>
           <TabsTrigger value="missing-brands">
-            Missing Brands
+            {t('tabs.missingBrands')}
             {stats && stats.missingBrandsCount > 0 && (
               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 {stats.missingBrandsCount}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="product-suggestions">
+            {t('tabs.productSuggestions')}
           </TabsTrigger>
         </TabsList>
 
@@ -96,6 +102,10 @@ export default function AdminContributionsPage() {
             onUpdateStatus={updateBrandStatus}
             isUpdatingStatus={isUpdatingStatus}
           />
+        </TabsContent>
+
+        <TabsContent value="product-suggestions" className="space-y-4">
+          <ProductSuggestionsTab />
         </TabsContent>
       </Tabs>
     </div>

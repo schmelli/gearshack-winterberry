@@ -198,10 +198,65 @@ export interface ImportedProductData {
   currency: string | null;
   productUrl: string;
   extractionConfidence: 'high' | 'medium' | 'low';
-  extractionMethod: 'schema' | 'patterns' | 'ai';
+  extractionMethod: 'schema' | 'patterns' | 'ai' | 'firecrawl';
 
   // GearGraph matching
   catalogMatch: CatalogMatchResult | null;
+
+  // Category suggestion (from catalog match or keyword matching)
+  categorySuggestion: CategorySuggestionResult | null;
+
+  // Additional specifications from Firecrawl extraction
+  additionalSpecs: AdditionalGearSpecs | null;
+}
+
+/**
+ * Category suggestion result
+ */
+export interface CategorySuggestionResult {
+  /** UUID of the suggested category (level 3 product type) */
+  categoryId: string;
+  /** Localized path: "Clothing > Outerwear > Rain Jackets" */
+  categoryPath?: string;
+  /** Source of the suggestion */
+  source: 'catalog_match' | 'keyword_matching';
+  /** Confidence score 0-1 (only for keyword_matching) */
+  confidence?: number;
+}
+
+/**
+ * Additional gear specifications extracted by Firecrawl
+ */
+export interface AdditionalGearSpecs {
+  /** Materials used (e.g., "Nylon", "Gore-Tex", "Down") */
+  materials: string[] | null;
+  /** Season rating for tents/sleeping bags */
+  seasonRating: '3-season' | '3.5-season' | '4-season' | 'summer' | 'winter' | null;
+  /** Dimensions in cm */
+  dimensions: {
+    length?: number;
+    width?: number;
+    height?: number;
+    unit: 'cm' | 'in' | 'mm';
+  } | null;
+  /** Volume capacity for backpacks */
+  capacity: {
+    value: number;
+    unit: 'L' | 'ml' | 'cu in';
+  } | null;
+  /** Temperature rating for sleeping bags */
+  temperatureRating: {
+    value: number;
+    unit: 'C' | 'F';
+  } | null;
+  /** Person capacity for tents */
+  capacityPersons?: number | null;
+  /** Construction type for tents */
+  constructionType?: string | null;
+  /** Frame type for backpacks */
+  frameType?: string | null;
+  /** Fuel type for stoves */
+  fuelType?: string | null;
 }
 
 /**

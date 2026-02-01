@@ -395,7 +395,9 @@
     "cancel": "Cancel",
     "tryAgain": "Try Again",
     "weight": "Weight",
-    "price": "Price"
+    "price": "Price",
+    "suggestedCategory": "Suggested Category",
+    "additionalSpecs": "Additional Specifications"
   },
   "ProductSearch": {
     "enterSearchTerm": "Please enter a search term",
@@ -3965,7 +3967,8 @@
       "refresh": "Refresh",
       "tabs": {
         "overview": "Overview",
-        "missingBrands": "Missing Brands"
+        "missingBrands": "Missing Brands",
+        "productSuggestions": "Product Suggestions"
       },
       "stats": {
         "totalContributions": "Total Contributions",
@@ -4016,6 +4019,41 @@
         "brandsFound": "{count} brand found",
         "brandsFoundPlural": "{count} brands found",
         "page": "Page {current} of {total}"
+      },
+      "productSuggestions": {
+        "unnamed": "Unnamed",
+        "viaUrl": "via URL",
+        "weight": "Weight",
+        "price": "Price",
+        "description": "Description",
+        "matchScore": "Match Score",
+        "changes": "Changes",
+        "sendToGardener": "Send to Gardener",
+        "reject": "Reject",
+        "sentToGardener": "Sent to gardener queue",
+        "rejected": "Suggestion rejected",
+        "actionFailed": "Action failed",
+        "suggestionsFound": "{count, plural, =0 {No suggestions} =1 {1 suggestion found} other {# suggestions found}}",
+        "noSuggestions": "No suggestions found",
+        "error": "Error loading suggestions",
+        "retry": "Retry",
+        "refresh": "Refresh",
+        "filters": {
+          "allTypes": "All Types",
+          "allStatuses": "All Statuses"
+        },
+        "types": {
+          "new_product": "New Product",
+          "incomplete_match": "Incomplete Match",
+          "data_update": "Data Update"
+        },
+        "status": {
+          "pending": "Pending",
+          "queued_for_review": "Queued for Review",
+          "in_gardener_queue": "In Gardener Queue",
+          "processed": "Processed",
+          "rejected": "Rejected"
+        }
       }
     }
   },

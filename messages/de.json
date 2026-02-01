@@ -396,7 +396,9 @@
     "cancel": "Abbrechen",
     "tryAgain": "Erneut versuchen",
     "weight": "Gewicht",
-    "price": "Preis"
+    "price": "Preis",
+    "suggestedCategory": "Vorgeschlagene Kategorie",
+    "additionalSpecs": "Zusatzliche Spezifikationen"
   },
   "ProductSearch": {
     "enterSearchTerm": "Bitte gib einen Suchbegriff ein",
@@ -3969,7 +3971,8 @@
       "refresh": "Aktualisieren",
       "tabs": {
         "overview": "Übersicht",
-        "missingBrands": "Fehlende Marken"
+        "missingBrands": "Fehlende Marken",
+        "productSuggestions": "Produktvorschläge"
       },
       "stats": {
         "totalContributions": "Beiträge gesamt",
@@ -4020,6 +4023,41 @@
         "brandsFound": "{count} Marke gefunden",
         "brandsFoundPlural": "{count} Marken gefunden",
         "page": "Seite {current} von {total}"
+      },
+      "productSuggestions": {
+        "unnamed": "Unbenannt",
+        "viaUrl": "via URL",
+        "weight": "Gewicht",
+        "price": "Preis",
+        "description": "Beschreibung",
+        "matchScore": "Match-Score",
+        "changes": "Änderungen",
+        "sendToGardener": "An Gardener",
+        "reject": "Ablehnen",
+        "sentToGardener": "An Gardener-Warteschlange gesendet",
+        "rejected": "Vorschlag abgelehnt",
+        "actionFailed": "Aktion fehlgeschlagen",
+        "suggestionsFound": "{count, plural, =0 {Keine Vorschläge} =1 {1 Vorschlag gefunden} other {# Vorschläge gefunden}}",
+        "noSuggestions": "Keine Vorschläge vorhanden",
+        "error": "Fehler beim Laden der Vorschläge",
+        "retry": "Erneut versuchen",
+        "refresh": "Aktualisieren",
+        "filters": {
+          "allTypes": "Alle Typen",
+          "allStatuses": "Alle Status"
+        },
+        "types": {
+          "new_product": "Neues Produkt",
+          "incomplete_match": "Unvollständiger Match",
+          "data_update": "Daten-Update"
+        },
+        "status": {
+          "pending": "Ausstehend",
+          "queued_for_review": "In Warteschlange",
+          "in_gardener_queue": "Im Gardener",
+          "processed": "Verarbeitet",
+          "rejected": "Abgelehnt"
+        }
       }
     }
   },
