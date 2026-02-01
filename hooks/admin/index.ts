@@ -31,3 +31,17 @@ export { useGardenerReview } from './useGardenerReview';
 
 // Feature Flags Management
 export { useAdminFeatureFlags } from './useAdminFeatureFlags';
+
+// Product Suggestions (URL Import & Contributions)
+export {
+  useProductSuggestions,
+  type ContributionType,
+  type SuggestionStatus,
+  type ProductSuggestion,
+  type SuggestionFilters,
+  type EnrichmentData,
+  type UseProductSuggestionsReturn,
+} from './useProductSuggestions';
+
+// Contributions Dashboard
+export { useContributionsDashboard } from './useContributionsDashboard';

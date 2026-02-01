@@ -188,32 +188,96 @@ function parseWeight(text: string): { grams: number; unit: 'g' | 'kg' | 'oz' | '
 }
 
 /**
- * Parse price from text
+ * Parse price from text - supports both German (DE) and English (EN) formats.
+ *
+ * German formats:
+ * - "299,95 €" or "€ 299,95" or "EUR 299,95" or "299,95 EUR"
+ * - "1.299,00 €" (thousand separator = period, decimal = comma)
+ *
+ * English formats:
+ * - "$299.95" or "299.95 USD"
+ * - "$1,299.00" (thousand separator = comma, decimal = period)
+ * - "£149.00" or "GBP 149.00"
+ *
+ * Detection logic:
+ * - If last separator is comma AND followed by exactly 2 digits → German format (comma = decimal)
+ * - If last separator is period AND followed by exactly 2 digits → English format (period = decimal)
  */
 function parsePrice(text: string): { value: number; currency: string } | null {
-  // Match patterns like: $299.99, €199, £149.00, 299 USD
-  const patterns = [
-    /\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/g,           // $299.99
-    /€\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/g,            // €199
-    /£\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/g,            // £149
-    /(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP)/gi, // 299 USD
-  ];
+  // Detect currency from text fragment
+  const detectCurrency = (str: string): string => {
+    const upperStr = str.toUpperCase();
+    if (str.includes('$') || upperStr.includes('USD')) return 'USD';
+    if (str.includes('€') || upperStr.includes('EUR')) return 'EUR';
+    if (str.includes('£') || upperStr.includes('GBP')) return 'GBP';
+    if (upperStr.includes('CHF')) return 'CHF';
+    return 'USD'; // Default fallback
+  };
 
-  for (const pattern of patterns) {
-    const match = pattern.exec(text);
-    if (match) {
-      const valueStr = match[1].replace(/,/g, '');
-      const value = parseFloat(valueStr);
+  // Pattern to match price-like strings with various formats
+  // Matches: currency symbol/code (optional), number with separators, currency symbol/code (optional)
+  const pricePattern = /(?:[$€£]|USD|EUR|GBP|CHF)?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:[$€£]|USD|EUR|GBP|CHF)?/gi;
 
-      if (value > 0 && value < 100000) {
-        // Determine currency
-        const currency = text.includes('$') ? 'USD'
-          : text.includes('€') ? 'EUR'
-          : text.includes('£') ? 'GBP'
-          : 'USD';
+  let match;
+  while ((match = pricePattern.exec(text)) !== null) {
+    const fullMatch = match[0].trim();
+    const numberPart = match[1];
 
-        return { value, currency };
+    if (!numberPart) continue;
+
+    // Skip if no currency indicator in the match
+    const hasCurrencyIndicator =
+      fullMatch.includes('$') ||
+      fullMatch.includes('€') ||
+      fullMatch.includes('£') ||
+      /USD|EUR|GBP|CHF/i.test(fullMatch);
+
+    if (!hasCurrencyIndicator) continue;
+
+    // Determine if this is German or English format by analyzing the last separator
+    // German: 1.234,56 (period = thousands, comma = decimal)
+    // English: 1,234.56 (comma = thousands, period = decimal)
+
+    const lastCommaIndex = numberPart.lastIndexOf(',');
+    const lastPeriodIndex = numberPart.lastIndexOf('.');
+
+    let normalizedValue: number;
+
+    if (lastCommaIndex > lastPeriodIndex) {
+      // Last separator is comma
+      // Check if exactly 2 digits after comma → German decimal format
+      const afterComma = numberPart.slice(lastCommaIndex + 1);
+      if (afterComma.length === 2 && /^\d{2}$/.test(afterComma)) {
+        // German format: remove period (thousands), replace comma with period (decimal)
+        const cleaned = numberPart.replace(/\./g, '').replace(',', '.');
+        normalizedValue = parseFloat(cleaned);
+      } else {
+        // Comma is thousands separator (English style without decimal)
+        const cleaned = numberPart.replace(/,/g, '');
+        normalizedValue = parseFloat(cleaned);
       }
+    } else if (lastPeriodIndex > lastCommaIndex) {
+      // Last separator is period
+      // Check if exactly 2 digits after period → English decimal format
+      const afterPeriod = numberPart.slice(lastPeriodIndex + 1);
+      if (afterPeriod.length === 2 && /^\d{2}$/.test(afterPeriod)) {
+        // English format: remove comma (thousands), period is decimal
+        const cleaned = numberPart.replace(/,/g, '');
+        normalizedValue = parseFloat(cleaned);
+      } else {
+        // Period is thousands separator (German style without decimal)
+        const cleaned = numberPart.replace(/\./g, '');
+        normalizedValue = parseFloat(cleaned);
+      }
+    } else {
+      // No separators
+      normalizedValue = parseFloat(numberPart);
+    }
+
+    // Validate the parsed value
+    if (!isNaN(normalizedValue) && normalizedValue > 0 && normalizedValue < 100000) {
+      const currency = detectCurrency(fullMatch);
+      return { value: normalizedValue, currency };
     }
   }
 
@@ -428,7 +492,22 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
     // Try schema.org extraction first
     const schemaData = extractSchemaOrgProduct(html);
     if (schemaData && schemaData.confidence === 'high') {
-      return { data: { ...schemaData, productUrl: url } };
+      // If schema extraction succeeded but has no image, try fallback image sources
+      let imageUrl = schemaData.imageUrl;
+      if (!imageUrl) {
+        imageUrl =
+          extractOgImage(html) ??
+          extractTwitterImage(html) ??
+          extractProductImageHeuristic(html, url);
+      }
+
+      return {
+        data: {
+          ...schemaData,
+          imageUrl,
+          productUrl: url,
+        },
+      };
     }
 
     // Fallback to pattern extraction
@@ -597,6 +676,175 @@ function extractSchemaImage(product: Record<string, unknown>): string | null {
 }
 
 /**
+ * Extract OG image from HTML meta tags
+ */
+function extractOgImage(html: string): string | null {
+  // Try property="og:image" with content attribute
+  const ogImageMatch = /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i.exec(html);
+  if (ogImageMatch) return ogImageMatch[1];
+
+  // Try with reversed attribute order (content before property)
+  const ogImageMatchReversed = /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i.exec(html);
+  if (ogImageMatchReversed) return ogImageMatchReversed[1];
+
+  return null;
+}
+
+/**
+ * Extract Twitter card image from HTML meta tags
+ */
+function extractTwitterImage(html: string): string | null {
+  // Try name="twitter:image" with content attribute
+  const twitterImageMatch = /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i.exec(html);
+  if (twitterImageMatch) return twitterImageMatch[1];
+
+  // Try with reversed attribute order
+  const twitterImageMatchReversed = /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i.exec(html);
+  if (twitterImageMatchReversed) return twitterImageMatchReversed[1];
+
+  // Try property="twitter:image" (some sites use property instead of name)
+  const twitterImagePropertyMatch = /<meta[^>]*property=["']twitter:image["'][^>]*content=["']([^"']+)["']/i.exec(html);
+  if (twitterImagePropertyMatch) return twitterImagePropertyMatch[1];
+
+  return null;
+}
+
+/**
+ * Extract product image using heuristics when meta tags fail
+ *
+ * Strategy:
+ * 1. Look for <img> tags with product-related attributes
+ * 2. Filter by size (>= 300px is likely a product image)
+ * 3. Ignore small images (< 100px) which are likely icons/thumbnails
+ * 4. Ensure absolute URL
+ */
+function extractProductImageHeuristic(html: string, baseUrl: string): string | null {
+  // Regex to find all <img> tags with their attributes
+  const imgTagPattern = /<img\s+([^>]*)\/?>/gi;
+  const candidates: Array<{ src: string; score: number }> = [];
+
+  let imgMatch;
+  while ((imgMatch = imgTagPattern.exec(html)) !== null) {
+    const attributes = imgMatch[1];
+
+    // Extract src attribute
+    const srcMatch = /src=["']([^"']+)["']/i.exec(attributes);
+    if (!srcMatch) continue;
+
+    const src = srcMatch[1];
+
+    // Skip data URIs, empty srcs, and obvious non-product images
+    if (
+      !src ||
+      src.startsWith('data:') ||
+      src.includes('blank.') ||
+      src.includes('placeholder') ||
+      src.includes('spinner') ||
+      src.includes('loading')
+    ) {
+      continue;
+    }
+
+    // Extract dimensions if available
+    const widthMatch = /width=["']?(\d+)/i.exec(attributes);
+    const heightMatch = /height=["']?(\d+)/i.exec(attributes);
+    const width = widthMatch ? parseInt(widthMatch[1], 10) : 0;
+    const height = heightMatch ? parseInt(heightMatch[1], 10) : 0;
+
+    // Skip small images (likely icons, logos, thumbnails)
+    if ((width > 0 && width < 100) || (height > 0 && height < 100)) {
+      continue;
+    }
+
+    // Collect all relevant text for scoring
+    const attrText = attributes.toLowerCase();
+    const srcLower = src.toLowerCase();
+
+    // Skip common non-product patterns
+    if (
+      srcLower.includes('logo') ||
+      srcLower.includes('icon') ||
+      srcLower.includes('avatar') ||
+      srcLower.includes('banner') ||
+      srcLower.includes('footer') ||
+      srcLower.includes('header') ||
+      srcLower.includes('social') ||
+      srcLower.includes('badge') ||
+      srcLower.includes('button') ||
+      srcLower.includes('sprite') ||
+      attrText.includes('logo') ||
+      attrText.includes('icon') ||
+      attrText.includes('avatar')
+    ) {
+      continue;
+    }
+
+    // Score the image based on product-related attributes
+    let score = 0;
+
+    // Boost for product-related keywords in src
+    if (srcLower.includes('product')) score += 10;
+    if (srcLower.includes('item')) score += 5;
+    if (srcLower.includes('main')) score += 5;
+    if (srcLower.includes('primary')) score += 5;
+    if (srcLower.includes('hero')) score += 5;
+    if (srcLower.includes('gallery')) score += 3;
+
+    // Boost for product-related keywords in alt, class, or data-* attributes
+    if (attrText.includes('product')) score += 8;
+    if (attrText.includes('item')) score += 4;
+    if (attrText.includes('main')) score += 4;
+    if (attrText.includes('primary')) score += 4;
+    if (attrText.includes('gallery')) score += 3;
+
+    // Boost for large dimensions (likely main product image)
+    if (width >= 300 || height >= 300) score += 10;
+    if (width >= 500 || height >= 500) score += 5;
+
+    // Boost for data-* attributes that suggest product images
+    if (attrText.includes('data-zoom')) score += 5;
+    if (attrText.includes('data-large')) score += 5;
+    if (attrText.includes('data-src')) score += 2;
+
+    // Only consider images with some relevance score or unknown dimensions
+    // (unknown dimensions might still be product images)
+    if (score > 0 || (width === 0 && height === 0)) {
+      candidates.push({ src, score: score > 0 ? score : 1 });
+    }
+  }
+
+  // Sort by score descending
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Get the best candidate
+  const bestCandidate = candidates[0];
+  if (!bestCandidate) return null;
+
+  // Ensure absolute URL
+  let imageUrl = bestCandidate.src;
+  if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+    try {
+      const base = new URL(baseUrl);
+      if (imageUrl.startsWith('//')) {
+        // Protocol-relative URL
+        imageUrl = `${base.protocol}${imageUrl}`;
+      } else if (imageUrl.startsWith('/')) {
+        // Absolute path
+        imageUrl = `${base.origin}${imageUrl}`;
+      } else {
+        // Relative path
+        imageUrl = new URL(imageUrl, baseUrl).href;
+      }
+    } catch {
+      // If URL parsing fails, skip this candidate
+      return null;
+    }
+  }
+
+  return imageUrl;
+}
+
+/**
  * Fallback pattern-based extraction
  */
 function extractWithPatterns(html: string, url: string): ExtractedProductData {
@@ -614,9 +862,14 @@ function extractWithPatterns(html: string, url: string): ExtractedProductData {
   // Try to find price
   const priceResult = parsePrice(html);
 
-  // Try to find OG image
-  const ogImageMatch = /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i.exec(html);
-  const imageUrl = ogImageMatch ? ogImageMatch[1] : null;
+  // Extract image with priority fallback chain:
+  // 1. og:image (most reliable)
+  // 2. twitter:image (also common)
+  // 3. Heuristic product image detection (last resort)
+  const imageUrl =
+    extractOgImage(html) ??
+    extractTwitterImage(html) ??
+    extractProductImageHeuristic(html, url);
 
   return {
     name: title,
