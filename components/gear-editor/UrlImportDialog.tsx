@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
-import { Loader2, Link2, CheckCircle2, AlertCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, Link2, CheckCircle2, AlertCircle, Sparkles, ArrowRight, FolderTree, HelpCircle } from 'lucide-react';
 import { useUrlImport, type FormPrefillData } from '@/hooks/useUrlImport';
 import { cn } from '@/lib/utils';
 
@@ -199,7 +199,8 @@ export function UrlImportDialog({
             {/* Extracted Data Preview */}
             <Card className="p-4 space-y-3">
               <div className="flex items-start gap-3">
-                {importedData.imageUrl && (
+                {/* Product Image or Placeholder */}
+                {importedData.imageUrl ? (
                   <Image
                     src={importedData.imageUrl}
                     alt={importedData.name || 'Product'}
@@ -207,7 +208,12 @@ export function UrlImportDialog({
                     height={64}
                     className="w-16 h-16 object-cover rounded-md border"
                     placeholder="empty"
+                    unoptimized
                   />
+                ) : (
+                  <div className="w-16 h-16 flex items-center justify-center rounded-md border bg-muted">
+                    <HelpCircle className="h-6 w-6 text-muted-foreground" />
+                  </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm truncate">
@@ -241,6 +247,43 @@ export function UrlImportDialog({
                   </div>
                 )}
               </div>
+
+              {/* Category Suggestion */}
+              {importedData.categorySuggestion && (
+                <div className="flex items-center gap-2 text-xs">
+                  <FolderTree className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">{t('suggestedCategory')}:</span>
+                  <span>{importedData.categorySuggestion.categoryPath || importedData.categorySuggestion.categoryId}</span>
+                  {importedData.categorySuggestion.confidence && (
+                    <Badge variant="outline" className="text-xs">
+                      {Math.round(importedData.categorySuggestion.confidence * 100)}%
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Description (truncated) */}
+              {importedData.description && (
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
+                  {importedData.description}
+                </p>
+              )}
+
+              {/* Additional Specs */}
+              {importedData.additionalSpecs && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {importedData.additionalSpecs.materials && importedData.additionalSpecs.materials.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {importedData.additionalSpecs.materials.slice(0, 3).join(', ')}
+                    </Badge>
+                  )}
+                  {importedData.additionalSpecs.seasonRating && (
+                    <Badge variant="secondary" className="text-xs">
+                      {importedData.additionalSpecs.seasonRating}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </Card>
 
             {/* Catalog Match (if found) */}

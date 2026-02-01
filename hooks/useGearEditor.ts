@@ -34,10 +34,7 @@ import {
   useDuplicateDetection,
   type UseDuplicateDetectionReturn,
 } from '@/hooks/useDuplicateDetection';
-import {
-  useContributionTracking,
-  computeAddedFields,
-} from '@/hooks/useContributionTracking';
+import { processGearContribution } from '@/app/actions/gear-contributions';
 
 // =============================================================================
 // Image Import Helpers
@@ -123,8 +120,7 @@ export function useGearEditor(
   const {
     initialItem,
     prefillFormData,
-    // TODO: Phase 3 - Use prefillMeta for contribution tracking after save
-    prefillMeta: _prefillMeta,
+    prefillMeta,
     onSaveSuccess,
     onSaveError,
     redirectPath = '/inventory',
@@ -148,9 +144,6 @@ export function useGearEditor(
 
   // Duplicate detection (Feature XXX-duplicate-detection)
   const duplicateDetection = useDuplicateDetection({ redirectPath });
-
-  // Contribution tracking (Feature: URL-Import & Contributions Tracking)
-  const { trackContribution } = useContributionTracking();
 
   // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
@@ -271,6 +264,26 @@ export function useGearEditor(
           };
           onSaveSuccess?.(savedItem);
           toast.success(t('toasts.itemUpdated'));
+
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: 'update',
+            existingItemId: initialItem.id,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
+          });
         } else if (isWishlistMode) {
           // Feature 049: Add new item to wishlist instead of inventory
           await addToWishlist(itemData);
@@ -284,15 +297,24 @@ export function useGearEditor(
           onSaveSuccess?.(savedItem);
           toast.success(t('toasts.addedToWishlist'));
 
-          // Track contribution (fire-and-forget)
-          trackContribution({
-            gearItemId: savedItem.id,
-            brandName: data.brand || '',
-            productName: data.name,
-            sourceUrl: _prefillMeta?.sourceUrl,
-            catalogMatchId: _prefillMeta?.catalogMatchId,
-            catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
-            userAddedFields: computeAddedFields(data as unknown as Record<string, unknown>, null),
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: 'create',
+            existingItemId: undefined,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
           });
         } else {
           // Add new item to store (now async with optimistic update)
@@ -307,15 +329,24 @@ export function useGearEditor(
           onSaveSuccess?.(savedItem);
           toast.success(t('toasts.itemSaved'));
 
-          // Track contribution (fire-and-forget)
-          trackContribution({
-            gearItemId: newId,
-            brandName: data.brand || '',
-            productName: data.name,
-            sourceUrl: _prefillMeta?.sourceUrl,
-            catalogMatchId: _prefillMeta?.catalogMatchId,
-            catalogMatchConfidence: _prefillMeta?.catalogMatchConfidence,
-            userAddedFields: computeAddedFields(data as unknown as Record<string, unknown>, null),
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: prefillMeta?.sourceUrl ? 'url_import' : 'create',
+            existingItemId: undefined,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
           });
         }
 
@@ -347,7 +378,7 @@ export function useGearEditor(
         setIsUploading(false);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t, trackContribution, _prefillMeta]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t, prefillMeta]
   );
 
   // Wrapped submit handler with validation and duplicate detection
