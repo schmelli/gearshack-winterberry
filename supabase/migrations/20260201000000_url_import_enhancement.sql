@@ -125,6 +125,59 @@ CREATE POLICY "admin_firecrawl_cache_read" ON firecrawl_cache
 -- 5. CACHE CLEANUP FUNCTION
 -- Purpose: Remove expired cache entries (called by cron or maintenance)
 -- =============================================================================
+--
+-- CACHE CLEANUP STRATEGY
+-- ----------------------
+-- The cleanup_firecrawl_cache() function removes expired cache entries to keep
+-- the database size manageable. It should be called periodically.
+--
+-- RECOMMENDED FREQUENCY:
+--   Daily cleanup is sufficient for most workloads. With default TTL of 7 days,
+--   daily cleanup ensures expired entries are removed within 24 hours of expiry.
+--
+-- OPTION 1: pg_cron (Supabase/PostgreSQL extension)
+--   If pg_cron is enabled on your Supabase project:
+--
+--   -- Enable pg_cron extension (requires Supabase Pro plan or self-hosted)
+--   CREATE EXTENSION IF NOT EXISTS pg_cron;
+--
+--   -- Schedule daily cleanup at 3:00 AM UTC
+--   SELECT cron.schedule(
+--     'firecrawl-cache-cleanup',      -- job name
+--     '0 3 * * *',                    -- cron expression: daily at 3 AM
+--     $$SELECT cleanup_firecrawl_cache()$$
+--   );
+--
+--   -- To view scheduled jobs:
+--   SELECT * FROM cron.job;
+--
+--   -- To remove the scheduled job:
+--   SELECT cron.unschedule('firecrawl-cache-cleanup');
+--
+-- OPTION 2: External Scheduler (Vercel Cron, GitHub Actions, etc.)
+--   Create an API endpoint that calls cleanupExpiredCache() from lib/firecrawl/cache.ts
+--   and trigger it via external scheduler:
+--
+--   Example API route (/api/cron/firecrawl-cleanup):
+--     import { cleanupExpiredCache } from '@/lib/firecrawl/cache';
+--     export async function GET(request: Request) {
+--       // Verify cron secret header for security
+--       const deletedCount = await cleanupExpiredCache();
+--       return Response.json({ deleted: deletedCount });
+--     }
+--
+--   Vercel cron config (vercel.json):
+--     { "crons": [{ "path": "/api/cron/firecrawl-cleanup", "schedule": "0 3 * * *" }] }
+--
+-- OPTION 3: Manual Cleanup
+--   Run periodically via Supabase SQL Editor or psql:
+--     SELECT cleanup_firecrawl_cache();
+--
+-- MONITORING:
+--   The function returns the count of deleted rows for logging purposes.
+--   Monitor this value to track cache churn and adjust TTL if needed.
+--
+-- =============================================================================
 
 CREATE OR REPLACE FUNCTION cleanup_firecrawl_cache()
 RETURNS INTEGER
@@ -252,3 +305,62 @@ COMMENT ON FUNCTION get_contribution_stats IS 'Returns aggregated contribution s
 
 -- Grant execute to admins only (no public access)
 REVOKE ALL ON FUNCTION get_contribution_stats FROM PUBLIC;
+
+-- =============================================================================
+-- ROLLBACK PROCEDURE (Manual)
+-- =============================================================================
+-- WARNING: Rolling back this migration will result in DATA LOSS!
+-- - All cached Firecrawl responses will be permanently deleted
+-- - All contribution pipeline data (enrichment_data, status tracking, etc.) will be lost
+-- - Any gardener workflow state will be destroyed
+--
+-- DEPENDENCIES TO CHECK BEFORE ROLLBACK:
+-- 1. Verify no active gardener tasks are in progress
+-- 2. Check if any server-side code depends on firecrawl_cache table
+-- 3. Ensure no API routes reference the new user_contributions columns
+-- 4. Confirm get_contribution_stats() is not used in any dashboards
+-- 5. Check if cleanup_firecrawl_cache() is scheduled in any cron jobs
+--
+-- RUN IN REVERSE ORDER:
+-- =============================================================================
+--
+-- Step 1: Revoke function permissions (already revoked, but for completeness)
+-- REVOKE ALL ON FUNCTION get_contribution_stats FROM PUBLIC;
+--
+-- Step 2: Drop functions
+-- DROP FUNCTION IF EXISTS get_contribution_stats();
+-- DROP FUNCTION IF EXISTS cleanup_firecrawl_cache();
+--
+-- Step 3: Drop views
+-- DROP VIEW IF EXISTS pending_contributions;
+--
+-- Step 4: Drop RLS policies
+-- DROP POLICY IF EXISTS "admin_contributions_update" ON user_contributions;
+-- DROP POLICY IF EXISTS "admin_firecrawl_cache_read" ON firecrawl_cache;
+--
+-- Step 5: Drop indexes on user_contributions (new columns)
+-- DROP INDEX IF EXISTS idx_contributions_gardener_task;
+-- DROP INDEX IF EXISTS idx_contributions_queued;
+-- DROP INDEX IF EXISTS idx_contributions_type;
+-- DROP INDEX IF EXISTS idx_contributions_status;
+--
+-- Step 6: Remove columns from user_contributions (DATA LOSS!)
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS processed_at;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS queued_at;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS gardener_task_id;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS suggestion_status;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS enrichment_data;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS catalog_match_id;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS catalog_match_score;
+-- ALTER TABLE user_contributions DROP COLUMN IF EXISTS contribution_type;
+--
+-- Step 7: Drop firecrawl_cache indexes
+-- DROP INDEX IF EXISTS idx_firecrawl_cache_expires;
+-- DROP INDEX IF EXISTS idx_firecrawl_cache_hash;
+--
+-- Step 8: Drop firecrawl_cache table (DATA LOSS!)
+-- DROP TABLE IF EXISTS firecrawl_cache CASCADE;
+--
+-- =============================================================================
+-- END ROLLBACK PROCEDURE
+-- =============================================================================

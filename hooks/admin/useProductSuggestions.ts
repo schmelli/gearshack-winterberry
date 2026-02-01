@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // =============================================================================
 // Types
@@ -102,6 +103,25 @@ export interface SuggestionFilters {
 
 /** Subscription status for realtime connection */
 export type SubscriptionStatus = 'connecting' | 'connected' | 'disconnected';
+
+// =============================================================================
+// Type-Safe Client Wrapper
+// =============================================================================
+
+/**
+ * The `gardener_approvals` table was added in migration 20260201000000_url_import_enhancement.sql
+ * and is not yet in the generated database types. This wrapper provides type-safe access
+ * until types are regenerated with `npx supabase gen types typescript --local`.
+ *
+ * Additionally, new columns on `user_contributions` (contribution_type, suggestion_status,
+ * enrichment_data, etc.) are from the same migration.
+ *
+ * @see supabase/migrations/20260201000000_url_import_enhancement.sql
+ * @todo Remove after regenerating types (run: npx supabase gen types typescript --local)
+ */
+function getTypedClient(supabase: ReturnType<typeof createClient>): SupabaseClient {
+  return supabase as unknown as SupabaseClient;
+}
 
 /** Hook return type */
 export interface UseProductSuggestionsReturn {
@@ -341,10 +361,9 @@ export function useProductSuggestions(
           throw new Error('Contribution not found');
         }
 
-        // 2. Create gardener_approvals record
-        // Use type assertion for table not yet in generated types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: approval, error: approvalError } = await (supabase as any)
+        // 2. Create gardener_approvals record using type-safe wrapper
+        const typedClient = getTypedClient(supabase);
+        const { data: approval, error: approvalError } = await typedClient
           .from('gardener_approvals')
           .insert({
             type: 'product_enrichment',

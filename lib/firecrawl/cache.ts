@@ -17,6 +17,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Json } from '@/types/database';
 import type { GearSpecs } from './gear-specs';
 
@@ -32,6 +33,24 @@ export type { GearSpecs };
  * Uses 'as const' to preserve the literal type for Supabase client.
  */
 const FIRECRAWL_CACHE_TABLE = 'firecrawl_cache' as const;
+
+// =============================================================================
+// Type-Safe Client Wrapper
+// =============================================================================
+
+/**
+ * Returns a Supabase client for the firecrawl_cache table.
+ *
+ * The `firecrawl_cache` table was added in migration 20260201000000_url_import_enhancement.sql
+ * and is not yet in the generated database types. This wrapper provides type-safe access
+ * until types are regenerated with `npx supabase gen types typescript --local`.
+ *
+ * @see supabase/migrations/20260201000000_url_import_enhancement.sql
+ * @todo Remove this wrapper after regenerating types (run: npx supabase gen types typescript --local)
+ */
+async function getFirecrawlCacheClient(): Promise<SupabaseClient> {
+  return (await createClient()) as unknown as SupabaseClient;
+}
 
 // =============================================================================
 // Types
@@ -218,12 +237,11 @@ export async function getCachedGearResult(
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = await getFirecrawlCacheClient();
     const queryHash = await generateQueryHash(gearName, brand);
 
-    // Query the cache table - use type assertion for table not yet in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    // Query the cache table using type-safe wrapper
+    const { data, error } = await supabase
       .from(FIRECRAWL_CACHE_TABLE)
       .select('response_json, source_urls, confidence, created_at, expires_at')
       .eq('query_hash', queryHash)
@@ -291,7 +309,7 @@ export async function setCachedGearResult(
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = await getFirecrawlCacheClient();
     const queryHash = await generateQueryHash(gearName, brand);
 
     // Calculate expiration date based on TTL
@@ -307,9 +325,8 @@ export async function setCachedGearResult(
     // Generate a unique ID for new entries
     const id = crypto.randomUUID();
 
-    // Upsert the cache entry - use type assertion for table not yet in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from(FIRECRAWL_CACHE_TABLE).upsert(
+    // Upsert the cache entry using type-safe wrapper
+    const { error } = await supabase.from(FIRECRAWL_CACHE_TABLE).upsert(
       {
         id,
         query_hash: queryHash,
@@ -336,24 +353,53 @@ export async function setCachedGearResult(
 /**
  * Deletes expired cache entries from the database.
  *
- * This should be called periodically (e.g., via a cron job) to clean up
- * stale cache entries and keep the database size manageable.
+ * This function removes all Firecrawl cache entries where `expires_at < NOW()`.
+ * It should be called periodically to keep the database size manageable.
  *
- * @returns Number of deleted entries
+ * **When to call this function:**
+ * - Via a scheduled cron job (recommended: daily at off-peak hours)
+ * - Manually during maintenance windows
+ * - As part of a health check endpoint
+ *
+ * **Scheduling Options:**
+ * 1. **Vercel Cron** - Add to vercel.json:
+ *    `{ "crons": [{ "path": "/api/cron/firecrawl-cleanup", "schedule": "0 3 * * *" }] }`
+ *
+ * 2. **pg_cron** - See migration file for SQL setup:
+ *    `SELECT cron.schedule('firecrawl-cache-cleanup', '0 3 * * *', $$SELECT cleanup_firecrawl_cache()$$);`
+ *
+ * 3. **GitHub Actions** - Use a scheduled workflow to call an API endpoint
+ *
+ * **Note:** This function uses the TypeScript client and respects RLS policies.
+ * For direct database cleanup, use the SQL function `cleanup_firecrawl_cache()` instead.
+ *
+ * @returns Number of deleted entries (0 if none expired or on error)
+ *
+ * @see supabase/migrations/20260201000000_url_import_enhancement.sql for pg_cron setup
  *
  * @example
  * ```ts
- * const deletedCount = await cleanupExpiredCache();
- * console.log(`Cleaned up ${deletedCount} expired cache entries`);
+ * // In an API route handler (e.g., /api/cron/firecrawl-cleanup)
+ * import { cleanupExpiredCache } from '@/lib/firecrawl/cache';
+ *
+ * export async function GET(request: Request) {
+ *   // Optional: Verify cron secret for security
+ *   const authHeader = request.headers.get('authorization');
+ *   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+ *     return new Response('Unauthorized', { status: 401 });
+ *   }
+ *
+ *   const deletedCount = await cleanupExpiredCache();
+ *   return Response.json({ deleted: deletedCount, timestamp: new Date().toISOString() });
+ * }
  * ```
  */
 export async function cleanupExpiredCache(): Promise<number> {
   try {
-    const supabase = await createClient();
+    const supabase = await getFirecrawlCacheClient();
 
-    // Delete expired entries - use type assertion for table not yet in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    // Delete expired entries using type-safe wrapper
+    const { data, error } = await supabase
       .from(FIRECRAWL_CACHE_TABLE)
       .delete()
       .lt('expires_at', new Date().toISOString())
@@ -395,12 +441,11 @@ export async function cleanupExpiredCache(): Promise<number> {
  */
 export async function getCacheStats(): Promise<CacheStats> {
   try {
-    const supabase = await createClient();
+    const supabase = await getFirecrawlCacheClient();
     const now = new Date().toISOString();
 
-    // Get all entries with relevant fields - use type assertion for table not yet in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    // Get all entries with relevant fields using type-safe wrapper
+    const { data, error } = await supabase
       .from(FIRECRAWL_CACHE_TABLE)
       .select('confidence, created_at, expires_at');
 

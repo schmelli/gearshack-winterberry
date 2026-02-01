@@ -8,16 +8,19 @@
  *
  * Flow:
  * 1. Auth check
- * 2. GearGraph lookup via fuzzy search
- * 3. Determine contribution type based on match score
- * 4. Compute delta between user data and catalog match
- * 5. Save contribution record for gardener workflow
+ * 2. Rate limit check (50 contributions per user per hour)
+ * 3. GearGraph lookup via fuzzy search
+ * 4. Determine contribution type based on match score
+ * 5. Compute delta between user data and catalog match
+ * 6. Transform catalog match to result format
+ * 7. Save contribution record for gardener workflow
  */
 
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
 import { fuzzyProductSearch } from '@/lib/supabase/catalog';
+import { checkAndRecordContribution, HOURLY_LIMIT } from '@/lib/rate-limits/gear-contributions';
 import type { CatalogMatchResult } from '@/types/contributions';
 
 // =============================================================================
@@ -90,6 +93,13 @@ const NEW_PRODUCT_THRESHOLD = 0.3;
 /** Below this score but >= NEW_PRODUCT_THRESHOLD, treat as incomplete match */
 const INCOMPLETE_MATCH_THRESHOLD = 0.7;
 
+/**
+ * Minimum Levenshtein distance (normalized) to consider brand names as different.
+ * Values below this threshold are considered "close enough" (e.g., case differences).
+ * Range: 0-1 where 0 = identical, 1 = completely different
+ */
+const BRAND_SIMILARITY_THRESHOLD = 0.15;
+
 // =============================================================================
 // Main Function
 // =============================================================================
@@ -99,13 +109,15 @@ const INCOMPLETE_MATCH_THRESHOLD = 0.7;
  *
  * This function:
  * 1. Verifies user authentication
- * 2. Searches the GearGraph catalog for matching products
- * 3. Determines the contribution type based on match score
- * 4. Computes delta between user data and catalog data
- * 5. Saves the contribution for the gardener workflow
+ * 2. Checks rate limit (50 contributions per user per hour)
+ * 3. Searches the GearGraph catalog for matching products
+ * 4. Determines the contribution type based on match score
+ * 5. Computes delta between user data and catalog data
+ * 6. Saves the contribution for the gardener workflow
  *
  * @param input - User data and context for the contribution
  * @returns Contribution result with match info and category suggestion
+ * @throws Error if rate limit exceeded (with user-friendly message)
  */
 export async function processGearContribution(
   input: GearContributionInput
@@ -120,20 +132,32 @@ export async function processGearContribution(
     throw new Error('Unauthorized');
   }
 
-  // 2. GearGraph Lookup
+  // 2. Rate limit check (50 contributions per hour)
+  const rateLimitStatus = await checkAndRecordContribution(user.id);
+  if (!rateLimitStatus.allowed) {
+    const minutesUntilReset = Math.ceil(
+      (rateLimitStatus.resetAt.getTime() - Date.now()) / (60 * 1000)
+    );
+    throw new Error(
+      `Rate limit exceeded. You can submit ${HOURLY_LIMIT} contributions per hour. ` +
+        `Please try again in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}.`
+    );
+  }
+
+  // 3. GearGraph Lookup
   const searchQuery = `${input.userData.brand || ''} ${input.userData.name}`.trim();
   const catalogMatches = await fuzzyProductSearch(supabase, searchQuery, { limit: 1 });
   const catalogMatch = catalogMatches[0] ?? null;
   const topScore = catalogMatch?.score ?? 0;
 
-  // 3. Contribution-Typ bestimmen
+  // 4. Contribution-Typ bestimmen
   const contributionType: ContributionType = determineContributionType(topScore);
 
-  // 4. Delta berechnen (bei Match)
+  // 5. Delta berechnen (bei Match)
   const delta =
     topScore >= NEW_PRODUCT_THRESHOLD ? computeDelta(input.userData, catalogMatch) : null;
 
-  // 5. Transform catalog match to CatalogMatchResult format
+  // 6. Transform catalog match to CatalogMatchResult format
   const catalogMatchResult: CatalogMatchResult | null = catalogMatch
     ? {
         id: catalogMatch.id,
@@ -150,7 +174,7 @@ export async function processGearContribution(
       }
     : null;
 
-  // 6. Contribution speichern
+  // 7. Contribution speichern
   // Build base insert data (columns in generated types)
   const baseInsertData = {
     contributor_hash: await generateContributorHash(user.id),
@@ -227,9 +251,76 @@ function determineContributionType(score: number): ContributionType {
 }
 
 /**
+ * Compute Levenshtein distance between two strings.
+ * Uses dynamic programming approach with O(min(m,n)) space optimization.
+ *
+ * @param a - First string
+ * @param b - Second string
+ * @returns Number of single-character edits (insertions, deletions, substitutions)
+ */
+function levenshteinDistance(a: string, b: string): number {
+  // Ensure a is the shorter string for space optimization
+  if (a.length > b.length) {
+    [a, b] = [b, a];
+  }
+
+  const m = a.length;
+  const n = b.length;
+
+  // Handle edge cases
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  // Use single array with O(min(m,n)) space
+  let prev = Array.from({ length: m + 1 }, (_, i) => i);
+  let curr = new Array<number>(m + 1);
+
+  for (let j = 1; j <= n; j++) {
+    curr[0] = j;
+    for (let i = 1; i <= m; i++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[i] = Math.min(
+        prev[i] + 1, // deletion
+        curr[i - 1] + 1, // insertion
+        prev[i - 1] + cost // substitution
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+
+  return prev[m];
+}
+
+/**
+ * Calculate normalized similarity between two brand names.
+ * Returns a value between 0 (identical) and 1 (completely different).
+ * Uses case-insensitive comparison and Levenshtein distance normalization.
+ *
+ * @param brand1 - First brand name
+ * @param brand2 - Second brand name
+ * @returns Normalized distance (0 = identical, 1 = max different)
+ */
+function normalizedBrandDistance(brand1: string, brand2: string): number {
+  const a = brand1.toLowerCase().trim();
+  const b = brand2.toLowerCase().trim();
+
+  // Identical after normalization
+  if (a === b) return 0;
+
+  const distance = levenshteinDistance(a, b);
+  const maxLen = Math.max(a.length, b.length);
+
+  // Avoid division by zero
+  if (maxLen === 0) return 0;
+
+  return distance / maxLen;
+}
+
+/**
  * Compute delta between user data and catalog match.
  *
  * Only includes fields where there is a meaningful difference:
+ * - Brand: Levenshtein distance > 15% of max length (ignores case differences)
  * - Weight: > 10g difference
  * - Price: > 10% difference
  * - Description: Only if catalog is empty and user provided one
@@ -240,11 +331,41 @@ function determineContributionType(score: number): ContributionType {
  */
 function computeDelta(
   userData: GearContributionInput['userData'],
-  catalogMatch: { weightGrams: number | null; priceUsd: number | null; description: string | null } | null
+  catalogMatch: {
+    weightGrams: number | null;
+    priceUsd: number | null;
+    description: string | null;
+    brand?: { id: string; name: string } | null;
+  } | null
 ): DeltaRecord | null {
   if (!catalogMatch) return null;
 
   const delta: DeltaRecord = {};
+
+  // Brand name comparison (using Levenshtein distance)
+  // Only track if: user provided brand AND (catalog has brand with meaningful difference OR catalog has no brand)
+  if (userData.brand) {
+    const catalogBrandName = catalogMatch.brand?.name ?? null;
+
+    if (catalogBrandName) {
+      // Both have brand names - check for meaningful difference using fuzzy matching
+      const distance = normalizedBrandDistance(userData.brand, catalogBrandName);
+      if (distance > BRAND_SIMILARITY_THRESHOLD) {
+        // Significant difference (e.g., "Hellnox" vs "Helinox") - track it
+        delta.brand = {
+          old: catalogBrandName,
+          new: userData.brand,
+        };
+      }
+      // Minor differences (e.g., "MSR" vs "msr") are ignored
+    } else {
+      // User is adding brand data that catalog doesn't have
+      delta.brand = {
+        old: null,
+        new: userData.brand,
+      };
+    }
+  }
 
   // Weight comparison (> 10g difference)
   if (userData.weightGrams !== undefined && catalogMatch.weightGrams !== null) {
