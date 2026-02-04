@@ -225,18 +225,45 @@ export function createGearAgent(userId: string, systemPrompt: string) {
 /**
  * Stream response from Mastra Agent
  * Compatible interface with our current streaming setup
+ *
+ * @param agent - Mastra Agent instance
+ * @param message - Current user message
+ * @param userId - User ID for tool execution context
+ * @param conversationHistory - Previous messages for context continuity
  */
 export async function streamMastraResponse(
   agent: Agent,
   message: string,
-  userId: string
+  userId: string,
+  conversationHistory?: Array<{ role: string; content: string }>
 ) {
   // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)
   const requestContext = new Map<string, unknown>();
   requestContext.set('userId', userId);
 
-  // Generate streaming response
-  const stream = await agent.stream(message, {
+  // Build messages array with conversation history for context continuity.
+  // Include last 20 messages (10 turns) to maintain recent context without
+  // overloading the context window.
+  const MAX_HISTORY_MESSAGES = 20;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messages: any[] = [];
+
+  if (conversationHistory && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
+    for (const msg of recentHistory) {
+      if (msg.role === 'user') {
+        messages.push({ role: 'user' as const, content: msg.content });
+      } else if (msg.role === 'assistant') {
+        messages.push({ role: 'assistant' as const, content: msg.content });
+      }
+    }
+  }
+
+  // Add the current message
+  messages.push({ role: 'user' as const, content: message });
+
+  // Stream with full message history for context continuity
+  const stream = await agent.stream(messages, {
     resourceId: userId,
     requestContext: requestContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

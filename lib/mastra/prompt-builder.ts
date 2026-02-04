@@ -184,9 +184,8 @@ Relationships: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [
 **Query Examples:**
 
 *"Show my tents"*
-1. Get tent category IDs: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
-2. Get child categories: \`queryCatalog({ table: "categories", where: "parent_id = '<tent-category-id>'" })\`
-3. Query with all IDs + name fallback: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>') OR name ILIKE '%tent%'" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
+NOTE: categorySearch automatically resolves the full category hierarchy (parent + children) AND searches item names. One call instead of three!
 
 *"Find ultralight tents under 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -367,11 +366,16 @@ The gear_items table uses a 3-level category hierarchy via category_id:
 | backpacks | Backpacks | Rucksäcke | 2 |
 
 **Example: "How many tents do I have?"**
-1. Get tent category ID: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
-2. Get child categories (Level 3): \`queryCatalog({ table: "categories", where: "parent_id = '<tent-id>'" })\`
-3. Query gear_items with all IDs + name fallback: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>', '<id3>') OR name ILIKE '%tent%'" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
+→ This single call resolves the full category hierarchy (tents + 1_person_tents + 2_person_tents + ...) AND searches item names!
 
-**IMPORTANT - Supported WHERE operators for queryUserData:**
+**PREFERRED: Use categorySearch for category-based lookups:**
+- \`{ table: "gear_items", categorySearch: "tents" }\` → finds all tent items
+- \`{ table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }\` → lightweight sleep gear
+- \`{ table: "gear_items", categorySearch: "Zelte" }\` → works with German terms too!
+- Supports: English slugs ("tents"), English labels ("Tents"), German names ("Zelte")
+
+**Also supported WHERE operators:**
 - IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`
 - OR: \`"name ILIKE '%tent%' OR name ILIKE '%zelt%'"\`
 - Combined: \`"category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"\``,
@@ -506,9 +510,8 @@ Beziehungen: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [:L
 **Abfrage-Beispiele:**
 
 *"Zeig mir meine Zelte"*
-1. Kategorie-IDs holen: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
-2. Kind-Kategorien holen: \`queryCatalog({ table: "categories", where: "parent_id = '<zelt-kategorie-id>'" })\`
-3. Mit allen IDs + Name-Fallback abfragen: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>') OR name ILIKE '%tent%' OR name ILIKE '%zelt%'" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "Zelte" })\`
+HINWEIS: categorySearch loest automatisch die gesamte Kategorie-Hierarchie auf (Eltern + Kinder) UND sucht in Item-Namen. Ein Aufruf statt drei!
 
 *"Finde ultraleichte Zelte unter 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -689,11 +692,16 @@ Die gear_items Tabelle verwendet eine 3-stufige Kategorie-Hierarchie via categor
 | backpacks | Backpacks | Rucksaecke | 2 |
 
 **Beispiel: "Wie viele Zelte habe ich?"**
-1. Zelt-Kategorie-ID holen: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
-2. Kind-Kategorien (Level 3) holen: \`queryCatalog({ table: "categories", where: "parent_id = '<zelt-id>'" })\`
-3. gear_items mit allen IDs + Name-Fallback abfragen: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>', '<id3>') OR name ILIKE '%tent%' OR name ILIKE '%zelt%'" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "Zelte" })\`
+→ Dieser einzelne Aufruf loest die gesamte Kategorie-Hierarchie auf (tents + 1_person_tents + 2_person_tents + ...) UND sucht in Item-Namen!
 
-**WICHTIG - Unterstuetzte WHERE-Operatoren fuer queryUserData:**
+**BEVORZUGT: categorySearch fuer kategoriebasierte Suchen verwenden:**
+- \`{ table: "gear_items", categorySearch: "tents" }\` → findet alle Zelt-Items
+- \`{ table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }\` → leichte Schlaf-Ausruestung
+- \`{ table: "gear_items", categorySearch: "Zelte" }\` → funktioniert auch mit deutschen Begriffen!
+- Unterstuetzt: Englische Slugs ("tents"), englische Labels ("Tents"), deutsche Namen ("Zelte")
+
+**Auch unterstuetzte WHERE-Operatoren:**
 - IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`
 - OR: \`"name ILIKE '%tent%' OR name ILIKE '%zelt%'"\`
 - Kombiniert: \`"category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"\``,

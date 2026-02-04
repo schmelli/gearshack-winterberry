@@ -74,6 +74,11 @@ Examples:
     .optional()
     .describe('Sort order. Example: { column: "weight_grams", ascending: true }'),
 
+  categorySearch: z
+    .string()
+    .optional()
+    .describe('Search gear_items by category name or slug (e.g., "tents", "shelter", "Zelte", "sleeping"). Automatically resolves the full category hierarchy including child categories AND searches item names. Use this instead of manually looking up category IDs with queryCatalog. Only works with gear_items table.'),
+
   limit: z
     .number()
     .int()
@@ -321,6 +326,56 @@ function applyConditions(query: any, conditions: ParsedCondition[]): any {
 }
 
 // =============================================================================
+// Category Search Helper
+// =============================================================================
+
+/**
+ * Resolve a category search term to matching category IDs.
+ * Searches by slug, label, and i18n fields, then includes child categories.
+ * Uses a single DB query (categories table is small, ~50-100 rows).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveCategorySearch(supabase: any, search: string): Promise<string[]> {
+  const searchLower = search.toLowerCase();
+
+  // Load all categories in a single query (small dataset)
+  const { data: allCategories, error } = await supabase
+    .from('categories')
+    .select('*');
+
+  if (error || !allCategories || allCategories.length === 0) return [];
+
+  // Find matching categories by slug, label, or i18n translations
+  const matchingIds = new Set<string>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const cat of allCategories as any[]) {
+    const fields: string[] = [
+      cat.slug,
+      cat.label,
+      // Include i18n translations if available (e.g., { de: "Zelte", en: "Tents" })
+      ...(typeof cat.i18n === 'object' && cat.i18n !== null
+        ? Object.values(cat.i18n as Record<string, string>)
+        : []),
+    ].filter((f): f is string => typeof f === 'string');
+
+    if (fields.some(f => f.toLowerCase().includes(searchLower))) {
+      matchingIds.add(cat.id as string);
+    }
+  }
+
+  // Also include child categories of matching parents
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const cat of allCategories as any[]) {
+    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+      matchingIds.add(cat.id as string);
+    }
+  }
+
+  return Array.from(matchingIds);
+}
+
+// =============================================================================
 // Tool Definition
 // =============================================================================
 
@@ -363,7 +418,8 @@ Use simple SQL-like conditions (user_id is auto-applied):
 Find all owned gear: { table: "gear_items", where: "status = 'own'" }
 Heavy items: { table: "gear_items", where: "weight_grams > 500", orderBy: { column: "weight_grams", ascending: false } }
 Search brand: { table: "gear_items", where: "brand ILIKE '%osprey%'" }
-By categories: { table: "gear_items", where: "category_id IN ('uuid1', 'uuid2') OR name ILIKE '%tent%'" }
+By category (PREFERRED): { table: "gear_items", categorySearch: "tents" }
+By category + filter: { table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }
 List loadouts: { table: "loadouts", select: "name, total_weight" }`,
 
   inputSchema: queryUserDataSqlInputSchema,
@@ -371,7 +427,7 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
 
   execute: async (input, executionContext): Promise<QueryUserDataSqlOutput> => {
     const startTime = Date.now();
-    const { table, select, where, orderBy, limit } = input;
+    const { table, select, where, orderBy, limit, categorySearch } = input;
 
     // Get userId from execution context's requestContext (renamed from runtimeContext in Mastra v1.0+)
     // Note: requestContext is passed at runtime but not exposed in ToolExecutionContext type
@@ -432,6 +488,22 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       } else {
         // gear_items and loadouts have user_id
         query = query.eq('user_id', userId);
+      }
+
+      // Apply categorySearch filter (resolves category hierarchy in a single call)
+      if (categorySearch && table === 'gear_items') {
+        const categoryIds = await resolveCategorySearch(supabase, categorySearch);
+        if (categoryIds.length > 0) {
+          // Match by category_id (hierarchy) OR by name (fallback)
+          const orFilters = [
+            `category_id.in.(${categoryIds.join(',')})`,
+            `name.ilike.%${categorySearch}%`,
+          ];
+          query = query.or(orFilters.join(','));
+        } else {
+          // No categories found - fall back to name search only
+          query = query.ilike('name', `%${categorySearch}%`);
+        }
       }
 
       // Parse and apply WHERE conditions

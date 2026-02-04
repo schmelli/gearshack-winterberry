@@ -500,9 +500,10 @@ async function buildPromptContext(
     });
   }
 
-  // Add memory context hint if there's history
+  // Conversation history is passed directly as messages to agent.stream().
+  // Add a brief note so the agent knows context is available.
   if (history.length > 0) {
-    const historyNote = `\n**Conversation History:** ${history.length} messages in context.`;
+    const historyNote = `\n**Conversation History:** ${history.length} previous messages are included in this conversation. Always refer to them when the user references earlier topics (e.g., "which of those", "that tent", "the one you mentioned").`;
     promptContext.gearList = (promptContext.gearList || '') + historyNote;
   }
 
@@ -781,7 +782,8 @@ export async function POST(request: Request): Promise<Response> {
               const agent = createGearAgent(user.id, systemPrompt);
 
               // Stream response with Mastra's native tool handling
-              return await streamMastraResponse(agent, message, user.id);
+              // Pass conversation history for context continuity across turns
+              return await streamMastraResponse(agent, message, user.id, memoryContext.history);
             },
             { userId: user.id }
           );
