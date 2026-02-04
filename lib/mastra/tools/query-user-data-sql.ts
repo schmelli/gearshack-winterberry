@@ -56,11 +56,15 @@ const queryUserDataSqlInputSchema = z.object({
     .string()
     .optional()
     .describe(`WHERE conditions as a simple string. Do NOT include user_id (auto-applied).
+Supports: =, !=, <, >, <=, >=, ILIKE, LIKE, IS NULL, IS NOT NULL, IN, AND, OR.
 Examples:
 - "brand ILIKE '%osprey%'"
 - "status = 'wishlist'"
 - "weight_grams > 500"
-- "name ILIKE '%tent%' AND weight_grams < 1000"`),
+- "name ILIKE '%tent%' AND weight_grams < 1000"
+- "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
+- "category_id IN ('uuid1', 'uuid2', 'uuid3')"
+- "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"`),
 
   orderBy: z
     .object({
@@ -102,7 +106,7 @@ export type QueryUserDataSqlOutput = z.infer<typeof queryUserDataSqlOutputSchema
 interface ParsedCondition {
   column: string;
   operator: string;
-  value: string | number | boolean | null;
+  value: string | number | boolean | null | string[];
   combiner?: 'AND' | 'OR';
 }
 
@@ -146,6 +150,20 @@ function parseWhereClause(whereStr: string): ParsedCondition[] {
     }
     if (trimmed.toUpperCase() === 'OR') {
       currentCombiner = 'OR';
+      continue;
+    }
+
+    // Special case: IN clause - column IN ('val1', 'val2', ...)
+    const inMatch = trimmed.match(/^(\w+)\s+IN\s*\(([^)]+)\)$/i);
+    if (inMatch) {
+      const rawValues = inMatch[2].split(',').map(v => v.trim().replace(/^'|'$/g, ''));
+      conditions.push({
+        column: inMatch[1],
+        operator: 'IN',
+        value: rawValues,
+        combiner: conditions.length > 0 ? currentCombiner : undefined,
+      });
+      currentCombiner = 'AND';
       continue;
     }
 
@@ -199,49 +217,103 @@ function parseWhereClause(whereStr: string): ParsedCondition[] {
 }
 
 /**
- * Apply parsed conditions to a Supabase query builder
+ * Convert a parsed condition to PostgREST filter format for use in .or() calls
+ */
+function conditionToPostgrestFilter(cond: ParsedCondition): string {
+  const col = cond.column;
+  switch (cond.operator) {
+    case '=': return `${col}.eq.${cond.value}`;
+    case '!=':
+    case '<>': return `${col}.neq.${cond.value}`;
+    case '<': return `${col}.lt.${cond.value}`;
+    case '>': return `${col}.gt.${cond.value}`;
+    case '<=': return `${col}.lte.${cond.value}`;
+    case '>=': return `${col}.gte.${cond.value}`;
+    case 'ILIKE': return `${col}.ilike.${cond.value}`;
+    case 'LIKE': return `${col}.like.${cond.value}`;
+    case 'IS NULL': return `${col}.is.null`;
+    case 'IS NOT NULL': return `${col}.not.is.null`;
+    case 'IN': {
+      const vals = cond.value as string[];
+      return `${col}.in.(${vals.join(',')})`;
+    }
+    default: return '';
+  }
+}
+
+/**
+ * Apply a single condition directly to a Supabase query builder
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applySingleCondition(query: any, cond: ParsedCondition): any {
+  switch (cond.operator) {
+    case '=':
+      return query.eq(cond.column, cond.value as string | number);
+    case '!=':
+    case '<>':
+      return query.neq(cond.column, cond.value as string | number);
+    case '<':
+      return query.lt(cond.column, cond.value as number);
+    case '>':
+      return query.gt(cond.column, cond.value as number);
+    case '<=':
+      return query.lte(cond.column, cond.value as number);
+    case '>=':
+      return query.gte(cond.column, cond.value as number);
+    case 'ILIKE':
+      return query.ilike(cond.column, cond.value as string);
+    case 'LIKE':
+      return query.like(cond.column, cond.value as string);
+    case 'IS NULL':
+      return query.is(cond.column, null);
+    case 'IS NOT NULL':
+      return query.not(cond.column, 'is', null);
+    case 'IN':
+      return query.in(cond.column, cond.value as string[]);
+    default:
+      return query;
+  }
+}
+
+/**
+ * Apply parsed conditions to a Supabase query builder.
+ * Supports AND, OR, and IN operators.
+ *
+ * OR groups are handled via Supabase's .or() PostgREST filter syntax.
+ * Consecutive OR-connected conditions are grouped together.
+ * AND conditions are applied via direct Supabase method chaining.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyConditions(query: any, conditions: ParsedCondition[]): any {
+  if (conditions.length === 0) return query;
+
+  // Group conditions: consecutive OR-connected conditions form a group.
+  // AND boundaries start a new group.
+  const groups: ParsedCondition[][] = [];
+  let currentGroup: ParsedCondition[] = [conditions[0]];
+
+  for (let i = 1; i < conditions.length; i++) {
+    if (conditions[i].combiner === 'OR') {
+      currentGroup.push(conditions[i]);
+    } else {
+      groups.push(currentGroup);
+      currentGroup = [conditions[i]];
+    }
+  }
+  groups.push(currentGroup);
+
+  // Apply each group to the query
   let result = query;
-
-  for (const cond of conditions) {
-    // Handle OR conditions by wrapping in .or()
-    // For simplicity, we'll use simple chaining (AND logic)
-    // OR support would require more complex query building
-
-    switch (cond.operator) {
-      case '=':
-        result = result.eq(cond.column, cond.value as string | number);
-        break;
-      case '!=':
-      case '<>':
-        result = result.neq(cond.column, cond.value as string | number);
-        break;
-      case '<':
-        result = result.lt(cond.column, cond.value as number);
-        break;
-      case '>':
-        result = result.gt(cond.column, cond.value as number);
-        break;
-      case '<=':
-        result = result.lte(cond.column, cond.value as number);
-        break;
-      case '>=':
-        result = result.gte(cond.column, cond.value as number);
-        break;
-      case 'ILIKE':
-        result = result.ilike(cond.column, cond.value as string);
-        break;
-      case 'LIKE':
-        result = result.like(cond.column, cond.value as string);
-        break;
-      case 'IS NULL':
-        result = result.is(cond.column, null);
-        break;
-      case 'IS NOT NULL':
-        result = result.not(cond.column, 'is', null);
-        break;
+  for (const group of groups) {
+    if (group.length === 1) {
+      // Single condition: apply directly (AND-chained)
+      result = applySingleCondition(result, group[0]);
+    } else {
+      // Multiple conditions in group: connected by OR → use .or()
+      const filters = group.map(c => conditionToPostgrestFilter(c)).filter(Boolean);
+      if (filters.length > 0) {
+        result = result.or(filters.join(','));
+      }
     }
   }
 
@@ -281,13 +353,17 @@ Use simple SQL-like conditions (user_id is auto-applied):
 - Equality: "status = 'wishlist'"
 - Comparison: "weight_grams > 500"
 - Pattern: "brand ILIKE '%osprey%'" (case-insensitive)
-- Multiple: "status = 'own' AND weight_grams < 1000"
+- AND: "status = 'own' AND weight_grams < 1000"
+- OR: "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
+- IN: "category_id IN ('uuid1', 'uuid2', 'uuid3')"
+- Combined: "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"
 
 ## Examples
 
 Find all owned gear: { table: "gear_items", where: "status = 'own'" }
 Heavy items: { table: "gear_items", where: "weight_grams > 500", orderBy: { column: "weight_grams", ascending: false } }
 Search brand: { table: "gear_items", where: "brand ILIKE '%osprey%'" }
+By categories: { table: "gear_items", where: "category_id IN ('uuid1', 'uuid2') OR name ILIKE '%tent%'" }
 List loadouts: { table: "loadouts", select: "name, total_weight" }`,
 
   inputSchema: queryUserDataSqlInputSchema,

@@ -184,7 +184,9 @@ Relationships: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [
 **Query Examples:**
 
 *"Show my tents"*
-\`queryUserData({ table: "gear_items", where: "name ILIKE '%tent%' OR category_id IN (SELECT id FROM categories WHERE label ILIKE '%tent%')" })\`
+1. Get tent category IDs: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
+2. Get child categories: \`queryCatalog({ table: "categories", where: "parent_id = '<tent-category-id>'" })\`
+3. Query with all IDs + name fallback: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>') OR name ILIKE '%tent%'" })\`
 
 *"Find ultralight tents under 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -365,12 +367,14 @@ The gear_items table uses a 3-level category hierarchy via category_id:
 | backpacks | Backpacks | Rucksäcke | 2 |
 
 **Example: "How many tents do I have?"**
-1. Query categories: SELECT id FROM categories WHERE slug = 'tents' OR i18n->>'de' ILIKE '%zelt%'
-2. Also get child categories (Level 3): SELECT id FROM categories WHERE parent_id IN (above results)
-3. Query gear_items: SELECT * FROM gear_items WHERE category_id IN (all_tent_category_ids) AND status = 'own'
+1. Get tent category ID: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
+2. Get child categories (Level 3): \`queryCatalog({ table: "categories", where: "parent_id = '<tent-id>'" })\`
+3. Query gear_items with all IDs + name fallback: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>', '<id3>') OR name ILIKE '%tent%'" })\`
 
-**Shortcut - Search by name as fallback:**
-If category lookup is complex, also search by name: WHERE name ILIKE '%tent%' OR name ILIKE '%zelt%'`,
+**IMPORTANT - Supported WHERE operators for queryUserData:**
+- IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`
+- OR: \`"name ILIKE '%tent%' OR name ILIKE '%zelt%'"\`
+- Combined: \`"category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"\``,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -502,7 +506,9 @@ Beziehungen: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [:L
 **Abfrage-Beispiele:**
 
 *"Zeig mir meine Zelte"*
-\`queryUserData({ table: "gear_items", where: "name ILIKE '%tent%' OR category_id IN (SELECT id FROM categories WHERE label ILIKE '%tent%')" })\`
+1. Kategorie-IDs holen: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
+2. Kind-Kategorien holen: \`queryCatalog({ table: "categories", where: "parent_id = '<zelt-kategorie-id>'" })\`
+3. Mit allen IDs + Name-Fallback abfragen: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>') OR name ILIKE '%tent%' OR name ILIKE '%zelt%'" })\`
 
 *"Finde ultraleichte Zelte unter 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -683,12 +689,14 @@ Die gear_items Tabelle verwendet eine 3-stufige Kategorie-Hierarchie via categor
 | backpacks | Backpacks | Rucksaecke | 2 |
 
 **Beispiel: "Wie viele Zelte habe ich?"**
-1. Categories abfragen: SELECT id FROM categories WHERE slug = 'tents' OR i18n->>'de' ILIKE '%zelt%'
-2. Kind-Kategorien (Level 3) holen: SELECT id FROM categories WHERE parent_id IN (obige Ergebnisse)
-3. gear_items abfragen: SELECT * FROM gear_items WHERE category_id IN (alle_zelt_category_ids) AND status = 'own'
+1. Zelt-Kategorie-ID holen: \`queryCatalog({ table: "categories", where: "slug = 'tents'" })\`
+2. Kind-Kategorien (Level 3) holen: \`queryCatalog({ table: "categories", where: "parent_id = '<zelt-id>'" })\`
+3. gear_items mit allen IDs + Name-Fallback abfragen: \`queryUserData({ table: "gear_items", where: "category_id IN ('<id1>', '<id2>', '<id3>') OR name ILIKE '%tent%' OR name ILIKE '%zelt%'" })\`
 
-**Shortcut - Nach Name suchen als Fallback:**
-Wenn Kategorie-Suche komplex ist, auch nach Name suchen: WHERE name ILIKE '%tent%' OR name ILIKE '%zelt%'`,
+**WICHTIG - Unterstuetzte WHERE-Operatoren fuer queryUserData:**
+- IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`
+- OR: \`"name ILIKE '%tent%' OR name ILIKE '%zelt%'"\`
+- Kombiniert: \`"category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"\``,
 };
 
 /**
