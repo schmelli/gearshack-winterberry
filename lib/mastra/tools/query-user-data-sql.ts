@@ -330,13 +330,53 @@ function applyConditions(query: any, conditions: ParsedCondition[]): any {
 // =============================================================================
 
 /**
+ * Bidirectional German ↔ English category term translations.
+ * The categories table only stores English slugs/labels, so German search
+ * terms must be expanded to their English equivalents (and vice versa for
+ * the item name fallback search).
+ */
+const CATEGORY_SEARCH_EXPANSIONS: Record<string, string[]> = {
+  // German → English
+  'zelte': ['tents', 'tent'],
+  'zelt': ['tents', 'tent'],
+  'unterkunft': ['shelter'],
+  'schlafsysteme': ['sleeping'],
+  'schlafsäcke': ['sleeping_bags', 'sleeping_bag'],
+  'schlafsacke': ['sleeping_bags', 'sleeping_bag'],
+  'quilts': ['quilt'],
+  'rucksäcke': ['packs', 'backpacks', 'backpack'],
+  'rucksacke': ['packs', 'backpacks', 'backpack'],
+  'tarps': ['tarp'],
+  'kochen': ['cooking'],
+  'kleidung': ['clothing'],
+  // English → German (for item name fallback)
+  'tents': ['zelte', 'zelt'],
+  'tent': ['zelte', 'zelt'],
+  'shelter': ['unterkunft'],
+  'sleeping': ['schlafsysteme'],
+  'sleeping_bags': ['schlafsäcke'],
+  'packs': ['rucksäcke'],
+  'backpacks': ['rucksäcke'],
+  'cooking': ['kochen'],
+  'clothing': ['kleidung'],
+};
+
+/**
  * Resolve a category search term to matching category IDs.
- * Searches by slug, label, and i18n fields, then includes child categories.
+ * Expands German terms to English equivalents (and vice versa),
+ * searches by slug/label/i18n, then includes child categories.
  * Uses a single DB query (categories table is small, ~50-100 rows).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveCategorySearch(supabase: any, search: string): Promise<string[]> {
   const searchLower = search.toLowerCase();
+
+  // Expand search terms with translations (e.g., "Zelte" → also search "tents")
+  const searchTerms = [searchLower];
+  const expanded = CATEGORY_SEARCH_EXPANSIONS[searchLower];
+  if (expanded) {
+    searchTerms.push(...expanded);
+  }
 
   // Load all categories in a single query (small dataset)
   const { data: allCategories, error } = await supabase
@@ -353,13 +393,14 @@ async function resolveCategorySearch(supabase: any, search: string): Promise<str
     const fields: string[] = [
       cat.slug,
       cat.label,
-      // Include i18n translations if available (e.g., { de: "Zelte", en: "Tents" })
+      // Include i18n translations if available
       ...(typeof cat.i18n === 'object' && cat.i18n !== null
         ? Object.values(cat.i18n as Record<string, string>)
         : []),
     ].filter((f): f is string => typeof f === 'string');
 
-    if (fields.some(f => f.toLowerCase().includes(searchLower))) {
+    // Check all search terms (original + translated expansions)
+    if (searchTerms.some(term => fields.some(f => f.toLowerCase().includes(term)))) {
       matchingIds.add(cat.id as string);
     }
   }
