@@ -184,8 +184,8 @@ Relationships: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [
 **Query Examples:**
 
 *"Show my tents" / "Zeig mir meine Zelte"*
-\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
-NOTE: categorySearch automatically resolves the full category hierarchy (parent + children) AND searches item names. One call instead of three! ALWAYS translate the user's language to the English slug first ("Zelte" → "tents", "Hängematten" → "hammocks").
+\`queryUserData({ table: "gear_items", categorySearch: "tents" })\` or \`categorySearch: "Zelte"\`
+NOTE: categorySearch automatically resolves the full category hierarchy (parent + children) AND searches item names. One call instead of three! Works with English or German terms via i18n database.
 
 *"Find ultralight tents under 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -366,15 +366,16 @@ The gear_items table uses a 3-level category hierarchy via category_id:
 | backpacks | Backpacks | Rucksäcke | 2 |
 
 **Example: "How many tents do I have?" / "Wie viele Zelte habe ich?"**
-\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "tents" })\` or \`categorySearch: "Zelte"\`
 → This single call resolves the full category hierarchy (tents + 1_person_tents + 2_person_tents + ...) AND searches item names!
-→ IMPORTANT: Always use English slugs! Translate user language first ("Zelte" → "tents", "Hängematten" → "hammocks").
+→ Both English and German terms work — the database stores i18n translations for all categories.
 
 **PREFERRED: Use categorySearch for category-based lookups:**
 - \`{ table: "gear_items", categorySearch: "tents" }\` → finds all tent items
+- \`{ table: "gear_items", categorySearch: "Zelte" }\` → also works with German terms!
 - \`{ table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }\` → lightweight sleep gear
 - \`{ table: "gear_items", categorySearch: "hammocks" }\` → finds hammock items
-- **CRITICAL: ALWAYS use English category slugs for categorySearch!** The database only stores English slugs. Translate the user's language to English slugs before calling. Examples: "Zelte" → "tents", "Hängematten" → "hammocks", "Schlafsäcke" → "sleeping_bags", "Rucksäcke" → "backpacks"
+- Supports English slugs ("tents"), English labels ("Tents"), AND German names ("Zelte") — all matched via the i18n database
 
 **Also supported WHERE operators:**
 - IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`
@@ -511,8 +512,8 @@ Beziehungen: [:MADE_BY], [:IN_CATEGORY], [:PART_OF], [:USES], [:SUITED_FOR], [:L
 **Abfrage-Beispiele:**
 
 *"Zeig mir meine Zelte"*
-\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
-HINWEIS: categorySearch loest automatisch die gesamte Kategorie-Hierarchie auf (Eltern + Kinder) UND sucht in Item-Namen. Ein Aufruf statt drei! Uebersetze IMMER die Sprache des Nutzers in den englischen Slug ("Zelte" → "tents", "Haengematten" → "hammocks").
+\`queryUserData({ table: "gear_items", categorySearch: "Zelte" })\` oder \`categorySearch: "tents"\`
+HINWEIS: categorySearch loest automatisch die gesamte Kategorie-Hierarchie auf (Eltern + Kinder) UND sucht in Item-Namen. Ein Aufruf statt drei! Funktioniert mit deutschen UND englischen Begriffen dank i18n-Datenbank.
 
 *"Finde ultraleichte Zelte unter 1kg"*
 \`queryCatalog({ table: "catalog_products", where: "product_type = 'shelter' AND weight_grams < 1000", orderBy: { column: "weight_grams", ascending: true } })\`
@@ -693,15 +694,16 @@ Die gear_items Tabelle verwendet eine 3-stufige Kategorie-Hierarchie via categor
 | backpacks | Backpacks | Rucksaecke | 2 |
 
 **Beispiel: "Wie viele Zelte habe ich?"**
-\`queryUserData({ table: "gear_items", categorySearch: "tents" })\`
+\`queryUserData({ table: "gear_items", categorySearch: "Zelte" })\`
 → Dieser einzelne Aufruf loest die gesamte Kategorie-Hierarchie auf (tents + 1_person_tents + 2_person_tents + ...) UND sucht in Item-Namen!
-→ WICHTIG: Uebersetze "Zelte" zu "tents" (dem englischen Slug)!
+→ Funktioniert mit deutschen UND englischen Begriffen dank i18n-Datenbank.
 
 **BEVORZUGT: categorySearch fuer kategoriebasierte Suchen verwenden:**
-- \`{ table: "gear_items", categorySearch: "tents" }\` → findet alle Zelt-Items
-- \`{ table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }\` → leichte Schlaf-Ausruestung
-- \`{ table: "gear_items", categorySearch: "hammocks" }\` → findet Haengematte-Items
-- **KRITISCH: Verwende IMMER englische Kategorie-Slugs fuer categorySearch!** Die Datenbank speichert nur englische Slugs. Uebersetze die Sprache des Nutzers in englische Slugs bevor du aufrufst. Beispiele: "Zelte" → "tents", "Haengematten" → "hammocks", "Schlafsaecke" → "sleeping_bags", "Rucksaecke" → "backpacks"
+- \`{ table: "gear_items", categorySearch: "Zelte" }\` → findet alle Zelt-Items
+- \`{ table: "gear_items", categorySearch: "tents" }\` → funktioniert auch mit englischen Slugs!
+- \`{ table: "gear_items", categorySearch: "Schlafsysteme", where: "weight_grams < 500" }\` → leichte Schlaf-Ausruestung
+- \`{ table: "gear_items", categorySearch: "Haengematten" }\` → findet Haengematte-Items
+- Unterstuetzt deutsche Namen ("Zelte"), englische Slugs ("tents") UND englische Labels ("Tents") — alles ueber die i18n-Datenbank
 
 **Auch unterstuetzte WHERE-Operatoren:**
 - IN: \`"category_id IN ('uuid1', 'uuid2', 'uuid3')"\`

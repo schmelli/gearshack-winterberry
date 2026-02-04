@@ -77,7 +77,7 @@ Examples:
   categorySearch: z
     .string()
     .optional()
-    .describe('Search gear_items by ENGLISH category slug (e.g., "tents", "shelter", "sleeping", "hammocks", "backpacks"). ALWAYS translate user language to English slug first! Automatically resolves the full category hierarchy including child categories AND searches item names. Use this instead of manually looking up category IDs with queryCatalog. Only works with gear_items table.'),
+    .describe('Search gear_items by category name in any language (e.g., "tents", "Zelte", "shelter", "Unterkunft", "sleeping", "hammocks"). Matches against slug, label, and i18n translations. Automatically resolves the full category hierarchy including child categories AND searches item names. Use this instead of manually looking up category IDs with queryCatalog. Only works with gear_items table.'),
 
   limit: z
     .number()
@@ -334,9 +334,8 @@ function applyConditions(query: any, conditions: ParsedCondition[]): any {
  * Searches by slug, label, and i18n fields, then includes child categories.
  * Uses a single DB query (categories table is small, ~50-100 rows).
  *
- * IMPORTANT: The agent is instructed to always send English category slugs
- * (e.g., "tents" not "Zelte"). The i18n field check provides a safety net
- * if translations are added to the categories table in the future.
+ * Supports both English and German search terms because the categories
+ * table stores translations in the i18n JSONB column (e.g., {"en": "Tents", "de": "Zelte"}).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveCategorySearch(supabase: any, search: string): Promise<string[]> {
@@ -357,7 +356,7 @@ async function resolveCategorySearch(supabase: any, search: string): Promise<str
     const fields: string[] = [
       cat.slug,
       cat.label,
-      // Include i18n translations if available (future-proofing)
+      // Include i18n translations (e.g., {"en": "Tents", "de": "Zelte"})
       ...(typeof cat.i18n === 'object' && cat.i18n !== null
         ? Object.values(cat.i18n as Record<string, string>)
         : []),
@@ -422,9 +421,9 @@ Use simple SQL-like conditions (user_id is auto-applied):
 Find all owned gear: { table: "gear_items", where: "status = 'own'" }
 Heavy items: { table: "gear_items", where: "weight_grams > 500", orderBy: { column: "weight_grams", ascending: false } }
 Search brand: { table: "gear_items", where: "brand ILIKE '%osprey%'" }
-By category (PREFERRED): { table: "gear_items", categorySearch: "tents" }  ← ALWAYS use English slugs!
+By category (PREFERRED): { table: "gear_items", categorySearch: "tents" }
+By category (German): { table: "gear_items", categorySearch: "Zelte" }
 By category + filter: { table: "gear_items", categorySearch: "sleeping", where: "weight_grams < 500" }
-Hammocks: { table: "gear_items", categorySearch: "hammocks" }  ← translate user language to English slug
 List loadouts: { table: "loadouts", select: "name, total_weight" }`,
 
   inputSchema: queryUserDataSqlInputSchema,
