@@ -137,6 +137,10 @@
     "close": "Schließen"
   },
   "Landing": {
+    "meta": {
+      "title": "Gearshack - Outdoor-Ausrüstungsverwaltung",
+      "description": "Organisiere, verfolge und optimiere deine Outdoor-Ausrüstung. Erstelle Packlisten, verwalte dein Inventar und verbinde dich mit der Gear-Community."
+    },
     "heroTitle": "Organisiere Deine Ausrüstung. Erobere den Trail.",
     "heroSubtitle": "Die ultimative Ausrüstungsverwaltung für Outdoor-Enthusiasten. Erfasse jeden Gegenstand, erstelle perfekte Packlisten und vergiss nie wieder wichtige Ausrüstung.",
     "ctaStartTrial": "Kostenlos starten",
@@ -918,6 +922,10 @@
     }
   },
   "Loadouts": {
+    "meta": {
+      "title": "Meine Packlisten - Gearshack",
+      "description": "Erstelle und verwalte deine Packlisten. Optimiere das Packgewicht und organisiere Ausrüstung für jedes Abenteuer."
+    },
     "deleteTitle": "Packliste löschen",
     "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
     "deleteLoadout": "Packliste löschen",
@@ -1196,6 +1204,10 @@
     }
   },
   "Community": {
+    "meta": {
+      "title": "Community Hub - Gearshack",
+      "description": "Tritt der Gearshack-Community bei. Teile Ausrüstungsbewertungen, diskutiere Packlisten und vernetze dich mit anderen Outdoor-Enthusiasten."
+    },
     "dashboard": {
       "recentShakedowns": {
         "title": "Aktuelle Shakedowns",
@@ -4046,6 +4058,7 @@
       "pageTitle": "Admin-Dashboard",
       "title": "Admin-Dashboard",
       "description": "Plattformstatistiken und Schnellaktionen",
+      "metaDescription": "Gearshack-Administrations-Dashboard. Verwalte Benutzer, Inhalte und Plattformeinstellungen.",
       "sections": {
         "users": "Benutzerstatistiken",
         "userBreakdown": "Benutzeraufteilung",

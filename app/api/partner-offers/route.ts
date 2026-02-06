@@ -69,7 +69,16 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    if (rateLimitError || !withinLimit) {
+    // Separate error handling: database errors vs rate limit violations
+    if (rateLimitError) {
+      console.error('Rate limit check failed:', rateLimitError);
+      return NextResponse.json(
+        { error: 'Failed to check rate limit' },
+        { status: 500 }
+      );
+    }
+
+    if (!withinLimit) {
       return NextResponse.json(
         { error: `Rate limit exceeded. Maximum ${partner.rate_limit_per_hour} requests per hour.` },
         { status: 429 }

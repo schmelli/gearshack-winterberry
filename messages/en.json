@@ -137,6 +137,10 @@
     "close": "Close"
   },
   "Landing": {
+    "meta": {
+      "title": "Gearshack - Outdoor Gear Management",
+      "description": "Organize, track, and optimize your outdoor gear. Build loadouts, manage your inventory, and connect with the gear community."
+    },
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
     "heroSubtitle": "The ultimate gear management platform for outdoor enthusiasts. Track every item, build perfect loadouts, and never forget essential gear again.",
     "ctaStartTrial": "Start Free Trial",
@@ -914,6 +918,10 @@
     }
   },
   "Loadouts": {
+    "meta": {
+      "title": "My Loadouts - Gearshack",
+      "description": "Create and manage your gear loadouts. Optimize pack weight and organize equipment for every adventure."
+    },
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
     "deleteLoadout": "Delete loadout",
@@ -1192,6 +1200,10 @@
     }
   },
   "Community": {
+    "meta": {
+      "title": "Community Hub - Gearshack",
+      "description": "Join the Gearshack community. Share gear reviews, discuss loadouts, and connect with fellow outdoor enthusiasts."
+    },
     "dashboard": {
       "recentShakedowns": {
         "title": "Recent Shakedowns",
@@ -4042,6 +4054,7 @@
       "pageTitle": "Admin Dashboard",
       "title": "Admin Dashboard",
       "description": "Platform statistics and quick actions",
+      "metaDescription": "Gearshack administration dashboard. Manage users, content, and platform settings.",
       "sections": {
         "users": "User Statistics",
         "userBreakdown": "User Breakdown",
