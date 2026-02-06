@@ -107,8 +107,8 @@ export function WikiPageEditor({ page, mode }: WikiPageEditorProps) {
       <Tabs value={activeLocale} onValueChange={(v) => setActiveLocale(v as 'en' | 'de')}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
-            <TabsTrigger value="en">English</TabsTrigger>
-            <TabsTrigger value="de">Deutsch</TabsTrigger>
+            <TabsTrigger value="en">{t('langEnglish')}</TabsTrigger>
+            <TabsTrigger value="de">{t('langDeutsch')}</TabsTrigger>
           </TabsList>
           <Button
             type="button"

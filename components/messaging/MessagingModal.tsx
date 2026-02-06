@@ -264,7 +264,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
         <Sheet open={open} onOpenChange={onOpenChange}>
           <SheetContent side="bottom" className="h-[85vh] p-0">
             <SheetHeader className="sr-only">
-              <SheetTitle>Messages</SheetTitle>
+              <SheetTitle>{t('tabs.messages')}</SheetTitle>
             </SheetHeader>
             {content}
           </SheetContent>
@@ -284,7 +284,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[80vh] max-w-2xl overflow-hidden p-0">
           <DialogHeader className="sr-only">
-            <DialogTitle>Messages</DialogTitle>
+            <DialogTitle>{t('tabs.messages')}</DialogTitle>
           </DialogHeader>
           {content}
         </DialogContent>

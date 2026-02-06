@@ -10,6 +10,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import {
   ExternalLink,
   Package,
@@ -161,11 +162,12 @@ export function EbayListingPopup({
         {/* Image */}
         <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-4">
           {listing.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={listing.thumbnailUrl}
               alt={listing.title}
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

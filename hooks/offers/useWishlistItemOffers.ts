@@ -12,13 +12,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-/**
- * Helper to get supabase client with any typing for merchant tables
- * TODO: Remove after regenerating types from migrations
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMerchantClient(): any {
-  return createClient();
+// =============================================================================
+// Supabase Query Row Types
+// =============================================================================
+
+/** Shape of a row returned by the wishlist item offers query */
+interface WishlistOfferRow {
+  id: string;
+  offer_price: number;
+  regular_price: number;
+  expires_at: string;
+  merchant: {
+    id: string;
+    business_name: string;
+  };
 }
 
 // =============================================================================
@@ -81,7 +88,7 @@ export function useWishlistItemOffers(
       return;
     }
 
-    const supabase = getMerchantClient();
+    const supabase = createClient();
 
     try {
       setIsLoading(true);
@@ -117,8 +124,7 @@ export function useWishlistItemOffers(
         throw fetchError;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformed: WishlistItemOffer[] = (data ?? []).map((row: any) => {
+      const transformed: WishlistItemOffer[] = (data as WishlistOfferRow[] ?? []).map((row) => {
         const regularPrice = row.regular_price || 0;
         const offerPrice = row.offer_price || 0;
         const discountPercent = regularPrice > 0

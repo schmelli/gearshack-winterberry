@@ -12,3 +12,4 @@ export {
   type BlockedMerchant,
   type UseOfferBlockingReturn,
 } from './useOfferBlocking';
+export { useOfferAutoOpen } from './useOfferAutoOpen';

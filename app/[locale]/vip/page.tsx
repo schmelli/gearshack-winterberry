@@ -8,6 +8,7 @@
  * Public page - no authentication required.
  */
 
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 // ISR: Revalidate every 5 minutes for public page performance
@@ -70,11 +71,25 @@ export default async function VipDirectoryPage() {
 // Metadata
 // =============================================================================
 
-export async function generateMetadata() {
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('vip');
 
+  const title = t('directory.metaTitle');
+  const description = t('directory.metaDescription');
+
   return {
-    title: t('directory.metaTitle'),
-    description: t('directory.metaDescription'),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      siteName: 'Gearshack',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
   };
 }

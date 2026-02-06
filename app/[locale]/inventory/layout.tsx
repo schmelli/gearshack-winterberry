@@ -1,7 +1,9 @@
 'use client';
 
+import { Suspense } from 'react';
 import { OnboardingHandler } from '@/components/onboarding';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Force dynamic rendering for inventory routes.
@@ -29,7 +31,18 @@ export default function InventoryLayout({
         userId={user?.uid ?? null}
         profile={profile.rawProfile}
       />
-      {children}
+      <Suspense fallback={
+        <div className="container mx-auto px-4 py-8">
+          <Skeleton className="mb-4 h-8 w-48" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-56 w-full rounded-lg" />
+            <Skeleton className="h-56 w-full rounded-lg" />
+            <Skeleton className="h-56 w-full rounded-lg" />
+          </div>
+        </div>
+      }>
+        {children}
+      </Suspense>
     </>
   );
 }

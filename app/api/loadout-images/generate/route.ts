@@ -112,8 +112,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[API] Generating AI image for loadout:', loadoutId, { isRetry, userId: user.id });
-
     // Generate AI image via Vercel AI SDK
     const aiResult = await generateAIImage({
       prompt,
@@ -138,8 +136,6 @@ export async function POST(request: NextRequest) {
       altText,
       userId: user.id,
     });
-
-    console.log('[API] Image generated and saved:', savedImage.id);
 
     return NextResponse.json(
       {

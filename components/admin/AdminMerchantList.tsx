@@ -39,6 +39,7 @@ import {
   Store,
   Eye,
 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type {
   MerchantWithUser,
@@ -230,11 +231,13 @@ export const AdminMerchantList = memo(function AdminMerchantList({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {merchant.logoUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
+                        <Image
                           src={merchant.logoUrl}
                           alt={merchant.businessName}
+                          width={32}
+                          height={32}
                           className="h-8 w-8 rounded object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">

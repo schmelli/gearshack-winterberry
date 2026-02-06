@@ -12,15 +12,33 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Merchant, MerchantStatus } from '@/types/merchant';
+import type { Merchant, MerchantStatus, MerchantBusinessType } from '@/types/merchant';
 
-/**
- * Helper to get supabase client with any typing for merchant tables
- * TODO: Remove after regenerating types from migrations
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMerchantClient(): any {
-  return createClient();
+// =============================================================================
+// Supabase Query Row Types
+// =============================================================================
+
+/** Shape of a merchant row returned by the admin merchants query with joined profile data */
+interface AdminMerchantRow {
+  id: string;
+  user_id: string;
+  business_name: string;
+  business_type: string;
+  status: string;
+  verified_at: string | null;
+  verified_by: string | null;
+  contact_email: string;
+  contact_phone: string | null;
+  website: string | null;
+  logo_url: string | null;
+  description: string | null;
+  tax_id: string | null;
+  created_at: string;
+  updated_at: string;
+  user: {
+    email: string;
+    display_name: string | null;
+  } | null;
 }
 
 // =============================================================================
@@ -80,7 +98,7 @@ const DEFAULT_LIMIT = 20;
 // =============================================================================
 
 export function useAdminMerchants(): UseAdminMerchantsReturn {
-  const supabase = useMemo(() => getMerchantClient(), []);
+  const supabase = useMemo(() => createClient(), []);
 
   // State
   const [merchants, setMerchants] = useState<MerchantWithUser[]>([]);
@@ -153,13 +171,12 @@ export function useAdminMerchants(): UseAdminMerchantsReturn {
 
       if (fetchError) throw fetchError;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: MerchantWithUser[] = (data || []).map((row: any) => ({
+      const mapped: MerchantWithUser[] = (data as AdminMerchantRow[] || []).map((row) => ({
         id: row.id,
         userId: row.user_id,
         businessName: row.business_name,
-        businessType: row.business_type,
-        status: row.status,
+        businessType: row.business_type as MerchantBusinessType,
+        status: row.status as MerchantStatus,
         verifiedAt: row.verified_at,
         verifiedBy: row.verified_by,
         contactEmail: row.contact_email,
@@ -207,7 +224,7 @@ export function useAdminMerchants(): UseAdminMerchantsReturn {
 
       // Fetch from database
       try {
-        const { data, error: fetchError } = await supabase
+        const { data: rawData, error: fetchError } = await supabase
           .from('merchants')
           .select(
             `
@@ -223,12 +240,14 @@ export function useAdminMerchants(): UseAdminMerchantsReturn {
 
         if (fetchError) throw fetchError;
 
+        const data = rawData as unknown as AdminMerchantRow;
+
         const mapped: MerchantWithUser = {
           id: data.id,
           userId: data.user_id,
           businessName: data.business_name,
-          businessType: data.business_type,
-          status: data.status,
+          businessType: data.business_type as MerchantBusinessType,
+          status: data.status as MerchantStatus,
           verifiedAt: data.verified_at,
           verifiedBy: data.verified_by,
           contactEmail: data.contact_email,

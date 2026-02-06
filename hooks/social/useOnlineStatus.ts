@@ -128,11 +128,11 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
 
   // Use ref to track current status for timer callback (avoids dependency on status)
   const statusRef = useRef<OnlineStatus>(status);
-  statusRef.current = status;
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   // Use ref for updateStatus to avoid recreating resetInactivityTimer
   const updateStatusRef = useRef(updateStatus);
-  updateStatusRef.current = updateStatus;
+  useEffect(() => { updateStatusRef.current = updateStatus; }, [updateStatus]);
 
   /**
    * Resets inactivity timer.
@@ -164,7 +164,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
 
   // Use ref to avoid event listener churn when handleActivity changes
   const handleActivityRef = useRef(handleActivity);
-  handleActivityRef.current = handleActivity;
+  useEffect(() => { handleActivityRef.current = handleActivity; }, [handleActivity]);
 
   // Set up activity listeners with stable handler
   useEffect(() => {
@@ -203,12 +203,12 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
     };
   }, [user?.uid, status, updateStatus]);
 
-  // Set up periodic friend status refresh
+  // Set up periodic friend status refresh.
+  // refreshFriendsStatus is a stable callback that fetches status and sets state.
+  // It already captures `friends` in its closure, so only it and user?.uid are needed as deps.
   useEffect(() => {
     if (!user?.uid || !friends.length) return;
 
-    // Initial refresh - data fetching in useEffect is a valid pattern
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshFriendsStatus();
 
     // Periodic refresh
@@ -219,19 +219,16 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
         clearInterval(statusRefreshTimerRef.current);
       }
     };
-    // refreshFriendsStatus depends on friends, so including both creates redundant re-runs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, friends]);
+  }, [user?.uid, friends, refreshFriendsStatus]);
 
   // Track user.uid in ref for cleanup
   const userUidRef = useRef<string | undefined>(user?.uid);
-  userUidRef.current = user?.uid;
+  useEffect(() => { userUidRef.current = user?.uid; }, [user?.uid]);
 
-  // Set initial status on mount - only runs when user.uid changes
+  // Set initial status on mount - only runs when user.uid changes.
+  // updateStatusRef.current('online') performs an async Supabase update and then sets state.
   useEffect(() => {
     if (user?.uid) {
-      // Data fetching in useEffect is a valid pattern
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       updateStatusRef.current('online');
       resetInactivityTimer();
     }

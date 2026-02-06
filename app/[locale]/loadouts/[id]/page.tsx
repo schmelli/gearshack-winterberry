@@ -12,7 +12,7 @@
 
 'use client';
 
-import { use, useState, useMemo, useEffect } from 'react';
+import { use, useState, useMemo } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/sheet';
 import type { Season } from '@/types/loadout';
 import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
-import { useScreenContext } from '@/components/context/ScreenContextProvider';
+import { useLoadoutScreenEffect } from '@/hooks/useScreenEffect';
 
 // =============================================================================
 // Types
@@ -79,16 +79,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
 
   // AI Agent Context-Awareness: Set screen context
-  const { setScreen, setCurrentLoadout, clearContext } = useScreenContext();
-  const loadoutName = loadout?.name;
-
-  useEffect(() => {
-    if (loadoutName) {
-      setScreen('loadout-detail');
-      setCurrentLoadout(id, loadoutName);
-    }
-    return () => clearContext();
-  }, [id, loadoutName, setScreen, setCurrentLoadout, clearContext]);
+  useLoadoutScreenEffect(id, loadout?.name);
 
   // Editor state and actions
   const {

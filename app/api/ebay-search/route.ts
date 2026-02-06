@@ -114,14 +114,7 @@ export async function GET(request: NextRequest) {
       listings = cacheEntry.results as unknown as EbayListing[];
       fromCache = true;
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[eBay API] Cache hit for "${normalizedQuery}" on ${siteConfig.site}`);
-      }
     } else {
-      // Cache miss - fetch from SerpApi
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[eBay API] Cache miss - fetching from SerpApi for "${normalizedQuery}"`);
-      }
 
       const rawListings = await searchEbayLocalized(query, siteConfig, 20);
 
@@ -154,9 +147,6 @@ export async function GET(request: NextRequest) {
 
       if (cacheError) {
         console.warn('[eBay API] Failed to cache results:', cacheError);
-        // Non-fatal: continue with response, but log for monitoring
-      } else if (process.env.NODE_ENV === 'development') {
-        console.log(`[eBay API] Cached ${listings.length} results for "${normalizedQuery}"`);
       }
     }
 

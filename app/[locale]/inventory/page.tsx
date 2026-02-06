@@ -10,7 +10,7 @@
 
 'use client';
 
-import { Suspense, useState, useCallback, useEffect } from 'react';
+import { Suspense, useState, useCallback } from 'react';
 import { useInventory } from '@/hooks/useInventory';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useInventoryView } from '@/hooks/useInventoryView';
@@ -18,7 +18,7 @@ import { useGearDetailModal } from '@/hooks/useGearDetailModal';
 import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { useScreenContext } from '@/components/context/ScreenContextProvider';
+import { useScreenEffect } from '@/hooks/useScreenEffect';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { InventoryContent } from '@/components/inventory-gallery/InventoryContent';
 import type { SortOption } from '@/types/inventory';
@@ -65,13 +65,9 @@ function LoadingSpinner() {
 function InventoryWithModal() {
   const { user } = useSupabaseAuth();
   const { viewMode, setViewMode } = useInventoryView();
-  const { setScreen, clearContext } = useScreenContext();
 
-  // Set screen context
-  useEffect(() => {
-    setScreen(viewMode === 'wishlist' ? 'wishlist' : 'inventory');
-    return () => clearContext();
-  }, [viewMode, setScreen, clearContext]);
+  // Set screen context for AI assistant
+  useScreenEffect(viewMode === 'wishlist' ? 'wishlist' : 'inventory');
 
   // Screen reader announcement state
   const [announcement, setAnnouncement] = useState<{

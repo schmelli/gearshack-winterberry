@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -48,9 +49,11 @@ export function MessageInput({
   onSendWithMedia,
   onTyping,
   disabled = false,
-  placeholder = 'Type a message...',
+  placeholder: placeholderProp,
   className,
 }: MessageInputProps) {
+  const t = useTranslations('Messaging.messageInput');
+  const placeholder = placeholderProp ?? t('defaultPlaceholder');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
@@ -226,7 +229,7 @@ export function MessageInput({
         }
       } catch (error) {
         console.error('Failed to send gear reference:', error);
-        toast.error('Failed to share gear item');
+        toast.error(t('shareGearFailed'));
       }
     },
     [onSendWithMedia]
@@ -241,7 +244,7 @@ export function MessageInput({
         }
       } catch (error) {
         console.error('Failed to send location:', error);
-        toast.error('Failed to share location');
+        toast.error(t('shareLocationFailed'));
       }
     },
     [onSendWithMedia]
@@ -279,7 +282,7 @@ export function MessageInput({
         }
       } catch (error) {
         console.error('Failed to send voice message:', error);
-        toast.error('Failed to send voice message');
+        toast.error(t('sendVoiceFailed'));
       } finally {
         setIsRecordingVoice(false);
       }
@@ -331,7 +334,7 @@ export function MessageInput({
                 disabled={disabled || isSending}
               >
                 <Paperclip className="h-4 w-4" />
-                <span className="sr-only">Attach</span>
+                <span className="sr-only">{t('attach')}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-1" align="start">
@@ -344,7 +347,7 @@ export function MessageInput({
                   }}
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
-                  Photo
+                  {t('photo')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -355,7 +358,7 @@ export function MessageInput({
                   }}
                 >
                   <MapPin className="mr-2 h-4 w-4" />
-                  Location
+                  {t('location')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -366,7 +369,7 @@ export function MessageInput({
                   }}
                 >
                   <Package className="mr-2 h-4 w-4" />
-                  Gear Item
+                  {t('gearItem')}
                 </Button>
               </div>
             </PopoverContent>
@@ -395,7 +398,7 @@ export function MessageInput({
             className="shrink-0"
           >
             <Mic className="h-4 w-4" />
-            <span className="sr-only">Record voice message</span>
+            <span className="sr-only">{t('recordVoice')}</span>
           </Button>
         )}
 
@@ -411,7 +414,7 @@ export function MessageInput({
           ) : (
             <Send className="h-4 w-4" />
           )}
-          <span className="sr-only">Send message</span>
+          <span className="sr-only">{t('sendMessage')}</span>
         </Button>
       </div>}
 

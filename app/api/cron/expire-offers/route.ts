@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!expiredOffers || expiredOffers.length === 0) {
-      console.log('[cron:expire-offers] No offers to expire');
       return NextResponse.json({
         success: true,
         message: 'No offers to expire',
@@ -93,8 +92,6 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log(`[cron:expire-offers] Expired ${count ?? offerIds.length} offers`);
 
     return NextResponse.json({
       success: true,

@@ -46,6 +46,13 @@ export async function GET(): Promise<Response> {
     // Check if user is admin using explicit admin user ID list
     // SECURITY: Do NOT rely on subscription_tier which is client-controllable
     const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean);
+    if (ADMIN_USER_IDS.length === 0) {
+      console.error('[Security] ADMIN_USER_IDS environment variable is empty or not set');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     const isAdmin = ADMIN_USER_IDS.includes(user.id);
 

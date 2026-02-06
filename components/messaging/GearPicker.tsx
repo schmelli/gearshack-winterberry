@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { Search, Package, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -157,12 +158,11 @@ function GearPickerItem({ item, isSelected, onSelect }: GearPickerItemProps) {
     >
       <AspectRatio ratio={1} className="bg-muted">
         {item.primaryImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={item.primaryImageUrl}
             alt={item.name}
-            className="h-full w-full object-cover"
-            loading="lazy"
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

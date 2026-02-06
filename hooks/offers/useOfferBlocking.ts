@@ -16,13 +16,32 @@ import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-/**
- * Helper to get supabase client with any typing for merchant tables
- * TODO: Remove after regenerating types from migrations
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMerchantClient(): any {
-  return createClient();
+// =============================================================================
+// Supabase Query Row Types
+// =============================================================================
+
+/** Shape of a row returned by the merchant_blocks query with joined merchant data */
+interface MerchantBlockRow {
+  id: string;
+  merchant_id: string;
+  reason: string | null;
+  created_at: string;
+  merchant: {
+    business_name: string;
+    logo_url: string | null;
+  };
+}
+
+/** Shape of the merchant_blocks insert response */
+interface MerchantBlockInsertRow {
+  id: string;
+  created_at: string;
+}
+
+/** Shape of a merchant lookup row */
+interface MerchantLookupRow {
+  business_name: string;
+  logo_url: string | null;
 }
 
 // =============================================================================
@@ -77,7 +96,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
       return;
     }
 
-    const supabase = getMerchantClient();
+    const supabase = createClient();
 
     try {
       setIsLoading(true);
@@ -99,8 +118,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
 
       if (error) throw error;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformed: BlockedMerchant[] = (data ?? []).map((row: any) => ({
+      const transformed: BlockedMerchant[] = (data as MerchantBlockRow[] ?? []).map((row) => ({
         id: row.id,
         merchantId: row.merchant_id,
         merchantName: row.merchant.business_name,
@@ -147,7 +165,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
         return false;
       }
 
-      const supabase = getMerchantClient();
+      const supabase = createClient();
       setIsProcessing(true);
 
       try {
@@ -156,7 +174,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
           .from('merchants')
           .select('business_name, logo_url')
           .eq('id', merchantId)
-          .single();
+          .single() as { data: MerchantLookupRow | null; error: unknown };
 
         const { data, error } = await supabase
           .from('merchant_blocks')
@@ -165,25 +183,26 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
             merchant_id: merchantId,
             reason: reason ?? null,
           })
-          .select()
-          .single();
+          .select('id, created_at')
+          .single() as { data: MerchantBlockInsertRow | null; error: unknown };
 
         if (error) throw error;
 
         // Update local state
         setBlockedMerchants((prev) => [
           {
-            id: data.id,
+            id: data!.id,
             merchantId,
             merchantName: merchantData?.business_name ?? 'Unknown',
             merchantLogo: merchantData?.logo_url ?? null,
             reason: reason ?? null,
-            blockedAt: data.created_at,
+            blockedAt: data!.created_at,
           },
           ...prev,
         ]);
 
-        toast.success(t('merchantBlocked', { merchant: merchantData?.business_name ?? 'Merchant' }));
+        const displayName = merchantData?.business_name ?? 'Merchant';
+        toast.success(t('merchantBlocked', { merchant: displayName }));
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : t('errors.blockFailed');
@@ -209,7 +228,7 @@ export function useOfferBlocking(): UseOfferBlockingReturn {
         return false;
       }
 
-      const supabase = getMerchantClient();
+      const supabase = createClient();
       setIsProcessing(true);
 
       try {

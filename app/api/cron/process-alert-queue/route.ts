@@ -70,8 +70,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`Processing ${tasks.length} alert deliveries...`);
-
     // Process each delivery task
     const results = await Promise.allSettled(
       (tasks as DeliveryTask[]).map((task) => processDelivery(task, supabase))
@@ -84,8 +82,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     if (now.getMinutes() < 2) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: cleanupCount } = await (supabase as any).rpc('cleanup_delivery_queue');
-      console.log(`Cleaned up ${cleanupCount} old delivery records`);
+      await (supabase as any).rpc('cleanup_delivery_queue');
     }
 
     return NextResponse.json({
@@ -118,7 +115,6 @@ async function processDelivery(task: DeliveryTask, supabase: ReturnType<typeof c
       p_queue_id: task.queue_id,
     });
 
-    console.log(`✓ Delivered ${task.delivery_channel} for alert ${task.alert_id}`);
   } catch (error) {
     // Mark as failed (will retry if attempts remaining)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -144,7 +140,6 @@ async function processDelivery(task: DeliveryTask, supabase: ReturnType<typeof c
 async function sendPushNotification(task: DeliveryTask): Promise<void> {
   // TODO: Integrate with push notification service (Firebase Cloud Messaging, OneSignal, etc.)
   // For now, just simulate delivery
-  console.log(`[PUSH] ${task.alert_title}: ${task.alert_message}`);
 
   // Simulate occasional failures for testing
   if (Math.random() < 0.1 && task.attempt_count === 1) {
@@ -158,7 +153,6 @@ async function sendPushNotification(task: DeliveryTask): Promise<void> {
 async function sendEmailAlert(task: DeliveryTask): Promise<void> {
   // TODO: Integrate with email service (SendGrid, Resend, etc.)
   // For now, just simulate delivery
-  console.log(`[EMAIL] ${task.alert_title}: ${task.alert_message}`);
 
   // Simulate occasional failures for testing
   if (Math.random() < 0.1 && task.attempt_count === 1) {

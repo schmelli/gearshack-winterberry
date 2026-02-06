@@ -9,6 +9,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -38,14 +39,15 @@ export function ImageAttachmentPreview({
     >
       {/* Image Preview */}
       <div className="relative h-20 w-20 overflow-hidden rounded-md">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={imageUrl}
           alt="Attachment preview"
+          fill
           className={cn(
-            'h-full w-full object-cover transition-opacity',
+            'object-cover transition-opacity',
             isUploading && 'opacity-50'
           )}
+          unoptimized
         />
 
         {/* Upload Overlay */}

@@ -73,8 +73,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[API] Saving fallback image for loadout:', loadoutId);
-
     // Save fallback image to database
     // Include loadoutId and timestamp in cloudinary_public_id to ensure uniqueness
     // (cloudinary_public_id has UNIQUE constraint in database)

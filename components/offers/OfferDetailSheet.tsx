@@ -12,6 +12,7 @@
 
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import {
   Store,
   Clock,
@@ -127,11 +128,12 @@ export const OfferDetailSheet = memo(function OfferDetailSheet({
           {/* Product Image */}
           <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
             {offer.productImageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={offer.productImageUrl}
                 alt={offer.productName}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

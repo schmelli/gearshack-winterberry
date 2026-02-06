@@ -11,6 +11,7 @@
 'use client';
 
 import { memo } from 'react';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import type { CategoryWeight } from '@/types/loadout';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ export const WeightDonut = memo(function WeightDonut({
   selectedCategoryId,
   showCenterLabel = true,
 }: WeightDonutProps) {
+  const t = useTranslations('Loadouts');
   const isSmall = size === 'small';
   const outerRadius = isSmall ? 40 : 80;
   const innerRadius = isSmall ? 25 : 50;
@@ -85,7 +87,7 @@ export const WeightDonut = memo(function WeightDonut({
         className="flex items-center justify-center text-muted-foreground"
         style={{ width, height }}
       >
-        <span className="text-sm">No data</span>
+        <span className="text-sm">{t('noData')}</span>
       </div>
     );
   }

@@ -471,11 +471,8 @@ export function useMerchantBilling(): UseMerchantBillingReturn {
    * Download invoice (stub - would integrate with PDF generation)
    */
   const downloadInvoice = useCallback(
-    async (cycleId: string): Promise<string | null> => {
-      // In production, this would:
-      // 1. Call an API to generate a PDF invoice
-      // 2. Return the download URL
-      console.log('Download invoice for cycle:', cycleId);
+    async (_cycleId: string): Promise<string | null> => {
+      // TODO: In production, call an API to generate a PDF invoice and return the download URL
       return null;
     },
     []

@@ -12,6 +12,7 @@
 
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { BadgeCheck, Store, Globe, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -189,16 +190,18 @@ export function MerchantInfoBadge({
   return (
     <div className={cn('inline-flex items-center', sizeClasses.gap, className)}>
       {merchant.logoUrl && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           src={merchant.logoUrl}
           alt={merchant.businessName}
+          width={32}
+          height={32}
           className={cn(
             'rounded-full object-cover',
             size === 'sm' && 'h-5 w-5',
             size === 'md' && 'h-6 w-6',
             size === 'lg' && 'h-8 w-8'
           )}
+          unoptimized
         />
       )}
       <span className={cn('font-medium', size === 'sm' && 'text-sm', size === 'lg' && 'text-lg')}>

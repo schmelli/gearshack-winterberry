@@ -35,7 +35,7 @@ export function TripContext({ experienceLevel, concerns }: TripContextProps): Re
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Trip Context</CardTitle>
+        <CardTitle className="text-base">{t('tripContext')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-4">

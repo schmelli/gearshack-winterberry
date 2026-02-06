@@ -25,7 +25,10 @@
     "lightMode": "Hellmodus",
     "themeToggle": "Design",
     "switchToGerman": "Zu Deutsch wechseln",
-    "switchToEnglish": "Zu Englisch wechseln"
+    "switchToEnglish": "Zu Englisch wechseln",
+    "navigation": "Navigation",
+    "mainNavigation": "Hauptnavigation",
+    "messagesWithUnread": "Nachrichten ({count} ungelesen)"
   },
   "SyncStatus": {
     "syncing": "Synchronisiere mit Cloud...",
@@ -58,7 +61,14 @@
     "send": "Senden",
     "typeMessage": "Nachricht eingeben...",
     "noConversations": "Noch keine Unterhaltungen",
-    "startConversation": "Unterhaltung beginnen"
+    "startConversation": "Unterhaltung beginnen",
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden deiner Nachrichten aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToMessages": "Zurück zu Nachrichten"
+    }
   },
   "Notifications": {
     "title": "Benachrichtigungen",
@@ -398,7 +408,14 @@
     "weight": "Gewicht",
     "price": "Preis",
     "suggestedCategory": "Vorgeschlagene Kategorie",
-    "additionalSpecs": "Zusatzliche Spezifikationen"
+    "additionalSpecs": "Zusatzliche Spezifikationen",
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden deines Inventars aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToInventory": "Zurück zum Inventar"
+    }
   },
   "ProductSearch": {
     "enterSearchTerm": "Bitte gib einen Suchbegriff ein",
@@ -713,7 +730,25 @@
     },
     "mode": "Modus",
     "prefill": "Vorbefüllen",
-    "addToWishlistTitle": "Zur Wunschliste hinzufügen"
+    "addToWishlistTitle": "Zur Wunschliste hinzufügen",
+    "statusConditionTitle": "Status & Zustand",
+    "conditionLabel": "Zustand",
+    "selectCondition": "Zustand auswählen",
+    "conditionDescription": "Aktueller physischer Zustand des Artikels",
+    "statusLabel": "Status",
+    "selectStatus": "Status auswählen",
+    "statusDescription": "Besitzen = in deinem Ausrüstungsschrank, Wunschliste = geplanter Kauf",
+    "favouriteLabel": "Favorit",
+    "favouriteDescription": "Markiere diesen Artikel als Favorit, um ihn in deinem Profil anzuzeigen",
+    "forSaleLabel": "Zu verkaufen",
+    "forSaleDescription": "Markiere diesen Artikel als zum Verkauf verfügbar",
+    "canBeBorrowedLabel": "Kann ausgeliehen werden",
+    "canBeBorrowedDescription": "Erlaube anderen, diesen Artikel auszuleihen",
+    "canBeTradedLabel": "Kann getauscht werden",
+    "canBeTradedDescription": "Offen für den Tausch dieses Artikels",
+    "notesLabel": "Notizen",
+    "notesPlaceholder": "Zusätzliche Notizen zu diesem Artikel hinzufügen...",
+    "notesDescription": "Persönliche Notizen, Modifikationen, Erfahrungen usw."
   },
   "ManufacturerPrice": {
     "title": "Herstellerpreis",
@@ -1178,7 +1213,14 @@
     "T": "Community",
     "noResults": "Keine Ergebnisse gefunden",
     "searchPlaceholder": "Community durchsuchen...",
-    "emptyState": "Noch keine Community-Inhalte"
+    "emptyState": "Noch keine Community-Inhalte",
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden der Community-Inhalte aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToCommunity": "Zurück zur Community"
+    }
   },
   "Wiki": {
     "title": "Community Wiki",
@@ -1236,7 +1278,9 @@
     "revisionHistory": "Verlauf: {title}",
     "revisionCount": "{count, plural, =0 {Keine Revisionen} =1 {1 Revision} other {# Revisionen}}",
     "noRevisions": "Kein Revisionsverlauf verfügbar.",
-    "current": "Aktuell"
+    "current": "Aktuell",
+    "langEnglish": "Englisch",
+    "langDeutsch": "Deutsch"
   },
   "Shakedown": {
     "shareLoadoutTitle": "Packliste teilen",
@@ -1307,7 +1351,9 @@
     "ownedBadge": "Besitzt du",
     "wishlistBadge": "Auf Wunschliste",
     "addToWishlist": "Zur Wunschliste",
+    "addingToWishlist": "Wird hinzugefügt...",
     "addedToWishlist": "Zur Wunschliste hinzugefügt!",
+    "noGearItems": "Keine Ausrüstungsgegenstände in diesem Loadout",
     "addToWishlistError": "Fehler beim Hinzufügen zur Wunschliste. Bitte versuche es erneut.",
     "importSuccess": "Packliste importiert! {count} Artikel zur Wunschliste hinzugefügt.",
     "importFailed": "Packliste konnte nicht importiert werden",
@@ -1743,7 +1789,11 @@
       "deleteFailed": "Nachricht konnte nicht gelöscht werden",
       "reportComingSoon": "Meldefunktion kommt bald",
       "copiedToClipboard": "Nachricht in die Zwischenablage kopiert",
-      "viewingGearItem": "Ausrüstung anzeigen: {id}"
+      "viewingGearItem": "Ausrüstung anzeigen: {id}",
+      "cannotSend": "Nachrichten können nicht gesendet werden",
+      "userRestricted": "Dieser Benutzer hat eingeschränkt, wer ihm Nachrichten senden kann.",
+      "noMessages": "Noch keine Nachrichten. Starte die Unterhaltung!",
+      "messagesRegion": "Konversationsnachrichten"
     },
     "conversationSettings": {
       "notificationFailed": "Benachrichtigungseinstellungen konnten nicht aktualisiert werden",
@@ -1814,6 +1864,54 @@
       "unblock": "Entsperren",
       "unblockDialogTitle": "Benutzer entsperren",
       "unblockDialogDescription": "Bist du sicher, dass du {name} entsperren möchtest? Diese Person kann dir dann wieder Nachrichten senden und dich in der Suche finden."
+    },
+    "friends": {
+      "noFriends": "Noch keine Freunde",
+      "findMembers": "Finde GearShack-Mitglieder und füge sie als Freunde hinzu",
+      "online": "Online",
+      "addedAgo": "Hinzugefügt {time}",
+      "sendMessage": "Nachricht senden",
+      "removeFriend": "Freund entfernen",
+      "removeTitle": "Freund entfernen",
+      "removeDescription": "Bist du sicher, dass du {name} aus deinen Freunden entfernen möchtest? Du kannst sie später wieder hinzufügen.",
+      "cancel": "Abbrechen",
+      "remove": "Entfernen",
+      "friendsListRegion": "Freundesliste"
+    },
+    "conversationList": {
+      "loadFailed": "Konversationen konnten nicht geladen werden: {error}",
+      "noConversations": "Noch keine Konversationen",
+      "startNew": "Starte eine neue Konversation, um dich mit anderen Outdoor-Enthusiasten zu verbinden!",
+      "noMessagesYet": "Noch keine Nachrichten",
+      "sentImage": "Bild gesendet",
+      "sentVoice": "Sprachnachricht gesendet",
+      "sharedLocation": "Standort geteilt",
+      "sharedGear": "Ausrüstung geteilt",
+      "gearTrade": "Ausrüstungstausch gepostet",
+      "tripInvitation": "Tour-Einladung gesendet",
+      "newMessage": "Neue Nachricht",
+      "muted": "Stumm",
+      "friend": "Freund"
+    },
+    "messageSearch": {
+      "placeholder": "Nachrichten durchsuchen...",
+      "noResults": "Keine Nachrichten gefunden für \"{query}\"",
+      "searchHistory": "Durchsuche deinen Nachrichtenverlauf",
+      "minCharacters": "Mindestens 2 Zeichen eingeben",
+      "directMessage": "Direktnachricht",
+      "group": "Gruppe"
+    },
+    "messageInput": {
+      "defaultPlaceholder": "Nachricht eingeben...",
+      "attach": "Anhängen",
+      "photo": "Foto",
+      "location": "Standort",
+      "gearItem": "Ausrüstung",
+      "recordVoice": "Sprachnachricht aufnehmen",
+      "sendMessage": "Nachricht senden",
+      "shareGearFailed": "Ausrüstung konnte nicht geteilt werden",
+      "shareLocationFailed": "Standort konnte nicht geteilt werden",
+      "sendVoiceFailed": "Sprachnachricht konnte nicht gesendet werden"
     }
   },
   "Settings": {
@@ -1846,7 +1944,14 @@
     "title": "Einstellungen",
     "save": "Speichern",
     "cancel": "Abbrechen",
-    "general": "Allgemein"
+    "general": "Allgemein",
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden der Einstellungen aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToSettings": "Zurück zu Einstellungen"
+    }
   },
   "Social": {
     "common": {
@@ -2022,6 +2127,7 @@
     "tripDates": "Tourdaten",
     "startDate": "Startdatum",
     "endDate": "Enddatum",
+    "tripContext": "Tour-Kontext",
     "experienceLevel": "Erfahrungsstufe",
     "concerns": "Besondere Anliegen",
     "concernsPlaceholder": "Zu welchen Aspekten möchtest du Feedback? (z.B. Gewichtsoptimierung, Winterausrüstung)",
@@ -2820,7 +2926,14 @@
     "acceptSuccess": "Angebot angenommen! Sieh in deinen Nachrichten nach, um Abholung oder Lieferung zu vereinbaren.",
     "declineSuccess": "Angebot abgelehnt",
     "merchantBlocked": "{merchant} wurde blockiert",
-    "merchantUnblocked": "{merchant} wurde freigegeben"
+    "merchantUnblocked": "{merchant} wurde freigegeben",
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden deiner Angebote aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToOffers": "Zurück zu Angeboten"
+    }
   },
   "MerchantInsights": {
     "pageTitle": "Wunschlisten-Einblicke",
@@ -4059,6 +4172,13 @@
           "rejected": "Abgelehnt"
         }
       }
+    },
+    "error": {
+      "title": "Etwas ist schiefgelaufen",
+      "defaultMessage": "Ein unerwarteter Fehler ist beim Laden des Admin-Bereichs aufgetreten.",
+      "errorId": "Fehler-ID: {id}",
+      "tryAgain": "Erneut versuchen",
+      "backToAdmin": "Zurück zur Administration"
     }
   },
   "Search": {

@@ -97,6 +97,18 @@ export function useLoadoutImageGeneration(
   // Timer ref for retry delay cleanup
   const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Refs for functions involved in circular dependencies to avoid stale closures
+  // generateImage -> handleGenerationError -> executeRetry/applyFallback
+  const handleGenerationErrorRef = useRef<
+    (error: unknown, stylePreferences: StylePreferences | undefined, startTime: number) => Promise<void>
+  >(async () => {});
+  const executeRetryRef = useRef<
+    (stylePreferences: StylePreferences | undefined, startTime: number) => Promise<void>
+  >(async () => {});
+  const applyFallbackRef = useRef<
+    (error: unknown, startTime: number) => Promise<void>
+  >(async () => {});
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -110,17 +122,10 @@ export function useLoadoutImageGeneration(
 
   // Metrics tracking
   const logMetric = useCallback(
-    (event: string, data?: Record<string, unknown>) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[ImageGen Metric] ${event}`, {
-          loadoutId,
-          timestamp: new Date().toISOString(),
-          ...data,
-        });
-      }
+    (_event: string, _data?: Record<string, unknown>) => {
       // In production, this would send to analytics service
     },
-    [loadoutId]
+    []
   );
 
   // =============================================================================
@@ -235,11 +240,10 @@ export function useLoadoutImageGeneration(
           return;
         }
         // Handle error with retry logic (T016)
-        await handleGenerationError(error, stylePreferences, startTime);
+        // Uses ref to break circular dependency: generateImage -> handleGenerationError -> executeRetry
+        await handleGenerationErrorRef.current(error, stylePreferences, startTime);
       }
     },
-    // handleGenerationError is intentionally excluded to avoid circular dependency
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       loadoutId,
       loadoutTitle,
@@ -249,6 +253,7 @@ export function useLoadoutImageGeneration(
       userId,
       logMetric,
       refreshHistory,
+      t,
     ]
   );
 
@@ -273,7 +278,6 @@ export function useLoadoutImageGeneration(
       // If this is the first failure, try retry (guard against race conditions)
       if (retryAttemptRef.current === 0) {
         retryAttemptRef.current = 1;
-        console.log('[ImageGen] First attempt failed, retrying once...');
 
         setState({
           status: 'retrying',
@@ -305,25 +309,26 @@ export function useLoadoutImageGeneration(
             return;
           }
 
-          // Retry the generation
-          await executeRetry(stylePreferences, startTime);
+          // Retry the generation (uses ref to break circular dependency)
+          await executeRetryRef.current(stylePreferences, startTime);
         } catch (retryError) {
           // RACE CONDITION FIX: Don't fallback if aborted
           if (abortControllerRef.current?.signal.aborted) {
             return;
           }
           // Retry also failed - use fallback (T017)
-          await applyFallback(retryError, startTime);
+          await applyFallbackRef.current(retryError, startTime);
         }
       } else {
         // Already retried once - go straight to fallback
-        await applyFallback(error, startTime);
+        await applyFallbackRef.current(error, startTime);
       }
     },
-    // Removed state.status from deps to avoid stale closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [logMetric]
   );
+
+  // Keep refs in sync with latest callback versions
+  handleGenerationErrorRef.current = handleGenerationError;
 
   const executeRetry = useCallback(
     async (
@@ -400,6 +405,7 @@ export function useLoadoutImageGeneration(
       t,
     ]
   );
+  executeRetryRef.current = executeRetry;
 
   // =============================================================================
   // Fallback Logic (T017)
@@ -409,8 +415,6 @@ export function useLoadoutImageGeneration(
     async (error: unknown, startTime: number): Promise<void> => {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-
-      console.log('[ImageGen] Both attempts failed, using fallback image');
 
       logMetric('generation_fallback', {
         error: errorMessage,
@@ -473,6 +477,7 @@ export function useLoadoutImageGeneration(
     },
     [loadoutId, loadoutTitle, season, activityTypes, userId, logMetric, refreshHistory, t]
   );
+  applyFallbackRef.current = applyFallback;
 
   const setActiveImageById = useCallback(
     async (imageId: string): Promise<void> => {

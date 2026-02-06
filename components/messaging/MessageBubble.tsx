@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import Image from 'next/image';
 import { Check, CheckCheck, MoreVertical, Copy, Trash2, Flag } from 'lucide-react';
 import type { MessageWithSender, MessageDeliveryStatus, ReactionEmoji, LocationMetadata, GearReferenceMetadata, VoiceMetadata } from '@/types/messaging';
 import { cn } from '@/lib/utils';
@@ -293,10 +294,11 @@ function MessageContent({ message, isOwnMessage, onViewGear }: MessageContentPro
       }
       return (
         <div className="overflow-hidden rounded-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={message.media_url ?? ''}
             alt={t('sharedImageAlt')}
+            width={512}
+            height={256}
             className="max-h-64 max-w-full object-contain"
           />
           {message.content && (

@@ -129,7 +129,7 @@ export function MobileNav({
       {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
       <SheetContent side="left" className="flex h-full w-72 flex-col">
         <SheetHeader className="sr-only">
-          <SheetTitle>Navigation</SheetTitle>
+          <SheetTitle>{t('navigation')}</SheetTitle>
         </SheetHeader>
 
         {/* User info section (if authenticated) */}
@@ -210,7 +210,7 @@ export function MobileNav({
 
         {/* Main navigation items */}
         {/* Community Section Restructure: Items with children render as collapsible sections */}
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2" aria-label={t('navigation')}>
           {items.map((item) => {
             // Items with children render as collapsible
             if (item.children && item.children.length > 0) {

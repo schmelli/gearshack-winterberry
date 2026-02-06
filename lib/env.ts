@@ -42,7 +42,7 @@ const aiEnvSchema = z.object({
   AI_IMAGE_MODEL: z.string().default('nano-banana-pro'),
   AI_REQUEST_TIMEOUT: z.coerce.number().int().positive().default(30000),
 
-  // Testing Configuration (optional - disable rate limits for development/testing)
+  // Testing Configuration (disable rate limits in development/testing ONLY - ignored in production)
   AI_RATE_LIMITING_DISABLED: z
     .enum(['true', 'false'])
     .default('false')

@@ -9,6 +9,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { MapPin, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,12 +75,12 @@ export function LocationCard({
     >
       {/* Map Preview */}
       <div className="relative h-[120px] bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={staticMapUrl}
           alt={`Map of ${place_name}`}
-          className="h-full w-full object-cover"
-          loading="lazy"
+          fill
+          className="object-cover"
+          unoptimized
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="rounded-full bg-red-500 p-2 shadow-lg">

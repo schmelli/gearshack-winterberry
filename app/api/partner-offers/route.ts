@@ -6,32 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { RATE_LIMITING, SEARCH_CONFIG } from '@/lib/constants/price-tracking';
+import { SEARCH_CONFIG } from '@/lib/constants/price-tracking';
 import {
   partnerOfferSchema,
   validateRequestBody,
 } from '@/lib/validation/price-tracking';
 import type { FuzzySearchResult } from '@/types/database-helpers';
-
-// Rate limiting tracking (in-memory for MVP - Review #4: Should migrate to Redis)
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(partnerId: string, maxRequests: number = RATE_LIMITING.DEFAULT_PARTNER_RATE_LIMIT): boolean {
-  const now = Date.now();
-  const limit = rateLimits.get(partnerId);
-
-  if (!limit || now > limit.resetAt) {
-    rateLimits.set(partnerId, { count: 1, resetAt: now + RATE_LIMITING.RATE_WINDOW_MS });
-    return true;
-  }
-
-  if (limit.count >= maxRequests) {
-    return false;
-  }
-
-  limit.count++;
-  return true;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,8 +58,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    // Check rate limit using authenticated partner
-    if (!checkRateLimit(partner.id, partner.rate_limit_per_hour)) {
+    // Check rate limit using database (production-safe, survives serverless cold starts)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC function not yet in generated Supabase types
+    const { data: withinLimit, error: rateLimitError } = await (supabase as any).rpc(
+      'check_partner_rate_limit',
+      {
+        p_partner_id: partner.id,
+        p_max_requests: partner.rate_limit_per_hour,
+        p_window_seconds: 3600,
+      }
+    );
+
+    if (rateLimitError || !withinLimit) {
       return NextResponse.json(
         { error: `Rate limit exceeded. Maximum ${partner.rate_limit_per_hour} requests per hour.` },
         { status: 429 }

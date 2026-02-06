@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     // 2. Check if rate limiting is disabled (for testing)
     // Validate AI config (throws if invalid) - result intentionally unused
     validateAIConfig();
-    const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
+    const rateLimitingDisabled = process.env.NODE_ENV !== 'production' && process.env.AI_RATE_LIMITING_DISABLED === 'true';
 
     if (!rateLimitingDisabled) {
       // 2a. Check subscription tier (Trailblazer only for MVP)

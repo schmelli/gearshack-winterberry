@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Send, ArrowLeft, User, Loader2 } from 'lucide-react';
@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useMessages } from '@/hooks/messaging/useMessages';
 import { useConversations } from '@/hooks/messaging/useConversations';
+import { useMessageScroll } from '@/hooks/messaging/useMessageScroll';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Link } from '@/i18n/navigation';
 import type { MessageWithSender } from '@/types/messaging';
@@ -133,27 +134,8 @@ function ConversationContent() {
       ? currentConversation.conversation.name || t('unnamedGroup')
       : otherParticipant?.display_name || t('unknownUser');
 
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Mark as read when viewing
-  useEffect(() => {
-    if (!conversationId || messages.length === 0) return;
-
-    let isCancelled = false;
-    const doMarkAsRead = async () => {
-      if (!isCancelled) {
-        await markAsRead();
-      }
-    };
-    doMarkAsRead();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [conversationId, messages.length, markAsRead]);
+  // Scroll to bottom on new messages and mark as read
+  useMessageScroll({ messagesEndRef, messages, conversationId, markAsRead });
 
   const handleSend = useCallback(async () => {
     if (!newMessage.trim() || isSending) return;

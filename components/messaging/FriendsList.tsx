@@ -10,6 +10,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MessageCircle, UserMinus, Users, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ interface FriendsListProps {
 }
 
 export function FriendsList({ onMessageFriend }: FriendsListProps) {
+  const t = useTranslations('Messaging.friends');
   const { friends, isLoading, error, removeFriend } = useFriends();
   const { isUserOnline } = usePresenceStatus();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -76,9 +78,9 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
         <Users className="h-10 w-10 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No friends yet</p>
+        <p className="text-sm text-muted-foreground">{t('noFriends')}</p>
         <p className="text-xs text-muted-foreground/70">
-          Find GearShack members and add them as friends
+          {t('findMembers')}
         </p>
       </div>
     );
@@ -86,7 +88,7 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
 
   return (
     <>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-[400px]" role="region" aria-label={t('friendsListRegion')}>
         <div className="space-y-2 pr-4">
           {friends.map((friend) => {
             const isOnline = isUserOnline(friend.id);
@@ -121,8 +123,8 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
                     <p className="truncate font-medium">{friend.display_name}</p>
                     <p className="text-xs text-muted-foreground">
                       {isOnline
-                        ? 'Online'
-                        : `Added ${formatDistanceToNow(new Date(friend.added_at), { addSuffix: true })}`}
+                        ? t('online')
+                        : t('addedAgo', { time: formatDistanceToNow(new Date(friend.added_at), { addSuffix: true }) })}
                     </p>
                   </div>
 
@@ -133,7 +135,7 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
                       onClick={() =>
                         onMessageFriend?.(friend.id, friend.display_name)
                       }
-                      title="Send message"
+                      aria-label={t('sendMessage')}
                     >
                       <MessageCircle className="h-4 w-4" />
                     </Button>
@@ -142,7 +144,7 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
                       size="icon"
                       onClick={() => setConfirmRemove(friend)}
                       disabled={removingId === friend.id}
-                      title="Remove friend"
+                      aria-label={t('removeFriend')}
                     >
                       {removingId === friend.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -164,17 +166,15 @@ export function FriendsList({ onMessageFriend }: FriendsListProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Friend</AlertDialogTitle>
+            <AlertDialogTitle>{t('removeTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove{' '}
-              <strong>{confirmRemove?.display_name}</strong> from your friends?
-              You can add them back later.
+              {t('removeDescription', { name: confirmRemove?.display_name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleRemoveFriend}>
-              Remove
+              {t('remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

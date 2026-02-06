@@ -6,6 +6,7 @@
  * FR-007: Dynamic lang attribute on html tag
  */
 
+import { Suspense } from 'react';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "../globals.css";
@@ -75,7 +76,15 @@ export default async function RootLayout({ children, params }: Props) {
             <SupabaseAuthProvider>
               {/* AI Agent Context-Awareness: Track current screen/loadout */}
               <ScreenContextProvider>
-                <Shell>{children}</Shell>
+                <Shell>
+                  <Suspense fallback={
+                    <div className="flex min-h-screen items-center justify-center">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    </div>
+                  }>
+                    {children}
+                  </Suspense>
+                </Shell>
               </ScreenContextProvider>
               <Toaster richColors position="bottom-right" />
             </SupabaseAuthProvider>

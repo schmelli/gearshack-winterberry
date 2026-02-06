@@ -10,6 +10,7 @@ import { memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import type { PriceResult } from '@/types/price-tracking';
 
@@ -45,11 +46,13 @@ function PriceResultItemComponent({ result, isLowest }: PriceResultItemProps) {
         <div className="flex items-start justify-between gap-4">
           {/* Product Image - SECURITY: Only render if URL is valid HTTP(S) */}
           {result.product_image_url && isValidHttpUrl(result.product_image_url) && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={result.product_image_url}
               alt={result.product_name}
+              width={64}
+              height={64}
               className="w-16 h-16 object-cover rounded"
+              unoptimized
             />
           )}
 

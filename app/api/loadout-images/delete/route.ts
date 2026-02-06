@@ -65,8 +65,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('[API] Deleting image:', imageId, 'from loadout:', loadoutId);
-
     // Get image details before deleting
     const image = await getImageById(imageId);
 

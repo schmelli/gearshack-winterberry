@@ -55,7 +55,7 @@ export function StatusSection() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Status & Condition</h3>
+      <h3 className="text-lg font-medium">{t('statusConditionTitle')}</h3>
 
       {/* Condition and Status */}
       <div className="grid grid-cols-2 gap-4">
@@ -65,11 +65,11 @@ export function StatusSection() {
           name="condition"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Condition</FormLabel>
+              <FormLabel>{t('conditionLabel')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select condition" />
+                    <SelectValue placeholder={t('selectCondition')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -81,7 +81,7 @@ export function StatusSection() {
                 </SelectContent>
               </Select>
               <FormDescription>
-                Current physical condition of the item
+                {t('conditionDescription')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -94,11 +94,11 @@ export function StatusSection() {
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel>{t('statusLabel')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('selectStatus')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -110,7 +110,7 @@ export function StatusSection() {
                 </SelectContent>
               </Select>
               <FormDescription>
-                Own = in your gear closet, Wishlist = planning to buy
+                {t('statusDescription')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -153,10 +153,10 @@ export function StatusSection() {
               <div className="space-y-0.5">
                 <FormLabel className="flex items-center gap-2">
                   <Heart className={`h-4 w-4 ${field.value ? 'fill-red-500 text-red-500' : ''}`} />
-                  Favourite
+                  {t('favouriteLabel')}
                 </FormLabel>
                 <FormDescription>
-                  Mark this item as a favourite to show it on your profile
+                  {t('favouriteDescription')}
                 </FormDescription>
               </div>
               <FormControl>
@@ -178,10 +178,10 @@ export function StatusSection() {
               <div className="space-y-0.5">
                 <FormLabel className="flex items-center gap-2">
                   <DollarSign className={`h-4 w-4 ${field.value ? 'text-green-600' : ''}`} />
-                  For Sale
+                  {t('forSaleLabel')}
                 </FormLabel>
                 <FormDescription>
-                  Mark this item as available for sale
+                  {t('forSaleDescription')}
                 </FormDescription>
               </div>
               <FormControl>
@@ -203,10 +203,10 @@ export function StatusSection() {
               <div className="space-y-0.5">
                 <FormLabel className="flex items-center gap-2">
                   <HandHelping className={`h-4 w-4 ${field.value ? 'text-blue-600' : ''}`} />
-                  Can be Borrowed
+                  {t('canBeBorrowedLabel')}
                 </FormLabel>
                 <FormDescription>
-                  Allow others to borrow this item
+                  {t('canBeBorrowedDescription')}
                 </FormDescription>
               </div>
               <FormControl>
@@ -228,10 +228,10 @@ export function StatusSection() {
               <div className="space-y-0.5">
                 <FormLabel className="flex items-center gap-2">
                   <ArrowLeftRight className={`h-4 w-4 ${field.value ? 'text-orange-600' : ''}`} />
-                  Can be Traded
+                  {t('canBeTradedLabel')}
                 </FormLabel>
                 <FormDescription>
-                  Open to trading this item
+                  {t('canBeTradedDescription')}
                 </FormDescription>
               </div>
               <FormControl>
@@ -251,16 +251,16 @@ export function StatusSection() {
         name="notes"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Notes</FormLabel>
+            <FormLabel>{t('notesLabel')}</FormLabel>
             <FormControl>
               <Textarea
-                placeholder="Add any additional notes about this item..."
+                placeholder={t('notesPlaceholder')}
                 className="min-h-[120px] resize-y"
                 {...field}
               />
             </FormControl>
             <FormDescription>
-              Personal notes, modifications, experiences, etc.
+              {t('notesDescription')}
             </FormDescription>
             <FormMessage />
           </FormItem>

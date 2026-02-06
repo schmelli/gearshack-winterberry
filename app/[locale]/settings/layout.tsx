@@ -10,8 +10,10 @@
 // Force dynamic rendering for settings routes that use useSearchParams()
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Palette,
   Globe,
@@ -208,7 +210,16 @@ function SettingsLayoutContent({ children }: SettingsLayoutProps) {
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
     <ProtectedRoute>
-      <SettingsLayoutContent>{children}</SettingsLayoutContent>
+      <SettingsLayoutContent>
+        <Suspense fallback={
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-48 w-full rounded-lg" />
+          </div>
+        }>
+          {children}
+        </Suspense>
+      </SettingsLayoutContent>
     </ProtectedRoute>
   );
 }
