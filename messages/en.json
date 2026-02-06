@@ -3587,6 +3587,7 @@
       "beFirst": "Be the first to add this item to your inventory!",
       "matchCount": "{count, plural, one {# match} other {# matches}}",
       "matchCountAria": "{count} {count, plural, one {match} other {matches}}",
+      "marketplaceOffers": "Marketplace Offers",
       "unableToMessage": "Unable to message this user",
       "privacyRestricted": "Their privacy settings prevent messages from non-friends.",
       "conversationFailed": "Failed to start conversation",

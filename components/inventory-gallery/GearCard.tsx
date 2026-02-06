@@ -26,6 +26,7 @@ import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
+import { useWishlistMarketplaceMatches } from '@/hooks/wishlist/useWishlistMarketplaceMatches';
 
 import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { StatusIcons } from './StatusIcons';
@@ -93,6 +94,12 @@ function GearCardComponent({
     isWishlistContext ? item.name : null,
     isWishlistContext ? item.brand : null,
     isWishlistContext
+  );
+
+  // Load marketplace matches for wishlist items
+  const { matches: marketplaceMatches, isLoading: marketplaceMatchesLoading } = useWishlistMarketplaceMatches(
+    isWishlistContext ? item.name : '',
+    isWishlistContext ? item.brand : null
   );
 
   const { breadcrumb, productTypeLabel } = useCategoryBreadcrumb(item.productTypeId);
@@ -378,6 +385,8 @@ function GearCardComponent({
       {showCommunityAvailability && (
         <CommunityAvailabilityPanel
           availability={communityAvailability ?? null}
+          marketplaceMatches={marketplaceMatches}
+          marketplaceLoading={marketplaceMatchesLoading}
           isLoading={communityAvailabilityLoading}
           onViewItem={onViewCommunityItem}
           variant={isDetailed ? 'full' : 'compact'}

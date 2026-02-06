@@ -36,8 +36,10 @@ import {
   CommunityEmptyState,
 } from '@/components/wishlist/CommunityAvailabilityStates';
 import type { WishlistItemAvailability, CommunityAvailabilityRetryStatus } from '@/types/wishlist';
+import type { WishlistMarketplaceMatch } from '@/lib/supabase/wishlist-marketplace-matching';
 import { useConversations } from '@/hooks/messaging';
 import { toast } from 'sonner';
+import { Store } from 'lucide-react';
 
 // =============================================================================
 // Types
@@ -46,6 +48,10 @@ import { toast } from 'sonner';
 interface CommunityAvailabilityPanelProps {
   /** Availability data for the wishlist item (null = not loaded) */
   availability: WishlistItemAvailability | null;
+  /** Marketplace matches for this wishlist item */
+  marketplaceMatches?: WishlistMarketplaceMatch[];
+  /** Loading state for marketplace matches */
+  marketplaceLoading?: boolean;
   /** Loading state for initial fetch */
   isLoading: boolean;
   /** Error message (null = no error) - displayed subtly per graceful degradation */
@@ -72,6 +78,8 @@ interface CommunityAvailabilityPanelProps {
 
 export function CommunityAvailabilityPanel({
   availability,
+  marketplaceMatches = [],
+  marketplaceLoading = false,
   isLoading,
   error: _error, // Kept for future use, graceful degradation handles errors silently
   retryStatus = 'idle',
@@ -85,6 +93,9 @@ export function CommunityAvailabilityPanel({
   const router = useRouter();
   const t = useTranslations('Wishlist.communityAvailability');
   const { startDirectConversation } = useConversations();
+
+  // Check if we have marketplace matches
+  const hasMarketplaceMatches = marketplaceMatches.length > 0;
 
   // Handle message user action - T042
   const handleMessageUser = async (userId: string) => {
@@ -179,31 +190,124 @@ export function CommunityAvailabilityPanel({
       );
     }
 
-    // Empty state
-    if (!availability || availability.matchCount === 0) {
+    // Empty state - only show if we have no community matches AND no marketplace matches
+    if ((!availability || availability.matchCount === 0) && !hasMarketplaceMatches) {
       return <CommunityEmptyState noMatches={t('noMatches')} beFirst={t('beFirst')} />;
+    }
+
+    // If we only have marketplace matches (no community matches)
+    if ((!availability || availability.matchCount === 0) && hasMarketplaceMatches) {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Store className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <h5 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+              {t('marketplaceOffers', { count: marketplaceMatches.length })}
+            </h5>
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+            >
+              {marketplaceMatches.length}
+            </Badge>
+          </div>
+          <ul className="space-y-2" role="list">
+            {marketplaceMatches.map((match) => (
+              <li key={match.listing.id}>
+                <CommunityMatchCard
+                  match={{
+                    matchedItemId: match.listing.id,
+                    ownerId: match.listing.sellerId,
+                    ownerDisplayName: match.listing.sellerName,
+                    ownerAvatarUrl: match.listing.sellerAvatar,
+                    itemName: match.listing.name,
+                    itemBrand: match.listing.brand,
+                    forSale: match.listing.isForSale,
+                    lendable: match.listing.canBeBorrowed,
+                    tradeable: match.listing.canBeTraded,
+                    similarityScore: match.similarityScore,
+                    primaryImageUrl: match.listing.primaryImageUrl,
+                  }}
+                  onViewItem={onViewItem}
+                  onMessageUser={handleMessageUser}
+                  showSimilarityScore={showSimilarityScore}
+                  variant={variant}
+                  labels={labels}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
     }
 
     // Matches list
     return (
-      <ul
-        className="space-y-2 max-h-48 overflow-y-auto"
-        aria-label={t('matchCountAria', { count: availability.matchCount })}
-        role="list"
-      >
-        {availability.matches.map((match) => (
-          <li key={match.matchedItemId}>
-            <CommunityMatchCard
-              match={match}
-              onViewItem={onViewItem}
-              onMessageUser={handleMessageUser}
-              showSimilarityScore={showSimilarityScore}
-              variant={variant}
-              labels={labels}
-            />
-          </li>
-        ))}
-      </ul>
+      <div className="space-y-3">
+        {/* Community Matches */}
+        <ul
+          className="space-y-2 max-h-48 overflow-y-auto"
+          aria-label={t('matchCountAria', { count: availability.matchCount })}
+          role="list"
+        >
+          {availability.matches.map((match) => (
+            <li key={match.matchedItemId}>
+              <CommunityMatchCard
+                match={match}
+                onViewItem={onViewItem}
+                onMessageUser={handleMessageUser}
+                showSimilarityScore={showSimilarityScore}
+                variant={variant}
+                labels={labels}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {/* Marketplace Matches */}
+        {hasMarketplaceMatches && (
+          <div className="border-t border-stone-200 dark:border-stone-700 pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Store className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <h5 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                {t('marketplaceOffers', { count: marketplaceMatches.length })}
+              </h5>
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+              >
+                {marketplaceMatches.length}
+              </Badge>
+            </div>
+            <ul className="space-y-2" role="list">
+              {marketplaceMatches.map((match) => (
+                <li key={match.listing.id}>
+                  <CommunityMatchCard
+                    match={{
+                      matchedItemId: match.listing.id,
+                      ownerId: match.listing.sellerId,
+                      ownerDisplayName: match.listing.sellerName,
+                      ownerAvatarUrl: match.listing.sellerAvatar,
+                      itemName: match.listing.name,
+                      itemBrand: match.listing.brand,
+                      forSale: match.listing.isForSale,
+                      lendable: match.listing.canBeBorrowed,
+                      tradeable: match.listing.canBeTraded,
+                      similarityScore: match.similarityScore,
+                      primaryImageUrl: match.listing.primaryImageUrl,
+                    }}
+                    onViewItem={onViewItem}
+                    onMessageUser={handleMessageUser}
+                    showSimilarityScore={showSimilarityScore}
+                    variant={variant}
+                    labels={labels}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -229,13 +333,13 @@ export function CommunityAvailabilityPanel({
         >
           {t('title')}
         </h4>
-        {availability && availability.matchCount > 0 && (
+        {((availability && availability.matchCount > 0) || hasMarketplaceMatches) && (
           <Badge
             variant="secondary"
             className="text-[10px] px-1.5 py-0"
-            aria-label={t('matchCountAria', { count: availability.matchCount })}
+            aria-label={t('matchCountAria', { count: (availability?.matchCount || 0) + marketplaceMatches.length })}
           >
-            {t('matchCount', { count: availability.matchCount })}
+            {t('matchCount', { count: (availability?.matchCount || 0) + marketplaceMatches.length })}
           </Badge>
         )}
       </div>

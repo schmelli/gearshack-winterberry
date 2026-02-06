@@ -3591,6 +3591,7 @@
       "beFirst": "Sei der Erste, der diesen Artikel zu seinem Inventar hinzufügt!",
       "matchCount": "{count, plural, one {# Treffer} other {# Treffer}}",
       "matchCountAria": "{count} {count, plural, one {Treffer} other {Treffer}}",
+      "marketplaceOffers": "Marktplatz-Angebote",
       "unableToMessage": "Nachricht an diesen Benutzer nicht möglich",
       "privacyRestricted": "Die Datenschutzeinstellungen erlauben keine Nachrichten von Nicht-Freunden.",
       "conversationFailed": "Konversation konnte nicht gestartet werden",
