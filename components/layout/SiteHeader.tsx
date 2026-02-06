@@ -43,7 +43,6 @@ import { MAIN_NAV_ITEMS } from '@/lib/constants/navigation';
 import type { NavItemWithChildren } from '@/types/navigation';
 import { UserMenu } from './UserMenu';
 import { MobileNav } from './MobileNav';
-import { SyncIndicator } from './SyncIndicator';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -297,13 +296,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           })}
         </nav>
 
-        {/* Right side: sync indicator, language switcher, notifications and user menu */}
+        {/* Right side: language switcher, notifications and user menu */}
         {/* Issue #73: Tighter spacing on mobile to fit all controls */}
         {/* Issue #77: Hide language switcher and avatar on small screens */}
         <div className="flex items-center gap-1 md:gap-2">
-          {/* Sync indicator - only show when authenticated */}
-          {user && <SyncIndicator />}
-
           {/* T012: Messaging icon with unread badge - only show when authenticated AND messaging feature is enabled */}
           {user && isMessagingEnabled && (
             <Button
