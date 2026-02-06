@@ -133,11 +133,23 @@ export function UserMenu() {
           {/* Report Bug - Sentry User Feedback */}
           <DropdownMenuItem
             onClick={() => {
+              // Use the feedback integration to create and attach the widget
               const feedback = Sentry.getFeedback();
               if (feedback) {
-                // Create and immediately open the feedback widget
-                const widget = feedback.createWidget();
-                widget.open();
+                // Create a temporary container and attach the widget
+                const container = document.createElement('div');
+                document.body.appendChild(container);
+
+                // Attach widget to container (this opens it immediately)
+                const unsubscribe = feedback.attachTo(container, {
+                  onFormClose: () => {
+                    unsubscribe();
+                    document.body.removeChild(container);
+                  },
+                });
+              } else {
+                // Fallback: Open GitHub issues
+                window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
               }
             }}
             className="cursor-pointer"
