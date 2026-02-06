@@ -1928,6 +1928,18 @@
     }
   },
   "Settings": {
+    "theme": {
+      "darkMode": "Dark Mode",
+      "usingLightTheme": "Using light theme",
+      "usingDarkTheme": "Using dark theme",
+      "usingSystemTheme": "Using system setting",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Toggle dark mode"
+    },
     "privacy": {
       "whoCanMessage": "Who Can Message Me",
       "whoCanMessageDescription": "Control who can start new conversations with you",

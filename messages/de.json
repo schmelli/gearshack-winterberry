@@ -1932,6 +1932,18 @@
     }
   },
   "Settings": {
+    "theme": {
+      "darkMode": "Dunkelmodus",
+      "usingLightTheme": "Helles Design verwenden",
+      "usingDarkTheme": "Dunkles Design verwenden",
+      "usingSystemTheme": "Systemeinstellung verwenden",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "ariaLabels": {
+      "toggleDarkMode": "Dunkelmodus umschalten"
+    },
     "privacy": {
       "whoCanMessage": "Wer kann mir schreiben",
       "whoCanMessageDescription": "Kontrolliere, wer neue Unterhaltungen mit dir starten kann",
