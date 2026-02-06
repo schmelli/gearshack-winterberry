@@ -241,16 +241,16 @@ export function CommunityAvailabilityPanel({
       );
     }
 
-    // Matches list
+    // Matches list (availability is guaranteed non-null here due to prior checks)
     return (
       <div className="space-y-3">
         {/* Community Matches */}
         <ul
           className="space-y-2 max-h-48 overflow-y-auto"
-          aria-label={t('matchCountAria', { count: availability.matchCount })}
+          aria-label={t('matchCountAria', { count: availability?.matchCount ?? 0 })}
           role="list"
         >
-          {availability.matches.map((match) => (
+          {availability?.matches.map((match) => (
             <li key={match.matchedItemId}>
               <CommunityMatchCard
                 match={match}
