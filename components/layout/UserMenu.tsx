@@ -135,7 +135,9 @@ export function UserMenu() {
             onClick={() => {
               const feedback = Sentry.getFeedback();
               if (feedback) {
-                feedback.openDialog();
+                // Create and immediately open the feedback widget
+                const widget = feedback.createWidget();
+                widget.open();
               }
             }}
             className="cursor-pointer"
