@@ -132,7 +132,12 @@ export function UserMenu() {
 
           {/* Report Bug - Sentry User Feedback */}
           <DropdownMenuItem
-            onClick={() => Sentry.showReportDialog()}
+            onClick={() => {
+              const feedback = Sentry.getFeedback();
+              if (feedback) {
+                feedback.openDialog();
+              }
+            }}
             className="cursor-pointer"
           >
             <Bug className="mr-2 h-4 w-4" />
