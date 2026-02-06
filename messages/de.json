@@ -968,6 +968,11 @@
       "wornItems": "Getragene Gegenstände",
       "consumables": "Verbrauchsgüter"
     },
+    "weightMode": {
+      "baseweight": "Basisgewicht",
+      "packWeight": "Packgewicht",
+      "toggleLabel": "Zwischen Basis- und Packgewicht umschalten"
+    },
     "noActivities": "Keine Aktivitäten angegeben",
     "pdfLabels": {
       "date": "Datum",

@@ -967,6 +967,11 @@
       "wornItems": "Worn Items",
       "consumables": "Consumables"
     },
+    "weightMode": {
+      "baseweight": "Base Weight",
+      "packWeight": "Pack Weight",
+      "toggleLabel": "Toggle between base weight and pack weight"
+    },
     "noActivities": "No activities specified",
     "pdfLabels": {
       "date": "Date",
