@@ -25,7 +25,10 @@
     "lightMode": "Light mode",
     "themeToggle": "Theme",
     "switchToGerman": "Switch to German",
-    "switchToEnglish": "Switch to English"
+    "switchToEnglish": "Switch to English",
+    "navigation": "Navigation",
+    "mainNavigation": "Main navigation",
+    "messagesWithUnread": "Messages ({count} unread)"
   },
   "SyncStatus": {
     "syncing": "Syncing with cloud...",
@@ -58,7 +61,14 @@
     "send": "Send",
     "typeMessage": "Type a message...",
     "noConversations": "No conversations yet",
-    "startConversation": "Start a conversation"
+    "startConversation": "Start a conversation",
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading your messages.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToMessages": "Back to Messages"
+    }
   },
   "Notifications": {
     "title": "Notifications",
@@ -127,6 +137,10 @@
     "close": "Close"
   },
   "Landing": {
+    "meta": {
+      "title": "Gearshack - Outdoor Gear Management",
+      "description": "Organize, track, and optimize your outdoor gear. Build loadouts, manage your inventory, and connect with the gear community."
+    },
     "heroTitle": "Organize Your Gear. Conquer the Trail.",
     "heroSubtitle": "The ultimate gear management platform for outdoor enthusiasts. Track every item, build perfect loadouts, and never forget essential gear again.",
     "ctaStartTrial": "Start Free Trial",
@@ -397,7 +411,14 @@
     "weight": "Weight",
     "price": "Price",
     "suggestedCategory": "Suggested Category",
-    "additionalSpecs": "Additional Specifications"
+    "additionalSpecs": "Additional Specifications",
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading your inventory.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToInventory": "Back to Inventory"
+    }
   },
   "ProductSearch": {
     "enterSearchTerm": "Please enter a search term",
@@ -712,7 +733,25 @@
     },
     "mode": "Mode",
     "prefill": "Prefill",
-    "addToWishlistTitle": "Add to Wishlist"
+    "addToWishlistTitle": "Add to Wishlist",
+    "statusConditionTitle": "Status & Condition",
+    "conditionLabel": "Condition",
+    "selectCondition": "Select condition",
+    "conditionDescription": "Current physical condition of the item",
+    "statusLabel": "Status",
+    "selectStatus": "Select status",
+    "statusDescription": "Own = in your gear closet, Wishlist = planning to buy",
+    "favouriteLabel": "Favourite",
+    "favouriteDescription": "Mark this item as a favourite to show it on your profile",
+    "forSaleLabel": "For Sale",
+    "forSaleDescription": "Mark this item as available for sale",
+    "canBeBorrowedLabel": "Can be Borrowed",
+    "canBeBorrowedDescription": "Allow others to borrow this item",
+    "canBeTradedLabel": "Can be Traded",
+    "canBeTradedDescription": "Open to trading this item",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add any additional notes about this item...",
+    "notesDescription": "Personal notes, modifications, experiences, etc."
   },
   "ManufacturerPrice": {
     "title": "Manufacturer Price",
@@ -879,6 +918,10 @@
     }
   },
   "Loadouts": {
+    "meta": {
+      "title": "My Loadouts - Gearshack",
+      "description": "Create and manage your gear loadouts. Optimize pack weight and organize equipment for every adventure."
+    },
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
     "deleteLoadout": "Delete loadout",
@@ -1157,6 +1200,10 @@
     }
   },
   "Community": {
+    "meta": {
+      "title": "Community Hub - Gearshack",
+      "description": "Join the Gearshack community. Share gear reviews, discuss loadouts, and connect with fellow outdoor enthusiasts."
+    },
     "dashboard": {
       "recentShakedowns": {
         "title": "Recent Shakedowns",
@@ -1174,7 +1221,14 @@
     "T": "Community",
     "noResults": "No results found",
     "searchPlaceholder": "Search community...",
-    "emptyState": "No community content yet"
+    "emptyState": "No community content yet",
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading community content.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToCommunity": "Back to Community"
+    }
   },
   "Wiki": {
     "title": "Community Wiki",
@@ -1232,7 +1286,9 @@
     "revisionHistory": "History: {title}",
     "revisionCount": "{count, plural, =0 {No revisions} =1 {1 revision} other {# revisions}}",
     "noRevisions": "No revision history available.",
-    "current": "Current"
+    "current": "Current",
+    "langEnglish": "English",
+    "langDeutsch": "Deutsch"
   },
   "Shakedown": {
     "shareLoadoutTitle": "Share Loadout",
@@ -1303,7 +1359,9 @@
     "ownedBadge": "Owned",
     "wishlistBadge": "On Wishlist",
     "addToWishlist": "Add to Wishlist",
+    "addingToWishlist": "Adding...",
     "addedToWishlist": "Added to wishlist!",
+    "noGearItems": "No gear items in this loadout",
     "addToWishlistError": "Failed to add item to wishlist. Please try again.",
     "importSuccess": "Loadout imported! {count} items added to wishlist.",
     "importFailed": "Failed to import loadout",
@@ -1739,7 +1797,11 @@
       "deleteFailed": "Failed to delete message",
       "reportComingSoon": "Report feature coming soon",
       "copiedToClipboard": "Message copied to clipboard",
-      "viewingGearItem": "Viewing gear item: {id}"
+      "viewingGearItem": "Viewing gear item: {id}",
+      "cannotSend": "Cannot send messages",
+      "userRestricted": "This user has restricted who can message them.",
+      "noMessages": "No messages yet. Start the conversation!",
+      "messagesRegion": "Conversation messages"
     },
     "conversationSettings": {
       "notificationFailed": "Failed to update notification settings",
@@ -1810,6 +1872,54 @@
       "unblock": "Unblock",
       "unblockDialogTitle": "Unblock User",
       "unblockDialogDescription": "Are you sure you want to unblock {name}? They will be able to message you and find you in search again."
+    },
+    "friends": {
+      "noFriends": "No friends yet",
+      "findMembers": "Find GearShack members and add them as friends",
+      "online": "Online",
+      "addedAgo": "Added {time}",
+      "sendMessage": "Send message",
+      "removeFriend": "Remove friend",
+      "removeTitle": "Remove Friend",
+      "removeDescription": "Are you sure you want to remove {name} from your friends? You can add them back later.",
+      "cancel": "Cancel",
+      "remove": "Remove",
+      "friendsListRegion": "Friends list"
+    },
+    "conversationList": {
+      "loadFailed": "Failed to load conversations: {error}",
+      "noConversations": "No conversations yet",
+      "startNew": "Start a new conversation to connect with other gear enthusiasts!",
+      "noMessagesYet": "No messages yet",
+      "sentImage": "Sent an image",
+      "sentVoice": "Sent a voice message",
+      "sharedLocation": "Shared a location",
+      "sharedGear": "Shared gear item",
+      "gearTrade": "Posted a gear trade",
+      "tripInvitation": "Sent a trip invitation",
+      "newMessage": "New message",
+      "muted": "Muted",
+      "friend": "Friend"
+    },
+    "messageSearch": {
+      "placeholder": "Search messages...",
+      "noResults": "No messages found for \"{query}\"",
+      "searchHistory": "Search your message history",
+      "minCharacters": "Enter at least 2 characters to search",
+      "directMessage": "Direct Message",
+      "group": "Group"
+    },
+    "messageInput": {
+      "defaultPlaceholder": "Type a message...",
+      "attach": "Attach",
+      "photo": "Photo",
+      "location": "Location",
+      "gearItem": "Gear Item",
+      "recordVoice": "Record voice message",
+      "sendMessage": "Send message",
+      "shareGearFailed": "Failed to share gear item",
+      "shareLocationFailed": "Failed to share location",
+      "sendVoiceFailed": "Failed to send voice message"
     }
   },
   "Settings": {
@@ -1842,7 +1952,14 @@
     "title": "Settings",
     "save": "Save",
     "cancel": "Cancel",
-    "general": "General"
+    "general": "General",
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading settings.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToSettings": "Back to Settings"
+    }
   },
   "Social": {
     "common": {
@@ -2018,6 +2135,7 @@
     "tripDates": "Trip Dates",
     "startDate": "Start Date",
     "endDate": "End Date",
+    "tripContext": "Trip Context",
     "experienceLevel": "Experience Level",
     "concerns": "Specific Concerns",
     "concernsPlaceholder": "What aspects would you like feedback on? (e.g., weight optimization, winter gear adequacy)",
@@ -2816,7 +2934,14 @@
     "acceptSuccess": "Offer accepted! Check your messages to arrange pickup or delivery.",
     "declineSuccess": "Offer declined",
     "merchantBlocked": "{merchant} has been blocked",
-    "merchantUnblocked": "{merchant} has been unblocked"
+    "merchantUnblocked": "{merchant} has been unblocked",
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading your offers.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToOffers": "Back to Offers"
+    }
   },
   "MerchantInsights": {
     "pageTitle": "Wishlist Insights",
@@ -3929,6 +4054,7 @@
       "pageTitle": "Admin Dashboard",
       "title": "Admin Dashboard",
       "description": "Platform statistics and quick actions",
+      "metaDescription": "Gearshack administration dashboard. Manage users, content, and platform settings.",
       "sections": {
         "users": "User Statistics",
         "userBreakdown": "User Breakdown",
@@ -4055,6 +4181,13 @@
           "rejected": "Rejected"
         }
       }
+    },
+    "error": {
+      "title": "Something went wrong",
+      "defaultMessage": "An unexpected error occurred while loading the admin panel.",
+      "errorId": "Error ID: {id}",
+      "tryAgain": "Try Again",
+      "backToAdmin": "Back to Admin"
     }
   },
   "Search": {

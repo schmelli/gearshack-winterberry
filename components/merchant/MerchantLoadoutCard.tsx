@@ -13,6 +13,7 @@
 import { memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 import { Package, Weight, MapPin, Star, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -92,11 +93,12 @@ export const MerchantLoadoutCard = memo(function MerchantLoadoutCard({
       <div className="relative">
         <AspectRatio ratio={16 / 9}>
           {loadout.heroImageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={loadout.heroImageUrl}
               alt={loadout.name}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+              unoptimized
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted">
@@ -130,11 +132,13 @@ export const MerchantLoadoutCard = memo(function MerchantLoadoutCard({
         {/* Merchant Info */}
         <div className="mb-2 flex items-center gap-2">
           {loadout.merchant.logoUrl && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={loadout.merchant.logoUrl}
               alt={loadout.merchant.businessName}
+              width={20}
+              height={20}
               className="h-5 w-5 rounded-full object-cover"
+              unoptimized
             />
           )}
           <span className="text-xs text-muted-foreground truncate">

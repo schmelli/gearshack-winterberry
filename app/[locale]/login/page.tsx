@@ -13,12 +13,13 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useAuthenticatedRedirect } from '@/hooks/useAuthRedirect';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegistrationForm } from '@/components/auth/RegistrationForm';
@@ -67,11 +68,7 @@ function LoginContent() {
   const returnUrl = sanitizeReturnUrl(searchParams.get('returnUrl'));
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace(returnUrl);
-    }
-  }, [user, loading, router, returnUrl]);
+  useAuthenticatedRedirect(user, loading, returnUrl);
 
   // Handle successful auth
   function handleAuthSuccess() {

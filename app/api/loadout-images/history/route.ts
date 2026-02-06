@@ -57,8 +57,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    console.log('[API] Fetching image history for loadout:', loadoutId);
-
     const images = await getImageHistory(loadoutId);
 
     return NextResponse.json(

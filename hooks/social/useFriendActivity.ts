@@ -117,7 +117,6 @@ export function useFriendActivity(
    */
   const markAllAsRead = useCallback(async () => {
     // TODO: Implement when activity read status is added
-    console.log('Mark all as read - not yet implemented');
   }, []);
 
   // Use ref for activity filter to avoid subscription churn

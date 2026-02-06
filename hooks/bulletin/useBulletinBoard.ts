@@ -248,11 +248,12 @@ export function useBulletinBoard(): UseBulletinBoardReturn {
     []
   );
 
-  // Load posts when filters change
+  // Load posts when filters change.
+  // loadPosts() is a stable async callback that fetches data and updates state.
+  // Setting state from async data fetching triggered by an effect is the standard
+  // client-side pattern (no RSC alternative exists for filter-reactive fetching).
   useEffect(() => {
-    // Data fetching in useEffect is a valid pattern
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadPosts();
+    loadPosts(); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch on filter change
   }, [loadPosts]);
 
   return {

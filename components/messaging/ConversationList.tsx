@@ -10,6 +10,7 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { Heart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ interface ConversationListProps {
  * Displays the list of user's conversations.
  */
 export function ConversationList({ onSelectConversation }: ConversationListProps) {
+  const t = useTranslations('Messaging.conversationList');
   const { conversations, isLoading, error } = useConversations();
   const { isFriend } = useFriends();
   const { isUserOnline } = usePresenceStatus();
@@ -38,7 +40,7 @@ export function ConversationList({ onSelectConversation }: ConversationListProps
   if (error) {
     return (
       <div className="p-4 text-center text-sm text-destructive">
-        Failed to load conversations: {error}
+        {t('loadFailed', { error })}
       </div>
     );
   }
@@ -46,9 +48,9 @@ export function ConversationList({ onSelectConversation }: ConversationListProps
   if (conversations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-muted-foreground">No conversations yet</p>
+        <p className="text-muted-foreground">{t('noConversations')}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Start a new conversation to connect with other gear enthusiasts!
+          {t('startNew')}
         </p>
       </div>
     );
@@ -82,6 +84,7 @@ function ConversationListItemRow({
   isFriend,
   isUserOnline,
 }: ConversationListItemRowProps) {
+  const t = useTranslations('Messaging.conversationList');
   const { conversation: conv, participants, unread_count, last_message, is_muted } =
     conversation;
 
@@ -113,8 +116,8 @@ function ConversationListItemRow({
     : '?';
 
   const lastMessagePreview = last_message
-    ? getMessagePreview(last_message.message_type, last_message.content)
-    : 'No messages yet';
+    ? getMessagePreview(last_message.message_type, last_message.content, t)
+    : t('noMessagesYet');
 
   const timeAgo = last_message
     ? formatDistanceToNow(new Date(last_message.created_at), { addSuffix: true })
@@ -148,7 +151,7 @@ function ConversationListItemRow({
               {displayName}
             </span>
             {isFriendStatus && (
-              <span title="Friend">
+              <span title={t('friend')}>
                 <Heart className="h-3 w-3 fill-pink-500 text-pink-500" />
               </span>
             )}
@@ -171,7 +174,7 @@ function ConversationListItemRow({
           <div className="flex shrink-0 items-center gap-1">
             {is_muted && (
               <Badge variant="outline" className="h-5 px-1 text-xs">
-                Muted
+                {t('muted')}
               </Badge>
             )}
             {unread_count > 0 && (
@@ -188,25 +191,26 @@ function ConversationListItemRow({
 
 function getMessagePreview(
   type: string,
-  content: string | null
+  content: string | null,
+  t: (key: string) => string
 ): string {
   switch (type) {
     case 'text':
       return content ?? '';
     case 'image':
-      return 'Sent an image';
+      return t('sentImage');
     case 'voice':
-      return 'Sent a voice message';
+      return t('sentVoice');
     case 'location':
-      return 'Shared a location';
+      return t('sharedLocation');
     case 'gear_reference':
-      return 'Shared gear item';
+      return t('sharedGear');
     case 'gear_trade':
-      return 'Posted a gear trade';
+      return t('gearTrade');
     case 'trip_invitation':
-      return 'Sent a trip invitation';
+      return t('tripInvitation');
     default:
-      return 'New message';
+      return t('newMessage');
   }
 }
 

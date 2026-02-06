@@ -144,9 +144,7 @@ export async function GET(request: NextRequest) {
     // If catalog search fails (table doesn't exist) or returns empty,
     // fall back to searching user's own gear_items
     if (error || !data || data.length === 0) {
-      if (error) {
-        console.log('Catalog products unavailable, falling back to user inventory search');
-      }
+      // Catalog products unavailable, falling back to user inventory search
 
       // Try to get authenticated user for inventory fallback
       const authSupabase = await createServerClient();

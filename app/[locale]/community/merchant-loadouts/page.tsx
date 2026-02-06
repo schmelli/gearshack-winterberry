@@ -20,9 +20,23 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'MerchantLoadouts' });
 
+  const title = t('pageTitle');
+  const description = t('pageDescription');
+
   return {
-    title: t('pageTitle'),
-    description: t('pageDescription'),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      siteName: 'Gearshack',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
   };
 }
 

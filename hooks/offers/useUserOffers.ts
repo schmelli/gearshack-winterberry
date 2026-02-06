@@ -16,14 +16,6 @@ import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-/**
- * Helper to get supabase client with any typing for merchant tables
- * TODO: Remove after regenerating types from migrations
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMerchantClient(): any {
-  return createClient();
-}
 import type {
   UserOffer,
   UserOfferDetail,
@@ -31,6 +23,45 @@ import type {
   UserOfferFilters,
 } from '@/types/merchant-offer';
 import { canOfferTransitionTo, getExpiresIn, calculateDiscountPercent } from '@/types/merchant-offer';
+import type { MerchantBusinessType } from '@/types/merchant';
+
+// =============================================================================
+// Supabase Query Row Types
+// =============================================================================
+
+/** Shape of a row returned by the merchant_offers list query */
+interface OfferListRow {
+  id: string;
+  regular_price: number;
+  offer_price: number;
+  status: string;
+  expires_at: string;
+  created_at: string;
+  merchant: {
+    id: string;
+    business_name: string;
+    logo_url: string | null;
+    business_type: string;
+  };
+  catalog_item: {
+    name: string;
+    brand: string | null;
+    image_url: string | null;
+  };
+}
+
+/** Shape of a row returned by the merchant_offers detail query */
+interface OfferDetailRow extends OfferListRow {
+  message: string | null;
+  wishlist_item_id: string | null;
+}
+
+/** Shape of a merchant location row for nearest location lookup */
+interface MerchantLocationRow {
+  name: string;
+  address_line1: string;
+  city: string;
+}
 
 // =============================================================================
 // Types
@@ -92,7 +123,7 @@ export function useUserOffers(): UseUserOffersReturn {
       return;
     }
 
-    const supabase = getMerchantClient();
+    const supabase = createClient();
 
     try {
       setIsLoading(true);
@@ -136,14 +167,13 @@ export function useUserOffers(): UseUserOffersReturn {
 
       if (fetchError) throw fetchError;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformed: UserOffer[] = (data ?? []).map((row: any) => ({
+      const transformed: UserOffer[] = (data as OfferListRow[] ?? []).map((row) => ({
         id: row.id,
         merchant: {
           id: row.merchant.id,
           businessName: row.merchant.business_name,
           logoUrl: row.merchant.logo_url,
-          businessType: row.merchant.business_type,
+          businessType: row.merchant.business_type as MerchantBusinessType,
           isVerified: true, // Merchants with offers are verified
         },
         productName: row.catalog_item.name,
@@ -179,13 +209,13 @@ export function useUserOffers(): UseUserOffersReturn {
     async (offerId: string) => {
       if (!user?.id) return;
 
-      const supabase = getMerchantClient();
+      const supabase = createClient();
 
       try {
         setError(null);
 
         // Fetch full offer details
-        const { data, error: fetchError } = await supabase
+        const { data: rawData, error: fetchError } = await supabase
           .from('merchant_offers')
           .select(`
             id,
@@ -214,13 +244,17 @@ export function useUserOffers(): UseUserOffersReturn {
 
         if (fetchError) throw fetchError;
 
+        const data = rawData as unknown as OfferDetailRow;
+
         // Find nearest store location
-        const { data: locationData } = await supabase
+        const { data: rawLocationData } = await supabase
           .from('merchant_locations')
           .select('name, address_line1, city')
           .eq('merchant_id', data.merchant.id)
           .eq('is_primary', true)
           .single();
+
+        const locationData = rawLocationData as MerchantLocationRow | null;
 
         // Mark as viewed if pending
         if (data.status === 'pending') {
@@ -244,7 +278,7 @@ export function useUserOffers(): UseUserOffersReturn {
             id: data.merchant.id,
             businessName: data.merchant.business_name,
             logoUrl: data.merchant.logo_url,
-            businessType: data.merchant.business_type,
+            businessType: data.merchant.business_type as MerchantBusinessType,
             isVerified: true,
           },
           productName: data.catalog_item.name,
@@ -297,7 +331,7 @@ export function useUserOffers(): UseUserOffersReturn {
         return false;
       }
 
-      const supabase = getMerchantClient();
+      const supabase = createClient();
       setIsProcessing(true);
 
       try {
@@ -353,7 +387,7 @@ export function useUserOffers(): UseUserOffersReturn {
         return false;
       }
 
-      const supabase = getMerchantClient();
+      const supabase = createClient();
       setIsProcessing(true);
 
       try {

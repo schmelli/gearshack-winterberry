@@ -12,6 +12,7 @@
 
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Store, Clock, Tag, ChevronRight, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,13 +102,14 @@ export const OfferCard = memo(function OfferCard({
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Product Image */}
-          <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+          <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
             {offer.productImageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={offer.productImageUrl}
                 alt={offer.productName}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

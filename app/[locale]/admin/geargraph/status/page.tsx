@@ -3,18 +3,19 @@
  *
  * Displays the health and stats of the GearGraph server.
  * Fetches data from geargraph.gearshack.app/health and /stats
+ *
+ * Business logic extracted to useGearGraphStatus hook
+ * following Feature-Sliced Light architecture.
  */
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   RefreshCw,
-  CheckCircle2,
   XCircle,
   AlertCircle,
   AlertTriangle,
@@ -28,207 +29,81 @@ import {
   Copy,
   Users,
 } from 'lucide-react';
+import {
+  useGearGraphStatus,
+  formatRelativeTime,
+  formatDateTime,
+  type HealthResponse,
+} from '@/hooks/admin/useGearGraphStatus';
 
-// Use local API proxy to avoid CORS issues
-const API_BASE_URL = '/api/geargraph';
+// =============================================================================
+// Helper Components
+// =============================================================================
 
-interface HealthMetrics {
-  totalNodes: number;
-  totalRelationships: number;
-  orphanCount: number;
-  duplicatesDetected: number;
-  mergesExecuted24h: number;
-  deletions24h: number;
+function StatusBadge({
+  loading,
+  healthError,
+  health,
+}: {
+  loading: boolean;
+  healthError: string | null;
+  health: HealthResponse | null;
+}) {
+  if (loading) return <Badge variant="secondary">Laden...</Badge>;
+  if (healthError) return <Badge variant="destructive">Offline</Badge>;
+  if (health?.status === 'ok' || health?.status === 'healthy') {
+    return <Badge className="bg-green-500 hover:bg-green-600">Online</Badge>;
+  }
+  if (health?.status === 'degraded') {
+    return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">Eingeschränkt</Badge>;
+  }
+  if (health?.status === 'error') {
+    return <Badge variant="destructive">Fehler</Badge>;
+  }
+  return <Badge variant="secondary">Unbekannt</Badge>;
 }
 
-interface HealthResponse {
-  status: 'ok' | 'healthy' | 'degraded' | 'error';
-  statusReasons?: string[];
-  memgraphConnected?: boolean;
-  workflowsRunning?: number;
-  pendingApprovals?: number;
-  lastHygieneRun?: string;
-  lastDeduplicationRun?: string;
-  metrics?: HealthMetrics;
-  timestamp?: string;
-  version?: string;
-  [key: string]: unknown;
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  subtext,
+  variant = 'default',
+}: {
+  icon: typeof Database;
+  label: string;
+  value: string | number;
+  subtext?: string;
+  variant?: 'default' | 'warning' | 'success' | 'muted';
+}) {
+  const variantClasses = {
+    default: 'border-border',
+    warning: 'border-yellow-500/50 bg-yellow-500/5',
+    success: 'border-green-500/50 bg-green-500/5',
+    muted: 'border-border bg-muted/30',
+  };
+
+  return (
+    <div className={`rounded-lg border p-4 ${variantClasses[variant]}`}>
+      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+        <Icon className="h-4 w-4" />
+        <span className="text-sm">{label}</span>
+      </div>
+      <div className="text-2xl font-bold">
+        {typeof value === 'number' ? value.toLocaleString('de-DE') : value}
+      </div>
+      {subtext && <div className="text-xs text-muted-foreground mt-1">{subtext}</div>}
+    </div>
+  );
 }
 
-interface StatsResponse {
-  status?: string;
-  statusReasons?: string[];
-  memgraphConnected?: boolean;
-  workflowsRunning?: number;
-  pendingApprovals?: number;
-  lastHygieneRun?: string;
-  lastDeduplicationRun?: string;
-  metrics?: HealthMetrics;
-  timestamp?: string;
-  nodes?: number;
-  edges?: number;
-  categories?: number;
-  brands?: number;
-  products?: number;
-  [key: string]: unknown;
-}
-
-// Helper to format relative time
-function formatRelativeTime(isoString: string): string {
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'gerade eben';
-  if (diffMins < 60) return `vor ${diffMins} Min.`;
-  if (diffHours < 24) return `vor ${diffHours} Std.`;
-  if (diffDays === 1) return 'gestern';
-  return `vor ${diffDays} Tagen`;
-}
-
-// Helper to format date/time
-function formatDateTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+// =============================================================================
+// Page Component
+// =============================================================================
 
 export default function GearGraphStatusPage() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [statsError, setStatsError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  // Track mounted state to prevent state updates after unmount
-  const isMountedRef = useRef(true);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setHealthError(null);
-    setStatsError(null);
-
-    // Fetch health
-    try {
-      const healthRes = await fetch(`${API_BASE_URL}/health`, {
-        cache: 'no-store',
-      });
-      if (!healthRes.ok) {
-        throw new Error(`HTTP ${healthRes.status}: ${healthRes.statusText}`);
-      }
-      const healthData = await healthRes.json();
-      if (isMountedRef.current) {
-        setHealth(healthData);
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        setHealthError(err instanceof Error ? err.message : 'Failed to fetch health');
-        setHealth(null);
-      }
-    }
-
-    // Fetch stats
-    try {
-      const statsRes = await fetch(`${API_BASE_URL}/stats`, {
-        cache: 'no-store',
-      });
-      if (!statsRes.ok) {
-        throw new Error(`HTTP ${statsRes.status}: ${statsRes.statusText}`);
-      }
-      const statsData = await statsRes.json();
-      if (isMountedRef.current) {
-        setStats(statsData);
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        setStatsError(err instanceof Error ? err.message : 'Failed to fetch stats');
-        setStats(null);
-      }
-    }
-
-    if (isMountedRef.current) {
-      setLoading(false);
-      setLastUpdated(new Date());
-    }
-  }, []);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchData();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [fetchData]);
-
-  const getStatusBadge = () => {
-    if (loading) return <Badge variant="secondary">Laden...</Badge>;
-    if (healthError) return <Badge variant="destructive">Offline</Badge>;
-    if (health?.status === 'ok' || health?.status === 'healthy') {
-      return <Badge className="bg-green-500 hover:bg-green-600">Online</Badge>;
-    }
-    if (health?.status === 'degraded') {
-      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">Eingeschränkt</Badge>;
-    }
-    if (health?.status === 'error') {
-      return <Badge variant="destructive">Fehler</Badge>;
-    }
-    return <Badge variant="secondary">Unbekannt</Badge>;
-  };
-
-  const _getStatusIcon = () => {
-    if (loading) return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
-    if (healthError) return <XCircle className="h-5 w-5 text-destructive" />;
-    if (health?.status === 'ok' || health?.status === 'healthy') {
-      return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    }
-    if (health?.status === 'degraded') {
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-    }
-    return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-  };
-
-  // Metric card component
-  const MetricCard = ({
-    icon: Icon,
-    label,
-    value,
-    subtext,
-    variant = 'default',
-  }: {
-    icon: typeof Database;
-    label: string;
-    value: string | number;
-    subtext?: string;
-    variant?: 'default' | 'warning' | 'success' | 'muted';
-  }) => {
-    const variantClasses = {
-      default: 'border-border',
-      warning: 'border-yellow-500/50 bg-yellow-500/5',
-      success: 'border-green-500/50 bg-green-500/5',
-      muted: 'border-border bg-muted/30',
-    };
-
-    return (
-      <div className={`rounded-lg border p-4 ${variantClasses[variant]}`}>
-        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <Icon className="h-4 w-4" />
-          <span className="text-sm">{label}</span>
-        </div>
-        <div className="text-2xl font-bold">
-          {typeof value === 'number' ? value.toLocaleString('de-DE') : value}
-        </div>
-        {subtext && <div className="text-xs text-muted-foreground mt-1">{subtext}</div>}
-      </div>
-    );
-  };
+  const { health, stats, healthError, statsError, loading, lastUpdated, fetchData } =
+    useGearGraphStatus();
 
   return (
     <div className="space-y-6">
@@ -241,7 +116,7 @@ export default function GearGraphStatusPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {getStatusBadge()}
+          <StatusBadge loading={loading} healthError={healthError} health={health} />
           <Button
             variant="outline"
             size="sm"
@@ -332,7 +207,7 @@ export default function GearGraphStatusPage() {
             <MetricCard
               icon={Clock}
               label="Letzter Hygiene-Lauf"
-              value={health.lastHygieneRun ? formatRelativeTime(health.lastHygieneRun) : '–'}
+              value={health.lastHygieneRun ? formatRelativeTime(health.lastHygieneRun) : '\u2013'}
               subtext={health.lastHygieneRun ? formatDateTime(health.lastHygieneRun) : undefined}
             />
           </div>

@@ -193,18 +193,12 @@ export function useGearEditor(
         // FR-004, FR-005: Import external images before saving
         // Check if primaryImageUrl needs to be imported
         if (isExternalUrl(data.primaryImageUrl) && user?.uid) {
-          console.log('[GearEditor] ====== STARTING IMAGE IMPORT ======');
-          console.log('[GearEditor] External URL detected:', data.primaryImageUrl);
-          console.log('[GearEditor] User ID:', user.uid);
-
           // FR-006: Show loading feedback during import
           setIsUploading(true);
           toast.info(t('toasts.importingImage'));
 
           try {
             // Upload external URL directly to Cloudinary (server-side fetch bypasses CORS)
-            console.log('[GearEditor] Uploading external URL to Cloudinary...');
-
             // Generate a temporary item ID for new items
             const itemId = initialItem?.id ?? `temp-${Date.now()}`;
 
@@ -216,8 +210,6 @@ export function useGearEditor(
             if (!cloudinaryUrl) {
               throw new Error('Failed to upload to Cloudinary');
             }
-
-            console.log('[GearEditor] Upload complete - Cloudinary URL:', cloudinaryUrl);
 
             // Update the form data with the Cloudinary URL
             data.primaryImageUrl = cloudinaryUrl;
@@ -243,12 +235,6 @@ export function useGearEditor(
           } finally {
             setIsUploading(false);
           }
-        } else {
-          console.log('[GearEditor] No external image to import:', {
-            url: data.primaryImageUrl,
-            isExternal: isExternalUrl(data.primaryImageUrl),
-            hasUser: Boolean(user?.uid),
-          });
         }
 
         const itemData = formDataToGearItem(data);

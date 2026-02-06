@@ -163,8 +163,6 @@ export async function GET(request: NextRequest) {
 
       if (rpcResult.error) {
         // RPC function may not exist - fallback to direct query
-        console.log('RPC get_distinct_user_brands unavailable, using direct query fallback');
-
         // Direct query fallback - query gear_items table directly
         const { data: directBrands, error: directError } = await supabase
           .from('gear_items')

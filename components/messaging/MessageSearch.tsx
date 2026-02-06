@@ -9,6 +9,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Search, Loader2, MessageSquare, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ interface MessageSearchProps {
  * Search component for finding messages.
  */
 export function MessageSearch({ onSelectResult, className }: MessageSearchProps) {
+  const t = useTranslations('Messaging.messageSearch');
   const { query, setQuery, results, isSearching, error, clearSearch } = useMessageSearch();
 
   const handleResultClick = (result: MessageSearchResult) => {
@@ -42,7 +44,8 @@ export function MessageSearch({ onSelectResult, className }: MessageSearchProps)
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search messages..."
+          placeholder={t('placeholder')}
+          aria-label={t('placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-10 pr-10"
@@ -73,7 +76,7 @@ export function MessageSearch({ onSelectResult, className }: MessageSearchProps)
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <MessageSquare className="h-10 w-10 text-muted-foreground/50" />
           <p className="mt-2 text-sm text-muted-foreground">
-            No messages found for &ldquo;{query}&rdquo;
+            {t('noResults', { query })}
           </p>
         </div>
       )}
@@ -98,10 +101,10 @@ export function MessageSearch({ onSelectResult, className }: MessageSearchProps)
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Search className="h-10 w-10 text-muted-foreground/50" />
           <p className="mt-2 text-sm text-muted-foreground">
-            Search your message history
+            {t('searchHistory')}
           </p>
           <p className="text-xs text-muted-foreground/70">
-            Enter at least 2 characters to search
+            {t('minCharacters')}
           </p>
         </div>
       )}
@@ -115,9 +118,10 @@ interface SearchResultCardProps {
 }
 
 function SearchResultCard({ result, onClick }: SearchResultCardProps) {
+  const t = useTranslations('Messaging.messageSearch');
   const conversationName =
     result.conversation.name ||
-    (result.conversation.type === 'direct' ? 'Direct Message' : 'Group');
+    (result.conversation.type === 'direct' ? t('directMessage') : t('group'));
 
   const timeAgo = formatDistanceToNow(new Date(result.message.created_at), {
     addSuffix: true,

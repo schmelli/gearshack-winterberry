@@ -16,6 +16,7 @@
 
 import { memo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 import {
   Package,
   Weight,
@@ -107,13 +108,14 @@ const LoadoutItemCard = memo(function LoadoutItemCard({
     <Card className="overflow-hidden">
       <div className="flex gap-4 p-4">
         {/* Item Image */}
-        <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+        <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
           {catalogItem.imageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={catalogItem.imageUrl}
               alt={catalogItem.name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -336,11 +338,13 @@ function MerchantSection({ loadout }: { loadout: LoadoutDetailType }) {
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           {merchant.logoUrl && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={merchant.logoUrl}
               alt={merchant.businessName}
+              width={48}
+              height={48}
               className="h-12 w-12 rounded-lg object-cover"
+              unoptimized
             />
           )}
           <div>
@@ -391,11 +395,12 @@ export const MerchantLoadoutDetail = memo(function MerchantLoadoutDetail({
       <div className="relative">
         <AspectRatio ratio={21 / 9}>
           {loadout.heroImageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
+            <Image
               src={loadout.heroImageUrl}
               alt={loadout.name}
-              className="h-full w-full object-cover rounded-xl"
+              fill
+              className="object-cover rounded-xl"
+              unoptimized
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted rounded-xl">

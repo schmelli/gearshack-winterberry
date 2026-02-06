@@ -87,26 +87,20 @@ function isBlockedUrl(url: string): boolean {
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
-  console.log('[Proxy] ====== IMAGE PROXY REQUEST ======');
-  console.log('[Proxy] Requested URL:', url);
 
   if (!url) {
-    console.log('[Proxy] ERROR: Missing URL parameter');
     return NextResponse.json({ error: 'MISSING_URL', message: 'No URL provided' }, { status: 400 });
   }
 
   // Validate URL presence and protocol
   try {
     const parsed = new URL(url);
-    console.log('[Proxy] Parsed URL:', { protocol: parsed.protocol, hostname: parsed.hostname });
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
   } catch {
-    console.log('[Proxy] ERROR: Invalid URL format');
     return NextResponse.json({ error: 'INVALID_URL', message: 'Invalid URL format' }, { status: 400 });
   }
 
   if (isBlockedUrl(url)) {
-    console.log('[Proxy] ERROR: Blocked URL (security)');
     return NextResponse.json({ error: 'BLOCKED_URL', message: 'URL is blocked for security' }, { status: 400 });
   }
 
@@ -117,8 +111,6 @@ export async function GET(request: NextRequest) {
     // Extract origin for Referer header (bypasses hotlink protection)
     const parsedUrl = new URL(url);
     const referer = `${parsedUrl.protocol}//${parsedUrl.hostname}/`;
-
-    console.log('[Proxy] Fetching external URL with Referer:', referer);
 
     // FIX: Full browser disguise with Referer to bypass hotlink protection
     const response = await fetch(url, {
@@ -143,8 +135,6 @@ export async function GET(request: NextRequest) {
       redirect: 'follow',
     });
 
-    console.log('[Proxy] Fetch response:', { status: response.status, ok: response.ok });
-
     if (!response.ok) {
       console.error(`[Proxy] Upstream error: ${response.status} ${response.statusText} for ${url}`);
       return NextResponse.json(
@@ -154,13 +144,10 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = response.headers.get('content-type') || '';
-    console.log('[Proxy] Response content-type:', contentType);
 
     const imageBuffer = await response.arrayBuffer();
-    console.log('[Proxy] Downloaded bytes:', imageBuffer.byteLength);
 
     if (imageBuffer.byteLength > MAX_FILE_SIZE) {
-      console.log('[Proxy] ERROR: File too large:', imageBuffer.byteLength);
       return NextResponse.json({ error: 'TOO_LARGE', message: `File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` }, { status: 413 });
     }
 
@@ -177,10 +164,7 @@ export async function GET(request: NextRequest) {
         'webp': 'image/webp',
       };
       finalContentType = extMap[ext || ''] || 'image/jpeg';
-      console.log('[Proxy] Detected content-type from extension:', finalContentType);
     }
-
-    console.log('[Proxy] SUCCESS - Returning image with type:', finalContentType, 'size:', imageBuffer.byteLength);
 
     return new NextResponse(imageBuffer, {
       headers: {

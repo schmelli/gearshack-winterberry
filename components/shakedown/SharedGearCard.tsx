@@ -3,6 +3,7 @@
 import type { SharedGearItem } from '@/types/sharing';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
+import { useTranslations } from 'next-intl';
 import { GearCard } from '@/components/inventory-gallery/GearCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,7 @@ export function SharedGearCard({
   isAuthenticated = false,
   viewDensity = 'standard',
 }: SharedGearCardProps) {
+  const t = useTranslations('SharedLoadout');
   // Map SharedGearItem to GearItem interface for GearCard compatibility
   const gearItem = sharedGearItemToGearItem(item);
 
@@ -153,6 +155,7 @@ export function SharedGearCard({
             variant="secondary"
             onClick={handleAddToWishlist}
             disabled={isAddingToWishlist}
+            aria-label={t('addToWishlist')}
             className={cn(
               "h-8 px-2.5 bg-white/95 hover:bg-white border-zinc-200 shadow-sm",
               "text-zinc-700 hover:text-rose-600",
@@ -162,12 +165,12 @@ export function SharedGearCard({
             {isAddingToWishlist ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                <span className="text-xs">Adding...</span>
+                <span className="text-xs">{t('addingToWishlist')}</span>
               </>
             ) : (
               <>
                 <Heart className="h-3.5 w-3.5 mr-1.5" />
-                <span className="text-xs">Add to Wishlist</span>
+                <span className="text-xs">{t('addToWishlist')}</span>
               </>
             )}
           </Button>
@@ -186,7 +189,7 @@ export function SharedGearCard({
               )}
             >
               <Check className="h-3 w-3" />
-              <span className="text-[10px] font-semibold">Owned</span>
+              <span className="text-[10px] font-semibold">{t('ownedBadge')}</span>
             </Badge>
           )}
           {isOnWishlist && (
@@ -198,7 +201,7 @@ export function SharedGearCard({
               )}
             >
               <Heart className="h-3 w-3 fill-current" />
-              <span className="text-[10px] font-semibold">Wishlist</span>
+              <span className="text-[10px] font-semibold">{t('wishlistBadge')}</span>
             </Badge>
           )}
         </div>

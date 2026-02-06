@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { ExternalLink, Package, Scale, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -130,12 +131,15 @@ export function LinkedContentPreview({
       <CardContent className="flex gap-4 p-4">
         {/* Thumbnail */}
         {data.thumbnail ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={data.thumbnail}
-            alt={data.title}
-            className="h-20 w-20 shrink-0 rounded object-cover"
-          />
+          <div className="relative h-20 w-20 shrink-0">
+            <Image
+              src={data.thumbnail}
+              alt={data.title}
+              fill
+              className="rounded object-cover"
+              unoptimized
+            />
+          </div>
         ) : (
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-muted">
             <Package className="h-8 w-8 text-muted-foreground" />

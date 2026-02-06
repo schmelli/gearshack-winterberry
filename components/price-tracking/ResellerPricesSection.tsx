@@ -10,6 +10,7 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 import { ExternalLink, MapPin, Store, Globe, RefreshCw, Crown, Bell, BellOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,13 +68,14 @@ function ResellerPriceCard({ price }: { price: ResellerPriceWithDetails }) {
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           {/* Reseller Logo or Icon */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+          <div className="relative flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
             {reseller.logoUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={reseller.logoUrl}
                 alt={reseller.name}
-                className="w-full h-full object-contain"
+                fill
+                className="object-contain"
+                unoptimized
               />
             ) : isLocal ? (
               <Store className="h-6 w-6 text-muted-foreground" />

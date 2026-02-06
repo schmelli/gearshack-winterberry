@@ -11,10 +11,32 @@
  * - gearshack.app → Redirect to inventory if logged in
  */
 
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Landing.meta');
+
+  return {
+    title: t('title'),
+    description: t('description'),
+    openGraph: {
+      title: t('title'),
+      description: t('description'),
+      type: 'website',
+      siteName: 'Gearshack',
+    },
+    twitter: {
+      card: 'summary',
+      title: t('title'),
+      description: t('description'),
+    },
+  };
+}
 
 export default async function Home() {
   // Check hostname to determine behavior

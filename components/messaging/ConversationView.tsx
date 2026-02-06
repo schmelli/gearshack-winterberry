@@ -171,9 +171,9 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 text-muted-foreground">
         <Lock className="h-12 w-12" />
         <div className="text-center">
-          <p className="font-medium">Cannot send messages</p>
+          <p className="font-medium">{t('cannotSend')}</p>
           <p className="mt-1 text-sm">
-            This user has restricted who can message them.
+            {t('userRestricted')}
           </p>
         </div>
       </div>
@@ -181,12 +181,12 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" role="region" aria-label={t('messagesRegion')}>
       {/* Messages area */}
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-muted-foreground">
-            <p>No messages yet. Start the conversation!</p>
+            <p>{t('noMessages')}</p>
           </div>
         ) : (
           <div className="space-y-4">

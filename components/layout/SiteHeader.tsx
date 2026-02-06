@@ -224,7 +224,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* T005: Larger nav font (text-lg font-bold) */}
         {/* Community Section Restructure: Items with children render as dropdown menus */}
         {/* Feature Flags: Use filteredNavItems to respect admin-controlled feature access */}
-        <nav className="ml-auto hidden items-baseline gap-8 md:flex">
+        <nav className="ml-auto hidden items-baseline gap-8 md:flex" aria-label={t('mainNavigation')}>
           {filteredNavItems.map((item: NavItemWithChildren) => {
             const isActive = pathname === item.href ||
               (item.children && item.children.some(child => pathname.startsWith(child.href)));
@@ -311,14 +311,14 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               size="icon"
               className="relative text-white hover:bg-white/10 hover:text-white"
               onClick={() => setMessagingOpen(true)}
+              aria-label={unreadCount > 0 ? t('messagesWithUnread', { count: unreadCount }) : t('messages')}
             >
               <Mail className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white" aria-hidden="true">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-              <span className="sr-only">{t('messages')}</span>
             </Button>
           )}
 

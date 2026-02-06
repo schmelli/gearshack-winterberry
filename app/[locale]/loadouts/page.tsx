@@ -17,12 +17,11 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Plus, Backpack, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLoadouts, useItems } from '@/hooks/useSupabaseStore';
-import { useScreenContext } from '@/components/context/ScreenContextProvider';
+import { useScreenEffect } from '@/hooks/useScreenEffect';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';
@@ -35,15 +34,7 @@ function LoadoutsContent() {
   const items = useItems();
 
   // AI Agent Context-Awareness: Set screen context for AI assistant
-  const { setScreen, clearContext } = useScreenContext();
-
-  useEffect(() => {
-    setScreen('loadouts-list');
-
-    return () => {
-      clearContext();
-    };
-  }, [setScreen, clearContext]);
+  useScreenEffect('loadouts-list');
 
   // Feature 017: Extended search, filter, and sort functionality
   const {

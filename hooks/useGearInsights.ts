@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GearInsight, GearInsightsResponse } from '@/types/geargraph';
 
 // =============================================================================
@@ -61,6 +61,8 @@ export function useGearInsights({
 }: UseGearInsightsOptions): UseGearInsightsReturn {
   // T052: Loading, error, and data states
   const [allInsights, setAllInsights] = useState<GearInsight[] | null>(null);
+  // Ref tracks allInsights for use inside fetchInsights without adding it as a dependency
+  const allInsightsRef = useRef<GearInsight[] | null>(null);
   const [dismissedContents, setDismissedContents] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +79,7 @@ export function useGearInsights({
   const fetchInsights = useCallback(async () => {
     // Skip if no identifiers available
     if (!canFetch) {
+      allInsightsRef.current = null;
       setAllInsights(null);
       setError(null);
       return;
@@ -84,8 +87,8 @@ export function useGearInsights({
 
     const fetchKey = `${productTypeId ?? ''}|${categoryId ?? ''}|${brand ?? ''}|${name ?? ''}`;
 
-    // Skip if already fetched with same params
-    if (fetchKey === lastFetchParams && allInsights !== null) {
+    // Skip if already fetched with same params (uses ref to avoid stale closure)
+    if (fetchKey === lastFetchParams && allInsightsRef.current !== null) {
       return;
     }
 
@@ -109,6 +112,7 @@ export function useGearInsights({
       const data: GearInsightsResponse = await response.json();
 
       // Store all fetched insights (API returns up to 6, we show 3)
+      allInsightsRef.current = data.insights;
       setAllInsights(data.insights);
       setCached(data.cached);
       setExpiresAt(data.expiresAt);
@@ -118,12 +122,11 @@ export function useGearInsights({
     } catch (err) {
       console.error('GearGraph fetch error:', err);
       setError(err instanceof Error ? err.message : 'Insights temporarily unavailable');
+      allInsightsRef.current = null;
       setAllInsights(null);
     } finally {
       setIsLoading(false);
     }
-  // INFINITE LOOP FIX: Removed allInsights from deps - lastFetchParams guard is sufficient
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productTypeId, categoryId, brand, name, canFetch, lastFetchParams]);
 
   // T053: Trigger fetch when modal opens with productTypeId or categoryId

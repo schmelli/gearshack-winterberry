@@ -419,8 +419,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Wiki Generate] Fetching URL:', sourceUrl);
-
     // Fetch URL content with timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
@@ -473,23 +471,13 @@ export async function POST(request: NextRequest) {
     // Limit content size (AI context limits)
     const truncatedContent = textContent.substring(0, 15000);
 
-    console.log(
-      '[Wiki Generate] Content extracted, length:',
-      truncatedContent.length
-    );
-
     // Generate wiki content using AI
     const gateway = getGateway();
-
-    console.log('[Wiki Generate] Generating article with:', AI_WIKI_MODEL);
 
     const result = await generateText({
       model: gateway(AI_WIKI_MODEL),
       prompt: WIKI_GENERATION_PROMPT + truncatedContent,
     });
-
-    console.log('[Wiki Generate] AI response received, length:', result.text.length);
-    console.log('[Wiki Generate] Response preview:', result.text.substring(0, 300));
 
     // Parse JSON from response
     const wikiContent = parseJsonFromResponse(result.text);
@@ -529,18 +517,12 @@ export async function POST(request: NextRequest) {
       ? (wikiContent.keyTopics as string[])
       : [];
 
-    console.log('[Wiki Generate] Key topics:', keyTopics);
-
     // Find similar existing articles
     const similarArticles = await findSimilarArticles(
       supabase,
       wikiContent.title_en as string,
       keyTopics
     );
-
-    if (similarArticles.length > 0) {
-      console.log('[Wiki Generate] Found similar articles:', similarArticles.length);
-    }
 
     return NextResponse.json({
       success: true,

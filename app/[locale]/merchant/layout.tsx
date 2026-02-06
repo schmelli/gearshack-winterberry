@@ -12,7 +12,6 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -29,6 +28,7 @@ import {
   ChevronLeft,
   Menu,
 } from 'lucide-react';
+import { useConditionalRedirect } from '@/hooks/useAuthRedirect';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -257,16 +257,11 @@ function LoadingSkeleton() {
 // =============================================================================
 
 export default function MerchantLayout({ children }: MerchantLayoutProps) {
-  const router = useRouter();
   const { isAuthorized, isLoading, redirectPath } = useMerchantAuthGuard();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Handle redirects for unauthorized users
-  useEffect(() => {
-    if (!isLoading && redirectPath) {
-      router.push(redirectPath);
-    }
-  }, [isLoading, redirectPath, router]);
+  useConditionalRedirect(isLoading, redirectPath);
 
   // Show loading state
   if (isLoading) {

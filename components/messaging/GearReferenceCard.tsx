@@ -9,6 +9,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { Package, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,12 +51,11 @@ export function GearReferenceCard({
       {/* Gear Image */}
       <AspectRatio ratio={4 / 3} className="bg-muted">
         {image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={image_url}
             alt={name}
-            className="h-full w-full object-cover"
-            loading="lazy"
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

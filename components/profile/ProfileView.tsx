@@ -14,6 +14,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import {
   Instagram,
   Facebook,
@@ -94,11 +95,11 @@ function MiniGearCard({ item, onClick }: MiniGearCardProps) {
     >
       <div className="relative w-14 h-14 rounded-lg bg-muted/50 overflow-hidden">
         {item.imageUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={item.imageUrl}
             alt={item.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

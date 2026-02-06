@@ -11,6 +11,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Play, Video } from 'lucide-react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
@@ -95,11 +96,12 @@ export function VipFeaturedVideos({
             className="group relative overflow-hidden rounded-lg"
           >
             <AspectRatio ratio={16 / 9}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={getYouTubeThumbnail(video.id)}
                 alt="Video thumbnail"
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                unoptimized
               />
             </AspectRatio>
 

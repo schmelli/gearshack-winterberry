@@ -136,7 +136,7 @@ export async function checkWebSearchLimit(
   conversationId?: string | null
 ): Promise<RateLimitResult> {
   // Check if rate limiting is disabled (for testing)
-  const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
+  const rateLimitingDisabled = process.env.NODE_ENV !== 'production' && process.env.AI_RATE_LIMITING_DISABLED === 'true';
 
   if (rateLimitingDisabled) {
     const limits = getRateLimitsFromEnv();

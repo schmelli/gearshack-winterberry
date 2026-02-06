@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { ExternalLink, Package, Gavel, Tag, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -121,11 +122,12 @@ function ListingCard({
       {/* Thumbnail */}
       <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted">
         {listing.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={listing.thumbnailUrl}
             alt={listing.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

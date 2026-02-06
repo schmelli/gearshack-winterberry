@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import Image from 'next/image';
 import { CheckCircle2, XCircle, Loader2, UserCheck, AlertTriangle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -257,11 +258,13 @@ export function VipClaimContent({ token }: VipClaimContentProps) {
       <CardHeader className="text-center">
         {claimData?.vip.avatarUrl && (
           <div className="mx-auto mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={claimData.vip.avatarUrl}
               alt={claimData.vip.name}
+              width={80}
+              height={80}
               className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/10"
+              unoptimized
             />
           </div>
         )}

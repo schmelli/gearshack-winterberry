@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
 import {
   Form,
@@ -100,11 +101,11 @@ export function BannerForm({
                 <div className="space-y-2">
                   {field.value && (
                     <div className="relative aspect-[21/9] overflow-hidden rounded-lg bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={field.value}
                         alt="Banner preview"
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                   )}

@@ -2,6 +2,7 @@
 
 import type { SharedGearItem } from '@/types/sharing';
 import type { ViewDensity } from '@/types/inventory';
+import { useTranslations } from 'next-intl';
 import { SharedGearCard } from './SharedGearCard';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/useCategories';
@@ -96,6 +97,7 @@ export function SharedGearGrid({
   viewDensity = 'standard',
   className,
 }: SharedGearGridProps) {
+  const t = useTranslations('SharedLoadout');
   // Cascading Category Refactor: Use useCategories to get label function
   const { getLabelById } = useCategories();
 
@@ -119,7 +121,7 @@ export function SharedGearGrid({
   if (items.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <p>No gear items in this loadout</p>
+        <p>{t('noGearItems')}</p>
       </div>
     );
   }

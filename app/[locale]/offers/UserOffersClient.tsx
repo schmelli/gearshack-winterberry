@@ -10,10 +10,10 @@
 
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useUserOffers, useOfferBlocking } from '@/hooks/offers';
+import { useUserOffers, useOfferBlocking, useOfferAutoOpen } from '@/hooks/offers';
 import { OfferCard } from '@/components/offers/OfferCard';
 import { OfferDetailSheet } from '@/components/offers/OfferDetailSheet';
 import { Card, CardContent } from '@/components/ui/card';
@@ -67,21 +67,15 @@ export function UserOffersClient() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // T065: Auto-open offer from notification link
-  useEffect(() => {
-    if (offerIdFromUrl && !isLoading && offers.length > 0) {
-      // Check if offer exists in the list
-      const offerExists = offers.some((o) => o.id === offerIdFromUrl);
-      if (offerExists && !selectedOffer) {
-        viewOffer(offerIdFromUrl)
-          .then(() => {
-            setIsSheetOpen(true);
-          })
-          .catch((error) => {
-            console.error('Failed to view offer:', error);
-          });
-      }
-    }
-  }, [offerIdFromUrl, isLoading, offers, selectedOffer, viewOffer]);
+  const handleAutoOpen = useCallback(() => setIsSheetOpen(true), []);
+  useOfferAutoOpen({
+    offerIdFromUrl,
+    isLoading,
+    offers,
+    selectedOffer,
+    viewOffer,
+    onOpen: handleAutoOpen,
+  });
 
   const handleOfferClick = useCallback(
     async (offerId: string) => {

@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Play, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -91,11 +92,12 @@ export function YouTubePreview({ videoId, url }: YouTubePreviewProps) {
     <Card className="overflow-hidden hover:shadow-md transition-shadow max-h-[300px]">
       <a href={url} target="_blank" rel="noopener noreferrer" className="block">
         <AspectRatio ratio={16 / 9} className="relative bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={metadata.thumbnail_url}
             alt={metadata.title}
-            className="object-cover w-full h-full"
+            fill
+            className="object-cover"
+            unoptimized
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
             <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg">

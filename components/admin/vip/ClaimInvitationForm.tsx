@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { Send, Loader2, Mail, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -130,11 +131,13 @@ export function ClaimInvitationForm({ vip, onSuccess }: ClaimInvitationFormProps
           {/* VIP Info Display */}
           <div className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
             {vip.avatarUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={vip.avatarUrl}
                 alt={vip.name}
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded-full object-cover"
+                unoptimized
               />
             )}
             <div>

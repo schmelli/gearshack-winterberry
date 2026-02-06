@@ -8,9 +8,10 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+
+
 import { useTranslations } from 'next-intl';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { MessageCircle, User, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
@@ -20,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useConversations } from '@/hooks/messaging/useConversations';
+import { useRecipientRedirect } from '@/hooks/messaging/useRecipientRedirect';
 import { Link } from '@/i18n/navigation';
 import type { ConversationListItem } from '@/types/messaging';
 import { cn } from '@/lib/utils';
@@ -146,48 +148,20 @@ function EmptyState() {
 
 function MessagesContent() {
   const locale = useLocale();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const recipientId = searchParams.get('recipient');
-  const [isStartingConversation, setIsStartingConversation] = useState(false);
 
   const { conversations, isLoading, error, startDirectConversation } =
     useConversations();
 
   // Handle recipient query param - start conversation with that user
-  // Must be in useEffect to avoid calling async function during render
-  useEffect(() => {
-    if (!recipientId || isStartingConversation) return;
-
-    let isCancelled = false;
-
-    const startConversation = async () => {
-      setIsStartingConversation(true);
-      try {
-        const result = await startDirectConversation(recipientId);
-        if (isCancelled) return;
-        if (result.success && result.conversationId) {
-          router.replace(`/messages/${result.conversationId}`);
-        } else {
-          setIsStartingConversation(false);
-        }
-      } catch (error) {
-        console.error('Failed to start conversation:', error);
-        if (!isCancelled) {
-          setIsStartingConversation(false);
-        }
-      }
-    };
-
-    startConversation();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [recipientId, startDirectConversation, router]);
+  const { isStartingConversation, hasRecipient } = useRecipientRedirect({
+    recipientId,
+    startDirectConversation,
+  });
 
   // Show loading while starting conversation with recipient
-  if (recipientId || isStartingConversation) {
+  if (hasRecipient || isStartingConversation) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
