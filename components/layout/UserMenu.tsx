@@ -19,7 +19,8 @@ import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
 import { User, Settings, LogOut, LogIn, Shield, Bug } from 'lucide-react';
-import * as Sentry from '@sentry/nextjs';
+// Temporarily disabled Sentry import for debugging
+// import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -130,27 +131,11 @@ export function UserMenu() {
             </DropdownMenuItem>
           )}
 
-          {/* Report Bug - Sentry User Feedback */}
+          {/* Report Bug - Temporarily disabled Sentry, using GitHub */}
           <DropdownMenuItem
             onClick={() => {
-              // Use the feedback integration to create and attach the widget
-              const feedback = Sentry.getFeedback();
-              if (feedback) {
-                // Create a temporary container and attach the widget
-                const container = document.createElement('div');
-                document.body.appendChild(container);
-
-                // Attach widget to container (this opens it immediately)
-                const unsubscribe = feedback.attachTo(container, {
-                  onFormClose: () => {
-                    unsubscribe();
-                    document.body.removeChild(container);
-                  },
-                });
-              } else {
-                // Fallback: Open GitHub issues
-                window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
-              }
+              // Temporarily disabled Sentry for debugging - direct GitHub fallback
+              window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
             }}
             className="cursor-pointer"
           >
