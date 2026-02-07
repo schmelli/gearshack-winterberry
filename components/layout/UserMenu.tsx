@@ -19,8 +19,7 @@ import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
 import { User, Settings, LogOut, LogIn, Shield, Bug } from 'lucide-react';
-// Temporarily disabled Sentry import for debugging
-// import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -131,11 +130,37 @@ export function UserMenu() {
             </DropdownMenuItem>
           )}
 
-          {/* Report Bug - Temporarily disabled Sentry, using GitHub */}
+          {/* Report Bug - Sentry User Feedback with safe error handling */}
           <DropdownMenuItem
             onClick={() => {
-              // Temporarily disabled Sentry for debugging - direct GitHub fallback
-              window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
+              try {
+                // Try to use Sentry Feedback if available
+                const feedback = Sentry.getFeedback();
+                if (feedback && typeof feedback.attachTo === 'function') {
+                  // Create a temporary container and attach the widget
+                  const container = document.createElement('div');
+                  document.body.appendChild(container);
+
+                  // Attach widget to container (this opens it immediately)
+                  const unsubscribe = feedback.attachTo(container, {
+                    onFormClose: () => {
+                      try {
+                        unsubscribe();
+                        document.body.removeChild(container);
+                      } catch (cleanupError) {
+                        console.error('Sentry feedback cleanup error:', cleanupError);
+                      }
+                    },
+                  });
+                } else {
+                  // Fallback if Sentry Feedback is not available
+                  window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
+                }
+              } catch (error) {
+                // Catch any errors and fallback to GitHub
+                console.error('Sentry feedback error:', error);
+                window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
+              }
             }}
             className="cursor-pointer"
           >
