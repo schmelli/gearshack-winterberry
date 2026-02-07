@@ -69,12 +69,21 @@ const cloudinaryEnvSchema = z.object({
 });
 
 /**
+ * Upstash Redis environment variables (optional - falls back to in-memory in development)
+ */
+const upstashEnvSchema = z.object({
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+});
+
+/**
  * Combined environment schema
  */
 const envSchema = z.object({
   ...aiEnvSchema.shape,
   ...supabaseEnvSchema.shape,
   ...cloudinaryEnvSchema.shape,
+  ...upstashEnvSchema.shape,
 });
 
 export type Env = z.infer<typeof envSchema>;

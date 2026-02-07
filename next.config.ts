@@ -8,6 +8,13 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig: NextConfig = {
   // Note: instrumentationHook is no longer needed in Next.js 16 (Feature 050: OpenTelemetry)
 
+  // Remove console logs in production (except warn/error)
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['warn', 'error'],
+    } : false,
+  },
+
   // Externalize packages that have Node.js-only deps or WASM that webpack can't handle
   serverExternalPackages: [
     '@imgly/background-removal',

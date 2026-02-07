@@ -7,17 +7,20 @@
 
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { useAuthContext } from '@/hooks/auth/useAuthContext';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
 interface AdminRouteProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-// TEMPORARY: Prefixed with _ because authentication is disabled for testing
-// TODO: Remove _ prefix when re-enabling authentication
-function _LoadingSpinner() {
+function LoadingSpinner() {
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -25,9 +28,7 @@ function _LoadingSpinner() {
   );
 }
 
-// TEMPORARY: Prefixed with _ because authentication is disabled for testing
-// TODO: Remove _ prefix when re-enabling authentication
-function _AccessDenied({ title, message }: { title: string; message: string }) {
+function AccessDenied({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
       <ShieldAlert className="h-16 w-16 text-destructive" />
@@ -37,12 +38,7 @@ function _AccessDenied({ title, message }: { title: string; message: string }) {
   );
 }
 
-export function AdminRoute({ children, fallback: _fallback }: AdminRouteProps) {
-  // TEMPORARY: Authentication disabled for testing
-  // TODO: Re-enable authentication once admin access is working
-  return <>{children}</>;
-
-  /* DISABLED FOR TESTING - Re-enable later
+export function AdminRoute({ children, fallback }: AdminRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('Auth.admin');
@@ -81,5 +77,4 @@ export function AdminRoute({ children, fallback: _fallback }: AdminRouteProps) {
   }
 
   return <>{children}</>;
-  */
 }
