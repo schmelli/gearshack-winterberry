@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📚 Documentation Wiki
+
+**NEW**: Comprehensive documentation is now in `/docs/`
+
+- **[System Architecture](docs/architecture/overview.md)** - Start here for understanding the system
+- **[Feature Documentation](docs/features/)** - Implementation details for all features
+- **[Development Guides](docs/guides/)** - Setup, deployment, debugging
+- **[Architecture Decisions (ADRs)](docs/decisions/)** - Historical context for key decisions
+
+**Quick Links:**
+- [Observational Memory](docs/features/observational-memory.md)
+- [Mastra Studio Guide](docs/guides/mastra-studio.md)
+- [Database Schema](docs/architecture/database-schema.md)
+
 ## Project Overview
 
 Gearshack Winterberry is a Next.js 16 application using the App Router with React 19, TypeScript (strict mode), and Tailwind CSS 4.
