@@ -1,11 +1,8 @@
 /**
- * Combined Proxy: i18n + Supabase Session
+ * Combined Middleware: i18n + Supabase Session
  *
  * Features: 027-i18n-next-intl, 040-supabase-migration
  * Tasks: T016 (Supabase session refresh)
- *
- * Next.js 16: Renamed from middleware.ts to proxy.ts
- * See: https://nextjs.org/docs/messages/middleware-to-proxy
  *
  * Handles:
  * - Supabase session refresh on every request
@@ -24,7 +21,7 @@ const intlMiddleware = createIntlMiddleware({
   defaultLocale: 'en',
 });
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
@@ -50,7 +47,7 @@ export async function proxy(request: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('[Proxy] Missing Supabase environment variables');
+      console.error('[Middleware] Missing Supabase environment variables');
       return response; // Return response without session refresh
     }
 
@@ -83,13 +80,13 @@ export async function proxy(request: NextRequest) {
     try {
       await supabase.auth.getUser();
     } catch (authError) {
-      console.warn('[Proxy] Session refresh failed:', authError);
+      console.warn('[Middleware] Session refresh failed:', authError);
       // Continue without session refresh - user may need to re-authenticate
     }
 
     return response;
   } catch (error) {
-    console.error('[Proxy] Fatal error:', error);
+    console.error('[Middleware] Fatal error:', error);
     // Return basic response on critical failure
     return NextResponse.next({ request });
   }
