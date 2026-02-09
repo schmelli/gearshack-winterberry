@@ -71,7 +71,8 @@ function formatPrice(
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(price);
-  } catch {
+  } catch (error) {
+    console.warn(`Failed to format price ${price} with currency ${currency}:`, error);
     return `${currency || '$'}${price.toFixed(2)}`;
   }
 }
@@ -288,11 +289,7 @@ export function MarketplaceItemModal({
   onSellerClick,
   locale = 'en',
 }: MarketplaceItemModalProps) {
-  if (!listing) {
-    return null;
-  }
-
-  const content = (
+  const content = listing ? (
     <ModalContent
       listing={listing}
       onMessageSeller={onMessageSeller}
@@ -300,7 +297,7 @@ export function MarketplaceItemModal({
       onClose={() => onOpenChange(false)}
       locale={locale}
     />
-  );
+  ) : null;
 
   // Mobile: Full-screen sheet from bottom
   if (isMobile) {
@@ -308,7 +305,7 @@ export function MarketplaceItemModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[90vh] p-0">
           <VisuallyHidden>
-            <SheetTitle>{listing.name}</SheetTitle>
+            <SheetTitle>{listing?.name ?? ''}</SheetTitle>
           </VisuallyHidden>
           {content}
         </SheetContent>
@@ -321,7 +318,7 @@ export function MarketplaceItemModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-hidden p-0">
         <VisuallyHidden>
-          <DialogTitle>{listing.name}</DialogTitle>
+          <DialogTitle>{listing?.name ?? ''}</DialogTitle>
         </VisuallyHidden>
         {content}
       </DialogContent>

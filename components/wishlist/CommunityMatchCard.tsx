@@ -135,8 +135,11 @@ export function CommunityMatchCard({
     onMessageUser(match.ownerId);
   };
 
-  const handleCardClick = () => {
-    onCardClick?.(match);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onCardClick?.(match);
+    }
   };
 
   return (
@@ -148,10 +151,10 @@ export function CommunityMatchCard({
         'hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors',
         onCardClick && 'cursor-pointer'
       )}
-      onClick={handleCardClick}
+      onClick={onCardClick ? () => onCardClick(match) : undefined}
       role={onCardClick ? 'button' : undefined}
       tabIndex={onCardClick ? 0 : undefined}
-      onKeyDown={onCardClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } } : undefined}
+      onKeyDown={onCardClick ? handleKeyDown : undefined}
     >
       {/* Item Image */}
       {variant === 'full' && match.primaryImageUrl && (

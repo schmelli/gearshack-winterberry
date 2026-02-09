@@ -46,6 +46,34 @@ import { toast } from 'sonner';
 import { Store } from 'lucide-react';
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Convert a CommunityAvailabilityMatch to a MarketplaceListing for modal display.
+ * Fields not available on the match type (condition, price, listedAt) are set to null
+ * and the modal conditionally hides them.
+ */
+function toListingPreview(match: CommunityAvailabilityMatch): MarketplaceListing {
+  return {
+    id: match.matchedItemId,
+    name: match.itemName,
+    brand: match.itemBrand,
+    primaryImageUrl: match.primaryImageUrl,
+    condition: null,
+    pricePaid: null,
+    currency: null,
+    isForSale: match.forSale,
+    canBeTraded: match.tradeable,
+    canBeBorrowed: match.lendable,
+    listedAt: null,
+    sellerId: match.ownerId,
+    sellerName: match.ownerDisplayName,
+    sellerAvatar: match.ownerAvatarUrl,
+  };
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -100,9 +128,8 @@ export function CommunityAvailabilityPanel({
   const { startDirectConversation } = useConversations();
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // Modal state for MarketplaceItemModal
+  // Modal state — derived: open when selectedListing is non-null
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Check if we have marketplace matches
   const hasMarketplaceMatches = marketplaceMatches.length > 0;
@@ -134,35 +161,18 @@ export function CommunityAvailabilityPanel({
 
   // Handle card click → open MarketplaceItemModal
   const handleCardClick = (match: CommunityAvailabilityMatch) => {
-    const listing: MarketplaceListing = {
-      id: match.matchedItemId,
-      name: match.itemName,
-      brand: match.itemBrand || null,
-      primaryImageUrl: match.primaryImageUrl || null,
-      condition: null,
-      pricePaid: null,
-      currency: null,
-      isForSale: match.forSale,
-      canBeTraded: match.tradeable,
-      canBeBorrowed: match.lendable,
-      listedAt: null,
-      sellerId: match.ownerId,
-      sellerName: match.ownerDisplayName,
-      sellerAvatar: match.ownerAvatarUrl || null,
-    };
-    setSelectedListing(listing);
-    setIsModalOpen(true);
+    setSelectedListing(toListingPreview(match));
   };
 
   // Handle message seller from modal
   const handleMessageSeller = (listing: MarketplaceListing) => {
-    setIsModalOpen(false);
+    setSelectedListing(null);
     handleMessageUser(listing.sellerId);
   };
 
   // Handle seller profile click from modal
   const handleSellerClick = (sellerId: string) => {
-    setIsModalOpen(false);
+    setSelectedListing(null);
     router.push(`/community/members/${sellerId}`);
   };
 
@@ -401,8 +411,8 @@ export function CommunityAvailabilityPanel({
 
       {/* Item Detail Modal */}
       <MarketplaceItemModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        open={selectedListing !== null}
+        onOpenChange={(open) => { if (!open) setSelectedListing(null); }}
         listing={selectedListing}
         isMobile={isMobile}
         onMessageSeller={handleMessageSeller}
