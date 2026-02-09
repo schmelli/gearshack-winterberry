@@ -995,6 +995,13 @@
     "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
     "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
     "noWornItemsInCategory": "Keine getragenen Gegenstände in dieser Kategorie",
+    "heroImage": {
+      "generatingImage": "Bild wird generiert...",
+      "imageUnavailable": "Bild nicht verfügbar",
+      "tryAgain": "Erneut versuchen",
+      "noImage": "Kein Bild",
+      "generateNewImage": "Neues Bild generieren"
+    },
     "popupBlockedAlert": "Export-Fenster konnte nicht geöffnet werden. Bitte erlaube Popups für diese Seite und versuche es erneut.",
     "addCommentFirst": "Füge einen Kommentar hinzu bevor du sendest",
     "yes": "Ja",
@@ -3704,7 +3711,8 @@
       "play": "Wiedergabe",
       "stop": "Stopp",
       "volume": "Lautstärke",
-      "playAudio": "Audio abspielen"
+      "playAudio": "Audio abspielen",
+      "regenerateImage": "Bild neu generieren"
     },
     "title": "KI-Ausrüstungsassistent",
     "subtitle": "Frag mich alles über deine Ausrüstung",

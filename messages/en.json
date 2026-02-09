@@ -990,6 +990,13 @@
       "consumable": "Consumable",
       "notSet": "Not set"
     },
+    "heroImage": {
+      "generatingImage": "Generating image...",
+      "imageUnavailable": "Image unavailable",
+      "tryAgain": "Try again",
+      "noImage": "No image",
+      "generateNewImage": "Generate new image"
+    },
     "popupBlockedAlert": "Unable to open export window. Please allow popups for this site and try again.",
     "addCommentFirst": "Add a comment before sending",
     "yes": "Yes",
@@ -3700,7 +3707,8 @@
       "play": "Play",
       "stop": "Stop",
       "volume": "Volume",
-      "playAudio": "Play audio"
+      "playAudio": "Play audio",
+      "regenerateImage": "Regenerate image"
     },
     "title": "AI Gear Assistant",
     "subtitle": "Ask me anything about your gear",
