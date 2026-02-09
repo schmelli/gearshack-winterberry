@@ -333,6 +333,11 @@
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "showingItems": "Showing {filtered} of {total} items",
     "clearFilters": "Clear filters",
+    "emptyState": {
+      "noResults": "No items match your filters",
+      "noResultsSubtext": "Try adjusting your search or filter criteria",
+      "clearFilters": "Clear all filters"
+    },
     "totalWeight": "Total Weight",
     "totalValue": "Total Value",
     "categoriesError": {

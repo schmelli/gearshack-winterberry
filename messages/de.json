@@ -333,6 +333,11 @@
     "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "showingItems": "Zeige {filtered} von {total} Gegenständen",
     "clearFilters": "Filter löschen",
+    "emptyState": {
+      "noResults": "Keine Gegenstände entsprechen deinen Filtern",
+      "noResultsSubtext": "Versuche, deine Such- oder Filterkriterien anzupassen",
+      "clearFilters": "Alle Filter löschen"
+    },
     "totalWeight": "Gesamtgewicht",
     "totalValue": "Gesamtwert",
     "categoriesError": {

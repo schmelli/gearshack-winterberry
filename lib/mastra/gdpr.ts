@@ -294,7 +294,7 @@ export async function executeGdprDeletion(
     let cloudinaryDeleteCount = 0;
     if (!generatedImagesResult.error && generatedImagesResult.data) {
       // Delete from Cloudinary CDN before deleting database records
-      const { extractPublicId, deleteCloudinaryImage } = await import('@/lib/cloudinary-utils');
+      const { extractPublicId, deleteCloudinaryImage } = await import('@/lib/cloudinary-utils.server');
 
       for (const image of generatedImagesResult.data) {
         try {
