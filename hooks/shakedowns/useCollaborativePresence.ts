@@ -274,13 +274,13 @@ export function useCollaborativePresence({
     });
 
     // Handle joins
-    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+    channel.on('presence', { event: 'join' }, ({ newPresences: _newPresences }) => {
       const state = channel.presenceState();
       processPresenceState(state);
     });
 
     // Handle leaves
-    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+    channel.on('presence', { event: 'leave' }, ({ leftPresences: _leftPresences }) => {
       const state = channel.presenceState();
       processPresenceState(state);
     });

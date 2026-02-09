@@ -32,7 +32,9 @@ export function SearchBar({
 
   // Use ref to store latest onSearch callback to avoid recreating debounce timer
   const onSearchRef = useRef(onSearch);
-  onSearchRef.current = onSearch;
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
 
   // Debounced search - uses ref to avoid dependency on onSearch callback
   useEffect(() => {

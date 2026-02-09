@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Plus, Check, Loader2, Package } from 'lucide-react';
 
@@ -145,9 +146,11 @@ export function AddToInventoryButton({
         <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
           <div className="size-12 rounded-md bg-muted flex items-center justify-center shrink-0">
             {item.imageUrl ? (
-              <img
+              <Image
                 src={item.imageUrl}
                 alt={item.name}
+                width={48}
+                height={48}
                 className="size-12 rounded-md object-cover"
               />
             ) : (

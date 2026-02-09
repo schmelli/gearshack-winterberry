@@ -23,8 +23,9 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
@@ -35,11 +36,42 @@ import {
   CommunityErrorState,
   CommunityEmptyState,
 } from '@/components/wishlist/CommunityAvailabilityStates';
-import type { WishlistItemAvailability, CommunityAvailabilityRetryStatus } from '@/types/wishlist';
+import { MarketplaceItemModal } from '@/components/marketplace/MarketplaceItemModal';
+import type { WishlistItemAvailability, CommunityAvailabilityRetryStatus, CommunityAvailabilityMatch } from '@/types/wishlist';
 import type { WishlistMarketplaceMatch } from '@/lib/supabase/wishlist-marketplace-matching';
+import type { MarketplaceListing } from '@/types/marketplace';
 import { useConversations } from '@/hooks/messaging';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { toast } from 'sonner';
 import { Store } from 'lucide-react';
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Convert a CommunityAvailabilityMatch to a MarketplaceListing for modal display.
+ * Fields not available on the match type (condition, price, listedAt) are set to null
+ * and the modal conditionally hides them.
+ */
+function toListingPreview(match: CommunityAvailabilityMatch): MarketplaceListing {
+  return {
+    id: match.matchedItemId,
+    name: match.itemName,
+    brand: match.itemBrand,
+    primaryImageUrl: match.primaryImageUrl,
+    condition: null,
+    pricePaid: null,
+    currency: null,
+    isForSale: match.forSale,
+    canBeTraded: match.tradeable,
+    canBeBorrowed: match.lendable,
+    listedAt: null,
+    sellerId: match.ownerId,
+    sellerName: match.ownerDisplayName,
+    sellerAvatar: match.ownerAvatarUrl,
+  };
+}
 
 // =============================================================================
 // Types
@@ -79,7 +111,7 @@ interface CommunityAvailabilityPanelProps {
 export function CommunityAvailabilityPanel({
   availability,
   marketplaceMatches = [],
-  marketplaceLoading = false,
+  marketplaceLoading: _marketplaceLoading = false,
   isLoading,
   error: _error, // Kept for future use, graceful degradation handles errors silently
   retryStatus = 'idle',
@@ -92,7 +124,12 @@ export function CommunityAvailabilityPanel({
 }: CommunityAvailabilityPanelProps) {
   const router = useRouter();
   const t = useTranslations('Wishlist.communityAvailability');
+  const locale = useLocale();
   const { startDirectConversation } = useConversations();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  // Modal state — derived: open when selectedListing is non-null
+  const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
 
   // Check if we have marketplace matches
   const hasMarketplaceMatches = marketplaceMatches.length > 0;
@@ -120,6 +157,23 @@ export function CommunityAvailabilityPanel({
         description: t('unexpectedError'),
       });
     }
+  };
+
+  // Handle card click → open MarketplaceItemModal
+  const handleCardClick = (match: CommunityAvailabilityMatch) => {
+    setSelectedListing(toListingPreview(match));
+  };
+
+  // Handle message seller from modal
+  const handleMessageSeller = (listing: MarketplaceListing) => {
+    setSelectedListing(null);
+    handleMessageUser(listing.sellerId);
+  };
+
+  // Handle seller profile click from modal
+  const handleSellerClick = (sellerId: string) => {
+    setSelectedListing(null);
+    router.push(`/community/members/${sellerId}`);
   };
 
   // Labels for child components
@@ -228,6 +282,7 @@ export function CommunityAvailabilityPanel({
                     similarityScore: match.similarityScore,
                     primaryImageUrl: match.listing.primaryImageUrl,
                   }}
+                  onCardClick={handleCardClick}
                   onViewItem={onViewItem}
                   onMessageUser={handleMessageUser}
                   showSimilarityScore={showSimilarityScore}
@@ -254,6 +309,7 @@ export function CommunityAvailabilityPanel({
             <li key={match.matchedItemId}>
               <CommunityMatchCard
                 match={match}
+                onCardClick={handleCardClick}
                 onViewItem={onViewItem}
                 onMessageUser={handleMessageUser}
                 showSimilarityScore={showSimilarityScore}
@@ -296,6 +352,7 @@ export function CommunityAvailabilityPanel({
                       similarityScore: match.similarityScore,
                       primaryImageUrl: match.listing.primaryImageUrl,
                     }}
+                    onCardClick={handleCardClick}
                     onViewItem={onViewItem}
                     onMessageUser={handleMessageUser}
                     showSimilarityScore={showSimilarityScore}
@@ -351,6 +408,17 @@ export function CommunityAvailabilityPanel({
 
       {/* Content */}
       {renderContent()}
+
+      {/* Item Detail Modal */}
+      <MarketplaceItemModal
+        open={selectedListing !== null}
+        onOpenChange={(open) => { if (!open) setSelectedListing(null); }}
+        listing={selectedListing}
+        isMobile={isMobile}
+        onMessageSeller={handleMessageSeller}
+        onSellerClick={handleSellerClick}
+        locale={locale}
+      />
     </section>
   );
 }

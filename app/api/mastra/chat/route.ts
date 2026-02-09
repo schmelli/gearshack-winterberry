@@ -911,14 +911,14 @@ export async function POST(request: Request): Promise<Response> {
                   });
                   // Queue failed embeddings for retry
                   Promise.all([
-                    // @ts-ignore - embedding_queue table not yet in generated types
+                    // @ts-expect-error - embedding_queue table not yet in generated types
                     supabaseClient.from('embedding_queue').upsert({
                       message_id: messageIds.userMessageId,
                       user_id: user.id,
                       content: message,
                       error_message: err instanceof Error ? err.message : 'Unknown error',
                     }, { onConflict: 'message_id' }),
-                    // @ts-ignore - embedding_queue table not yet in generated types
+                    // @ts-expect-error - embedding_queue table not yet in generated types
                     supabaseClient.from('embedding_queue').upsert({
                       message_id: messageIds.assistantMessageId,
                       user_id: user.id,

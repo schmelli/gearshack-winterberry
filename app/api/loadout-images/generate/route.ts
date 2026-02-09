@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       prompt,
       negativePrompt,
       stylePreferences,
-      isRetry = false,
+      isRetry: _isRetry = false,
     } = parseResult.data;
 
     // Verify loadout ownership

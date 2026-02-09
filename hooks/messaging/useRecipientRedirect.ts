@@ -72,7 +72,7 @@ export function useRecipientRedirect({
     return () => {
       isCancelled = true;
     };
-  }, [recipientId, startDirectConversation, router]);
+  }, [recipientId, startDirectConversation, router, isStartingConversation]);
 
   return {
     isStartingConversation,

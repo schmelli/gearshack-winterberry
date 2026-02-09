@@ -11,7 +11,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Shield, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Shield, ShieldCheck } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 

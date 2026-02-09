@@ -92,9 +92,9 @@ export function WeightAnalysisCard({
     categoryBreakdown,
     outliers,
     hasOutliers,
-    averageItemWeight,
-    heaviestItem,
-    lightestItem,
+    averageItemWeight: _averageItemWeight,
+    heaviestItem: _heaviestItem,
+    lightestItem: _lightestItem,
     communityComparison,
   } = useWeightAnalysis({
     gearItems,
@@ -171,7 +171,7 @@ export function WeightAnalysisCard({
         <WeightHeatmapBar
           categoryBreakdown={categoryBreakdown}
           totalWeight={totalWeight}
-          onCategoryClick={(categoryId) => {
+          onCategoryClick={(_categoryId) => {
             // Optionally scroll to or highlight category in breakdown
             setIsExpanded(true);
           }}

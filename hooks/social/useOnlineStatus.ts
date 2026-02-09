@@ -209,6 +209,7 @@ export function useOnlineStatus(): UseOnlineStatusReturn {
   useEffect(() => {
     if (!user?.uid || !friends.length) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch + subscription setup
     refreshFriendsStatus();
 
     // Periodic refresh

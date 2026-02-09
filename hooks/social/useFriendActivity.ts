@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
@@ -190,7 +190,6 @@ export function useFriendActivity(
     return () => {
       isCancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, activityTypeFilter]);
 
   // Setup Realtime subscription - only recreate when user changes

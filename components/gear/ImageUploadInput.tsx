@@ -180,7 +180,7 @@ export function ImageUploadInput({
         }
       }
     },
-    [enableFirebaseUpload, upload, onUpload]
+    [enableFirebaseUpload, upload, onUpload, t]
   );
 
   const handleClearFile = useCallback(() => {

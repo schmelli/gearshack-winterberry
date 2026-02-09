@@ -77,7 +77,7 @@ export function ComparisonMatrix({
   criteria,
   suggestedSwaps,
   onRemoveItem,
-  onSwapItem,
+  onSwapItem: _onSwapItem,
   onClose,
   className,
 }: ComparisonMatrixProps): React.ReactElement {
@@ -114,7 +114,7 @@ export function ComparisonMatrix({
       <CardContent className="space-y-4">
         {/* Item Headers */}
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
-          {items.map((item, index) => (
+          {items.map((item, _index) => (
             <div
               key={item.id}
               className="relative p-3 rounded-lg bg-muted/30 border text-center"

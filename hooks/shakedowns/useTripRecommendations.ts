@@ -108,7 +108,7 @@ const SEASONAL_REQUIREMENTS: Record<string, string[]> = {
   fall: ['rain_gear', 'insulation', 'layers'],
 };
 
-const ACTIVITY_REQUIREMENTS: Record<string, string[]> = {
+const _ACTIVITY_REQUIREMENTS: Record<string, string[]> = {
   backpacking: ['backpack', 'pack'],
   hiking: ['trekking_poles', 'footwear'],
   mountaineering: ['ice_axe', 'crampons', 'helmet'],
@@ -196,7 +196,7 @@ function getSeasonFromDate(dateString: string): string {
 
 export function useTripRecommendations({
   gearItems,
-  loadout,
+  loadout: _loadout,
   tripContext,
   totalWeight,
 }: UseTripRecommendationsOptions): UseTripRecommendationsReturn {
@@ -363,7 +363,7 @@ export function useTripRecommendations({
     }
 
     return results;
-  }, [gearItems, loadout, tripContext, totalWeight]);
+  }, [gearItems, tripContext, totalWeight]);
 
   // Categorize recommendations
   const criticalRecommendations = useMemo(

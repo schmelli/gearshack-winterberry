@@ -15,7 +15,6 @@ import {
   Snowflake,
   Sun,
   Feather,
-  Tent,
   Backpack,
   Map,
 } from 'lucide-react';

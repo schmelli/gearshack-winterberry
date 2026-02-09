@@ -88,6 +88,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
 
       // Use 'any' to avoid TypeScript deep instantiation error with Supabase types
       // We validate the data with Zod below, which provides runtime type safety
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any = await (supabase as any)
         .from('feature_flags')
         .select('*')
@@ -131,6 +132,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
           (f) => f.feature_key === input.featureKey
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: updateError } = await (supabase as any)
           .from('feature_flags')
           .update({
@@ -146,6 +148,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
 
         // Log admin activity (non-blocking - don't fail update if logging fails)
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('admin_activity_logs').insert({
             admin_id: currentUserId,
             action_type: 'feature_flag_update',
@@ -193,6 +196,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
         setLoadingState('submitting');
         setError(null);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: insertError } = await (supabase as any).from('feature_flags').insert({
           feature_key: input.featureKey,
           feature_name: input.featureName,
@@ -236,6 +240,7 @@ export function useAdminFeatureFlags(): UseAdminFeatureFlagsReturn {
         // Find the feature to get its name for the toast
         const feature = flatFeatures.find((f) => f.feature_key === featureKey);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: deleteError } = await (supabase as any)
           .from('feature_flags')
           .delete()

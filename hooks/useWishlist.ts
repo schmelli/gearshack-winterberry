@@ -89,7 +89,7 @@ export function useWishlist(): UseWishlistReturn {
   // ---------------------------------------------------------------------------
   // Zustand Store for Inventory Sync (Feature 049 US3)
   // ---------------------------------------------------------------------------
-  const inventoryItems = useSupabaseStore((state) => state.items);
+  const _inventoryItems = useSupabaseStore((state) => state.items);
   const setRemoteGearItems = useSupabaseStore((state) => state.setRemoteGearItems);
 
   // ---------------------------------------------------------------------------

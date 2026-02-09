@@ -10,9 +10,9 @@
 
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronRight, MessageSquare, Package, Scale, Info, Eye } from 'lucide-react';
+import { ChevronRight, MessageSquare, Package, Scale, Eye } from 'lucide-react';
 
 import type { FeedbackNode } from '@/types/shakedown';
 import type { Loadout } from '@/types/loadout';
@@ -137,7 +137,7 @@ export function LoadoutDisplay({
     [onItemDetail]
   );
 
-  const handleKeyDown = useCallback(
+  const _handleKeyDown = useCallback(
     (e: React.KeyboardEvent, item: ShakedownGearItem) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();

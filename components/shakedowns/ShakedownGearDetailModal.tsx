@@ -17,9 +17,7 @@ import {
   Package,
   Scale,
   Tag,
-  ExternalLink,
   Plus,
-  Ruler,
   Info,
   Youtube,
   Lightbulb,
@@ -27,7 +25,7 @@ import {
 
 import type { ShakedownGearItem } from '@/hooks/shakedowns/useShakedown';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { cn } from '@/lib/utils';
+
 
 import {
   Dialog,
@@ -44,7 +42,6 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -102,7 +99,7 @@ export function ShakedownGearDetailModal({
   onAddToInventory,
   isItemOwned,
 }: ShakedownGearDetailModalProps): React.ReactElement | null {
-  const t = useTranslations('Shakedowns.gearDetail');
+  const _t = useTranslations('Shakedowns.gearDetail');
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isOpen, selectedItemId, close } = useShakedownGearDetailModalState();
 

@@ -10,13 +10,12 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Crown, Award, Medal, Star, Sparkles } from 'lucide-react';
+import { Crown, Award, Medal, Sparkles } from 'lucide-react';
 
 import type { FeedbackNode, ShakedownBadge } from '@/types/shakedown';
 import { cn } from '@/lib/utils';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Tooltip,

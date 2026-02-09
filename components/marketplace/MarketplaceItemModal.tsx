@@ -71,7 +71,8 @@ function formatPrice(
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(price);
-  } catch {
+  } catch (error) {
+    console.warn(`Failed to format price ${price} with currency ${currency}:`, error);
     return `${currency || '$'}${price.toFixed(2)}`;
   }
 }
@@ -198,23 +199,29 @@ function ModalContent({
         </div>
 
         {/* Price and condition */}
-        <div className="mt-4 flex items-center justify-between">
-          {formattedPrice ? (
-            <span className="text-2xl font-bold text-foreground">
-              {formattedPrice}
-            </span>
-          ) : (
-            <span className="text-lg text-muted-foreground">-</span>
-          )}
-          <Badge variant="outline" className="text-sm">
-            {listing.condition}
-          </Badge>
-        </div>
+        {(formattedPrice || listing.condition) && (
+          <div className="mt-4 flex items-center justify-between">
+            {formattedPrice ? (
+              <span className="text-2xl font-bold text-foreground">
+                {formattedPrice}
+              </span>
+            ) : (
+              <span className="text-lg text-muted-foreground">-</span>
+            )}
+            {listing.condition && (
+              <Badge variant="outline" className="text-sm">
+                {listing.condition}
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Listed date */}
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t('modal.listed')}: {formatListedDate(listing.listedAt, locale)}
-        </p>
+        {listing.listedAt && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t('modal.listed')}: {formatListedDate(listing.listedAt, locale)}
+          </p>
+        )}
 
         {/* Divider */}
         <div className="my-4 h-px bg-border" />
@@ -282,11 +289,7 @@ export function MarketplaceItemModal({
   onSellerClick,
   locale = 'en',
 }: MarketplaceItemModalProps) {
-  if (!listing) {
-    return null;
-  }
-
-  const content = (
+  const content = listing ? (
     <ModalContent
       listing={listing}
       onMessageSeller={onMessageSeller}
@@ -294,7 +297,7 @@ export function MarketplaceItemModal({
       onClose={() => onOpenChange(false)}
       locale={locale}
     />
-  );
+  ) : null;
 
   // Mobile: Full-screen sheet from bottom
   if (isMobile) {
@@ -302,7 +305,7 @@ export function MarketplaceItemModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[90vh] p-0">
           <VisuallyHidden>
-            <SheetTitle>{listing.name}</SheetTitle>
+            <SheetTitle>{listing?.name ?? ''}</SheetTitle>
           </VisuallyHidden>
           {content}
         </SheetContent>
@@ -315,7 +318,7 @@ export function MarketplaceItemModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-hidden p-0">
         <VisuallyHidden>
-          <DialogTitle>{listing.name}</DialogTitle>
+          <DialogTitle>{listing?.name ?? ''}</DialogTitle>
         </VisuallyHidden>
         {content}
       </DialogContent>

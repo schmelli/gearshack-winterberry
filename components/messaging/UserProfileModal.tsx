@@ -92,7 +92,7 @@ export function UserProfileModal({
     }
 
     fetchProfile();
-  }, [userId, open]);
+  }, [userId, open, t]);
 
   const handleFriendToggle = useCallback(async () => {
     if (!profile) return;

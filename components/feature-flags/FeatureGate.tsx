@@ -54,6 +54,7 @@ export function FeatureGate({
     if (isLoading) return;
 
     // Mark as checked
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync state after async loading completes
     setHasChecked(true);
 
     // If feature is disabled, show modal

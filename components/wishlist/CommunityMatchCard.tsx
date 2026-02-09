@@ -34,6 +34,8 @@ export interface CommunityMatchCardLabels {
 interface CommunityMatchCardProps {
   /** The availability match data */
   match: CommunityAvailabilityMatch;
+  /** Callback when the entire card is clicked (opens detail modal) */
+  onCardClick?: (match: CommunityAvailabilityMatch) => void;
   /** Callback to view an item (opens detail modal) */
   onViewItem?: (itemId: string, ownerId: string) => void;
   /** Callback to send a message to the item owner */
@@ -106,6 +108,7 @@ function AvailabilityBadges({
 
 export function CommunityMatchCard({
   match,
+  onCardClick,
   onViewItem,
   onMessageUser,
   showSimilarityScore = false,
@@ -132,14 +135,26 @@ export function CommunityMatchCard({
     onMessageUser(match.ownerId);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onCardClick?.(match);
+    }
+  };
+
   return (
     <div
       className={cn(
         'group flex items-start gap-2 p-2 rounded-md',
         'bg-stone-50 dark:bg-stone-800/50',
         'border border-stone-200 dark:border-stone-700',
-        'hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors'
+        'hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors',
+        onCardClick && 'cursor-pointer'
       )}
+      onClick={onCardClick ? () => onCardClick(match) : undefined}
+      role={onCardClick ? 'button' : undefined}
+      tabIndex={onCardClick ? 0 : undefined}
+      onKeyDown={onCardClick ? handleKeyDown : undefined}
     >
       {/* Item Image */}
       {variant === 'full' && match.primaryImageUrl && (
