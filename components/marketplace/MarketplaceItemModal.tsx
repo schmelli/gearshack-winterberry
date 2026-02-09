@@ -198,23 +198,29 @@ function ModalContent({
         </div>
 
         {/* Price and condition */}
-        <div className="mt-4 flex items-center justify-between">
-          {formattedPrice ? (
-            <span className="text-2xl font-bold text-foreground">
-              {formattedPrice}
-            </span>
-          ) : (
-            <span className="text-lg text-muted-foreground">-</span>
-          )}
-          <Badge variant="outline" className="text-sm">
-            {listing.condition}
-          </Badge>
-        </div>
+        {(formattedPrice || listing.condition) && (
+          <div className="mt-4 flex items-center justify-between">
+            {formattedPrice ? (
+              <span className="text-2xl font-bold text-foreground">
+                {formattedPrice}
+              </span>
+            ) : (
+              <span className="text-lg text-muted-foreground">-</span>
+            )}
+            {listing.condition && (
+              <Badge variant="outline" className="text-sm">
+                {listing.condition}
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Listed date */}
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t('modal.listed')}: {formatListedDate(listing.listedAt, locale)}
-        </p>
+        {listing.listedAt && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t('modal.listed')}: {formatListedDate(listing.listedAt, locale)}
+          </p>
+        )}
 
         {/* Divider */}
         <div className="my-4 h-px bg-border" />

@@ -150,9 +150,11 @@ export function MarketplaceCard({
           ) : (
             <span className="text-sm text-muted-foreground">-</span>
           )}
-          <Badge variant="outline" className="text-xs">
-            {listing.condition}
-          </Badge>
+          {listing.condition && (
+            <Badge variant="outline" className="text-xs">
+              {listing.condition}
+            </Badge>
+          )}
         </div>
 
         {/* Seller info */}
