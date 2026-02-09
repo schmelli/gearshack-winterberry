@@ -144,7 +144,6 @@ export function useAdminResellers(
     } finally {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, filters.search, filters.type, filters.status, filters.country, filters.isActive, sortField, sortOrder]);
 
   // Set sort

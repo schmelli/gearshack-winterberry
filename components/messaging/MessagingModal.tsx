@@ -61,6 +61,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   const checkMobile = useCallback(() => setIsMobile(window.innerWidth < 768), []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial viewport sync
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);

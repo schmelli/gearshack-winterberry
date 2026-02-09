@@ -82,6 +82,7 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
 
       // Use 'any' to avoid TypeScript deep instantiation error with Supabase types
       // We validate the data with Zod below, which provides runtime type safety
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any = await (supabase as any)
         .from('feature_flags')
         .select('*')
@@ -205,6 +206,7 @@ export async function checkFeatureAccess(
 ): Promise<boolean> {
   const supabase = createClient();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: feature, error } = await (supabase as any)
     .from('feature_flags')
     .select('*')

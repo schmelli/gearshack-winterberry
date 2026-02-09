@@ -142,7 +142,7 @@ export function useFriends(): UseFriendsReturn {
         channelRef.current = null;
       }
     };
-  }, [user?.id]); // Remove fetchFriends from deps - use ref instead
+  }, [user?.id, fetchFriends]);
 
   // Check if user is a friend
   const isFriend = useCallback(

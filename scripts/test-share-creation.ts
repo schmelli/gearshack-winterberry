@@ -19,7 +19,7 @@ async function testShareCreation() {
 
   // 1. Check if table exists
   console.log('1. Checking if loadout_shares table exists...');
-  const { data: tables, error: tablesError } = await supabase
+  const { data: _tables, error: tablesError } = await supabase
     .from('loadout_shares')
     .select('count')
     .limit(1);

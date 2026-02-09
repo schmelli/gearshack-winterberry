@@ -11,13 +11,12 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronDown, AlertTriangle, Package, Scale, Flame } from 'lucide-react';
+import { ChevronDown, Package, Flame } from 'lucide-react';
 
 import type { CategoryWeightData, WeightOutlier } from '@/hooks/shakedowns/useWeightAnalysis';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   Collapsible,

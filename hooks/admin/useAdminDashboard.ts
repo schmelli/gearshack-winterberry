@@ -204,7 +204,7 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
   }, [supabase]);
 
   useEffect(() => {
-    let isCancelled = false;
+    let _isCancelled = false;
 
     const loadStats = async () => {
       setIsLoading(true);
@@ -220,7 +220,7 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
     loadStats();
 
     return () => {
-      isCancelled = true;
+      _isCancelled = true;
       // Note: isCancelled is set but individual state updates in fetchStats
       // may still occur if the Promise.all completes. This is acceptable
       // as React handles state updates on unmounted components gracefully.

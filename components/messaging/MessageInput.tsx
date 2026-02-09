@@ -232,7 +232,7 @@ export function MessageInput({
         toast.error(t('shareGearFailed'));
       }
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   // Handle location selection
@@ -247,7 +247,7 @@ export function MessageInput({
         toast.error(t('shareLocationFailed'));
       }
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   // Handle voice message send
@@ -287,7 +287,7 @@ export function MessageInput({
         setIsRecordingVoice(false);
       }
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   const canSend = (message.trim().length > 0 || imageAttachment) && !isSending && !disabled;

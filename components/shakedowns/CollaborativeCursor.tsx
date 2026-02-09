@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { MousePointer2, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 import type { PresenceUser, AttentionRequest } from '@/hooks/shakedowns/useCollaborativePresence';
 import { cn } from '@/lib/utils';

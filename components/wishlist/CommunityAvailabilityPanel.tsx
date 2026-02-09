@@ -111,7 +111,7 @@ interface CommunityAvailabilityPanelProps {
 export function CommunityAvailabilityPanel({
   availability,
   marketplaceMatches = [],
-  marketplaceLoading = false,
+  marketplaceLoading: _marketplaceLoading = false,
   isLoading,
   error: _error, // Kept for future use, graceful degradation handles errors silently
   retryStatus = 'idle',

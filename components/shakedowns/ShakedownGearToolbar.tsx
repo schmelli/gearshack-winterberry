@@ -15,8 +15,6 @@ import {
   Search,
   SlidersHorizontal,
   X,
-  ChevronDown,
-  ChevronUp,
   ArrowUpDown,
 } from 'lucide-react';
 
@@ -25,7 +23,6 @@ import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,

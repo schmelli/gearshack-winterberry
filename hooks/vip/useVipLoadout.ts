@@ -81,6 +81,7 @@ export function useVipLoadout(
   // Fetch on mount and when slugs change
   useEffect(() => {
     if (!vipSlug || !loadoutSlug) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset state when slugs are missing
       setState({ status: 'idle', loadout: null, error: null });
       return;
     }
@@ -124,7 +125,6 @@ export function useVipLoadout(
       }
     };
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetching pattern
     doFetch();
 
     return () => {
