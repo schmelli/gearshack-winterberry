@@ -161,7 +161,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* FR-020: h-24 = 96px header height, items-center for FR-019 vertical centering */}
       {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
       {/* Issue #77: Mobile menu state management */}
-      <div className="container flex h-24 items-center px-3 md:px-4">
+      {/* Issue #206: Removed container class to allow full-width background on mobile */}
+      <div className="mx-auto flex h-24 max-w-7xl items-center px-3 md:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
         {/* Feature Flags: Pass filtered items and feature flags to MobileNav */}
         <MobileNav
