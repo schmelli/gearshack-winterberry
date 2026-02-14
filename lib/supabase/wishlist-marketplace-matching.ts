@@ -52,6 +52,11 @@ function transformListing(row: MarketplaceView): MarketplaceListing {
 // ============================================================================
 
 /**
+ * Default minimum similarity score threshold for matches
+ */
+const DEFAULT_MIN_SCORE = 0.5;
+
+/**
  * Token-based similarity score with stricter matching
  * Returns a score between 0 and 1 (higher is better match)
  *
@@ -155,7 +160,7 @@ export async function findMarketplaceMatches(
   wishlistItemName: string,
   wishlistItemBrand: string | null,
   currentUserId: string,
-  minScore: number = 0.5
+  minScore: number = DEFAULT_MIN_SCORE
 ): Promise<WishlistMarketplaceMatch[]> {
   // Query marketplace listings
   // First, get all listings (we'll filter client-side for fuzzy matching)
@@ -205,12 +210,14 @@ export async function findMarketplaceMatches(
  * @param supabase - Supabase client
  * @param wishlistItems - Array of wishlist items with id, name, brand
  * @param currentUserId - ID of current user
+ * @param minScore - Minimum similarity score (default: 0.5)
  * @returns Promise<Map<string, WishlistMarketplaceMatch[]>> - Matches grouped by wishlist item ID
  */
 export async function findMarketplaceMatchesBatch(
   supabase: SupabaseClientType,
   wishlistItems: Array<{ id: string; name: string; brand: string | null }>,
-  currentUserId: string
+  currentUserId: string,
+  minScore: number = DEFAULT_MIN_SCORE
 ): Promise<Map<string, WishlistMarketplaceMatch[]>> {
   // Fetch all marketplace listings once
   const { data, error } = await supabase
@@ -244,7 +251,7 @@ export async function findMarketplaceMatchesBatch(
           similarityScore,
         };
       })
-      .filter((match) => match.similarityScore >= 0.5)
+      .filter((match) => match.similarityScore >= minScore)
       .sort((a, b) => b.similarityScore - a.similarityScore);
 
     results.set(item.id, matches);
