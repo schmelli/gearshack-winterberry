@@ -52,8 +52,16 @@ function transformListing(row: MarketplaceView): MarketplaceListing {
 // ============================================================================
 
 /**
- * Simple similarity score based on exact and partial matches
+ * Token-based similarity score with stricter matching
  * Returns a score between 0 and 1 (higher is better match)
+ *
+ * Algorithm:
+ * 1. Exact name match = 0.6 score
+ * 2. Token overlap match (>= 60% shared words) = 0.4 score
+ * 3. Brand match bonus = +0.4 score (but brand alone is not enough)
+ *
+ * This prevents false positives like "Xmid Pro 2" matching "Xmid 1"
+ * while still allowing fuzzy matches for typos and variations.
  */
 function calculateSimilarity(
   wishlistName: string,
@@ -67,28 +75,50 @@ function calculateSimilarity(
     return (str || '').toLowerCase().trim();
   };
 
+  const tokenize = (str: string): Set<string> => {
+    // Split by spaces and filter out empty strings
+    return new Set(
+      str.split(/\s+/)
+        .filter(token => token.length > 0)
+        .map(token => token.replace(/[^a-z0-9]/g, '')) // Remove special chars
+        .filter(token => token.length > 0)
+    );
+  };
+
   const wishlistNameNorm = normalizeString(wishlistName);
   const wishlistBrandNorm = normalizeString(wishlistBrand);
   const listingNameNorm = normalizeString(listingName);
   const listingBrandNorm = normalizeString(listingBrand);
 
-  // Exact name match = 0.5 score
+  // Exact name match = 0.6 score
   if (wishlistNameNorm === listingNameNorm) {
-    score += 0.5;
+    score += 0.6;
   } else {
-    // Partial name match (one contains the other) = 0.3 score
-    if (
-      wishlistNameNorm.includes(listingNameNorm) ||
-      listingNameNorm.includes(wishlistNameNorm)
-    ) {
-      score += 0.3;
+    // Token-based matching
+    const wishlistTokens = tokenize(wishlistNameNorm);
+    const listingTokens = tokenize(listingNameNorm);
+
+    if (wishlistTokens.size > 0 && listingTokens.size > 0) {
+      // Calculate intersection
+      const intersection = new Set(
+        [...wishlistTokens].filter(token => listingTokens.has(token))
+      );
+
+      // Calculate overlap percentage (based on smaller set)
+      const overlapPercentage = intersection.size / Math.min(wishlistTokens.size, listingTokens.size);
+
+      // Require at least 60% overlap to consider it a match
+      if (overlapPercentage >= 0.6) {
+        // Score based on overlap quality
+        score += 0.4 * overlapPercentage;
+      }
     }
   }
 
-  // Exact brand match = 0.5 score
+  // Brand match bonus = 0.4 (but only meaningful if name also matches)
   if (wishlistBrandNorm && listingBrandNorm) {
     if (wishlistBrandNorm === listingBrandNorm) {
-      score += 0.5;
+      score += 0.4;
     }
   }
 
@@ -109,7 +139,7 @@ function calculateSimilarity(
  * @param wishlistItemName - Name of the wishlist item
  * @param wishlistItemBrand - Brand of the wishlist item (optional)
  * @param currentUserId - ID of current user (to exclude their own listings)
- * @param minScore - Minimum similarity score (default: 0.3)
+ * @param minScore - Minimum similarity score (default: 0.5)
  * @returns Promise<WishlistMarketplaceMatch[]> - Matching marketplace listings
  *
  * @example
@@ -125,7 +155,7 @@ export async function findMarketplaceMatches(
   wishlistItemName: string,
   wishlistItemBrand: string | null,
   currentUserId: string,
-  minScore: number = 0.3
+  minScore: number = 0.5
 ): Promise<WishlistMarketplaceMatch[]> {
   // Query marketplace listings
   // First, get all listings (we'll filter client-side for fuzzy matching)
@@ -214,7 +244,7 @@ export async function findMarketplaceMatchesBatch(
           similarityScore,
         };
       })
-      .filter((match) => match.similarityScore >= 0.3)
+      .filter((match) => match.similarityScore >= 0.5)
       .sort((a, b) => b.similarityScore - a.similarityScore);
 
     results.set(item.id, matches);
