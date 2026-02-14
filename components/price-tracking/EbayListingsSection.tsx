@@ -257,11 +257,22 @@ export function EbayListingsSection({
           {/* Loading state */}
           {isLoading && <LoadingSkeleton />}
 
-          {/* Error state */}
+          {/* Error state - distinguish between service unavailable vs other errors */}
           {error && !isLoading && (
-            <div className="flex items-center gap-2 text-sm text-destructive py-4">
-              <AlertCircle className="w-4 h-4" />
-              {error}
+            <div className="py-4">
+              {error.includes('not configured') || error.includes('503') ? (
+                // Service not configured - show as info message, not error
+                <div className="text-center text-muted-foreground">
+                  <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">{t('noResults')}</p>
+                </div>
+              ) : (
+                // Other errors - show as error with retry option
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
             </div>
           )}
 
@@ -287,28 +298,28 @@ export function EbayListingsSection({
                   itemName={itemName}
                 />
               ))}
-
-              {/* View all on eBay link */}
-              {ebaySite && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                  asChild
-                >
-                  <a
-                    href={`https://www.${ebaySite}/sch/i.html?_nkw=${encodeURIComponent(
-                      brandName ? `${brandName} ${itemName}` : itemName
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    {t('viewAllOnEbay')}
-                  </a>
-                </Button>
-              )}
             </div>
+          )}
+
+          {/* View all on eBay link - always show when not loading */}
+          {!isLoading && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              asChild
+            >
+              <a
+                href={`https://www.${ebaySite || 'ebay.de'}/sch/i.html?_nkw=${encodeURIComponent(
+                  brandName ? `${brandName} ${itemName}` : itemName
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {t('viewAllOnEbay')}
+              </a>
+            </Button>
           )}
         </CardContent>
       </Card>
