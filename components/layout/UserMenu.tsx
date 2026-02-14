@@ -130,34 +130,13 @@ export function UserMenu() {
             </DropdownMenuItem>
           )}
 
-          {/* Report Bug - Sentry User Feedback with safe error handling */}
+          {/* Report Bug - Sentry User Feedback */}
           <DropdownMenuItem
             onClick={() => {
               try {
-                // Try to use Sentry Feedback if available
-                const feedback = Sentry.getFeedback();
-                if (feedback && typeof feedback.attachTo === 'function') {
-                  // Create a temporary container and attach the widget
-                  const container = document.createElement('div');
-                  document.body.appendChild(container);
-
-                  // Attach widget to container (this opens it immediately)
-                  const unsubscribe = feedback.attachTo(container, {
-                    onFormClose: () => {
-                      try {
-                        unsubscribe();
-                        document.body.removeChild(container);
-                      } catch (cleanupError) {
-                        console.error('Sentry feedback cleanup error:', cleanupError);
-                      }
-                    },
-                  });
-                } else {
-                  // Fallback if Sentry Feedback is not available
-                  window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
-                }
+                Sentry.showReportDialog();
               } catch (error) {
-                // Catch any errors and fallback to GitHub
+                // Fallback to GitHub if Sentry fails
                 console.error('Sentry feedback error:', error);
                 window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
               }
