@@ -90,8 +90,8 @@ function calculateSimilarity(
   const listingNameNorm = normalizeString(listingName);
   const listingBrandNorm = normalizeString(listingBrand);
 
-  // Exact name match = 0.6 score
-  if (wishlistNameNorm === listingNameNorm) {
+  // Exact name match = 0.6 score (after removing special chars for comparison)
+  if (wishlistNameNorm.replace(/[^a-z0-9\s]/g, '') === listingNameNorm.replace(/[^a-z0-9\s]/g, '')) {
     score += 0.6;
   } else {
     // Token-based matching
