@@ -10,7 +10,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
 import { ExternalLink, Package, Gavel, Tag, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEbaySearch } from '@/hooks/price-tracking/useEbaySearch';
 import { EbayListingPopup } from './EbayListingPopup';
 import { EbayFeedbackButton } from './EbayFeedbackButton';
+import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
 import type { EbayListing, EbayListingType, EbayCondition } from '@/types/ebay';
 
 // =============================================================================
@@ -210,6 +211,7 @@ export function EbayListingsSection({
   gearItemId,
 }: EbayListingsSectionProps) {
   const t = useTranslations('EbayListings');
+  const locale = useLocale();
 
   const {
     listings,
@@ -223,6 +225,9 @@ export function EbayListingsSection({
     msrp: msrp || undefined,
     limit: maxListings,
   });
+
+  // Get locale-based eBay site as fallback
+  const localeEbaySite = getEbaySiteForLocale(locale);
 
   // Selected listing for popup
   const [selectedListing, setSelectedListing] = useState<EbayListing | null>(null);
@@ -310,7 +315,7 @@ export function EbayListingsSection({
               asChild
             >
               <a
-                href={`https://www.${ebaySite || 'ebay.de'}/sch/i.html?_nkw=${encodeURIComponent(
+                href={`https://www.${ebaySite || localeEbaySite.site}/sch/i.html?_nkw=${encodeURIComponent(
                   brandName ? `${brandName} ${itemName}` : itemName
                 )}`}
                 target="_blank"
