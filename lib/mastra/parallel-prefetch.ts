@@ -203,7 +203,9 @@ async function executeRequirementInternal(
 
   switch (type) {
     case 'inventory_stats': {
-      const { data, error } = await supabase.rpc('get_inventory_intelligence', {
+      // Type assertion needed: RPC function types not yet regenerated for new migration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_inventory_intelligence', {
         p_user_id: userId,
       });
       if (error) throw new Error(`inventory_stats: ${error.message}`);
@@ -212,7 +214,9 @@ async function executeRequirementInternal(
 
     case 'inventory_category': {
       const searchTerm = params.searchTerm as string;
-      const { data, error } = await supabase.rpc('count_items_by_category', {
+      // Type assertion needed: RPC function types not yet regenerated for new migration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('count_items_by_category', {
         p_user_id: userId,
         p_search_term: searchTerm,
         p_status: 'own',
@@ -224,7 +228,9 @@ async function executeRequirementInternal(
     case 'loadout_analysis': {
       const loadoutId = params.loadoutId as string;
       if (!loadoutId) throw new Error('loadout_analysis: loadoutId required');
-      const { data, error } = await supabase.rpc('analyze_loadout', {
+      // Type assertion needed: RPC function types not yet regenerated for new migration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('analyze_loadout', {
         p_loadout_id: loadoutId,
         p_user_id: userId,
       });
@@ -239,7 +245,8 @@ async function executeRequirementInternal(
         .eq('user_id', userId);
 
       if (params.status) {
-        query.eq('status', params.status as string);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query.eq('status', params.status as any);
       }
       if (params.category_id) {
         query.eq('category_id', params.category_id as string);
@@ -265,7 +272,8 @@ async function executeRequirementInternal(
       const name = params.name as string;
       const brand = params.brand as string | undefined;
 
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query: any = supabase
         .from('catalog_products')
         .select('id, name, product_type, description, price_usd, weight_grams, brand_id')
         .ilike('name', `%${name}%`)

@@ -158,7 +158,8 @@ The tool automatically:
       const supabase = createServiceRoleClient();
 
       // Single RPC call gets everything
-      const { data: analysis, error } = await supabase.rpc('analyze_loadout', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: analysis, error } = await (supabase.rpc as any)('analyze_loadout', {
         p_loadout_id: input.loadoutId,
         p_user_id: userId,
       });

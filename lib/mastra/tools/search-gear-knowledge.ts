@@ -43,6 +43,9 @@ const searchGearKnowledgeInputSchema = z.object({
 
   limit: z.number().int().positive().max(30).default(10)
     .describe('Maximum results per source'),
+
+  offset: z.number().int().min(0).default(0)
+    .describe('Number of results to skip (for pagination)'),
 });
 
 const searchGearKnowledgeOutputSchema = z.object({
@@ -83,8 +86,9 @@ export const searchGearKnowledgeTool = createTool({
 - "What rain jackets do I own and what else is available?" → scope: "all", query: "rain jacket"
 - "Show me all Hilleberg products" → scope: "all", query: "Hilleberg"
 - "Compare my tents with what's on the market" → scope: "all", query: "tent"
+- "Show me more results" → Use offset parameter for pagination (e.g., offset: 10 for next page)
 
-This replaces separate queryUserData + queryCatalog calls.`,
+This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -99,19 +103,19 @@ This replaces separate queryUserData + queryCatalog calls.`,
       }
 
       const supabase = createServiceRoleClient();
-      const { query, scope, filters, sortBy, limit } = input;
+      const { query, scope, filters, sortBy, limit, offset } = input;
 
       // Build parallel searches
       const searches: Promise<{ type: string; data: unknown }>[] = [];
 
       // 1. Search user's gear
       if (scope === 'my_gear' || scope === 'all') {
-        searches.push(searchUserGear(supabase, userId, query, filters, sortBy, limit));
+        searches.push(searchUserGear(supabase, userId, query, filters, sortBy, limit, offset));
       }
 
       // 2. Search catalog
       if (scope === 'catalog' || scope === 'all') {
-        searches.push(searchCatalog(supabase, query, filters, sortBy, limit));
+        searches.push(searchCatalog(supabase, query, filters, sortBy, limit, offset));
       }
 
       // Execute in parallel
@@ -192,7 +196,8 @@ async function searchUserGear(
   query: string,
   filters: z.infer<typeof searchGearKnowledgeInputSchema>['filters'],
   sortBy: string,
-  limit: number
+  limit: number,
+  offset: number
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('gear_items')
@@ -240,7 +245,7 @@ async function searchUserGear(
       dbQuery = dbQuery.order('name', { ascending: true });
   }
 
-  const { data, error } = await dbQuery.limit(limit);
+  const { data, error } = await dbQuery.range(offset, offset + limit - 1);
   if (error) throw new Error(`User gear search: ${error.message}`);
 
   // Flatten category label
@@ -260,7 +265,8 @@ async function searchCatalog(
   query: string,
   filters: z.infer<typeof searchGearKnowledgeInputSchema>['filters'],
   sortBy: string,
-  limit: number
+  limit: number,
+  offset: number
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('catalog_products')
@@ -301,7 +307,7 @@ async function searchCatalog(
       dbQuery = dbQuery.order('name', { ascending: true });
   }
 
-  const { data, error } = await dbQuery.limit(limit);
+  const { data, error } = await dbQuery.range(offset, offset + limit - 1);
   if (error) throw new Error(`Catalog search: ${error.message}`);
 
   // Flatten brand name

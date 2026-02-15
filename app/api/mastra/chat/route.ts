@@ -95,6 +95,8 @@ import {
 } from '@/lib/ai-assistant/query-parser';
 import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
 import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
+import { memoryRetryQueue } from '@/lib/mastra/memory-retry-queue';
+import { saveToMemory } from '@/lib/mastra/memory-save';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -372,77 +374,7 @@ function detectCorrectionIntent(message: string): boolean {
   return CORRECTION_PATTERNS.some(pattern => pattern.test(message));
 }
 
-/**
- * T026: Save messages to memory after response
- *
- * @returns Object with message IDs for embedding generation
- */
-async function saveToMemory(
-  adapter: SupabaseMemoryAdapter | null,
-  userId: string,
-  conversationId: string,
-  userMessage: string,
-  assistantResponse: string,
-  isCorrection: boolean
-): Promise<{ userMessageId: string; assistantMessageId: string } | null> {
-  if (!adapter) {
-    logDebug('Skipping memory save - adapter unavailable', { userId, conversationId });
-    return null;
-  }
-
-  const getElapsed = createTimer();
-
-  try {
-    const now = new Date();
-    const metadata = isCorrection ? { isCorrection: true } : {};
-
-    // Generate UUIDs that will be used for both saving and embedding
-    const userMessageId = crypto.randomUUID();
-    const assistantMessageId = crypto.randomUUID();
-
-    await adapter.saveMessages([
-      {
-        id: userMessageId,
-        userId,
-        conversationId,
-        role: 'user',
-        content: userMessage,
-        metadata,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: assistantMessageId,
-        userId,
-        conversationId,
-        role: 'assistant',
-        content: assistantResponse,
-        metadata: {},
-        createdAt: new Date(now.getTime() + 1),
-        updatedAt: new Date(now.getTime() + 1),
-      },
-    ]);
-
-    logInfo('Messages saved to memory', {
-      userId,
-      conversationId,
-      metadata: {
-        isCorrection,
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return { userMessageId, assistantMessageId };
-  } catch (error) {
-    // Log but don't fail the request
-    logError('Failed to save messages to memory', error, {
-      userId,
-      conversationId,
-      metadata: { latencyMs: getElapsed() },
-    });
-    return null;
-  }
-}
+// T026: saveToMemory moved to @/lib/mastra/memory-save for reuse in retry queue
 
 // =====================================================
 // System Prompt Builder
@@ -796,6 +728,7 @@ export async function POST(request: Request): Promise<Response> {
         });
 
         // Save to memory in the background (don't await)
+        // If it fails, enqueue for retry to prevent data loss
         saveToMemory(
           memoryContext.adapter,
           user.id,
@@ -803,7 +736,27 @@ export async function POST(request: Request): Promise<Response> {
           message,
           fastAnswer,
           false // not a correction
-        ).catch(err => logWarn('Fast-path memory save failed', { metadata: { error: err instanceof Error ? err.message : 'Unknown' } }));
+        ).catch(err => {
+          logWarn('Fast-path memory save failed, queuing for retry', {
+            metadata: {
+              error: err instanceof Error ? err.message : 'Unknown',
+              userId: user.id,
+              conversationId,
+            },
+          });
+
+          // Enqueue for background retry (only if adapter is available)
+          if (memoryContext.adapter) {
+            memoryRetryQueue.enqueue({
+              adapter: memoryContext.adapter,
+              userId: user.id,
+              conversationId,
+              message,
+              response: fastAnswer,
+              isCorrection: false,
+            });
+          }
+        });
 
         // Record metrics
         recordAgentLatency(totalLatencyMs / 1000, 'simple');

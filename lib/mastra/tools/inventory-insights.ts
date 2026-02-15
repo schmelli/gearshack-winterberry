@@ -78,14 +78,15 @@ Examples:
       const userId = extractUserId(executionContext);
 
       if (!userId) {
-        return { success: false, summary: 'User not authenticated', error: 'No user ID' };
+        return { success: false, summary: 'User not authenticated', error: 'User not authenticated' };
       }
 
       const supabase = createServiceRoleClient();
 
       switch (input.question) {
         case 'overview': {
-          const { data, error } = await supabase.rpc('get_inventory_intelligence', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data, error } = await (supabase.rpc as any)('get_inventory_intelligence', {
             p_user_id: userId,
           });
           if (error) return { success: false, summary: 'Failed to load inventory', error: error.message };
@@ -104,7 +105,8 @@ Examples:
             return { success: false, summary: 'Please specify a category to count', error: 'Category required' };
           }
 
-          const { data, error } = await supabase.rpc('count_items_by_category', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data, error } = await (supabase.rpc as any)('count_items_by_category', {
             p_user_id: userId,
             p_search_term: input.category,
             p_status: input.status === 'all' ? 'own' : input.status,
