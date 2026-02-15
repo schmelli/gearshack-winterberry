@@ -21,11 +21,16 @@ import type { Json } from '@/types/supabase';
 /**
  * Operation type definitions with their rate limits (per hour)
  * simple_query is unlimited (null limit)
+ *
+ * In development (NODE_ENV !== 'production'), all limits are disabled
+ * to enable unrestricted testing.
  */
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export const RATE_LIMITS = {
-  simple_query: null, // Unlimited
-  workflow: 20, // 20 per hour
-  voice: 40, // 40 per hour
+  simple_query: null, // Always unlimited
+  workflow: isDevelopment ? null : 20, // Unlimited in dev, 20/hour in prod
+  voice: isDevelopment ? null : 40, // Unlimited in dev, 40/hour in prod
 } as const;
 
 /**
