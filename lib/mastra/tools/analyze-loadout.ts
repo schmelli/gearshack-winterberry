@@ -16,7 +16,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { extractUserId, formatWeight as fmtWeight } from './utils';
+import { extractUserId, extractCurrentLoadoutId, formatWeight as fmtWeight } from './utils';
 
 // =============================================================================
 // Domain Knowledge: Essential Categories by Activity
@@ -56,7 +56,7 @@ const BIG3_PATTERNS = {
 // =============================================================================
 
 const analyzeLoadoutInputSchema = z.object({
-  loadoutId: z.string().uuid().describe('UUID of the loadout to analyze'),
+  loadoutId: z.string().uuid().optional().describe('UUID of the loadout to analyze (optional - uses current loadout if not specified)'),
   analysisType: z.enum(['full', 'weight', 'gaps', 'suitability']).default('full')
     .describe('Type of analysis: full (everything), weight (weight focus), gaps (missing items), suitability (trip readiness)'),
   destination: z.string().optional()
@@ -155,12 +155,19 @@ The tool automatically:
         return { success: false, error: 'User not authenticated' };
       }
 
+      // Get loadoutId from input or current context
+      const loadoutId = input.loadoutId || extractCurrentLoadoutId(executionContext);
+
+      if (!loadoutId) {
+        return { success: false, error: 'No loadout specified. Please specify a loadout ID or open a loadout detail page.' };
+      }
+
       const supabase = createServiceRoleClient();
 
       // Single RPC call gets everything
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: analysis, error } = await (supabase.rpc as any)('analyze_loadout', {
-        p_loadout_id: input.loadoutId,
+        p_loadout_id: loadoutId,
         p_user_id: userId,
       });
 

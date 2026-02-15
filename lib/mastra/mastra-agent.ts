@@ -271,16 +271,23 @@ export function createGearAgent(userId: string, systemPrompt: string) {
  * @param message - Current user message
  * @param userId - User ID for tool execution context
  * @param conversationHistory - Previous messages for context continuity
+ * @param currentLoadoutId - Current loadout ID for loadout-specific queries
  */
 export async function streamMastraResponse(
   agent: Agent,
   message: string,
   userId: string,
-  conversationHistory?: Array<{ role: string; content: string }>
+  conversationHistory?: Array<{ role: string; content: string }>,
+  currentLoadoutId?: string
 ) {
   // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)
   const requestContext = new Map<string, unknown>();
   requestContext.set('userId', userId);
+
+  // Add currentLoadoutId to context for loadout-aware tools
+  if (currentLoadoutId) {
+    requestContext.set('currentLoadoutId', currentLoadoutId);
+  }
 
   // Build messages array with conversation history for context continuity.
   // Include last 20 messages (10 turns) to maintain recent context without

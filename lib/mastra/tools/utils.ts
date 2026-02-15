@@ -16,6 +16,18 @@ export function extractUserId(executionContext: unknown): string | null {
 }
 
 /**
+ * Extract currentLoadoutId from Mastra execution context
+ *
+ * @param executionContext - Mastra tool execution context
+ * @returns currentLoadoutId string or null if not in loadout context
+ */
+export function extractCurrentLoadoutId(executionContext: unknown): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
+  return requestContext?.get('currentLoadoutId') as string | undefined || null;
+}
+
+/**
  * Format weight in grams to human-readable string
  *
  * @param grams - Weight in grams

@@ -841,7 +841,8 @@ export async function POST(request: Request): Promise<Response> {
 
               // Stream response with Mastra's native tool handling
               // Pass conversation history for context continuity across turns
-              return await streamMastraResponse(agent, message, user.id, memoryContext.history);
+              // Pass currentLoadoutId for loadout-aware tool execution
+              return await streamMastraResponse(agent, message, user.id, memoryContext.history, currentLoadoutId);
             },
             { userId: user.id }
           );
