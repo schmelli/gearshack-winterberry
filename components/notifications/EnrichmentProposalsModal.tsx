@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -233,6 +233,19 @@ export function EnrichmentProposalsModal({
 
   const [bulkAction, setBulkAction] = useState<'accept' | 'dismiss' | null>(null);
   const [currentItemName, setCurrentItemName] = useState<string>('');
+
+  /**
+   * Auto-cleanup stale notifications when modal is opened with no pending suggestions.
+   * This handles the case where suggestions were dismissed previously but the
+   * notification wasn't cleaned up (e.g., due to timing issues or a bug).
+   */
+  useEffect(() => {
+    // Only run when modal is open, loading is complete, and there are no suggestions
+    if (open && !isLoading && suggestions.length === 0 && pendingCount === 0) {
+      // Trigger cleanup of any stale enrichment notifications
+      onAllResolved?.();
+    }
+  }, [open, isLoading, suggestions.length, pendingCount, onAllResolved]);
 
   /**
    * Handle individual accept
