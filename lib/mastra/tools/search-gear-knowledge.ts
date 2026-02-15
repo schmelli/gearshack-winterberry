@@ -16,6 +16,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { extractUserId } from './utils';
 
 // =============================================================================
 // Schemas
@@ -91,9 +92,7 @@ This replaces separate queryUserData + queryCatalog calls.`,
   execute: async (input, executionContext) => {
     try {
       // Get userId
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
-      const userId = requestContext?.get('userId') as string | undefined;
+      const userId = extractUserId(executionContext);
 
       if (!userId) {
         return { success: false, summary: 'User not authenticated', totalResults: 0, error: 'No user ID' };

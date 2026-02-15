@@ -14,7 +14,15 @@ CREATE OR REPLACE FUNCTION get_inventory_intelligence(p_user_id UUID)
 RETURNS JSON AS $$
 DECLARE
   v_result JSON;
+  v_user_exists BOOLEAN;
 BEGIN
+  -- Verify user exists (basic ownership verification)
+  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = p_user_id) INTO v_user_exists;
+
+  IF NOT v_user_exists THEN
+    RETURN json_build_object('error', 'User not found or access denied');
+  END IF;
+
   SELECT json_build_object(
     'totalOwned', (SELECT COUNT(*) FROM gear_items WHERE user_id = p_user_id AND status = 'own'),
     'totalWishlist', (SELECT COUNT(*) FROM gear_items WHERE user_id = p_user_id AND status = 'wishlist'),
@@ -192,21 +200,22 @@ DECLARE
   v_result JSON;
 BEGIN
   -- Find matching category IDs (search slug, label, and i18n)
+  -- Sanitize search term to escape LIKE wildcards and prevent pattern injection
   SELECT ARRAY_AGG(id) INTO v_category_ids
   FROM (
-    -- Direct matches
+    -- Direct matches (with sanitized search term)
     SELECT id FROM categories
-    WHERE slug ILIKE '%' || p_search_term || '%'
-       OR label ILIKE '%' || p_search_term || '%'
-       OR i18n::text ILIKE '%' || p_search_term || '%'
+    WHERE slug ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
+       OR label ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
+       OR i18n::text ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
     UNION
     -- Child categories of matches
     SELECT c.id FROM categories c
     WHERE c.parent_id IN (
       SELECT id FROM categories
-      WHERE slug ILIKE '%' || p_search_term || '%'
-         OR label ILIKE '%' || p_search_term || '%'
-         OR i18n::text ILIKE '%' || p_search_term || '%'
+      WHERE slug ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
+         OR label ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
+         OR i18n::text ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
     )
   ) matched;
 
@@ -219,7 +228,7 @@ BEGIN
         AND status = p_status
         AND (
           (v_category_ids IS NOT NULL AND category_id = ANY(v_category_ids))
-          OR name ILIKE '%' || p_search_term || '%'
+          OR name ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
         )
     ),
     'items', (
@@ -232,7 +241,7 @@ BEGIN
           AND gi.status = p_status
           AND (
             (v_category_ids IS NOT NULL AND gi.category_id = ANY(v_category_ids))
-            OR gi.name ILIKE '%' || p_search_term || '%'
+            OR gi.name ILIKE '%' || regexp_replace(p_search_term, '([%_\\])', '\\\1', 'g') || '%'
           )
         ORDER BY gi.name
       ) items
@@ -250,3 +259,12 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 COMMENT ON FUNCTION get_inventory_intelligence IS 'Pre-computed inventory statistics for AI agent fast-path responses';
 COMMENT ON FUNCTION analyze_loadout IS 'Complete loadout analysis in a single DB call for AI agent';
 COMMENT ON FUNCTION count_items_by_category IS 'Count and list items by category search term with hierarchy resolution';
+
+-- ============================================================================
+-- ROLLBACK INSTRUCTIONS
+-- ============================================================================
+-- To rollback this migration, run the following commands:
+--
+-- DROP FUNCTION IF EXISTS get_inventory_intelligence(UUID);
+-- DROP FUNCTION IF EXISTS analyze_loadout(UUID, UUID);
+-- DROP FUNCTION IF EXISTS count_items_by_category(UUID, TEXT, TEXT);

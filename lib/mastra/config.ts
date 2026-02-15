@@ -356,3 +356,42 @@ export function createMastraAgentConfig(
  * Exported for use by agent initialization
  */
 export const mastraAgentConfig = createMastraAgentConfig();
+
+// =============================================================================
+// AI Agent Evolution Configuration (Feature 060)
+// =============================================================================
+
+/**
+ * Intent Router Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const INTENT_ROUTER_CONFIG = {
+  /** Timeout for intent classification (milliseconds) */
+  TIMEOUT_MS: 3000,
+  /** Model to use for intent classification (Gemini Flash) */
+  MODEL: 'gemini-2.0-flash-exp',
+} as const;
+
+/**
+ * Parallel Pre-Fetch Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const PREFETCH_CONFIG = {
+  /** Timeout for individual pre-fetch operations (milliseconds) */
+  TIMEOUT_MS: 4000,
+  /** Maximum concurrent pre-fetch operations to prevent connection pool exhaustion */
+  MAX_CONCURRENT: 5,
+} as const;
+
+/**
+ * Fast Answer Generation Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const FAST_ANSWER_CONFIG = {
+  /** Timeout for fast answer generation (milliseconds) */
+  TIMEOUT_MS: 5000,
+  /** Model to use for fast answers (Gemini Flash) */
+  MODEL: 'gemini-2.0-flash-exp',
+  /** Maximum tokens for fast answers */
+  MAX_TOKENS: 500,
+} as const;

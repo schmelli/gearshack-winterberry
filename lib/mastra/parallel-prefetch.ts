@@ -9,10 +9,12 @@
  * @see specs/060-ai-agent-evolution/analysis.md
  */
 
-import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logDebug, logInfo, logWarn, createTimer } from './logging';
 import type { DataRequirement } from './intent-router';
+import pLimit from 'p-limit';
+import { formatWeight } from './tools/utils';
+import { PREFETCH_CONFIG } from './config';
 
 // =============================================================================
 // Types
@@ -46,7 +48,10 @@ export interface PrefetchedContext {
 // =============================================================================
 
 /** Timeout for individual pre-fetch operations */
-const PREFETCH_TIMEOUT_MS = 4000;
+const PREFETCH_TIMEOUT_MS = PREFETCH_CONFIG.TIMEOUT_MS;
+
+/** Maximum concurrent pre-fetch operations to prevent connection pool exhaustion */
+const MAX_CONCURRENT_PREFETCH = PREFETCH_CONFIG.MAX_CONCURRENT;
 
 // =============================================================================
 // Main Pre-Fetch Function
@@ -82,9 +87,10 @@ export async function prefetchData(
     metadata: { requirementCount: requirements.length },
   });
 
-  // Execute all requirements in parallel with individual timeouts
+  // Execute all requirements in parallel with concurrency limit to prevent overwhelming the connection pool
+  const limit = pLimit(MAX_CONCURRENT_PREFETCH);
   const results = await Promise.allSettled(
-    requirements.map(req => executeRequirement(req, userId))
+    requirements.map(req => limit(() => executeRequirement(req, userId)))
   );
 
   // Collect results
@@ -419,11 +425,4 @@ function formatPrefetchedContext(
   return sections.join('\n');
 }
 
-/**
- * Format weight in grams to human-readable string
- */
-function formatWeight(grams: number | null | undefined): string {
-  if (grams == null || grams === 0) return '?';
-  if (grams < 1000) return `${Math.round(grams)}g`;
-  return `${(grams / 1000).toFixed(2)}kg`;
-}
+// formatWeight is now imported from tools/utils.ts

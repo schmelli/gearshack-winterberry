@@ -15,6 +15,7 @@ import { generateObject } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import { logDebug, logInfo, logWarn, createTimer } from './logging';
+import { INTENT_ROUTER_CONFIG } from './config';
 
 // =============================================================================
 // Types
@@ -68,7 +69,7 @@ export interface IntentClassification {
 // =============================================================================
 
 const ROUTER_MODEL = process.env.INTENT_ROUTER_MODEL || 'google/gemini-2.5-flash';
-const ROUTER_TIMEOUT_MS = 3000; // 3s max for classification
+const ROUTER_TIMEOUT_MS = INTENT_ROUTER_CONFIG.TIMEOUT_MS;
 
 // Intent classification schema for structured output
 const IntentSchema = z.object({

@@ -16,6 +16,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { extractUserId, formatWeight as fmtWeight } from './utils';
 
 // =============================================================================
 // Domain Knowledge: Essential Categories by Activity
@@ -148,9 +149,7 @@ The tool automatically:
 
     try {
       // Get userId from context
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
-      const userId = requestContext?.get('userId') as string | undefined;
+      const userId = extractUserId(executionContext);
 
       if (!userId) {
         return { success: false, error: 'User not authenticated' };
@@ -326,7 +325,4 @@ function identifyBig3(items: Array<Record<string, unknown>>) {
   };
 }
 
-function fmtWeight(grams: number): string {
-  if (grams < 1000) return `${Math.round(grams)}g`;
-  return `${(grams / 1000).toFixed(2)}kg`;
-}
+// fmtWeight is now imported from utils.ts
