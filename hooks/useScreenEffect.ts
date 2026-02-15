@@ -52,10 +52,11 @@ export function useLoadoutScreenEffect(
   const { setScreen, setCurrentLoadout, clearContext } = useScreenContext();
 
   useEffect(() => {
-    if (loadoutName) {
-      setScreen('loadout-detail');
-      setCurrentLoadout(loadoutId, loadoutName);
-    }
+    // Always set the screen and loadout ID immediately, even if name is still loading
+    // This ensures the AI assistant has context even when opened during initial load
+    setScreen('loadout-detail');
+    setCurrentLoadout(loadoutId, loadoutName || null);
+
     return () => clearContext();
   }, [loadoutId, loadoutName, setScreen, setCurrentLoadout, clearContext]);
 }
