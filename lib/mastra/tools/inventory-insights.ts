@@ -46,7 +46,7 @@ const inventoryInsightsInputSchema = z.object({
 const inventoryInsightsOutputSchema = z.object({
   success: z.boolean(),
   summary: z.string().describe('Human-readable summary of the result'),
-  data: z.unknown().describe('Structured data for further processing'),
+  data: z.unknown().optional().describe('Structured data for further processing'),
   itemCount: z.number().optional(),
   error: z.string().optional(),
 });
@@ -258,7 +258,7 @@ Examples:
           for (const item of data) {
             const currency = item.currency || 'EUR';
             const existing = currencyTotals.get(currency) || { total: 0, count: 0 };
-            existing.total += item.price_paid;
+            existing.total += item.price_paid ?? 0;
             existing.count++;
             currencyTotals.set(currency, existing);
           }
