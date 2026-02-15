@@ -581,8 +581,8 @@ export async function checkAndIncrementRateLimit(
  */
 export async function getRateLimitStatus(userId: string): Promise<{
   simple_query: { limit: null; remaining: null; unlimited: true };
-  workflow: { limit: number; remaining: number; resetAt: Date };
-  voice: { limit: number; remaining: number; resetAt: Date };
+  workflow: { limit: number | null; remaining: number | null; resetAt: Date };
+  voice: { limit: number | null; remaining: number | null; resetAt: Date };
 }> {
   const resetAt = calculateResetTime();
 
@@ -605,11 +605,11 @@ export async function getRateLimitStatus(userId: string): Promise<{
         .single(),
     ]);
 
-    // Calculate remaining for workflow
-    let workflowRemaining: number = RATE_LIMITS.workflow;
+    // Calculate remaining for workflow (null means unlimited)
+    let workflowRemaining: number | null = RATE_LIMITS.workflow;
     let workflowResetAt = resetAt;
 
-    if (!workflowResult.error && workflowResult.data) {
+    if (!workflowResult.error && workflowResult.data && RATE_LIMITS.workflow !== null) {
       const windowStart = new Date(workflowResult.data.window_start);
       const windowEnd = new Date(
         windowStart.getTime() + RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000
@@ -621,11 +621,11 @@ export async function getRateLimitStatus(userId: string): Promise<{
       }
     }
 
-    // Calculate remaining for voice
-    let voiceRemaining: number = RATE_LIMITS.voice;
+    // Calculate remaining for voice (null means unlimited)
+    let voiceRemaining: number | null = RATE_LIMITS.voice;
     let voiceResetAt = resetAt;
 
-    if (!voiceResult.error && voiceResult.data) {
+    if (!voiceResult.error && voiceResult.data && RATE_LIMITS.voice !== null) {
       const windowStart = new Date(voiceResult.data.window_start);
       const windowEnd = new Date(
         windowStart.getTime() + RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000
