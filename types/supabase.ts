@@ -637,6 +637,7 @@ export type Database = {
           brand_id: string | null
           created_at: string | null
           description: string | null
+          embedding: string | null
           external_id: string
           id: string
           name: string
@@ -652,6 +653,7 @@ export type Database = {
           brand_id?: string | null
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           external_id: string
           id?: string
           name: string
@@ -667,6 +669,7 @@ export type Database = {
           brand_id?: string | null
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           external_id?: string
           id?: string
           name?: string
@@ -894,6 +897,7 @@ export type Database = {
         Row: {
           conversation_id: string
           created_at: string
+          embedding: string | null
           id: string
           message_content: string
           message_id: string
@@ -905,6 +909,7 @@ export type Database = {
         Insert: {
           conversation_id: string
           created_at?: string
+          embedding?: string | null
           id?: string
           message_content: string
           message_id: string
@@ -916,6 +921,7 @@ export type Database = {
         Update: {
           conversation_id?: string
           created_at?: string
+          embedding?: string | null
           id?: string
           message_content?: string
           message_id?: string
@@ -1248,6 +1254,33 @@ export type Database = {
         }
         Relationships: []
       }
+      embedding_queue: {
+        Row: {
+          content: string
+          created_at: string
+          error_message: string | null
+          message_id: string
+          processed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          error_message?: string | null
+          message_id: string
+          processed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          message_id?: string
+          processed_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -1341,6 +1374,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      firecrawl_cache: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          query_hash: string
+          query_text: string
+          response_json: Json | null
+          source_urls: Json | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          query_hash: string
+          query_text: string
+          response_json?: Json | null
+          source_urls?: Json | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          query_hash?: string
+          query_text?: string
+          response_json?: Json | null
+          source_urls?: Json | null
+        }
+        Relationships: []
       }
       friend_activities: {
         Row: {
@@ -2083,6 +2149,7 @@ export type Database = {
           password_hash: string | null
           payload: Json
           share_token: string
+          updated_at: string
           view_count: number
         }
         Insert: {
@@ -2095,6 +2162,7 @@ export type Database = {
           password_hash?: string | null
           payload: Json
           share_token: string
+          updated_at?: string
           view_count?: number
         }
         Update: {
@@ -2107,6 +2175,7 @@ export type Database = {
           password_hash?: string | null
           payload?: Json
           share_token?: string
+          updated_at?: string
           view_count?: number
         }
         Relationships: [
@@ -2174,6 +2243,417 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mastra_agents: {
+        Row: {
+          agents: Json | null
+          createdAt: string
+          createdAtZ: string | null
+          defaultOptions: Json | null
+          description: string | null
+          id: string
+          inputProcessors: Json | null
+          instructions: string
+          memory: Json | null
+          metadata: Json | null
+          model: Json
+          name: string
+          outputProcessors: Json | null
+          scorers: Json | null
+          tools: Json | null
+          updatedAt: string
+          updatedAtZ: string | null
+          workflows: Json | null
+        }
+        Insert: {
+          agents?: Json | null
+          createdAt: string
+          createdAtZ?: string | null
+          defaultOptions?: Json | null
+          description?: string | null
+          id: string
+          inputProcessors?: Json | null
+          instructions: string
+          memory?: Json | null
+          metadata?: Json | null
+          model: Json
+          name: string
+          outputProcessors?: Json | null
+          scorers?: Json | null
+          tools?: Json | null
+          updatedAt: string
+          updatedAtZ?: string | null
+          workflows?: Json | null
+        }
+        Update: {
+          agents?: Json | null
+          createdAt?: string
+          createdAtZ?: string | null
+          defaultOptions?: Json | null
+          description?: string | null
+          id?: string
+          inputProcessors?: Json | null
+          instructions?: string
+          memory?: Json | null
+          metadata?: Json | null
+          model?: Json
+          name?: string
+          outputProcessors?: Json | null
+          scorers?: Json | null
+          tools?: Json | null
+          updatedAt?: string
+          updatedAtZ?: string | null
+          workflows?: Json | null
+        }
+        Relationships: []
+      }
+      mastra_ai_spans: {
+        Row: {
+          attributes: Json | null
+          createdAt: string
+          createdAtZ: string | null
+          endedAt: string | null
+          endedAtZ: string | null
+          entityId: string | null
+          entityName: string | null
+          entityType: string | null
+          environment: string | null
+          error: Json | null
+          input: Json | null
+          isEvent: boolean
+          links: Json | null
+          metadata: Json | null
+          name: string
+          organizationId: string | null
+          output: Json | null
+          parentSpanId: string | null
+          requestId: string | null
+          resourceId: string | null
+          runId: string | null
+          scope: Json | null
+          serviceName: string | null
+          sessionId: string | null
+          source: string | null
+          spanId: string
+          spanType: string
+          startedAt: string
+          startedAtZ: string | null
+          tags: Json | null
+          threadId: string | null
+          traceId: string
+          updatedAt: string | null
+          updatedAtZ: string | null
+          userId: string | null
+        }
+        Insert: {
+          attributes?: Json | null
+          createdAt: string
+          createdAtZ?: string | null
+          endedAt?: string | null
+          endedAtZ?: string | null
+          entityId?: string | null
+          entityName?: string | null
+          entityType?: string | null
+          environment?: string | null
+          error?: Json | null
+          input?: Json | null
+          isEvent: boolean
+          links?: Json | null
+          metadata?: Json | null
+          name: string
+          organizationId?: string | null
+          output?: Json | null
+          parentSpanId?: string | null
+          requestId?: string | null
+          resourceId?: string | null
+          runId?: string | null
+          scope?: Json | null
+          serviceName?: string | null
+          sessionId?: string | null
+          source?: string | null
+          spanId: string
+          spanType: string
+          startedAt: string
+          startedAtZ?: string | null
+          tags?: Json | null
+          threadId?: string | null
+          traceId: string
+          updatedAt?: string | null
+          updatedAtZ?: string | null
+          userId?: string | null
+        }
+        Update: {
+          attributes?: Json | null
+          createdAt?: string
+          createdAtZ?: string | null
+          endedAt?: string | null
+          endedAtZ?: string | null
+          entityId?: string | null
+          entityName?: string | null
+          entityType?: string | null
+          environment?: string | null
+          error?: Json | null
+          input?: Json | null
+          isEvent?: boolean
+          links?: Json | null
+          metadata?: Json | null
+          name?: string
+          organizationId?: string | null
+          output?: Json | null
+          parentSpanId?: string | null
+          requestId?: string | null
+          resourceId?: string | null
+          runId?: string | null
+          scope?: Json | null
+          serviceName?: string | null
+          sessionId?: string | null
+          source?: string | null
+          spanId?: string
+          spanType?: string
+          startedAt?: string
+          startedAtZ?: string | null
+          tags?: Json | null
+          threadId?: string | null
+          traceId?: string
+          updatedAt?: string | null
+          updatedAtZ?: string | null
+          userId?: string | null
+        }
+        Relationships: []
+      }
+      mastra_messages: {
+        Row: {
+          content: string
+          createdAt: string
+          createdAtZ: string | null
+          id: string
+          resourceId: string | null
+          role: string
+          thread_id: string
+          type: string
+        }
+        Insert: {
+          content: string
+          createdAt: string
+          createdAtZ?: string | null
+          id: string
+          resourceId?: string | null
+          role: string
+          thread_id: string
+          type: string
+        }
+        Update: {
+          content?: string
+          createdAt?: string
+          createdAtZ?: string | null
+          id?: string
+          resourceId?: string | null
+          role?: string
+          thread_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      mastra_resources: {
+        Row: {
+          createdAt: string
+          createdAtZ: string | null
+          id: string
+          metadata: Json | null
+          updatedAt: string
+          updatedAtZ: string | null
+          workingMemory: string | null
+        }
+        Insert: {
+          createdAt: string
+          createdAtZ?: string | null
+          id: string
+          metadata?: Json | null
+          updatedAt: string
+          updatedAtZ?: string | null
+          workingMemory?: string | null
+        }
+        Update: {
+          createdAt?: string
+          createdAtZ?: string | null
+          id?: string
+          metadata?: Json | null
+          updatedAt?: string
+          updatedAtZ?: string | null
+          workingMemory?: string | null
+        }
+        Relationships: []
+      }
+      mastra_scorers: {
+        Row: {
+          additionalContext: Json | null
+          analyzePrompt: string | null
+          analyzeStepResult: Json | null
+          createdAt: string
+          createdAtZ: string | null
+          entity: Json | null
+          entityId: string | null
+          entityType: string | null
+          extractPrompt: string | null
+          extractStepResult: Json | null
+          generateReasonPrompt: string | null
+          generateScorePrompt: string | null
+          id: string
+          input: Json
+          metadata: Json | null
+          output: Json
+          preprocessPrompt: string | null
+          preprocessStepResult: Json | null
+          reason: string | null
+          reasonPrompt: string | null
+          requestContext: Json | null
+          resourceId: string | null
+          runId: string
+          score: number
+          scorer: Json
+          scorerId: string
+          source: string
+          spanId: string | null
+          threadId: string | null
+          traceId: string | null
+          updatedAt: string
+          updatedAtZ: string | null
+        }
+        Insert: {
+          additionalContext?: Json | null
+          analyzePrompt?: string | null
+          analyzeStepResult?: Json | null
+          createdAt: string
+          createdAtZ?: string | null
+          entity?: Json | null
+          entityId?: string | null
+          entityType?: string | null
+          extractPrompt?: string | null
+          extractStepResult?: Json | null
+          generateReasonPrompt?: string | null
+          generateScorePrompt?: string | null
+          id: string
+          input: Json
+          metadata?: Json | null
+          output: Json
+          preprocessPrompt?: string | null
+          preprocessStepResult?: Json | null
+          reason?: string | null
+          reasonPrompt?: string | null
+          requestContext?: Json | null
+          resourceId?: string | null
+          runId: string
+          score: number
+          scorer: Json
+          scorerId: string
+          source: string
+          spanId?: string | null
+          threadId?: string | null
+          traceId?: string | null
+          updatedAt: string
+          updatedAtZ?: string | null
+        }
+        Update: {
+          additionalContext?: Json | null
+          analyzePrompt?: string | null
+          analyzeStepResult?: Json | null
+          createdAt?: string
+          createdAtZ?: string | null
+          entity?: Json | null
+          entityId?: string | null
+          entityType?: string | null
+          extractPrompt?: string | null
+          extractStepResult?: Json | null
+          generateReasonPrompt?: string | null
+          generateScorePrompt?: string | null
+          id?: string
+          input?: Json
+          metadata?: Json | null
+          output?: Json
+          preprocessPrompt?: string | null
+          preprocessStepResult?: Json | null
+          reason?: string | null
+          reasonPrompt?: string | null
+          requestContext?: Json | null
+          resourceId?: string | null
+          runId?: string
+          score?: number
+          scorer?: Json
+          scorerId?: string
+          source?: string
+          spanId?: string | null
+          threadId?: string | null
+          traceId?: string | null
+          updatedAt?: string
+          updatedAtZ?: string | null
+        }
+        Relationships: []
+      }
+      mastra_threads: {
+        Row: {
+          createdAt: string
+          createdAtZ: string | null
+          id: string
+          metadata: Json | null
+          resourceId: string
+          title: string
+          updatedAt: string
+          updatedAtZ: string | null
+        }
+        Insert: {
+          createdAt: string
+          createdAtZ?: string | null
+          id: string
+          metadata?: Json | null
+          resourceId: string
+          title: string
+          updatedAt: string
+          updatedAtZ?: string | null
+        }
+        Update: {
+          createdAt?: string
+          createdAtZ?: string | null
+          id?: string
+          metadata?: Json | null
+          resourceId?: string
+          title?: string
+          updatedAt?: string
+          updatedAtZ?: string | null
+        }
+        Relationships: []
+      }
+      mastra_workflow_snapshot: {
+        Row: {
+          createdAt: string
+          createdAtZ: string | null
+          resourceId: string | null
+          run_id: string
+          snapshot: Json
+          updatedAt: string
+          updatedAtZ: string | null
+          workflow_name: string
+        }
+        Insert: {
+          createdAt: string
+          createdAtZ?: string | null
+          resourceId?: string | null
+          run_id: string
+          snapshot: Json
+          updatedAt: string
+          updatedAtZ?: string | null
+          workflow_name: string
+        }
+        Update: {
+          createdAt?: string
+          createdAtZ?: string | null
+          resourceId?: string | null
+          run_id?: string
+          snapshot?: Json
+          updatedAt?: string
+          updatedAtZ?: string | null
+          workflow_name?: string
+        }
+        Relationships: []
       }
       merchant_blocks: {
         Row: {
@@ -2894,6 +3374,32 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_rate_limits: {
+        Row: {
+          partner_id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          partner_id: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          partner_id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_rate_limits_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partner_retailers"
             referencedColumns: ["id"]
           },
         ]
@@ -4082,46 +4588,70 @@ export type Database = {
       user_contributions: {
         Row: {
           brand_name: string
+          catalog_match_id: string | null
+          catalog_match_score: number | null
+          contribution_type: string | null
           contributor_country_code: string | null
           contributor_hash: string
           created_at: string
+          enrichment_data: Json | null
+          gardener_task_id: string | null
           gear_item_id: string | null
           geargraph_matched: boolean | null
           id: string
           matched_catalog_product_id: string | null
           matched_confidence: number | null
+          processed_at: string | null
           product_name: string
+          queued_at: string | null
           source_url: string | null
+          suggestion_status: string | null
           user_added_fields: Json | null
           user_modified_fields: Json | null
         }
         Insert: {
           brand_name: string
+          catalog_match_id?: string | null
+          catalog_match_score?: number | null
+          contribution_type?: string | null
           contributor_country_code?: string | null
           contributor_hash: string
           created_at?: string
+          enrichment_data?: Json | null
+          gardener_task_id?: string | null
           gear_item_id?: string | null
           geargraph_matched?: boolean | null
           id?: string
           matched_catalog_product_id?: string | null
           matched_confidence?: number | null
+          processed_at?: string | null
           product_name: string
+          queued_at?: string | null
           source_url?: string | null
+          suggestion_status?: string | null
           user_added_fields?: Json | null
           user_modified_fields?: Json | null
         }
         Update: {
           brand_name?: string
+          catalog_match_id?: string | null
+          catalog_match_score?: number | null
+          contribution_type?: string | null
           contributor_country_code?: string | null
           contributor_hash?: string
           created_at?: string
+          enrichment_data?: Json | null
+          gardener_task_id?: string | null
           gear_item_id?: string | null
           geargraph_matched?: boolean | null
           id?: string
           matched_catalog_product_id?: string | null
           matched_confidence?: number | null
+          processed_at?: string | null
           product_name?: string
+          queued_at?: string | null
           source_url?: string | null
+          suggestion_status?: string | null
           user_added_fields?: Json | null
           user_modified_fields?: Json | null
         }
@@ -4323,6 +4853,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_working_memory: {
+        Row: {
+          created_at: string
+          id: string
+          profile: Json
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile?: Json
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile?: Json
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
       }
       vip_accounts: {
         Row: {
@@ -4869,6 +5426,45 @@ export type Database = {
           },
         ]
       }
+      pending_contributions: {
+        Row: {
+          brand_name: string | null
+          catalog_match_score: number | null
+          contribution_type: string | null
+          contributor_country_code: string | null
+          created_at: string | null
+          enrichment_data: Json | null
+          id: string | null
+          product_name: string | null
+          queued_at: string | null
+          source_url: string | null
+        }
+        Insert: {
+          brand_name?: string | null
+          catalog_match_score?: number | null
+          contribution_type?: string | null
+          contributor_country_code?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          id?: string | null
+          product_name?: string | null
+          queued_at?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          brand_name?: string | null
+          catalog_match_score?: number | null
+          contribution_type?: string | null
+          contributor_country_code?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          id?: string | null
+          product_name?: string | null
+          queued_at?: string | null
+          source_url?: string | null
+        }
+        Relationships: []
+      }
       tool_execution_stats: {
         Row: {
           avg_execution_ms: number | null
@@ -5279,6 +5875,10 @@ export type Database = {
             }
             Returns: string
           }
+      analyze_loadout: {
+        Args: { p_loadout_id: string; p_user_id: string }
+        Returns: Json
+      }
       archive_old_bulletin_posts: { Args: never; Returns: number }
       archive_old_shakedowns: { Args: never; Returns: number }
       are_friends: {
@@ -5322,6 +5922,14 @@ export type Database = {
         Args: { p_content: string; p_user_id: string }
         Returns: boolean
       }
+      check_partner_rate_limit: {
+        Args: {
+          p_max_requests?: number
+          p_partner_id: string
+          p_window_seconds?: number
+        }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: { p_limit: number; p_operation_type: string; p_user_id: string }
         Returns: boolean
@@ -5352,10 +5960,15 @@ export type Database = {
       cleanup_delivery_queue: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_conversation_memory: { Args: never; Returns: number }
+      cleanup_firecrawl_cache: { Args: never; Returns: number }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       clear_conversation_state: {
         Args: { p_conversation_id: string }
         Returns: boolean
+      }
+      count_items_by_category: {
+        Args: { p_search_term: string; p_status?: string; p_user_id: string }
+        Returns: Json
       }
       create_price_alert: {
         Args: {
@@ -5606,6 +6219,22 @@ export type Database = {
           product_type: string
         }[]
       }
+      get_contribution_stats: {
+        Args: never
+        Returns: {
+          avg_match_score: number
+          contributions_this_week: number
+          contributions_today: number
+          data_update_count: number
+          incomplete_match_count: number
+          new_product_count: number
+          pending_count: number
+          processed_count: number
+          queued_count: number
+          rejected_count: number
+          total_contributions: number
+        }[]
+      }
       get_conversation_state: {
         Args: { p_conversation_id: string }
         Returns: Json
@@ -5646,6 +6275,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_inventory_intelligence: { Args: { p_user_id: string }; Returns: Json }
       get_merchant_analytics: {
         Args: { p_merchant_id: string; p_period_days?: number }
         Returns: {
@@ -5656,6 +6286,21 @@ export type Database = {
           offers_sent: number
           revenue: number
           wishlist_adds: number
+        }[]
+      }
+      get_message_with_context: {
+        Args: {
+          p_context_range?: number
+          p_conversation_id: string
+          p_message_id: string
+          p_user_id: string
+        }
+        Returns: {
+          out_created_at: string
+          out_message_content: string
+          out_message_id: string
+          out_message_role: string
+          out_position: string
         }[]
       }
       get_mutual_friends: {
@@ -5927,6 +6572,63 @@ export type Database = {
           name: string
           similarity: number
           website_url: string
+        }[]
+      }
+      search_products_hybrid: {
+        Args: {
+          max_results?: number
+          query_embedding: string
+          search_query: string
+          weight_text?: number
+        }
+        Returns: {
+          brand_id: string
+          brand_name: string
+          combined_score: number
+          description: string
+          id: string
+          name: string
+          price_usd: number
+          product_type: string
+          product_type_id: string
+          semantic_score: number
+          text_score: number
+          weight_grams: number
+        }[]
+      }
+      search_products_semantic: {
+        Args: {
+          max_results?: number
+          query_embedding: string
+          similarity_threshold?: number
+        }
+        Returns: {
+          brand_id: string
+          brand_name: string
+          description: string
+          id: string
+          name: string
+          price_usd: number
+          product_type: string
+          product_type_id: string
+          similarity: number
+          weight_grams: number
+        }[]
+      }
+      search_similar_messages: {
+        Args: {
+          p_limit?: number
+          p_query_embedding: string
+          p_threshold?: number
+          p_user_id: string
+        }
+        Returns: {
+          conversation_id: string
+          created_at: string
+          message_content: string
+          message_id: string
+          message_role: string
+          similarity: number
         }[]
       }
       search_users_with_block_status: {
