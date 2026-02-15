@@ -100,7 +100,7 @@ export function VipSearchResults({
       {/* Results count */}
       {query && total > 0 && (
         <p className="text-sm text-muted-foreground">
-          {total} {total === 1 ? 'result' : 'results'} for &ldquo;{query}&rdquo;
+          {t('search.resultsCount', { count: total, query })}
         </p>
       )}
 

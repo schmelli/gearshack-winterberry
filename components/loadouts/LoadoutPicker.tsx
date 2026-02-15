@@ -207,6 +207,7 @@ function PickerItem({
   onOpenDetail,
   categoryMap,
 }: PickerItemProps) {
+  const t = useTranslations('Loadouts');
   // Micro-interaction state for Add button (US9)
   const [justAdded, setJustAdded] = useState(false);
   // Timer ref for feedback cleanup
@@ -336,7 +337,7 @@ function PickerItem({
         ) : (
           <>
             <Plus className="mr-1 h-4 w-4" />
-            Add
+            {t('picker.add')}
           </>
         )}
       </Button>

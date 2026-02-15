@@ -179,7 +179,7 @@ export function LoadoutHeader({
             {/* Activity Badges - FR-007 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Activity
+                {tLoadouts('header.activity')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {ACTIVITY_OPTIONS.map((activity) => (
@@ -196,7 +196,7 @@ export function LoadoutHeader({
             {/* Season Badges - FR-008 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Season
+                {tLoadouts('header.season')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {SEASON_OPTIONS.map((season) => (

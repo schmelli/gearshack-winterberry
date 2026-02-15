@@ -31,12 +31,15 @@ interface SavedVipLoadoutsSectionProps {
 // Helper Components
 // =============================================================================
 
-function BookmarkedLoadoutCard({ bookmark }: { bookmark: BookmarkedLoadout }) {
+interface BookmarkedLoadoutCardProps {
+  bookmark: BookmarkedLoadout;
+  savedTimeLabel: string;
+}
+
+function BookmarkedLoadoutCard({ bookmark, savedTimeLabel }: BookmarkedLoadoutCardProps) {
   const locale = useLocale();
-  const _t = useTranslations('vip');
 
   const loadoutUrl = `/${locale}/vip/${bookmark.loadout.vip.slug}/${bookmark.loadout.slug}`;
-  const _vipUrl = `/${locale}/vip/${bookmark.loadout.vip.slug}`;
 
   return (
     <Card className="group h-full transition-all hover:shadow-md hover:border-primary/50">
@@ -67,7 +70,7 @@ function BookmarkedLoadoutCard({ bookmark }: { bookmark: BookmarkedLoadout }) {
 
           {/* Saved timestamp */}
           <p className="text-xs text-muted-foreground">
-            Saved {formatDistanceToNow(new Date(bookmark.bookmarkedAt), { addSuffix: true })}
+            {savedTimeLabel}
           </p>
         </CardContent>
       </Link>
@@ -117,7 +120,7 @@ export function SavedVipLoadoutsSection({ className }: SavedVipLoadoutsSectionPr
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p className="text-sm">{error}</p>
             <Button variant="outline" size="sm" onClick={refetch} className="ml-auto">
-              Retry
+              {t('retry')}
             </Button>
           </div>
         </CardContent>
@@ -138,12 +141,12 @@ export function SavedVipLoadoutsSection({ className }: SavedVipLoadoutsSectionPr
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Backpack className="h-12 w-12 text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No saved loadouts yet</p>
+            <p className="text-muted-foreground">{t('emptyTitle')}</p>
             <p className="text-sm text-muted-foreground/80 mt-1">
-              Bookmark VIP loadouts to save them here
+              {t('emptyHint')}
             </p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${locale}/vip`}>Browse VIP Loadouts</Link>
+              <Link href={`/${locale}/vip`}>{t('browseVipLoadouts')}</Link>
             </Button>
           </div>
         </CardContent>
@@ -159,13 +162,17 @@ export function SavedVipLoadoutsSection({ className }: SavedVipLoadoutsSectionPr
           {t('savedLoadouts')}
         </CardTitle>
         <Button asChild variant="ghost" size="sm">
-          <Link href={`/${locale}/vip`}>View all VIPs</Link>
+          <Link href={`/${locale}/vip`}>{t('viewAllVips')}</Link>
         </Button>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {bookmarks.map((bookmark) => (
-            <BookmarkedLoadoutCard key={bookmark.loadout.id} bookmark={bookmark} />
+            <BookmarkedLoadoutCard
+              key={bookmark.loadout.id}
+              bookmark={bookmark}
+              savedTimeLabel={t('savedTime', { time: formatDistanceToNow(new Date(bookmark.bookmarkedAt), { addSuffix: true }) })}
+            />
           ))}
         </div>
       </CardContent>
