@@ -32,7 +32,8 @@ export function SiteFooter({ className }: SiteFooterProps) {
   return (
     <footer className={cn('bg-[#405A3D] border-t border-[#405A3D]/20', className)}>
       {/* FR-020: container respects max-w-7xl, FR-021: py-8 instead of py-12 */}
-      <div className="container mx-auto grid gap-8 py-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      {/* Issue #206: Removed container class to allow full-width background on mobile */}
+      <div className="mx-auto grid max-w-7xl gap-8 px-3 py-8 grid-cols-1 md:grid-cols-2 md:px-4 lg:grid-cols-4 lg:px-8">
         {/* Column 1: Logo and About */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">

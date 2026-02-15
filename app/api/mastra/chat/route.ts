@@ -93,6 +93,10 @@ import {
   formatParsedQueryForPrompt,
   type ParsedQuery,
 } from '@/lib/ai-assistant/query-parser';
+import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
+import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
+import { memoryRetryQueue } from '@/lib/mastra/memory-retry-queue';
+import { saveToMemory } from '@/lib/mastra/memory-save';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -370,77 +374,7 @@ function detectCorrectionIntent(message: string): boolean {
   return CORRECTION_PATTERNS.some(pattern => pattern.test(message));
 }
 
-/**
- * T026: Save messages to memory after response
- *
- * @returns Object with message IDs for embedding generation
- */
-async function saveToMemory(
-  adapter: SupabaseMemoryAdapter | null,
-  userId: string,
-  conversationId: string,
-  userMessage: string,
-  assistantResponse: string,
-  isCorrection: boolean
-): Promise<{ userMessageId: string; assistantMessageId: string } | null> {
-  if (!adapter) {
-    logDebug('Skipping memory save - adapter unavailable', { userId, conversationId });
-    return null;
-  }
-
-  const getElapsed = createTimer();
-
-  try {
-    const now = new Date();
-    const metadata = isCorrection ? { isCorrection: true } : {};
-
-    // Generate UUIDs that will be used for both saving and embedding
-    const userMessageId = crypto.randomUUID();
-    const assistantMessageId = crypto.randomUUID();
-
-    await adapter.saveMessages([
-      {
-        id: userMessageId,
-        userId,
-        conversationId,
-        role: 'user',
-        content: userMessage,
-        metadata,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: assistantMessageId,
-        userId,
-        conversationId,
-        role: 'assistant',
-        content: assistantResponse,
-        metadata: {},
-        createdAt: new Date(now.getTime() + 1),
-        updatedAt: new Date(now.getTime() + 1),
-      },
-    ]);
-
-    logInfo('Messages saved to memory', {
-      userId,
-      conversationId,
-      metadata: {
-        isCorrection,
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return { userMessageId, assistantMessageId };
-  } catch (error) {
-    // Log but don't fail the request
-    logError('Failed to save messages to memory', error, {
-      userId,
-      conversationId,
-      metadata: { latencyMs: getElapsed() },
-    });
-    return null;
-  }
-}
+// T026: saveToMemory moved to @/lib/mastra/memory-save for reuse in retry queue
 
 // =====================================================
 // System Prompt Builder
@@ -660,9 +594,10 @@ export async function POST(request: Request): Promise<Response> {
     // Using checkAndIncrementRateLimit for atomic rate limit check and increment
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
 
-    // Rate limiting and memory context fetch in parallel
+    // Rate limiting, memory context fetch, and intent classification in parallel
     // Pass current message for semantic recall search
-    const [rateLimitResult, memoryContextResult] = await Promise.all([
+    // Intent classification runs via Gemini Flash (~200-500ms) in parallel with memory fetch
+    const [rateLimitResult, memoryContextResult, intentResult] = await Promise.all([
       checkAndIncrementRateLimit(user.id, operationType as OperationType),
       traceWorkflowStep(
         `chat-${conversationId}`,
@@ -670,6 +605,11 @@ export async function POST(request: Request): Promise<Response> {
         () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId, message),
         { userId: user.id }
       ).then(r => r.result),
+      classifyIntent(
+        message,
+        context?.screen as string | undefined,
+        currentLoadoutId
+      ),
     ]);
 
     // Check rate limit result first (early return if exceeded)
@@ -728,6 +668,107 @@ export async function POST(request: Request): Promise<Response> {
     // Use the memory context fetched in parallel
     const memoryContext = memoryContextResult;
 
+    // 7b. Pre-fetch data based on intent classification
+    let prefetchedContext: PrefetchedContext | null = null;
+    if (intentResult.dataRequirements.length > 0) {
+      const locale = (context?.locale as string) || 'en';
+      prefetchedContext = await prefetchData(
+        intentResult.dataRequirements,
+        user.id,
+        locale
+      );
+
+      logDebug('Pre-fetch completed', {
+        userId: user.id,
+        metadata: {
+          intent: intentResult.intent,
+          requirementCount: intentResult.dataRequirements.length,
+          totalLatencyMs: prefetchedContext.totalLatencyMs,
+        },
+      });
+    }
+
+    // 7c. Fast-path for simple factual questions
+    // If the intent router determines the question can be answered directly with pre-fetched data,
+    // generate a fast answer via Gemini Flash (skipping the full Sonnet agent pipeline)
+    if (
+      intentResult.canAnswerDirectly &&
+      intentResult.intent === 'simple_fact' &&
+      prefetchedContext &&
+      Object.keys(prefetchedContext.results).length > 0
+    ) {
+      const locale = (context?.locale as string) || 'en';
+      const fastAnswer = await generateFastAnswer(
+        message,
+        prefetchedContext.results,
+        locale
+      );
+
+      if (fastAnswer) {
+        logInfo('Fast-path answer served', {
+          userId: user.id,
+          conversationId,
+          metadata: {
+            intent: intentResult.intent,
+            latencyMs: requestTimer(),
+          },
+        });
+
+        // Stream the fast answer as SSE events
+        const encoder = new TextEncoder();
+        const messageId = crypto.randomUUID();
+        const totalLatencyMs = requestTimer();
+
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(encodeTextEvent(fastAnswer)));
+            controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+            controller.close();
+          },
+        });
+
+        // Save to memory in the background (don't await)
+        // If it fails, enqueue for retry to prevent data loss
+        saveToMemory(
+          memoryContext.adapter,
+          user.id,
+          conversationId,
+          message,
+          fastAnswer,
+          false // not a correction
+        ).catch(err => {
+          logWarn('Fast-path memory save failed, queuing for retry', {
+            metadata: {
+              error: err instanceof Error ? err.message : 'Unknown',
+              userId: user.id,
+              conversationId,
+            },
+          });
+
+          // Enqueue for background retry (only if adapter is available)
+          if (memoryContext.adapter) {
+            memoryRetryQueue.enqueue({
+              adapter: memoryContext.adapter,
+              userId: user.id,
+              conversationId,
+              message,
+              response: fastAnswer,
+              isCorrection: false,
+            });
+          }
+        });
+
+        // Record metrics
+        recordAgentLatency(totalLatencyMs / 1000, 'simple');
+
+        const headers: Record<string, string> = { ...rateLimitHeaders };
+        if (memoryContext.warning) {
+          headers['X-Memory-Warning'] = memoryContext.warning;
+        }
+        return createStreamingResponse(stream, headers);
+      }
+    }
+
     // 8. Detect correction intent (T028)
     const isCorrection = detectCorrectionIntent(message);
     if (isCorrection) {
@@ -750,6 +791,23 @@ export async function POST(request: Request): Promise<Response> {
       memoryContext.semanticRecallContext // Three-tier: semantic recall
     );
     const systemPrompt = buildMastraSystemPrompt(promptContext);
+
+    // Inject pre-fetched context into system prompt for zero-tool-call answers
+    let enrichedPrompt = systemPrompt;
+    if (prefetchedContext && prefetchedContext.formattedContext) {
+      const contextLabel = (context?.locale as string) === 'de'
+        ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
+        : '**Pre-loaded Data (use this to answer quickly):**';
+      enrichedPrompt = `${systemPrompt}\n\n${contextLabel}\n${prefetchedContext.formattedContext}`;
+
+      logDebug('Pre-fetched context injected into prompt', {
+        userId: user.id,
+        metadata: {
+          contextLength: prefetchedContext.formattedContext.length,
+          intent: intentResult.intent,
+        },
+      });
+    }
 
     // 10. Check AI availability (Mastra Agent requires AI_GATEWAY_KEY)
     if (!process.env.AI_GATEWAY_KEY && !process.env.AI_GATEWAY_API_KEY) {
@@ -779,7 +837,7 @@ export async function POST(request: Request): Promise<Response> {
             'agent_generation',
             async () => {
               // Create agent with system prompt and tools
-              const agent = createGearAgent(user.id, systemPrompt);
+              const agent = createGearAgent(user.id, enrichedPrompt);
 
               // Stream response with Mastra's native tool handling
               // Pass conversation history for context continuity across turns

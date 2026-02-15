@@ -19,9 +19,12 @@ import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
-// Simplified tools (AI Assistant Simplification feature)
+// Composite Domain Tools (Feature 060: AI Agent Evolution)
+import { analyzeLoadoutTool } from './tools/analyze-loadout';
+import { inventoryInsightsTool } from './tools/inventory-insights';
+import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
+// Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
-import { queryCatalogTool } from './tools/query-catalog';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
 // Three-tier memory system
@@ -239,15 +242,19 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     model: getGateway()(AI_CHAT_MODEL),
     memory: agentMemory,
     tools: {
+      // Composite Domain Tools (Feature 060: preferred for most queries)
+      analyzeLoadout: analyzeLoadoutTool,
+      inventoryInsights: inventoryInsightsTool,
+      searchGearKnowledge: searchGearKnowledgeTool,
+      // Legacy tools (fallback for edge cases + GearGraph Cypher)
       queryUserData: queryUserDataSqlTool,
-      queryCatalog: queryCatalogTool,
       queryGearGraph: queryGearGraphTool,
       searchWeb: searchWebTool,
     },
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 4 tools, four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 6 tools (3 composite + 3 legacy), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
   );
   return agent;
 }
