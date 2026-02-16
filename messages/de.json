@@ -3727,7 +3727,9 @@
     },
     "panel": {
       "close": "Berater-Panel schließen",
-      "openPanel": "KI-Berater öffnen"
+      "openPanel": "KI-Berater öffnen",
+      "errorTitle": "Beim Laden des Assistenten ist ein Fehler aufgetreten.",
+      "retry": "Erneut versuchen"
     }
   },
   "Admin": {

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatInterface } from './ChatInterface';
+import { AIPanelErrorBoundary } from './AIPanelErrorBoundary';
 import { useAIPanelStore } from '@/hooks/useAIPanelStore';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -132,22 +133,25 @@ export function MobileBottomSheet() {
           <div className="h-1 w-12 rounded-full bg-muted-foreground/30" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-lg font-semibold">{t('title')}</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            aria-label={t('panel.close')}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Close button overlaid on ChatInterface header */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClose}
+          aria-label={t('panel.close')}
+          className="absolute right-2 top-14 z-10"
+        >
+          <X className="h-4 w-4" />
+        </Button>
 
-        {/* Chat Interface */}
+        {/* Chat Interface with error boundary */}
         <div className="flex-1 overflow-hidden">
-          <ChatInterface onClose={handleClose} />
+          <AIPanelErrorBoundary
+            fallbackTitle={t('panel.errorTitle')}
+            fallbackRetry={t('panel.retry')}
+          >
+            <ChatInterface onClose={handleClose} />
+          </AIPanelErrorBoundary>
         </div>
       </div>
     </>

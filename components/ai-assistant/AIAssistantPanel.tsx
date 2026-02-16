@@ -3,6 +3,7 @@
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatInterface } from './ChatInterface';
+import { AIPanelErrorBoundary } from './AIPanelErrorBoundary';
 import { useAIPanelStore } from '@/hooks/useAIPanelStore';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -36,9 +37,14 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
         <X className="h-4 w-4" />
       </Button>
 
-      {/* Chat Interface (has its own header with title, voice, new chat) */}
+      {/* Chat Interface with error boundary */}
       <div className="flex-1 overflow-hidden">
-        <ChatInterface onClose={close} />
+        <AIPanelErrorBoundary
+          fallbackTitle={t('panel.errorTitle')}
+          fallbackRetry={t('panel.retry')}
+        >
+          <ChatInterface onClose={close} />
+        </AIPanelErrorBoundary>
       </div>
     </aside>
   );

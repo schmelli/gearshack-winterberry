@@ -3723,7 +3723,9 @@
     },
     "panel": {
       "close": "Close assistant panel",
-      "openPanel": "Open AI Assistant"
+      "openPanel": "Open AI Assistant",
+      "errorTitle": "Something went wrong loading the assistant.",
+      "retry": "Retry"
     }
   },
   "Admin": {
