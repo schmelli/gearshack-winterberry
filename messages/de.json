@@ -3724,6 +3724,10 @@
       "newConversation": "Neuer Chat",
       "title": "KI-Ausrüstungsassistent",
       "subtitle": "Frag mich alles über deine Ausrüstung"
+    },
+    "panel": {
+      "close": "Berater-Panel schließen",
+      "openPanel": "KI-Berater öffnen"
     }
   },
   "Admin": {
