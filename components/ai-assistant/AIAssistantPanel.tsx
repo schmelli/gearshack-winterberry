@@ -20,25 +20,23 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
       data-ai-panel
       style={{ width: `${panelWidth}px` }}
       className={cn(
-        'flex flex-col border-l border-border bg-background',
+        'relative flex flex-col border-l border-border bg-background',
         'h-[calc(100vh-6rem)]',
         className
       )}
     >
-      {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-lg font-semibold">{t('title')}</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={close}
-          aria-label={t('panel.close')}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Close button overlaid on ChatInterface header */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={close}
+        aria-label={t('panel.close')}
+        className="absolute right-2 top-3 z-10"
+      >
+        <X className="h-4 w-4" />
+      </Button>
 
-      {/* Chat Interface */}
+      {/* Chat Interface (has its own header with title, voice, new chat) */}
       <div className="flex-1 overflow-hidden">
         <ChatInterface onClose={close} />
       </div>
