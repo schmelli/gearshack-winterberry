@@ -103,6 +103,9 @@ Component Re-render
 ```
 
 ### AI Assistant Flow
+
+> **UI Layer**: Persistent side panel (desktop) / bottom sheet (mobile). See [AI Assistant Side Panel](../features/ai-assistant-side-panel.md).
+
 ```
 User Message
   ↓

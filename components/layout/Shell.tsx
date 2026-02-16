@@ -13,6 +13,7 @@
 import { usePathname } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
+import { AppLayoutWithAIPanel } from '@/components/layout/AppLayoutWithAIPanel';
 
 // =============================================================================
 // Constants
@@ -66,15 +67,17 @@ export function Shell({ children }: ShellProps) {
     );
   }
 
-  // All other routes: render full layout with header and footer
+  // All other routes: render full layout with header, AI panel, and footer
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
-      </main>
+      <AppLayoutWithAIPanel>
+        <main className="flex-1">
+          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
+      </AppLayoutWithAIPanel>
       <SiteFooter />
     </div>
   );

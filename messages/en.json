@@ -3720,6 +3720,12 @@
       "newConversation": "New Chat",
       "title": "AI Gear Assistant",
       "subtitle": "Ask me anything about your gear"
+    },
+    "panel": {
+      "close": "Close assistant panel",
+      "openPanel": "Open AI Assistant",
+      "errorTitle": "Something went wrong loading the assistant.",
+      "retry": "Retry"
     }
   },
   "Admin": {
