@@ -117,16 +117,75 @@ export function useMastraChat(): UseMastraChatResult {
   const [messages, setMessages] = useState<MastraMessage[]>([]);
   const [state, setState] = useState<ChatState>('idle');
   const [error, setError] = useState<ChatError | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  // Initialize conversationId from localStorage
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem('gearshack:ai-conversation-id');
+    } catch {
+      return null;
+    }
+  });
+  const [_isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
   // Refs for tracking request state
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
   // Ref for text debounce timeout cleanup on abort
   const textUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to track if history has been loaded for this conversation
+  const historyLoadedRef = useRef<string | null>(null);
 
   // Auth context - uses cookie-based authentication
   const { user } = useAuthContext();
+
+  /**
+   * Load conversation history from database
+   */
+  const loadConversationHistory = useCallback(async (convId: string) => {
+    if (!user || historyLoadedRef.current === convId) {
+      return; // Already loaded or no user
+    }
+
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch('/api/mastra/conversation-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load conversation history');
+      }
+
+      const data = await response.json();
+      const historyMessages: MastraMessage[] = data.messages.map((msg: { id: string; role: string; content: string; created_at: string }) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        createdAt: msg.created_at,
+      }));
+
+      setMessages(historyMessages);
+      historyLoadedRef.current = convId;
+      logAIEvent('info', 'Conversation history loaded', {
+        userId: user.uid,
+        conversationId: convId,
+        messageCount: historyMessages.length,
+      });
+    } catch (err) {
+      logAIEvent('error', 'Failed to load conversation history', {
+        userId: user.uid,
+        conversationId: convId,
+        error: err instanceof Error ? err.message : 'Unknown',
+      });
+      // Don't show error to user - just start fresh conversation
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [user]);
 
   /**
    * Abort any in-flight request
@@ -274,6 +333,12 @@ export function useMastraChat(): UseMastraChatResult {
         const responseConversationId = response.headers.get('X-Conversation-Id');
         if (responseConversationId && !conversationId) {
           setConversationId(responseConversationId);
+          // Persist to localStorage
+          try {
+            localStorage.setItem('gearshack:ai-conversation-id', responseConversationId);
+          } catch {
+            // Silently fail if localStorage unavailable
+          }
         }
 
         // Transition to streaming state
@@ -425,6 +490,13 @@ export function useMastraChat(): UseMastraChatResult {
     setError(null);
     setConversationId(null);
     lastMessageRef.current = null;
+    historyLoadedRef.current = null;
+    // Clear from localStorage
+    try {
+      localStorage.removeItem('gearshack:ai-conversation-id');
+    } catch {
+      // Silently fail if localStorage unavailable
+    }
     logAIEvent('info', 'Conversation reset');
   }, [abort]);
 
@@ -440,6 +512,13 @@ export function useMastraChat(): UseMastraChatResult {
     const { text, options } = lastMessageRef.current;
     await sendMessage(text, options);
   }, [sendMessage, t]);
+
+  // Load conversation history on mount if conversationId exists
+  useEffect(() => {
+    if (conversationId && user && historyLoadedRef.current !== conversationId) {
+      loadConversationHistory(conversationId);
+    }
+  }, [conversationId, user, loadConversationHistory]);
 
   // Cleanup on unmount - CRITICAL for preventing memory leaks
   // Aborts in-flight requests when component unmounts
