@@ -16,6 +16,7 @@ export function ResizableDragHandle({
 }: ResizableDragHandleProps) {
   const isDraggingRef = useRef(false);
   const lastXRef = useRef(0);
+  const panelElementRef = useRef<HTMLElement | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isDraggingRef.current = true;
@@ -24,13 +25,16 @@ export function ResizableDragHandle({
   }, []);
 
   useEffect(() => {
+    // Cache panel element on mount
+    panelElementRef.current = document.querySelector('[data-ai-panel]') as HTMLElement;
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
 
       const deltaX = lastXRef.current - e.clientX;
       lastXRef.current = e.clientX;
 
-      const panelElement = document.querySelector('[data-ai-panel]') as HTMLElement;
+      const panelElement = panelElementRef.current;
       if (!panelElement) return;
 
       const currentWidth = panelElement.offsetWidth;

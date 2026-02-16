@@ -35,6 +35,7 @@ export const useAIPanelStore = create<AIPanelState>()(
     }),
     {
       name: 'ai-panel-storage',
+      partialize: (state) => ({ panelWidth: state.panelWidth }),
     }
   )
 );

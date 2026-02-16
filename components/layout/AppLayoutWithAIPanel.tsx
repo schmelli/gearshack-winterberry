@@ -5,6 +5,8 @@ import { useAIPanelStore } from '@/hooks/useAIPanelStore';
 import { AIAssistantPanel } from '@/components/ai-assistant/AIAssistantPanel';
 import { MobileBottomSheet } from '@/components/ai-assistant/MobileBottomSheet';
 import { ResizableDragHandle } from '@/components/ui/ResizableDragHandle';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutWithAIPanelProps {
@@ -14,30 +16,35 @@ interface AppLayoutWithAIPanelProps {
 export function AppLayoutWithAIPanel({ children }: AppLayoutWithAIPanelProps) {
   const { isOpen, setWidth } = useAIPanelStore();
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const { user } = useAuthContext();
+  const { isTrailblazer, isLoading } = useSubscriptionCheck(user?.uid || null);
+
+  // Only show panel for Trailblazer subscribers
+  const showPanel = isOpen && isTrailblazer && !isLoading;
 
   // Mobile: bottom sheet via portal
   if (isMobile) {
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex flex-1 flex-col">
         <div className="flex-1 overflow-auto">{children}</div>
-        {isOpen && <MobileBottomSheet />}
+        {showPanel && <MobileBottomSheet />}
       </div>
     );
   }
 
   // Desktop: Side panel layout
   return (
-    <div className="flex h-full">
+    <div className="flex flex-1">
       <div
         className={cn(
           'flex-1 overflow-auto transition-all duration-200',
-          isOpen && 'mr-1'
+          showPanel && 'mr-1'
         )}
       >
         {children}
       </div>
 
-      {isOpen && (
+      {showPanel && (
         <>
           <ResizableDragHandle
             onResize={setWidth}

@@ -30,15 +30,28 @@ export function MobileBottomSheet() {
 
   const touchStartRef = useRef({ y: 0, time: 0 });
   const sheetRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sync portal mount state
     setMounted(true);
   }, []);
 
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const handleClose = useCallback(() => {
+    // Clear any existing timeout to prevent race condition
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
     setIsClosing(true);
-    setTimeout(close, 300);
+    closeTimeoutRef.current = setTimeout(close, 300);
   }, [close]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -96,7 +109,8 @@ export function MobileBottomSheet() {
     setDragOffset(0);
   }, [isDragging, dragOffset, snapPoint, handleClose]);
 
-  if (!mounted) return null;
+  // SSR hydration check
+  if (!mounted || typeof window === 'undefined') return null;
 
   const sheetHeight = window.innerHeight * snapPoint;
   const translateY = isClosing ? window.innerHeight : dragOffset;
@@ -116,6 +130,9 @@ export function MobileBottomSheet() {
       {/* Bottom Sheet */}
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-assistant-title"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
