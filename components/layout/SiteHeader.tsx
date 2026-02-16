@@ -53,6 +53,7 @@ import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton';
 import { useSubscriptionCheck } from '@/hooks/ai-assistant/useSubscriptionCheck';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
+import { useAIPanelStore } from '@/hooks/useAIPanelStore';
 // Feature: Admin Feature Activation
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
@@ -60,10 +61,6 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 // These modals are only shown when user interacts with specific buttons
 const MessagingModal = dynamic(
   () => import('@/components/messaging/MessagingModal').then(mod => ({ default: mod.MessagingModal })),
-  { ssr: false }
-);
-const AIAssistantModal = dynamic(
-  () => import('@/components/ai-assistant/AIAssistantModal').then(mod => ({ default: mod.AIAssistantModal })),
   { ssr: false }
 );
 const UpgradeModal = dynamic(
@@ -86,8 +83,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   const { unreadCount } = useUnreadCount();
   // Feature 050: AI Assistant state
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [aiChatModalOpen, setAiChatModalOpen] = useState(false);
   const { isTrailblazer } = useSubscriptionCheck(user?.uid || null);
+  const { isOpen: isAIPanelOpen, open: openAIPanel } = useAIPanelStore();
   // Issue #77: Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Feature: Admin Feature Activation - check which features are enabled
@@ -128,9 +125,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
   // Feature 050: Handle AI Assistant button click
   const handleAIAssistantClick = () => {
     if (isTrailblazer) {
-      // T031: Open AI chat modal
-      setAiChatModalOpen(true);
-      logAIEvent('info', 'AI chat modal opened', {
+      // Open AI side panel instead of modal
+      openAIPanel();
+      logAIEvent('info', 'AI panel opened', {
         userId: user?.uid,
         subscriptionTier: 'trailblazer',
       });
@@ -322,9 +319,8 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           {/* T048: Notification bell - extracted to NotificationMenu component */}
           <NotificationMenu userId={user?.uid || null} />
 
-          {/* Feature 050: AI Assistant button - T026, T027 */}
-          {/* Feature Flag: Only show AI Assistant when ai_gear_assistant feature is enabled */}
-          {user && isAIAssistantEnabled && (
+          {/* Feature 050: AI Assistant button - hidden when panel is open */}
+          {user && isAIAssistantEnabled && !isAIPanelOpen && (
             <AIAssistantButton
               onClick={handleAIAssistantClick}
               isTrailblazer={isTrailblazer}
@@ -350,11 +346,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         onUpgrade={handleUpgrade}
       />
 
-      {/* Feature 050: AI Assistant chat modal - T031 */}
-      <AIAssistantModal
-        open={aiChatModalOpen}
-        onClose={() => setAiChatModalOpen(false)}
-      />
     </header>
   );
 }
