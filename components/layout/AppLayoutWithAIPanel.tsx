@@ -12,7 +12,7 @@ interface AppLayoutWithAIPanelProps {
 }
 
 export function AppLayoutWithAIPanel({ children }: AppLayoutWithAIPanelProps) {
-  const { isOpen, panelWidth, setWidth } = useAIPanelStore();
+  const { isOpen, setWidth } = useAIPanelStore();
   const isMobile = useMediaQuery('(max-width: 767px)');
 
   // Mobile: bottom sheet via portal

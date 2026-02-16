@@ -32,6 +32,7 @@ export function MobileBottomSheet() {
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync portal mount state
     setMounted(true);
   }, []);
 
