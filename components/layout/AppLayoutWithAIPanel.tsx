@@ -3,6 +3,7 @@
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAIPanelStore } from '@/hooks/useAIPanelStore';
 import { AIAssistantPanel } from '@/components/ai-assistant/AIAssistantPanel';
+import { MobileBottomSheet } from '@/components/ai-assistant/MobileBottomSheet';
 import { ResizableDragHandle } from '@/components/ui/ResizableDragHandle';
 import { cn } from '@/lib/utils';
 
@@ -14,12 +15,12 @@ export function AppLayoutWithAIPanel({ children }: AppLayoutWithAIPanelProps) {
   const { isOpen, panelWidth, setWidth } = useAIPanelStore();
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // Mobile: bottom sheet handled in a later task
+  // Mobile: bottom sheet via portal
   if (isMobile) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex-1 overflow-auto">{children}</div>
-        {/* Mobile bottom sheet added in Task 6-7 */}
+        {isOpen && <MobileBottomSheet />}
       </div>
     );
   }
