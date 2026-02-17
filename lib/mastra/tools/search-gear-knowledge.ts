@@ -82,13 +82,15 @@ export const searchGearKnowledgeTool = createTool({
 
   description: `Unified search across user inventory AND product catalog in a single call. Use for:
 - "Do I have a stove that works in cold weather?" → scope: "my_gear", query: "stove"
+- "Was für einen Kocher habe ich?" → scope: "my_gear", query: "Kocher" (German terms work too)
 - "Find ultralight tents under 1kg" → scope: "catalog", query: "tent", filters: { maxWeight: 1000 }
 - "What rain jackets do I own and what else is available?" → scope: "all", query: "rain jacket"
 - "Show me all Hilleberg products" → scope: "all", query: "Hilleberg"
 - "Compare my tents with what's on the market" → scope: "all", query: "tent"
 - "Show me more results" → Use offset parameter for pagination (e.g., offset: 10 for next page)
 
-This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.`,
+This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.
+Supports both English and German category terms (e.g., "Kocher" finds stoves, "Zelte" finds tents).`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -189,6 +191,49 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
 // Search Functions
 // =============================================================================
 
+/**
+ * Resolve a category search term to matching category IDs.
+ * Supports English and German search terms via i18n translations.
+ * Includes child categories of matching parents.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<string[]> {
+  const searchLower = searchTerm.toLowerCase();
+
+  const { data: allCategories, error } = await supabase
+    .from('categories')
+    .select('id, slug, label, parent_id, i18n');
+
+  if (error || !allCategories || allCategories.length === 0) return [];
+
+  const matchingIds = new Set<string>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const cat of allCategories as any[]) {
+    const fields: string[] = [
+      cat.slug,
+      cat.label,
+      ...(typeof cat.i18n === 'object' && cat.i18n !== null
+        ? Object.values(cat.i18n as Record<string, string>)
+        : []),
+    ].filter((f): f is string => typeof f === 'string');
+
+    if (fields.some(f => f.toLowerCase().includes(searchLower))) {
+      matchingIds.add(cat.id as string);
+    }
+  }
+
+  // Include child categories of matching parents
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const cat of allCategories as any[]) {
+    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+      matchingIds.add(cat.id as string);
+    }
+  }
+
+  return Array.from(matchingIds);
+}
+
 async function searchUserGear(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -204,8 +249,24 @@ async function searchUserGear(
     .select('id, name, brand, weight_grams, price_paid, status, category_id, categories(label)')
     .eq('user_id', userId);
 
-  // Text search
-  dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+  // Build search: combine text search with category-based search.
+  // This ensures German category terms like "Kocher" (stove) match items
+  // that are categorized as stoves but named "MSR PocketRocket", etc.
+  const categoryIds = await resolveCategoryIds(supabase, query);
+
+  if (categoryIds.length > 0) {
+    // Search by text fields OR by matching category
+    const orFilters = [
+      `name.ilike.%${query}%`,
+      `brand.ilike.%${query}%`,
+      `notes.ilike.%${query}%`,
+      `category_id.in.(${categoryIds.join(',')})`,
+    ];
+    dbQuery = dbQuery.or(orFilters.join(','));
+  } else {
+    // Fallback: text-only search
+    dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+  }
 
   // Apply filters
   if (filters?.status && filters.status !== 'all') {
