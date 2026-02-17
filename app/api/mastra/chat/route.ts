@@ -761,7 +761,10 @@ export async function POST(request: Request): Promise<Response> {
         // Record metrics
         recordAgentLatency(totalLatencyMs / 1000, 'simple');
 
-        const headers: Record<string, string> = { ...rateLimitHeaders };
+        const headers: Record<string, string> = {
+          ...rateLimitHeaders,
+          'X-Conversation-Id': conversationId, // Always return conversation ID for client persistence
+        };
         if (memoryContext.warning) {
           headers['X-Memory-Warning'] = memoryContext.warning;
         }
@@ -1050,9 +1053,10 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Return streaming response with memory warning and rate limit headers (T105)
+    // Return streaming response with memory warning, rate limit headers, and conversation ID (T105)
     const headers: Record<string, string> = {
       ...rateLimitHeaders,
+      'X-Conversation-Id': conversationId, // Always return conversation ID for client persistence
     };
     if (memoryContext.warning) {
       headers['X-Memory-Warning'] = memoryContext.warning;
