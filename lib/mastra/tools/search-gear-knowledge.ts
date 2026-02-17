@@ -169,7 +169,7 @@ export const searchGearKnowledgeTool = createTool({
 
 This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.
 
-IMPORTANT: Results include a \`gearGraphInsights\` field with expert tips and recommendations from the GearGraph knowledge base (HAS_TIP relationships). These insights contain curated wisdom about the found gear items — cold-weather performance, maintenance tips, compatibility warnings, expert recommendations. Always incorporate these insights into your response when present.`,
+IMPORTANT: Results include a \`gearGraphInsights\` field with expert tips and recommendations from the GearGraph knowledge base (HAS_TIP relationships). These insights contain curated wisdom about the found gear items — cold-weather performance, maintenance tips, compatibility warnings, expert recommendations. Always incorporate these insights into your response when present.
 Supports both English and German category terms (e.g., "Kocher" finds stoves, "Zelte" finds tents).`,
 
   inputSchema: searchGearKnowledgeInputSchema,
