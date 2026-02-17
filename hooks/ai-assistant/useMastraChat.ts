@@ -126,8 +126,6 @@ export function useMastraChat(): UseMastraChatResult {
       return null;
     }
   });
-  const [_isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
-
   // Refs for tracking request state
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
@@ -147,7 +145,6 @@ export function useMastraChat(): UseMastraChatResult {
       return; // Already loaded or no user
     }
 
-    setIsLoadingHistory(true);
     try {
       const response = await fetch('/api/mastra/conversation-history', {
         method: 'POST',
@@ -157,13 +154,27 @@ export function useMastraChat(): UseMastraChatResult {
       });
 
       if (!response.ok) {
+        // If the stored conversation ID is invalid or unauthorized, clear it so
+        // the user starts a fresh conversation on the next interaction.
+        if (response.status === 404 || response.status === 401) {
+          try {
+            localStorage.removeItem('gearshack:ai-conversation-id');
+          } catch {
+            // Silently fail if localStorage unavailable
+          }
+          setConversationId(null);
+          historyLoadedRef.current = null;
+        }
         throw new Error('Failed to load conversation history');
       }
 
       const data = await response.json();
+      const validRoles = ['user', 'assistant'] as const;
       const historyMessages: MastraMessage[] = data.messages.map((msg: { id: string; role: string; content: string; created_at: string }) => ({
         id: msg.id,
-        role: msg.role as 'user' | 'assistant',
+        role: validRoles.includes(msg.role as 'user' | 'assistant')
+          ? (msg.role as 'user' | 'assistant')
+          : 'assistant',
         content: msg.content,
         createdAt: msg.created_at,
       }));
@@ -182,8 +193,6 @@ export function useMastraChat(): UseMastraChatResult {
         error: err instanceof Error ? err.message : 'Unknown',
       });
       // Don't show error to user - just start fresh conversation
-    } finally {
-      setIsLoadingHistory(false);
     }
   }, [user]);
 
@@ -513,12 +522,14 @@ export function useMastraChat(): UseMastraChatResult {
     await sendMessage(text, options);
   }, [sendMessage, t]);
 
-  // Load conversation history on mount if conversationId exists
+  // Load conversation history on mount if conversationId exists.
+  // Guard with state === 'idle' to prevent overwriting optimistic message updates
+  // if the user sends a message before history finishes loading.
   useEffect(() => {
-    if (conversationId && user && historyLoadedRef.current !== conversationId) {
+    if (conversationId && user && historyLoadedRef.current !== conversationId && state === 'idle') {
       loadConversationHistory(conversationId);
     }
-  }, [conversationId, user, loadConversationHistory]);
+  }, [conversationId, user, loadConversationHistory, state]);
 
   // Cleanup on unmount - CRITICAL for preventing memory leaks
   // Aborts in-flight requests when component unmounts

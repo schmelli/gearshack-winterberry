@@ -4,10 +4,17 @@
  *
  * This endpoint fetches the last 50 messages from a conversation
  * to restore context when the AI panel is reopened.
+ *
+ * NOTE: Limited to the last HISTORY_LIMIT messages. Older messages are
+ * silently dropped. If a conversation exceeds this limit, only the most
+ * recent messages are restored.
+ * TODO: Add pagination or a truncation indicator in the response if
+ * conversations regularly exceed HISTORY_LIMIT messages.
  */
 
 import { createClient } from '@/lib/supabase/server';
 import { logError, logDebug } from '@/lib/mastra/logging';
+import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -60,7 +67,26 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 4. Fetch conversation history
+    // 4. Rate limiting - consistent with chat endpoint
+    const rateLimitResult = await checkAndIncrementRateLimit(user.id, 'simple_query');
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': String(rateLimitResult.limit ?? 'unlimited'),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
+    // 5. Fetch conversation history
+    // Security: ai_messages does not have user_id; join with ai_conversations to verify ownership.
+    // Order descending to get the LAST HISTORY_LIMIT messages, then reverse in-app for
+    // chronological order.
     logDebug('Fetching conversation history', {
       userId: user.id,
       conversationId,
@@ -69,10 +95,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const { data: messages, error: fetchError } = await supabase
       .from('ai_messages')
-      .select('id, role, content, created_at')
+      .select('id, role, content, created_at, ai_conversations!inner(user_id)')
       .eq('conversation_id', conversationId)
-      .eq('user_id', user.id) // Security: only fetch user's own messages
-      .order('created_at', { ascending: true })
+      .eq('ai_conversations.user_id', user.id) // Security: only fetch messages belonging to this user
+      .order('created_at', { ascending: false })
       .limit(HISTORY_LIMIT);
 
     if (fetchError) {
@@ -86,15 +112,26 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    if (!messages || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ messages: [] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Reverse to restore chronological order (oldest first)
+    const chronologicalMessages = messages
+      .reverse()
+      .map(({ id, role, content, created_at }) => ({ id, role, content, created_at }));
+
     return new Response(
-      JSON.stringify({ messages: messages || [] }),
+      JSON.stringify({ messages: chronologicalMessages }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logError('Conversation history request failed', error instanceof Error ? error : undefined);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
