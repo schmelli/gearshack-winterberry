@@ -17,6 +17,11 @@ import { queryUserDataTool } from '@/lib/mastra/tools/query-user-data';
 import { searchCatalogTool } from '@/lib/mastra/tools/search-catalog';
 import { searchWebTool } from '@/lib/mastra/tools/search-web';
 
+// Import Feature-060 composite tools (AI Agent Evolution)
+import { searchGearKnowledgeTool } from '@/lib/mastra/tools/search-gear-knowledge';
+import { analyzeLoadoutTool } from '@/lib/mastra/tools/analyze-loadout';
+import { inventoryInsightsTool } from '@/lib/mastra/tools/inventory-insights';
+
 // Import MCP GearGraph tools (T059 - Register MCP tools with agent)
 import {
   findAlternativesTool,
@@ -144,6 +149,41 @@ function adaptMastraTool<TInput, TOutput>(
   };
 }
 
+/**
+ * Convert Feature-060 composite Mastra tool to Vercel AI SDK format
+ *
+ * Feature-060 tools (searchGearKnowledge, analyzeLoadout, inventoryInsights) use:
+ *   execute(input, executionContext) where executionContext.requestContext.get('userId')
+ *
+ * This adapter passes userId via requestContext as expected by extractUserId() in utils.ts
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function adaptCompositeToolF060(mastraTool: any, userId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsonSchema = zodToJsonSchema(mastraTool.inputSchema as any, {
+    target: 'jsonSchema7',
+    $refStrategy: 'none',
+  }) as JsonSchema;
+
+  if (!jsonSchema.type) {
+    jsonSchema.type = 'object';
+  }
+
+  return {
+    description: mastraTool.description,
+    parameters: jsonSchema,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (args: any) => {
+      // Build requestContext as expected by extractUserId() in utils.ts
+      const requestContext = new Map<string, unknown>();
+      requestContext.set('userId', userId);
+
+      // Call Mastra tool's execute with (input, executionContext) signature
+      return await mastraTool.execute(args, { requestContext });
+    },
+  };
+}
+
 // =====================================================
 // T058: AI Tool Definitions
 // =====================================================
@@ -214,6 +254,22 @@ export function getAITools(userId: string) {
         return { action: 'navigate', destination: args.destination };
       },
     },
+
+    // =========================================================================
+    // Feature-060 Composite Tools (AI Agent Evolution)
+    // =========================================================================
+
+    // Unified inventory + catalog search with category-aware resolution
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    searchGearKnowledge: adaptCompositeToolF060(searchGearKnowledgeTool as any, userId),
+
+    // Complete loadout analysis (weight, Big 3, gaps, essentials)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    analyzeLoadout: adaptCompositeToolF060(analyzeLoadoutTool as any, userId),
+
+    // Rich inventory statistics (counts, heaviest items, brands, value)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inventoryInsights: adaptCompositeToolF060(inventoryInsightsTool as any, userId),
 
     // =========================================================================
     // MCP GearGraph Tools (T059 - US3: MCP Client Integration)
