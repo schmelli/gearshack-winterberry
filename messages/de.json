@@ -3703,6 +3703,11 @@
       "suggestion3": "Zeig mir meine Schlafsäcke"
     },
     "thinking": "KI denkt nach...",
+    "progress": {
+      "memory": "Profil wird geladen...",
+      "context": "Ausrüstung wird analysiert...",
+      "thinking": "Antwort wird vorbereitet..."
+    },
     "ariaLabels": {
       "aiAssistant": "KI-Assistent",
       "trailblazerFeature": "Trailblazer-Funktion",

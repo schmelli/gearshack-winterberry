@@ -17,7 +17,7 @@ import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
+import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgressData } from '@/lib/ai-assistant/stream-parser';
 
 // =====================================================
 // Types
@@ -96,6 +96,8 @@ export interface UseMastraChatResult {
   conversationId: string | null;
   /** Abort current streaming request */
   abort: () => void;
+  /** Current workflow progress message (shown during pipeline phases) */
+  progressMessage: string | null;
 }
 
 // =====================================================
@@ -117,6 +119,7 @@ export function useMastraChat(): UseMastraChatResult {
   const [messages, setMessages] = useState<MastraMessage[]>([]);
   const [state, setState] = useState<ChatState>('idle');
   const [error, setError] = useState<ChatError | null>(null);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
   // Initialize conversationId from localStorage
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -209,6 +212,7 @@ export function useMastraChat(): UseMastraChatResult {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setState('idle');
+      setProgressMessage(null);
       logAIEvent('info', 'Chat request aborted by user');
     }
   }, []);
@@ -258,8 +262,9 @@ export function useMastraChat(): UseMastraChatResult {
       // Create new abort controller
       abortControllerRef.current = new AbortController();
 
-      // Clear previous error
+      // Clear previous error and progress
       setError(null);
+      setProgressMessage(null);
 
       // Transition to loading state
       setState('loading');
@@ -382,6 +387,8 @@ export function useMastraChat(): UseMastraChatResult {
             event,
             assistantMessageId,
             (text) => {
+              // Clear progress message once actual content starts flowing
+              setProgressMessage(null);
               fullContent += text;
               textUpdateBuffer += text;
 
@@ -417,6 +424,9 @@ export function useMastraChat(): UseMastraChatResult {
                     : msg
                 )
               );
+            },
+            (progress) => {
+              setProgressMessage(progress);
             }
           );
         }
@@ -431,6 +441,7 @@ export function useMastraChat(): UseMastraChatResult {
         const latency = Date.now() - startTime;
 
         // Transition to success state
+        setProgressMessage(null);
         setState('success');
 
         logAIEvent('info', 'Mastra chat response completed', {
@@ -550,6 +561,7 @@ export function useMastraChat(): UseMastraChatResult {
     isStreaming: state === 'streaming',
     conversationId,
     abort,
+    progressMessage,
   };
 }
 
@@ -565,7 +577,8 @@ async function processStreamEvent(
   messageId: string,
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
-  onMemoryUpdate: (update: MemoryUpdate) => void
+  onMemoryUpdate: (update: MemoryUpdate) => void,
+  onProgress?: (message: string) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -577,6 +590,13 @@ async function processStreamEvent(
     case 'tool_call':
       if (typeof event.data === 'object' && 'toolName' in event.data) {
         onToolCall(event.data as ToolCallData);
+      }
+      break;
+
+    case 'workflow_progress':
+      if (typeof event.data === 'object' && 'message' in event.data) {
+        const progressData = event.data as WorkflowProgressData;
+        onProgress?.(progressData.message);
       }
       break;
 
