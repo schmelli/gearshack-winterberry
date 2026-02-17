@@ -79,7 +79,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
   tools: `**Available Tools (6 total):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category)
+- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer.
 - **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)
 - **queryGearGraph**: Cypher queries for product relationships in knowledge graph (fallback for relationship queries)
 - **searchWeb**: Real-time web search for trail conditions, gear reviews, current info`,
@@ -158,7 +158,7 @@ const GERMAN_CONTENT: LocalizedContent = {
   tools: `**Verfuegbare Tools (6 insgesamt):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie)
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen mit den gefundenen Gegenstaenden verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort.
 - **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)
 - **queryGearGraph**: Cypher-Abfragen fuer Produktbeziehungen im Knowledge Graph (Fallback fuer Beziehungs-Abfragen)
 - **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos`,

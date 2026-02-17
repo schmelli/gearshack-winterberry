@@ -7,6 +7,7 @@
  * - Product catalog (GearGraph synced data)
  * - GearGraph knowledge graph (via Cypher)
  * - Categories and brands
+ * - GearGraph INSIGHTS (HAS_TIP relationships) for found gear items
  *
  * Replaces separate queryUserData + queryCatalog + queryGearGraph calls.
  *
@@ -17,6 +18,79 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
+
+// =============================================================================
+// GearGraph Insights Integration
+// =============================================================================
+
+const GEARGRAPH_QUERY_URL = 'https://geargraph.gearshack.app/api/query';
+
+interface CypherInsightResult {
+  'i.summary': string;
+  'i.content': string;
+  'g.name'?: string;
+}
+
+interface CypherQueryResponse {
+  results: CypherInsightResult[];
+  count: number;
+}
+
+/**
+ * Fetch INSIGHTS from GearGraph for a list of gear item names/brands.
+ * Uses the (GearItem)-[:HAS_TIP]->(Insight) relationship.
+ * Returns an empty array gracefully if the API is unavailable.
+ */
+async function fetchInsightsFromGearGraph(
+  searchTerms: Array<{ name: string; brand: string | null }>,
+  limit = 8
+): Promise<Array<{ itemName: string; content: string }>> {
+  const apiKey = process.env.GEARGRAPH_API_KEY;
+  if (!apiKey || searchTerms.length === 0) return [];
+
+  // Build OR conditions for up to 5 items to keep queries concise
+  const top5 = searchTerms.slice(0, 5);
+  const conditions = top5
+    .map((item) => {
+      const escapedName = item.name.replace(/'/g, "\\'");
+      if (item.brand) {
+        const escapedBrand = item.brand.replace(/'/g, "\\'");
+        return `toLower(g.name) CONTAINS toLower('${escapedName}') OR toLower(g.brand) CONTAINS toLower('${escapedBrand}')`;
+      }
+      return `toLower(g.name) CONTAINS toLower('${escapedName}')`;
+    })
+    .join(' OR ');
+
+  const query = `
+    MATCH (g:GearItem)-[:HAS_TIP]->(i:Insight)
+    WHERE ${conditions}
+    RETURN g.name, i.summary, i.content
+    LIMIT ${limit}
+  `;
+
+  try {
+    const response = await fetch(GEARGRAPH_QUERY_URL, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, parameters: {} }),
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!response.ok) return [];
+
+    const result: CypherQueryResponse = await response.json();
+    return (result.results || []).map((r) => ({
+      itemName: r['g.name'] || '',
+      content: r['i.content'] || r['i.summary'] || '',
+    })).filter((r) => r.content.length > 0);
+  } catch {
+    // Graceful degradation - insights are enrichment, not critical
+    return [];
+  }
+}
 
 // =============================================================================
 // Schemas
@@ -69,6 +143,10 @@ const searchGearKnowledgeOutputSchema = z.object({
     productType: z.string().nullable(),
     description: z.string().nullable(),
   })).optional().describe('Results from product catalog'),
+  gearGraphInsights: z.array(z.object({
+    itemName: z.string().describe('Gear item this insight applies to'),
+    content: z.string().describe('Expert tip, recommendation, or warning from the GearGraph knowledge base'),
+  })).optional().describe('Expert insights from the GearGraph knowledge base for found gear items (HAS_TIP relationships)'),
   totalResults: z.number(),
   error: z.string().optional(),
 });
@@ -88,7 +166,9 @@ export const searchGearKnowledgeTool = createTool({
 - "Compare my tents with what's on the market" → scope: "all", query: "tent"
 - "Show me more results" → Use offset parameter for pagination (e.g., offset: 10 for next page)
 
-This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.`,
+This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.
+
+IMPORTANT: Results include a \`gearGraphInsights\` field with expert tips and recommendations from the GearGraph knowledge base (HAS_TIP relationships). These insights contain curated wisdom about the found gear items — cold-weather performance, maintenance tips, compatibility warnings, expert recommendations. Always incorporate these insights into your response when present.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -138,6 +218,14 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
 
       const totalResults = myGear.length + catalogProducts.length;
 
+      // 3. Fetch GearGraph INSIGHTS for found items (enrichment, non-blocking)
+      // Query the (GearItem)-[:HAS_TIP]->(Insight) relationships for expert tips
+      const insightSearchTerms = [
+        ...myGear.map(item => ({ name: item.name as string, brand: (item.brand || null) as string | null })),
+        ...catalogProducts.map(item => ({ name: item.name as string, brand: (item.brand_name || null) as string | null })),
+      ];
+      const gearGraphInsights = await fetchInsightsFromGearGraph(insightSearchTerms);
+
       // Build summary
       const summaryParts: string[] = [];
       if (myGear.length > 0) {
@@ -145,6 +233,9 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
       }
       if (catalogProducts.length > 0) {
         summaryParts.push(`Found ${catalogProducts.length} matching products in the catalog`);
+      }
+      if (gearGraphInsights.length > 0) {
+        summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
       if (totalResults === 0) {
         summaryParts.push(`No results found for "${query}"`);
@@ -171,6 +262,7 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
           productType: (item.product_type || null) as string | null,
           description: (item.description || null) as string | null,
         })),
+        gearGraphInsights: gearGraphInsights.length > 0 ? gearGraphInsights : undefined,
         totalResults,
       };
     } catch (error) {
