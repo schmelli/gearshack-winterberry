@@ -345,7 +345,7 @@ export async function getUserGearList(userId: string): Promise<string> {
 
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, status, product_type_id, categories!inner(label, i18n)')
+    .select('id, name, brand, weight_grams, status, product_type_id, categories(label, i18n)')
     .eq('user_id', userId)
     .eq('status', 'own')
     .order('name', { ascending: true })

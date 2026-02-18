@@ -158,19 +158,22 @@ const searchGearKnowledgeOutputSchema = z.object({
 export const searchGearKnowledgeTool = createTool({
   id: 'searchGearKnowledge',
 
-  description: `Unified search across user inventory AND product catalog in a single call. Use for:
-- "Do I have a stove that works in cold weather?" → scope: "my_gear", query: "stove"
-- "Was für einen Kocher habe ich?" → scope: "my_gear", query: "Kocher" (German terms work too)
+  description: `PRIMARY TOOL for searching user inventory and product catalog. Use this FIRST for any gear-related search.
+
+Key use cases:
+- "Do I have a stove?" → scope: "my_gear", query: "stove" (finds "MSR PocketRocket" via category!)
+- "Welche Kocher habe ich?" → scope: "my_gear", query: "Kocher" (German terms work automatically!)
+- "Habe ich ein Zelt?" → scope: "my_gear", query: "Zelt"
+- "Welche Schlafsäcke besitze ich?" → scope: "my_gear", query: "Schlafsack"
 - "Find ultralight tents under 1kg" → scope: "catalog", query: "tent", filters: { maxWeight: 1000 }
 - "What rain jackets do I own and what else is available?" → scope: "all", query: "rain jacket"
 - "Show me all Hilleberg products" → scope: "all", query: "Hilleberg"
 - "Compare my tents with what's on the market" → scope: "all", query: "tent"
 - "Show me more results" → Use offset parameter for pagination (e.g., offset: 10 for next page)
 
-This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.
+CRITICAL: This tool uses category-aware search. Searching for "Kocher" (German for stove) will find items categorized as stoves even if their names are "MSR PocketRocket" or "Jetboil Flash". Never use queryUserData for category-based inventory searches.
 
-IMPORTANT: Results include a \`gearGraphInsights\` field with expert tips and recommendations from the GearGraph knowledge base (HAS_TIP relationships). These insights contain curated wisdom about the found gear items — cold-weather performance, maintenance tips, compatibility warnings, expert recommendations. Always incorporate these insights into your response when present.
-Supports both English and German category terms (e.g., "Kocher" finds stoves, "Zelte" finds tents).`,
+Results include a \`gearGraphInsights\` field with expert tips from the GearGraph knowledge base. Always incorporate these insights when present.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -346,6 +349,8 @@ async function searchUserGear(
   // that are categorized as stoves but named "MSR PocketRocket", etc.
   const categoryIds = await resolveCategoryIds(supabase, query);
 
+  console.log(`[searchGearKnowledge] query="${query}" → categoryIds=[${categoryIds.join(',')}]`);
+
   if (categoryIds.length > 0) {
     // Search by text fields OR by matching category
     const orFilters = [
@@ -354,9 +359,12 @@ async function searchUserGear(
       `notes.ilike.%${query}%`,
       `category_id.in.(${categoryIds.join(',')})`,
     ];
-    dbQuery = dbQuery.or(orFilters.join(','));
+    const orString = orFilters.join(',');
+    console.log(`[searchGearKnowledge] OR filter: ${orString}`);
+    dbQuery = dbQuery.or(orString);
   } else {
     // Fallback: text-only search
+    console.log(`[searchGearKnowledge] No categories found, using text-only search`);
     dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
   }
 
@@ -399,7 +407,11 @@ async function searchUserGear(
   }
 
   const { data, error } = await dbQuery.range(offset, offset + limit - 1);
-  if (error) throw new Error(`User gear search: ${error.message}`);
+  if (error) {
+    console.error(`[searchGearKnowledge] User gear search error: ${error.message}`, error);
+    throw new Error(`User gear search: ${error.message}`);
+  }
+  console.log(`[searchGearKnowledge] Found ${(data || []).length} user gear items for query="${query}"`);
 
   // Flatten category label
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
