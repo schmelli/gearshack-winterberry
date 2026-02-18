@@ -51,7 +51,7 @@ function EditGearItemContent({ id }: EditGearItemContentProps) {
   // This prevents premature 404 for valid wishlist items
   if (!gearItem && isLoading) {
     return (
-      <main className="container py-8">
+      <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center">
           <p className="text-muted-foreground">{tCommon('loading')}</p>
         </div>
@@ -65,7 +65,7 @@ function EditGearItemContent({ id }: EditGearItemContentProps) {
   }
 
   return (
-    <main className="container py-8">
+    <main className="container mx-auto px-4 py-8">
       <GearEditorForm
         initialItem={gearItem}
         title={t('editTitle', { name: gearItem.name })}

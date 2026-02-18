@@ -19,7 +19,7 @@ export default function AlertSettingsPage() {
   const { preferences, isLoading, error, updatePreferences } = useAlertPreferences();
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
+    <div className="container mx-auto max-w-4xl px-4 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button

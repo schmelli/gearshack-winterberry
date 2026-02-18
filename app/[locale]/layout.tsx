@@ -7,7 +7,7 @@
  */
 
 import { Suspense } from 'react';
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -47,6 +47,12 @@ export const metadata: Metadata = {
   description: "Gear management for the obsessed.",
 };
 
+// Explicit viewport for proper mobile rendering
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 // T018: Generate static params for all locales
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -65,6 +71,15 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     // T017: Dynamic lang attribute based on current locale (FR-007)
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/* Meticulous.ai recorder - MUST be first script to load */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
+          data-recording-token="Hfx0rAszTGc7WlMQNOi2ORW3bIiPMflK9o88ds5B"
+          data-is-production-environment={process.env.VERCEL_ENV === "production" ? "true" : "false"}
+          src="https://snippet.meticulous.ai/v1/meticulous.js"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${rockSalt.variable} antialiased`}
         suppressHydrationWarning

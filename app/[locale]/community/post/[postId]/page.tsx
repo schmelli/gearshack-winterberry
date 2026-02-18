@@ -33,7 +33,7 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       <Suspense fallback={<PostSkeleton count={1} />}>
         <PostDetailContent postId={postId} />
       </Suspense>

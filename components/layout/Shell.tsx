@@ -68,14 +68,13 @@ export function Shell({ children }: ShellProps) {
   }
 
   // All other routes: render full layout with header, AI panel, and footer
+  // Note: Each page manages its own container/max-width to avoid double-nesting
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <AppLayoutWithAIPanel>
         <main className="flex-1">
-          <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
+          {children}
         </main>
       </AppLayoutWithAIPanel>
       <SiteFooter />

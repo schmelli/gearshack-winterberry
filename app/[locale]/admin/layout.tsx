@@ -12,7 +12,7 @@ import { AdminMobileNav } from '@/components/admin/AdminMobileNav';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminRoute>
-      <div className="container mx-auto max-w-7xl py-8">
+      <div className="container mx-auto max-w-7xl px-4 py-8">
         {/* Mobile: Show only the main content + floating nav button */}
         <div className="md:hidden">
           <AdminMobileNav />

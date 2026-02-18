@@ -67,7 +67,7 @@ export default function NewLoadoutPage() {
   } = form;
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       {/* Back Link */}
       <Link
         href="/loadouts"

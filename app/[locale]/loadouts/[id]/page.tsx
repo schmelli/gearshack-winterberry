@@ -232,7 +232,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
       />
 
       {/* Two-Column Layout */}
-      <div className="container max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <div className="container mx-auto max-w-6xl flex-1 px-4 py-6 sm:px-6">
         {/* Sort/Filter Controls (desktop) */}
         <div className="mb-4 hidden md:block">
           <LoadoutSortFilter

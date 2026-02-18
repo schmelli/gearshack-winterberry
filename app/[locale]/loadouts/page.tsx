@@ -53,7 +53,7 @@ function LoadoutsContent() {
   const hasResults = filteredLoadouts.length > 0;
 
   return (
-    <div className="container py-8">
+    <div className="container mx-auto px-4 py-8">
       {/* Page Header - Create New Loadout button */}
       <div className="mb-6 flex items-center justify-end">
         <Button asChild>

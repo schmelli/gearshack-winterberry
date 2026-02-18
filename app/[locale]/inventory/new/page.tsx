@@ -43,7 +43,7 @@ function NewGearItemContent() {
   // Wait for prefill data to load before rendering form
   if (!prefillLoaded) {
     return (
-      <main className="container py-8">
+      <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -77,7 +77,7 @@ function NewGearItemContent() {
     : undefined;
 
   return (
-    <main className="container py-8">
+    <main className="container mx-auto px-4 py-8">
       <GearEditorForm
         title={isWishlistMode ? t('addToWishlistTitle') : t('addTitle')}
         mode={isWishlistMode ? 'wishlist' : 'inventory'}
@@ -91,7 +91,7 @@ function NewGearItemContent() {
 export default function NewGearItemPage() {
   return (
     <ProtectedRoute>
-      <Suspense fallback={<div className="container py-8"><div className="flex items-center justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div></div>}>
+      <Suspense fallback={<div className="container mx-auto px-4 py-8"><div className="flex items-center justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div></div>}>
         <NewGearItemContent />
       </Suspense>
     </ProtectedRoute>
