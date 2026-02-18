@@ -21,8 +21,13 @@ import { ShakedownsFeedContent } from './ShakedownsFeedContent';
 // Metadata
 // =============================================================================
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('Shakedowns');
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale = 'en' } = await params;
+  const t = await getTranslations({ locale, namespace: 'Shakedowns' });
 
   return {
     title: t('title'),

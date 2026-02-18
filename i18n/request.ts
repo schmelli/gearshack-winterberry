@@ -53,7 +53,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
       ...mainMessages,
       vip: vipMessages,
       bulletin: bulletinMessages,
-      Community: communityMessages,
+      // Merge community.json into the Community namespace from mainMessages
+      // (not replace) to preserve mainMessages.Community keys like "meta"
+      Community: {
+        ...((mainMessages as Record<string, unknown>).Community as Record<string, unknown> ?? {}),
+        ...(communityMessages as Record<string, unknown>),
+      },
     },
   };
 });
