@@ -71,8 +71,13 @@ export default async function VipDirectoryPage() {
 // Metadata
 // =============================================================================
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('vip');
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale = 'en' } = await params;
+  const t = await getTranslations({ locale, namespace: 'vip' });
 
   const title = t('directory.metaTitle');
   const description = t('directory.metaDescription');

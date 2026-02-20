@@ -18,8 +18,13 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('Landing.meta');
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale = 'en' } = await params;
+  const t = await getTranslations({ locale, namespace: 'Landing.meta' });
 
   return {
     title: t('title'),

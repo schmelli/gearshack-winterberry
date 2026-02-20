@@ -49,6 +49,8 @@ interface LocalizedContent {
   safetyGuidance: string;
   /** Category hierarchy reference for accurate searches */
   categoryReference: string;
+  /** GearGraph knowledge guidance for trip-specific queries */
+  gearGraphGuidance: string;
 }
 
 // =============================================================================
@@ -76,12 +78,15 @@ const ENGLISH_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Available Tools (6 total):**
+  tools: `**Available Tools (9 total):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category)
+- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer.
+- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves)
 - **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)
-- **queryGearGraph**: Cypher queries for product relationships in knowledge graph (fallback for relationship queries)
+- **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
+- **searchGear**: Search the GearGraph catalog with filters (category, brand, weight, price)
+- **findAlternatives**: Find lighter/cheaper/similar alternatives for a specific gear item
 - **searchWeb**: Real-time web search for trail conditions, gear reviews, current info`,
 
   capabilities: `**Conversational Style & Tone:**
@@ -132,6 +137,17 @@ When analyzing gear for trips, gently check:
 **Tone**: Supportive, never alarmist. Use "You might want to consider..." and "Worth noting..." rather than "This is dangerous" or "You need to...". Only escalate language for genuinely dangerous mismatches (e.g., summer bag for arctic expedition). Always frame constructively and end with encouragement.`,
 
   categoryReference: '',
+
+  gearGraphGuidance: `**Using GearGraph for Trip-Specific Recommendations:**
+
+When a user asks which of their gear is best for a specific destination or conditions (e.g., "best stove for Scandinavia in winter"), combine inventory knowledge with GearGraph wisdom:
+
+1. **Find user's gear** using \`searchGearKnowledge\` (scope: "my_gear") — it understands both English and German category names (e.g., "Kocher" finds stoves)
+2. **Query GearGraph for seasonal/climate suitability** using \`queryGearGraph\`:
+   - Cold-weather items: \`MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season) WHERE s.name IN ['4-season', 'Winter'] AND p.category = 'stoves' RETURN p.name, p.weight\`
+   - Activity-suited items: \`MATCH (p:Product)-[:SUITED_FOR]->(a:Activity {name: 'Backpacking'}) WHERE p.category = 'stoves' RETURN p.name, p.weight\`
+3. **Find complementary gear** using PAIRS_WITH: \`MATCH (p:Product {name: 'MSR PocketRocket'})-[:PAIRS_WITH]->(c:Product) RETURN c.name, c.category\`
+4. **Give an opinionated answer**: Cross-reference what the user OWNS with GearGraph insights. Don't just list — recommend the BEST option with clear reasoning about WHY it fits the conditions.`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -155,12 +171,15 @@ const GERMAN_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Verfuegbare Tools (6 insgesamt):**
+  tools: `**Verfuegbare Tools (9 insgesamt):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie)
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen mit den gefundenen Gegenstaenden verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort.
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves)
 - **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)
-- **queryGearGraph**: Cypher-Abfragen fuer Produktbeziehungen im Knowledge Graph (Fallback fuer Beziehungs-Abfragen)
+- **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
+- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, Gewicht, Preis)
+- **findAlternatives**: Leichtere/guenstigere/aehnliche Alternativen fuer ein bestimmtes Gear-Item finden
 - **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos`,
 
   capabilities: `**Gespraechsstil & Ton:**
@@ -211,6 +230,17 @@ Bei der Ausruestungsanalyse fuer Trips sanft pruefen:
 **Ton**: Unterstuetzend, niemals alarmierend. Verwende "Du koenntest ueberlegen..." und "Gut zu wissen..." statt "Das ist gefaehrlich" oder "Du musst...". Nur bei wirklich gefaehrlichen Fehlanpassungen staerkere Sprache (z.B. Sommerschlafsack fuer Arktis-Expedition). Immer konstruktiv formulieren und mit Ermutigung enden.`,
 
   categoryReference: '',
+
+  gearGraphGuidance: `**GearGraph fuer Ziel-spezifische Empfehlungen nutzen:**
+
+Wenn ein Nutzer fragt welches seiner Gear-Items am besten fuer ein bestimmtes Reiseziel oder Bedingungen geeignet ist (z.B. "bester Kocher fuer Skandinavien im Winter"), kombiniere Inventar-Wissen mit GearGraph-Expertise:
+
+1. **Inventar-Suche** mit \`searchGearKnowledge\` (scope: "my_gear") — versteht deutsche und englische Kategorie-Namen ("Kocher" findet Stoves)
+2. **GearGraph fuer Saison/Klima-Eignung abfragen** mit \`queryGearGraph\`:
+   - Kaelte-geeignete Items: \`MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season) WHERE s.name IN ['4-season', 'Winter'] AND p.category = 'stoves' RETURN p.name, p.weight\`
+   - Aktivitaets-geeignete Items: \`MATCH (p:Product)-[:SUITED_FOR]->(a:Activity {name: 'Backpacking'}) WHERE p.category = 'stoves' RETURN p.name, p.weight\`
+3. **Komplementaere Ausruestung** ueber PAIRS_WITH finden: \`MATCH (p:Product {name: 'MSR PocketRocket'})-[:PAIRS_WITH]->(c:Product) RETURN c.name, c.category\`
+4. **Meinungsstarke Empfehlung**: Vergleiche was der Nutzer BESITZT mit GearGraph-Erkenntnissen. Nicht nur auflisten — das BESTE empfehlen mit klarer Begruendung warum es zu den Bedingungen passt.`,
 };
 
 /**
@@ -415,7 +445,13 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 9. Loadout Analysis Guidance (only when viewing a loadout)
+  // 9. GearGraph trip-planning guidance (always shown)
+  // Teaches the agent how to use GearGraph for destination/condition queries
+  if (content.gearGraphGuidance) {
+    sections.push(`\n${content.gearGraphGuidance}`);
+  }
+
+  // 10. Loadout Analysis Guidance (only when viewing a loadout)
   // This enables deep trip analysis with destination research and safety feedback
   if (viewingLoadout) {
     sections.push(`\n${content.loadoutAnalysis}`);

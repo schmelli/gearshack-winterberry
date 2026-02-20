@@ -15,8 +15,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('Loadouts.meta');
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale = 'en' } = await params;
+  const t = await getTranslations({ locale, namespace: 'Loadouts.meta' });
 
   return {
     title: t('title'),

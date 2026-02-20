@@ -18,8 +18,13 @@ import { CommunityHub } from '@/components/community/CommunityHub';
 import { BulletinBoard } from '@/components/bulletin/BulletinBoard';
 import { fetchActiveAnnouncements } from '@/lib/server/announcements';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('Community.meta');
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale = 'en' } = await params;
+  const t = await getTranslations({ locale, namespace: 'Community.meta' });
 
   return {
     title: t('title'),

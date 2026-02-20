@@ -19,7 +19,7 @@ interface GearItem {
   id: string;
   name: string;
   brand: string | null;
-  category_id: string | null;
+  product_type_id: string | null;
   weight_grams: number | null;
   price_paid: number | null;
   primary_image_url: string | null;
@@ -41,7 +41,7 @@ export function InlineGearCard({ gearId }: InlineGearCardProps) {
       try {
         const { data, error } = await supabase
           .from('gear_items')
-          .select('id, name, brand, category_id, weight_grams, price_paid, primary_image_url')
+          .select('id, name, brand, product_type_id, weight_grams, price_paid, primary_image_url')
           .eq('id', gearId)
           .single();
 

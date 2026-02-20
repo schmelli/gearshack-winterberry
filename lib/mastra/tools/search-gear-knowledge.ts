@@ -7,6 +7,7 @@
  * - Product catalog (GearGraph synced data)
  * - GearGraph knowledge graph (via Cypher)
  * - Categories and brands
+ * - GearGraph INSIGHTS (HAS_TIP relationships) for found gear items
  *
  * Replaces separate queryUserData + queryCatalog + queryGearGraph calls.
  *
@@ -17,6 +18,79 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
+
+// =============================================================================
+// GearGraph Insights Integration
+// =============================================================================
+
+const GEARGRAPH_QUERY_URL = 'https://geargraph.gearshack.app/api/query';
+
+interface CypherInsightResult {
+  'i.summary': string;
+  'i.content': string;
+  'g.name'?: string;
+}
+
+interface CypherQueryResponse {
+  results: CypherInsightResult[];
+  count: number;
+}
+
+/**
+ * Fetch INSIGHTS from GearGraph for a list of gear item names/brands.
+ * Uses the (GearItem)-[:HAS_TIP]->(Insight) relationship.
+ * Returns an empty array gracefully if the API is unavailable.
+ */
+async function fetchInsightsFromGearGraph(
+  searchTerms: Array<{ name: string; brand: string | null }>,
+  limit = 8
+): Promise<Array<{ itemName: string; content: string }>> {
+  const apiKey = process.env.GEARGRAPH_API_KEY;
+  if (!apiKey || searchTerms.length === 0) return [];
+
+  // Build OR conditions for up to 5 items to keep queries concise
+  const top5 = searchTerms.slice(0, 5);
+  const conditions = top5
+    .map((item) => {
+      const escapedName = item.name.replace(/'/g, "\\'");
+      if (item.brand) {
+        const escapedBrand = item.brand.replace(/'/g, "\\'");
+        return `toLower(g.name) CONTAINS toLower('${escapedName}') OR toLower(g.brand) CONTAINS toLower('${escapedBrand}')`;
+      }
+      return `toLower(g.name) CONTAINS toLower('${escapedName}')`;
+    })
+    .join(' OR ');
+
+  const query = `
+    MATCH (g:GearItem)-[:HAS_TIP]->(i:Insight)
+    WHERE ${conditions}
+    RETURN g.name, i.summary, i.content
+    LIMIT ${limit}
+  `;
+
+  try {
+    const response = await fetch(GEARGRAPH_QUERY_URL, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, parameters: {} }),
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!response.ok) return [];
+
+    const result: CypherQueryResponse = await response.json();
+    return (result.results || []).map((r) => ({
+      itemName: r['g.name'] || '',
+      content: r['i.content'] || r['i.summary'] || '',
+    })).filter((r) => r.content.length > 0);
+  } catch {
+    // Graceful degradation - insights are enrichment, not critical
+    return [];
+  }
+}
 
 // =============================================================================
 // Schemas
@@ -69,6 +143,10 @@ const searchGearKnowledgeOutputSchema = z.object({
     productType: z.string().nullable(),
     description: z.string().nullable(),
   })).optional().describe('Results from product catalog'),
+  gearGraphInsights: z.array(z.object({
+    itemName: z.string().describe('Gear item this insight applies to'),
+    content: z.string().describe('Expert tip, recommendation, or warning from the GearGraph knowledge base'),
+  })).optional().describe('Expert insights from the GearGraph knowledge base for found gear items (HAS_TIP relationships)'),
   totalResults: z.number(),
   error: z.string().optional(),
 });
@@ -80,15 +158,22 @@ const searchGearKnowledgeOutputSchema = z.object({
 export const searchGearKnowledgeTool = createTool({
   id: 'searchGearKnowledge',
 
-  description: `Unified search across user inventory AND product catalog in a single call. Use for:
-- "Do I have a stove that works in cold weather?" → scope: "my_gear", query: "stove"
+  description: `PRIMARY TOOL for searching user inventory and product catalog. Use this FIRST for any gear-related search.
+
+Key use cases:
+- "Do I have a stove?" → scope: "my_gear", query: "stove" (finds "MSR PocketRocket" via category!)
+- "Welche Kocher habe ich?" → scope: "my_gear", query: "Kocher" (German terms work automatically!)
+- "Habe ich ein Zelt?" → scope: "my_gear", query: "Zelt"
+- "Welche Schlafsäcke besitze ich?" → scope: "my_gear", query: "Schlafsack"
 - "Find ultralight tents under 1kg" → scope: "catalog", query: "tent", filters: { maxWeight: 1000 }
 - "What rain jackets do I own and what else is available?" → scope: "all", query: "rain jacket"
 - "Show me all Hilleberg products" → scope: "all", query: "Hilleberg"
 - "Compare my tents with what's on the market" → scope: "all", query: "tent"
 - "Show me more results" → Use offset parameter for pagination (e.g., offset: 10 for next page)
 
-This replaces separate queryUserData + queryCatalog calls. Supports pagination for large result sets.`,
+CRITICAL: This tool uses category-aware search. Searching for "Kocher" (German for stove) will find items categorized as stoves even if their names are "MSR PocketRocket" or "Jetboil Flash". Never use queryUserData for category-based inventory searches.
+
+Results include a \`gearGraphInsights\` field with expert tips from the GearGraph knowledge base. Always incorporate these insights when present.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -138,6 +223,14 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
 
       const totalResults = myGear.length + catalogProducts.length;
 
+      // 3. Fetch GearGraph INSIGHTS for found items (enrichment, non-blocking)
+      // Query the (GearItem)-[:HAS_TIP]->(Insight) relationships for expert tips
+      const insightSearchTerms = [
+        ...myGear.map(item => ({ name: item.name as string, brand: (item.brand || null) as string | null })),
+        ...catalogProducts.map(item => ({ name: item.name as string, brand: (item.brand_name || null) as string | null })),
+      ];
+      const gearGraphInsights = await fetchInsightsFromGearGraph(insightSearchTerms);
+
       // Build summary
       const summaryParts: string[] = [];
       if (myGear.length > 0) {
@@ -145,6 +238,9 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
       }
       if (catalogProducts.length > 0) {
         summaryParts.push(`Found ${catalogProducts.length} matching products in the catalog`);
+      }
+      if (gearGraphInsights.length > 0) {
+        summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
       if (totalResults === 0) {
         summaryParts.push(`No results found for "${query}"`);
@@ -171,6 +267,7 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
           productType: (item.product_type || null) as string | null,
           description: (item.description || null) as string | null,
         })),
+        gearGraphInsights: gearGraphInsights.length > 0 ? gearGraphInsights : undefined,
         totalResults,
       };
     } catch (error) {
@@ -189,6 +286,53 @@ This replaces separate queryUserData + queryCatalog calls. Supports pagination f
 // Search Functions
 // =============================================================================
 
+/**
+ * Resolve a category search term to matching category IDs.
+ * Supports English and German search terms via i18n translations.
+ * Includes child categories of matching parents.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<string[]> {
+  const searchLower = searchTerm.toLowerCase();
+
+  const { data: allCategories, error } = await supabase
+    .from('categories')
+    .select('id, slug, label, parent_id, i18n');
+
+  if (error || !allCategories || allCategories.length === 0) return [];
+
+  const matchingIds = new Set<string>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const cat of allCategories as any[]) {
+    const fields: string[] = [
+      cat.slug,
+      cat.label,
+      ...(typeof cat.i18n === 'object' && cat.i18n !== null
+        ? Object.values(cat.i18n as Record<string, string>)
+        : []),
+    ].filter((f): f is string => typeof f === 'string');
+
+    if (fields.some(f => f.toLowerCase().includes(searchLower))) {
+      matchingIds.add(cat.id as string);
+    }
+  }
+
+  // Include descendant categories (children, grandchildren, etc.)
+  let prevSize = 0;
+  while (matchingIds.size > prevSize) {
+    prevSize = matchingIds.size;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const cat of allCategories as any[]) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+        matchingIds.add(cat.id as string);
+      }
+    }
+  }
+
+  return Array.from(matchingIds);
+}
+
 async function searchUserGear(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -201,11 +345,32 @@ async function searchUserGear(
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, price_paid, status, category_id, categories(label)')
+    .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories!gear_items_product_type_id_fkey(label)')
     .eq('user_id', userId);
 
-  // Text search
-  dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+  // Build search: combine text search with category-based search.
+  // This ensures German category terms like "Kocher" (stove) match items
+  // that are categorized as stoves but named "MSR PocketRocket", etc.
+  const categoryIds = await resolveCategoryIds(supabase, query);
+
+  console.log(`[searchGearKnowledge] query="${query}" → categoryIds=[${categoryIds.join(',')}]`);
+
+  if (categoryIds.length > 0) {
+    // Search by text fields OR by matching category
+    const orFilters = [
+      `name.ilike.%${query}%`,
+      `brand.ilike.%${query}%`,
+      `notes.ilike.%${query}%`,
+      `product_type_id.in.(${categoryIds.join(',')})`,
+    ];
+    const orString = orFilters.join(',');
+    console.log(`[searchGearKnowledge] OR filter: ${orString}`);
+    dbQuery = dbQuery.or(orString);
+  } else {
+    // Fallback: text-only search
+    console.log(`[searchGearKnowledge] No categories found, using text-only search`);
+    dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+  }
 
   // Apply filters
   if (filters?.status && filters.status !== 'all') {
@@ -246,7 +411,11 @@ async function searchUserGear(
   }
 
   const { data, error } = await dbQuery.range(offset, offset + limit - 1);
-  if (error) throw new Error(`User gear search: ${error.message}`);
+  if (error) {
+    console.error(`[searchGearKnowledge] User gear search error: ${error.message}`, error);
+    throw new Error(`User gear search: ${error.message}`);
+  }
+  console.log(`[searchGearKnowledge] Found ${(data || []).length} user gear items for query="${query}"`);
 
   // Flatten category label
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
