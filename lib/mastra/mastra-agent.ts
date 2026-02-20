@@ -23,6 +23,8 @@ import { createGateway } from '@ai-sdk/gateway';
 import { analyzeLoadoutTool } from './tools/analyze-loadout';
 import { inventoryInsightsTool } from './tools/inventory-insights';
 import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
+// Action tools (Feature: AI Add to Loadout)
+import { addToLoadoutTool } from './tools/add-to-loadout';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -246,6 +248,8 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       analyzeLoadout: analyzeLoadoutTool,
       inventoryInsights: inventoryInsightsTool,
       searchGearKnowledge: searchGearKnowledgeTool,
+      // Action tools
+      addToLoadout: addToLoadoutTool,
       // Legacy tools (fallback for edge cases + GearGraph Cypher)
       queryUserData: queryUserDataSqlTool,
       queryGearGraph: queryGearGraphTool,
@@ -254,7 +258,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 6 tools (3 composite + 3 legacy), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 1 action + 3 legacy), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
   );
   return agent;
 }
