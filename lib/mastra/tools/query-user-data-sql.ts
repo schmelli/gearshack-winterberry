@@ -63,8 +63,8 @@ Examples:
 - "weight_grams > 500"
 - "name ILIKE '%tent%' AND weight_grams < 1000"
 - "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
-- "category_id IN ('uuid1', 'uuid2', 'uuid3')"
-- "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"`),
+- "product_type_id IN ('uuid1', 'uuid2', 'uuid3')"
+- "product_type_id IN ('id1', 'id2') OR name ILIKE '%tent%'"`),
 
   orderBy: z
     .object({
@@ -395,7 +395,7 @@ export const queryUserDataSqlTool = createTool({
 
 **gear_items** (user's gear inventory):
 - id, name, brand, weight_grams, price_paid, currency
-- category_id, status ('own', 'wishlist', 'sold'), notes, image_url
+- product_type_id, status ('own', 'wishlist', 'sold'), notes, image_url
 - created_at, updated_at
 
 **loadouts** (user's loadout/packing lists):
@@ -417,8 +417,8 @@ Use simple SQL-like conditions (user_id is auto-applied):
 - Pattern: "brand ILIKE '%osprey%'" (case-insensitive)
 - AND: "status = 'own' AND weight_grams < 1000"
 - OR: "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
-- IN: "category_id IN ('uuid1', 'uuid2', 'uuid3')"
-- Combined: "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"
+- IN: "product_type_id IN ('uuid1', 'uuid2', 'uuid3')"
+- Combined: "product_type_id IN ('id1', 'id2') OR name ILIKE '%tent%'"
 
 ## Examples
 
@@ -502,7 +502,7 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       if (categorySearch && table === 'gear_items') {
         const categoryIds = await resolveCategorySearch(supabase, categorySearch);
         if (categoryIds.length > 0) {
-          // Match by category_id (hierarchy) OR by name (fallback)
+          // Match by product_type_id (hierarchy) OR by name (fallback)
           const orFilters = [
             `product_type_id.in.(${categoryIds.join(',')})`,
             `name.ilike.%${categorySearch}%`,
