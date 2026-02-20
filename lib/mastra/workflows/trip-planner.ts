@@ -314,7 +314,7 @@ async function fetchUserInventory(
 ): Promise<InventoryAnalysis> {
   const { data: items, error } = await supabase
     .from('gear_items')
-    .select('id, name, weight_grams, brand, category_id, status')
+    .select('id, name, weight_grams, brand, product_type_id, status')
     .eq('user_id', userId)
     .eq('status', 'own');
 
@@ -327,7 +327,7 @@ async function fetchUserInventory(
   let baseWeight = 0;
 
   for (const item of items || []) {
-    const categoryId = item.category_id || 'uncategorized';
+    const categoryId = item.product_type_id || 'uncategorized';
     if (!byCategory[categoryId]) {
       byCategory[categoryId] = [];
     }

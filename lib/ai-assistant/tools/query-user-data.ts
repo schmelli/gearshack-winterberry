@@ -90,7 +90,7 @@ export type QueryUserDataParameters = z.infer<typeof queryUserDataParametersSche
 const ALLOWED_COLUMNS: Record<string, Set<string>> = {
   gear_items: new Set([
     'id', 'user_id', 'name', 'brand', 'model', 'weight_grams', 'price_paid',
-    'price_currency', 'category_id', 'status', 'condition', 'notes',
+    'price_currency', 'product_type_id', 'status', 'condition', 'notes',
     'image_url', 'purchase_date', 'created_at', 'updated_at',
   ]),
   loadouts: new Set([
@@ -152,7 +152,7 @@ export const queryUserDataTool = {
   description: `Execute flexible read-only queries on user's database.
 
   Available tables:
-  - gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, category_id, status, etc.)
+  - gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, product_type_id, status, etc.)
   - loadouts: User's loadouts (id, name, description, total_weight, activity_types, seasons, etc.)
   - loadout_items: Items in loadouts (loadout_id, gear_item_id, quantity, etc.)
   - categories: Gear categories (id, label, i18n, icon, etc.)

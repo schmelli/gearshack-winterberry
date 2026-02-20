@@ -99,7 +99,7 @@ export async function searchCommunityOffers(
   // Build query for gear_items with marketplace flags
   let query = supabase
     .from('gear_items')
-    .select('id, name, brand, price_paid, weight_grams, category_id, primary_image_url, user_id, is_for_sale, can_be_borrowed, can_be_traded')
+    .select('id, name, brand, price_paid, weight_grams, product_type_id, primary_image_url, user_id, is_for_sale, can_be_borrowed, can_be_traded')
     .eq('status', 'own')
     .neq('user_id', userId); // Exclude own items
 
@@ -127,7 +127,7 @@ export async function searchCommunityOffers(
     query = query.lte('weight_grams', filters.maxWeight);
   }
   if (filters?.categoryId) {
-    query = query.eq('category_id', filters.categoryId);
+    query = query.eq('product_type_id', filters.categoryId);
   }
 
   // Text search using ilike (case-insensitive) with sanitized input

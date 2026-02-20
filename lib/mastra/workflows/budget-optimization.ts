@@ -265,8 +265,8 @@ async function analyzeCurrentState(
           .select(
             `
             id, name, brand, weight_grams, price_paid,
-            category_id, product_type_id,
-            categories!gear_items_category_id_fkey (label)
+            product_type_id,
+            categories!gear_items_product_type_id_fkey (label)
           `
           )
           .in('id', itemIds);
@@ -277,7 +277,7 @@ async function analyzeCurrentState(
           brand: item.brand,
           weightGrams: item.weight_grams || 0,
           purchasePriceUsd: item.price_paid,
-          categoryId: item.category_id,
+          categoryId: item.product_type_id,
           categoryLabel:
             (item.categories as { label: string } | null)?.label || null,
           productTypeId: item.product_type_id,
@@ -294,8 +294,8 @@ async function analyzeCurrentState(
       .select(
         `
         id, name, brand, weight_grams, price_paid,
-        category_id, product_type_id,
-        categories!gear_items_category_id_fkey (label)
+        product_type_id,
+        categories!gear_items_product_type_id_fkey (label)
       `
       )
       .eq('user_id', userId)
@@ -307,7 +307,7 @@ async function analyzeCurrentState(
       brand: item.brand,
       weightGrams: item.weight_grams || 0,
       purchasePriceUsd: item.price_paid,
-      categoryId: item.category_id,
+      categoryId: item.product_type_id,
       categoryLabel:
         (item.categories as { label: string } | null)?.label || null,
       productTypeId: item.product_type_id,

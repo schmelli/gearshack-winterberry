@@ -345,7 +345,7 @@ async function searchUserGear(
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories(label)')
+    .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories!gear_items_product_type_id_fkey(label)')
     .eq('user_id', userId);
 
   // Build search: combine text search with category-based search.
