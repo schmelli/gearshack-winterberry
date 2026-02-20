@@ -274,7 +274,7 @@ Examples:
         case 'recent_additions': {
           const { data, error } = await supabase
             .from('gear_items')
-            .select('id, name, brand, weight_grams, created_at, categories(label)')
+            .select('id, name, brand, weight_grams, created_at, categories!gear_items_product_type_id_fkey(label)')
             .eq('user_id', userId)
             .eq('status', input.status === 'all' ? 'own' : input.status)
             .order('created_at', { ascending: false })

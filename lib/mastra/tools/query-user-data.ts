@@ -121,7 +121,7 @@ export const queryUserDataTool = createTool({
   description: `Execute flexible read-only queries on user's database with optional fuzzy/typo-tolerant search.
 
 Available tables:
-- gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, category_id, status, etc.)
+- gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, product_type_id, status, etc.)
 - loadouts: User's loadouts (id, name, description, total_weight, activity_types, seasons, etc.)
 - loadout_items: Items in loadouts (loadout_id, gear_item_id, quantity, etc.)
 - categories: Gear categories (id, label, i18n, icon, etc.)
