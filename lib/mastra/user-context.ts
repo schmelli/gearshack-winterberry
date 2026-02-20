@@ -158,7 +158,7 @@ export async function buildInventorySummary(
     // Fetch all user's gear items
     const { data: items, error } = await supabase
       .from('gear_items')
-      .select('id, name, brand, category_id, weight_grams, status, created_at')
+      .select('id, name, brand, product_type_id, weight_grams, status, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -194,8 +194,8 @@ export async function buildInventorySummary(
     // Category breakdown (count per category)
     const categories: Record<string, number> = {};
     items.forEach(item => {
-      if (item.category_id) {
-        categories[item.category_id] = (categories[item.category_id] || 0) + 1;
+      if (item.product_type_id) {
+        categories[item.product_type_id] = (categories[item.product_type_id] || 0) + 1;
       }
     });
 
@@ -219,7 +219,7 @@ export async function buildInventorySummary(
       id: item.id,
       name: item.name,
       brand: item.brand || UNKNOWN_BRAND,
-      category: item.category_id || UNCATEGORIZED,
+      category: item.product_type_id || UNCATEGORIZED,
       weight_grams: item.weight_grams,
     }));
 
@@ -262,7 +262,7 @@ export async function buildWishlistContext(
   try {
     const { data: items, error } = await supabase
       .from('gear_items')
-      .select('id, name, category_id')
+      .select('id, name, product_type_id')
       .eq('user_id', userId)
       .eq('status', 'wishlist')
       .order('created_at', { ascending: false });
@@ -271,7 +271,7 @@ export async function buildWishlistContext(
       throw new Error(`Failed to fetch wishlist items: ${error.message}`);
     }
 
-    const categories = [...new Set(items?.map(i => i.category_id).filter(Boolean) as string[])];
+    const categories = [...new Set(items?.map(i => i.product_type_id).filter(Boolean) as string[])];
 
     return {
       count: items?.length || 0,
@@ -279,7 +279,7 @@ export async function buildWishlistContext(
       items: items?.map(i => ({
         id: i.id,
         name: i.name,
-        category: i.category_id || UNCATEGORIZED,
+        category: i.product_type_id || UNCATEGORIZED,
       })) || [],
       lastUpdated: new Date().toISOString(),
     };

@@ -427,8 +427,8 @@ export function useLoadoutComparison(): UseLoadoutComparisonReturn {
                 name,
                 brand,
                 weight,
-                category_id,
-                categories (
+                product_type_id,
+                categories!gear_items_product_type_id_fkey (
                   label
                 )
               )
@@ -465,11 +465,11 @@ export function useLoadoutComparison(): UseLoadoutComparisonReturn {
               name: string;
               brand: string | null;
               weight: number | null;
-              category_id: string | null;
+              product_type_id: string | null;
               categories: { label: string } | null;
             } | null;
           }) => ({
-            categoryId: item.gear_items?.category_id ?? null,
+            categoryId: item.gear_items?.product_type_id ?? null,
             categoryName: item.gear_items?.categories?.label ?? 'Other',
             name: item.gear_items?.name ?? '',
             brand: item.gear_items?.brand ?? null,
