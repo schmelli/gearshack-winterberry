@@ -241,7 +241,7 @@ async function executeRequirementInternal(
     case 'gear_items_filtered': {
       const query = supabase
         .from('gear_items')
-        .select('id, name, brand, weight_grams, price_paid, category_id, status, notes')
+        .select('id, name, brand, weight_grams, price_paid, product_type_id, status, notes')
         .eq('user_id', userId);
 
       if (params.status) {
@@ -249,7 +249,7 @@ async function executeRequirementInternal(
         query.eq('status', params.status as any);
       }
       if (params.category_id) {
-        query.eq('category_id', params.category_id as string);
+        query.eq('product_type_id', params.category_id as string);
       }
 
       const { data, error } = await query.order('weight_grams', { ascending: true }).limit(50);
