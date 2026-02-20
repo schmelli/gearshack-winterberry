@@ -3699,6 +3699,11 @@
       "suggestion3": "Show me my sleeping bags"
     },
     "thinking": "AI is thinking...",
+    "progress": {
+      "memory": "Loading your profile...",
+      "context": "Analysing your gear...",
+      "thinking": "Preparing answer..."
+    },
     "ariaLabels": {
       "aiAssistant": "AI Assistant",
       "trailblazerFeature": "Trailblazer feature",
