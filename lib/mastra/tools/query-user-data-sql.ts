@@ -367,11 +367,15 @@ async function resolveCategorySearch(supabase: any, search: string): Promise<str
     }
   }
 
-  // Also include child categories of matching parents
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const cat of allCategories as any[]) {
-    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
-      matchingIds.add(cat.id as string);
+  // Include descendant categories (children, grandchildren, etc.)
+  let prevSize = 0;
+  while (matchingIds.size > prevSize) {
+    prevSize = matchingIds.size;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const cat of allCategories as any[]) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+        matchingIds.add(cat.id as string);
+      }
     }
   }
 
@@ -500,7 +504,7 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
         if (categoryIds.length > 0) {
           // Match by category_id (hierarchy) OR by name (fallback)
           const orFilters = [
-            `category_id.in.(${categoryIds.join(',')})`,
+            `product_type_id.in.(${categoryIds.join(',')})`,
             `name.ilike.%${categorySearch}%`,
           ];
           query = query.or(orFilters.join(','));
