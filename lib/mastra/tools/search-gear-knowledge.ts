@@ -318,11 +318,15 @@ async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<st
     }
   }
 
-  // Include child categories of matching parents
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const cat of allCategories as any[]) {
-    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
-      matchingIds.add(cat.id as string);
+  // Include descendant categories (children, grandchildren, etc.)
+  let prevSize = 0;
+  while (matchingIds.size > prevSize) {
+    prevSize = matchingIds.size;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const cat of allCategories as any[]) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+        matchingIds.add(cat.id as string);
+      }
     }
   }
 
@@ -341,7 +345,7 @@ async function searchUserGear(
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, price_paid, status, category_id, categories(label)')
+    .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories(label)')
     .eq('user_id', userId);
 
   // Build search: combine text search with category-based search.
@@ -357,7 +361,7 @@ async function searchUserGear(
       `name.ilike.%${query}%`,
       `brand.ilike.%${query}%`,
       `notes.ilike.%${query}%`,
-      `category_id.in.(${categoryIds.join(',')})`,
+      `product_type_id.in.(${categoryIds.join(',')})`,
     ];
     const orString = orFilters.join(',');
     console.log(`[searchGearKnowledge] OR filter: ${orString}`);
