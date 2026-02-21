@@ -436,13 +436,6 @@ async function buildPromptContext(
     });
   }
 
-  // Conversation history is passed directly as messages to agent.stream().
-  // Add a brief note so the agent knows context is available.
-  if (history.length > 0) {
-    const historyNote = `\n**Conversation History:** ${history.length} previous messages are included in this conversation. Always refer to them when the user references earlier topics (e.g., "which of those", "that tent", "the one you mentioned").`;
-    promptContext.gearList = (promptContext.gearList || '') + historyNote;
-  }
-
   // Add memory warning if applicable
   if (memoryWarning) {
     promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
@@ -848,7 +841,7 @@ export async function POST(request: Request): Promise<Response> {
             'agent_generation',
             async () => {
               const agent = createGearAgent(user.id, enrichedPrompt);
-              return await streamMastraResponse(agent, message, user.id, conversationId, memoryContext.history, currentLoadoutId);
+              return await streamMastraResponse(agent, message, user.id, conversationId, undefined, currentLoadoutId);
             },
             { userId: user.id }
           );

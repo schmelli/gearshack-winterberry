@@ -265,28 +265,10 @@ export async function streamMastraResponse(
     requestContext.set('currentLoadoutId', currentLoadoutId);
   }
 
-  // Build messages array with conversation history for context continuity.
-  // Include last 20 messages (10 turns) to maintain recent context without
-  // overloading the context window.
-  const MAX_HISTORY_MESSAGES = 20;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messages: any[] = [];
+  // NEU: Nur die aktuelle Message - Mastra holt History via threadId
+  const messages = [{ role: 'user' as const, content: message }];
 
-  if (conversationHistory && conversationHistory.length > 0) {
-    const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
-    for (const msg of recentHistory) {
-      if (msg.role === 'user') {
-        messages.push({ role: 'user' as const, content: msg.content });
-      } else if (msg.role === 'assistant') {
-        messages.push({ role: 'assistant' as const, content: msg.content });
-      }
-    }
-  }
-
-  // Add the current message
-  messages.push({ role: 'user' as const, content: message });
-
-  // Stream with full message history for context continuity
+  // Stream with threadId so Mastra's PostgresStore injects conversation history
   const stream = await agent.stream(messages, {
     resourceId: userId,
     threadId: conversationId,
