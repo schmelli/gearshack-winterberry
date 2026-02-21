@@ -281,6 +281,7 @@ export async function streamMastraResponse(
   agent: Agent,
   message: string,
   userId: string,
+  conversationId: string,
   conversationHistory?: Array<{ role: string; content: string }>,
   currentLoadoutId?: string
 ) {
@@ -317,6 +318,7 @@ export async function streamMastraResponse(
   // Stream with full message history for context continuity
   const stream = await agent.stream(messages, {
     resourceId: userId,
+    threadId: conversationId,
     requestContext: requestContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
