@@ -77,11 +77,6 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
 
-// Observational Memory configuration
-const OM_ENABLED = process.env.OBSERVATIONAL_MEMORY_ENABLED !== 'false'; // enabled by default
-const OM_MODEL = process.env.OM_MODEL || 'google/gemini-2.5-flash';
-const OM_MESSAGE_TOKENS = parseInt(process.env.OM_MESSAGE_TOKENS || '20000', 10);
-const OM_OBSERVATION_TOKENS = parseInt(process.env.OM_OBSERVATION_TOKENS || '40000', 10);
 
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
@@ -171,13 +166,6 @@ function createAgentMemory(): Memory {
     topK: SEMANTIC_TOP_K,
     messageRange: SEMANTIC_MESSAGE_RANGE,
     threshold: SEMANTIC_THRESHOLD,
-    // HNSW index configuration for optimized vector search
-    indexConfig: {
-      type: 'hnsw',
-      metric: 'dotproduct', // Recommended for OpenAI text-embedding-3-small
-      m: 16,
-      efConstruction: 64,
-    },
   };
 
   // Enable working memory with Zod schema
@@ -188,23 +176,6 @@ function createAgentMemory(): Memory {
     };
   }
 
-  // Enable Observational Memory for long-context compression
-  // Ideal for tool-heavy conversations (SQL, Catalog, GearGraph results)
-  if (OM_ENABLED) {
-    memoryOptions.observationalMemory = {
-      scope: 'thread', // thread-scoped to avoid slow migration of existing conversations
-      model: OM_MODEL, // google/gemini-2.5-flash by default (1M token context)
-      observation: {
-        // Trigger Observer when messages exceed this token count
-        // Lower threshold (20k vs 30k default) because our tools generate many tokens
-        messageTokens: OM_MESSAGE_TOKENS,
-      },
-      reflection: {
-        // Trigger Reflector when observations exceed this token count
-        observationTokens: OM_OBSERVATION_TOKENS,
-      },
-    };
-  }
 
   const memory = new Memory({
     // PostgreSQL storage for message history and metadata
@@ -258,7 +229,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 3 legacy + updateWorkingMemory), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 3 legacy + updateWorkingMemory), three-tier memory (working memory, conversation history, semantic recall)`
   );
   return agent;
 }
