@@ -245,7 +245,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
  * @param agent - Mastra Agent instance
  * @param message - Current user message
  * @param userId - User ID for tool execution context
- * @param conversationHistory - Previous messages for context continuity
+ * @param conversationId - Conversation/thread ID for Mastra memory persistence
  * @param currentLoadoutId - Current loadout ID for loadout-specific queries
  */
 export async function streamMastraResponse(
@@ -253,7 +253,6 @@ export async function streamMastraResponse(
   message: string,
   userId: string,
   conversationId: string,
-  conversationHistory?: Array<{ role: string; content: string }>,
   currentLoadoutId?: string
 ) {
   // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)

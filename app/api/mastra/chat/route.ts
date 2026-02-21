@@ -591,7 +591,7 @@ export async function POST(request: Request): Promise<Response> {
             'agent_generation',
             async () => {
               const agent = createGearAgent(user.id, enrichedPrompt);
-              return await streamMastraResponse(agent, message, user.id, conversationId, undefined, currentLoadoutId);
+              return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
             },
             { userId: user.id }
           );
