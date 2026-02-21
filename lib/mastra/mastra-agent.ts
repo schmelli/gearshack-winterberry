@@ -224,7 +224,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       queryGearGraph: queryGearGraphTool,
       searchWeb: searchWebTool,
       // Working memory persistence (fix: agent can now actually write the profile)
-      updateWorkingMemory: updateWorkingMemoryTool,
+      persistUserProfile: updateWorkingMemoryTool,
     },
   });
 

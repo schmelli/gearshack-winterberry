@@ -113,7 +113,7 @@ const updateWorkingMemoryOutputSchema = z.object({
 // =============================================================================
 
 export const updateWorkingMemoryTool = createTool({
-  id: 'updateWorkingMemory',
+  id: 'persistUserProfile',
   description:
     'Persist what you learn about the user during this conversation. ' +
     'Call this whenever the user explicitly states a preference, goal, fact about themselves, ' +
