@@ -53,7 +53,6 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
 // Three-tier memory system (Feature 002-mastra-memory-system)
 import {
@@ -61,11 +60,6 @@ import {
   saveWorkingMemory,
 } from '@/lib/mastra/memory/working-memory-adapter';
 
-import {
-  searchSimilarMessages,
-  embedAndStoreMessage,
-  formatSemanticRecallForPrompt,
-} from '@/lib/mastra/memory/semantic-recall';
 import type { GearshackUserProfile } from '@/lib/mastra/schemas/working-memory';
 import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
@@ -79,13 +73,6 @@ import {
   formatSuggestionsForStream,
   shouldShowProactiveSuggestions,
 } from '@/lib/mastra/proactive-suggestions';
-import {
-  buildUserContext,
-  isCacheStale,
-  formatContextForPrompt,
-  extractPreferencesFromConversation,
-  type UserContext as MastraUserContext,
-} from '@/lib/mastra/user-context';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
 import type { Database } from '@/types/supabase';
@@ -97,32 +84,9 @@ import {
 } from '@/lib/ai-assistant/query-parser';
 import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
 import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
-import { memoryRetryQueue } from '@/lib/mastra/memory-retry-queue';
-import { saveToMemory } from '@/lib/mastra/memory-save';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
-
-// =====================================================
-// Constants
-// =====================================================
-
-/** Maximum conversation history messages to retrieve */
-const MEMORY_HISTORY_LIMIT = 50;
-
-/** User context cache TTL in minutes */
-const USER_CONTEXT_CACHE_TTL_MINUTES = 30;
-
-/** Patterns that indicate user is correcting previous information */
-const CORRECTION_PATTERNS = [
-  /actually,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /no,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /i\s+(meant|mean)\s+/i,
-  /correction:\s*/i,
-  /let\s+me\s+correct\s+/i,
-  /to\s+clarify,?\s*/i,
-  /i\s+should\s+have\s+said/i,
-];
 
 // =====================================================
 // Types
@@ -130,13 +94,7 @@ const CORRECTION_PATTERNS = [
 
 interface MemoryContext {
   available: boolean;
-  adapter: SupabaseMemoryAdapter | null;
-  history: Array<{ role: string; content: string }>;
-  userContext: MastraUserContext | null;
-  /** Three-tier memory: Working memory profile */
   workingMemoryProfile: GearshackUserProfile | null;
-  /** Three-tier memory: Semantic recall context string */
-  semanticRecallContext: string | null;
   warning?: string;
 }
 
@@ -212,171 +170,29 @@ function validateRequest(body: unknown): {
 }
 
 // =====================================================
-// Memory Functions (T026-T029)
+// Memory Functions
 // =====================================================
 
 /**
- * T027: Fetch conversation history from memory
- * T029: Gracefully handle memory unavailability
- * Issue #110: Fetch and cache user context for intelligent memory
+ * Fetch working memory profile for the current user.
+ * Mastra native (PostgresStore + PgVector) handles all conversation storage.
  */
 async function fetchMemoryContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  conversationId: string,
-  currentLoadoutId?: string,
-  currentMessage?: string
 ): Promise<MemoryContext> {
-  const getElapsed = createTimer();
-
   try {
-    const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
     const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-
-    logDebug('Fetching three-tier memory context', {
-      userId,
-      conversationId,
-      metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
-    });
-
-    // Fetch all three memory tiers in parallel with error boundaries:
-    // 1. Conversation history (thread-scoped)
-    // 2. User context cache
-    // 3. Working memory profile (resource-scoped)
-    // 4. Semantic recall (resource-scoped, needs current message)
-    // Using Promise.allSettled for graceful degradation if any tier fails
-    const results = await Promise.allSettled([
-      adapter.getMessages({
-        userId,
-        conversationId,
-        limit: MEMORY_HISTORY_LIMIT,
-      }),
-      adapter.getUserContext(userId, conversationId),
-      getWorkingMemory(supabaseClient, userId),
-      currentMessage
-        ? searchSimilarMessages(supabaseClient, userId, currentMessage)
-        : Promise.resolve([]),
-    ]);
-
-    // Extract results with fallbacks
-    const messages = results[0].status === 'fulfilled' ? results[0].value : [];
-    const cachedContext = results[1].status === 'fulfilled' ? results[1].value : null;
-    const workingMemoryProfile = results[2].status === 'fulfilled' ? results[2].value : null;
-    const semanticMatches = results[3].status === 'fulfilled' ? results[3].value : [];
-
-    // Log any failures
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        const tierNames = ['conversation history', 'user context', 'working memory', 'semantic recall'];
-        logWarn(`${tierNames[index]} fetch failed, continuing without`, {
-          userId,
-          metadata: { error: result.reason instanceof Error ? result.reason.message : 'Unknown' },
-        });
-      }
-    });
-
-    // Reverse to get chronological order (oldest first)
-    const history = messages.reverse().map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    // Format semantic recall results for prompt injection
-    const semanticRecallContext = semanticMatches.length > 0
-      ? formatSemanticRecallForPrompt(semanticMatches)
-      : null;
-
-    // Check if cached context exists and is fresh
-    let userContext: MastraUserContext | null = null;
-    let shouldRefreshCache = true;
-
-    if (cachedContext) {
-      const cachedUserContext = cachedContext as MastraUserContext;
-
-      const hasValidCache =
-        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
-
-      if (hasValidCache) {
-        userContext = cachedUserContext;
-        shouldRefreshCache = false;
-        logDebug('Using cached user context', { userId, conversationId });
-      }
-    }
-
-    // Refresh user context if needed
-    if (shouldRefreshCache) {
-      logDebug('Building fresh user context', { userId, conversationId });
-
-      userContext = await buildUserContext(
-        supabaseClient,
-        userId,
-        currentLoadoutId
-      );
-
-      if (history.length > 0 && userContext.preferences) {
-        userContext.preferences = extractPreferencesFromConversation(
-          history,
-          userContext.preferences
-        );
-      }
-
-      await adapter.storeUserContext(userId, conversationId, userContext);
-      logDebug('User context cached in memory', { userId, conversationId });
-    }
-
-    logInfo('Three-tier memory retrieval completed', {
-      userId,
-      conversationId,
-      metadata: {
-        messageCount: history.length,
-        userContextCached: !!userContext,
-        workingMemoryLoaded: !!workingMemoryProfile,
-        semanticMatchCount: semanticMatches.length,
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return {
-      available: true,
-      adapter,
-      history,
-      userContext,
-      workingMemoryProfile,
-      semanticRecallContext,
-    };
+    const workingMemoryProfile = await getWorkingMemory(supabaseClient, userId);
+    return { available: true, workingMemoryProfile };
   } catch (error) {
-    // T029: Graceful degradation - continue without memory
-    logWarn('Memory unavailable, continuing in stateless mode', {
+    logWarn('Working memory unavailable, continuing without', {
       userId,
-      conversationId,
-      metadata: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        latencyMs: getElapsed(),
-      },
+      metadata: { error: error instanceof Error ? error.message : 'Unknown' },
     });
-
-    return {
-      available: false,
-      adapter: null,
-      history: [],
-      userContext: null,
-      workingMemoryProfile: null,
-      semanticRecallContext: null,
-      warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
-    };
+    return { available: false, workingMemoryProfile: null };
   }
 }
-
-/**
- * T028: Detect memory correction patterns in user message
- */
-function detectCorrectionIntent(message: string): boolean {
-  return CORRECTION_PATTERNS.some(pattern => pattern.test(message));
-}
-
-// T026: saveToMemory moved to @/lib/mastra/memory-save for reuse in retry queue
 
 // =====================================================
 // System Prompt Builder
@@ -384,14 +200,11 @@ function detectCorrectionIntent(message: string): boolean {
 
 async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
-  history: Array<{ role: string; content: string }>,
   userId: string,
-  mastraUserContext: MastraUserContext | null,
   memoryWarning?: string,
   subscriptionTier?: 'standard' | 'trailblazer',
   parsedQuery?: ParsedQuery,
   workingMemoryProfile?: GearshackUserProfile | null,
-  semanticRecallContext?: string | null
 ): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
@@ -410,31 +223,8 @@ async function buildPromptContext(
 
   const promptContext: PromptContext = {
     userContext: promptUserContext,
-    // Three-tier memory: inject working memory and semantic recall
     workingMemoryProfile: workingMemoryProfile ?? undefined,
-    semanticRecallContext: semanticRecallContext ?? undefined,
   };
-
-  // Add user context summary to system prompt (Issue #110)
-  if (mastraUserContext) {
-    const contextSummary = formatContextForPrompt(mastraUserContext);
-    if (contextSummary) {
-      promptContext.gearList = contextSummary;
-      logDebug('User inventory context added to prompt', {
-        userId,
-        metadata: {
-          hasInventory: !!mastraUserContext.inventory,
-          itemCount: mastraUserContext.inventory?.counts.own || 0,
-          wishlistCount: mastraUserContext.inventory?.counts.wishlist || 0,
-        },
-      });
-    }
-  } else {
-    logWarn('No user context available for prompt', {
-      userId,
-      metadata: { conversationId: userContext?.currentLoadoutId },
-    });
-  }
 
   // Add memory warning if applicable
   if (memoryWarning) {
@@ -694,7 +484,7 @@ export async function POST(request: Request): Promise<Response> {
             traceWorkflowStep(
               `chat-${conversationId}`,
               'memory_retrieval',
-              () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId, message),
+              () => fetchMemoryContext(supabase, user.id),
               { userId: user.id }
             ).then(r => r.result),
             classifyIntent(
@@ -758,60 +548,20 @@ export async function POST(request: Request): Promise<Response> {
               controller.enqueue(encoder.encode(encodeTextEvent(fastAnswer)));
               controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
 
-              // Save to memory in the background (don't await)
-              saveToMemory(
-                memoryContext.adapter,
-                user.id,
-                conversationId,
-                message,
-                fastAnswer,
-                false
-              ).catch(err => {
-                logWarn('Fast-path memory save failed, queuing for retry', {
-                  metadata: {
-                    error: err instanceof Error ? err.message : 'Unknown',
-                    userId: user.id,
-                    conversationId,
-                  },
-                });
-                if (memoryContext.adapter) {
-                  memoryRetryQueue.enqueue({
-                    adapter: memoryContext.adapter,
-                    userId: user.id,
-                    conversationId,
-                    message,
-                    response: fastAnswer,
-                    isCorrection: false,
-                  });
-                }
-              });
-
               recordAgentLatency(totalLatencyMs / 1000, 'simple');
               controller.close();
               return;
             }
           }
 
-          // Detect correction intent (T028)
-          const isCorrection = detectCorrectionIntent(message);
-          if (isCorrection) {
-            logInfo('Correction intent detected', {
-              userId: user.id,
-              conversationId,
-            });
-          }
-
-          // Build system prompt with memory context, loadout context, user context, and parsed query constraints
+          // Build system prompt with memory context, loadout context, and parsed query constraints
           const { promptContext, loadoutContext } = await buildPromptContext(
             context,
-            memoryContext.history,
             user.id,
-            memoryContext.userContext,
             memoryContext.warning,
             undefined, // subscriptionTier
             parsedQuery,
             memoryContext.workingMemoryProfile,
-            memoryContext.semanticRecallContext
           );
           const systemPrompt = buildMastraSystemPrompt(promptContext);
 
@@ -936,69 +686,20 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // Save to memory after successful response (T026)
-          const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-          await traceWorkflowStep(
-            `chat-${conversationId}`,
-            'memory_save',
-            async () => {
-              const messageIds = await saveToMemory(
-                memoryContext.adapter,
-                user.id,
-                conversationId,
-                message,
-                fullResponse,
-                isCorrection
-              );
-
-              if (messageIds) {
-                Promise.all([
-                  embedAndStoreMessage(supabaseClient, messageIds.userMessageId, message),
-                  embedAndStoreMessage(supabaseClient, messageIds.assistantMessageId, fullResponse),
-                ]).catch((err) => {
-                  logWarn('Embedding generation failed, queued for retry', {
-                    userId: user.id,
-                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                  });
-                  Promise.all([
-                    supabaseClient.from('embedding_queue').upsert({
-                      message_id: messageIds.userMessageId,
-                      user_id: user.id,
-                      content: message,
-                      error_message: err instanceof Error ? err.message : 'Unknown error',
-                    }, { onConflict: 'message_id' }),
-                    supabaseClient.from('embedding_queue').upsert({
-                      message_id: messageIds.assistantMessageId,
-                      user_id: user.id,
-                      content: fullResponse,
-                      error_message: err instanceof Error ? err.message : 'Unknown error',
-                    }, { onConflict: 'message_id' }),
-                  ]).catch((queueErr) => {
-                    logError('Failed to queue embeddings for retry', queueErr instanceof Error ? queueErr : undefined, {
-                      userId: user.id,
-                    });
-                  });
+          // Save working memory after successful response (non-blocking)
+          if (memoryContext.workingMemoryProfile) {
+            const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
+            getWorkingMemory(supabaseClient, user.id)
+              .then((freshProfile) =>
+                saveWorkingMemory(supabaseClient, user.id, freshProfile)
+              )
+              .catch((err) => {
+                logWarn('Working memory save failed (non-blocking)', {
+                  userId: user.id,
+                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
                 });
-              }
-
-              if (memoryContext.workingMemoryProfile) {
-                // Re-fetch the current profile so any tool-applied updates
-                // (via updateWorkingMemory tool) are included before we
-                // increment conversationCount for this session.
-                getWorkingMemory(supabaseClient, user.id)
-                  .then((freshProfile) =>
-                    saveWorkingMemory(supabaseClient, user.id, freshProfile)
-                  )
-                  .catch((err) => {
-                    logWarn('Working memory save failed (non-blocking)', {
-                      userId: user.id,
-                      metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                    });
-                  });
-              }
-            },
-            { userId: user.id }
-          );
+              });
+          }
 
           // Record latency metrics (T031)
           const totalLatencyMs = requestTimer();
@@ -1016,7 +717,6 @@ export async function POST(request: Request): Promise<Response> {
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
               memoryAvailable: memoryContext.available,
-              isCorrection,
             },
           });
 
