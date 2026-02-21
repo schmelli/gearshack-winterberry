@@ -14,8 +14,6 @@ import { z } from 'zod';
 import type {
   MastraAgent,
   MCPTool,
-  WorkflowDefinition,
-  WorkflowStep,
 } from '@/types/mastra';
 
 // Re-export prompt builder utilities
@@ -242,73 +240,7 @@ export const DEFAULT_MCP_TOOLS: MCPTool[] = [
   },
 ];
 
-// =============================================================================
-// Workflow Definitions
-// =============================================================================
 
-/**
- * Trip planner workflow steps
- * Multi-step reasoning process for trip planning
- */
-const tripPlannerSteps: WorkflowStep[] = [
-  {
-    id: 'analyze_environment',
-    type: 'api_request',
-    dependencies: [],
-    config: {
-      description: 'Fetch weather and trail conditions for the destination',
-      endpoint: '/api/mastra/workflows/trip-planner/environment',
-    },
-  },
-  {
-    id: 'analyze_inventory',
-    type: 'tool_call',
-    dependencies: [],
-    config: {
-      toolName: 'queryUserData',
-      description: 'Analyze user inventory for trip requirements',
-    },
-  },
-  {
-    id: 'identify_gaps',
-    type: 'llm_reasoning',
-    dependencies: ['analyze_environment', 'analyze_inventory'],
-    config: {
-      description: 'Identify gear gaps based on environment and inventory',
-      prompt: 'Compare the environmental requirements with the user inventory',
-    },
-  },
-  {
-    id: 'search_recommendations',
-    type: 'tool_call',
-    dependencies: ['identify_gaps'],
-    config: {
-      toolName: 'searchCatalog',
-      description: 'Search catalog for gear recommendations to fill gaps',
-    },
-  },
-  {
-    id: 'generate_plan',
-    type: 'llm_reasoning',
-    dependencies: ['search_recommendations'],
-    config: {
-      description: 'Generate final trip plan with gear recommendations',
-    },
-  },
-];
-
-/**
- * Default workflow definitions for the Mastra agent
- */
-export const DEFAULT_WORKFLOWS: WorkflowDefinition[] = [
-  {
-    name: 'trip_planner',
-    description:
-      'Multi-step workflow for planning a trip with gear recommendations',
-    steps: tripPlannerSteps,
-    maxDurationMs: 60000, // 1 minute timeout
-  },
-];
 
 // =============================================================================
 // Agent Configuration Factory
@@ -332,7 +264,6 @@ export function createMastraAgentConfig(
       adapter: 'supabase',
       retentionDays: MEMORY_RETENTION_DAYS,
     },
-    workflows: DEFAULT_WORKFLOWS,
     observability: {
       logging: {
         enabled: true,

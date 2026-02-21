@@ -28,9 +28,8 @@ export {
   LOG_LEVEL,
   METRICS_ENABLED,
   TRACING_ENABLED,
-  // Tool and workflow definitions
+  // Tool definitions
   DEFAULT_MCP_TOOLS,
-  DEFAULT_WORKFLOWS,
   // Prompt builder (re-exported from config.ts)
   buildMastraSystemPrompt,
   LOCALIZED_CONTENT,

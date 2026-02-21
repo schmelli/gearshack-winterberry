@@ -83,7 +83,7 @@ export interface MastraAgent {
     adapter: 'supabase';
     retentionDays: number; // 90 days
   };
-  workflows: WorkflowDefinition[];
+  workflows?: WorkflowDefinition[];
   observability: {
     logging: {
       enabled: boolean;
