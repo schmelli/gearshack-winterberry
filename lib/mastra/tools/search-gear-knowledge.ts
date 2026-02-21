@@ -455,7 +455,17 @@ async function searchCatalog(
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
   if (filters?.brand) {
-    dbQuery = dbQuery.ilike('catalog_brands.name', `%${filters.brand}%`);
+    const { data: matchingBrands } = await supabase
+      .from('catalog_brands')
+      .select('id')
+      .ilike('name', `%${filters.brand}%`);
+    const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    if (brandIds.length > 0) {
+      dbQuery = dbQuery.in('brand_id', brandIds);
+    } else {
+      // Keine Marken gefunden - leeres Ergebnis zurückgeben
+      return { type: 'catalog', data: [] };
+    }
   }
 
   // Sort
