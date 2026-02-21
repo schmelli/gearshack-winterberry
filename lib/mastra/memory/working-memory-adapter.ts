@@ -166,6 +166,56 @@ export async function saveWorkingMemory(
 }
 
 /**
+ * Save/update working memory directly without incrementing conversationCount.
+ *
+ * Used by the updateWorkingMemory tool to persist profile changes mid-conversation.
+ * The route's final saveWorkingMemory call handles conversationCount increment.
+ *
+ * @param supabase - Authenticated Supabase client
+ * @param userId - User ID
+ * @param profile - Updated profile (conversationCount NOT touched)
+ * @returns true if save succeeded
+ */
+export async function saveWorkingMemoryDirect(
+  supabase: SupabaseClient,
+  userId: string,
+  profile: GearshackUserProfile
+): Promise<boolean> {
+  try {
+    const trimmedProfile: GearshackUserProfile = {
+      ...profile,
+      facts: profile.facts.slice(-MAX_FACTS),
+      cachedInsights: cleanExpiredInsights(profile).cachedInsights.slice(-MAX_CACHED_INSIGHTS),
+    };
+
+    const result = GearshackUserProfileSchema.safeParse(trimmedProfile);
+    if (!result.success) {
+      console.error('[Working Memory] Direct save: validation failed:', result.error.issues);
+      return false;
+    }
+
+    const { error } = await supabase.from('user_working_memory').upsert(
+      { user_id: userId, profile: result.data },
+      { onConflict: 'user_id' }
+    );
+
+    if (error) {
+      console.error('[Working Memory] Direct save failed:', error.message);
+      return false;
+    }
+
+    console.log(`[Working Memory] Direct save succeeded for user ${userId}`);
+    return true;
+  } catch (error) {
+    console.error(
+      '[Working Memory] Direct save unexpected error:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return false;
+  }
+}
+
+/**
  * Delete working memory for a user (GDPR Right to Erasure)
  *
  * @param supabase - Authenticated Supabase client

@@ -60,6 +60,7 @@ import {
   getWorkingMemory,
   saveWorkingMemory,
 } from '@/lib/mastra/memory/working-memory-adapter';
+
 import {
   searchSimilarMessages,
   embedAndStoreMessage,
@@ -988,16 +989,19 @@ export async function POST(request: Request): Promise<Response> {
               }
 
               if (memoryContext.workingMemoryProfile) {
-                saveWorkingMemory(
-                  supabaseClient,
-                  user.id,
-                  memoryContext.workingMemoryProfile
-                ).catch((err) => {
-                  logWarn('Working memory save failed (non-blocking)', {
-                    userId: user.id,
-                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                // Re-fetch the current profile so any tool-applied updates
+                // (via updateWorkingMemory tool) are included before we
+                // increment conversationCount for this session.
+                getWorkingMemory(supabaseClient, user.id)
+                  .then((freshProfile) =>
+                    saveWorkingMemory(supabaseClient, user.id, freshProfile)
+                  )
+                  .catch((err) => {
+                    logWarn('Working memory save failed (non-blocking)', {
+                      userId: user.id,
+                      metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                    });
                   });
-                });
               }
             },
             { userId: user.id }

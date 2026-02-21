@@ -27,6 +27,8 @@ import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
+// Working memory persistence
+import { updateWorkingMemoryTool } from './tools/update-working-memory';
 // Three-tier memory system
 import {
   GearshackUserProfileSchema,
@@ -250,11 +252,13 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       queryUserData: queryUserDataSqlTool,
       queryGearGraph: queryGearGraphTool,
       searchWeb: searchWebTool,
+      // Working memory persistence (fix: agent can now actually write the profile)
+      updateWorkingMemory: updateWorkingMemoryTool,
     },
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 6 tools (3 composite + 3 legacy), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 3 legacy + updateWorkingMemory), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
   );
   return agent;
 }
