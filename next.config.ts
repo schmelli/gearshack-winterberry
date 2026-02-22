@@ -52,6 +52,16 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'encrypted-tbn3.gstatic.com',
       },
+      // Feature 045: YouTube video thumbnails from Data API
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+      // VIP Featured Videos: YouTube CDN direct thumbnails
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
     ],
     minimumCacheTTL: 60,
   },
