@@ -32,7 +32,7 @@ interface UseRateLimitingResult extends RateLimitState {
  */
 export function useRateLimiting(userId: string | null): UseRateLimitingResult {
   // Check if rate limiting is disabled (for testing)
-  const rateLimitingDisabled = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_AI_RATE_LIMITING_DISABLED === 'true';
+  const rateLimitingDisabled = process.env.NEXT_PUBLIC_AI_RATE_LIMITING_DISABLED === 'true';
 
   const [state, setState] = useState<RateLimitState>({
     remaining: rateLimitingDisabled ? 999 : 30,
