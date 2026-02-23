@@ -643,6 +643,19 @@
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
     },
+    "media": {
+      "title": "Media",
+      "primaryImageLabel": "Primary Image",
+      "primaryImageDescription": "Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.",
+      "galleryImagesLabel": "Gallery Images",
+      "addImage": "Add Image",
+      "galleryDescription": "Additional product images for detailed views",
+      "noGalleryImages": "No gallery images added yet. Click \"Add Image\" to add one.",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchDisabledTooltip": "Enter brand/product name first",
+      "searchAriaLabel": "Search for product images",
+      "removeGalleryImage": "Remove gallery image {index}"
+    },
     "imageUpload": {
       "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
       "fileTooLarge": "File size must be less than {maxSize}MB",
@@ -653,7 +666,21 @@
       "imageSelected": "Image selected",
       "removeImage": "Remove image",
       "dragOrClick": "Click or drag image here",
-      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)",
+      "removingBackground": "Removing background...",
+      "uploadingToCloudinary": "Uploading to Cloudinary...",
+      "uploadSuccessful": "Upload successful!",
+      "dragAndDrop": "Drag & drop an image here, or click to browse",
+      "fileTypes": "PNG, JPG, WebP (max 10MB)",
+      "removeBackground": "Auto-Remove Background",
+      "removeBackgroundDescription": "Uses AI to remove image background (WASM, runs in browser)",
+      "or": "or",
+      "enterImageUrl": "Or enter an image URL directly:",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchTooltipEmpty": "Enter brand/product name first",
+      "useThisUrl": "Use this URL",
+      "tryAgain": "Try Again"
     },
     "productSearch": {
       "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
