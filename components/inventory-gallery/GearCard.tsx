@@ -16,15 +16,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { cn } from '@/lib/utils';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
-import { TopPricesDisplay } from '@/components/wishlist/TopPricesDisplay';
-import { TopRetailPricesDisplay } from '@/components/wishlist/TopRetailPricesDisplay';
-import { MsrpPriceDisplay } from '@/components/wishlist/MsrpPriceDisplay';
+import { WishlistCardPricingSummary } from '@/components/wishlist/WishlistCardPricingSummary';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
 import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
-import { useWishlistPriceResults } from '@/hooks/price-tracking/useWishlistPriceResults';
 import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 import { useWishlistMarketplaceMatches } from '@/hooks/wishlist/useWishlistMarketplaceMatches';
 
@@ -85,10 +82,6 @@ function GearCardComponent({
   const showAvailabilityMarkers = context === 'inventory';
   const isWishlistContext = context === 'wishlist';
   const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
-
-  const { priceResults, isLoading: priceResultsLoading } = useWishlistPriceResults(
-    isWishlistContext ? item.id : ''
-  );
 
   const { msrp, isLoading: msrpLoading } = useMsrpPrice(
     isWishlistContext ? item.name : null,
@@ -338,11 +331,20 @@ function GearCardComponent({
         </div>
 
         {isStandard && isWishlistContext && (
-          <>
-            <MsrpPriceDisplay msrpAmount={msrp?.expectedPriceUsd ?? null} isLoading={msrpLoading} variant="badge" className="mb-2" />
-            <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="compact" />
-            <TopRetailPricesDisplay priceResults={priceResults} isLoading={priceResultsLoading} variant="compact" className="mt-auto" />
-          </>
+          <WishlistCardPricingSummary
+            itemId={item.id}
+            itemName={item.name}
+            brandName={item.brand}
+            manufacturerPrice={item.manufacturerPrice}
+            manufacturerCurrency={item.manufacturerCurrency}
+            productUrl={item.productUrl}
+            brandUrl={item.brandUrl}
+            productTypeId={item.productTypeId}
+            msrpAmount={msrp?.expectedPriceUsd ?? null}
+            msrpLoading={msrpLoading}
+            variant="compact"
+            className="mt-auto"
+          />
         )}
 
         {isDetailed && (
@@ -372,11 +374,20 @@ function GearCardComponent({
             )}
 
             {isWishlistContext && (
-              <>
-                <MsrpPriceDisplay msrpAmount={msrp?.expectedPriceUsd ?? null} isLoading={msrpLoading} variant="inline" className="mb-3" />
-                <TopPricesDisplay wishlistItemId={item.id} className="mt-auto" variant="full" />
-                <TopRetailPricesDisplay priceResults={priceResults} isLoading={priceResultsLoading} variant="full" className="mt-auto" />
-              </>
+              <WishlistCardPricingSummary
+                itemId={item.id}
+                itemName={item.name}
+                brandName={item.brand}
+                manufacturerPrice={item.manufacturerPrice}
+                manufacturerCurrency={item.manufacturerCurrency}
+                productUrl={item.productUrl}
+                brandUrl={item.brandUrl}
+                productTypeId={item.productTypeId}
+                msrpAmount={msrp?.expectedPriceUsd ?? null}
+                msrpLoading={msrpLoading}
+                variant="full"
+                className="mt-auto"
+              />
             )}
           </div>
         )}

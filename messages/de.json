@@ -767,6 +767,21 @@
     "viewOnManufacturer": "Auf Herstellerseite ansehen",
     "noData": "Noch keine Preisdaten verfügbar"
   },
+  "WishlistCardPricing": {
+    "msrp": "UVP",
+    "viewOnManufacturer": "Auf Herstellerseite ansehen",
+    "retailerTrailblazerHint": "Händlerpreise",
+    "visitShop": "Shop besuchen",
+    "ebayFrom": "eBay ab",
+    "searchOnEbay": "Auf eBay suchen",
+    "viewOnEbay": "Auf eBay ansehen",
+    "conditions": {
+      "open_box": "Geöffnet",
+      "refurbished": "Generalüberholt",
+      "used": "Gebraucht",
+      "for_parts": "Für Teile"
+    }
+  },
   "EbayListings": {
     "title": "eBay-Angebote",
     "noResults": "Keine passenden Angebote gefunden",

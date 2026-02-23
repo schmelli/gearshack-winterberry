@@ -766,6 +766,21 @@
     "viewOnManufacturer": "View on Manufacturer Website",
     "noData": "No price data available yet"
   },
+  "WishlistCardPricing": {
+    "msrp": "MSRP",
+    "viewOnManufacturer": "View on manufacturer website",
+    "retailerTrailblazerHint": "Retailer prices",
+    "visitShop": "Visit shop",
+    "ebayFrom": "eBay from",
+    "searchOnEbay": "Search on eBay",
+    "viewOnEbay": "View on eBay",
+    "conditions": {
+      "open_box": "Open Box",
+      "refurbished": "Refurbished",
+      "used": "Used",
+      "for_parts": "For Parts"
+    }
+  },
   "EbayListings": {
     "title": "eBay Listings",
     "noResults": "No matching listings found",
