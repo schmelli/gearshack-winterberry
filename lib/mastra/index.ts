@@ -39,5 +39,3 @@ export {
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
 export { getWorkingMemory, saveWorkingMemory, saveWorkingMemoryDirect, deleteWorkingMemory } from './memory/working-memory-adapter';
-export { searchSimilarMessages, embedAndStoreMessage } from './memory/semantic-recall';
-export { generateEmbedding, generateEmbeddings, isEmbeddingAvailable } from './memory/embedding-service';
