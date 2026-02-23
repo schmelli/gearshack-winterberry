@@ -12,13 +12,20 @@
 
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import React from 'react';
+import { useTranslations } from 'next-intl';
 import { ExternalLink, TrendingDown, Store, Package, Crown } from 'lucide-react';
 import { cn, sanitizeExternalUrl } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWishlistCardPricingSummary } from '@/hooks/wishlist/useWishlistCardPricingSummary';
 import type { EbayCondition, EbayListing } from '@/types/ebay';
 import type { ResellerPriceWithDetails } from '@/types/reseller';
+
+// =============================================================================
+// Module-level stable event handler — avoids new function reference each render
+// =============================================================================
+
+const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
 
 // =============================================================================
 // Types
@@ -41,10 +48,6 @@ interface WishlistCardPricingSummaryProps {
   brandUrl: string | null;
   /** Product type ID for keyword derivation */
   productTypeId: string | null;
-  /** MSRP amount from catalog lookup */
-  msrpAmount: number | null;
-  /** Whether MSRP is loading */
-  msrpLoading: boolean;
   /** Display variant */
   variant?: 'compact' | 'full';
   /** Additional CSS classes */
@@ -67,27 +70,6 @@ function isKnownCondition(condition: string): condition is EbayCondition {
 }
 
 // =============================================================================
-// Helper: Format price
-// =============================================================================
-
-function useFormatPrice() {
-  const locale = useLocale();
-
-  return (amount: number, currency: string = 'EUR') => {
-    try {
-      return new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }).format(amount);
-    } catch {
-      return `${currency} ${amount.toFixed(2)}`;
-    }
-  };
-}
-
-// =============================================================================
 // Component
 // =============================================================================
 
@@ -100,13 +82,9 @@ export function WishlistCardPricingSummary({
   productUrl,
   brandUrl,
   productTypeId,
-  msrpAmount,
-  msrpLoading,
   variant = 'compact',
   className,
 }: WishlistCardPricingSummaryProps) {
-  const formatPrice = useFormatPrice();
-
   const {
     displayPrice,
     displayCurrency,
@@ -119,7 +97,9 @@ export function WishlistCardPricingSummary({
     bestResellerOffer,
     resellerLoading,
     isTrailblazer,
-    msrpLoading: hookMsrpLoading,
+    msrpLoading,
+    authLoading,
+    formatPrice,
   } = useWishlistCardPricingSummary({
     itemId,
     itemName,
@@ -129,20 +109,18 @@ export function WishlistCardPricingSummary({
     productUrl,
     brandUrl,
     productTypeId,
-    msrpAmount,
-    msrpLoading,
   });
 
   const isCompact = variant === 'compact';
 
   return (
-    <div className={cn('space-y-1.5', className)} onClick={(e) => e.stopPropagation()}>
+    <div className={cn('space-y-1.5', className)} onClick={stopPropagation}>
       {/* 1. Manufacturer / MSRP Price */}
       <ManufacturerPriceRow
         price={displayPrice}
         currency={displayCurrency}
         link={manufacturerLink}
-        isLoading={hookMsrpLoading}
+        isLoading={msrpLoading}
         isCompact={isCompact}
         formatPrice={formatPrice}
       />
@@ -151,6 +129,7 @@ export function WishlistCardPricingSummary({
       <ResellerPriceRow
         offer={bestResellerOffer}
         isLoading={resellerLoading}
+        authLoading={authLoading}
         isTrailblazer={isTrailblazer}
         isCompact={isCompact}
         formatPrice={formatPrice}
@@ -229,20 +208,35 @@ function ManufacturerPriceRow({
 function ResellerPriceRow({
   offer,
   isLoading,
+  authLoading,
   isTrailblazer,
   isCompact,
   formatPrice,
 }: {
   offer: ResellerPriceWithDetails | null;
   isLoading: boolean;
+  /** Whether auth/profile is still resolving — prevents premature Trailblazer hint flash */
+  authLoading: boolean;
   isTrailblazer: boolean;
   isCompact: boolean;
   formatPrice: (amount: number, currency?: string) => string;
 }) {
   const t = useTranslations('WishlistCardPricing');
 
-  // Non-Trailblazer: show upgrade hint
-  if (!isTrailblazer && !isLoading) {
+  // Show skeleton while reseller data or auth is loading.
+  // Checking auth loading here prevents showing the upgrade hint during the
+  // brief window before the user profile has settled.
+  if (isLoading || authLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        <Store className={cn('flex-shrink-0 text-muted-foreground', isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+        <Skeleton className="h-3.5 w-24" />
+      </div>
+    );
+  }
+
+  // Non-Trailblazer: show upgrade hint (only rendered after loading completes)
+  if (!isTrailblazer) {
     return (
       <div className="flex items-center gap-2 min-w-0">
         <Store className={cn('flex-shrink-0 text-muted-foreground/50', isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
@@ -250,15 +244,6 @@ function ResellerPriceRow({
           {t('retailerTrailblazerHint')}
         </span>
         <Crown className={cn('flex-shrink-0 text-amber-500', isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2">
-        <Store className={cn('flex-shrink-0 text-muted-foreground', isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
-        <Skeleton className="h-3.5 w-24" />
       </div>
     );
   }

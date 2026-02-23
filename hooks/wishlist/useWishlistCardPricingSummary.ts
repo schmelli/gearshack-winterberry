@@ -10,10 +10,11 @@
 
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocale } from 'next-intl';
 import { useEbaySearch } from '@/hooks/price-tracking/useEbaySearch';
 import { useResellerPrices } from '@/hooks/price-tracking/useResellerPrices';
+import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getEbaySiteForLocale, EBAY_SITES } from '@/lib/constants/ebay-sites';
@@ -34,8 +35,6 @@ export interface UseWishlistCardPricingSummaryParams {
   productUrl: string | null;
   brandUrl: string | null;
   productTypeId: string | null;
-  msrpAmount: number | null;
-  msrpLoading: boolean;
 }
 
 export interface UseWishlistCardPricingSummaryReturn {
@@ -66,6 +65,10 @@ export interface UseWishlistCardPricingSummaryReturn {
   isTrailblazer: boolean;
   /** Whether MSRP is still loading */
   msrpLoading: boolean;
+  /** Whether auth/profile is still loading — used to prevent premature Trailblazer hint */
+  authLoading: boolean;
+  /** Locale-aware price formatter */
+  formatPrice: (amount: number, currency?: string) => string;
 }
 
 // =============================================================================
@@ -87,12 +90,33 @@ export function useWishlistCardPricingSummary({
   productUrl,
   brandUrl,
   productTypeId,
-  msrpAmount,
-  msrpLoading,
 }: UseWishlistCardPricingSummaryParams): UseWishlistCardPricingSummaryReturn {
   const locale = useLocale();
-  const { profile } = useAuthContext();
+  const { profile, loading: authLoading } = useAuthContext();
   const categories = useCategoriesStore((state) => state.categories);
+
+  // Fetch MSRP internally — encapsulates useMsrpPrice so the component and
+  // GearCard do not need to prop-drill loading state.
+  const { msrp, isLoading: msrpLoading } = useMsrpPrice(itemName, brandName);
+  const msrpAmount = msrp?.expectedPriceUsd ?? null;
+
+  // Locale-aware price formatter returned as part of hook result so the
+  // component file remains free of hook logic.
+  const formatPrice = useCallback(
+    (amount: number, currency: string = 'EUR') => {
+      try {
+        return new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      } catch {
+        return `${currency} ${amount.toFixed(2)}`;
+      }
+    },
+    [locale]
+  );
 
   // Derive product type keywords for eBay result filtering
   const productTypeKeywords = useMemo(() => {
@@ -105,10 +129,16 @@ export function useWishlistCardPricingSummary({
     return [];
   }, [productTypeId, categories]);
 
-  // Display price: prefer manufacturer price, fall back to MSRP
-  // Currency: use EUR as the default to match useFormatPrice defaults
+  // Display price: prefer manufacturer price, fall back to MSRP.
+  // Currency follows the source — manufacturer price uses its own currency
+  // (defaulting to EUR), MSRP is always stored as USD.
   const displayPrice = manufacturerPrice ?? msrpAmount;
-  const displayCurrency = manufacturerCurrency ?? 'EUR';
+  const displayCurrency =
+    manufacturerPrice !== null
+      ? (manufacturerCurrency ?? 'EUR')
+      : msrpAmount !== null
+        ? 'USD'
+        : 'EUR';
 
   // Sanitized manufacturer link (product page preferred, brand site fallback)
   const manufacturerLink =
@@ -130,14 +160,25 @@ export function useWishlistCardPricingSummary({
     limit: 1,
   });
 
-  // Trigger search when the item identity changes.
-  // ebaySearch is wrapped in useCallback inside useEbaySearch (stable reference),
-  // so including it here is safe and resolves the stale-closure risk.
+  // Debounced eBay search — prevents N simultaneous API calls when a card list
+  // re-renders rapidly (e.g. during filter interactions).
+  // ebaySearch is wrapped in useCallback inside useEbaySearch (stable ref).
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (itemName) {
-      ebaySearch(searchQuery);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
-  }, [itemName, brandName, ebaySearch, searchQuery]);
+    if (itemName) {
+      debounceRef.current = setTimeout(() => {
+        ebaySearch(searchQuery);
+      }, 300);
+    }
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchQuery, ebaySearch]);
 
   // Validate the eBay site returned by the API against the known allow-list.
   // This prevents arbitrary API values from being interpolated into URLs.
@@ -153,24 +194,25 @@ export function useWishlistCardPricingSummary({
     ? sanitizeExternalUrl(bestEbayListing.url)
     : null;
 
-  // Country code for reseller filtering — derived from profile locale or
-  // URL locale, never hardcoded to a single country.
+  // Country code for reseller filtering — derived from profile locale or URL locale.
+  // The language subtag fallback (e.g. locale.split('-')[0] → 'en' → 'EN') was
+  // removed because it is not a valid ISO 3166-1 country code and would silently
+  // return no results for English-locale users.
   const countryCode =
     profile?.rawProfile?.preferred_locale?.split('-')[1]?.toUpperCase() ??
     locale.split('-')[1]?.toUpperCase() ??
-    locale.split('-')[0]?.toUpperCase() ??
     'DE';
 
-  const rawProfile = profile?.rawProfile ?? null;
+  // Memoize userLocation on stable primitives to avoid recalculating when
+  // the profile object reference changes but coordinates haven't.
+  const profileLat = profile?.rawProfile?.latitude;
+  const profileLng = profile?.rawProfile?.longitude;
   const userLocation = useMemo(() => {
-    if (rawProfile?.latitude && rawProfile?.longitude) {
-      return {
-        latitude: rawProfile.latitude,
-        longitude: rawProfile.longitude,
-      };
+    if (profileLat && profileLng) {
+      return { latitude: profileLat, longitude: profileLng };
     }
     return null;
-  }, [rawProfile]);
+  }, [profileLat, profileLng]);
 
   const {
     allPrices: resellerPrices,
@@ -199,5 +241,7 @@ export function useWishlistCardPricingSummary({
     resellerLoading,
     isTrailblazer,
     msrpLoading,
+    authLoading,
+    formatPrice,
   };
 }

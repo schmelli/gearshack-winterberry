@@ -22,7 +22,6 @@ import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvail
 import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
-import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 import { useWishlistMarketplaceMatches } from '@/hooks/wishlist/useWishlistMarketplaceMatches';
 
 import { CategoryPlaceholder } from './CategoryPlaceholder';
@@ -82,12 +81,6 @@ function GearCardComponent({
   const showAvailabilityMarkers = context === 'inventory';
   const isWishlistContext = context === 'wishlist';
   const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
-
-  const { msrp, isLoading: msrpLoading } = useMsrpPrice(
-    isWishlistContext ? item.name : null,
-    isWishlistContext ? item.brand : null,
-    isWishlistContext
-  );
 
   // Load marketplace matches for wishlist items
   const { matches: marketplaceMatches, isLoading: marketplaceMatchesLoading } = useWishlistMarketplaceMatches(
@@ -340,8 +333,6 @@ function GearCardComponent({
             productUrl={item.productUrl}
             brandUrl={item.brandUrl}
             productTypeId={item.productTypeId}
-            msrpAmount={msrp?.expectedPriceUsd ?? null}
-            msrpLoading={msrpLoading}
             variant="compact"
             className="mt-auto"
           />
@@ -383,8 +374,6 @@ function GearCardComponent({
                 productUrl={item.productUrl}
                 brandUrl={item.brandUrl}
                 productTypeId={item.productTypeId}
-                msrpAmount={msrp?.expectedPriceUsd ?? null}
-                msrpLoading={msrpLoading}
                 variant="full"
                 className="mt-auto"
               />
