@@ -21,7 +21,6 @@ import {
   listGdprDeletionRequests,
 } from '@/lib/mastra/gdpr';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
-import { createMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import type { Database } from '@/types/supabase';
 
 export const runtime = 'nodejs';
@@ -72,14 +71,23 @@ export async function DELETE(request: Request): Promise<Response> {
 
     // If specific conversation requested, delete just that one
     if (conversationId) {
-      const adapter = createMemoryAdapter(
-        supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>
-      );
+      const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
+      const { error: deleteError } = await supabaseClient
+        .from('conversation_memory' as Parameters<typeof supabaseClient.from>[0])
+        .delete()
+        .eq('user_id' as never, user.id)
+        .eq('conversation_id' as never, conversationId);
 
-      await adapter.deleteMessages({
-        userId: user.id,
-        conversationId,
-      });
+      if (deleteError) {
+        logError('Failed to delete conversation', deleteError instanceof Error ? deleteError : new Error(String(deleteError)), {
+          userId: user.id,
+          metadata: { conversationId },
+        });
+        return new Response(
+          JSON.stringify({ error: 'Failed to delete conversation', message: String(deleteError) }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
       logInfo('Specific conversation deleted', {
         userId: user.id,

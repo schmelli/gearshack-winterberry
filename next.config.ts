@@ -22,7 +22,6 @@ const nextConfig: NextConfig = {
     // Feature 038: Cloudinary CDN for user uploads
     // Feature 040: Supabase storage for app data
     // Google auth: User avatars from Google accounts
-    // Feature 030/039: Serper API image search thumbnails (Google CDN)
     remotePatterns: [
       {
         protocol: 'https',
@@ -36,21 +35,21 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
+      // Feature 030/039: Serper API search thumbnails (Google encrypted CDN)
       {
         protocol: 'https',
-        hostname: 'encrypted-tbn0.gstatic.com',
+        hostname: 'encrypted-tbn*.gstatic.com',
+      },
+      // YouTube video thumbnails (Feature 045: Data API & VIP Featured)
+      {
+        protocol: 'https',
+        hostname: '*.ytimg.com',
+        pathname: '/vi/**',
       },
       {
         protocol: 'https',
-        hostname: 'encrypted-tbn1.gstatic.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'encrypted-tbn2.gstatic.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'encrypted-tbn3.gstatic.com',
+        hostname: 'img.youtube.com',
+        pathname: '/vi/**',
       },
     ],
     minimumCacheTTL: 60,

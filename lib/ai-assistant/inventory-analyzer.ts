@@ -59,7 +59,7 @@ export async function calculateBaseWeight(
   // Fetch gear items WITH category data in single query (join optimization)
   let query = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, category_id, status, categories(id, label, i18n)')
+    .select('id, name, brand, weight_grams, product_type_id, status, categories!gear_items_product_type_id_fkey(id, label, i18n)')
     .eq('user_id', userId);
 
   // Apply status filter (default to 'own')
@@ -76,7 +76,7 @@ export async function calculateBaseWeight(
 
   // Apply category filter
   if (filters?.categoryId) {
-    query = query.eq('category_id', filters.categoryId);
+    query = query.eq('product_type_id', filters.categoryId);
   }
 
   const { data: gearItems, error } = await query;
@@ -113,10 +113,10 @@ export async function calculateBaseWeight(
   for (const item of gearItems) {
     // Access the joined categories data
     const category = (item as typeof item & { categories?: JoinedCategory }).categories;
-    if (category && item.category_id && !categoryMap.has(item.category_id)) {
+    if (category && item.product_type_id && !categoryMap.has(item.product_type_id)) {
       const i18n = category.i18n;
       const name = i18n?.en ?? category.label;
-      categoryMap.set(item.category_id, name);
+      categoryMap.set(item.product_type_id, name);
     }
   }
 
@@ -124,7 +124,7 @@ export async function calculateBaseWeight(
   const categoryGroups = new Map<string, typeof gearItems>();
 
   for (const item of gearItems) {
-    const catId = item.category_id || 'uncategorized';
+    const catId = item.product_type_id || 'uncategorized';
     if (!categoryGroups.has(catId)) {
       categoryGroups.set(catId, []);
     }
@@ -195,7 +195,7 @@ interface GearItemBudgetView {
   brand: string | null;
   price_paid: number | null;
   currency: string | null;
-  category_id: string | null;
+  product_type_id: string | null;
   weight_grams: number | null;
   primary_image_url: string | null;
 }
@@ -209,7 +209,7 @@ export async function findGearByBudget(
 
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, brand, price_paid, currency, category_id, weight_grams, primary_image_url')
+    .select('id, name, brand, price_paid, currency, product_type_id, weight_grams, primary_image_url')
     .eq('user_id', userId)
     .lte('price_paid', maxPrice)
     .eq('currency', currency)
@@ -345,7 +345,7 @@ export async function getUserGearList(userId: string): Promise<string> {
 
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, status, product_type_id, categories(label, i18n)')
+    .select('id, name, brand, weight_grams, status, product_type_id, categories!gear_items_product_type_id_fkey(label, i18n)')
     .eq('user_id', userId)
     .eq('status', 'own')
     .order('name', { ascending: true })

@@ -28,9 +28,8 @@ export {
   LOG_LEVEL,
   METRICS_ENABLED,
   TRACING_ENABLED,
-  // Tool and workflow definitions
+  // Tool definitions
   DEFAULT_MCP_TOOLS,
-  DEFAULT_WORKFLOWS,
   // Prompt builder (re-exported from config.ts)
   buildMastraSystemPrompt,
   LOCALIZED_CONTENT,
@@ -39,6 +38,3 @@ export {
 
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
-export { getWorkingMemory, saveWorkingMemory, deleteWorkingMemory } from './memory/working-memory-adapter';
-export { searchSimilarMessages, embedAndStoreMessage } from './memory/semantic-recall';
-export { generateEmbedding, generateEmbeddings, isEmbeddingAvailable } from './memory/embedding-service';

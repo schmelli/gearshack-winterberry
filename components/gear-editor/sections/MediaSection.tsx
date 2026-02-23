@@ -36,6 +36,7 @@
 import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Plus, Trash2, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   FormField,
@@ -65,6 +66,7 @@ export interface MediaSectionProps {
 export function MediaSection({ initialItem }: MediaSectionProps) {
   const form = useFormContext<GearItemFormData>();
   const { user } = useAuthContext();
+  const t = useTranslations('GearEditor.media');
 
   // Watch brand and name fields to pass to ImageUploadZone for auto-search
   const brand = form.watch('brand');
@@ -116,7 +118,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Media</h3>
+      <h3 className="text-lg font-medium">{t('title')}</h3>
 
       {/* Primary Image - Feature 038: Cloudinary Upload */}
       <div className="space-y-4">
@@ -131,13 +133,13 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                   onChange={field.onChange}
                   userId={userId}
                   itemId={itemId}
-                  label="Primary Image"
+                  label={t('primaryImageLabel')}
                   brand={brand}
                   productName={productName}
                 />
               </FormControl>
               <FormDescription>
-                Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.
+                {t('primaryImageDescription')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -148,7 +150,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
       {/* Gallery Images */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <FormLabel className="text-base">Gallery Images</FormLabel>
+          <FormLabel className="text-base">{t('galleryImagesLabel')}</FormLabel>
           <Button
             type="button"
             variant="outline"
@@ -156,17 +158,17 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
             onClick={handleAddGalleryImage}
           >
             <Plus className="w-4 h-4 mr-1" />
-            Add Image
+            {t('addImage')}
           </Button>
         </div>
 
         <FormDescription>
-          Additional product images for detailed views
+          {t('galleryDescription')}
         </FormDescription>
 
         {fields.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-md">
-            No gallery images added yet. Click &quot;Add Image&quot; to add one.
+            {t('noGalleryImages')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -197,8 +199,8 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                           size="icon"
                           onClick={() => handleOpenGallerySearch(index)}
                           disabled={!brand && !productName}
-                          title={brand || productName ? `Search for "${[brand, productName].filter(Boolean).join(' ')}"` : 'Enter brand/product name first'}
-                          aria-label="Search for product images"
+                          title={brand || productName ? t('searchTooltip', { query: [brand, productName].filter(Boolean).join(' ') }) : t('searchDisabledTooltip')}
+                          aria-label={t('searchAriaLabel')}
                         >
                           <Search className="h-4 w-4" />
                         </Button>
@@ -209,7 +211,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                         size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => remove(index)}
-                        aria-label={`Remove gallery image ${index + 1}`}
+                        aria-label={t('removeGalleryImage', { index: index + 1 })}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

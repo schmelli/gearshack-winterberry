@@ -65,6 +65,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
     isStreaming,
     conversationId,
     resetConversation,
+    progressMessage,
   } = useMastraChat();
 
   // Voice output hook for TTS
@@ -208,6 +209,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
           isStreaming={isStreaming}
           onSpeakMessage={voiceEnabled ? speak : undefined}
           isPlayingAudio={isPlaying}
+          progressMessage={progressMessage}
         />
 
         {/* Chat Input */}

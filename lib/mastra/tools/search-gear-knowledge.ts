@@ -318,11 +318,15 @@ async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<st
     }
   }
 
-  // Include child categories of matching parents
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const cat of allCategories as any[]) {
-    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
-      matchingIds.add(cat.id as string);
+  // Include descendant categories (children, grandchildren, etc.)
+  let prevSize = 0;
+  while (matchingIds.size > prevSize) {
+    prevSize = matchingIds.size;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const cat of allCategories as any[]) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+        matchingIds.add(cat.id as string);
+      }
     }
   }
 
@@ -341,7 +345,7 @@ async function searchUserGear(
 ): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, price_paid, status, category_id, categories(label)')
+    .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories!gear_items_product_type_id_fkey(label)')
     .eq('user_id', userId);
 
   // Build search: combine text search with category-based search.
@@ -357,7 +361,7 @@ async function searchUserGear(
       `name.ilike.%${query}%`,
       `brand.ilike.%${query}%`,
       `notes.ilike.%${query}%`,
-      `category_id.in.(${categoryIds.join(',')})`,
+      `product_type_id.in.(${categoryIds.join(',')})`,
     ];
     const orString = orFilters.join(',');
     console.log(`[searchGearKnowledge] OR filter: ${orString}`);
@@ -451,7 +455,17 @@ async function searchCatalog(
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
   if (filters?.brand) {
-    dbQuery = dbQuery.ilike('catalog_brands.name', `%${filters.brand}%`);
+    const { data: matchingBrands } = await supabase
+      .from('catalog_brands')
+      .select('id')
+      .ilike('name', `%${filters.brand}%`);
+    const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    if (brandIds.length > 0) {
+      dbQuery = dbQuery.in('brand_id', brandIds);
+    } else {
+      // Keine Marken gefunden - leeres Ergebnis zurückgeben
+      return { type: 'catalog', data: [] };
+    }
   }
 
   // Sort

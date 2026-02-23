@@ -33,6 +33,7 @@ import {
   encodeTextEvent,
   encodeDoneEvent,
   encodeErrorEvent,
+  encodeWorkflowProgressEvent,
 } from '@/lib/mastra/streaming';
 import {
   logInfo,
@@ -52,19 +53,7 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-// Three-tier memory system (Feature 002-mastra-memory-system)
-import {
-  getWorkingMemory,
-  saveWorkingMemory,
-} from '@/lib/mastra/memory/working-memory-adapter';
-import {
-  searchSimilarMessages,
-  embedAndStoreMessage,
-  formatSemanticRecallForPrompt,
-} from '@/lib/mastra/memory/semantic-recall';
-import type { GearshackUserProfile } from '@/lib/mastra/schemas/working-memory';
 import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
@@ -77,16 +66,8 @@ import {
   formatSuggestionsForStream,
   shouldShowProactiveSuggestions,
 } from '@/lib/mastra/proactive-suggestions';
-import {
-  buildUserContext,
-  isCacheStale,
-  formatContextForPrompt,
-  extractPreferencesFromConversation,
-  type UserContext as MastraUserContext,
-} from '@/lib/mastra/user-context';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
-import type { Database } from '@/types/supabase';
 import {
   parseQuery,
   isComplexOptimizationQuery,
@@ -95,48 +76,9 @@ import {
 } from '@/lib/ai-assistant/query-parser';
 import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
 import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
-import { memoryRetryQueue } from '@/lib/mastra/memory-retry-queue';
-import { saveToMemory } from '@/lib/mastra/memory-save';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
-
-// =====================================================
-// Constants
-// =====================================================
-
-/** Maximum conversation history messages to retrieve */
-const MEMORY_HISTORY_LIMIT = 50;
-
-/** User context cache TTL in minutes */
-const USER_CONTEXT_CACHE_TTL_MINUTES = 30;
-
-/** Patterns that indicate user is correcting previous information */
-const CORRECTION_PATTERNS = [
-  /actually,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /no,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /i\s+(meant|mean)\s+/i,
-  /correction:\s*/i,
-  /let\s+me\s+correct\s+/i,
-  /to\s+clarify,?\s*/i,
-  /i\s+should\s+have\s+said/i,
-];
-
-// =====================================================
-// Types
-// =====================================================
-
-interface MemoryContext {
-  available: boolean;
-  adapter: SupabaseMemoryAdapter | null;
-  history: Array<{ role: string; content: string }>;
-  userContext: MastraUserContext | null;
-  /** Three-tier memory: Working memory profile */
-  workingMemoryProfile: GearshackUserProfile | null;
-  /** Three-tier memory: Semantic recall context string */
-  semanticRecallContext: string | null;
-  warning?: string;
-}
 
 // =====================================================
 // Request Validation
@@ -210,186 +152,14 @@ function validateRequest(body: unknown): {
 }
 
 // =====================================================
-// Memory Functions (T026-T029)
-// =====================================================
-
-/**
- * T027: Fetch conversation history from memory
- * T029: Gracefully handle memory unavailability
- * Issue #110: Fetch and cache user context for intelligent memory
- */
-async function fetchMemoryContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  conversationId: string,
-  currentLoadoutId?: string,
-  currentMessage?: string
-): Promise<MemoryContext> {
-  const getElapsed = createTimer();
-
-  try {
-    const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
-    const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-
-    logDebug('Fetching three-tier memory context', {
-      userId,
-      conversationId,
-      metadata: { limit: MEMORY_HISTORY_LIMIT, loadoutId: currentLoadoutId },
-    });
-
-    // Fetch all three memory tiers in parallel with error boundaries:
-    // 1. Conversation history (thread-scoped)
-    // 2. User context cache
-    // 3. Working memory profile (resource-scoped)
-    // 4. Semantic recall (resource-scoped, needs current message)
-    // Using Promise.allSettled for graceful degradation if any tier fails
-    const results = await Promise.allSettled([
-      adapter.getMessages({
-        userId,
-        conversationId,
-        limit: MEMORY_HISTORY_LIMIT,
-      }),
-      adapter.getUserContext(userId, conversationId),
-      getWorkingMemory(supabaseClient, userId),
-      currentMessage
-        ? searchSimilarMessages(supabaseClient, userId, currentMessage)
-        : Promise.resolve([]),
-    ]);
-
-    // Extract results with fallbacks
-    const messages = results[0].status === 'fulfilled' ? results[0].value : [];
-    const cachedContext = results[1].status === 'fulfilled' ? results[1].value : null;
-    const workingMemoryProfile = results[2].status === 'fulfilled' ? results[2].value : null;
-    const semanticMatches = results[3].status === 'fulfilled' ? results[3].value : [];
-
-    // Log any failures
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        const tierNames = ['conversation history', 'user context', 'working memory', 'semantic recall'];
-        logWarn(`${tierNames[index]} fetch failed, continuing without`, {
-          userId,
-          metadata: { error: result.reason instanceof Error ? result.reason.message : 'Unknown' },
-        });
-      }
-    });
-
-    // Reverse to get chronological order (oldest first)
-    const history = messages.reverse().map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    // Format semantic recall results for prompt injection
-    const semanticRecallContext = semanticMatches.length > 0
-      ? formatSemanticRecallForPrompt(semanticMatches)
-      : null;
-
-    // Check if cached context exists and is fresh
-    let userContext: MastraUserContext | null = null;
-    let shouldRefreshCache = true;
-
-    if (cachedContext) {
-      const cachedUserContext = cachedContext as MastraUserContext;
-
-      const hasValidCache =
-        (cachedUserContext.inventory && !isCacheStale(cachedUserContext.inventory.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.wishlist && !isCacheStale(cachedUserContext.wishlist.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES)) ||
-        (cachedUserContext.currentLoadout && !isCacheStale(cachedUserContext.currentLoadout.lastUpdated, USER_CONTEXT_CACHE_TTL_MINUTES));
-
-      if (hasValidCache) {
-        userContext = cachedUserContext;
-        shouldRefreshCache = false;
-        logDebug('Using cached user context', { userId, conversationId });
-      }
-    }
-
-    // Refresh user context if needed
-    if (shouldRefreshCache) {
-      logDebug('Building fresh user context', { userId, conversationId });
-
-      userContext = await buildUserContext(
-        supabaseClient,
-        userId,
-        currentLoadoutId
-      );
-
-      if (history.length > 0 && userContext.preferences) {
-        userContext.preferences = extractPreferencesFromConversation(
-          history,
-          userContext.preferences
-        );
-      }
-
-      await adapter.storeUserContext(userId, conversationId, userContext);
-      logDebug('User context cached in memory', { userId, conversationId });
-    }
-
-    logInfo('Three-tier memory retrieval completed', {
-      userId,
-      conversationId,
-      metadata: {
-        messageCount: history.length,
-        userContextCached: !!userContext,
-        workingMemoryLoaded: !!workingMemoryProfile,
-        semanticMatchCount: semanticMatches.length,
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return {
-      available: true,
-      adapter,
-      history,
-      userContext,
-      workingMemoryProfile,
-      semanticRecallContext,
-    };
-  } catch (error) {
-    // T029: Graceful degradation - continue without memory
-    logWarn('Memory unavailable, continuing in stateless mode', {
-      userId,
-      conversationId,
-      metadata: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return {
-      available: false,
-      adapter: null,
-      history: [],
-      userContext: null,
-      workingMemoryProfile: null,
-      semanticRecallContext: null,
-      warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
-    };
-  }
-}
-
-/**
- * T028: Detect memory correction patterns in user message
- */
-function detectCorrectionIntent(message: string): boolean {
-  return CORRECTION_PATTERNS.some(pattern => pattern.test(message));
-}
-
-// T026: saveToMemory moved to @/lib/mastra/memory-save for reuse in retry queue
-
-// =====================================================
 // System Prompt Builder
 // =====================================================
 
 async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
-  history: Array<{ role: string; content: string }>,
   userId: string,
-  mastraUserContext: MastraUserContext | null,
-  memoryWarning?: string,
   subscriptionTier?: 'standard' | 'trailblazer',
   parsedQuery?: ParsedQuery,
-  workingMemoryProfile?: GearshackUserProfile | null,
-  semanticRecallContext?: string | null
 ): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
@@ -408,43 +178,7 @@ async function buildPromptContext(
 
   const promptContext: PromptContext = {
     userContext: promptUserContext,
-    // Three-tier memory: inject working memory and semantic recall
-    workingMemoryProfile: workingMemoryProfile ?? undefined,
-    semanticRecallContext: semanticRecallContext ?? undefined,
   };
-
-  // Add user context summary to system prompt (Issue #110)
-  if (mastraUserContext) {
-    const contextSummary = formatContextForPrompt(mastraUserContext);
-    if (contextSummary) {
-      promptContext.gearList = contextSummary;
-      logDebug('User inventory context added to prompt', {
-        userId,
-        metadata: {
-          hasInventory: !!mastraUserContext.inventory,
-          itemCount: mastraUserContext.inventory?.counts.own || 0,
-          wishlistCount: mastraUserContext.inventory?.counts.wishlist || 0,
-        },
-      });
-    }
-  } else {
-    logWarn('No user context available for prompt', {
-      userId,
-      metadata: { conversationId: userContext?.currentLoadoutId },
-    });
-  }
-
-  // Conversation history is passed directly as messages to agent.stream().
-  // Add a brief note so the agent knows context is available.
-  if (history.length > 0) {
-    const historyNote = `\n**Conversation History:** ${history.length} previous messages are included in this conversation. Always refer to them when the user references earlier topics (e.g., "which of those", "that tent", "the one you mentioned").`;
-    promptContext.gearList = (promptContext.gearList || '') + historyNote;
-  }
-
-  // Add memory warning if applicable
-  if (memoryWarning) {
-    promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
-  }
 
   // Add parsed query constraints to prompt (for better tool selection)
   if (parsedQuery && parsedQuery.confidence > 0.5) {
@@ -589,28 +323,9 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    // 6. Check rate limits and fetch memory context in parallel (optimized)
-    // Running both in parallel saves ~50-200ms per request in the happy path
-    // Using checkAndIncrementRateLimit for atomic rate limit check and increment
+    // 6. Check rate limits (must remain outside stream for proper HTTP status codes)
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
-
-    // Rate limiting, memory context fetch, and intent classification in parallel
-    // Pass current message for semantic recall search
-    // Intent classification runs via Gemini Flash (~200-500ms) in parallel with memory fetch
-    const [rateLimitResult, memoryContextResult, intentResult] = await Promise.all([
-      checkAndIncrementRateLimit(user.id, operationType as OperationType),
-      traceWorkflowStep(
-        `chat-${conversationId}`,
-        'memory_retrieval',
-        () => fetchMemoryContext(supabase, user.id, conversationId, currentLoadoutId, message),
-        { userId: user.id }
-      ).then(r => r.result),
-      classifyIntent(
-        message,
-        context?.screen as string | undefined,
-        currentLoadoutId
-      ),
-    ]);
+    const rateLimitResult = await checkAndIncrementRateLimit(user.id, operationType as OperationType);
 
     // Check rate limit result first (early return if exceeded)
     if (!rateLimitResult.allowed) {
@@ -665,154 +380,7 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Use the memory context fetched in parallel
-    const memoryContext = memoryContextResult;
-
-    // 7b. Pre-fetch data based on intent classification
-    let prefetchedContext: PrefetchedContext | null = null;
-    if (intentResult.dataRequirements.length > 0) {
-      const locale = (context?.locale as string) || 'en';
-      prefetchedContext = await prefetchData(
-        intentResult.dataRequirements,
-        user.id,
-        locale
-      );
-
-      logDebug('Pre-fetch completed', {
-        userId: user.id,
-        metadata: {
-          intent: intentResult.intent,
-          requirementCount: intentResult.dataRequirements.length,
-          totalLatencyMs: prefetchedContext.totalLatencyMs,
-        },
-      });
-    }
-
-    // 7c. Fast-path for simple factual questions
-    // If the intent router determines the question can be answered directly with pre-fetched data,
-    // generate a fast answer via Gemini Flash (skipping the full Sonnet agent pipeline)
-    if (
-      intentResult.canAnswerDirectly &&
-      intentResult.intent === 'simple_fact' &&
-      prefetchedContext &&
-      Object.keys(prefetchedContext.results).length > 0
-    ) {
-      const locale = (context?.locale as string) || 'en';
-      const fastAnswer = await generateFastAnswer(
-        message,
-        prefetchedContext.results,
-        locale
-      );
-
-      if (fastAnswer) {
-        logInfo('Fast-path answer served', {
-          userId: user.id,
-          conversationId,
-          metadata: {
-            intent: intentResult.intent,
-            latencyMs: requestTimer(),
-          },
-        });
-
-        // Stream the fast answer as SSE events
-        const encoder = new TextEncoder();
-        const messageId = crypto.randomUUID();
-        const totalLatencyMs = requestTimer();
-
-        const stream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(encoder.encode(encodeTextEvent(fastAnswer)));
-            controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
-            controller.close();
-          },
-        });
-
-        // Save to memory in the background (don't await)
-        // If it fails, enqueue for retry to prevent data loss
-        saveToMemory(
-          memoryContext.adapter,
-          user.id,
-          conversationId,
-          message,
-          fastAnswer,
-          false // not a correction
-        ).catch(err => {
-          logWarn('Fast-path memory save failed, queuing for retry', {
-            metadata: {
-              error: err instanceof Error ? err.message : 'Unknown',
-              userId: user.id,
-              conversationId,
-            },
-          });
-
-          // Enqueue for background retry (only if adapter is available)
-          if (memoryContext.adapter) {
-            memoryRetryQueue.enqueue({
-              adapter: memoryContext.adapter,
-              userId: user.id,
-              conversationId,
-              message,
-              response: fastAnswer,
-              isCorrection: false,
-            });
-          }
-        });
-
-        // Record metrics
-        recordAgentLatency(totalLatencyMs / 1000, 'simple');
-
-        const headers: Record<string, string> = {
-          ...rateLimitHeaders,
-          'X-Conversation-Id': conversationId, // Always return conversation ID for client persistence
-        };
-        if (memoryContext.warning) {
-          headers['X-Memory-Warning'] = memoryContext.warning;
-        }
-        return createStreamingResponse(stream, headers);
-      }
-    }
-
-    // 8. Detect correction intent (T028)
-    const isCorrection = detectCorrectionIntent(message);
-    if (isCorrection) {
-      logInfo('Correction intent detected', {
-        userId: user.id,
-        conversationId,
-      });
-    }
-
-    // 9. Build system prompt with memory context, loadout context, user context, and parsed query constraints
-    const { promptContext, loadoutContext } = await buildPromptContext(
-      context,
-      memoryContext.history,
-      user.id,
-      memoryContext.userContext,
-      memoryContext.warning,
-      undefined, // subscriptionTier
-      parsedQuery, // Pass parsed query for constraint-aware prompting
-      memoryContext.workingMemoryProfile, // Three-tier: working memory
-      memoryContext.semanticRecallContext // Three-tier: semantic recall
-    );
-    const systemPrompt = buildMastraSystemPrompt(promptContext);
-
-    // Inject pre-fetched context into system prompt for zero-tool-call answers
-    let enrichedPrompt = systemPrompt;
-    if (prefetchedContext && prefetchedContext.formattedContext) {
-      const contextLabel = (context?.locale as string) === 'de'
-        ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
-        : '**Pre-loaded Data (use this to answer quickly):**';
-      enrichedPrompt = `${systemPrompt}\n\n${contextLabel}\n${prefetchedContext.formattedContext}`;
-
-      logDebug('Pre-fetched context injected into prompt', {
-        userId: user.id,
-        metadata: {
-          contextLength: prefetchedContext.formattedContext.length,
-          intent: intentResult.intent,
-        },
-      });
-    }
-
-    // 10. Check AI availability (Mastra Agent requires AI_GATEWAY_KEY)
+    // 7. Check AI availability before starting stream (proper HTTP 503)
     if (!process.env.AI_GATEWAY_KEY && !process.env.AI_GATEWAY_API_KEY) {
       logWarn('AI service unavailable - AI_GATEWAY_KEY not configured', { userId: user.id });
       recordChatError('ai_unavailable');
@@ -824,28 +392,142 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 11. Generate streaming response with tracing (T032)
+    // 8. Start the stream IMMEDIATELY, then do slow pipeline work inside start()
+    // This allows us to emit workflow_progress SSE events during memory fetch,
+    // intent classification, and prefetch so the user sees real-time progress.
     const encoder = new TextEncoder();
     const messageId = crypto.randomUUID();
     let fullResponse = '';
+
+    // Determine locale for progress messages (hardcoded server-side, no i18n needed)
+    const locale = (context?.locale as string) === 'de' ? 'de' : 'en';
+
+    const progressMessages = {
+      en: {
+        memory: 'Loading your profile...',
+        context: 'Analysing your gear...',
+        thinking: 'Preparing answer...',
+      },
+      de: {
+        memory: 'Profil wird geladen...',
+        context: 'Ausrüstung wird analysiert...',
+        thinking: 'Antwort wird vorbereitet...',
+      },
+    } as const;
 
     const stream = new ReadableStream({
       async start(controller) {
         let hadError = false;
 
+        // Helper to emit progress events
+        const emitProgress = (step: string, msg: string) => {
+          controller.enqueue(encoder.encode(encodeWorkflowProgressEvent(step, 'running', msg)));
+        };
+
         try {
+          // --- Phase 1: Intent classification ---
+          emitProgress('memory', progressMessages[locale].memory);
+
+          const intentResult = await classifyIntent(
+            message,
+            context?.screen as string | undefined,
+            currentLoadoutId
+          );
+
+          // --- Phase 2: Context / Prefetch (emit progress) ---
+          emitProgress('context', progressMessages[locale].context);
+
+          // Pre-fetch data based on intent classification
+          let prefetchedContext: PrefetchedContext | null = null;
+          if (intentResult.dataRequirements.length > 0) {
+            const prefetchLocale = (context?.locale as string) || 'en';
+            prefetchedContext = await prefetchData(
+              intentResult.dataRequirements,
+              user.id,
+              prefetchLocale
+            );
+
+            logDebug('Pre-fetch completed', {
+              userId: user.id,
+              metadata: {
+                intent: intentResult.intent,
+                requirementCount: intentResult.dataRequirements.length,
+                totalLatencyMs: prefetchedContext.totalLatencyMs,
+              },
+            });
+          }
+
+          // Fast-path for simple factual questions
+          if (
+            intentResult.canAnswerDirectly &&
+            intentResult.intent === 'simple_fact' &&
+            prefetchedContext &&
+            Object.keys(prefetchedContext.results).length > 0
+          ) {
+            const fastLocale = (context?.locale as string) || 'en';
+            const fastAnswer = await generateFastAnswer(
+              message,
+              prefetchedContext.results,
+              fastLocale
+            );
+
+            if (fastAnswer) {
+              logInfo('Fast-path answer served', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  intent: intentResult.intent,
+                  latencyMs: requestTimer(),
+                },
+              });
+
+              fullResponse = fastAnswer;
+              const totalLatencyMs = requestTimer();
+              controller.enqueue(encoder.encode(encodeTextEvent(fastAnswer)));
+              controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+
+              recordAgentLatency(totalLatencyMs / 1000, 'simple');
+              controller.close();
+              return;
+            }
+          }
+
+          // Build system prompt with memory context, loadout context, and parsed query constraints
+          const { promptContext, loadoutContext } = await buildPromptContext(
+            context,
+            user.id,
+            undefined, // subscriptionTier
+            parsedQuery,
+          );
+          const systemPrompt = buildMastraSystemPrompt(promptContext);
+
+          // Inject pre-fetched context into system prompt
+          let enrichedPrompt = systemPrompt;
+          if (prefetchedContext && prefetchedContext.formattedContext) {
+            const contextLabel = (context?.locale as string) === 'de'
+              ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
+              : '**Pre-loaded Data (use this to answer quickly):**';
+            enrichedPrompt = `${systemPrompt}\n\n${contextLabel}\n${prefetchedContext.formattedContext}`;
+
+            logDebug('Pre-fetched context injected into prompt', {
+              userId: user.id,
+              metadata: {
+                contextLength: prefetchedContext.formattedContext.length,
+                intent: intentResult.intent,
+              },
+            });
+          }
+
+          // --- Phase 3: Agent generation (emit "thinking" progress) ---
+          emitProgress('thinking', progressMessages[locale].thinking);
+
           // Create Mastra Agent and stream response
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              // Create agent with system prompt and tools
               const agent = createGearAgent(user.id, enrichedPrompt);
-
-              // Stream response with Mastra's native tool handling
-              // Pass conversation history for context continuity across turns
-              // Pass currentLoadoutId for loadout-aware tool execution
-              return await streamMastraResponse(agent, message, user.id, memoryContext.history, currentLoadoutId);
+              return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
             },
             { userId: user.id }
           );
@@ -894,7 +576,6 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // BUGFIX: Detect empty responses and provide fallback message
-          // This happens when tool calls fail (e.g., database rate limits) and AI generates no text
           if (!fullResponse || fullResponse.trim().length === 0) {
             const fallbackMessage = toolCalls && toolCalls.length > 0
               ? "I apologize, but I'm having trouble accessing your data right now. This might be due to temporary rate limiting. Please try again in a moment, or rephrase your question."
@@ -914,7 +595,6 @@ export async function POST(request: Request): Promise<Response> {
           }
 
           // Improvement #4: Add proactive suggestions to stream
-          // Only show suggestions when conversation naturally completes (not during tool calls or errors)
           const isNaturalCompletion = finishReason === 'stop';
           if (isNaturalCompletion && shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
             const suggestions = generateProactiveSuggestions(
@@ -942,80 +622,11 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // Save to memory after successful response (T026)
-          // Also generate embeddings for semantic recall and persist working memory
-          const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-          await traceWorkflowStep(
-            `chat-${conversationId}`,
-            'memory_save',
-            async () => {
-              // Save conversation messages and get their IDs
-              const messageIds = await saveToMemory(
-                memoryContext.adapter,
-                user.id,
-                conversationId,
-                message,
-                fullResponse,
-                isCorrection
-              );
-
-              // Generate embeddings for both messages (non-blocking)
-              // This enables semantic recall to find these messages in future conversations
-              // BUGFIX: Use the actual message IDs returned from saveToMemory
-              if (messageIds) {
-                Promise.all([
-                  embedAndStoreMessage(supabaseClient, messageIds.userMessageId, message),
-                  embedAndStoreMessage(supabaseClient, messageIds.assistantMessageId, fullResponse),
-                ]).catch((err) => {
-                  logWarn('Embedding generation failed, queued for retry', {
-                    userId: user.id,
-                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                  });
-                  // Queue failed embeddings for retry
-                  Promise.all([
-                    supabaseClient.from('embedding_queue').upsert({
-                      message_id: messageIds.userMessageId,
-                      user_id: user.id,
-                      content: message,
-                      error_message: err instanceof Error ? err.message : 'Unknown error',
-                    }, { onConflict: 'message_id' }),
-                    supabaseClient.from('embedding_queue').upsert({
-                      message_id: messageIds.assistantMessageId,
-                      user_id: user.id,
-                      content: fullResponse,
-                      error_message: err instanceof Error ? err.message : 'Unknown error',
-                    }, { onConflict: 'message_id' }),
-                  ]).catch((queueErr) => {
-                    logError('Failed to queue embeddings for retry', queueErr instanceof Error ? queueErr : undefined, {
-                      userId: user.id,
-                    });
-                  });
-                });
-              }
-
-              // Save working memory profile if it was loaded
-              // The agent may have updated it via tool calls during the conversation
-              if (memoryContext.workingMemoryProfile) {
-                saveWorkingMemory(
-                  supabaseClient,
-                  user.id,
-                  memoryContext.workingMemoryProfile
-                ).catch((err) => {
-                  logWarn('Working memory save failed (non-blocking)', {
-                    userId: user.id,
-                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                  });
-                });
-              }
-            },
-            { userId: user.id }
-          );
-
           // Record latency metrics (T031)
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
-          // Send completion event (tokensUsed not available from streaming, pass undefined)
+          // Send completion event
           controller.enqueue(
             encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
           );
@@ -1026,8 +637,6 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
-              memoryAvailable: memoryContext.available,
-              isCorrection,
             },
           });
 
@@ -1053,14 +662,11 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Return streaming response with memory warning, rate limit headers, and conversation ID (T105)
+    // Return streaming response with rate limit headers and conversation ID
     const headers: Record<string, string> = {
       ...rateLimitHeaders,
-      'X-Conversation-Id': conversationId, // Always return conversation ID for client persistence
+      'X-Conversation-Id': conversationId,
     };
-    if (memoryContext.warning) {
-      headers['X-Memory-Warning'] = memoryContext.warning;
-    }
 
     return createStreamingResponse(stream, headers);
   } catch (error) {

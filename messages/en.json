@@ -643,6 +643,19 @@
       "invalidResponse": "Invalid response from Cloudinary widget",
       "importFailed": "Import failed"
     },
+    "media": {
+      "title": "Media",
+      "primaryImageLabel": "Primary Image",
+      "primaryImageDescription": "Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.",
+      "galleryImagesLabel": "Gallery Images",
+      "addImage": "Add Image",
+      "galleryDescription": "Additional product images for detailed views",
+      "noGalleryImages": "No gallery images added yet. Use the button above to add one.",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchDisabledTooltip": "Enter brand/product name first",
+      "searchAriaLabel": "Search for product images",
+      "removeGalleryImage": "Remove gallery image {index}"
+    },
     "imageUpload": {
       "invalidFileType": "Please select a valid image file (JPG, PNG, WebP, or GIF)",
       "fileTooLarge": "File size must be less than {maxSize}MB",
@@ -653,7 +666,21 @@
       "imageSelected": "Image selected",
       "removeImage": "Remove image",
       "dragOrClick": "Click or drag image here",
-      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)"
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max {maxSize}MB)",
+      "removingBackground": "Removing background...",
+      "uploadingToCloudinary": "Uploading to Cloudinary...",
+      "uploadSuccessful": "Upload successful!",
+      "dragAndDrop": "Drag & drop an image here, or click to browse",
+      "fileTypes": "PNG, JPG, WebP (max {maxSize}MB)",
+      "removeBackground": "Auto-Remove Background",
+      "removeBackgroundDescription": "Uses AI to remove image background (WASM, runs in browser)",
+      "or": "or",
+      "enterImageUrl": "Or enter an image URL directly:",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Search for \"{query}\"",
+      "searchTooltipEmpty": "Enter brand/product name first",
+      "useThisUrl": "Use this URL",
+      "tryAgain": "Try Again"
     },
     "productSearch": {
       "rateLimitReached": "Daily search limit reached. Upgrade to Trailblazer for unlimited searches.",
@@ -765,6 +792,21 @@
     "freeShipping": "Free Shipping",
     "viewOnManufacturer": "View on Manufacturer Website",
     "noData": "No price data available yet"
+  },
+  "WishlistCardPricing": {
+    "msrp": "MSRP",
+    "viewOnManufacturer": "View on manufacturer website",
+    "retailerTrailblazerHint": "Retailer prices (Trailblazer)",
+    "visitShop": "Visit shop",
+    "ebayFrom": "eBay from",
+    "searchOnEbay": "Search on eBay",
+    "viewOnEbay": "View on eBay",
+    "conditions": {
+      "open_box": "Open Box",
+      "refurbished": "Refurbished",
+      "used": "Used",
+      "for_parts": "For Parts"
+    }
   },
   "EbayListings": {
     "title": "eBay Listings",
@@ -3699,6 +3741,11 @@
       "suggestion3": "Show me my sleeping bags"
     },
     "thinking": "AI is thinking...",
+    "progress": {
+      "memory": "Loading your profile...",
+      "context": "Analysing your gear...",
+      "thinking": "Preparing answer..."
+    },
     "ariaLabels": {
       "aiAssistant": "AI Assistant",
       "trailblazerFeature": "Trailblazer feature",

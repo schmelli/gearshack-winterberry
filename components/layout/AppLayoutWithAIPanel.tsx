@@ -15,7 +15,7 @@ interface AppLayoutWithAIPanelProps {
 
 export function AppLayoutWithAIPanel({ children }: AppLayoutWithAIPanelProps) {
   const { isOpen, setWidth } = useAIPanelStore();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
   const { user } = useAuthContext();
   const { isTrailblazer, isLoading } = useSubscriptionCheck(user?.uid || null);
 

@@ -10,11 +10,6 @@
  */
 
 import type { UserContext } from '@/types/ai-assistant';
-import type { GearshackUserProfile } from './schemas/working-memory';
-import {
-  formatWorkingMemoryForPrompt,
-  buildWorkingMemoryInstructions,
-} from './memory/working-memory-adapter';
 
 // =============================================================================
 // Localized Content Types
@@ -81,8 +76,8 @@ const ENGLISH_CONTENT: LocalizedContent = {
   tools: `**Available Tools (9 total):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer.
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves)
+- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer.
+- **addToLoadout**: Add a gear item to the user's loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.
 - **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)
 - **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchGear**: Search the GearGraph catalog with filters (category, brand, weight, price)
@@ -109,7 +104,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
   limitations: `**Limitations:**
 - You cannot place orders or process transactions
 - You do not have access to private messages or community posts
-- You cannot add or delete gear for the user (only suggest)`,
+- You can add gear items to loadouts using the addToLoadout tool, but you cannot create or delete gear items`,
 
   toolBestPractices: '',
 
@@ -174,8 +169,8 @@ const GERMAN_CONTENT: LocalizedContent = {
   tools: `**Verfuegbare Tools (9 insgesamt):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen mit den gefundenen Gegenstaenden verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort.
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves)
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen mit den gefundenen Gegenstaenden verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort.
+- **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.
 - **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)
 - **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, Gewicht, Preis)
@@ -202,7 +197,7 @@ const GERMAN_CONTENT: LocalizedContent = {
   limitations: `**Einschraenkungen:**
 - Du kannst keine Bestellungen aufgeben oder Transaktionen durchfuehren
 - Du hast keinen Zugriff auf private Nachrichten oder Community-Posts
-- Du kannst keine Ausruestung fuer den Nutzer hinzufuegen oder loeschen (nur vorschlagen)`,
+- Du kannst Ausruestung zu Loadouts hinzufuegen (addToLoadout), aber keine Ausruestungsgegenstaende erstellen oder loeschen`,
 
   toolBestPractices: '',
 
@@ -293,8 +288,6 @@ export interface PromptContext {
   };
   gearList?: string;
   catalogResults?: string;
-  /** Working memory profile (three-tier memory system) */
-  workingMemoryProfile?: GearshackUserProfile;
   /** Semantic recall context from past conversations */
   semanticRecallContext?: string;
 }
@@ -330,19 +323,6 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 1. Core Identity and Role
   sections.push(content.identity);
-
-  // 1b. Working Memory (three-tier memory system)
-  if (context.workingMemoryProfile) {
-    const workingMemorySection = formatWorkingMemoryForPrompt(
-      context.workingMemoryProfile,
-      locale
-    );
-    sections.push(`\n${workingMemorySection}`);
-
-    // Add working memory update instructions
-    const wmInstructions = buildWorkingMemoryInstructions(locale);
-    sections.push(wmInstructions);
-  }
 
   // 1c. Semantic Recall context from past conversations
   if (context.semanticRecallContext) {

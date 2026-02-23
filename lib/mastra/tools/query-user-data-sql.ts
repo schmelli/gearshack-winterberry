@@ -63,8 +63,8 @@ Examples:
 - "weight_grams > 500"
 - "name ILIKE '%tent%' AND weight_grams < 1000"
 - "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
-- "category_id IN ('uuid1', 'uuid2', 'uuid3')"
-- "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"`),
+- "product_type_id IN ('uuid1', 'uuid2', 'uuid3')"
+- "product_type_id IN ('id1', 'id2') OR name ILIKE '%tent%'"`),
 
   orderBy: z
     .object({
@@ -367,11 +367,15 @@ async function resolveCategorySearch(supabase: any, search: string): Promise<str
     }
   }
 
-  // Also include child categories of matching parents
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const cat of allCategories as any[]) {
-    if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
-      matchingIds.add(cat.id as string);
+  // Include descendant categories (children, grandchildren, etc.)
+  let prevSize = 0;
+  while (matchingIds.size > prevSize) {
+    prevSize = matchingIds.size;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const cat of allCategories as any[]) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
+        matchingIds.add(cat.id as string);
+      }
     }
   }
 
@@ -391,7 +395,7 @@ export const queryUserDataSqlTool = createTool({
 
 **gear_items** (user's gear inventory):
 - id, name, brand, weight_grams, price_paid, currency
-- category_id, status ('own', 'wishlist', 'sold'), notes, image_url
+- product_type_id, status ('own', 'wishlist', 'sold'), notes, image_url
 - created_at, updated_at
 
 **loadouts** (user's loadout/packing lists):
@@ -413,8 +417,8 @@ Use simple SQL-like conditions (user_id is auto-applied):
 - Pattern: "brand ILIKE '%osprey%'" (case-insensitive)
 - AND: "status = 'own' AND weight_grams < 1000"
 - OR: "name ILIKE '%tent%' OR name ILIKE '%zelt%'"
-- IN: "category_id IN ('uuid1', 'uuid2', 'uuid3')"
-- Combined: "category_id IN ('id1', 'id2') OR name ILIKE '%tent%'"
+- IN: "product_type_id IN ('uuid1', 'uuid2', 'uuid3')"
+- Combined: "product_type_id IN ('id1', 'id2') OR name ILIKE '%tent%'"
 
 ## Examples
 
@@ -498,9 +502,9 @@ List loadouts: { table: "loadouts", select: "name, total_weight" }`,
       if (categorySearch && table === 'gear_items') {
         const categoryIds = await resolveCategorySearch(supabase, categorySearch);
         if (categoryIds.length > 0) {
-          // Match by category_id (hierarchy) OR by name (fallback)
+          // Match by product_type_id (hierarchy) OR by name (fallback)
           const orFilters = [
-            `category_id.in.(${categoryIds.join(',')})`,
+            `product_type_id.in.(${categoryIds.join(',')})`,
             `name.ilike.%${categorySearch}%`,
           ];
           query = query.or(orFilters.join(','));

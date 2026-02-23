@@ -1,18 +1,16 @@
 /**
- * Mastra Agent with Four-Tier Memory System
- * Feature: 002-mastra-memory-system + Observational Memory
+ * Mastra Agent with Three-Tier Memory System
+ * Feature: 002-mastra-memory-system
  *
  * Uses Mastra's Agent class with:
  * 1. Working Memory: Structured user profile (Zod schema) - resource-scoped
  * 2. Conversation History: Last N messages - thread-scoped
  * 3. Semantic Recall: Vector similarity search - resource-scoped
- * 4. Observational Memory: Observer + Reflector for long-context compression - thread-scoped
  *
  * Storage: Supabase PostgreSQL with pgvector via @mastra/pg
  *
  * @see https://mastra.ai/docs/memory/overview
  * @see https://mastra.ai/docs/memory/semantic-recall
- * @see https://mastra.ai/docs/memory/observational-memory
  */
 
 import { Agent } from '@mastra/core/agent';
@@ -23,6 +21,8 @@ import { createGateway } from '@ai-sdk/gateway';
 import { analyzeLoadoutTool } from './tools/analyze-loadout';
 import { inventoryInsightsTool } from './tools/inventory-insights';
 import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
+// Action tools (Feature: AI Add to Loadout)
+import { addToLoadoutTool } from './tools/add-to-loadout';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -75,12 +75,6 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
 
-// Observational Memory configuration
-const OM_ENABLED = process.env.OBSERVATIONAL_MEMORY_ENABLED !== 'false'; // enabled by default
-const OM_MODEL = process.env.OM_MODEL || 'google/gemini-2.5-flash';
-const OM_MESSAGE_TOKENS = parseInt(process.env.OM_MESSAGE_TOKENS || '20000', 10);
-const OM_OBSERVATION_TOKENS = parseInt(process.env.OM_OBSERVATION_TOKENS || '40000', 10);
-
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
 let pgVectorInstance: PgVector | null = null;
@@ -124,7 +118,7 @@ function getPgVector(): PgVector {
 // =============================================================================
 
 /**
- * Create Memory instance with four-tier configuration
+ * Create Memory instance with three-tier configuration
  *
  * Tier 1: Working Memory (resource-scoped)
  *   - Structured user profile the agent can read/update
@@ -141,20 +135,12 @@ function getPgVector(): PgVector {
  *   - Uses text-embedding-3-small via Vercel AI Gateway
  *   - Powered by pgvector in Supabase PostgreSQL
  *
- * Tier 4: Observational Memory (thread-scoped)
- *   - Observer compresses tool results and messages into dense observations
- *   - Reflector condenses observations when they grow too large
- *   - Ideal for tool-heavy conversations (SQL queries, catalog searches, GearGraph)
- *   - Provides 5-40× compression ratio
- *   - Uses google/gemini-2.5-flash for Observer and Reflector
- *
  * Storage Architecture:
- * - PostgresStore: Message history, conversation metadata, observations
+ * - PostgresStore: Message history, conversation metadata
  * - PgVector: Embedding storage with HNSW index for fast similarity search
  * - Both use the same Supabase PostgreSQL database via DATABASE_URL
  *
  * @see https://mastra.ai/docs/memory/semantic-recall
- * @see https://mastra.ai/docs/memory/observational-memory
  * @see https://mastra.ai/reference/vectors/pg
  */
 function createAgentMemory(): Memory {
@@ -169,13 +155,6 @@ function createAgentMemory(): Memory {
     topK: SEMANTIC_TOP_K,
     messageRange: SEMANTIC_MESSAGE_RANGE,
     threshold: SEMANTIC_THRESHOLD,
-    // HNSW index configuration for optimized vector search
-    indexConfig: {
-      type: 'hnsw',
-      metric: 'dotproduct', // Recommended for OpenAI text-embedding-3-small
-      m: 16,
-      efConstruction: 64,
-    },
   };
 
   // Enable working memory with Zod schema
@@ -183,24 +162,6 @@ function createAgentMemory(): Memory {
     memoryOptions.workingMemory = {
       enabled: true,
       schema: GearshackUserProfileSchema,
-    };
-  }
-
-  // Enable Observational Memory for long-context compression
-  // Ideal for tool-heavy conversations (SQL, Catalog, GearGraph results)
-  if (OM_ENABLED) {
-    memoryOptions.observationalMemory = {
-      scope: 'thread', // thread-scoped to avoid slow migration of existing conversations
-      model: OM_MODEL, // google/gemini-2.5-flash by default (1M token context)
-      observation: {
-        // Trigger Observer when messages exceed this token count
-        // Lower threshold (20k vs 30k default) because our tools generate many tokens
-        messageTokens: OM_MESSAGE_TOKENS,
-      },
-      reflection: {
-        // Trigger Reflector when observations exceed this token count
-        observationTokens: OM_OBSERVATION_TOKENS,
-      },
     };
   }
 
@@ -246,6 +207,8 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       analyzeLoadout: analyzeLoadoutTool,
       inventoryInsights: inventoryInsightsTool,
       searchGearKnowledge: searchGearKnowledgeTool,
+      // Action tools
+      addToLoadout: addToLoadoutTool,
       // Legacy tools (fallback for edge cases + GearGraph Cypher)
       queryUserData: queryUserDataSqlTool,
       queryGearGraph: queryGearGraphTool,
@@ -254,7 +217,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 6 tools (3 composite + 3 legacy), four-tier memory (OM: ${OM_ENABLED ? 'enabled' : 'disabled'})`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 1 action + 3 legacy), three-tier memory`
   );
   return agent;
 }
@@ -270,14 +233,14 @@ export function createGearAgent(userId: string, systemPrompt: string) {
  * @param agent - Mastra Agent instance
  * @param message - Current user message
  * @param userId - User ID for tool execution context
- * @param conversationHistory - Previous messages for context continuity
+ * @param conversationId - Conversation/thread ID for Mastra memory persistence
  * @param currentLoadoutId - Current loadout ID for loadout-specific queries
  */
 export async function streamMastraResponse(
   agent: Agent,
   message: string,
   userId: string,
-  conversationHistory?: Array<{ role: string; content: string }>,
+  conversationId: string,
   currentLoadoutId?: string
 ) {
   // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)
@@ -289,30 +252,13 @@ export async function streamMastraResponse(
     requestContext.set('currentLoadoutId', currentLoadoutId);
   }
 
-  // Build messages array with conversation history for context continuity.
-  // Include last 20 messages (10 turns) to maintain recent context without
-  // overloading the context window.
-  const MAX_HISTORY_MESSAGES = 20;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messages: any[] = [];
+  // NEU: Nur die aktuelle Message - Mastra holt History via threadId
+  const messages = [{ role: 'user' as const, content: message }];
 
-  if (conversationHistory && conversationHistory.length > 0) {
-    const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
-    for (const msg of recentHistory) {
-      if (msg.role === 'user') {
-        messages.push({ role: 'user' as const, content: msg.content });
-      } else if (msg.role === 'assistant') {
-        messages.push({ role: 'assistant' as const, content: msg.content });
-      }
-    }
-  }
-
-  // Add the current message
-  messages.push({ role: 'user' as const, content: message });
-
-  // Stream with full message history for context continuity
+  // Stream with threadId so Mastra's PostgresStore injects conversation history
   const stream = await agent.stream(messages, {
     resourceId: userId,
+    threadId: conversationId,
     requestContext: requestContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);

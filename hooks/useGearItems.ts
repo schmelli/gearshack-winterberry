@@ -136,7 +136,7 @@ export function useGearItems(
 
       // T037: Filter by category if provided
       if (categoryId) {
-        query = query.eq('category_id', categoryId);
+        query = query.eq('product_type_id', categoryId);
       }
 
       const { data, error: fetchError } = await query;

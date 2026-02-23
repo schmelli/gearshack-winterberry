@@ -16,14 +16,23 @@ import type { Action } from '@/types/ai-assistant';
 /**
  * SSE Event types emitted by the streaming endpoint
  */
-export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error';
+export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_progress';
+
+/**
+ * Workflow progress data from pipeline stages
+ */
+export interface WorkflowProgressData {
+  step: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  message: string;
+}
 
 /**
  * Structured SSE event from the stream
  */
 export interface SSEEvent {
   type: SSEEventType;
-  data: string | ToolCallData | DoneData | ErrorData;
+  data: string | ToolCallData | DoneData | ErrorData | WorkflowProgressData;
 }
 
 /**
@@ -75,6 +84,7 @@ export const SSE_EVENT_TEXT = 'text';
 export const SSE_EVENT_TOOL_CALL = 'tool_call';
 export const SSE_EVENT_DONE = 'done';
 export const SSE_EVENT_ERROR = 'error';
+export const SSE_EVENT_WORKFLOW_PROGRESS = 'workflow_progress';
 
 // =====================================================
 // Stream Encoding Utilities
@@ -206,6 +216,9 @@ export function parseSSEEvent(eventString: string): SSEEvent | null {
       case SSE_EVENT_ERROR:
         return { type: eventType, data: JSON.parse(dataLine) as ErrorData };
 
+      case SSE_EVENT_WORKFLOW_PROGRESS:
+        return { type: eventType, data: JSON.parse(dataLine) as WorkflowProgressData };
+
       default:
         // Unknown event type, treat as text
         return { type: SSE_EVENT_TEXT, data: dataLine };
@@ -321,6 +334,10 @@ export async function processSSEStream(
         const errorData = event.data as ErrorData;
         result.metadata.hasError = true;
         result.metadata.errorMessage = errorData.message;
+        break;
+
+      case SSE_EVENT_WORKFLOW_PROGRESS:
+        // Progress events are informational - no accumulation needed
         break;
     }
   }
