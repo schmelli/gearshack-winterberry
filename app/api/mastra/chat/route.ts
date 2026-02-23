@@ -204,7 +204,6 @@ async function buildPromptContext(
   memoryWarning?: string,
   subscriptionTier?: 'standard' | 'trailblazer',
   parsedQuery?: ParsedQuery,
-  workingMemoryProfile?: GearshackUserProfile | null,
 ): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
   const locale = (userContext?.locale as string) || 'en';
   const screen = (userContext?.screen as string) || 'inventory';
@@ -223,7 +222,6 @@ async function buildPromptContext(
 
   const promptContext: PromptContext = {
     userContext: promptUserContext,
-    workingMemoryProfile: workingMemoryProfile ?? undefined,
   };
 
   // Add memory warning if applicable
@@ -561,7 +559,6 @@ export async function POST(request: Request): Promise<Response> {
             memoryContext.warning,
             undefined, // subscriptionTier
             parsedQuery,
-            memoryContext.workingMemoryProfile,
           );
           const systemPrompt = buildMastraSystemPrompt(promptContext);
 
