@@ -14,7 +14,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "seed:ontology": "tsx scripts/seed-ontology.ts"
+    "seed:ontology": "tsx scripts/seed-ontology.ts",
+    "migrate:working-memory": "tsx scripts/migrate-working-memory.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.56",

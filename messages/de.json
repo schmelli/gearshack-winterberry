@@ -644,6 +644,19 @@
       "invalidResponse": "Ungültige Antwort vom Cloudinary-Widget",
       "importFailed": "Import fehlgeschlagen"
     },
+    "media": {
+      "title": "Medien",
+      "primaryImageLabel": "Hauptbild",
+      "primaryImageDescription": "Hauptproduktbild, das in Inventarlisten angezeigt wird. Wird mit automatischer Hintergrundentfernung zu Cloudinary hochgeladen.",
+      "galleryImagesLabel": "Galeriebilder",
+      "addImage": "Bild hinzufügen",
+      "galleryDescription": "Zusätzliche Produktbilder für Detailansichten",
+      "noGalleryImages": "Noch keine Galeriebilder hinzugefügt. Verwende die Schaltfläche oben, um eines hinzuzufügen.",
+      "searchTooltip": "Suche nach \"{query}\"",
+      "searchDisabledTooltip": "Zuerst Marke/Produktname eingeben",
+      "searchAriaLabel": "Nach Produktbildern suchen",
+      "removeGalleryImage": "Galeriebild {index} entfernen"
+    },
     "imageUpload": {
       "invalidFileType": "Bitte wähle eine gültige Bilddatei (JPG, PNG, WebP oder GIF)",
       "fileTooLarge": "Die Dateigröße muss unter {maxSize}MB liegen",
@@ -654,7 +667,21 @@
       "imageSelected": "Bild ausgewählt",
       "removeImage": "Bild entfernen",
       "dragOrClick": "Klicken oder Bild hierher ziehen",
-      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)"
+      "acceptedFormats": "JPG, PNG, WebP, GIF (max. {maxSize}MB)",
+      "removingBackground": "Hintergrund wird entfernt...",
+      "uploadingToCloudinary": "Wird zu Cloudinary hochgeladen...",
+      "uploadSuccessful": "Upload erfolgreich!",
+      "dragAndDrop": "Bild hierher ziehen oder klicken zum Durchsuchen",
+      "fileTypes": "PNG, JPG, WebP (max. {maxSize}MB)",
+      "removeBackground": "Hintergrund automatisch entfernen",
+      "removeBackgroundDescription": "Verwendet KI zum Entfernen des Bildhintergrunds (WASM, läuft im Browser)",
+      "or": "oder",
+      "enterImageUrl": "Oder direkt eine Bild-URL eingeben:",
+      "urlPlaceholder": "https://example.com/image.jpg",
+      "searchTooltip": "Suche nach \"{query}\"",
+      "searchTooltipEmpty": "Zuerst Marke/Produktname eingeben",
+      "useThisUrl": "Diese URL verwenden",
+      "tryAgain": "Erneut versuchen"
     },
     "productSearch": {
       "rateLimitReached": "Tägliches Suchlimit erreicht. Upgrade auf Trailblazer für unbegrenzte Suchen.",
