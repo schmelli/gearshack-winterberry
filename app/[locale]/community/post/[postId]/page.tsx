@@ -14,6 +14,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PostDetailView } from './PostDetailView';
 import { PostSkeleton } from '@/components/bulletin/PostSkeleton';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 interface PostPageProps {
   params: Promise<{
@@ -33,11 +34,11 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   return (
-    <div className="container max-w-2xl py-8">
+    <PageContainer className="max-w-2xl">
       <Suspense fallback={<PostSkeleton count={1} />}>
         <PostDetailContent postId={postId} />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }
 

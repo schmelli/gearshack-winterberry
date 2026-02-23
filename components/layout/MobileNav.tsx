@@ -127,7 +127,7 @@ export function MobileNav({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {/* Issue #77: Hamburger button removed - menu is triggered by logo click on mobile */}
-      <SheetContent side="left" className="flex h-full w-72 flex-col">
+      <SheetContent side="left" className="flex h-full w-72 max-w-[85vw] flex-col">
         <SheetHeader className="sr-only">
           <SheetTitle>{t('navigation')}</SheetTitle>
         </SheetHeader>

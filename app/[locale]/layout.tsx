@@ -7,7 +7,7 @@
  */
 
 import { Suspense } from 'react';
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Rock_Salt } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -45,6 +45,12 @@ const rockSalt = Rock_Salt({
 export const metadata: Metadata = {
   title: "Gearshack",
   description: "Gear management for the obsessed.",
+};
+
+// Explicit viewport for proper mobile rendering
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 // T018: Generate static params for all locales

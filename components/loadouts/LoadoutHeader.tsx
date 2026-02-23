@@ -115,7 +115,7 @@ export function LoadoutHeader({
 
   return (
     <div className="border-b bg-background">
-      <div className="container max-w-6xl py-6">
+      <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6">
           {/* Main content row: stacks on mobile, side-by-side on md+ */}
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">

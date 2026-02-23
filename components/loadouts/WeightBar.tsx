@@ -47,7 +47,7 @@ export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
         bgColorClass
       )}
     >
-      <div className="container flex items-center justify-between py-3">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Left: Item Count */}
         <div className="flex items-center gap-2 text-sm font-medium text-primary-foreground">
           <Package className="h-4 w-4" />

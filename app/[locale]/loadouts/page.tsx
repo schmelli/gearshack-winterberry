@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';
 import { LoadoutToolbar } from '@/components/loadouts/LoadoutToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 function LoadoutsContent() {
   const t = useTranslations('Loadouts');
@@ -53,7 +54,7 @@ function LoadoutsContent() {
   const hasResults = filteredLoadouts.length > 0;
 
   return (
-    <div className="container py-8">
+    <PageContainer>
       {/* Page Header - Create New Loadout button */}
       <div className="mb-6 flex items-center justify-end">
         <Button asChild>
@@ -121,7 +122,7 @@ function LoadoutsContent() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

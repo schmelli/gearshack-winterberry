@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/card';
 import { useLoadoutCreationForm } from '@/hooks/useLoadoutCreationForm';
 import type { Season, ActivityType } from '@/types/loadout';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 // =============================================================================
 // Constants
@@ -67,7 +68,7 @@ export default function NewLoadoutPage() {
   } = form;
 
   return (
-    <div className="container max-w-2xl py-8">
+    <PageContainer className="max-w-2xl">
       {/* Back Link */}
       <Link
         href="/loadouts"
@@ -214,6 +215,6 @@ export default function NewLoadoutPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }
