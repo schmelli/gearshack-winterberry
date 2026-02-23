@@ -8,11 +8,12 @@
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { AdminMobileNav } from '@/components/admin/AdminMobileNav';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminRoute>
-      <div className="container mx-auto max-w-7xl px-4 py-8">
+      <PageContainer className="max-w-7xl">
         {/* Mobile: Show only the main content + floating nav button */}
         <div className="md:hidden">
           <AdminMobileNav />
@@ -24,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminNav />
           <main>{children}</main>
         </div>
-      </div>
+      </PageContainer>
     </AdminRoute>
   );
 }

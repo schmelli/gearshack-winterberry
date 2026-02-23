@@ -12,6 +12,7 @@ import { useAlertPreferences } from '@/hooks/price-tracking/useAlertPreferences'
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function AlertSettingsPage() {
   const t = useTranslations('Wishlist.priceTracking.alerts');
@@ -19,7 +20,7 @@ export default function AlertSettingsPage() {
   const { preferences, isLoading, error, updatePreferences } = useAlertPreferences();
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8 space-y-6">
+    <PageContainer className="max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -46,6 +47,6 @@ export default function AlertSettingsPage() {
         error={error}
         onUpdate={updatePreferences}
       />
-    </div>
+    </PageContainer>
   );
 }

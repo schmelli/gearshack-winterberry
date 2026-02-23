@@ -71,15 +71,6 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     // T017: Dynamic lang attribute based on current locale (FR-007)
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        {/* Meticulous.ai recorder - MUST be first script to load */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script
-          data-recording-token="Hfx0rAszTGc7WlMQNOi2ORW3bIiPMflK9o88ds5B"
-          data-is-production-environment={process.env.VERCEL_ENV === "production" ? "true" : "false"}
-          src="https://snippet.meticulous.ai/v1/meticulous.js"
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${rockSalt.variable} antialiased`}
         suppressHydrationWarning
