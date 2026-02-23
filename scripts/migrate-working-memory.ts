@@ -15,7 +15,9 @@
  *   npm run migrate:working-memory
  */
 
-import 'dotenv/config';
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+config(); // fallback: .env
 import { MemoryPG } from '@mastra/pg';
 import { createClient } from '@supabase/supabase-js';
 
