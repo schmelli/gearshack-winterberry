@@ -31,6 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
+import { MAX_FILE_SIZE_MB } from '@/lib/cloudinary/validation';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
 import { ProductSearchModal } from '@/components/gear-editor/ProductSearchModal';
 
@@ -330,7 +331,7 @@ export function ImageUploadZone({
                 {t('dragAndDrop')}
               </p>
               <p className="text-xs text-muted-foreground">
-                {t('fileTypes')}
+                {t('fileTypes', { maxSize: MAX_FILE_SIZE_MB })}
               </p>
             </>
           )}
