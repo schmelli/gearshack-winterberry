@@ -14,6 +14,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { extractUserId, extractCurrentLoadoutId, formatWeight } from './utils';
 
 // =============================================================================
 // Input Schema
@@ -65,6 +66,15 @@ const addToLoadoutOutputSchema = z.object({
 });
 
 // =============================================================================
+// Weight query result type
+// =============================================================================
+
+type LoadoutItemWithWeight = {
+  quantity: number;
+  gear_items: { weight_grams: number } | null;
+};
+
+// =============================================================================
 // Tool Definition
 // =============================================================================
 
@@ -88,9 +98,7 @@ Prevents duplicates — if the item is already in the loadout, returns an error 
     const { gearItemId, worn, quantity, consumable } = input;
 
     // Get userId from request context
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
-    const userId = requestContext?.get('userId') as string | undefined;
+    const userId = extractUserId(executionContext);
 
     if (!userId) {
       return {
@@ -101,7 +109,7 @@ Prevents duplicates — if the item is already in the loadout, returns an error 
     }
 
     // Resolve loadoutId: use input or fall back to currentLoadoutId from context
-    const loadoutId = input.loadoutId || (requestContext?.get('currentLoadoutId') as string | undefined);
+    const loadoutId = input.loadoutId ?? extractCurrentLoadoutId(executionContext);
 
     if (!loadoutId) {
       return {
@@ -190,7 +198,7 @@ Prevents duplicates — if the item is already in the loadout, returns an error 
         .insert({
           loadout_id: loadoutId,
           gear_item_id: gearItemId,
-          quantity: quantity,
+          quantity,
           is_worn: worn,
           is_consumable: consumable,
         })
@@ -209,20 +217,26 @@ Prevents duplicates — if the item is already in the loadout, returns an error 
       const { data: allItems } = await supabase
         .from('loadout_items')
         .select('quantity, gear_items(weight_grams)')
-        .eq('loadout_id', loadoutId);
+        .eq('loadout_id', loadoutId) as { data: LoadoutItemWithWeight[] | null };
 
       let totalWeight = 0;
       if (allItems) {
         for (const item of allItems) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const weight = (item as any).gear_items?.weight_grams ?? 0;
+          const weight = item.gear_items?.weight_grams ?? 0;
           totalWeight += weight * (item.quantity ?? 1);
         }
       }
 
+      // Build a concise summary of the item's flags
+      const flags: string[] = [];
+      if (quantity > 1) flags.push(`${quantity}x`);
+      if (worn) flags.push('worn');
+      if (consumable) flags.push('consumable');
+      const flagSuffix = flags.length > 0 ? ` (${flags.join(', ')})` : '';
+
       return {
         success: true,
-        message: `Added "${gearItem.name}" to "${loadout.name}" (${quantity}x${worn ? ', worn' : ''}${consumable ? ', consumable' : ''}). Total loadout weight: ${(totalWeight / 1000).toFixed(2)} kg.`,
+        message: `Added "${gearItem.name}" to "${loadout.name}"${flagSuffix}. Total loadout weight: ${formatWeight(totalWeight)}.`,
         loadoutItemId: inserted.id,
         updatedTotalWeight: totalWeight,
       };
