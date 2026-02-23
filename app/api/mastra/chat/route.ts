@@ -54,13 +54,6 @@ import {
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-// Three-tier memory system (Feature 002-mastra-memory-system)
-import {
-  getWorkingMemory,
-  saveWorkingMemory,
-} from '@/lib/mastra/memory/working-memory-adapter';
-
-import type { GearshackUserProfile } from '@/lib/mastra/schemas/working-memory';
 import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
@@ -75,7 +68,6 @@ import {
 } from '@/lib/mastra/proactive-suggestions';
 import type { MastraChatRequest } from '@/types/mastra';
 import type { UserContext } from '@/types/ai-assistant';
-import type { Database } from '@/types/supabase';
 import {
   parseQuery,
   isComplexOptimizationQuery,
@@ -91,12 +83,6 @@ export const runtime = 'nodejs';
 // =====================================================
 // Types
 // =====================================================
-
-interface MemoryContext {
-  available: boolean;
-  workingMemoryProfile: GearshackUserProfile | null;
-  warning?: string;
-}
 
 // =====================================================
 // Request Validation
@@ -170,38 +156,12 @@ function validateRequest(body: unknown): {
 }
 
 // =====================================================
-// Memory Functions
-// =====================================================
-
-/**
- * Fetch working memory profile for the current user.
- * Mastra native (PostgresStore + PgVector) handles all conversation storage.
- */
-async function fetchMemoryContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-): Promise<MemoryContext> {
-  try {
-    const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-    const workingMemoryProfile = await getWorkingMemory(supabaseClient, userId);
-    return { available: true, workingMemoryProfile };
-  } catch (error) {
-    logWarn('Working memory unavailable, continuing without', {
-      userId,
-      metadata: { error: error instanceof Error ? error.message : 'Unknown' },
-    });
-    return { available: false, workingMemoryProfile: null };
-  }
-}
-
-// =====================================================
 // System Prompt Builder
 // =====================================================
 
 async function buildPromptContext(
   userContext: Record<string, unknown> | undefined,
   userId: string,
-  memoryWarning?: string,
   subscriptionTier?: 'standard' | 'trailblazer',
   parsedQuery?: ParsedQuery,
 ): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
@@ -223,11 +183,6 @@ async function buildPromptContext(
   const promptContext: PromptContext = {
     userContext: promptUserContext,
   };
-
-  // Add memory warning if applicable
-  if (memoryWarning) {
-    promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
-  }
 
   // Add parsed query constraints to prompt (for better tool selection)
   if (parsedQuery && parsedQuery.confidence > 0.5) {
@@ -474,25 +429,14 @@ export async function POST(request: Request): Promise<Response> {
         };
 
         try {
-          // --- Phase 1: Memory + Intent (emit progress before starting) ---
+          // --- Phase 1: Intent classification ---
           emitProgress('memory', progressMessages[locale].memory);
 
-          // Memory context fetch and intent classification in parallel
-          const [memoryContextResult, intentResult] = await Promise.all([
-            traceWorkflowStep(
-              `chat-${conversationId}`,
-              'memory_retrieval',
-              () => fetchMemoryContext(supabase, user.id),
-              { userId: user.id }
-            ).then(r => r.result),
-            classifyIntent(
-              message,
-              context?.screen as string | undefined,
-              currentLoadoutId
-            ),
-          ]);
-
-          const memoryContext = memoryContextResult;
+          const intentResult = await classifyIntent(
+            message,
+            context?.screen as string | undefined,
+            currentLoadoutId
+          );
 
           // --- Phase 2: Context / Prefetch (emit progress) ---
           emitProgress('context', progressMessages[locale].context);
@@ -556,7 +500,6 @@ export async function POST(request: Request): Promise<Response> {
           const { promptContext, loadoutContext } = await buildPromptContext(
             context,
             user.id,
-            memoryContext.warning,
             undefined, // subscriptionTier
             parsedQuery,
           );
@@ -683,21 +626,6 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // Save working memory after successful response (non-blocking)
-          if (memoryContext.workingMemoryProfile) {
-            const supabaseClient = supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>;
-            getWorkingMemory(supabaseClient, user.id)
-              .then((freshProfile) =>
-                saveWorkingMemory(supabaseClient, user.id, freshProfile)
-              )
-              .catch((err) => {
-                logWarn('Working memory save failed (non-blocking)', {
-                  userId: user.id,
-                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                });
-              });
-          }
-
           // Record latency metrics (T031)
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
@@ -713,7 +641,6 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
-              memoryAvailable: memoryContext.available,
             },
           });
 
@@ -740,8 +667,6 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     // Return streaming response with rate limit headers and conversation ID
-    // Note: memoryContext.warning is no longer available here since memory fetch
-    // moved inside the stream. The warning is handled within the stream itself.
     const headers: Record<string, string> = {
       ...rateLimitHeaders,
       'X-Conversation-Id': conversationId,
