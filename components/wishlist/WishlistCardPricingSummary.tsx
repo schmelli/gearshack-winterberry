@@ -6,23 +6,19 @@
  * 2. Best regional retailer offer (Trailblazer users only)
  * 3. Best eBay offer
  *
- * Data sources are the same as the detail view (GearDetailWishlistPricing)
- * but display only the best offer from each source in a compact format.
+ * This component is stateless — all data fetching and business logic
+ * lives in the useWishlistCardPricingSummary hook (Feature-Sliced Light).
  */
 
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ExternalLink, TrendingDown, Store, Package, Crown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { sanitizeExternalUrl } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEbaySearch } from '@/hooks/price-tracking/useEbaySearch';
-import { useResellerPrices } from '@/hooks/price-tracking/useResellerPrices';
-import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
-import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
+import { useWishlistCardPricingSummary } from '@/hooks/wishlist/useWishlistCardPricingSummary';
+import type { EbayCondition, EbayListing } from '@/types/ebay';
+import type { ResellerPriceWithDetails } from '@/types/reseller';
 
 // =============================================================================
 // Types
@@ -53,6 +49,21 @@ interface WishlistCardPricingSummaryProps {
   variant?: 'compact' | 'full';
   /** Additional CSS classes */
   className?: string;
+}
+
+// =============================================================================
+// Known eBay item conditions that have translations
+// =============================================================================
+
+const KNOWN_CONDITIONS: ReadonlySet<EbayCondition> = new Set<EbayCondition>([
+  'open_box',
+  'refurbished',
+  'used',
+  'for_parts',
+]);
+
+function isKnownCondition(condition: string): condition is EbayCondition {
+  return KNOWN_CONDITIONS.has(condition as EbayCondition);
 }
 
 // =============================================================================
@@ -94,80 +105,33 @@ export function WishlistCardPricingSummary({
   variant = 'compact',
   className,
 }: WishlistCardPricingSummaryProps) {
-  const t = useTranslations('WishlistCardPricing');
-  const locale = useLocale();
   const formatPrice = useFormatPrice();
-  const { profile } = useAuthContext();
-  const categories = useCategoriesStore((state) => state.categories);
 
-  // Derive product type keywords for eBay filtering
-  const productTypeKeywords = useMemo(() => {
-    if (!productTypeId || !categories.length) return [];
-    const category = categories.find(c => c.id === productTypeId);
-    if (category) {
-      const categoryName = category.i18n?.en || category.label || '';
-      return categoryName.split(/\s+/).filter((k: string) => k.length > 2);
-    }
-    return [];
-  }, [productTypeId, categories]);
-
-  // Determine display price: prefer manufacturer price, fallback to MSRP
-  const displayPrice = manufacturerPrice ?? msrpAmount;
-  const displayCurrency = manufacturerCurrency ?? 'USD';
-
-  // Safe URLs for manufacturer link
-  const safeProductUrl = sanitizeExternalUrl(productUrl);
-  const safeBrandUrl = sanitizeExternalUrl(brandUrl);
-  const manufacturerLink = safeProductUrl || safeBrandUrl;
-
-  // eBay search (limit=1 for best offer only)
   const {
-    listings: ebayListings,
-    isLoading: ebayLoading,
+    displayPrice,
+    displayCurrency,
+    manufacturerLink,
+    bestEbayListing,
+    safeEbayListingUrl,
+    ebayLoading,
     ebaySite,
-    search: ebaySearch,
-  } = useEbaySearch({
-    brand: brandName || undefined,
-    productTypeKeywords,
-    msrp: (manufacturerPrice ?? msrpAmount) || undefined,
-    limit: 1,
-  });
-
-  const searchQuery = brandName ? `${brandName} ${itemName}` : itemName;
-  const localeEbaySite = getEbaySiteForLocale(locale);
-
-  // Trigger eBay search
-  useEffect(() => {
-    if (itemName) {
-      ebaySearch(searchQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemName, brandName]);
-
-  const bestEbayListing = ebayListings.length > 0 ? ebayListings[0] : null;
-
-  // Reseller prices (Trailblazer gated inside the hook)
-  const countryCode = profile?.rawProfile?.preferred_locale?.split('-')[1]?.toUpperCase() || 'DE';
-  const userLocation = useMemo(() => {
-    if (profile?.rawProfile?.latitude && profile?.rawProfile?.longitude) {
-      return { latitude: profile.rawProfile.latitude, longitude: profile.rawProfile.longitude };
-    }
-    return null;
-  }, [profile?.rawProfile?.latitude, profile?.rawProfile?.longitude]);
-
-  const {
-    allPrices: resellerPrices,
-    isLoading: resellerLoading,
+    searchQuery,
+    bestResellerOffer,
+    resellerLoading,
     isTrailblazer,
-  } = useResellerPrices({
-    gearItemId: itemId,
-    query: searchQuery,
-    countryCode,
-    userLocation,
-    autoFetch: true,
+    msrpLoading: hookMsrpLoading,
+  } = useWishlistCardPricingSummary({
+    itemId,
+    itemName,
+    brandName,
+    manufacturerPrice,
+    manufacturerCurrency,
+    productUrl,
+    brandUrl,
+    productTypeId,
+    msrpAmount,
+    msrpLoading,
   });
-
-  const bestResellerOffer = resellerPrices.length > 0 ? resellerPrices[0] : null;
 
   const isCompact = variant === 'compact';
 
@@ -178,7 +142,7 @@ export function WishlistCardPricingSummary({
         price={displayPrice}
         currency={displayCurrency}
         link={manufacturerLink}
-        isLoading={msrpLoading}
+        isLoading={hookMsrpLoading}
         isCompact={isCompact}
         formatPrice={formatPrice}
       />
@@ -195,18 +159,18 @@ export function WishlistCardPricingSummary({
       {/* 3. Best eBay Offer */}
       <EbayPriceRow
         listing={bestEbayListing}
+        safeListingUrl={safeEbayListingUrl}
         isLoading={ebayLoading}
-        ebaySite={ebaySite || localeEbaySite.site}
+        ebaySite={ebaySite}
         searchQuery={searchQuery}
         isCompact={isCompact}
-        formatPrice={formatPrice}
       />
     </div>
   );
 }
 
 // =============================================================================
-// Sub-Components
+// Sub-Components (stateless, presentational)
 // =============================================================================
 
 function ManufacturerPriceRow({
@@ -253,6 +217,7 @@ function ManufacturerPriceRow({
           rel="noopener noreferrer"
           className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
           title={t('viewOnManufacturer')}
+          aria-label={t('viewOnManufacturer')}
         >
           <ExternalLink className={cn(isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
         </a>
@@ -268,7 +233,7 @@ function ResellerPriceRow({
   isCompact,
   formatPrice,
 }: {
-  offer: import('@/types/reseller').ResellerPriceWithDetails | null;
+  offer: ResellerPriceWithDetails | null;
   isLoading: boolean;
   isTrailblazer: boolean;
   isCompact: boolean;
@@ -318,6 +283,7 @@ function ResellerPriceRow({
           rel="noopener noreferrer"
           className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
           title={t('visitShop')}
+          aria-label={t('visitShop')}
         >
           <ExternalLink className={cn(isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
         </a>
@@ -328,18 +294,19 @@ function ResellerPriceRow({
 
 function EbayPriceRow({
   listing,
+  safeListingUrl,
   isLoading,
   ebaySite,
   searchQuery,
   isCompact,
-  formatPrice,
 }: {
-  listing: import('@/types/ebay').EbayListing | null;
+  listing: EbayListing | null;
+  /** Pre-sanitized listing URL from the hook, or null if unsafe */
+  safeListingUrl: string | null;
   isLoading: boolean;
   ebaySite: string;
   searchQuery: string;
   isCompact: boolean;
-  formatPrice: (amount: number, currency?: string) => string;
 }) {
   const t = useTranslations('WishlistCardPricing');
 
@@ -352,13 +319,16 @@ function EbayPriceRow({
     );
   }
 
+  // ebaySite is always a validated, known value — safe to interpolate
+  const fallbackSearchUrl = `https://www.${ebaySite}/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`;
+
   if (!listing) {
-    // Show "View on eBay" link even when no listing found
+    // Show "Search on eBay" link even when no specific listing was found
     return (
       <div className="flex items-center gap-2 min-w-0">
         <Package className={cn('flex-shrink-0 text-muted-foreground/50', isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
         <a
-          href={`https://www.${ebaySite}/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`}
+          href={fallbackSearchUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={cn('text-muted-foreground hover:text-primary transition-colors truncate', isCompact ? 'text-[10px]' : 'text-xs')}
@@ -378,20 +348,34 @@ function EbayPriceRow({
       <span className={cn('font-semibold text-blue-700 dark:text-blue-400 flex-shrink-0', isCompact ? 'text-xs' : 'text-sm')}>
         {listing.priceFormatted}
       </span>
-      {listing.condition && listing.condition !== 'new' && (
+      {listing.condition && listing.condition !== 'new' && isKnownCondition(listing.condition) && (
         <span className={cn('text-muted-foreground/70 flex-shrink-0', isCompact ? 'text-[9px]' : 'text-[10px]')}>
           ({t(`conditions.${listing.condition}`)})
         </span>
       )}
-      <a
-        href={listing.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-        title={t('viewOnEbay')}
-      >
-        <ExternalLink className={cn(isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
-      </a>
+      {safeListingUrl ? (
+        <a
+          href={safeListingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+          title={t('viewOnEbay')}
+          aria-label={t('viewOnEbay')}
+        >
+          <ExternalLink className={cn(isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+        </a>
+      ) : (
+        <a
+          href={fallbackSearchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+          title={t('searchOnEbay')}
+          aria-label={t('searchOnEbay')}
+        >
+          <ExternalLink className={cn(isCompact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+        </a>
+      )}
     </div>
   );
 }
