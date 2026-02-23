@@ -159,7 +159,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
       {/* Issue #77: Mobile menu state management */}
       {/* Issue #206: Removed container class to allow full-width background on mobile */}
-      <div className="mx-auto flex h-24 max-w-7xl items-center px-3 md:px-4">
+      <div className="mx-auto flex h-24 max-w-7xl items-center px-3 lg:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
         {/* Feature Flags: Pass filtered items and feature flags to MobileNav */}
         <MobileNav
@@ -175,7 +175,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* T006: Logo in Rock Salt font, text-3xl, white color */}
         {/* Issue #73: Responsive sizing for mobile - smaller logo and text on small screens */}
         {/* Mobile: Hamburger + Logo side by side */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-white/10"
@@ -201,7 +201,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </span>
           </div>
         </div>
-        <Link href="/" className="hidden items-center gap-3 md:flex">
+        <Link href="/" className="hidden items-center gap-3 lg:flex">
           <div className="flex h-20 w-20 items-center justify-center rounded-lg">
             <Image
               src="/logos/small_gearshack_logo.png"
@@ -221,7 +221,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* T005: Larger nav font (text-lg font-bold) */}
         {/* Community Section Restructure: Items with children render as dropdown menus */}
         {/* Feature Flags: Use filteredNavItems to respect admin-controlled feature access */}
-        <nav className="ml-auto hidden items-baseline gap-8 md:flex" aria-label={t('mainNavigation')}>
+        <nav className="ml-auto hidden items-baseline gap-8 lg:flex" aria-label={t('mainNavigation')}>
           {filteredNavItems.map((item: NavItemWithChildren) => {
             const isActive = pathname === item.href ||
               (item.children && item.children.some(child => pathname.startsWith(child.href)));
@@ -297,7 +297,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Right side: language switcher, notifications and user menu */}
         {/* Issue #73: Tighter spacing on mobile to fit all controls */}
         {/* Issue #77: Hide language switcher and avatar on small screens */}
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1 lg:gap-2">
           {/* T012: Messaging icon with unread badge - only show when authenticated AND messaging feature is enabled */}
           {user && isMessagingEnabled && (
             <Button
@@ -330,7 +330,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
           {/* User menu */}
           {/* Issue #77: Hidden on small screens, accessible via mobile menu */}
-          <div className="hidden md:flex">
+          <div className="hidden lg:flex">
             <UserMenu />
           </div>
         </div>

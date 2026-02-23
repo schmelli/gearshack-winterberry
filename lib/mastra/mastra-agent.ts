@@ -1,18 +1,16 @@
 /**
- * Mastra Agent with Four-Tier Memory System
- * Feature: 002-mastra-memory-system + Observational Memory
+ * Mastra Agent with Three-Tier Memory System
+ * Feature: 002-mastra-memory-system
  *
  * Uses Mastra's Agent class with:
  * 1. Working Memory: Structured user profile (Zod schema) - resource-scoped
  * 2. Conversation History: Last N messages - thread-scoped
  * 3. Semantic Recall: Vector similarity search - resource-scoped
- * 4. Observational Memory: Observer + Reflector for long-context compression - thread-scoped
  *
  * Storage: Supabase PostgreSQL with pgvector via @mastra/pg
  *
  * @see https://mastra.ai/docs/memory/overview
  * @see https://mastra.ai/docs/memory/semantic-recall
- * @see https://mastra.ai/docs/memory/observational-memory
  */
 
 import { Agent } from '@mastra/core/agent';
@@ -23,6 +21,8 @@ import { createGateway } from '@ai-sdk/gateway';
 import { analyzeLoadoutTool } from './tools/analyze-loadout';
 import { inventoryInsightsTool } from './tools/inventory-insights';
 import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
+// Action tools (Feature: AI Add to Loadout)
+import { addToLoadoutTool } from './tools/add-to-loadout';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -77,7 +77,6 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
 
-
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
 let pgVectorInstance: PgVector | null = null;
@@ -121,7 +120,7 @@ function getPgVector(): PgVector {
 // =============================================================================
 
 /**
- * Create Memory instance with four-tier configuration
+ * Create Memory instance with three-tier configuration
  *
  * Tier 1: Working Memory (resource-scoped)
  *   - Structured user profile the agent can read/update
@@ -138,20 +137,12 @@ function getPgVector(): PgVector {
  *   - Uses text-embedding-3-small via Vercel AI Gateway
  *   - Powered by pgvector in Supabase PostgreSQL
  *
- * Tier 4: Observational Memory (thread-scoped)
- *   - Observer compresses tool results and messages into dense observations
- *   - Reflector condenses observations when they grow too large
- *   - Ideal for tool-heavy conversations (SQL queries, catalog searches, GearGraph)
- *   - Provides 5-40× compression ratio
- *   - Uses google/gemini-2.5-flash for Observer and Reflector
- *
  * Storage Architecture:
- * - PostgresStore: Message history, conversation metadata, observations
+ * - PostgresStore: Message history, conversation metadata
  * - PgVector: Embedding storage with HNSW index for fast similarity search
  * - Both use the same Supabase PostgreSQL database via DATABASE_URL
  *
  * @see https://mastra.ai/docs/memory/semantic-recall
- * @see https://mastra.ai/docs/memory/observational-memory
  * @see https://mastra.ai/reference/vectors/pg
  */
 function createAgentMemory(): Memory {
@@ -175,7 +166,6 @@ function createAgentMemory(): Memory {
       schema: GearshackUserProfileSchema,
     };
   }
-
 
   const memory = new Memory({
     // PostgreSQL storage for message history and metadata
@@ -219,6 +209,8 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       analyzeLoadout: analyzeLoadoutTool,
       inventoryInsights: inventoryInsightsTool,
       searchGearKnowledge: searchGearKnowledgeTool,
+      // Action tools
+      addToLoadout: addToLoadoutTool,
       // Legacy tools (fallback for edge cases + GearGraph Cypher)
       queryUserData: queryUserDataSqlTool,
       queryGearGraph: queryGearGraphTool,
@@ -229,7 +221,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 3 legacy + updateWorkingMemory), three-tier memory (working memory, conversation history, semantic recall)`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 8 tools (3 composite + 1 action + 3 legacy + working-memory persistence), three-tier memory`
   );
   return agent;
 }
