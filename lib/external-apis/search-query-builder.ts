@@ -224,6 +224,33 @@ async function getProductCategoryInfoLegacy(
 }
 
 /**
+ * Expand a search query with spelling variants for hyphenated model names.
+ *
+ * Many outdoor gear models use hyphens that sellers omit or alter:
+ *   "X-Mid Pro 2"  →  sellers write "Xmid Pro 2" or "Xmid Pro 2p"
+ *   "X-Dome 2"     →  sellers write "Xdome 2"
+ *
+ * eBay's Browse API supports OR syntax with parentheses and commas:
+ *   (X-Mid,Xmid) matches both spellings in a single API call.
+ *
+ * Only expands words that match the pattern Letter-Hyphen-Letter (e.g. X-Mid)
+ * to avoid touching legitimate hyphens in phrases like "3-season".
+ *
+ * @param query - Raw search query, e.g. "Durston X-Mid Pro 2"
+ * @returns Query with eBay OR groups for hyphenated variants, e.g. "Durston (X-Mid,Xmid) Pro 2"
+ */
+export function expandQueryWithSpellingVariants(query: string): string {
+  // Match words like "X-Mid", "X-Dome", "X-Pack" (single letter before hyphen)
+  // but NOT "3-season", "2-person", etc.
+  return query.replace(/\b([A-Za-z])-([A-Za-z]\w*)\b/g, (match, prefix, suffix) => {
+    const withoutHyphen = `${prefix}${suffix}`;
+    // Only wrap if the de-hyphenated form differs (it always will, but be explicit)
+    if (withoutHyphen.toLowerCase() === match.toLowerCase()) return match;
+    return `(${match},${withoutHyphen})`;
+  });
+}
+
+/**
  * Build multi-stage search queries with product type context
  * Returns an array of queries to try in order (most specific to least specific)
  *
@@ -236,7 +263,9 @@ async function getProductCategoryInfoLegacy(
  * @returns Array of generated queries to try in order
  */
 export function buildSearchQueries(config: SearchQueryConfig): GeneratedQuery[] {
-  const { itemName, brandName, categoryInfo } = config;
+  const { brandName, categoryInfo } = config;
+  // Expand hyphenated model names for broader eBay matching (e.g. X-Mid → (X-Mid,Xmid))
+  const itemName = expandQueryWithSpellingVariants(config.itemName);
   const queries: GeneratedQuery[] = [];
 
   // Extract product type keywords for result filtering
