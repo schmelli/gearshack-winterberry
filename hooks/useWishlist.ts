@@ -206,6 +206,39 @@ export function useWishlist(): UseWishlistReturn {
     };
 
     void triggerMissingPrices();
+
+    // -------------------------------------------------------------------------
+    // Auto-Trigger MSRP Discovery for Items Without Manufacturer Price
+    // Fire-and-forget: runs in background, writes to gear_items.manufacturer_price
+    // -------------------------------------------------------------------------
+    const triggerMissingMsrp = async () => {
+      try {
+        const itemsWithoutMsrp = wishlistItems.filter(
+          (item) => item.manufacturerPrice === null || item.manufacturerPrice === undefined
+        );
+        // Process up to 3 items per load (staggered 3 s apart to avoid rate limits)
+        const toDiscover = itemsWithoutMsrp.slice(0, 3);
+        for (let i = 0; i < toDiscover.length; i++) {
+          if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+          const item = toDiscover[i];
+          void fetch('/api/gear/discover-msrp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              gearItemId: item.id,
+              itemName: item.name,
+              brandName: item.brand ?? null,
+              productUrl: item.productUrl ?? null,
+              brandUrl: item.brandUrl ?? null,
+            }),
+          });
+        }
+      } catch {
+        // Fire-and-forget — silently ignore all errors
+      }
+    };
+
+    void triggerMissingMsrp();
   }, [isLoading, wishlistItems, locale]);
 
   // ---------------------------------------------------------------------------
