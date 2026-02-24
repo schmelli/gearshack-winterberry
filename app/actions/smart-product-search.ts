@@ -167,14 +167,49 @@ function getWeightUnit(unit: string): 'g' | 'kg' | 'oz' | 'lb' | null {
 }
 
 /**
- * Parse weight from text
+ * Parse weight from text.
+ *
+ * When fullHtml is true, uses contextual patterns (e.g., "Gewicht: 700 g") to avoid
+ * matching random numbers in CSS/JS. When false, matches any weight-like pattern.
  */
-function parseWeight(text: string): { grams: number; unit: 'g' | 'kg' | 'oz' | 'lb' } | null {
-  const pattern = /(\d+(?:\.\d+)?)\s*(g(?:rams?)?|kg|kilograms?|oz|ounces?|lbs?|pounds?)\b/gi;
+function parseWeight(text: string, fullHtml = false): { grams: number; unit: 'g' | 'kg' | 'oz' | 'lb' } | null {
+  // Contextual patterns for full HTML - require a weight-related label nearby
+  // This prevents matching random numbers in CSS/JS (e.g., "0.7" in opacity)
+  if (fullHtml) {
+    const contextualPatterns = [
+      // German: "Gewicht: 700 g", "Gewicht 0,7 kg", "Gewicht: ca. 700g"
+      /(?:gewicht|weight|masse|mass)\s*[:=]?\s*(?:ca\.?\s*)?(\d+(?:[.,]\d+)?)\s*(g(?:rams?)?|kg|kilograms?|oz|ounces?|lbs?|pounds?)\b/gi,
+      // Structured data attributes: data-weight="700", itemprop="weight" content="700 g"
+      /(?:data-weight|itemprop=["']weight["'])[^>]*?(\d+(?:[.,]\d+)?)\s*(g(?:rams?)?|kg|kilograms?|oz|ounces?|lbs?|pounds?)/gi,
+      // Table/list context: "<td>700 g</td>", "<dd>0,7 kg</dd>", "<span>700g</span>"
+      /(?:<(?:td|dd|span|p|li|div)[^>]*>)\s*(\d+(?:[.,]\d+)?)\s*(g(?:rams?)?|kg|kilograms?|oz|ounces?|lbs?|pounds?)\s*(?:<\/)/gi,
+    ];
+
+    for (const pattern of contextualPatterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const rawValue = match[1].replace(',', '.');
+        const value = parseFloat(rawValue);
+        const unit = match[2];
+        const grams = convertToGrams(value, unit);
+        const unitType = getWeightUnit(unit);
+
+        if (grams >= 5 && grams <= 50000 && unitType) {
+          return { grams, unit: unitType };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Simple pattern for non-HTML text (supports both "." and "," as decimal separator)
+  const pattern = /(\d+(?:[.,]\d+)?)\s*(g(?:rams?)?|kg|kilograms?|oz|ounces?|lbs?|pounds?)\b/gi;
   const match = pattern.exec(text);
 
   if (match) {
-    const value = parseFloat(match[1]);
+    const rawValue = match[1].replace(',', '.');
+    const value = parseFloat(rawValue);
     const unit = match[2];
     const grams = convertToGrams(value, unit);
     const unitType = getWeightUnit(unit);
@@ -549,7 +584,7 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
 
     // Try schema.org extraction first
     const schemaData = extractSchemaOrgProduct(html);
-    if (schemaData && schemaData.confidence === 'high') {
+    if (schemaData && (schemaData.confidence === 'high' || schemaData.confidence === 'medium')) {
       // If schema extraction succeeded but has no image, try fallback image sources
       let imageUrl = schemaData.imageUrl;
       if (!imageUrl) {
@@ -559,9 +594,30 @@ export async function extractProductDataFromUrl(url: string): Promise<ExtractPro
           extractProductImageHeuristic(html, url);
       }
 
+      // If schema has no name, try to supplement from HTML patterns
+      let name = schemaData.name;
+      if (!name) {
+        name = extractProductName(html, url);
+      }
+
+      // If schema has no brand, try pattern extraction
+      let brand = schemaData.brand;
+      if (!brand) {
+        brand = extractBrand(html);
+      }
+
+      // If schema has no description, try pattern extraction
+      let description = schemaData.description;
+      if (!description) {
+        description = extractProductDescription(html);
+      }
+
       return {
         data: {
           ...schemaData,
+          name,
+          brand,
+          description,
           imageUrl,
           productUrl: url,
         },
@@ -615,16 +671,27 @@ function extractSchemaOrgProduct(html: string): Omit<ExtractedProductData, 'prod
             brandName = String((brandValue as Record<string, unknown>).name);
           }
 
+          const schemaName = typeof product.name === 'string' ? product.name : null;
+          const schemaWeight = extractSchemaWeight(product);
+          const schemaPrice = extractSchemaPrice(product);
+          const schemaImage = extractSchemaImage(product);
+
+          // Calculate confidence based on how much data was actually extracted
+          const fieldCount = [schemaName, brandName, schemaWeight, schemaPrice, schemaImage]
+            .filter(Boolean).length;
+          const schemaConfidence: 'high' | 'medium' | 'low' =
+            fieldCount >= 3 ? 'high' : fieldCount >= 1 ? 'medium' : 'low';
+
           return {
-            name: typeof product.name === 'string' ? product.name : null,
+            name: schemaName,
             brand: brandName,
             description: truncateDescription(product.description as string | undefined),
-            weightGrams: extractSchemaWeight(product),
+            weightGrams: schemaWeight,
             weightUnit: null, // Schema gives normalized weight
-            priceValue: extractSchemaPrice(product)?.value ?? null,
-            currency: extractSchemaPrice(product)?.currency ?? null,
-            imageUrl: extractSchemaImage(product),
-            confidence: 'high',
+            priceValue: schemaPrice?.value ?? null,
+            currency: schemaPrice?.currency ?? null,
+            imageUrl: schemaImage,
+            confidence: schemaConfidence,
             extractionMethod: 'schema',
           };
         }
@@ -903,19 +970,162 @@ function extractProductImageHeuristic(html: string, baseUrl: string): string | n
 }
 
 /**
+ * Extract brand name from HTML using multiple strategies
+ */
+function extractBrand(html: string): string | null {
+  // Strategy 1: og:brand meta tag
+  const ogBrand = /<meta[^>]*property=["'](?:og:brand|product:brand)["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["'](?:og:brand|product:brand)["']/i.exec(html);
+  if (ogBrand) return ogBrand[1].trim();
+
+  // Strategy 2: itemprop="brand" (Schema.org microdata)
+  const itempropBrand = /itemprop=["']brand["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /itemprop=["']brand["'][^>]*>([^<]+)</i.exec(html);
+  if (itempropBrand) return itempropBrand[1].trim();
+
+  // Strategy 3: Structured data in meta tags
+  const metaBrand = /<meta[^>]*name=["'](?:brand|manufacturer|author)["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*name=["'](?:brand|manufacturer|author)["']/i.exec(html);
+  if (metaBrand) return metaBrand[1].trim();
+
+  // Strategy 4: Common HTML patterns for brand display
+  // e.g., <span class="brand">Fjällräven</span>, <a class="product-brand">Brand</a>
+  const brandClassPattern = /<(?:span|a|div|p)[^>]*class=["'][^"']*(?:brand|manufacturer|hersteller)[^"']*["'][^>]*>([^<]+)</i;
+  const brandClassMatch = brandClassPattern.exec(html);
+  if (brandClassMatch) {
+    const brand = brandClassMatch[1].trim();
+    if (brand.length > 1 && brand.length < 60) return brand;
+  }
+
+  // Strategy 5: German patterns "Marke: X" or "Hersteller: X"
+  const germanBrand = /(?:marke|hersteller|brand)\s*[:]\s*(?:<[^>]*>)*\s*([^<\n,;]+)/i.exec(html);
+  if (germanBrand) {
+    const brand = germanBrand[1].trim();
+    if (brand.length > 1 && brand.length < 60) return brand;
+  }
+
+  return null;
+}
+
+/**
+ * Extract product name from HTML title with smart splitting.
+ * Avoids splitting on hyphens within product names by using broader separators.
+ */
+function extractProductName(html: string, url: string): string | null {
+  // Strategy 1: og:title (usually cleaner than <title>)
+  const ogTitle = /<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i.exec(html);
+  if (ogTitle) {
+    const cleaned = cleanProductTitle(ogTitle[1].trim(), url);
+    if (cleaned) return cleaned;
+  }
+
+  // Strategy 2: <title> tag with smart splitting
+  const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
+  if (titleMatch) {
+    const cleaned = cleanProductTitle(titleMatch[1].trim(), url);
+    if (cleaned) return cleaned;
+  }
+
+  // Strategy 3: h1 tag (often contains the product name)
+  const h1Match = /<h1[^>]*>([^<]+)<\/h1>/i.exec(html);
+  if (h1Match) {
+    const h1 = h1Match[1].trim();
+    if (h1.length > 2 && h1.length < 200) return h1;
+  }
+
+  return null;
+}
+
+/**
+ * Clean a product title by removing shop name suffixes.
+ * Uses " | " and " - " (with spaces) as separators, not bare hyphens.
+ * Also strips known shop name patterns.
+ */
+function cleanProductTitle(title: string, url: string): string | null {
+  if (!title) return null;
+
+  // Extract domain name for shop name detection
+  let shopName = '';
+  try {
+    const hostname = new URL(url).hostname.replace('www.', '');
+    // Use domain without TLD as shop name hint
+    shopName = hostname.split('.')[0].toLowerCase();
+  } catch { /* ignore */ }
+
+  // Split on " | " first (most reliable separator)
+  const parts = title.split(/\s*\|\s*/);
+  let name = parts[0].trim();
+
+  // If the first part looks like a shop name (matches domain), use the second part
+  if (parts.length > 1 && shopName && name.toLowerCase().includes(shopName)) {
+    name = parts[1].trim();
+  }
+
+  // Split on " - " (with spaces) to separate product from shop name
+  // Only split if the part after " - " looks like a shop/site name (short, matches domain, etc.)
+  const dashParts = name.split(/\s+[-–—]\s+/);
+  if (dashParts.length > 1) {
+    const lastPart = dashParts[dashParts.length - 1].toLowerCase();
+    // If last part is short (likely shop name) or matches domain, remove it
+    if (lastPart.length < 30 && (shopName && lastPart.includes(shopName) || lastPart.includes('shop') || lastPart.includes('store') || lastPart.includes('online'))) {
+      name = dashParts.slice(0, -1).join(' - ').trim();
+    }
+    // If first part matches shop name, use the rest
+    else if (shopName && dashParts[0].toLowerCase().includes(shopName)) {
+      name = dashParts.slice(1).join(' - ').trim();
+    }
+  }
+
+  // Final cleanup: remove common suffixes like "kaufen", "bestellen", "online", "günstig"
+  name = name.replace(/\s+(?:kaufen|bestellen|online|günstig|buy|shop|order)\s*$/i, '').trim();
+
+  return name.length > 1 ? name : null;
+}
+
+/**
+ * Extract product description from HTML using multiple sources
+ */
+function extractProductDescription(html: string): string | null {
+  // Strategy 1: og:description (usually product-specific)
+  const ogDesc = /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i.exec(html);
+  if (ogDesc) {
+    const desc = truncateDescription(ogDesc[1]);
+    if (desc && desc.length > 10) return desc;
+  }
+
+  // Strategy 2: meta description
+  const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i.exec(html);
+  if (descMatch) {
+    return truncateDescription(descMatch[1]);
+  }
+
+  // Strategy 3: itemprop="description"
+  const itempropDesc = /itemprop=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
+  if (itempropDesc) {
+    return truncateDescription(itempropDesc[1]);
+  }
+
+  return null;
+}
+
+/**
  * Fallback pattern-based extraction
  */
 function extractWithPatterns(html: string, url: string): ExtractedProductData {
-  // Extract title from page
-  const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
-  const title = titleMatch ? titleMatch[1].trim().split('|')[0].split('-')[0].trim() : null;
+  // Extract product name using smart title extraction
+  const name = extractProductName(html, url);
 
-  // Extract meta description
-  const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
-  const description = descMatch ? truncateDescription(descMatch[1]) : null;
+  // Extract brand from multiple HTML sources
+  const brand = extractBrand(html);
 
-  // Try to find weight in page content
-  const weightResult = parseWeight(html);
+  // Extract description from multiple sources
+  const description = extractProductDescription(html);
+
+  // Try to find weight in page content (use contextual patterns for full HTML)
+  const weightResult = parseWeight(html, true);
 
   // Try to find price
   const priceResult = parsePrice(html);
@@ -929,9 +1139,17 @@ function extractWithPatterns(html: string, url: string): ExtractedProductData {
     extractTwitterImage(html) ??
     extractProductImageHeuristic(html, url);
 
+  // Confidence: based on how many fields we extracted
+  const extractedFieldCount = [name, brand, description, weightResult, priceResult, imageUrl]
+    .filter(Boolean).length;
+  const confidence: 'high' | 'medium' | 'low' =
+    extractedFieldCount >= 4 ? 'high'
+      : extractedFieldCount >= 2 ? 'medium'
+      : 'low';
+
   return {
-    name: title,
-    brand: null, // Hard to extract reliably without schema
+    name,
+    brand,
     description,
     weightGrams: weightResult?.grams ?? null,
     weightUnit: weightResult?.unit ?? null,
@@ -939,7 +1157,7 @@ function extractWithPatterns(html: string, url: string): ExtractedProductData {
     currency: priceResult?.currency ?? null,
     imageUrl,
     productUrl: url,
-    confidence: weightResult || priceResult ? 'medium' : 'low',
+    confidence,
     extractionMethod: 'patterns',
   };
 }

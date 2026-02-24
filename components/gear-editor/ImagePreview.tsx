@@ -42,6 +42,35 @@ const SIZE_CLASSES = {
 } as const;
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/** Known image domains that are configured in next.config.ts remotePatterns */
+const KNOWN_IMAGE_HOSTS = [
+  'res.cloudinary.com',
+  '.supabase.co',
+  'lh3.googleusercontent.com',
+  'encrypted-tbn',
+  '.ytimg.com',
+  'img.youtube.com',
+];
+
+/**
+ * Check if a URL is from a known/configured image domain.
+ * External URLs not in this list need `unoptimized` to avoid Next.js Image errors.
+ */
+function isKnownImageHost(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return KNOWN_IMAGE_HOSTS.some(
+      (host) => hostname === host || hostname.endsWith(host)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// =============================================================================
 // Component
 // =============================================================================
 
@@ -53,6 +82,9 @@ export function ImagePreview({
 }: ImagePreviewProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // External URLs not in next.config.ts remotePatterns need unoptimized rendering
+  const needsUnoptimized = src.startsWith('http') && !isKnownImageHost(src);
 
   const handleError = useCallback(() => {
     setHasError(true);
@@ -117,6 +149,7 @@ export function ImagePreview({
         src={src}
         alt={alt}
         fill
+        unoptimized={needsUnoptimized}
         className={cn(
           'object-cover transition-opacity duration-200',
           isLoading ? 'opacity-0' : 'opacity-100'
