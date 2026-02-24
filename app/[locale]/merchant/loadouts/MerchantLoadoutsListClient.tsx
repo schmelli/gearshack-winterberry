@@ -149,7 +149,7 @@ export function MerchantLoadoutsListClient() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Loadouts</SelectItem>
+            <SelectItem value="all">{t('allLoadouts')}</SelectItem>
             <SelectItem value="draft">{tDashboard('status.draft')}</SelectItem>
             <SelectItem value="pending_review">
               {tDashboard('status.pendingReview')}
@@ -245,7 +245,7 @@ function LoadoutListItem({
               {t('items', { count: 0 })} · {t('weight', { weight: 0 })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Updated {new Date(loadout.updatedAt).toLocaleDateString()}
+              {t('updated', { date: new Date(loadout.updatedAt).toLocaleDateString() })}
             </p>
           </div>
 
@@ -253,11 +253,11 @@ function LoadoutListItem({
           <div className="hidden sm:flex items-center gap-6 text-sm">
             <div className="text-center">
               <p className="font-medium">{loadout.viewCount}</p>
-              <p className="text-xs text-muted-foreground">Views</p>
+              <p className="text-xs text-muted-foreground">{t('views')}</p>
             </div>
             <div className="text-center">
               <p className="font-medium">{loadout.wishlistAddCount}</p>
-              <p className="text-xs text-muted-foreground">Wishlist</p>
+              <p className="text-xs text-muted-foreground">{t('wishlistAdds')}</p>
             </div>
           </div>
 
@@ -266,19 +266,19 @@ function LoadoutListItem({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
                 <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t('actions')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {loadout.status === 'published' && (
                 <DropdownMenuItem onClick={onView}>
                   <Eye className="mr-2 h-4 w-4" />
-                  View
+                  {t('view')}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={onEdit}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                {t('edit')}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -287,25 +287,25 @@ function LoadoutListItem({
               {loadout.status === 'draft' && (
                 <DropdownMenuItem onClick={() => onSubmitForReview()}>
                   <Send className="mr-2 h-4 w-4" />
-                  Submit for Review
+                  {t('submitForReview')}
                 </DropdownMenuItem>
               )}
               {loadout.status === 'pending_review' && (
                 <DropdownMenuItem onClick={() => onPublish()}>
                   <Eye className="mr-2 h-4 w-4" />
-                  Publish
+                  {t('publish')}
                 </DropdownMenuItem>
               )}
               {loadout.status === 'published' && (
                 <DropdownMenuItem onClick={() => onArchive()}>
                   <Archive className="mr-2 h-4 w-4" />
-                  Archive
+                  {t('archive')}
                 </DropdownMenuItem>
               )}
               {loadout.status === 'archived' && (
                 <DropdownMenuItem onClick={() => onUnpublish()}>
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Restore to Draft
+                  {t('restoreToDraft')}
                 </DropdownMenuItem>
               )}
 
@@ -319,24 +319,23 @@ function LoadoutListItem({
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {t('delete')}
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Loadout?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete &quot;{loadout.name}&quot;. This
-                      action cannot be undone.
+                      {t('deleteDescription', { name: loadout.name })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => onDelete()}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Delete
+                      {t('delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

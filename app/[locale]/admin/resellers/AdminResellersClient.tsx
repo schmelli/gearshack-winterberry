@@ -125,7 +125,7 @@ export function AdminResellersClient() {
         setIsFormOpen(false);
         setEditingReseller(null);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : t('errorFallback');
         toast.error(message);
       } finally {
         setIsSubmitting(false);
@@ -145,7 +145,7 @@ export function AdminResellersClient() {
       await deleteReseller(deleteId);
       toast.success(t('toast.deleted'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler';
+      const message = err instanceof Error ? err.message : t('errorFallback');
       toast.error(message);
     } finally {
       setDeleteId(null);
@@ -159,7 +159,7 @@ export function AdminResellersClient() {
         await updateStatus(id, status);
         toast.success(t('toast.statusUpdated'));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : t('errorFallback');
         toast.error(message);
       }
     },
@@ -173,7 +173,7 @@ export function AdminResellersClient() {
         await toggleActive(id);
         toast.success(t('toast.activeToggled'));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler';
+        const message = err instanceof Error ? err.message : t('errorFallback');
         toast.error(message);
       }
     },
@@ -232,9 +232,9 @@ export function AdminResellersClient() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allStatuses')}</SelectItem>
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="vip">VIP</SelectItem>
-              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="standard">{t('statusStandard')}</SelectItem>
+              <SelectItem value="vip">{t('statusVip')}</SelectItem>
+              <SelectItem value="partner">{t('statusPartner')}</SelectItem>
               <SelectItem value="suspended">{t('suspended')}</SelectItem>
             </SelectContent>
           </Select>

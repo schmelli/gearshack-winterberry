@@ -111,7 +111,7 @@ export function AnnouncementList({
         <div className="mb-4 text-4xl">📢</div>
         <h3 className="mb-2 text-lg font-semibold">{t('empty')}</h3>
         <p className="text-sm text-muted-foreground">
-          Create your first announcement to notify users on the community page.
+          {t('emptyDescription')}
         </p>
       </div>
     );
@@ -122,13 +122,13 @@ export function AnnouncementList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[60px]">Type</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead className="hidden md:table-cell">Message</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden sm:table-cell">Visibility</TableHead>
-            <TableHead className="w-[80px]">Priority</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
+            <TableHead className="w-[60px]">{t('tableType')}</TableHead>
+            <TableHead>{t('tableTitle')}</TableHead>
+            <TableHead className="hidden md:table-cell">{t('tableMessage')}</TableHead>
+            <TableHead>{t('tableStatus')}</TableHead>
+            <TableHead className="hidden sm:table-cell">{t('tableVisibility')}</TableHead>
+            <TableHead className="w-[80px]">{t('tablePriority')}</TableHead>
+            <TableHead className="w-[100px]">{t('tableActions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -225,7 +225,7 @@ export function AnnouncementList({
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => onDelete(announcement.id)}
                           disabled={isDeleting}

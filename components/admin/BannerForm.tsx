@@ -111,7 +111,7 @@ export function BannerForm({
                   )}
                   <div className="flex gap-2">
                     <Input
-                      placeholder="https://..."
+                      placeholder={t('placeholderUrl')}
                       value={field.value}
                       onChange={field.onChange}
                       className="flex-1"
@@ -134,7 +134,7 @@ export function BannerForm({
                     >
                       {({ open }) => (
                         <Button type="button" variant="outline" onClick={() => open()}>
-                          Upload
+                          {t('upload')}
                         </Button>
                       )}
                     </CldUploadWidget>
@@ -155,7 +155,7 @@ export function BannerForm({
             <FormItem>
               <FormLabel>{t('fields.ctaText')}</FormLabel>
               <FormControl>
-                <Input placeholder="Check out our latest gear!" {...field} />
+                <Input placeholder={t('placeholderCtaText')} {...field} />
               </FormControl>
               <FormDescription>{t('fields.ctaTextHelp')}</FormDescription>
               <FormMessage />
@@ -171,7 +171,7 @@ export function BannerForm({
             <FormItem>
               <FormLabel>{t('fields.buttonText')}</FormLabel>
               <FormControl>
-                <Input placeholder="Shop Now" {...field} />
+                <Input placeholder={t('placeholderButtonText')} {...field} />
               </FormControl>
               <FormDescription>{t('fields.buttonTextHelp')}</FormDescription>
               <FormMessage />
@@ -187,7 +187,7 @@ export function BannerForm({
             <FormItem>
               <FormLabel>{t('fields.targetUrl')}</FormLabel>
               <FormControl>
-                <Input placeholder="https://..." {...field} />
+                <Input placeholder={t('placeholderUrl')} {...field} />
               </FormControl>
               <FormDescription>{t('fields.targetUrlHelp')}</FormDescription>
               <FormMessage />
@@ -285,7 +285,7 @@ export function BannerForm({
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

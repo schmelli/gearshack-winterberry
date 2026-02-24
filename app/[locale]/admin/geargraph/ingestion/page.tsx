@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function GearGraphIngestionPage() {
   const [url, setUrl] = useState('');
   const [submittedUrls, setSubmittedUrls] = useState<string[]>([]);
+  const t = useTranslations('GearGraphIngestion');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,18 +33,17 @@ export default function GearGraphIngestionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">GearGraph Ingestion</h1>
+        <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground">
-          Submit URLs for processing and ingestion into the knowledge graph
+          {t('pageDescription')}
         </p>
       </div>
 
       <Alert>
         <Construction className="h-4 w-4" />
-        <AlertTitle>Work in Progress</AlertTitle>
+        <AlertTitle>{t('wipTitle')}</AlertTitle>
         <AlertDescription>
-          This interface is under development. URL submission will be connected
-          to the GearGraph ingestion pipeline in a future update.
+          {t('wipDescription')}
         </AlertDescription>
       </Alert>
 
@@ -50,11 +51,10 @@ export default function GearGraphIngestionPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Submit URL for Ingestion
+            {t('submitTitle')}
           </CardTitle>
           <CardDescription>
-            Enter a URL to a product page, review, or gear-related content to add
-            to the GearGraph knowledge base.
+            {t('submitDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +63,7 @@ export default function GearGraphIngestionPage() {
               <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="url"
-                placeholder="https://example.com/product/..."
+                placeholder={t('urlPlaceholder')}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="pl-10"
@@ -71,7 +71,7 @@ export default function GearGraphIngestionPage() {
             </div>
             <Button type="submit" disabled={!url.trim()}>
               <Upload className="mr-2 h-4 w-4" />
-              Submit
+              {t('submit')}
             </Button>
           </form>
         </CardContent>
@@ -80,9 +80,9 @@ export default function GearGraphIngestionPage() {
       {submittedUrls.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Submitted URLs</CardTitle>
+            <CardTitle>{t('submittedUrls')}</CardTitle>
             <CardDescription>
-              URLs queued for processing (demo - not yet connected to backend)
+              {t('submittedUrlsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,7 +92,7 @@ export default function GearGraphIngestionPage() {
                   key={index}
                   className="flex items-center gap-2 rounded-md border p-3"
                 >
-                  <Badge variant="secondary">Queued</Badge>
+                  <Badge variant="secondary">{t('queued')}</Badge>
                   <span className="flex-1 truncate text-sm font-mono">
                     {submittedUrl}
                   </span>
@@ -107,16 +107,16 @@ export default function GearGraphIngestionPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            Supported URL Types
+            {t('supportedUrlTypes')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-            <li>Product pages from outdoor gear retailers</li>
-            <li>Manufacturer product specifications</li>
-            <li>Gear review articles and videos</li>
-            <li>Trail reports with gear recommendations</li>
-            <li>Community forum discussions about gear</li>
+            <li>{t('urlTypes.productPages')}</li>
+            <li>{t('urlTypes.manufacturerSpecs')}</li>
+            <li>{t('urlTypes.gearReviews')}</li>
+            <li>{t('urlTypes.trailReports')}</li>
+            <li>{t('urlTypes.communityForums')}</li>
           </ul>
         </CardContent>
       </Card>

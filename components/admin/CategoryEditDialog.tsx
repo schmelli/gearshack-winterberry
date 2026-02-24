@@ -137,7 +137,7 @@ export function CategoryEditDialog({
             <Input
               id="label"
               {...register('label', { required: true })}
-              placeholder="e.g., Backpacks"
+              placeholder={t('placeholderLabel')}
               disabled={isLoading}
             />
           </div>
@@ -150,7 +150,7 @@ export function CategoryEditDialog({
             <Input
               id="slug"
               {...register('slug', { required: true })}
-              placeholder="e.g., backpacks"
+              placeholder={t('placeholderSlug')}
               disabled={isLoading}
             />
           </div>
@@ -163,7 +163,7 @@ export function CategoryEditDialog({
             <Input
               id="enLabel"
               {...register('enLabel', { required: true })}
-              placeholder="e.g., Backpacks"
+              placeholder={t('placeholderEnLabel')}
               disabled={isLoading}
             />
           </div>
@@ -176,7 +176,7 @@ export function CategoryEditDialog({
             <Input
               id="deLabel"
               {...register('deLabel')}
-              placeholder="e.g., Rucksäcke"
+              placeholder={t('placeholderDeLabel')}
               disabled={isLoading}
             />
           </div>
