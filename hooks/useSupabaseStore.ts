@@ -27,6 +27,7 @@ import {
   failSyncOperation,
   type SyncState,
 } from '@/lib/store';
+import { triggerPriceDiscovery } from '@/lib/geargraph/price-discovery-client';
 import type { GearItem } from '@/types/gear';
 import type { TablesInsert, TablesUpdate } from '@/types/database';
 import type { ActivityType, Season } from '@/types/loadout';
@@ -124,6 +125,15 @@ export const useSupabaseStore = create<SupabaseStore>()(
           insertData.id = id;
           const { error } = await supabase.from('gear_items').insert(insertData as TablesInsert<'gear_items'>);
           if (error) throw error;
+          // Fire-and-forget price discovery (non-blocking)
+          if (!insertData.manufacturer_price) {
+            triggerPriceDiscovery({
+              gearItemId: id,
+              brand: insertData.brand ?? null,
+              name: insertData.name ?? '',
+              productUrl: insertData.product_url ?? null,
+            }).catch(() => {/* intentionally non-blocking */});
+          }
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
           return id;
         } catch (error) {
