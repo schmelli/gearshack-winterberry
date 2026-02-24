@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { parsePostGISLocation } from '@/lib/supabase/transformers';
+import { searchSerperResellers } from '@/lib/serper/shopping';
 import type {
   ResellerSearchResponse,
   ResellerPriceWithDetails,
@@ -296,6 +297,78 @@ export async function GET(request: NextRequest) {
         return true; // Keep entries with unparseable URLs
       }
     });
+
+    // ==========================================================================
+    // Serper Shopping live fallback — activated when DB has no cached results.
+    // Mirrors what AI assistants do: real-time Google Shopping search.
+    // Provides live prices + real product URLs (via secondary organic search).
+    // ==========================================================================
+    if (filteredPriceResults.length === 0 && process.env.SERPER_API_KEY) {
+      const brand = query.split(' ')[0]; // Heuristic: first word is often the brand
+      const serperHits = await searchSerperResellers(query, brand, countryCode, 3);
+
+      if (serperHits.length > 0) {
+        const liveResults: ResellerPriceWithDetails[] = serperHits
+          .filter((hit) => {
+            if (!hit.websiteUrl) return false;
+            try {
+              const domain = new URL(hit.websiteUrl).hostname.replace(/^www\./, '');
+              if (INVALID_RESELLER_DOMAINS.has(domain)) return false;
+              if (manufacturerDomain && domain === manufacturerDomain) return false;
+              return true;
+            } catch {
+              return false;
+            }
+          })
+          .map((hit, idx) => ({
+            // Synthetic IDs for live results (not persisted in DB)
+            id: `live-${idx}`,
+            resellerId: `live-${idx}`,
+            gearItemId: gearItemId ?? '',
+            priceAmount: hit.priceAmount,
+            priceCurrency: hit.priceCurrency,
+            productUrl: hit.productUrl,
+            productName: hit.title,
+            inStock: true,
+            fetchedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+            reseller: {
+              id: `live-${idx}`,
+              name: hit.source.replace(/^!\s*/, '').trim(),
+              websiteUrl: hit.websiteUrl!,
+              logoUrl: null,
+              resellerType: 'online' as const,
+              status: 'standard' as const,
+              countriesServed: [countryCode],
+              searchUrlTemplate: null,
+              affiliateTag: null,
+              location: null,
+              addressLine1: null,
+              addressLine2: null,
+              addressCity: null,
+              addressPostalCode: null,
+              addressCountry: null,
+              isActive: true,
+              priority: 50,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            distanceKm: null,
+            distanceFormatted: null,
+          }));
+
+        const livePrices = liveResults
+          .sort((a, b) => a.priceAmount - b.priceAmount)
+          .slice(0, 3);
+
+        return NextResponse.json<ResellerSearchResponse>({
+          localPrices: [],
+          onlinePrices: livePrices,
+          allPrices: livePrices,
+          fromCache: false,
+        });
+      }
+    }
 
     // Separate local and online resellers
     const localPrices = filteredPriceResults
