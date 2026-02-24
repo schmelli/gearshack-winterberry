@@ -141,25 +141,44 @@ export async function GET(request: NextRequest) {
         });
         if (fallbackFiltered.length > 0) {
           listings = fallbackFiltered;
-          // Cache under the fallback site so repeated lookups are fast
-          await supabase.from('ebay_price_cache').upsert(
-            {
-              search_query: normalizedQuery,
-              ebay_site: fallbackSiteConfig.site,
-              country_code: 'US',
-              results: JSON.parse(JSON.stringify(fallbackFiltered)),
-              result_count: fallbackFiltered.length,
-              expires_at: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
-            },
-            { onConflict: 'search_query,ebay_site' }
-          );
+          const fallbackExpiresAt = new Date(Date.now() + CACHE_TTL_MS).toISOString();
+          const fallbackResults = JSON.parse(JSON.stringify(fallbackFiltered));
+
+          // Cache under BOTH the fallback site (ebay.com) AND the locale site (ebay.de).
+          // Without caching under the locale site, every German-user request would miss
+          // cache (lookup uses locale site 'ebay.de') and make two live eBay API calls.
+          await Promise.all([
+            supabase.from('ebay_price_cache').upsert(
+              {
+                search_query: normalizedQuery,
+                ebay_site: fallbackSiteConfig.site,
+                country_code: 'US',
+                results: fallbackResults,
+                result_count: fallbackFiltered.length,
+                expires_at: fallbackExpiresAt,
+              },
+              { onConflict: 'search_query,ebay_site' }
+            ),
+            supabase.from('ebay_price_cache').upsert(
+              {
+                search_query: normalizedQuery,
+                ebay_site: siteConfig.site, // locale site — so next lookup hits cache
+                country_code: 'US',
+                results: fallbackResults,
+                result_count: fallbackFiltered.length,
+                expires_at: fallbackExpiresAt,
+              },
+              { onConflict: 'search_query,ebay_site' }
+            ),
+          ]);
+
           // Return the fallback site so the UI shows the correct eBay link
           return NextResponse.json({
             listings: fallbackFiltered.slice(0, limit),
             totalResults: fallbackFiltered.length,
             ebaySite: fallbackSiteConfig.site,
             fromCache: false,
-            cacheExpiresAt: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+            cacheExpiresAt: fallbackExpiresAt,
           } satisfies EbaySearchResponse);
         }
       }
