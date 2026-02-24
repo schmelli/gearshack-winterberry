@@ -25,7 +25,9 @@ import { inventoryInsightsTool } from '@/lib/mastra/tools/inventory-insights';
 // Import MCP GearGraph tools (T059 - Register MCP tools with agent)
 import {
   findAlternativesTool,
+  findAlternativesInputSchema,
   searchGearTool,
+  searchGearInputSchema,
   queryGearGraphTool,
   executeFindAlternatives,
   executeSearchGear,
@@ -278,7 +280,7 @@ export function getAITools(userId: string) {
     // Find gear alternatives via GearGraph MCP
     findAlternatives: {
       description: findAlternativesTool.description,
-      parameters: findAlternativesTool.parameters,
+      parameters: findAlternativesInputSchema,
       execute: async (args: FindAlternativesInput) => {
         const startTime = Date.now();
         try {
@@ -300,7 +302,7 @@ export function getAITools(userId: string) {
     // Search gear catalog via GearGraph MCP
     searchGear: {
       description: searchGearTool.description,
-      parameters: searchGearTool.parameters,
+      parameters: searchGearInputSchema,
       execute: async (args: SearchGearInput) => {
         const startTime = Date.now();
         try {

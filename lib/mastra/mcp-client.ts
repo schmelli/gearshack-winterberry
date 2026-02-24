@@ -591,6 +591,8 @@ export class MCPClient {
 
     const serverUrl =
       process.env.MCP_SERVER_URL ||
+      // Fallback: use GearGraph API URL (the MCP server runs on the same host)
+      process.env.NEXT_PUBLIC_GEARGRAPH_API_URL ||
       overrides?.serverUrl ||
       DEFAULT_CONFIG.serverUrl;
 

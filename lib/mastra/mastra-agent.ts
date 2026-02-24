@@ -23,6 +23,8 @@ import { inventoryInsightsTool } from './tools/inventory-insights';
 import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
 // Action tools (Feature: AI Add to Loadout)
 import { addToLoadoutTool } from './tools/add-to-loadout';
+// GearGraph MCP tools (searchGear + findAlternatives via GearGraph MCP server)
+import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -209,7 +211,12 @@ export function createGearAgent(userId: string, systemPrompt: string) {
       searchGearKnowledge: searchGearKnowledgeTool,
       // Action tools
       addToLoadout: addToLoadoutTool,
-      // Legacy tools (fallback for edge cases + GearGraph Cypher)
+      // GearGraph MCP Tools: catalog search + alternatives via GearGraph graph relationships
+      // These call the GearGraph MCP server (NEXT_PUBLIC_GEARGRAPH_API_URL/sse)
+      // findAlternatives uses graph edges (LIGHTER_THAN, SIMILAR_TO, etc.) — NOT replaceable with SQL
+      searchGear: searchGearTool,
+      findAlternatives: findAlternativesTool,
+      // Legacy tools (fallback for edge cases + direct Cypher)
       queryUserData: queryUserDataSqlTool,
       queryGearGraph: queryGearGraphTool,
       searchWeb: searchWebTool,
@@ -217,7 +224,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 1 action + 3 legacy), no searchGear/findAlternatives, three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory`
   );
   return agent;
 }
