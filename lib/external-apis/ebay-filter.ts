@@ -106,11 +106,30 @@ function isPriceTooLow(price: number, msrp: number | undefined, minRatio: number
 }
 
 /**
- * Check if listing title contains the brand name
+ * Check if listing title contains the brand name.
+ *
+ * Handles partial brand names: eBay sellers often omit generic suffixes like
+ * "Gear", "Outdoor", "Sports", etc. — e.g. "Durston" instead of "Durston Gear".
+ * We accept a match if:
+ *   1. The full brand name appears as a substring (exact match), OR
+ *   2. The first word of the brand (≥ 4 chars) appears in the title.
  */
 function containsBrand(title: string, brand: string | undefined): boolean {
   if (!brand) return true; // No brand to match = always pass
-  return title.toLowerCase().includes(brand.toLowerCase());
+  const lowerTitle = title.toLowerCase();
+  const lowerBrand = brand.toLowerCase();
+
+  // 1. Exact substring match
+  if (lowerTitle.includes(lowerBrand)) return true;
+
+  // 2. Partial match: first significant word of multi-word brand
+  const brandWords = lowerBrand.split(/\s+/).filter(Boolean);
+  if (brandWords.length > 1) {
+    const firstWord = brandWords[0];
+    if (firstWord.length >= 4 && lowerTitle.includes(firstWord)) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -124,11 +143,13 @@ function containsProductType(title: string, keywords: string[] | undefined): boo
 
 /**
  * Calculate similarity score between two strings (Jaccard similarity)
- * Returns a value between 0 and 1
+ * Returns a value between 0 and 1.
+ *
+ * Splits on spaces AND hyphens so "X-Dome" matches "X Dome" in eBay titles.
  */
 function calculateSimilarity(str1: string, str2: string): number {
-  const words1 = new Set(str1.toLowerCase().split(/\s+/).filter(Boolean));
-  const words2 = new Set(str2.toLowerCase().split(/\s+/).filter(Boolean));
+  const words1 = new Set(str1.toLowerCase().split(/[\s\-]+/).filter(Boolean));
+  const words2 = new Set(str2.toLowerCase().split(/[\s\-]+/).filter(Boolean));
 
   if (words1.size === 0 || words2.size === 0) return 0;
 
