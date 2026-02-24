@@ -104,6 +104,9 @@ export async function GET(request: NextRequest) {
     const gearItemId = searchParams.get('gearItemId');
     const query = searchParams.get('query');
     const countryCode = searchParams.get('countryCode') || 'DE';
+
+    // Search engines and invalid domains that must never appear as resellers
+    const INVALID_RESELLER_DOMAINS = new Set(['google.com', 'google.de', 'bing.com', 'yahoo.com']);
     const latitudeRaw = searchParams.get('latitude');
     const longitudeRaw = searchParams.get('longitude');
 
@@ -177,6 +180,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Resolve gear item's product URL domain for manufacturer filtering
+    let manufacturerDomain: string | null = null;
+    if (gearItemId) {
+      const { data: gearItem } = await supabase
+        .from('gear_items')
+        .select('product_url')
+        .eq('id', gearItemId)
+        .single();
+      if (gearItem?.product_url) {
+        try {
+          manufacturerDomain = new URL(gearItem.product_url).hostname.replace(/^www\./, '');
+        } catch {
+          // Malformed URL — skip manufacturer filtering
+        }
+      }
+    }
+
     // Check for cached price results
     let cachedResults: ResellerPriceResult[] = [];
     if (gearItemId) {
@@ -233,8 +253,22 @@ export async function GET(request: NextRequest) {
       // For now, we only show cached results
     }
 
+    // Filter out manufacturer URLs and invalid search-engine domains.
+    // Price discovery sometimes saves the brand's own site (e.g. durstongear.com)
+    // or Google Shopping redirect URLs as "resellers" — exclude these from display.
+    const filteredPriceResults = priceResults.filter((p) => {
+      try {
+        const resellerDomain = new URL(p.reseller.websiteUrl).hostname.replace(/^www\./, '');
+        if (INVALID_RESELLER_DOMAINS.has(resellerDomain)) return false;
+        if (manufacturerDomain && resellerDomain === manufacturerDomain) return false;
+        return true;
+      } catch {
+        return true; // Keep entries with unparseable URLs
+      }
+    });
+
     // Separate local and online resellers
-    const localPrices = priceResults
+    const localPrices = filteredPriceResults
       .filter((p) => p.reseller.resellerType === 'local' || p.reseller.resellerType === 'chain')
       .sort((a, b) => {
         // Sort by distance if available, otherwise by price
@@ -245,7 +279,7 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 2);
 
-    const onlinePrices = priceResults
+    const onlinePrices = filteredPriceResults
       .filter((p) => p.reseller.resellerType === 'online')
       .sort((a, b) => a.priceAmount - b.priceAmount)
       .slice(0, 1);
