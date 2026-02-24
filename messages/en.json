@@ -423,7 +423,8 @@
       "errorId": "Error ID: {id}",
       "tryAgain": "Try Again",
       "backToInventory": "Back to Inventory"
-    }
+    },
+    "quantityTooltip": "Quantity available"
   },
   "ProductSearch": {
     "enterSearchTerm": "Please enter a search term",
@@ -783,7 +784,8 @@
     "canBeTradedDescription": "Open to trading this item",
     "notesLabel": "Notes",
     "notesPlaceholder": "Add any additional notes about this item...",
-    "notesDescription": "Personal notes, modifications, experiences, etc."
+    "notesDescription": "Personal notes, modifications, experiences, etc.",
+    "placeholderModelNumber": "e.g., HOR2P-2021"
   },
   "ManufacturerPrice": {
     "title": "Manufacturer Price",
@@ -962,6 +964,9 @@
       "description": "Description",
       "myNotes": "My Notes",
       "visitWebsite": "Visit website"
+    },
+    "actions": {
+      "edit": "Edit"
     }
   },
   "Loadouts": {
@@ -2696,7 +2701,7 @@
     "pageDescription": "Discover expertly curated gear bundles from verified outdoor retailers. Save with bundle pricing and add items directly to your wishlist.",
     "badge": "Expert Curated",
     "featuredSection": "Featured Loadouts",
-    "allLoadouts": "Browse All Loadouts",
+    "allLoadouts": "All Loadouts",
     "pagination": "Page {current} of {total}",
     "featured": "Featured",
     "bundlePrice": "Bundle Price",
@@ -2825,7 +2830,21 @@
         "itemsRequired": "Add at least one item to your loadout",
         "discountRange": "Discount must be between 0 and 100"
       }
-    }
+    },
+    "updated": "Updated {date}",
+    "views": "Views",
+    "wishlistAdds": "Wishlist",
+    "actions": "Actions",
+    "view": "View",
+    "edit": "Edit",
+    "submitForReview": "Submit for Review",
+    "publish": "Publish",
+    "archive": "Archive",
+    "restoreToDraft": "Restore to Draft",
+    "delete": "Delete",
+    "deleteTitle": "Delete Loadout?",
+    "deleteDescription": "This will permanently delete \"{name}\". This action cannot be undone.",
+    "cancel": "Cancel"
   },
   "LoadoutComparison": {
     "title": "Compare Loadouts",
@@ -2922,8 +2941,11 @@
         "phone": "Phone Number",
         "latitude": "Latitude",
         "longitude": "Longitude"
-      }
-    }
+      },
+      "cancel": "Cancel"
+    },
+    "cancel": "Cancel",
+    "delete": "Delete"
   },
   "UserOffers": {
     "pageTitle": "Offers",
@@ -3161,7 +3183,8 @@
     "goToLogin": "Go to Login",
     "accessDenied": "Access Denied",
     "accessDeniedDesc": "You do not have permission to access this page.",
-    "goHome": "Go to Home"
+    "goHome": "Go to Home",
+    "error": "Error"
   },
   "AdminResellers": {
     "pageTitle": "Reseller Management",
@@ -3236,8 +3259,27 @@
       "cancel": "Cancel",
       "create": "Create Reseller",
       "update": "Update Reseller",
-      "saving": "Saving..."
-    }
+      "saving": "Saving...",
+      "placeholderName": "Globetrotter",
+      "placeholderWebsite": "https://www.globetrotter.de",
+      "placeholderLogo": "https://...",
+      "placeholderSearchUrl": "https://shop.com/search?q={query}",
+      "placeholderAddress": "Main Street 1",
+      "placeholderCity": "Munich",
+      "placeholderPostalCode": "80331",
+      "placeholderCountry": "DE",
+      "typeLocal": "Local Shop",
+      "typeOnline": "Online Shop",
+      "typeChain": "Retail Chain",
+      "statusStandard": "Standard",
+      "statusVip": "VIP",
+      "statusPartner": "Partner",
+      "statusSuspended": "Suspended"
+    },
+    "errorFallback": "Error",
+    "statusStandard": "Standard",
+    "statusVip": "VIP",
+    "statusPartner": "Partner"
   },
   "MerchantAnalytics": {
     "pageTitle": "Analytics",
@@ -3510,7 +3552,8 @@
           "sendFailed": "Failed to send invitation",
           "genericError": "Something went wrong"
         }
-      }
+      },
+      "namePlaceholder": "e.g., Pacific Crest Trail 2023"
     },
     "compare": {
       "pageTitle": "Compare Loadouts",
@@ -3621,6 +3664,9 @@
     "search": {
       "placeholder": "Search VIPs...",
       "clearSearch": "Clear search"
+    },
+    "loadoutForm": {
+      "namePlaceholder": "e.g., Pacific Crest Trail 2023"
     }
   },
   "Wishlist": {
@@ -3820,7 +3866,21 @@
       "autoGeneratesSlug": "Auto-generates slug",
       "slugLabel": "Slug (Unique ID)",
       "englishLabel": "English Label",
-      "germanLabel": "German Label"
+      "germanLabel": "German Label",
+      "placeholderLabel": "e.g., Backpacks",
+      "placeholderSlug": "e.g., backpacks",
+      "placeholderEnLabel": "e.g., Backpacks",
+      "placeholderDeLabel": "e.g., Rucksäcke",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "indent": "Indent (make child of previous sibling)",
+      "outdent": "Outdent (move up a level)",
+      "edit": "Edit",
+      "delete": "Delete",
+      "addSubcategory": "Add subcategory",
+      "addProductType": "Add product type",
+      "noCategoriesFound": "No categories found",
+      "issue": "Issue"
     },
     "wiki": {
       "pageTitle": "Wiki Management",
@@ -4595,7 +4655,11 @@
         "lastSync": "Last Synced",
         "forceButton": "Force Sync",
         "forced": "Sync initiated.",
-        "error": "Failed to sync."
+        "error": "Failed to sync.",
+        "offline": "Offline",
+        "pending": "Pending",
+        "synced": "Synced",
+        "syncing": "Syncing..."
       },
       "storage": {
         "title": "Storage",
@@ -4616,7 +4680,10 @@
         "cleared": "Cache cleared successfully.",
         "error": "Failed to clear cache."
       }
-    }
+    },
+    "error": "Error",
+    "loading": "Loading...",
+    "saved": "Saved"
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -4693,7 +4760,21 @@
       "empty": "No announcements created yet",
       "saved": "Announcement saved successfully",
       "deleted": "Announcement deleted successfully",
-      "error": "Failed to save announcement"
+      "error": "Failed to save announcement",
+      "tableType": "Type",
+      "tableTitle": "Title",
+      "tableMessage": "Message",
+      "tableStatus": "Status",
+      "tableVisibility": "Visibility",
+      "tablePriority": "Priority",
+      "tableActions": "Actions",
+      "emptyDescription": "Create your first announcement to notify users on the community page.",
+      "cancel": "Cancel",
+      "placeholderTitle": "Important Update",
+      "placeholderMessage": "Enter the announcement message...",
+      "placeholderType": "Select announcement type",
+      "placeholderLinkUrl": "https://...",
+      "placeholderLinkText": "Learn more"
     }
   },
   "Banner": {
@@ -4728,7 +4809,19 @@
       "empty": "No banners created yet",
       "saved": "Banner saved successfully",
       "deleted": "Banner deleted successfully",
-      "error": "Failed to save banner"
+      "error": "Failed to save banner",
+      "tablePreview": "Preview",
+      "tableHeadline": "Headline",
+      "tableStatus": "Status",
+      "tableVisibility": "Visibility",
+      "tableOrder": "Order",
+      "tableActions": "Actions",
+      "emptyDescription": "Create your first banner to promote content on the community page.",
+      "cancel": "Cancel",
+      "upload": "Upload",
+      "placeholderCtaText": "Check out our latest gear!",
+      "placeholderButtonText": "Shop Now",
+      "placeholderUrl": "https://..."
     },
     "carousel": {
       "previous": "Previous banner",
@@ -5034,5 +5127,99 @@
     "sourceInitials": "Initials",
     "sourceProvider": "Use Provider Photo",
     "uploadPhoto": "Upload Photo"
+  },
+  "GearGraphStatus": {
+    "pageTitle": "GearGraph Status",
+    "serverLabel": "Server: geargraph.gearshack.app",
+    "refresh": "Refresh",
+    "lastUpdated": "Last updated: {time}",
+    "status": {
+      "loading": "Loading...",
+      "offline": "Offline",
+      "online": "Online",
+      "degraded": "Degraded",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "connectionError": "Connection Error",
+    "warnings": "Warnings",
+    "memgraph": "Memgraph",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "runningWorkflows": "Running Workflows",
+    "pendingApprovals": "Pending Approvals",
+    "lastHygieneRun": "Last Hygiene Run",
+    "graphMetrics": "Graph Metrics",
+    "graphMetricsDescription": "Knowledge graph database statistics",
+    "totalNodes": "Total Nodes",
+    "relationships": "Relationships",
+    "orphanedNodes": "Orphaned Nodes",
+    "duplicatesDetected": "Duplicates Detected",
+    "merges24h": "Merges (24h)",
+    "deletions24h": "Deletions (24h)",
+    "timestamps": "Timestamps",
+    "lastDeduplicationRun": "Last Deduplication Run",
+    "dataTimestamp": "Data Timestamp",
+    "additionalStats": "Additional Statistics",
+    "fromStatsEndpoint": "From the /stats endpoint",
+    "nodes": "Nodes",
+    "edges": "Edges",
+    "categories": "Categories",
+    "brands": "Brands",
+    "products": "Products",
+    "statsEndpointUnavailable": "Stats endpoint unavailable"
+  },
+  "GearGraphIngestion": {
+    "pageTitle": "GearGraph Ingestion",
+    "pageDescription": "Submit URLs for processing and ingestion into the knowledge graph",
+    "wipTitle": "Work in Progress",
+    "wipDescription": "This interface is under development. URL submission will be connected to the GearGraph ingestion pipeline in a future update.",
+    "submitTitle": "Submit URL for Ingestion",
+    "submitDescription": "Enter a URL to a product page, review, or gear-related content to add to the GearGraph knowledge base.",
+    "urlPlaceholder": "https://example.com/product/...",
+    "submit": "Submit",
+    "submittedUrls": "Submitted URLs",
+    "submittedUrlsDescription": "URLs queued for processing (demo - not yet connected to backend)",
+    "queued": "Queued",
+    "supportedUrlTypes": "Supported URL Types",
+    "urlTypes": {
+      "productPages": "Product pages from outdoor gear retailers",
+      "manufacturerSpecs": "Manufacturer product specifications",
+      "gearReviews": "Gear review articles and videos",
+      "trailReports": "Trail reports with gear recommendations",
+      "communityForums": "Community forum discussions about gear"
+    }
+  },
+  "MissingBrands": {
+    "searchPlaceholder": "Search brands...",
+    "statusPlaceholder": "Status",
+    "brandsFound": "{count, plural, =1 {1 brand} other {# brands}} found",
+    "loadFailed": "Failed to load missing brands",
+    "statusUpdated": "Brand status updated to {status}",
+    "statusUpdateFailed": "Failed to update status",
+    "status": {
+      "pending": "Pending",
+      "added": "Added",
+      "rejected": "Rejected",
+      "merged": "Merged",
+      "all": "All"
+    },
+    "columns": {
+      "brandName": "Brand Name",
+      "occurrences": "Occurrences",
+      "countries": "Countries",
+      "firstSeen": "First Seen",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "sourceUrls": "{count, plural, =1 {1 source URL} other {# source URLs}}",
+    "noBrandsFound": "No missing brands found",
+    "pageOf": "Page {page} of {total}",
+    "previous": "Previous",
+    "next": "Next",
+    "markAsAdded": "Mark as Added",
+    "markAsMerged": "Mark as Merged",
+    "reject": "Reject",
+    "resetToPending": "Reset to Pending"
   }
 }

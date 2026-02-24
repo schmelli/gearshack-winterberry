@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslations } from 'next-intl';
 import {
   RefreshCw,
   XCircle,
@@ -44,23 +45,25 @@ function StatusBadge({
   loading,
   healthError,
   health,
+  t,
 }: {
   loading: boolean;
   healthError: string | null;
   health: HealthResponse | null;
+  t: (key: string) => string;
 }) {
-  if (loading) return <Badge variant="secondary">Laden...</Badge>;
-  if (healthError) return <Badge variant="destructive">Offline</Badge>;
+  if (loading) return <Badge variant="secondary">{t('status.loading')}</Badge>;
+  if (healthError) return <Badge variant="destructive">{t('status.offline')}</Badge>;
   if (health?.status === 'ok' || health?.status === 'healthy') {
-    return <Badge className="bg-green-500 hover:bg-green-600">Online</Badge>;
+    return <Badge className="bg-green-500 hover:bg-green-600">{t('status.online')}</Badge>;
   }
   if (health?.status === 'degraded') {
-    return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">Eingeschränkt</Badge>;
+    return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">{t('status.degraded')}</Badge>;
   }
   if (health?.status === 'error') {
-    return <Badge variant="destructive">Fehler</Badge>;
+    return <Badge variant="destructive">{t('status.error')}</Badge>;
   }
-  return <Badge variant="secondary">Unbekannt</Badge>;
+  return <Badge variant="secondary">{t('status.unknown')}</Badge>;
 }
 
 function MetricCard({
@@ -90,7 +93,7 @@ function MetricCard({
         <span className="text-sm">{label}</span>
       </div>
       <div className="text-2xl font-bold">
-        {typeof value === 'number' ? value.toLocaleString('de-DE') : value}
+        {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
       {subtext && <div className="text-xs text-muted-foreground mt-1">{subtext}</div>}
     </div>
@@ -104,19 +107,20 @@ function MetricCard({
 export default function GearGraphStatusPage() {
   const { health, stats, healthError, statsError, loading, lastUpdated, fetchData } =
     useGearGraphStatus();
+  const t = useTranslations('GearGraphStatus');
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">GearGraph Status</h1>
+          <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground">
-            Server: geargraph.gearshack.app
+            {t('serverLabel')}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <StatusBadge loading={loading} healthError={healthError} health={health} />
+          <StatusBadge loading={loading} healthError={healthError} health={health} t={t} />
           <Button
             variant="outline"
             size="sm"
@@ -124,14 +128,14 @@ export default function GearGraphStatusPage() {
             disabled={loading}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Aktualisieren
+            {t('refresh')}
           </Button>
         </div>
       </div>
 
       {lastUpdated && (
         <p className="text-sm text-muted-foreground">
-          Zuletzt aktualisiert: {lastUpdated.toLocaleTimeString('de-DE')}
+          {t('lastUpdated', { time: lastUpdated.toLocaleTimeString() })}
         </p>
       )}
 
@@ -151,7 +155,7 @@ export default function GearGraphStatusPage() {
             <div className="flex items-center gap-3">
               <XCircle className="h-8 w-8 text-destructive" />
               <div>
-                <p className="font-medium text-destructive">Verbindungsfehler</p>
+                <p className="font-medium text-destructive">{t('connectionError')}</p>
                 <p className="text-sm text-muted-foreground">{healthError}</p>
               </div>
             </div>
@@ -168,7 +172,7 @@ export default function GearGraphStatusPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <CardTitle className="text-base">Warnungen</CardTitle>
+                  <CardTitle className="text-base">{t('warnings')}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -188,25 +192,25 @@ export default function GearGraphStatusPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               icon={Database}
-              label="Memgraph"
-              value={health.memgraphConnected ? 'Verbunden' : 'Getrennt'}
+              label={t('memgraph')}
+              value={health.memgraphConnected ? t('connected') : t('disconnected')}
               variant={health.memgraphConnected ? 'success' : 'warning'}
             />
             <MetricCard
               icon={Workflow}
-              label="Laufende Workflows"
+              label={t('runningWorkflows')}
               value={health.workflowsRunning ?? 0}
               variant={health.workflowsRunning && health.workflowsRunning > 0 ? 'default' : 'muted'}
             />
             <MetricCard
               icon={Users}
-              label="Ausstehende Genehmigungen"
+              label={t('pendingApprovals')}
               value={health.pendingApprovals ?? 0}
               variant={health.pendingApprovals && health.pendingApprovals > 100 ? 'warning' : 'default'}
             />
             <MetricCard
               icon={Clock}
-              label="Letzter Hygiene-Lauf"
+              label={t('lastHygieneRun')}
               value={health.lastHygieneRun ? formatRelativeTime(health.lastHygieneRun) : '\u2013'}
               subtext={health.lastHygieneRun ? formatDateTime(health.lastHygieneRun) : undefined}
             />
@@ -218,44 +222,44 @@ export default function GearGraphStatusPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Activity className="h-5 w-5 text-primary" />
-                  <CardTitle>Graph-Metriken</CardTitle>
+                  <CardTitle>{t('graphMetrics')}</CardTitle>
                 </div>
                 <CardDescription>
-                  Statistiken der Knowledge-Graph-Datenbank
+                  {t('graphMetricsDescription')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                   <MetricCard
                     icon={Database}
-                    label="Knoten gesamt"
+                    label={t('totalNodes')}
                     value={health.metrics.totalNodes}
                   />
                   <MetricCard
                     icon={GitBranch}
-                    label="Beziehungen"
+                    label={t('relationships')}
                     value={health.metrics.totalRelationships}
                   />
                   <MetricCard
                     icon={AlertCircle}
-                    label="Verwaiste Knoten"
+                    label={t('orphanedNodes')}
                     value={health.metrics.orphanCount}
                     variant={health.metrics.orphanCount > 100 ? 'warning' : 'default'}
                   />
                   <MetricCard
                     icon={Copy}
-                    label="Duplikate erkannt"
+                    label={t('duplicatesDetected')}
                     value={health.metrics.duplicatesDetected}
                     variant={health.metrics.duplicatesDetected > 0 ? 'warning' : 'success'}
                   />
                   <MetricCard
                     icon={GitMerge}
-                    label="Merges (24h)"
+                    label={t('merges24h')}
                     value={health.metrics.mergesExecuted24h}
                   />
                   <MetricCard
                     icon={Trash2}
-                    label="Löschungen (24h)"
+                    label={t('deletions24h')}
                     value={health.metrics.deletions24h}
                   />
                 </div>
@@ -268,28 +272,28 @@ export default function GearGraphStatusPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Zeitstempel</CardTitle>
+                <CardTitle>{t('timestamps')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
                 {health.lastHygieneRun && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Letzter Hygiene-Lauf</p>
+                    <p className="text-sm text-muted-foreground">{t('lastHygieneRun')}</p>
                     <p className="font-medium">{formatDateTime(health.lastHygieneRun)}</p>
                     <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastHygieneRun)}</p>
                   </div>
                 )}
                 {health.lastDeduplicationRun && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Letzter Deduplizierungs-Lauf</p>
+                    <p className="text-sm text-muted-foreground">{t('lastDeduplicationRun')}</p>
                     <p className="font-medium">{formatDateTime(health.lastDeduplicationRun)}</p>
                     <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastDeduplicationRun)}</p>
                   </div>
                 )}
                 {health.timestamp && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Daten-Zeitstempel</p>
+                    <p className="text-sm text-muted-foreground">{t('dataTimestamp')}</p>
                     <p className="font-medium">{formatDateTime(health.timestamp)}</p>
                   </div>
                 )}
@@ -305,36 +309,36 @@ export default function GearGraphStatusPage() {
       ) && (
         <Card>
           <CardHeader>
-            <CardTitle>Zusätzliche Statistiken</CardTitle>
-            <CardDescription>Aus dem /stats Endpoint</CardDescription>
+            <CardTitle>{t('additionalStats')}</CardTitle>
+            <CardDescription>{t('fromStatsEndpoint')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
               {stats.nodes !== undefined && (
                 <Badge variant="outline" className="text-base py-1 px-3">
                   <Database className="h-4 w-4 mr-2" />
-                  {stats.nodes.toLocaleString('de-DE')} Knoten
+                  {stats.nodes.toLocaleString()} {t('nodes')}
                 </Badge>
               )}
               {stats.edges !== undefined && (
                 <Badge variant="outline" className="text-base py-1 px-3">
                   <GitBranch className="h-4 w-4 mr-2" />
-                  {stats.edges.toLocaleString('de-DE')} Kanten
+                  {stats.edges.toLocaleString()} {t('edges')}
                 </Badge>
               )}
               {stats.categories !== undefined && (
                 <Badge variant="outline" className="text-base py-1 px-3">
-                  {stats.categories.toLocaleString('de-DE')} Kategorien
+                  {stats.categories.toLocaleString()} {t('categories')}
                 </Badge>
               )}
               {stats.brands !== undefined && (
                 <Badge variant="outline" className="text-base py-1 px-3">
-                  {stats.brands.toLocaleString('de-DE')} Marken
+                  {stats.brands.toLocaleString()} {t('brands')}
                 </Badge>
               )}
               {stats.products !== undefined && (
                 <Badge variant="outline" className="text-base py-1 px-3">
-                  {stats.products.toLocaleString('de-DE')} Produkte
+                  {stats.products.toLocaleString()} {t('products')}
                 </Badge>
               )}
             </div>
@@ -348,7 +352,7 @@ export default function GearGraphStatusPage() {
             <div className="flex items-center gap-3 text-yellow-600">
               <AlertTriangle className="h-5 w-5" />
               <div>
-                <p className="font-medium">Stats-Endpoint nicht erreichbar</p>
+                <p className="font-medium">{t('statsEndpointUnavailable')}</p>
                 <p className="text-sm text-muted-foreground">{statsError}</p>
               </div>
             </div>

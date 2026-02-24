@@ -9,6 +9,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -72,16 +73,16 @@ interface MissingBrandsTableProps {
 // Helpers
 // =============================================================================
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, t: (key: string) => string) {
   switch (status) {
     case 'pending':
-      return <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Pending</Badge>;
+      return <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('status.pending')}</Badge>;
     case 'added_to_catalog':
-      return <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Added</Badge>;
+      return <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('status.added')}</Badge>;
     case 'rejected':
-      return <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Rejected</Badge>;
+      return <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t('status.rejected')}</Badge>;
     case 'merged':
-      return <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Merged</Badge>;
+      return <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{t('status.merged')}</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -114,15 +115,16 @@ export function MissingBrandsTable({
   onUpdateStatus,
   isUpdatingStatus,
 }: MissingBrandsTableProps) {
+  const t = useTranslations('MissingBrands');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
     const success = await onUpdateStatus(id, status);
     if (success) {
-      toast.success(`Brand status updated to ${status}`);
+      toast.success(t('statusUpdated', { status }));
     } else {
-      toast.error('Failed to update status');
+      toast.error(t('statusUpdateFailed'));
     }
     setUpdatingId(null);
   };
@@ -135,7 +137,7 @@ export function MissingBrandsTable({
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search brands..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-64 pl-8"
@@ -146,11 +148,11 @@ export function MissingBrandsTable({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="added_to_catalog">Added</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="merged">Merged</SelectItem>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">{t('status.pending')}</SelectItem>
+              <SelectItem value="added_to_catalog">{t('status.added')}</SelectItem>
+              <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
+              <SelectItem value="merged">{t('status.merged')}</SelectItem>
+              <SelectItem value="all">{t('status.all')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -162,7 +164,7 @@ export function MissingBrandsTable({
       {/* Error state */}
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          <p className="font-medium">Failed to load missing brands</p>
+          <p className="font-medium">{t('loadFailed')}</p>
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -172,12 +174,12 @@ export function MissingBrandsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Brand Name</TableHead>
-              <TableHead className="text-center">Occurrences</TableHead>
-              <TableHead>Countries</TableHead>
-              <TableHead>First Seen</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('columns.brandName')}</TableHead>
+              <TableHead className="text-center">{t('columns.occurrences')}</TableHead>
+              <TableHead>{t('columns.countries')}</TableHead>
+              <TableHead>{t('columns.firstSeen')}</TableHead>
+              <TableHead>{t('columns.status')}</TableHead>
+              <TableHead className="text-right">{t('columns.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -195,7 +197,7 @@ export function MissingBrandsTable({
             ) : brands.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No missing brands found
+                  {t('noBrandsFound')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -230,7 +232,7 @@ export function MissingBrandsTable({
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(brand.firstSeenAt)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(brand.status)}</TableCell>
+                  <TableCell>{getStatusBadge(brand.status, t)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -252,27 +254,27 @@ export function MissingBrandsTable({
                           disabled={brand.status === 'added_to_catalog'}
                         >
                           <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                          Mark as Added
+                          {t('markAsAdded')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleUpdateStatus(brand.id, 'merged')}
                           disabled={brand.status === 'merged'}
                         >
                           <Merge className="mr-2 h-4 w-4 text-blue-500" />
-                          Mark as Merged
+                          {t('markAsMerged')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleUpdateStatus(brand.id, 'rejected')}
                           disabled={brand.status === 'rejected'}
                         >
                           <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                          Reject
+                          {t('reject')}
                         </DropdownMenuItem>
                         {brand.status !== 'pending' && (
                           <DropdownMenuItem
                             onClick={() => handleUpdateStatus(brand.id, 'pending')}
                           >
-                            Reset to Pending
+                            {t('resetToPending')}
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -289,7 +291,7 @@ export function MissingBrandsTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('pageOf', { page, total: totalPages })}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -299,7 +301,7 @@ export function MissingBrandsTable({
               disabled={page <= 1 || isLoading}
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              {t('previous')}
             </Button>
             <Button
               variant="outline"
@@ -307,7 +309,7 @@ export function MissingBrandsTable({
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages || isLoading}
             >
-              Next
+              {t('next')}
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

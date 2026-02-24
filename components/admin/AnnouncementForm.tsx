@@ -109,7 +109,7 @@ export function AnnouncementForm({
             <FormItem>
               <FormLabel>{t('fields.title')}</FormLabel>
               <FormControl>
-                <Input placeholder="Important Update" {...field} />
+                <Input placeholder={t('placeholderTitle')} {...field} />
               </FormControl>
               <FormDescription>{t('fields.titleHelp')}</FormDescription>
               <FormMessage />
@@ -127,7 +127,7 @@ export function AnnouncementForm({
               <FormLabel>{t('fields.message')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter the announcement message..."
+                  placeholder={t('placeholderMessage')}
                   className="min-h-[100px]"
                   {...field}
                 />
@@ -148,7 +148,7 @@ export function AnnouncementForm({
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select announcement type" />
+                    <SelectValue placeholder={t('placeholderType')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -178,7 +178,7 @@ export function AnnouncementForm({
                 <FormLabel>{t('fields.linkUrl')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="https://..."
+                    placeholder={t('placeholderLinkUrl')}
                     value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value || null)}
                   />
@@ -197,7 +197,7 @@ export function AnnouncementForm({
                 <FormLabel>{t('fields.linkText')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Learn more"
+                    placeholder={t('placeholderLinkText')}
                     value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value || null)}
                   />
@@ -300,7 +300,7 @@ export function AnnouncementForm({
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, Edit, Trash2, Plus, ChevronRight as IndentIcon, ChevronLeft as OutdentIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,7 @@ function CategoryNode({
   isLast,
 }: CategoryNodeProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTranslations('Admin.categories');
   const hasChildren = childCategories.length > 0;
   const hasIssue = issueIds.has(category.id);
 
@@ -121,7 +123,7 @@ function CategoryNode({
               <p className="truncate font-medium">{category.label}</p>
               {hasIssue && highlightIssues && (
                 <Badge variant="destructive" className="text-xs">
-                  Issue
+                  {t('issue')}
                 </Badge>
               )}
             </div>
@@ -141,7 +143,7 @@ function CategoryNode({
               className="h-8 w-8"
               onClick={() => onMoveUp(category)}
               disabled={isFirst}
-              title="Move up"
+              title={t('moveUp')}
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
@@ -153,7 +155,7 @@ function CategoryNode({
               className="h-8 w-8"
               onClick={() => onMoveDown(category)}
               disabled={isLast}
-              title="Move down"
+              title={t('moveDown')}
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
@@ -165,7 +167,7 @@ function CategoryNode({
               className="h-8 w-8"
               onClick={() => onIndent(category)}
               disabled={isFirst || category.level === 3}
-              title="Indent (make child of previous sibling)"
+              title={t('indent')}
             >
               <IndentIcon className="h-4 w-4" />
             </Button>
@@ -177,7 +179,7 @@ function CategoryNode({
               className="h-8 w-8"
               onClick={() => onOutdent(category)}
               disabled={category.level === 1}
-              title="Outdent (move up a level)"
+              title={t('outdent')}
             >
               <OutdentIcon className="h-4 w-4" />
             </Button>
@@ -188,7 +190,7 @@ function CategoryNode({
               size="icon"
               className="h-8 w-8"
               onClick={() => onEdit(category)}
-              title="Edit"
+              title={t('edit')}
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -199,7 +201,7 @@ function CategoryNode({
               size="icon"
               className="h-8 w-8 text-destructive hover:text-destructive"
               onClick={() => onDelete(category)}
-              title="Delete"
+              title={t('delete')}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -211,7 +213,7 @@ function CategoryNode({
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onAddChild(category)}
-                title={`Add ${category.level === 1 ? 'subcategory' : 'product type'}`}
+                title={category.level === 1 ? t('addSubcategory') : t('addProductType')}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -269,13 +271,14 @@ export function CategoryTree({
   highlightIssues,
   issueIds,
 }: CategoryTreeProps) {
+  const t = useTranslations('Admin.categories');
   // Get level 1 categories (roots)
   const level1Categories = categories.filter((c) => c.level === 1);
 
   if (level1Categories.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
-        <p className="text-muted-foreground">No categories found</p>
+        <p className="text-muted-foreground">{t('noCategoriesFound')}</p>
       </div>
     );
   }

@@ -120,7 +120,7 @@ export function LoadoutFormDialog({
             <Input
               id="name"
               {...register('name')}
-              placeholder="e.g., Pacific Crest Trail 2023"
+              placeholder={t('namePlaceholder')}
               disabled={isSubmitting}
             />
             {errors.name && (

@@ -784,7 +784,8 @@
     "canBeTradedDescription": "Offen für den Tausch dieses Artikels",
     "notesLabel": "Notizen",
     "notesPlaceholder": "Zusätzliche Notizen zu diesem Artikel hinzufügen...",
-    "notesDescription": "Persönliche Notizen, Modifikationen, Erfahrungen usw."
+    "notesDescription": "Persönliche Notizen, Modifikationen, Erfahrungen usw.",
+    "placeholderModelNumber": "z.B. HOR2P-2021"
   },
   "ManufacturerPrice": {
     "title": "Herstellerpreis",
@@ -2700,7 +2701,7 @@
     "pageDescription": "Entdecke professionell zusammengestellte Ausrüstungspakete von verifizierten Outdoor-Händlern. Spare mit Paketpreisen und füge Artikel direkt zur Wunschliste hinzu.",
     "badge": "Experten-Auswahl",
     "featuredSection": "Empfohlene Loadouts",
-    "allLoadouts": "Alle Loadouts durchstöbern",
+    "allLoadouts": "Alle Packlisten",
     "pagination": "Seite {current} von {total}",
     "featured": "Empfohlen",
     "bundlePrice": "Paketpreis",
@@ -2829,7 +2830,21 @@
         "itemsRequired": "Füge mindestens einen Artikel zu deinem Loadout hinzu",
         "discountRange": "Rabatt muss zwischen 0 und 100 liegen"
       }
-    }
+    },
+    "updated": "Aktualisiert {date}",
+    "views": "Aufrufe",
+    "wishlistAdds": "Wunschliste",
+    "actions": "Aktionen",
+    "view": "Ansehen",
+    "edit": "Bearbeiten",
+    "submitForReview": "Zur Überprüfung einreichen",
+    "publish": "Veröffentlichen",
+    "archive": "Archivieren",
+    "restoreToDraft": "Als Entwurf wiederherstellen",
+    "delete": "Löschen",
+    "deleteTitle": "Packliste löschen?",
+    "deleteDescription": "Dies wird \"{name}\" dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen"
   },
   "LoadoutComparison": {
     "title": "Loadouts vergleichen",
@@ -2926,8 +2941,11 @@
         "phone": "Telefonnummer",
         "latitude": "Breitengrad",
         "longitude": "Längengrad"
-      }
-    }
+      },
+      "cancel": "Abbrechen"
+    },
+    "cancel": "Abbrechen",
+    "delete": "Löschen"
   },
   "UserOffers": {
     "pageTitle": "Angebote",
@@ -3165,7 +3183,8 @@
     "goToLogin": "Zum Login",
     "accessDenied": "Zugriff verweigert",
     "accessDeniedDesc": "Du hast keine Berechtigung, auf diese Seite zuzugreifen.",
-    "goHome": "Zur Startseite"
+    "goHome": "Zur Startseite",
+    "error": "Fehler"
   },
   "AdminResellers": {
     "pageTitle": "Händler-Verwaltung",
@@ -3240,8 +3259,27 @@
       "cancel": "Abbrechen",
       "create": "Händler erstellen",
       "update": "Händler aktualisieren",
-      "saving": "Speichern..."
-    }
+      "saving": "Speichern...",
+      "placeholderName": "Globetrotter",
+      "placeholderWebsite": "https://www.globetrotter.de",
+      "placeholderLogo": "https://...",
+      "placeholderSearchUrl": "https://shop.com/search?q={query}",
+      "placeholderAddress": "Musterstraße 1",
+      "placeholderCity": "München",
+      "placeholderPostalCode": "80331",
+      "placeholderCountry": "DE",
+      "typeLocal": "Lokaler Shop",
+      "typeOnline": "Online-Shop",
+      "typeChain": "Handelskette",
+      "statusStandard": "Standard",
+      "statusVip": "VIP",
+      "statusPartner": "Partner",
+      "statusSuspended": "Gesperrt"
+    },
+    "errorFallback": "Fehler",
+    "statusStandard": "Standard",
+    "statusVip": "VIP",
+    "statusPartner": "Partner"
   },
   "MerchantAnalytics": {
     "pageTitle": "Analysen",
@@ -3514,7 +3552,8 @@
           "sendFailed": "Einladung konnte nicht gesendet werden",
           "genericError": "Etwas ist schiefgelaufen"
         }
-      }
+      },
+      "namePlaceholder": "z.B. Pacific Crest Trail 2023"
     },
     "compare": {
       "pageTitle": "Packlisten vergleichen",
@@ -3625,6 +3664,9 @@
     "search": {
       "placeholder": "VIPs suchen...",
       "clearSearch": "Suche löschen"
+    },
+    "loadoutForm": {
+      "namePlaceholder": "z.B. Pacific Crest Trail 2023"
     }
   },
   "Wishlist": {
@@ -3824,7 +3866,21 @@
       "autoGeneratesSlug": "Generiert automatisch den Slug",
       "slugLabel": "Slug (Eindeutige ID)",
       "englishLabel": "Englische Bezeichnung",
-      "germanLabel": "Deutsche Bezeichnung"
+      "germanLabel": "Deutsche Bezeichnung",
+      "placeholderLabel": "z.B. Rucksäcke",
+      "placeholderSlug": "z.B. rucksaecke",
+      "placeholderEnLabel": "z.B. Backpacks",
+      "placeholderDeLabel": "z.B. Rucksäcke",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "indent": "Einrücken (als Kind des vorherigen Elements)",
+      "outdent": "Ausrücken (eine Ebene nach oben)",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "addSubcategory": "Unterkategorie hinzufügen",
+      "addProductType": "Produkttyp hinzufügen",
+      "noCategoriesFound": "Keine Kategorien gefunden",
+      "issue": "Problem"
     },
     "wiki": {
       "pageTitle": "Wiki-Verwaltung",
@@ -4704,7 +4760,21 @@
       "empty": "Noch keine Ankündigungen erstellt",
       "saved": "Ankündigung erfolgreich gespeichert",
       "deleted": "Ankündigung erfolgreich gelöscht",
-      "error": "Ankündigung konnte nicht gespeichert werden"
+      "error": "Ankündigung konnte nicht gespeichert werden",
+      "tableType": "Typ",
+      "tableTitle": "Titel",
+      "tableMessage": "Nachricht",
+      "tableStatus": "Status",
+      "tableVisibility": "Sichtbarkeit",
+      "tablePriority": "Priorität",
+      "tableActions": "Aktionen",
+      "emptyDescription": "Erstellen Sie Ihre erste Ankündigung, um Nutzer auf der Community-Seite zu informieren.",
+      "cancel": "Abbrechen",
+      "placeholderTitle": "Wichtiges Update",
+      "placeholderMessage": "Ankündigungstext eingeben...",
+      "placeholderType": "Ankündigungstyp wählen",
+      "placeholderLinkUrl": "https://...",
+      "placeholderLinkText": "Mehr erfahren"
     }
   },
   "Banner": {
@@ -4739,7 +4809,19 @@
       "empty": "Noch keine Banner erstellt",
       "saved": "Banner erfolgreich gespeichert",
       "deleted": "Banner erfolgreich gelöscht",
-      "error": "Banner konnte nicht gespeichert werden"
+      "error": "Banner konnte nicht gespeichert werden",
+      "tablePreview": "Vorschau",
+      "tableHeadline": "Überschrift",
+      "tableStatus": "Status",
+      "tableVisibility": "Sichtbarkeit",
+      "tableOrder": "Reihenfolge",
+      "tableActions": "Aktionen",
+      "emptyDescription": "Erstellen Sie Ihr erstes Banner, um Inhalte auf der Community-Seite zu bewerben.",
+      "cancel": "Abbrechen",
+      "upload": "Hochladen",
+      "placeholderCtaText": "Entdecke unsere neueste Ausrüstung!",
+      "placeholderButtonText": "Jetzt einkaufen",
+      "placeholderUrl": "https://..."
     },
     "carousel": {
       "previous": "Vorheriges Banner",
@@ -5045,5 +5127,99 @@
     "sourceInitials": "Initialen",
     "sourceProvider": "Anbieter-Foto verwenden",
     "uploadPhoto": "Foto hochladen"
+  },
+  "GearGraphStatus": {
+    "pageTitle": "GearGraph Status",
+    "serverLabel": "Server: geargraph.gearshack.app",
+    "refresh": "Aktualisieren",
+    "lastUpdated": "Zuletzt aktualisiert: {time}",
+    "status": {
+      "loading": "Laden...",
+      "offline": "Offline",
+      "online": "Online",
+      "degraded": "Eingeschränkt",
+      "error": "Fehler",
+      "unknown": "Unbekannt"
+    },
+    "connectionError": "Verbindungsfehler",
+    "warnings": "Warnungen",
+    "memgraph": "Memgraph",
+    "connected": "Verbunden",
+    "disconnected": "Getrennt",
+    "runningWorkflows": "Laufende Workflows",
+    "pendingApprovals": "Ausstehende Genehmigungen",
+    "lastHygieneRun": "Letzter Hygiene-Lauf",
+    "graphMetrics": "Graph-Metriken",
+    "graphMetricsDescription": "Statistiken der Knowledge-Graph-Datenbank",
+    "totalNodes": "Knoten gesamt",
+    "relationships": "Beziehungen",
+    "orphanedNodes": "Verwaiste Knoten",
+    "duplicatesDetected": "Duplikate erkannt",
+    "merges24h": "Merges (24h)",
+    "deletions24h": "Löschungen (24h)",
+    "timestamps": "Zeitstempel",
+    "lastDeduplicationRun": "Letzter Deduplizierungs-Lauf",
+    "dataTimestamp": "Daten-Zeitstempel",
+    "additionalStats": "Zusätzliche Statistiken",
+    "fromStatsEndpoint": "Aus dem /stats Endpoint",
+    "nodes": "Knoten",
+    "edges": "Kanten",
+    "categories": "Kategorien",
+    "brands": "Marken",
+    "products": "Produkte",
+    "statsEndpointUnavailable": "Stats-Endpoint nicht erreichbar"
+  },
+  "GearGraphIngestion": {
+    "pageTitle": "GearGraph Ingestion",
+    "pageDescription": "URLs zur Verarbeitung und Aufnahme in den Knowledge-Graphen einreichen",
+    "wipTitle": "In Entwicklung",
+    "wipDescription": "Diese Oberfläche befindet sich in Entwicklung. Die URL-Übermittlung wird in einem zukünftigen Update mit der GearGraph-Ingestion-Pipeline verbunden.",
+    "submitTitle": "URL zur Aufnahme einreichen",
+    "submitDescription": "Geben Sie eine URL zu einer Produktseite, einem Review oder gear-relevanten Inhalten ein, um sie der GearGraph-Wissensdatenbank hinzuzufügen.",
+    "urlPlaceholder": "https://example.com/product/...",
+    "submit": "Einreichen",
+    "submittedUrls": "Eingereichte URLs",
+    "submittedUrlsDescription": "URLs in der Warteschlange (Demo - noch nicht mit Backend verbunden)",
+    "queued": "In Warteschlange",
+    "supportedUrlTypes": "Unterstützte URL-Typen",
+    "urlTypes": {
+      "productPages": "Produktseiten von Outdoor-Ausrüstungshändlern",
+      "manufacturerSpecs": "Hersteller-Produktspezifikationen",
+      "gearReviews": "Gear-Review-Artikel und -Videos",
+      "trailReports": "Trail-Berichte mit Ausrüstungsempfehlungen",
+      "communityForums": "Community-Forum-Diskussionen über Ausrüstung"
+    }
+  },
+  "MissingBrands": {
+    "searchPlaceholder": "Marken suchen...",
+    "statusPlaceholder": "Status",
+    "brandsFound": "{count, plural, =1 {1 Marke} other {# Marken}} gefunden",
+    "loadFailed": "Fehlende Marken konnten nicht geladen werden",
+    "statusUpdated": "Markenstatus auf {status} aktualisiert",
+    "statusUpdateFailed": "Status konnte nicht aktualisiert werden",
+    "status": {
+      "pending": "Ausstehend",
+      "added": "Hinzugefügt",
+      "rejected": "Abgelehnt",
+      "merged": "Zusammengeführt",
+      "all": "Alle"
+    },
+    "columns": {
+      "brandName": "Markenname",
+      "occurrences": "Vorkommen",
+      "countries": "Länder",
+      "firstSeen": "Erstmals gesehen",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "sourceUrls": "{count, plural, =1 {1 Quell-URL} other {# Quell-URLs}}",
+    "noBrandsFound": "Keine fehlenden Marken gefunden",
+    "pageOf": "Seite {page} von {total}",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "markAsAdded": "Als hinzugefügt markieren",
+    "markAsMerged": "Als zusammengeführt markieren",
+    "reject": "Ablehnen",
+    "resetToPending": "Zurücksetzen auf Ausstehend"
   }
 }

@@ -85,18 +85,8 @@ const COMMON_COUNTRIES = [
   'DE', 'AT', 'CH', 'US', 'GB', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ',
 ];
 
-const RESELLER_TYPES: { value: ResellerType; label: string }[] = [
-  { value: 'local', label: 'Lokaler Shop' },
-  { value: 'online', label: 'Online-Shop' },
-  { value: 'chain', label: 'Handelskette' },
-];
-
-const RESELLER_STATUSES: { value: ResellerStatus; label: string }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'vip', label: 'VIP' },
-  { value: 'partner', label: 'Partner' },
-  { value: 'suspended', label: 'Gesperrt' },
-];
+const RESELLER_TYPE_KEYS: ResellerType[] = ['local', 'online', 'chain'];
+const RESELLER_STATUS_KEYS: ResellerStatus[] = ['standard', 'vip', 'partner', 'suspended'];
 
 // =============================================================================
 // Component
@@ -176,7 +166,7 @@ export function ResellerForm({
               <FormItem>
                 <FormLabel>{t('name')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Globetrotter" {...field} />
+                  <Input placeholder={t('placeholderName')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -190,7 +180,7 @@ export function ResellerForm({
               <FormItem>
                 <FormLabel>{t('websiteUrl')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://www.globetrotter.de" {...field} />
+                  <Input placeholder={t('placeholderWebsite')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -204,7 +194,7 @@ export function ResellerForm({
               <FormItem>
                 <FormLabel>{t('logoUrl')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://..." {...field} />
+                  <Input placeholder={t('placeholderLogo')} {...field} />
                 </FormControl>
                 <FormDescription>{t('logoUrlHint')}</FormDescription>
                 <FormMessage />
@@ -219,7 +209,7 @@ export function ResellerForm({
               <FormItem>
                 <FormLabel>{t('searchUrlTemplate')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://shop.com/search?q={query}" {...field} />
+                  <Input placeholder={t('placeholderSearchUrl')} {...field} />
                 </FormControl>
                 <FormDescription>{t('searchUrlTemplateHint')}</FormDescription>
                 <FormMessage />
@@ -243,9 +233,9 @@ export function ResellerForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {RESELLER_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                    {RESELLER_TYPE_KEYS.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {t(`type${type.charAt(0).toUpperCase()}${type.slice(1)}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -268,9 +258,9 @@ export function ResellerForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {RESELLER_STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
+                    {RESELLER_STATUS_KEYS.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {t(`status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -340,7 +330,7 @@ export function ResellerForm({
                 <FormItem>
                   <FormLabel>{t('addressLine1')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Musterstraße 1" {...field} />
+                    <Input placeholder={t('placeholderAddress')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -354,7 +344,7 @@ export function ResellerForm({
                 <FormItem>
                   <FormLabel>{t('city')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="München" {...field} />
+                    <Input placeholder={t('placeholderCity')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -368,7 +358,7 @@ export function ResellerForm({
                 <FormItem>
                   <FormLabel>{t('postalCode')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="80331" {...field} />
+                    <Input placeholder={t('placeholderPostalCode')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -382,7 +372,7 @@ export function ResellerForm({
                 <FormItem>
                   <FormLabel>{t('country')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="DE" {...field} />
+                    <Input placeholder={t('placeholderCountry')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

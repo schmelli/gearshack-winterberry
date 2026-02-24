@@ -86,7 +86,7 @@ export function BannerList({
         <div className="mb-4 text-4xl">🎬</div>
         <h3 className="mb-2 text-lg font-semibold">{t('empty')}</h3>
         <p className="text-sm text-muted-foreground">
-          Create your first banner to promote content on the community page.
+          {t('emptyDescription')}
         </p>
       </div>
     );
@@ -97,12 +97,12 @@ export function BannerList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Preview</TableHead>
-            <TableHead>Headline</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Visibility</TableHead>
-            <TableHead className="w-[80px]">Order</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
+            <TableHead className="w-[100px]">{t('tablePreview')}</TableHead>
+            <TableHead>{t('tableHeadline')}</TableHead>
+            <TableHead>{t('tableStatus')}</TableHead>
+            <TableHead>{t('tableVisibility')}</TableHead>
+            <TableHead className="w-[80px]">{t('tableOrder')}</TableHead>
+            <TableHead className="w-[100px]">{t('tableActions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -191,7 +191,7 @@ export function BannerList({
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => onDelete(banner.id)}
                           disabled={isDeleting}
