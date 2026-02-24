@@ -10,9 +10,9 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   fetchWishlistItems,
   addWishlistItem,
@@ -23,6 +23,8 @@ import {
   DuplicateError,
 } from '@/lib/supabase/wishlist-queries';
 import { gearItemFromDb } from '@/lib/supabase/transformers';
+import { createClient } from '@/lib/supabase/client';
+import { triggerPriceDiscovery } from '@/lib/geargraph/price-discovery-client';
 import type {
   WishlistItem,
   UseWishlistReturn,
@@ -66,6 +68,7 @@ function getInitialSortOption(): WishlistSortOption {
 
 export function useWishlist(): UseWishlistReturn {
   const t = useTranslations('Wishlist.actions');
+  const locale = useLocale();
 
   // ---------------------------------------------------------------------------
   // State: Wishlist Items
@@ -151,6 +154,59 @@ export function useWishlist(): UseWishlistReturn {
       isCancelled = true;
     };
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Auto-Trigger Price Discovery for Items Without Cached Prices (Feature 049)
+  // ---------------------------------------------------------------------------
+  const hasTriggeredPriceCheck = useRef(false);
+
+  useEffect(() => {
+    // Only run once after the initial load completes with items present
+    if (isLoading || wishlistItems.length === 0) return;
+    if (hasTriggeredPriceCheck.current) return;
+    hasTriggeredPriceCheck.current = true;
+
+    // Map locale to market settings (Gearshack targets European market)
+    const currency = locale === 'de' ? 'EUR' : 'USD';
+    const country = locale === 'de' ? 'DE' : 'US';
+
+    const triggerMissingPrices = async () => {
+      try {
+        const supabase = createClient();
+        const candidateIds = wishlistItems.map((item) => item.id);
+
+        // Find items that already have non-expired price data
+        const { data: existingPrices } = await supabase
+          .from('reseller_price_results')
+          .select('gear_item_id')
+          .in('gear_item_id', candidateIds)
+          .gt('expires_at', new Date().toISOString());
+
+        const idsWithPrices = new Set((existingPrices ?? []).map((r) => r.gear_item_id));
+        const itemsNeedingPrices = wishlistItems.filter((item) => !idsWithPrices.has(item.id));
+
+        // Trigger price discovery for up to 5 items, staggered 2 s apart
+        const toTrigger = itemsNeedingPrices.slice(0, 5);
+        for (let i = 0; i < toTrigger.length; i++) {
+          if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+          const item = toTrigger[i];
+          void triggerPriceDiscovery({
+            gearItemId: item.id,
+            brand: item.brand ?? null,
+            name: item.name,
+            productUrl: item.productUrl ?? null,
+            locale,
+            currency,
+            country,
+          });
+        }
+      } catch {
+        // Fire-and-forget — silently ignore all errors
+      }
+    };
+
+    void triggerMissingPrices();
+  }, [isLoading, wishlistItems, locale]);
 
   // ---------------------------------------------------------------------------
   // CRUD Actions
