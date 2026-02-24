@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   RefreshCw,
   XCircle,
@@ -45,13 +45,12 @@ function StatusBadge({
   loading,
   healthError,
   health,
-  t,
 }: {
   loading: boolean;
   healthError: string | null;
   health: HealthResponse | null;
-  t: (key: string) => string;
 }) {
+  const t = useTranslations('GearGraphStatus');
   if (loading) return <Badge variant="secondary">{t('status.loading')}</Badge>;
   if (healthError) return <Badge variant="destructive">{t('status.offline')}</Badge>;
   if (health?.status === 'ok' || health?.status === 'healthy') {
@@ -101,6 +100,12 @@ function MetricCard({
 }
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+const GEARGRAPH_SERVER_URL = 'geargraph.gearshack.app';
+
+// =============================================================================
 // Page Component
 // =============================================================================
 
@@ -108,6 +113,7 @@ export default function GearGraphStatusPage() {
   const { health, stats, healthError, statsError, loading, lastUpdated, fetchData } =
     useGearGraphStatus();
   const t = useTranslations('GearGraphStatus');
+  const locale = useLocale();
 
   return (
     <div className="space-y-6">
@@ -116,11 +122,11 @@ export default function GearGraphStatusPage() {
         <div>
           <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground">
-            {t('serverLabel')}
+            {t('serverLabel', { url: GEARGRAPH_SERVER_URL })}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <StatusBadge loading={loading} healthError={healthError} health={health} t={t} />
+          <StatusBadge loading={loading} healthError={healthError} health={health} />
           <Button
             variant="outline"
             size="sm"
@@ -211,8 +217,8 @@ export default function GearGraphStatusPage() {
             <MetricCard
               icon={Clock}
               label={t('lastHygieneRun')}
-              value={health.lastHygieneRun ? formatRelativeTime(health.lastHygieneRun) : '\u2013'}
-              subtext={health.lastHygieneRun ? formatDateTime(health.lastHygieneRun) : undefined}
+              value={health.lastHygieneRun ? formatRelativeTime(health.lastHygieneRun, locale) : '\u2013'}
+              subtext={health.lastHygieneRun ? formatDateTime(health.lastHygieneRun, locale) : undefined}
             />
           </div>
 
@@ -280,21 +286,21 @@ export default function GearGraphStatusPage() {
                 {health.lastHygieneRun && (
                   <div>
                     <p className="text-sm text-muted-foreground">{t('lastHygieneRun')}</p>
-                    <p className="font-medium">{formatDateTime(health.lastHygieneRun)}</p>
-                    <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastHygieneRun)}</p>
+                    <p className="font-medium">{formatDateTime(health.lastHygieneRun, locale)}</p>
+                    <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastHygieneRun, locale)}</p>
                   </div>
                 )}
                 {health.lastDeduplicationRun && (
                   <div>
                     <p className="text-sm text-muted-foreground">{t('lastDeduplicationRun')}</p>
-                    <p className="font-medium">{formatDateTime(health.lastDeduplicationRun)}</p>
-                    <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastDeduplicationRun)}</p>
+                    <p className="font-medium">{formatDateTime(health.lastDeduplicationRun, locale)}</p>
+                    <p className="text-xs text-muted-foreground">{formatRelativeTime(health.lastDeduplicationRun, locale)}</p>
                   </div>
                 )}
                 {health.timestamp && (
                   <div>
                     <p className="text-sm text-muted-foreground">{t('dataTimestamp')}</p>
-                    <p className="font-medium">{formatDateTime(health.timestamp)}</p>
+                    <p className="font-medium">{formatDateTime(health.timestamp, locale)}</p>
                   </div>
                 )}
               </div>

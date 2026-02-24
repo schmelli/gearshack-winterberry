@@ -3664,9 +3664,6 @@
     "search": {
       "placeholder": "VIPs suchen...",
       "clearSearch": "Suche löschen"
-    },
-    "loadoutForm": {
-      "namePlaceholder": "z.B. Pacific Crest Trail 2023"
     }
   },
   "Wishlist": {
@@ -5130,7 +5127,7 @@
   },
   "GearGraphStatus": {
     "pageTitle": "GearGraph Status",
-    "serverLabel": "Server: geargraph.gearshack.app",
+    "serverLabel": "Server: {url}",
     "refresh": "Aktualisieren",
     "lastUpdated": "Zuletzt aktualisiert: {time}",
     "status": {

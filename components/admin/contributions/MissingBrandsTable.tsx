@@ -69,25 +69,6 @@ interface MissingBrandsTableProps {
   isUpdatingStatus: boolean;
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function getStatusBadge(status: string, t: (key: string) => string) {
-  switch (status) {
-    case 'pending':
-      return <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('status.pending')}</Badge>;
-    case 'added_to_catalog':
-      return <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('status.added')}</Badge>;
-    case 'rejected':
-      return <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t('status.rejected')}</Badge>;
-    case 'merged':
-      return <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{t('status.merged')}</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
-
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('de-DE', {
     year: 'numeric',
@@ -118,11 +99,33 @@ export function MissingBrandsTable({
   const t = useTranslations('MissingBrands');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('status.pending')}</Badge>;
+      case 'added_to_catalog':
+        return <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('status.added')}</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t('status.rejected')}</Badge>;
+      case 'merged':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{t('status.merged')}</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    added_to_catalog: t('status.added'),
+    rejected: t('status.rejected'),
+    merged: t('status.merged'),
+    pending: t('status.pending'),
+  };
+
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
     const success = await onUpdateStatus(id, status);
     if (success) {
-      toast.success(t('statusUpdated', { status }));
+      toast.success(t('statusUpdated', { status: STATUS_LABELS[status] ?? status }));
     } else {
       toast.error(t('statusUpdateFailed'));
     }
@@ -157,7 +160,7 @@ export function MissingBrandsTable({
           </Select>
         </div>
         <p className="text-sm text-muted-foreground">
-          {total} brand{total !== 1 ? 's' : ''} found
+          {t('brandsFound', { count: total })}
         </p>
       </div>
 
@@ -232,7 +235,7 @@ export function MissingBrandsTable({
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(brand.firstSeenAt)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(brand.status, t)}</TableCell>
+                  <TableCell>{getStatusBadge(brand.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

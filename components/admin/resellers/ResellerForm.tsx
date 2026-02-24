@@ -100,6 +100,19 @@ export function ResellerForm({
 }: ResellerFormProps) {
   const t = useTranslations('AdminResellers.form');
 
+  const RESELLER_TYPE_LABELS: Record<ResellerType, string> = {
+    local: t('typeLocal'),
+    online: t('typeOnline'),
+    chain: t('typeChain'),
+  };
+
+  const RESELLER_STATUS_LABELS: Record<ResellerStatus, string> = {
+    standard: t('statusStandard'),
+    vip: t('statusVip'),
+    partner: t('statusPartner'),
+    suspended: t('statusSuspended'),
+  };
+
   const form = useForm<ResellerFormValues>({
     resolver: zodResolver(resellerFormSchema),
     defaultValues: {
@@ -235,7 +248,7 @@ export function ResellerForm({
                   <SelectContent>
                     {RESELLER_TYPE_KEYS.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {t(`type${type.charAt(0).toUpperCase()}${type.slice(1)}`)}
+                        {RESELLER_TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -260,7 +273,7 @@ export function ResellerForm({
                   <SelectContent>
                     {RESELLER_STATUS_KEYS.map((status) => (
                       <SelectItem key={status} value={status}>
-                        {t(`status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
+                        {RESELLER_STATUS_LABELS[status]}
                       </SelectItem>
                     ))}
                   </SelectContent>

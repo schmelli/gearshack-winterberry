@@ -52,6 +52,7 @@ interface CategoryNodeProps {
   issueIds: Set<string>;
   isFirst: boolean;
   isLast: boolean;
+  t: ReturnType<typeof useTranslations<'Admin.categories'>>;
 }
 
 // =============================================================================
@@ -83,9 +84,9 @@ function CategoryNode({
   issueIds,
   isFirst,
   isLast,
+  t,
 }: CategoryNodeProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const t = useTranslations('Admin.categories');
   const hasChildren = childCategories.length > 0;
   const hasIssue = issueIds.has(category.id);
 
@@ -244,6 +245,7 @@ function CategoryNode({
                     issueIds={issueIds}
                     isFirst={index === 0}
                     isLast={index === childCategories.length - 1}
+                    t={t}
                   />
                 );
               })}
@@ -304,6 +306,7 @@ export function CategoryTree({
             issueIds={issueIds}
             isFirst={index === 0}
             isLast={index === level1Categories.length - 1}
+            t={t}
           />
         );
       })}

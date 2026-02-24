@@ -178,29 +178,31 @@ export function useGearGraphStatus(): UseGearGraphStatusReturn {
 // =============================================================================
 
 /**
- * Format an ISO date string to a relative time string (German locale).
+ * Format an ISO date string to a relative time string using the browser's locale.
  */
-export function formatRelativeTime(isoString: string): string {
+export function formatRelativeTime(isoString: string, locale?: string): string {
   const date = new Date(isoString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'gerade eben';
-  if (diffMins < 60) return `vor ${diffMins} Min.`;
-  if (diffHours < 24) return `vor ${diffHours} Std.`;
-  if (diffDays === 1) return 'gestern';
-  return `vor ${diffDays} Tagen`;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+  if (diffMins < 1) return rtf.format(-diffSecs, 'second');
+  if (diffMins < 60) return rtf.format(-diffMins, 'minute');
+  if (diffHours < 24) return rtf.format(-diffHours, 'hour');
+  return rtf.format(-diffDays, 'day');
 }
 
 /**
- * Format an ISO date string to a localized date/time string (German locale).
+ * Format an ISO date string to a localized date/time string using the browser's locale.
  */
-export function formatDateTime(isoString: string): string {
+export function formatDateTime(isoString: string, locale?: string): string {
   const date = new Date(isoString);
-  return date.toLocaleString('de-DE', {
+  return date.toLocaleString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
