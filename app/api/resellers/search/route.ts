@@ -32,6 +32,36 @@ import type {
 
 const _CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours (reserved for future use)
 
+/**
+ * Hostnames that are never valid as product URLs — these are search engine
+ * redirect or aggregator URLs, not actual retailer product pages.
+ * GearGraph price-discovery sometimes writes Serper item.link (Google Shopping
+ * redirect) into product_url; strip those here so the component falls back to
+ * reseller.websiteUrl instead.
+ */
+const INVALID_PRODUCT_URL_HOSTS = new Set([
+  'google.com',
+  'www.google.com',
+  'google.de',
+  'www.google.de',
+  'bing.com',
+  'www.bing.com',
+  'yahoo.com',
+  'www.yahoo.com',
+  'shopping.google.com',
+]);
+
+function sanitizeProductUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (INVALID_PRODUCT_URL_HOSTS.has(hostname)) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
@@ -212,7 +242,7 @@ export async function GET(request: NextRequest) {
         gearItemId: c.gear_item_id,
         priceAmount: c.price_amount,
         priceCurrency: c.price_currency,
-        productUrl: c.product_url,
+        productUrl: sanitizeProductUrl(c.product_url),
         productName: c.product_name,
         inStock: c.in_stock ?? true,
         fetchedAt: c.fetched_at,
