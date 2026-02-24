@@ -36,6 +36,7 @@ describe('triggerPriceDiscovery', () => {
       productUrl: 'https://durstondesigns.com/x-mid-pro-2',
     });
     expect(options.headers['Authorization']).toBe('Bearer test-key');
+    expect(options.headers['Content-Type']).toBe('application/json');
   });
 
   it('resolves without throwing if fetch fails (fire-and-forget)', async () => {
