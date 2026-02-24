@@ -127,11 +127,20 @@ export const useSupabaseStore = create<SupabaseStore>()(
           if (error) throw error;
           // Fire-and-forget price discovery (non-blocking)
           if (!insertData.manufacturer_price && insertData.name) {
+            // Derive locale from URL path (next-intl always puts locale as first segment)
+            const locale = typeof window !== 'undefined'
+              ? (window.location.pathname.split('/')[1] || 'de')
+              : 'de';
+            // Gearshack targets the European market — default to EUR/DE.
+            // TODO: read preferred_currency / country from user profile once profile store is available.
             void triggerPriceDiscovery({
               gearItemId: id,
               brand: insertData.brand ?? null,
               name: insertData.name,
               productUrl: insertData.product_url ?? null,
+              locale,
+              currency: 'EUR',
+              country: 'DE',
             });
           }
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));

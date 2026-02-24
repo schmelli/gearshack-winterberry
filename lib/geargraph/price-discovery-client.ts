@@ -10,6 +10,12 @@ export interface PriceDiscoveryParams {
   brand: string | null;
   name: string;
   productUrl: string | null;
+  /** BCP-47 locale code, e.g. 'de' or 'en'. Used for localised search queries. */
+  locale?: string;
+  /** ISO 4217 currency code, e.g. 'EUR' or 'USD'. Used as preferred currency for price extraction. */
+  currency?: string;
+  /** ISO 3166-1 alpha-2 country code, e.g. 'DE'. Used to bias reseller search results. */
+  country?: string;
 }
 
 /**

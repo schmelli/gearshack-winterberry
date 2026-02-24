@@ -13,7 +13,7 @@ describe('triggerPriceDiscovery', () => {
     mockFetch.mockClear();
   });
 
-  it('POSTs to /api/price-discovery with correct payload', async () => {
+  it('POSTs to /api/price-discovery with correct payload including locale', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ runId: 'run-123' }) });
 
     const { triggerPriceDiscovery } = await import('@/lib/geargraph/price-discovery-client');
@@ -23,6 +23,9 @@ describe('triggerPriceDiscovery', () => {
       brand: 'Durston Gear',
       name: 'X-Mid Pro 2',
       productUrl: 'https://durstondesigns.com/x-mid-pro-2',
+      locale: 'de',
+      currency: 'EUR',
+      country: 'DE',
     });
 
     expect(mockFetch).toHaveBeenCalledOnce();
@@ -34,6 +37,9 @@ describe('triggerPriceDiscovery', () => {
       brand: 'Durston Gear',
       name: 'X-Mid Pro 2',
       productUrl: 'https://durstondesigns.com/x-mid-pro-2',
+      locale: 'de',
+      currency: 'EUR',
+      country: 'DE',
     });
     expect(options.headers['Authorization']).toBe('Bearer test-key');
     expect(options.headers['Content-Type']).toBe('application/json');
