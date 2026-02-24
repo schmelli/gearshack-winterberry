@@ -18,7 +18,7 @@ export interface PriceDiscoveryParams {
  */
 export async function triggerPriceDiscovery(params: PriceDiscoveryParams): Promise<void> {
   const apiUrl = process.env.NEXT_PUBLIC_GEARGRAPH_API_URL ?? process.env.GEARGRAPH_API_URL;
-  const apiKey = process.env.GEARGRAPH_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_GEARGRAPH_API_KEY ?? process.env.GEARGRAPH_API_KEY;
 
   if (!apiUrl || !apiKey) {
     console.warn('[PriceDiscovery] GEARGRAPH_API_URL or GEARGRAPH_API_KEY not configured — skipping');

@@ -126,13 +126,13 @@ export const useSupabaseStore = create<SupabaseStore>()(
           const { error } = await supabase.from('gear_items').insert(insertData as TablesInsert<'gear_items'>);
           if (error) throw error;
           // Fire-and-forget price discovery (non-blocking)
-          if (!insertData.manufacturer_price) {
-            triggerPriceDiscovery({
+          if (!insertData.manufacturer_price && insertData.name) {
+            void triggerPriceDiscovery({
               gearItemId: id,
               brand: insertData.brand ?? null,
-              name: insertData.name ?? '',
+              name: insertData.name,
               productUrl: insertData.product_url ?? null,
-            }).catch(() => {/* intentionally non-blocking */});
+            });
           }
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
           return id;
