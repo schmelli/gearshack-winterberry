@@ -677,7 +677,8 @@ function extractSchemaOrgProduct(html: string): Omit<ExtractedProductData, 'prod
           const schemaImage = extractSchemaImage(product);
 
           // Calculate confidence based on how much data was actually extracted
-          const fieldCount = [schemaName, brandName, schemaWeight, schemaPrice, schemaImage]
+          const schemaDescription = typeof product.description === 'string' ? product.description : null;
+          const fieldCount = [schemaName, brandName, schemaDescription, schemaWeight, schemaPrice, schemaImage]
             .filter(Boolean).length;
           const schemaConfidence: 'high' | 'medium' | 'low' =
             fieldCount >= 3 ? 'high' : fieldCount >= 1 ? 'medium' : 'low';
@@ -976,32 +977,33 @@ function extractBrand(html: string): string | null {
   // Strategy 1: og:brand meta tag
   const ogBrand = /<meta[^>]*property=["'](?:og:brand|product:brand)["'][^>]*content=["']([^"']+)["']/i.exec(html)
     ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["'](?:og:brand|product:brand)["']/i.exec(html);
-  if (ogBrand) return ogBrand[1].trim();
+  if (ogBrand) return decodeHtmlEntities(ogBrand[1].trim());
 
   // Strategy 2: itemprop="brand" (Schema.org microdata)
   const itempropBrand = /itemprop=["']brand["'][^>]*content=["']([^"']+)["']/i.exec(html)
     ?? /itemprop=["']brand["'][^>]*>([^<]+)</i.exec(html);
-  if (itempropBrand) return itempropBrand[1].trim();
+  if (itempropBrand) return decodeHtmlEntities(itempropBrand[1].trim());
 
-  // Strategy 3: Structured data in meta tags
-  const metaBrand = /<meta[^>]*name=["'](?:brand|manufacturer|author)["'][^>]*content=["']([^"']+)["']/i.exec(html)
-    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*name=["'](?:brand|manufacturer|author)["']/i.exec(html);
-  if (metaBrand) return metaBrand[1].trim();
+  // Strategy 3: Structured data in meta tags (excluding "author" to avoid generic CMS metadata)
+  const metaBrand = /<meta[^>]*name=["'](?:brand|manufacturer)["'][^>]*content=["']([^"']+)["']/i.exec(html)
+    ?? /<meta[^>]*content=["']([^"']+)["'][^>]*name=["'](?:brand|manufacturer)["']/i.exec(html);
+  if (metaBrand) return decodeHtmlEntities(metaBrand[1].trim());
 
   // Strategy 4: Common HTML patterns for brand display
   // e.g., <span class="brand">Fjällräven</span>, <a class="product-brand">Brand</a>
+  // Reject captures containing JS-like characters to avoid matching inside script blocks
   const brandClassPattern = /<(?:span|a|div|p)[^>]*class=["'][^"']*(?:brand|manufacturer|hersteller)[^"']*["'][^>]*>([^<]+)</i;
   const brandClassMatch = brandClassPattern.exec(html);
   if (brandClassMatch) {
     const brand = brandClassMatch[1].trim();
-    if (brand.length > 1 && brand.length < 60) return brand;
+    if (brand.length > 1 && brand.length < 60 && !/[{;=]/.test(brand)) return decodeHtmlEntities(brand);
   }
 
   // Strategy 5: German patterns "Marke: X" or "Hersteller: X"
   const germanBrand = /(?:marke|hersteller|brand)\s*[:]\s*(?:<[^>]*>)*\s*([^<\n,;]+)/i.exec(html);
   if (germanBrand) {
     const brand = germanBrand[1].trim();
-    if (brand.length > 1 && brand.length < 60) return brand;
+    if (brand.length > 1 && brand.length < 60) return decodeHtmlEntities(brand);
   }
 
   return null;
@@ -1016,21 +1018,21 @@ function extractProductName(html: string, url: string): string | null {
   const ogTitle = /<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i.exec(html)
     ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i.exec(html);
   if (ogTitle) {
-    const cleaned = cleanProductTitle(ogTitle[1].trim(), url);
+    const cleaned = cleanProductTitle(decodeHtmlEntities(ogTitle[1].trim()), url);
     if (cleaned) return cleaned;
   }
 
   // Strategy 2: <title> tag with smart splitting
   const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
   if (titleMatch) {
-    const cleaned = cleanProductTitle(titleMatch[1].trim(), url);
+    const cleaned = cleanProductTitle(decodeHtmlEntities(titleMatch[1].trim()), url);
     if (cleaned) return cleaned;
   }
 
   // Strategy 3: h1 tag (often contains the product name)
   const h1Match = /<h1[^>]*>([^<]+)<\/h1>/i.exec(html);
   if (h1Match) {
-    const h1 = h1Match[1].trim();
+    const h1 = decodeHtmlEntities(h1Match[1].trim());
     if (h1.length > 2 && h1.length < 200) return h1;
   }
 
@@ -1068,7 +1070,15 @@ function cleanProductTitle(title: string, url: string): string | null {
   if (dashParts.length > 1) {
     const lastPart = dashParts[dashParts.length - 1].toLowerCase();
     // If last part is short (likely shop name) or matches domain, remove it
-    if (lastPart.length < 30 && (shopName && lastPart.includes(shopName) || lastPart.includes('shop') || lastPart.includes('store') || lastPart.includes('online'))) {
+    if (
+      lastPart.length < 30 &&
+      (
+        (shopName && lastPart.includes(shopName)) ||
+        lastPart.includes('shop') ||
+        lastPart.includes('store') ||
+        lastPart.includes('online')
+      )
+    ) {
       name = dashParts.slice(0, -1).join(' - ').trim();
     }
     // If first part matches shop name, use the rest
@@ -1091,7 +1101,7 @@ function extractProductDescription(html: string): string | null {
   const ogDesc = /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i.exec(html)
     ?? /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:description["']/i.exec(html);
   if (ogDesc) {
-    const desc = truncateDescription(ogDesc[1]);
+    const desc = truncateDescription(decodeHtmlEntities(ogDesc[1]));
     if (desc && desc.length > 10) return desc;
   }
 
@@ -1099,13 +1109,15 @@ function extractProductDescription(html: string): string | null {
   const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html)
     ?? /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i.exec(html);
   if (descMatch) {
-    return truncateDescription(descMatch[1]);
+    const desc = truncateDescription(decodeHtmlEntities(descMatch[1]));
+    if (desc && desc.length > 10) return desc;
   }
 
   // Strategy 3: itemprop="description"
   const itempropDesc = /itemprop=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
   if (itempropDesc) {
-    return truncateDescription(itempropDesc[1]);
+    const desc = truncateDescription(decodeHtmlEntities(itempropDesc[1]));
+    if (desc && desc.length > 10) return desc;
   }
 
   return null;
@@ -1160,6 +1172,20 @@ function extractWithPatterns(html: string, url: string): ExtractedProductData {
     confidence,
     extractionMethod: 'patterns',
   };
+}
+
+/**
+ * Decode common HTML entities in extracted strings.
+ * Meta content attributes and og:title/h1 text often contain entities like &amp;, &#39;, etc.
+ */
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ');
 }
 
 /**

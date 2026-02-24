@@ -50,7 +50,7 @@ const KNOWN_IMAGE_HOSTS = [
   'res.cloudinary.com',
   '.supabase.co',
   'lh3.googleusercontent.com',
-  'encrypted-tbn',
+  '.gstatic.com',
   '.ytimg.com',
   'img.youtube.com',
 ];
