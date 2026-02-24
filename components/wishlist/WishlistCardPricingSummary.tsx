@@ -88,6 +88,7 @@ export function WishlistCardPricingSummary({
   const {
     displayPrice,
     displayCurrency,
+    isApproximatePrice,
     manufacturerLink,
     bestEbayListing,
     safeEbayListingUrl,
@@ -119,6 +120,7 @@ export function WishlistCardPricingSummary({
       <ManufacturerPriceRow
         price={displayPrice}
         currency={displayCurrency}
+        isApproximate={isApproximatePrice}
         link={manufacturerLink}
         isLoading={msrpLoading}
         isCompact={isCompact}
@@ -155,6 +157,7 @@ export function WishlistCardPricingSummary({
 function ManufacturerPriceRow({
   price,
   currency,
+  isApproximate,
   link,
   isLoading,
   isCompact,
@@ -162,6 +165,8 @@ function ManufacturerPriceRow({
 }: {
   price: number | null;
   currency: string;
+  /** True when price was converted from USD → EUR (show "~" prefix) */
+  isApproximate: boolean;
   link: string | null;
   isLoading: boolean;
   isCompact: boolean;
@@ -187,7 +192,7 @@ function ManufacturerPriceRow({
         {t('msrp')}
       </span>
       <span className={cn('font-semibold text-amber-700 dark:text-amber-400 flex-shrink-0', isCompact ? 'text-xs' : 'text-sm')}>
-        {formatPrice(price, currency)}
+        {isApproximate && <span className="opacity-70 mr-0.5">~</span>}{formatPrice(price, currency)}
       </span>
       {link && (
         <a

@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { searchEbayLocalized } from '@/lib/ebay/browse-api';
 import { filterEbayListings } from '@/lib/external-apis/ebay-filter';
-import { getEbaySiteForLocale } from '@/lib/constants/ebay-sites';
+import { getEbaySiteForLocale, EBAY_SITES } from '@/lib/constants/ebay-sites';
 import { ebaySearchRateLimiter } from '@/lib/rate-limiter';
 import type { EbaySearchResponse, EbayListing } from '@/types/ebay';
 
@@ -126,6 +126,43 @@ export async function GET(request: NextRequest) {
         itemName: query,
         limit: limit * 2, // Get more for filtering, then take limit
       });
+
+      // Fallback: if locale site returned 0 results, try ebay.com.
+      // US brands (Durston, Zpacks, etc.) have more inventory on ebay.com.
+      if (listings.length === 0 && siteConfig.site !== 'ebay.com') {
+        const fallbackSiteConfig = EBAY_SITES['en']; // ebay.com
+        const fallbackRaw = await searchEbayLocalized(query, fallbackSiteConfig, 20);
+        const fallbackFiltered = filterEbayListings(fallbackRaw, {
+          brand,
+          productTypeKeywords,
+          msrp,
+          itemName: query,
+          limit: limit * 2,
+        });
+        if (fallbackFiltered.length > 0) {
+          listings = fallbackFiltered;
+          // Cache under the fallback site so repeated lookups are fast
+          await supabase.from('ebay_price_cache').upsert(
+            {
+              search_query: normalizedQuery,
+              ebay_site: fallbackSiteConfig.site,
+              country_code: 'US',
+              results: JSON.parse(JSON.stringify(fallbackFiltered)),
+              result_count: fallbackFiltered.length,
+              expires_at: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+            },
+            { onConflict: 'search_query,ebay_site' }
+          );
+          // Return the fallback site so the UI shows the correct eBay link
+          return NextResponse.json({
+            listings: fallbackFiltered.slice(0, limit),
+            totalResults: fallbackFiltered.length,
+            ebaySite: fallbackSiteConfig.site,
+            fromCache: false,
+            cacheExpiresAt: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+          } satisfies EbaySearchResponse);
+        }
+      }
 
       // Store in cache (upsert)
       const expiresAt = new Date(Date.now() + CACHE_TTL_MS).toISOString();

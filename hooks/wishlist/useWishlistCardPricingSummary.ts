@@ -69,6 +69,32 @@ export interface UseWishlistCardPricingSummaryReturn {
   authLoading: boolean;
   /** Locale-aware price formatter */
   formatPrice: (amount: number, currency?: string) => string;
+  /**
+   * True when displayPrice was converted from USD to EUR for local display.
+   * The UI can show a "~" prefix or tooltip in this case.
+   */
+  isApproximatePrice: boolean;
+}
+
+// =============================================================================
+// Currency conversion
+// =============================================================================
+
+/**
+ * Approximate USD → EUR rate.
+ * Used for display only — not for financial transactions.
+ * Update periodically to stay reasonably accurate.
+ */
+const USD_TO_EUR = 0.93;
+
+/**
+ * Convert a USD amount to EUR for display in German/European locale.
+ * Returns null when conversion is not applicable.
+ */
+function convertToEur(amount: number, currency: string, locale: string): number | null {
+  if (currency !== 'USD') return null;
+  if (!locale.startsWith('de') && locale !== 'at' && locale !== 'ch') return null;
+  return Math.round(amount * USD_TO_EUR);
 }
 
 // =============================================================================
@@ -130,15 +156,24 @@ export function useWishlistCardPricingSummary({
   }, [productTypeId, categories]);
 
   // Display price: prefer manufacturer price, fall back to MSRP.
-  // Currency follows the source — manufacturer price uses its own currency
-  // (defaulting to EUR), MSRP is always stored as USD.
-  const displayPrice = manufacturerPrice ?? msrpAmount;
-  const displayCurrency =
+  // For German/European locale, automatically convert USD prices to EUR
+  // so users see familiar prices (marked as approximate with "~" in UI).
+  const rawDisplayPrice = manufacturerPrice ?? msrpAmount;
+  const rawDisplayCurrency =
     manufacturerPrice !== null
       ? (manufacturerCurrency ?? 'EUR')
       : msrpAmount !== null
         ? 'USD'
         : 'EUR';
+
+  const eurConverted =
+    rawDisplayPrice !== null
+      ? convertToEur(rawDisplayPrice, rawDisplayCurrency, locale)
+      : null;
+
+  const displayPrice = eurConverted ?? rawDisplayPrice;
+  const displayCurrency = eurConverted !== null ? 'EUR' : rawDisplayCurrency;
+  const isApproximatePrice = eurConverted !== null;
 
   // Sanitized manufacturer link (product page preferred, brand site fallback)
   const manufacturerLink =
@@ -231,6 +266,7 @@ export function useWishlistCardPricingSummary({
   return {
     displayPrice,
     displayCurrency,
+    isApproximatePrice,
     manufacturerLink,
     bestEbayListing,
     safeEbayListingUrl,
