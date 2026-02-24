@@ -209,7 +209,7 @@ export function useWishlist(): UseWishlistReturn {
 
     // -------------------------------------------------------------------------
     // Auto-Trigger MSRP Discovery for Items Without Manufacturer Price
-    // Fire-and-forget: runs in background, writes to gear_items.manufacturer_price
+    // Updates local state immediately when a price is found — no page reload needed.
     // -------------------------------------------------------------------------
     const triggerMissingMsrp = async () => {
       try {
@@ -221,20 +221,44 @@ export function useWishlist(): UseWishlistReturn {
         for (let i = 0; i < toDiscover.length; i++) {
           if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 3000));
           const item = toDiscover[i];
-          void fetch('/api/gear/discover-msrp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gearItemId: item.id,
-              itemName: item.name,
-              brandName: item.brand ?? null,
-              productUrl: item.productUrl ?? null,
-              brandUrl: item.brandUrl ?? null,
-            }),
-          });
+          try {
+            const res = await fetch('/api/gear/discover-msrp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                gearItemId: item.id,
+                itemName: item.name,
+                brandName: item.brand ?? null,
+                productUrl: item.productUrl ?? null,
+                brandUrl: item.brandUrl ?? null,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.found && typeof data.amount === 'number') {
+                // Update local state so the price appears immediately without reload
+                setWishlistItems((prev) =>
+                  prev.map((wi) =>
+                    wi.id === item.id
+                      ? {
+                          ...wi,
+                          manufacturerPrice: data.amount,
+                          manufacturerCurrency: data.currency ?? 'USD',
+                          ...(data.productUrl && !wi.productUrl
+                            ? { productUrl: data.productUrl }
+                            : {}),
+                        }
+                      : wi
+                  )
+                );
+              }
+            }
+          } catch {
+            // Per-item errors are non-fatal — continue with next item
+          }
         }
       } catch {
-        // Fire-and-forget — silently ignore all errors
+        // Outer errors are also non-fatal
       }
     };
 
