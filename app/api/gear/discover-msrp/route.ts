@@ -2,12 +2,14 @@
  * MSRP Auto-Discovery API
  *
  * Automatically finds and stores the manufacturer's suggested retail price
- * for a gear item. Called as a fire-and-forget background task when the
- * wishlist loads and an item has no manufacturer_price set.
+ * for a gear item using Firecrawl search() — combines web search + scraping
+ * in a single call, returning real product page URLs with scraped content.
  *
- * Strategy (in order):
- * 1. Firecrawl: scrape the product_url or brand_url to find the price directly
- * 2. Serper organic: search brand site to find the product page + price
+ * Strategy:
+ * 1. Firecrawl search: "{brand} {item}" site:{brandDomain}  → manufacturer's page
+ * 2. Firecrawl search: "{brand} {item}" (broad)             → any product page
+ * 3. Price extraction from JSON-LD structured data (schema.org/Product)
+ *    — falls back to regex extraction from markdown if JSON-LD not found
  *
  * Writes to gear_items.manufacturer_price, manufacturer_currency, product_url.
  *
@@ -34,23 +36,91 @@ interface DiscoverMsrpRequest {
 interface DiscoveredPrice {
   amount: number;
   currency: string;
-  productUrl: string | null;
+  productUrl: string;
   source: string;
 }
 
 // =============================================================================
-// Price extraction from scraped markdown
+// JSON-LD structured data extraction (schema.org/Product)
 // =============================================================================
 
 /**
- * Extract the most likely product price from scraped markdown.
- * Looks in the first 4000 chars (product header / above-the-fold area).
+ * Extract price from JSON-LD Product schema embedded in HTML.
+ * Most e-commerce sites include this — it's authoritative and precise.
  */
+function extractPriceFromJsonLd(html: string): { amount: number; currency: string } | null {
+  const scriptMatches = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  if (!scriptMatches) return null;
+
+  for (const block of scriptMatches) {
+    try {
+      const jsonStr = block.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '');
+      const data = JSON.parse(jsonStr);
+
+      const extractFromObject = (obj: unknown): { amount: number; currency: string } | null => {
+        if (!obj || typeof obj !== 'object') return null;
+        const d = obj as Record<string, unknown>;
+
+        // Check for Product type with offers
+        const type = (d['@type'] as string | undefined)?.toLowerCase();
+        if (type === 'product' || type?.includes('product')) {
+          const offers = d['offers'];
+          if (offers) {
+            const offerObj = Array.isArray(offers) ? offers[0] : offers;
+            const price = offerObj?.price ?? offerObj?.lowPrice;
+            const currency = offerObj?.priceCurrency ?? 'USD';
+            if (typeof price === 'number' && price > 0) {
+              return { amount: price, currency: String(currency) };
+            }
+            if (typeof price === 'string') {
+              const n = parseFloat(price.replace(/[^0-9.]/g, ''));
+              if (n > 0) return { amount: n, currency: String(currency) };
+            }
+          }
+        }
+
+        // Recurse into arrays and @graph
+        if (Array.isArray(d['@graph'])) {
+          for (const item of d['@graph'] as unknown[]) {
+            const found = extractFromObject(item);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const result = extractFromObject(data);
+      if (result && result.amount >= 10 && result.amount <= 10000) return result;
+    } catch {
+      // Malformed JSON-LD — skip
+    }
+  }
+  return null;
+}
+
+// =============================================================================
+// Markdown regex fallback
+// =============================================================================
+
+function normalizePrice(raw: string): number {
+  let s = raw.replace(/\s/g, '');
+  const lastDot = s.lastIndexOf('.');
+  const lastComma = s.lastIndexOf(',');
+  if (lastDot > lastComma) {
+    s = s.replace(/,/g, '');
+  } else if (lastComma > lastDot) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 function extractPriceFromMarkdown(
-  markdown: string,
+  text: string,
   preferredCurrency: string
 ): { amount: number; currency: string } | null {
-  const text = markdown.slice(0, 4000);
+  // Only scan first 3000 chars (product header area)
+  const t = text.slice(0, 3000);
 
   const PATTERNS: Array<{ regex: RegExp; code: string }> = [
     { regex: /\$\s*([\d,.']+)/g, code: 'USD' },
@@ -62,17 +132,13 @@ function extractPriceFromMarkdown(
   ];
 
   const candidates: Array<{ amount: number; currency: string }> = [];
-
   for (const { regex, code } of PATTERNS) {
     const re = new RegExp(regex.source, regex.flags);
     let match;
-    while ((match = re.exec(text)) !== null) {
+    while ((match = re.exec(t)) !== null) {
       const raw = (match[1] ?? match[0]).replace(/[^0-9,.']/g, '');
       const amount = normalizePrice(raw);
-      // Sanity: gear prices are between 10 and 10,000
-      if (amount >= 10 && amount <= 10000) {
-        candidates.push({ amount, currency: code });
-      }
+      if (amount >= 10 && amount <= 10000) candidates.push({ amount, currency: code });
     }
   }
 
@@ -80,30 +146,21 @@ function extractPriceFromMarkdown(
   return candidates.find((c) => c.currency === preferredCurrency) ?? candidates[0];
 }
 
-function normalizePrice(raw: string): number {
-  let s = raw;
-  const lastDot = s.lastIndexOf('.');
-  const lastComma = s.lastIndexOf(',');
-  if (lastDot > lastComma) {
-    s = s.replace(/,/g, ''); // US: 1,234.56
-  } else if (lastComma > lastDot) {
-    s = s.replace(/\./g, '').replace(',', '.'); // DE: 1.234,56
-  }
-  const n = parseFloat(s);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
 // =============================================================================
-// Serper organic search for product URL
+// Core discovery using Firecrawl search()
 // =============================================================================
 
-async function findProductUrlViaSerper(
+/**
+ * Uses Firecrawl search() to find and scrape the manufacturer's product page
+ * in a single API call. Returns the extracted price and real product URL.
+ */
+async function discoverMsrpViaFirecrawl(
   itemName: string,
   brandName: string | null,
-  brandUrl: string | null
-): Promise<{ url: string; snippet: string } | null> {
-  const apiKey = process.env.SERPER_API_KEY;
-  if (!apiKey) return null;
+  brandUrl: string | null,
+  preferredCurrency: string
+): Promise<DiscoveredPrice | null> {
+  const firecrawl = createFirecrawlClient();
 
   let brandDomain: string | null = null;
   if (brandUrl) {
@@ -114,81 +171,77 @@ async function findProductUrlViaSerper(
     }
   }
 
-  const query = brandDomain
-    ? `site:${brandDomain} ${itemName}`
-    : `"${brandName ? brandName + ' ' : ''}${itemName}" buy price`;
+  const queries = [
+    // Narrow: search on brand domain specifically
+    ...(brandDomain ? [`${brandName ? brandName + ' ' : ''}${itemName} site:${brandDomain}`] : []),
+    // Medium: brand + item name
+    `"${brandName ? brandName + ' ' : ''}${itemName}" price`,
+  ];
 
-  try {
-    const res = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: query, num: 5 }),
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return null;
+  for (const query of queries) {
+    try {
+      const result = await firecrawl.search(query, {
+        limit: 3,
+        scrapeOptions: { formats: ['markdown', 'html'] },
+      });
 
-    const data = await res.json();
-    const organic: Array<{ link: string; snippet?: string }> = data.organic ?? [];
+      for (const item of result.results) {
+        if (!item.url || !item.markdown) continue;
 
-    const brandResult = brandDomain
-      ? organic.find((r) => {
-          try {
-            return new URL(r.link).hostname.replace(/^www\./, '').includes(brandDomain!);
-          } catch {
-            return false;
+        // Try JSON-LD first (most reliable)
+        if (item.html) {
+          const jsonLdPrice = extractPriceFromJsonLd(item.html);
+          if (jsonLdPrice && jsonLdPrice.amount >= 10) {
+            return {
+              ...jsonLdPrice,
+              productUrl: item.url,
+              source: 'firecrawl-search-jsonld',
+            };
           }
-        })
-      : null;
+        }
 
-    const best = brandResult ?? organic[0];
-    return best ? { url: best.link, snippet: best.snippet ?? '' } : null;
-  } catch {
-    return null;
+        // Fall back to markdown regex
+        const markdownPrice = extractPriceFromMarkdown(item.markdown, preferredCurrency);
+        if (markdownPrice && markdownPrice.amount >= 10) {
+          return {
+            ...markdownPrice,
+            productUrl: item.url,
+            source: 'firecrawl-search-markdown',
+          };
+        }
+      }
+    } catch {
+      // Try next query
+    }
   }
+
+  return null;
 }
 
-// =============================================================================
-// Discovery strategies
-// =============================================================================
-
-async function discoverFromUrl(
+/**
+ * Direct scrape of a known product URL (fastest path).
+ */
+async function discoverFromKnownUrl(
   url: string,
   preferredCurrency: string
 ): Promise<DiscoveredPrice | null> {
   try {
     const firecrawl = createFirecrawlClient();
-    const result = await firecrawl.scrape(url, { formats: ['markdown'] });
-    const markdown = result.data?.markdown;
-    if (!markdown) return null;
+    const result = await firecrawl.scrape(url, { formats: ['markdown', 'html'] });
 
-    const price = extractPriceFromMarkdown(markdown, preferredCurrency);
-    if (!price) return null;
-
-    return { ...price, productUrl: url, source: 'firecrawl' };
+    if (result.data?.html) {
+      const jsonLdPrice = extractPriceFromJsonLd(result.data.html);
+      if (jsonLdPrice && jsonLdPrice.amount >= 10) {
+        return { ...jsonLdPrice, productUrl: url, source: 'firecrawl-scrape-jsonld' };
+      }
+    }
+    if (result.data?.markdown) {
+      const markdownPrice = extractPriceFromMarkdown(result.data.markdown, preferredCurrency);
+      if (markdownPrice) return { ...markdownPrice, productUrl: url, source: 'firecrawl-scrape-markdown' };
+    }
   } catch {
-    return null;
+    // fall through
   }
-}
-
-async function discoverViaSerper(
-  itemName: string,
-  brandName: string | null,
-  brandUrl: string | null,
-  preferredCurrency: string
-): Promise<DiscoveredPrice | null> {
-  const found = await findProductUrlViaSerper(itemName, brandName, brandUrl);
-  if (!found) return null;
-
-  // Try Firecrawl on the found URL
-  const fromScrape = await discoverFromUrl(found.url, preferredCurrency);
-  if (fromScrape) return { ...fromScrape, productUrl: found.url };
-
-  // Fallback: parse price from Serper snippet
-  if (found.snippet) {
-    const price = extractPriceFromMarkdown(found.snippet, preferredCurrency);
-    if (price) return { ...price, productUrl: found.url, source: 'serper-snippet' };
-  }
-
   return null;
 }
 
@@ -214,7 +267,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'gearItemId and itemName are required' }, { status: 400 });
     }
 
-    // Verify ownership and check if price already exists
+    // Verify ownership, skip if price already set
     const { data: gearItem } = await supabase
       .from('gear_items')
       .select('id, manufacturer_price, product_url')
@@ -225,7 +278,6 @@ export async function POST(request: NextRequest) {
     if (!gearItem) {
       return NextResponse.json({ error: 'Gear item not found' }, { status: 404 });
     }
-
     if (gearItem.manufacturer_price !== null) {
       return NextResponse.json({ skipped: true, reason: 'price_already_set' });
     }
@@ -236,14 +288,14 @@ export async function POST(request: NextRequest) {
 
     let discovered: DiscoveredPrice | null = null;
 
-    // Strategy 1: Firecrawl the known product URL
-    if (effectiveProductUrl && !discovered) {
-      discovered = await discoverFromUrl(effectiveProductUrl, preferredCurrency);
+    // Strategy 1: Scrape known product URL directly
+    if (effectiveProductUrl) {
+      discovered = await discoverFromKnownUrl(effectiveProductUrl, preferredCurrency);
     }
 
-    // Strategy 2: Serper organic → Firecrawl
-    if (!discovered && (brandUrl || brandName)) {
-      discovered = await discoverViaSerper(
+    // Strategy 2: Firecrawl search + scrape in one call
+    if (!discovered) {
+      discovered = await discoverMsrpViaFirecrawl(
         itemName,
         brandName ?? null,
         brandUrl ?? null,

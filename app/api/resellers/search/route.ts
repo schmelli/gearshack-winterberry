@@ -19,13 +19,84 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { parsePostGISLocation } from '@/lib/supabase/transformers';
-import { searchSerperResellers } from '@/lib/serper/shopping';
+import { createFirecrawlClient } from '@/lib/firecrawl/client';
 import type {
   ResellerSearchResponse,
   ResellerPriceWithDetails,
   Reseller,
   ResellerPriceResult,
 } from '@/types/reseller';
+
+// =============================================================================
+// Price extraction helpers
+// =============================================================================
+
+function extractJsonLdPrice(html: string): { amount: number; currency: string } | null {
+  const blocks = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  if (!blocks) return null;
+  for (const block of blocks) {
+    try {
+      const json = JSON.parse(block.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, ''));
+      const extract = (obj: unknown): { amount: number; currency: string } | null => {
+        if (!obj || typeof obj !== 'object') return null;
+        const d = obj as Record<string, unknown>;
+        const type = (d['@type'] as string | undefined)?.toLowerCase();
+        if (type === 'product' || type?.includes('product')) {
+          const offers = d['offers'];
+          if (offers) {
+            const o = Array.isArray(offers) ? offers[0] : offers;
+            const p = o?.price ?? o?.lowPrice;
+            const c = String(o?.priceCurrency ?? 'USD');
+            if (typeof p === 'number' && p >= 10 && p <= 10000) return { amount: p, currency: c };
+            if (typeof p === 'string') {
+              const n = parseFloat(p.replace(/[^0-9.]/g, ''));
+              if (n >= 10 && n <= 10000) return { amount: n, currency: c };
+            }
+          }
+        }
+        if (Array.isArray(d['@graph'])) {
+          for (const item of d['@graph'] as unknown[]) {
+            const r = extract(item);
+            if (r) return r;
+          }
+        }
+        return null;
+      };
+      const r = extract(json);
+      if (r) return r;
+    } catch { /* skip malformed JSON-LD */ }
+  }
+  return null;
+}
+
+function extractMarkdownPrice(
+  text: string,
+  preferredCurrency: string
+): { amount: number; currency: string } | null {
+  const t = text.slice(0, 3000);
+  const PATTERNS: Array<{ regex: RegExp; code: string }> = [
+    { regex: /\$\s*([\d,.']+)/g, code: 'USD' },
+    { regex: /€\s*([\d,.']+)/g, code: 'EUR' },
+    { regex: /([\d,.']+)\s*€/g, code: 'EUR' },
+    { regex: /([\d,.']+)\s*\$/g, code: 'USD' },
+  ];
+  const candidates: Array<{ amount: number; currency: string }> = [];
+  for (const { regex, code } of PATTERNS) {
+    const re = new RegExp(regex.source, regex.flags);
+    let m;
+    while ((m = re.exec(t)) !== null) {
+      const raw = (m[1] ?? m[0]).replace(/[^0-9,.']/g, '');
+      let s = raw;
+      const ld = s.lastIndexOf('.');
+      const lc = s.lastIndexOf(',');
+      if (ld > lc) s = s.replace(/,/g, '');
+      else if (lc > ld) s = s.replace(/\./g, '').replace(',', '.');
+      const n = parseFloat(s);
+      if (Number.isFinite(n) && n >= 10 && n <= 10000) candidates.push({ amount: n, currency: code });
+    }
+  }
+  return candidates.find((c) => c.currency === preferredCurrency) ?? candidates[0] ?? null;
+}
 
 // =============================================================================
 // Constants
@@ -299,43 +370,74 @@ export async function GET(request: NextRequest) {
     });
 
     // ==========================================================================
-    // Serper Shopping live fallback — activated when DB has no cached results.
-    // Mirrors what AI assistants do: real-time Google Shopping search.
-    // Provides live prices + real product URLs (via secondary organic search).
+    // Firecrawl search() live fallback — activated when DB has no cached results.
+    // Uses Firecrawl's combined search+scrape to find REAL product page URLs
+    // with actual prices extracted from JSON-LD or markdown.
+    // Much more reliable than Serper Shopping (which only returns Google redirects).
     // ==========================================================================
-    if (filteredPriceResults.length === 0 && process.env.SERPER_API_KEY) {
-      const brand = query.split(' ')[0]; // Heuristic: first word is often the brand
-      const serperHits = await searchSerperResellers(query, brand, countryCode, 3);
+    if (filteredPriceResults.length === 0 && process.env.FIRECRAWL_API_KEY) {
+      try {
+        const firecrawl = createFirecrawlClient();
+        const searchLang = ['DE', 'AT', 'CH'].includes(countryCode.toUpperCase()) ? 'de' : 'en';
+        const priceWord = searchLang === 'de' ? 'preis kaufen' : 'price buy';
+        const searchQuery = `${query} ${priceWord}`;
 
-      if (serperHits.length > 0) {
-        const liveResults: ResellerPriceWithDetails[] = serperHits
-          .filter((hit) => {
-            if (!hit.websiteUrl) return false;
-            try {
-              const domain = new URL(hit.websiteUrl).hostname.replace(/^www\./, '');
-              if (INVALID_RESELLER_DOMAINS.has(domain)) return false;
-              if (manufacturerDomain && domain === manufacturerDomain) return false;
-              return true;
-            } catch {
-              return false;
-            }
-          })
-          .map((hit, idx) => ({
-            // Synthetic IDs for live results (not persisted in DB)
+        const searchResult = await firecrawl.search(searchQuery, {
+          limit: 5,
+          scrapeOptions: { formats: ['markdown', 'html'] },
+        });
+
+        const liveResults: ResellerPriceWithDetails[] = [];
+
+        for (const item of searchResult.results) {
+          if (!item.url || !item.markdown) continue;
+
+          let resellerDomain: string;
+          try {
+            resellerDomain = new URL(item.url).hostname.replace(/^www\./, '');
+          } catch {
+            continue;
+          }
+
+          // Skip search engines, manufacturer, and invalid domains
+          if (INVALID_RESELLER_DOMAINS.has(resellerDomain)) continue;
+          if (manufacturerDomain && resellerDomain === manufacturerDomain) continue;
+
+          // Extract price from JSON-LD first, then markdown
+          let priceAmount = 0;
+          let priceCurrency = countryCode === 'DE' ? 'EUR' : 'USD';
+
+          if (item.html) {
+            const jsonLd = extractJsonLdPrice(item.html);
+            if (jsonLd) { priceAmount = jsonLd.amount; priceCurrency = jsonLd.currency; }
+          }
+          if (!priceAmount && item.markdown) {
+            const md = extractMarkdownPrice(item.markdown, priceCurrency);
+            if (md) { priceAmount = md.amount; priceCurrency = md.currency; }
+          }
+
+          if (!priceAmount) continue;
+
+          const storeName = item.title
+            ? item.title.split(/[-|·]/)[0].trim().slice(0, 50)
+            : resellerDomain;
+
+          const idx = liveResults.length;
+          liveResults.push({
             id: `live-${idx}`,
             resellerId: `live-${idx}`,
             gearItemId: gearItemId ?? '',
-            priceAmount: hit.priceAmount,
-            priceCurrency: hit.priceCurrency,
-            productUrl: hit.productUrl,
-            productName: hit.title,
+            priceAmount,
+            priceCurrency,
+            productUrl: item.url,
+            productName: item.title ?? null,
             inStock: true,
             fetchedAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
             reseller: {
               id: `live-${idx}`,
-              name: hit.source.replace(/^!\s*/, '').trim(),
-              websiteUrl: hit.websiteUrl!,
+              name: storeName,
+              websiteUrl: `https://www.${resellerDomain}`,
               logoUrl: null,
               resellerType: 'online' as const,
               status: 'standard' as const,
@@ -355,18 +457,22 @@ export async function GET(request: NextRequest) {
             },
             distanceKm: null,
             distanceFormatted: null,
-          }));
+          });
 
-        const livePrices = liveResults
-          .sort((a, b) => a.priceAmount - b.priceAmount)
-          .slice(0, 3);
+          if (liveResults.length >= 3) break;
+        }
 
-        return NextResponse.json<ResellerSearchResponse>({
-          localPrices: [],
-          onlinePrices: livePrices,
-          allPrices: livePrices,
-          fromCache: false,
-        });
+        if (liveResults.length > 0) {
+          const livePrices = liveResults.sort((a, b) => a.priceAmount - b.priceAmount);
+          return NextResponse.json<ResellerSearchResponse>({
+            localPrices: [],
+            onlinePrices: livePrices,
+            allPrices: livePrices,
+            fromCache: false,
+          });
+        }
+      } catch {
+        // Firecrawl fallback failed — return empty results
       }
     }
 

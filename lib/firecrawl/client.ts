@@ -101,6 +101,7 @@ export interface SearchResultItem {
   url: string;
   title?: string;
   markdown?: string;
+  html?: string;
   description?: string;
 }
 
