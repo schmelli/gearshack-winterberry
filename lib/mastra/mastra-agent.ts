@@ -217,7 +217,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 1 action + 3 legacy), three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 7 tools (3 composite + 1 action + 3 legacy), no searchGear/findAlternatives, three-tier memory`
   );
   return agent;
 }
