@@ -18,6 +18,7 @@ import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgressData } from '@/lib/ai-assistant/stream-parser';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -43,6 +44,8 @@ export interface MastraMessage {
   createdAt: string;
   toolCalls?: ToolCallData[];
   memoryUpdates?: MemoryUpdate[];
+  /** Pending confirmation actions (suspend/resume pattern) */
+  pendingConfirmations?: ConfirmActionData[];
 }
 
 /**
@@ -98,6 +101,8 @@ export interface UseMastraChatResult {
   abort: () => void;
   /** Current workflow progress message (shown during pipeline phases) */
   progressMessage: string | null;
+  /** Handle user response to a pending confirmation (suspend/resume) */
+  resolveConfirmation: (runId: string, approved: boolean) => Promise<void>;
 }
 
 // =====================================================
@@ -427,6 +432,22 @@ export function useMastraChat(): UseMastraChatResult {
             },
             (progress) => {
               setProgressMessage(progress);
+            },
+            (confirmation) => {
+              // Handle confirm_action events (suspend/resume pattern)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        pendingConfirmations: [
+                          ...(msg.pendingConfirmations || []),
+                          confirmation,
+                        ],
+                      }
+                    : msg
+                )
+              );
             }
           );
         }
@@ -533,6 +554,57 @@ export function useMastraChat(): UseMastraChatResult {
     await sendMessage(text, options);
   }, [sendMessage, t]);
 
+  /**
+   * Resolve a pending confirmation (suspend/resume workflow)
+   * Calls the resume API endpoint and updates message state
+   */
+  const resolveConfirmation = useCallback(
+    async (runId: string, approved: boolean): Promise<void> => {
+      try {
+        const response = await fetch('/api/mastra/workflows/add-gear/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, approved }),
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          toast.error(result.error || 'Failed to process confirmation.');
+          return;
+        }
+
+        // Update the message that contains this confirmation
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (!msg.pendingConfirmations) return msg;
+            const updated = msg.pendingConfirmations.map((conf) =>
+              conf.runId === runId ? { ...conf, resolved: true } : conf
+            );
+            const hasChange = updated.some(
+              (c, i) => c !== msg.pendingConfirmations![i]
+            );
+            return hasChange ? { ...msg, pendingConfirmations: updated } : msg;
+          })
+        );
+
+        if (result.cancelled) {
+          toast.info(result.message);
+        } else if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message || 'Action failed.');
+        }
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to process confirmation.'
+        );
+      }
+    },
+    []
+  );
+
   // Load conversation history on mount if conversationId exists.
   // Guard with state === 'idle' to prevent overwriting optimistic message updates
   // if the user sends a message before history finishes loading.
@@ -562,6 +634,7 @@ export function useMastraChat(): UseMastraChatResult {
     conversationId,
     abort,
     progressMessage,
+    resolveConfirmation,
   };
 }
 
@@ -578,7 +651,8 @@ async function processStreamEvent(
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
   onMemoryUpdate: (update: MemoryUpdate) => void,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  onConfirmAction?: (confirmation: ConfirmActionData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -597,6 +671,13 @@ async function processStreamEvent(
       if (typeof event.data === 'object' && 'message' in event.data) {
         const progressData = event.data as WorkflowProgressData;
         onProgress?.(progressData.message);
+      }
+      break;
+
+    case 'confirm_action':
+      // Suspend/resume pattern: workflow suspended, needs user confirmation
+      if (typeof event.data === 'object' && 'runId' in event.data) {
+        onConfirmAction?.(event.data as ConfirmActionData);
       }
       break;
 

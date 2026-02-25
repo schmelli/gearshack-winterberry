@@ -34,7 +34,9 @@ import {
   encodeDoneEvent,
   encodeErrorEvent,
   encodeWorkflowProgressEvent,
+  encodeConfirmActionEvent,
 } from '@/lib/mastra/streaming';
+import type { ConfirmActionData } from '@/types/mastra';
 import {
   logInfo,
   logError,
@@ -572,6 +574,39 @@ export async function POST(request: Request): Promise<Response> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
             for (const tc of toolCalls as any[]) {
               recordToolCall(tc.toolName || tc.name || 'unknown');
+
+              // Detect addToLoadout tool results that require user confirmation
+              // (Suspend/Resume pattern for human-in-the-loop write safety)
+              if (
+                (tc.toolName === 'addToLoadout' || tc.name === 'addToLoadout') &&
+                tc.result &&
+                typeof tc.result === 'object' &&
+                'requiresConfirmation' in tc.result &&
+                tc.result.requiresConfirmation === true
+              ) {
+                const confirmData: ConfirmActionData = {
+                  runId: tc.result.runId as string,
+                  actionType: 'add_to_loadout',
+                  message: tc.result.message as string,
+                  details: {
+                    gearItemId: tc.result.gearItemId as string,
+                    gearItemName: tc.result.gearItemName as string,
+                    loadoutId: tc.result.loadoutId as string,
+                    loadoutName: tc.result.loadoutName as string,
+                  },
+                };
+                controller.enqueue(encoder.encode(encodeConfirmActionEvent(confirmData)));
+
+                logDebug('Confirm action event emitted (suspend/resume)', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    runId: confirmData.runId,
+                    gearItemName: confirmData.details.gearItemName,
+                    loadoutName: confirmData.details.loadoutName,
+                  },
+                });
+              }
             }
           }
 

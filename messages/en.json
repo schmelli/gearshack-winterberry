@@ -471,6 +471,12 @@
   "AIChat": {
     "loginRequired": "You must be logged in to use AI Assistant",
     "noMessageToRetry": "No message to retry",
+    "confirmAction": {
+      "title": "Confirmation Required",
+      "addToLoadout": "Add \"{gearItemName}\" to \"{loadoutName}\"?",
+      "approve": "Approve",
+      "cancel": "Cancel"
+    },
     "errors": {
       "authRequired": "Authentication required. Please sign in to use the AI assistant.",
       "messageTooLong": "Message too long. Maximum length is 10,000 characters."

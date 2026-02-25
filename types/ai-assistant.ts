@@ -80,6 +80,7 @@ export interface CommunityOfferCard {
 
 export type Action =
   | AddToWishlistAction
+  | ConfirmAddToLoadoutAction
   | SendMessageAction
   | CompareAction
   | NavigateAction;
@@ -88,6 +89,18 @@ export interface AddToWishlistAction {
   type: 'add_to_wishlist';
   gearItemId: string;
   status: 'pending' | 'completed' | 'failed';
+  error: string | null;
+}
+
+export interface ConfirmAddToLoadoutAction {
+  type: 'confirm_add_to_loadout';
+  runId: string;
+  gearItemId: string;
+  gearItemName: string;
+  loadoutId: string;
+  loadoutName: string;
+  message: string;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
   error: string | null;
 }
 
