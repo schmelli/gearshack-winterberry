@@ -9,15 +9,24 @@
  * - Categories and brands
  * - GearGraph INSIGHTS (HAS_TIP relationships) for found gear items
  *
+ * Agentic RAG: When the initial search returns 0 results and the query
+ * is sufficiently long (>10 chars), the tool automatically reformulates
+ * the query using a fast LLM call (Haiku) and retries the search.
+ * Example: "Osprey Exos 58L" → "Osprey Exos" (removes model number suffix)
+ *
  * Replaces separate queryUserData + queryCatalog + queryGearGraph calls.
  *
  * @see specs/060-ai-agent-evolution/analysis.md - Vorschlag 2
+ * @see Agentic RAG — Automatische Query-Reformulierung (Kap. 20)
  */
 
 import { createTool } from '@mastra/core/tools';
+import { generateText } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
+import { logInfo, logWarn, createTimer } from '../logging';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -89,6 +98,67 @@ async function fetchInsightsFromGearGraph(
   } catch {
     // Graceful degradation - insights are enrichment, not critical
     return [];
+  }
+}
+
+// =============================================================================
+// Agentic RAG: Query Reformulation
+// =============================================================================
+
+/** Model for query reformulation — Haiku for cost-efficiency */
+const REFORMULATION_MODEL = 'anthropic/claude-haiku-4-5';
+/** Timeout for the reformulation LLM call (ms) */
+const REFORMULATION_TIMEOUT_MS = 3000;
+
+/** Lazy-loaded gateway instance for reformulation calls */
+let reformulationGateway: ReturnType<typeof createGateway> | null = null;
+
+function getReformulationGateway() {
+  if (!reformulationGateway) {
+    const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+    if (!apiKey) return null;
+    reformulationGateway = createGateway({ apiKey });
+  }
+  return reformulationGateway;
+}
+
+/**
+ * Reformulate a search query using a fast LLM call when the original
+ * query returns 0 results. Strips model numbers, specifications, and
+ * volume suffixes to broaden the search.
+ *
+ * Examples:
+ * - "Osprey Exos 58L" → "Osprey Exos"
+ * - "ultralight Isomatte für Winter" → "insulated sleeping pad"
+ * - "MSR PocketRocket Deluxe 2024" → "MSR PocketRocket"
+ *
+ * Returns null if reformulation is unavailable or fails (graceful degradation).
+ */
+async function reformulateQuery(query: string): Promise<string | null> {
+  const gateway = getReformulationGateway();
+  if (!gateway) return null;
+
+  try {
+    const { text } = await Promise.race([
+      generateText({
+        model: gateway(REFORMULATION_MODEL),
+        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name and core product category. If the query is in German, translate key terms to English equivalents. Query: "${query}". Return only the simplified query, nothing else.`,
+        temperature: 0,
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Reformulation timeout')), REFORMULATION_TIMEOUT_MS)
+      ),
+    ]);
+
+    const reformulated = text.trim();
+    // Sanity check: don't accept empty results or results identical to input
+    if (!reformulated || reformulated.toLowerCase() === query.toLowerCase()) {
+      return null;
+    }
+    return reformulated;
+  } catch {
+    // Graceful degradation — reformulation is an optimization, not critical
+    return null;
   }
 }
 
@@ -189,39 +259,72 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
 
       const supabase = createServiceRoleClient();
       const { query, scope, filters, sortBy, limit, offset } = input;
+      const authenticatedUserId: string = userId;
 
-      // Build parallel searches
-      const searches: Promise<{ type: string; data: unknown }>[] = [];
+      // Helper: execute parallel searches for a given query string
+      async function executeSearches(searchQuery: string) {
+        const searches: Promise<{ type: string; data: unknown }>[] = [];
+        if (scope === 'my_gear' || scope === 'all') {
+          searches.push(searchUserGear(supabase, authenticatedUserId, searchQuery, filters, sortBy, limit, offset));
+        }
+        if (scope === 'catalog' || scope === 'all') {
+          searches.push(searchCatalog(supabase, searchQuery, filters, sortBy, limit, offset));
+        }
+        const results = await Promise.allSettled(searches);
 
-      // 1. Search user's gear
-      if (scope === 'my_gear' || scope === 'all') {
-        searches.push(searchUserGear(supabase, userId, query, filters, sortBy, limit, offset));
-      }
-
-      // 2. Search catalog
-      if (scope === 'catalog' || scope === 'all') {
-        searches.push(searchCatalog(supabase, query, filters, sortBy, limit, offset));
-      }
-
-      // Execute in parallel
-      const results = await Promise.allSettled(searches);
-
-      // Parse results
-      let myGear: Array<Record<string, unknown>> = [];
-      let catalogProducts: Array<Record<string, unknown>> = [];
-
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          const { type, data } = result.value;
-          if (type === 'user_gear' && Array.isArray(data)) {
-            myGear = data;
-          } else if (type === 'catalog' && Array.isArray(data)) {
-            catalogProducts = data;
+        let myGear: Array<Record<string, unknown>> = [];
+        let catalogProducts: Array<Record<string, unknown>> = [];
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            const { type, data } = result.value;
+            if (type === 'user_gear' && Array.isArray(data)) {
+              myGear = data;
+            } else if (type === 'catalog' && Array.isArray(data)) {
+              catalogProducts = data;
+            }
           }
         }
+        return { myGear, catalogProducts };
       }
 
-      const totalResults = myGear.length + catalogProducts.length;
+      // 1. Initial search with original query
+      let { myGear, catalogProducts } = await executeSearches(query);
+      let totalResults = myGear.length + catalogProducts.length;
+      let reformulatedQuery: string | null = null;
+
+      // 2. Agentic RAG: Reformulate query and retry if 0 results
+      //    Only attempt reformulation for queries long enough to be worth simplifying
+      if (totalResults === 0 && query.length > 10) {
+        const getElapsed = createTimer();
+        reformulatedQuery = await reformulateQuery(query);
+
+        if (reformulatedQuery) {
+          logInfo('Query reformulated (Agentic RAG)', {
+            metadata: {
+              original: query,
+              reformulated: reformulatedQuery,
+              latencyMs: getElapsed(),
+            },
+          });
+
+          const retryResults = await executeSearches(reformulatedQuery);
+          myGear = retryResults.myGear;
+          catalogProducts = retryResults.catalogProducts;
+          totalResults = myGear.length + catalogProducts.length;
+
+          logInfo('Reformulated search completed', {
+            metadata: {
+              original: query,
+              reformulated: reformulatedQuery,
+              found: totalResults,
+            },
+          });
+        } else {
+          logWarn('Query reformulation returned no alternative', {
+            metadata: { original: query, latencyMs: getElapsed() },
+          });
+        }
+      }
 
       // 3. Fetch GearGraph INSIGHTS for found items (enrichment, non-blocking)
       // Query the (GearItem)-[:HAS_TIP]->(Insight) relationships for expert tips
@@ -233,6 +336,9 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
 
       // Build summary
       const summaryParts: string[] = [];
+      if (reformulatedQuery && totalResults > 0) {
+        summaryParts.push(`No results for "${query}", but found results using simplified search "${reformulatedQuery}"`);
+      }
       if (myGear.length > 0) {
         summaryParts.push(`Found ${myGear.length} matching items in your inventory`);
       }
@@ -243,7 +349,7 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
         summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
       if (totalResults === 0) {
-        summaryParts.push(`No results found for "${query}"`);
+        summaryParts.push(`No results found for "${query}"${reformulatedQuery ? ` (also tried "${reformulatedQuery}")` : ''}`);
       }
 
       return {
