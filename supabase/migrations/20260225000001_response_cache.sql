@@ -31,13 +31,26 @@ USING hnsw (query_embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
 -- Index for TTL cleanup (find expired entries efficiently)
+-- Note: no partial predicate — PostgreSQL evaluates partial index predicates at
+-- row insertion time, not scan time, so `WHERE expires_at < now()` would only
+-- index rows that were already expired when inserted (i.e. never).
 CREATE INDEX IF NOT EXISTS idx_response_cache_expires_at
-ON response_cache (expires_at)
-WHERE expires_at < now();
+ON response_cache (expires_at);
 
--- Index for locale + intent filtering
-CREATE INDEX IF NOT EXISTS idx_response_cache_locale_intent
-ON response_cache (locale, intent_type);
+-- Index for locale + expiry filtering (used together in search_response_cache WHERE clause)
+CREATE INDEX IF NOT EXISTS idx_response_cache_locale_expires_at
+ON response_cache (locale, expires_at);
+
+-- Unique constraint to prevent duplicate entries from concurrent cache stores
+CREATE UNIQUE INDEX IF NOT EXISTS idx_response_cache_dedup
+ON response_cache (query_text, locale, intent_type);
+
+-- Enable Row Level Security — all access must go through SECURITY DEFINER RPC functions
+ALTER TABLE response_cache ENABLE ROW LEVEL SECURITY;
+
+-- Block direct client access; server-side service_role bypasses RLS automatically
+CREATE POLICY no_direct_access ON response_cache
+  FOR ALL USING (false);
 
 -- Comments
 COMMENT ON TABLE response_cache IS
@@ -80,6 +93,8 @@ BEGIN
   WHERE
     -- Only return non-expired entries
     rc.expires_at > now()
+    -- Apply max_age_hours as an additional recency guard (caller controls TTL window)
+    AND rc.created_at > now() - (max_age_hours * interval '1 hour')
     -- Filter by locale
     AND rc.locale = query_locale
     -- Similarity above threshold
@@ -133,6 +148,8 @@ BEGIN
   RETURN deleted_count;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION cleanup_expired_response_cache() TO authenticated;
 
 COMMENT ON FUNCTION cleanup_expired_response_cache IS
   'Removes expired entries from response_cache. Call periodically via pg_cron or application-level scheduler.';

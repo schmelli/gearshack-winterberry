@@ -58,19 +58,11 @@ const CACHEABLE_INTENTS = new Set([
   'gear_comparison',
 ]);
 
-// Lazy gateway instance for embeddings
-let embeddingGateway: ReturnType<typeof createGateway> | null = null;
-
-function getEmbeddingGateway() {
-  if (!embeddingGateway) {
-    const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
-    if (!apiKey) {
-      throw new Error('AI_GATEWAY_API_KEY is required for response cache embeddings');
-    }
-    embeddingGateway = createGateway({ apiKey });
-  }
-  return embeddingGateway;
-}
+// Eagerly-initialized gateway constant — fails fast if the API key is missing
+// (CACHE_ENABLED guards all public functions, so this is only reached when caching is on)
+const embeddingGateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY || '',
+});
 
 // =============================================================================
 // Public API
@@ -114,7 +106,7 @@ export async function getSemanticCacheHit(
     // Search cache via Supabase RPC
     const supabase = await createClient();
     const { data, error } = await supabase.rpc('search_response_cache', {
-      query_embedding: JSON.stringify(queryEmbedding),
+      query_embedding: queryEmbedding,
       similarity_threshold: threshold,
       max_age_hours: CACHE_TTL_HOURS,
       query_locale: locale,
@@ -219,14 +211,14 @@ export async function storeInSemanticCache(
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + CACHE_TTL_HOURS);
 
-    const { error } = await supabase.from('response_cache').insert({
+    const { error } = await supabase.from('response_cache').upsert({
       query_text: query,
-      query_embedding: JSON.stringify(queryEmbedding),
+      query_embedding: queryEmbedding,
       cached_response: response,
       intent_type: intentType,
       locale,
       expires_at: expiresAt.toISOString(),
-    });
+    }, { onConflict: 'query_text,locale,intent_type', ignoreDuplicates: true });
 
     if (error) {
       logError('Failed to store response in cache', new Error(error.message));
@@ -266,13 +258,12 @@ export async function storeInSemanticCache(
  */
 async function generateQueryEmbedding(query: string): Promise<number[] | null> {
   try {
-    const gateway = getEmbeddingGateway();
     const result = await embed({
-      model: gateway.textEmbeddingModel('openai/text-embedding-3-small'),
+      model: embeddingGateway.textEmbeddingModel('openai/text-embedding-3-small'),
       value: query,
     });
 
-    return result.embedding as unknown as number[];
+    return result.embedding;
   } catch (error) {
     logWarn('Failed to generate query embedding for cache', {
       metadata: {

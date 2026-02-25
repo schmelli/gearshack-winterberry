@@ -467,6 +467,18 @@ export const cacheLatencyMs = new Histogram({
   registers: [register],
 });
 
+/**
+ * Cache lookup latency in seconds (mirrors _ms histogram for consistency with
+ * other dual-unit pairs in this file, e.g. mastra_memory_query_latency_ms /
+ * mastra_memory_query_duration_seconds)
+ */
+export const cacheLatencySeconds = new Histogram({
+  name: 'mastra_cache_latency_seconds',
+  help: 'Semantic cache lookup latency in seconds',
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1],
+  registers: [register],
+});
+
 // ==================== Rate Limiting Metrics ====================
 
 /**
@@ -927,8 +939,9 @@ export function recordCacheStore(): void {
 }
 
 /**
- * Records cache lookup latency in milliseconds
+ * Records cache lookup latency in both milliseconds and seconds
  */
 export function recordCacheLatency(latencyMs: number): void {
   cacheLatencyMs.observe(latencyMs);
+  cacheLatencySeconds.observe(latencyMs / 1000);
 }
