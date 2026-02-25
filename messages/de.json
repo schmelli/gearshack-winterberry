@@ -3800,7 +3800,8 @@
     "progress": {
       "memory": "Profil wird geladen...",
       "context": "Ausrüstung wird analysiert...",
-      "thinking": "Antwort wird vorbereitet..."
+      "thinking": "Antwort wird vorbereitet...",
+      "unknown": "Verarbeitung läuft..."
     },
     "ariaLabels": {
       "aiAssistant": "KI-Assistent",
