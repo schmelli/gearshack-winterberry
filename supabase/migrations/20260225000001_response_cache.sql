@@ -69,13 +69,20 @@ COMMENT ON COLUMN response_cache.query_text IS
 CREATE OR REPLACE FUNCTION search_response_cache(
   query_embedding vector(1536),
   similarity_threshold float DEFAULT 0.95,
-  query_locale text DEFAULT 'en'
+  query_locale text DEFAULT 'en',
+  -- Intent type filter — prevents cross-intent cache hits (e.g. a gear_comparison
+  -- response being served for a general_knowledge query on the same topic, where
+  -- the intent-specific framing may differ). Always pass the classified intent.
+  query_intent_type text DEFAULT 'general_knowledge'
 )
 RETURNS TABLE (
   id uuid,
   cached_response text,
   similarity float,
   hit_count integer,
+  -- query_text is truncated to 80 chars before returning to prevent full PII exposure
+  -- to authenticated callers. The full text is stored internally for deduplication
+  -- but is never returned in its entirety via this RPC.
   query_text text
 )
 LANGUAGE plpgsql
@@ -94,7 +101,9 @@ BEGIN
       rc.cached_response,
       (1 - (rc.query_embedding <=> search_response_cache.query_embedding))::float AS similarity,
       rc.hit_count,
-      rc.query_text
+      -- Truncate to 80 chars to limit PII exposure in case of intent misclassification.
+      -- The full query_text is stored for deduplication but never returned here.
+      left(rc.query_text, 80) AS query_text
     FROM response_cache rc
     WHERE
       -- Only return non-expired entries (expires_at is set at insert time as created_at + TTL,
@@ -102,8 +111,11 @@ BEGIN
       -- A separate created_at filter would be redundant for rows inserted with the default TTL
       -- and would shadow any deliberate short-TTL overrides.)
       rc.expires_at > now()
-      -- Filter by locale
+      -- Filter by locale to serve appropriate language responses
       AND rc.locale = query_locale
+      -- Filter by intent type — prevents a gear_comparison answer being returned for
+      -- a general_knowledge query about the same topic (framing may differ by intent)
+      AND rc.intent_type = query_intent_type
   )
   SELECT
     candidates.id,
@@ -118,7 +130,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION search_response_cache(vector, float, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION search_response_cache(vector, float, text, text) TO authenticated;
 
 COMMENT ON FUNCTION search_response_cache IS
   'Searches the response cache for semantically similar questions. Returns the best matching cached response if similarity exceeds threshold and entry is not expired.';

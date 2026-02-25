@@ -49,11 +49,9 @@ const SIMILARITY_THRESHOLD = parseFloat(
   process.env.RESPONSE_CACHE_SIMILARITY_THRESHOLD || '0.95'
 );
 
-/** Cache TTL in hours */
-const CACHE_TTL_HOURS = parseInt(
-  process.env.RESPONSE_CACHE_TTL_HOURS || '48',
-  10
-);
+/** Cache TTL in hours — with NaN guard for invalid env var values */
+const _parsedTtl = parseInt(process.env.RESPONSE_CACHE_TTL_HOURS || '48', 10);
+const CACHE_TTL_HOURS = Number.isNaN(_parsedTtl) || _parsedTtl <= 0 ? 48 : _parsedTtl;
 
 /** Minimum response length to cache (skip very short answers) */
 const MIN_RESPONSE_LENGTH = 50;
@@ -138,6 +136,10 @@ export async function getSemanticCacheHit(
       query_embedding: queryEmbedding,
       similarity_threshold: threshold,
       query_locale: locale,
+      // Pass intent type so the SQL function filters to matching-intent entries only.
+      // Without this, a gear_comparison response could be served for a general_knowledge
+      // query on the same topic (intent-specific framing may differ).
+      query_intent_type: intentType,
     });
 
     const latencyMs = getElapsed();
@@ -291,6 +293,11 @@ export async function storeInSemanticCache(
  * for consistency.
  */
 async function generateQueryEmbedding(query: string): Promise<number[] | null> {
+  // Short-circuit when the API key is absent: the gateway was initialized with an
+  // empty string and the first embed() call would fail with an auth error rather than
+  // a clear message. Returning null here falls through to the LLM path gracefully.
+  if (!_embeddingApiKey) return null;
+
   try {
     const result = await embed({
       model: embeddingGateway.textEmbeddingModel('openai/text-embedding-3-small'),

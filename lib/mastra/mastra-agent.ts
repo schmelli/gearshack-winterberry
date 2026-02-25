@@ -318,22 +318,6 @@ export function createGearAgent(userId: string, systemPrompt: string, queryCompl
 // =============================================================================
 
 /**
- * Persist a cache-hit exchange to Mastra's conversation memory.
- *
- * When a response is served from the semantic cache, `streamMastraResponse`
- * (and therefore `agent.stream()`) is never called, so Mastra's PostgresStore
- * never records the user's message or the cached reply. Without this, the
- * agent loses conversational context for follow-up questions.
- *
- * Fire-and-forget safe: all errors are swallowed and logged, so a failure
- * here never affects the streaming response already sent to the client.
- *
- * @param userId - User ID (Mastra resourceId)
- * @param conversationId - Conversation ID (Mastra threadId)
- * @param userMessage - The user's original question
- * @param cachedResponse - The cached assistant reply that was served
- */
-/**
  * Returns the shared persistence-only Memory instance, creating it on first call.
  *
  * Uses history-only mode (no vector store / embedder) because cache-hit messages
@@ -354,6 +338,22 @@ function getPersistenceMemory(): Memory {
   return persistenceMemoryInstance;
 }
 
+/**
+ * Persist a cache-hit exchange to Mastra's conversation memory.
+ *
+ * When a response is served from the semantic cache, `streamMastraResponse`
+ * (and therefore `agent.stream()`) is never called, so Mastra's PostgresStore
+ * never records the user's message or the cached reply. Without this, the
+ * agent loses conversational context for follow-up questions.
+ *
+ * Fire-and-forget safe: all errors are swallowed and logged, so a failure
+ * here never affects the streaming response already sent to the client.
+ *
+ * @param userId - User ID (Mastra resourceId)
+ * @param conversationId - Conversation ID (Mastra threadId)
+ * @param userMessage - The user's original question
+ * @param cachedResponse - The cached assistant reply that was served
+ */
 export async function persistCacheHitToMemory(
   userId: string,
   conversationId: string,
