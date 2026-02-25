@@ -1,5 +1,4 @@
 name: Claude Code Agent
-
 on:
   issue_comment:
     types: [created]
@@ -9,10 +8,8 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
-
 jobs:
   claude:
-    # Optimierte Bedingung: Prüft erst auf Trigger-Phrasen, um unnötige Checks zu sparen
     if: |
       contains(github.event.comment.body, '@claude') ||
       contains(github.event.review.body, '@claude') ||
@@ -20,55 +17,58 @@ jobs:
       contains(github.event.issue.title, '@claude') ||
       github.event.assignee.login == 'claude-bot'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
-      contents: write       # WICHTIG: Write für Code-Änderungen
-      pull-requests: write  # WICHTIG: Write für PR-Kommentare/Updates
-      issues: write         # WICHTIG: Write für Issue-Antworten
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
       actions: read
       checks: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # WICHTIG: Volle History für besseren Kontext
+          fetch-depth: 0
+
+      - name: Create MCP config file
+        run: |
+          cat > /tmp/mcp-config.json << 'MCPEOF'
+          {
+            "mcpServers": {
+              "sequential-thinking": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+              },
+              "byterover-mcp": {
+                "httpUrl": "https://mcp.byterover.dev/v2/mcp",
+                "headers": {
+                  "Authorization": "Bearer ${{ secrets.BYTEROVER_TOKEN }}"
+                }
+              },
+              "context7": {
+                "type": "http",
+                "url": "https://mcp.context7.com/mcp",
+                "headers": {
+                  "CONTEXT7_API_KEY": "${{ secrets.CONTEXT7_KEY }}"
+                }
+              }
+            }
+          }
+          MCPEOF
 
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          
-          # Modell-Update: Sonnet 3.5 ist Standard für Coding
-          model: "claude-sonnet-4-6"
-          
-          # WICHTIG: Secrets werden hier sicher injiziert.
-          # Stelle sicher, dass du die Secrets BYTEROVER_TOKEN und CONTEXT7_KEY im Repo angelegt hast.
-          mcp_config: |
-            {
-              "mcpServers": {
-                "sequential-thinking": {
-                  "command": "npx",
-                  "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-                },
-                "byterover-mcp": {
-                  "httpUrl": "https://mcp.byterover.dev/v2/mcp",
-                  "headers": {
-                    "Authorization": "Bearer ${{ secrets.BYTEROVER_TOKEN }}"
-                  }
-                },
-                "context7": {
-                  "type": "http",
-                  "url": "https://mcp.context7.com/mcp",
-                  "headers": {
-                    "CONTEXT7_API_KEY": "${{ secrets.CONTEXT7_KEY }}"
-                  }
-                }
-              }
-            }
 
-          # Settings: Erlaubt Tools explizit, um "Permission Denied" Fehler im CI zu vermeiden
+          claude_args: |
+            --model claude-sonnet-4-6
+            --system-prompt "Read CLAUDE.md for core project rules and information regarding the tech stack. CI/CD Context: Assess the specific issues, requests or recommendations described in the comment/issue/review. Think hard to identify the root problem(s). Generate a thorough and detailed plan for implementation of a suitable fix. Only then implement that fix following your plan. If necessary update or generate tests and documentation. Always run relevant tests before committing. If tests fail, fix the code and retry (max 3 times). Output concise summaries of your changes."
+            --mcp-config /tmp/mcp-config.json
+
           settings: |
             {
               "permissions": {
@@ -80,19 +80,3 @@ jobs:
                 ]
               }
             }
-
-          # Hinweis: Du solltest die langen Custom Instructions in eine Datei namens CLAUDE.md
-          # im Root deines Repositories verschieben. Die Action liest diese automatisch.
-          # Falls du sie hier behalten willst, ist das okay, aber CLAUDE.md ist sauberer.
-          # Hier nur ein Verweis oder die wichtigsten CI-spezifischen Anweisungen:
-          custom_instructions: |
-            Read CLAUDE.md for core project rules and information regarding the tech stack.
-            CI/CD Context:
-            - Assess the specific issues, requests or recommendations described in the comment/issue/review.
-            - Think hard to identify the root problem(s).
-            - Generate a thorough and detailed plan for implementation of a suitable fix.
-            - Only then implement that fix following your plan.
-            - If necessary update or generate tests and documentation.
-            - Always run relevant tests before committing.
-            - If tests fail, fix the code and retry (max 3 times).
-            - Output concise summaries of your changes.
