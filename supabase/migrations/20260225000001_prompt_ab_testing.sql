@@ -70,6 +70,19 @@ CREATE INDEX idx_ab_assignments_created
   ON prompt_ab_assignments(created_at DESC);
 
 -- =============================================================================
+-- 2b. Single Active Experiment Constraint
+-- =============================================================================
+
+-- Enforce that only one experiment can be active at a time.
+-- The application logic (prompt-ab.ts) uses LIMIT 1 and documents this constraint;
+-- this index makes it explicit at the DB level and prevents accidental double-activation.
+-- To run a new experiment: first set is_active = false on the current one,
+-- then create/activate the new one.
+CREATE UNIQUE INDEX unique_one_active_experiment
+  ON prompt_ab_experiments (is_active)
+  WHERE is_active = true;
+
+-- =============================================================================
 -- 3. Chat Session Feedback Linking (extends insight_feedback)
 -- =============================================================================
 
@@ -91,12 +104,15 @@ CREATE INDEX IF NOT EXISTS idx_insight_feedback_variant
 ALTER TABLE prompt_ab_experiments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prompt_ab_assignments ENABLE ROW LEVEL SECURITY;
 
--- Experiments: readable by all authenticated users, writable by service role only
-CREATE POLICY "Authenticated users can read experiments"
-  ON prompt_ab_experiments
-  FOR SELECT
-  TO authenticated
-  USING (true);
+-- Experiments: NO direct read access for regular authenticated users.
+-- Experiment details (variant IDs, suffix text, traffic percentages) must NOT be
+-- visible to participants — exposing them defeats experiment blinding.
+-- All access is mediated server-side via API routes that use the service role client.
+--
+-- NOTE: The previously considered "Authenticated users can read experiments" policy
+-- is intentionally omitted.  Adding it would allow any authenticated user to query
+-- prompt_ab_experiments directly (e.g. via Supabase client) and discover which
+-- variant they are in, invalidating the blind assignment.
 
 -- Assignments: users can read their own assignments
 CREATE POLICY "Users can read own assignments"

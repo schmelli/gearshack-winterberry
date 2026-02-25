@@ -708,6 +708,8 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
+              queryComplexity: intentResult.queryComplexity,
+              intent: intentResult.intent,
               ...(variantResolution?.isInExperiment && {
                 promptVariant: variantResolution.variantId,
                 promptExperiment: variantResolution.experimentName,

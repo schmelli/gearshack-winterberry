@@ -110,4 +110,10 @@ export interface ExperimentAnalytics {
   is_significant: boolean;
   /** Total sample size across all variants */
   total_feedback_count: number;
+  /**
+   * True when is_significant=false is due to insufficient data (< 30 feedbacks)
+   * rather than a genuine lack of difference between variants.
+   * Helps callers show "not enough data yet" vs "no significant difference found".
+   */
+  sample_size_too_small: boolean;
 }

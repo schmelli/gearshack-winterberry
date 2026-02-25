@@ -164,6 +164,11 @@ export async function GET(request: NextRequest) {
       const expMeta = experimentLookup.get(name);
       const totalFeedback = variants.reduce((sum, v) => sum + v.total_feedbacks, 0);
 
+      // True when we can't determine significance due to insufficient data
+      // (< 30 feedbacks). Helps callers distinguish "not yet significant" from
+      // "genuinely no difference detected".
+      const sampleSizeTooSmall = totalFeedback < 30;
+
       results.push({
         experiment: {
           name,
@@ -174,6 +179,7 @@ export async function GET(request: NextRequest) {
         variants,
         is_significant: isStatisticallySignificant(variants),
         total_feedback_count: totalFeedback,
+        sample_size_too_small: sampleSizeTooSmall,
       });
     }
 
