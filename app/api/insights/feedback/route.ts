@@ -25,6 +25,10 @@ const feedbackSchema = z.object({
   gearBrand: z.string().max(100).optional(),
   gearName: z.string().max(200).optional(),
   categoryId: z.string().max(100).optional(),
+  /** A/B test variant ID (e.g., "A", "B") for prompt experiment tracking */
+  promptVariant: z.string().max(10).optional(),
+  /** A/B test experiment name for correlation */
+  experimentName: z.string().max(100).optional(),
 });
 
 // =============================================================================
@@ -62,8 +66,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId } =
-      parseResult.data;
+    const {
+      insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId,
+      promptVariant, experimentName,
+    } = parseResult.data;
 
     const contentHash = hashContent(insightContent);
 
@@ -80,6 +86,8 @@ export async function POST(request: NextRequest) {
           gear_brand: gearBrand || null,
           gear_name: gearName || null,
           category_id: categoryId || null,
+          prompt_variant: promptVariant || null,
+          experiment_name: experimentName || null,
         },
         {
           onConflict: 'user_id,insight_content_hash',

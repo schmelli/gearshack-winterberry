@@ -50,10 +50,15 @@ import {
   recordChatError,
   recordToolCall,
   classifyQuery,
+  recordPromptVariantAssignment,
+  recordPromptVariantLatency,
 } from '@/lib/mastra/metrics';
-import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
+import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
+import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { VariantResolution } from '@/types/prompt-ab';
 import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
@@ -492,6 +497,47 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
+          // --- A/B Test: Resolve prompt variant for this user ---
+          let variantResolution: VariantResolution | null = null;
+          try {
+            const serviceClient = createServiceRoleClient();
+            const userLocale = (context?.locale as string) || 'en';
+            variantResolution = await resolveVariant(user.id, userLocale, serviceClient);
+
+            if (variantResolution?.isInExperiment) {
+              // Track variant in OTel span attributes
+              addSpanAttributes({
+                'prompt.variant': variantResolution.variantId,
+                'prompt.experiment': variantResolution.experimentName,
+                'user.id': user.id,
+              });
+
+              logDebug('A/B variant assigned', {
+                userId: user.id,
+                metadata: {
+                  experiment: variantResolution.experimentName,
+                  variant: variantResolution.variantId,
+                },
+              });
+
+              // Record Prometheus metrics
+              recordPromptVariantAssignment(
+                variantResolution.experimentName,
+                variantResolution.variantId
+              );
+
+              // Log assignment non-blocking
+              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch(() => {
+                // Intentionally swallowed — non-critical
+              });
+            }
+          } catch {
+            // Graceful degradation: proceed without A/B variant
+            logWarn('A/B variant resolution failed, proceeding without variant', {
+              userId: user.id,
+            });
+          }
+
           // Build system prompt with memory context, loadout context, and parsed query constraints
           const { promptContext, loadoutContext } = await buildPromptContext(
             context,
@@ -499,6 +545,12 @@ export async function POST(request: Request): Promise<Response> {
             undefined, // subscriptionTier
             parsedQuery,
           );
+
+          // Inject A/B test suffix into prompt context if variant assigned
+          if (variantResolution?.isInExperiment && variantResolution.promptSuffix) {
+            promptContext.abTestSuffix = variantResolution.promptSuffix;
+          }
+
           const systemPrompt = buildMastraSystemPrompt(promptContext);
 
           // Inject pre-fetched context into system prompt
@@ -626,6 +678,15 @@ export async function POST(request: Request): Promise<Response> {
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
+          // Record A/B variant latency (for comparing variant performance)
+          if (variantResolution?.isInExperiment) {
+            recordPromptVariantLatency(
+              variantResolution.experimentName,
+              variantResolution.variantId,
+              totalLatencyMs / 1000
+            );
+          }
+
           // Send completion event
           controller.enqueue(
             encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
@@ -637,6 +698,10 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
+              ...(variantResolution?.isInExperiment && {
+                promptVariant: variantResolution.variantId,
+                promptExperiment: variantResolution.experimentName,
+              }),
             },
           });
 
