@@ -25,11 +25,34 @@ import { createClient } from '@/lib/supabase/server';
 const VALID_PERIODS = ['7d', '30d', 'all'] as const;
 type Period = (typeof VALID_PERIODS)[number];
 
+const VALID_STATUSES = ['open', 'catalog_added', 'dismissed', 'duplicate', 'all'] as const;
+type StatusFilter = (typeof VALID_STATUSES)[number];
+
 const updateGapSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(['open', 'catalog_added', 'dismissed', 'duplicate']),
-  note: z.string().optional(),
+  // max(2000) prevents multi-MB resolution notes from being stored
+  note: z.string().max(2000).optional(),
 });
+
+// =============================================================================
+// Typed row shape for catalog_gaps results
+// (catalog_gaps is a new table not yet in generated Supabase types)
+// =============================================================================
+
+interface CatalogGapRow {
+  id: string;
+  query: string;
+  category_hint: string | null;
+  scope: string | null;
+  filters_used: Record<string, unknown>;
+  occurrence_count: number;
+  unique_users: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  status: string;
+  resolution_note: string | null;
+}
 
 // =============================================================================
 // Admin role verification helper (eliminates duplication across GET and PATCH)
@@ -94,7 +117,12 @@ export async function GET(request: NextRequest) {
       ? (rawPeriod as Period)
       : '7d';
 
-    const statusFilter = searchParams.get('status') ?? 'open';
+    // Validate statusFilter against known values; invalid values fall back to 'open'
+    const rawStatus = searchParams.get('status') ?? 'open';
+    const statusFilter: StatusFilter = (VALID_STATUSES as ReadonlyArray<string>).includes(rawStatus)
+      ? (rawStatus as StatusFilter)
+      : 'open';
+
     const limitParam = parseInt(searchParams.get('limit') ?? '20', 10);
     const limit = Math.min(Math.max(limitParam, 1), 100);
     const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
@@ -119,12 +147,15 @@ export async function GET(request: NextRequest) {
       .from('catalog_gaps')
       .select('*', { count: 'exact', head: true });
 
+    // Hoist sinceISO so it can be passed to the summary RPC for period alignment
+    let sinceISO: string | null = null;
+
     // Apply period filter
     if (period !== 'all') {
       const days = period === '30d' ? 30 : 7;
       const since = new Date();
       since.setDate(since.getDate() - days);
-      const sinceISO = since.toISOString();
+      sinceISO = since.toISOString();
       itemsQuery = itemsQuery.gte('last_seen_at', sinceISO);
       countQuery = countQuery.gte('last_seen_at', sinceISO);
     }
@@ -135,11 +166,13 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('status', statusFilter);
     }
 
-    // Execute items, total count, and open-gap summary in parallel
+    // Execute items, total count, and open-gap summary in parallel.
+    // Pass sinceISO to the summary RPC so it matches the period filter applied
+    // to the items list (otherwise summary would always show all-time totals).
     const [itemsResult, countResult, summaryResult] = await Promise.all([
       itemsQuery,
       countQuery,
-      db.rpc('get_catalog_gap_summary').single(),
+      db.rpc('get_catalog_gap_summary', { p_since_date: sinceISO }).single(),
     ]);
 
     if (itemsResult.error) {
@@ -158,6 +191,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (summaryResult.error) {
+      // Non-fatal: log the error but continue with zeroed summary rather than
+      // failing the whole request — items + pagination data are still useful.
+      console.error('[Admin Catalog Gaps] Summary RPC error:', summaryResult.error);
+    }
+
     const totalMatchingCount = (countResult.count as number) ?? 0;
     const totalPages = Math.ceil(totalMatchingCount / limit);
     const summaryRow = summaryResult.data as {
@@ -166,7 +205,7 @@ export async function GET(request: NextRequest) {
     } | null;
 
     return NextResponse.json({
-      gaps: ((itemsResult.data || []) as Record<string, unknown>[]).map(
+      gaps: ((itemsResult.data || []) as CatalogGapRow[]).map(
         (row) => ({
           id: row.id,
           query: row.query,
@@ -233,16 +272,23 @@ export async function PATCH(request: NextRequest) {
 
     const { id, status: newStatus, note } = parseResult.data;
 
+    // Build the update object. resolution_note is only included when the caller
+    // explicitly provides it — omitting it preserves the existing note in the DB.
+    // Using `note ?? null` would wipe the note whenever it's not in the request body.
+    const updatePayload: Record<string, unknown> = {
+      status: newStatus,
+      resolved_at: newStatus !== 'open' ? new Date().toISOString() : null,
+      resolved_by: newStatus !== 'open' ? userId : null,
+    };
+    if (note !== undefined) {
+      updatePayload.resolution_note = note;
+    }
+
     // catalog_gaps is a new table not yet in the generated Supabase types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('catalog_gaps')
-      .update({
-        status: newStatus,
-        resolved_at: newStatus !== 'open' ? new Date().toISOString() : null,
-        resolved_by: newStatus !== 'open' ? userId : null,
-        resolution_note: note ?? null,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select('id, query, status')
       .maybeSingle();

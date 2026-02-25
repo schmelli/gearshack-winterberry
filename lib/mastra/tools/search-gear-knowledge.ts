@@ -238,12 +238,16 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
           'search.is_catalog_gap': true,
         });
 
-        // Structured logging to catalog_gaps table (fire-and-forget)
+        // Structured logging to catalog_gaps table (fire-and-forget).
+        // Query is truncated to 500 chars to align with the DB CHECK constraint
+        // and prevent unbounded storage from long AI-generated queries.
+        // Filters are shallow-cloned via spread — all values are JSON-safe
+        // (strings/numbers/enums from Zod schema), so no round-trip needed.
         logCatalogGap(supabase, {
-          query,
+          query: query.length > 500 ? query.slice(0, 500) : query,
           scope,
           categoryHint: filters?.category || null,
-          filters: filters ? JSON.parse(JSON.stringify(filters)) : {},
+          filters: filters ? { ...filters } : {},
           userId,
         }).catch((err) => {
           console.error('[searchGearKnowledge] Failed to log catalog gap:', err);

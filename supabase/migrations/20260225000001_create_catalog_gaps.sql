@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS catalog_gaps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Search query that yielded no results
-  query TEXT NOT NULL,
+  query TEXT NOT NULL CHECK (char_length(query) <= 500),
   query_normalized TEXT GENERATED ALWAYS AS (lower(trim(query))) STORED,
 
   -- Context from the search
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS catalog_gaps (
   -- Admin workflow
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'catalog_added', 'dismissed', 'duplicate')),
   resolved_at TIMESTAMPTZ,
-  resolved_by UUID REFERENCES profiles(id),
+  resolved_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   resolution_note TEXT,
 
   -- Unique constraint on normalized query for UPSERT
@@ -54,7 +54,9 @@ COMMENT ON COLUMN catalog_gaps.unique_users IS 'Count of distinct users who trig
 CREATE INDEX idx_catalog_gaps_status ON catalog_gaps(status);
 CREATE INDEX idx_catalog_gaps_count ON catalog_gaps(occurrence_count DESC);
 CREATE INDEX idx_catalog_gaps_recent ON catalog_gaps(last_seen_at DESC);
-CREATE INDEX idx_catalog_gaps_normalized ON catalog_gaps(query_normalized);
+-- NOTE: No explicit index on query_normalized — the UNIQUE(query_normalized) constraint
+-- already creates a btree index on that column. A duplicate index would waste storage
+-- and add overhead on every write.
 CREATE INDEX idx_catalog_gaps_first_seen ON catalog_gaps(first_seen_at DESC);
 
 -- =============================================================================
@@ -124,9 +126,12 @@ BEGIN
     last_seen_at = now(),
     -- Track unique users via array containment check to prevent overcounting.
     -- Without this, sequential searches A→B→A would count 3 unique users instead of 2.
+    -- The array is capped at 100 entries to bound storage growth for popular gaps;
+    -- beyond that we still increment unique_users via the count (approximate).
     user_ids = CASE
       WHEN p_user_id IS NOT NULL
         AND NOT (p_user_id = ANY(COALESCE(catalog_gaps.user_ids, '{}'::UUID[])))
+        AND array_length(COALESCE(catalog_gaps.user_ids, '{}'::UUID[]), 1) < 100
       THEN array_append(COALESCE(catalog_gaps.user_ids, '{}'::UUID[]), p_user_id)
       ELSE COALESCE(catalog_gaps.user_ids, '{}'::UUID[])
     END,
@@ -153,12 +158,20 @@ $$;
 
 COMMENT ON FUNCTION upsert_catalog_gap IS 'Inserts or updates a catalog gap entry, incrementing occurrence count and accurately tracking unique users via array containment check';
 
+-- Restrict direct RPC execution of upsert_catalog_gap to the service_role only.
+-- The function uses SECURITY DEFINER, so any authenticated user who can call it
+-- via PostgREST would bypass RLS and pollute the catalog_gaps table.
+-- Mastra tools use createServiceRoleClient() which has service_role grants.
+REVOKE EXECUTE ON FUNCTION upsert_catalog_gap FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION upsert_catalog_gap FROM authenticated;
+GRANT EXECUTE ON FUNCTION upsert_catalog_gap TO service_role;
+
 -- =============================================================================
 -- Aggregation function for admin summary stats (used by admin API to avoid
 -- fetching all rows and summing client-side)
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION get_catalog_gap_summary()
+CREATE OR REPLACE FUNCTION get_catalog_gap_summary(p_since_date TIMESTAMPTZ DEFAULT NULL)
 RETURNS TABLE(total_open_gaps BIGINT, total_searches_missed BIGINT)
 LANGUAGE sql
 -- No SECURITY DEFINER: runs under caller's RLS context.
@@ -171,16 +184,22 @@ AS $$
     COUNT(*)::BIGINT AS total_open_gaps,
     COALESCE(SUM(occurrence_count), 0)::BIGINT AS total_searches_missed
   FROM catalog_gaps
-  WHERE status = 'open';
+  WHERE status = 'open'
+    AND (p_since_date IS NULL OR last_seen_at >= p_since_date);
 $$;
 
-COMMENT ON FUNCTION get_catalog_gap_summary IS 'Returns aggregate stats for open catalog gaps: total count and total occurrences missed. Used by the admin API to avoid client-side aggregation.';
+COMMENT ON FUNCTION get_catalog_gap_summary IS 'Returns aggregate stats for open catalog gaps: total count and total occurrences missed. Accepts optional p_since_date to align summary with the period filter used in the admin API list query. Used to avoid client-side aggregation.';
 
 -- =============================================================================
 -- Convenience view: Weekly catalog gap report (top 20)
 -- =============================================================================
 
-CREATE OR REPLACE VIEW catalog_gaps_weekly_report AS
+-- security_invoker = true ensures the view runs under the caller's RLS context,
+-- not the view creator's. Without this, any authenticated user who knows the view
+-- name could bypass the admin_catalog_gaps_select RLS policy (views created by
+-- the postgres role execute as the definer, which has BYPASSRLS).
+-- Requires PostgreSQL 15+ (Supabase supports this).
+CREATE OR REPLACE VIEW catalog_gaps_weekly_report WITH (security_invoker = true) AS
 SELECT
   query,
   category_hint,
@@ -196,4 +215,4 @@ WHERE last_seen_at > now() - interval '7 days'
 ORDER BY occurrence_count DESC
 LIMIT 20;
 
-COMMENT ON VIEW catalog_gaps_weekly_report IS 'Weekly report of top 20 unresolved catalog gaps by search frequency';
+COMMENT ON VIEW catalog_gaps_weekly_report IS 'Weekly report of top 20 unresolved catalog gaps by search frequency. Uses security_invoker to respect RLS policies.';
