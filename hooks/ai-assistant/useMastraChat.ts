@@ -34,6 +34,17 @@ import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgress
 export type ChatState = 'idle' | 'loading' | 'streaming' | 'success' | 'error';
 
 /**
+ * A single workflow step with its current status.
+ * The backend emits 'running' for each step; we infer 'completed'
+ * when the next step starts or when text content begins streaming.
+ */
+export interface WorkflowStep {
+  step: string;
+  status: 'running' | 'completed' | 'failed';
+  message: string;
+}
+
+/**
  * Message structure for Mastra chat
  */
 export interface MastraMessage {
@@ -98,6 +109,8 @@ export interface UseMastraChatResult {
   abort: () => void;
   /** Current workflow progress message (shown during pipeline phases) */
   progressMessage: string | null;
+  /** Granular workflow step tracking with per-step status */
+  workflowSteps: WorkflowStep[];
 }
 
 // =====================================================
@@ -120,6 +133,7 @@ export function useMastraChat(): UseMastraChatResult {
   const [state, setState] = useState<ChatState>('idle');
   const [error, setError] = useState<ChatError | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   // Initialize conversationId from localStorage
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -213,6 +227,7 @@ export function useMastraChat(): UseMastraChatResult {
       abortControllerRef.current = null;
       setState('idle');
       setProgressMessage(null);
+      setWorkflowSteps([]);
       logAIEvent('info', 'Chat request aborted by user');
     }
   }, []);
@@ -265,6 +280,7 @@ export function useMastraChat(): UseMastraChatResult {
       // Clear previous error and progress
       setError(null);
       setProgressMessage(null);
+      setWorkflowSteps([]);
 
       // Transition to loading state
       setState('loading');
@@ -389,6 +405,12 @@ export function useMastraChat(): UseMastraChatResult {
             (text) => {
               // Clear progress message once actual content starts flowing
               setProgressMessage(null);
+              // Mark all running steps as completed when text content arrives
+              setWorkflowSteps(prev =>
+                prev.length > 0 && prev.some(s => s.status === 'running')
+                  ? prev.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s)
+                  : prev
+              );
               fullContent += text;
               textUpdateBuffer += text;
 
@@ -425,8 +447,21 @@ export function useMastraChat(): UseMastraChatResult {
                 )
               );
             },
-            (progress) => {
+            (progress, progressData) => {
               setProgressMessage(progress);
+              // Track granular step status: mark previous running steps as completed
+              if (progressData) {
+                setWorkflowSteps(prev => {
+                  const updated = prev.map(s =>
+                    s.status === 'running' ? { ...s, status: 'completed' as const } : s
+                  );
+                  return [...updated, {
+                    step: progressData.step,
+                    status: progressData.status === 'failed' ? 'failed' as const : 'running' as const,
+                    message: progressData.message,
+                  }];
+                });
+              }
             }
           );
         }
@@ -442,6 +477,7 @@ export function useMastraChat(): UseMastraChatResult {
 
         // Transition to success state
         setProgressMessage(null);
+        setWorkflowSteps([]);
         setState('success');
 
         logAIEvent('info', 'Mastra chat response completed', {
@@ -562,6 +598,7 @@ export function useMastraChat(): UseMastraChatResult {
     conversationId,
     abort,
     progressMessage,
+    workflowSteps,
   };
 }
 
@@ -578,7 +615,7 @@ async function processStreamEvent(
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
   onMemoryUpdate: (update: MemoryUpdate) => void,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string, data?: WorkflowProgressData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -596,7 +633,7 @@ async function processStreamEvent(
     case 'workflow_progress':
       if (typeof event.data === 'object' && 'message' in event.data) {
         const progressData = event.data as WorkflowProgressData;
-        onProgress?.(progressData.message);
+        onProgress?.(progressData.message, progressData);
       }
       break;
 

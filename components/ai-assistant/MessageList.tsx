@@ -12,8 +12,10 @@
 
 import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
+import { WorkflowProgress } from './WorkflowProgress';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { WorkflowStep } from '@/hooks/ai-assistant/useMastraChat';
 
 interface InlineCard {
   id: string;
@@ -38,6 +40,8 @@ interface MessageListProps {
   isPlayingAudio?: boolean;
   /** Current workflow progress message from the AI pipeline */
   progressMessage?: string | null;
+  /** Granular workflow steps with per-step status */
+  workflowSteps?: WorkflowStep[];
 }
 
 export function MessageList({
@@ -47,6 +51,7 @@ export function MessageList({
   onSpeakMessage,
   isPlayingAudio = false,
   progressMessage = null,
+  workflowSteps = [],
 }: MessageListProps) {
   const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -126,11 +131,15 @@ export function MessageList({
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div className="flex max-w-[75%] flex-col items-start gap-2">
-                  <div className="rounded-2xl bg-muted px-4 py-2 text-foreground">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>{progressMessage || t('thinking')}</span>
-                    </div>
+                  <div className="rounded-2xl bg-muted px-4 py-3 text-foreground">
+                    {workflowSteps.length > 0 ? (
+                      <WorkflowProgress steps={workflowSteps} />
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>{progressMessage || t('thinking')}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
