@@ -110,19 +110,36 @@ function createStudioMemory(): Memory | undefined {
     return undefined;
   }
 
+  // Attempt to build a full three-tier Memory (storage + vector + working memory).
+  // If the AI gateway key is missing, fall back to storage + working memory only
+  // so that Studio still runs when DATABASE_URL is set but the gateway is not
+  // configured (e.g. a developer working against a local Postgres instance).
+  let embedder: ReturnType<ReturnType<typeof createGateway>['textEmbeddingModel']> | undefined;
+  try {
+    embedder = getGateway().textEmbeddingModel(
+      process.env.AI_EMBEDDING_MODEL || 'openai/text-embedding-3-small',
+    );
+  } catch {
+    console.warn(
+      '[Mastra Studio] AI_GATEWAY_API_KEY not set — semantic recall disabled. ' +
+        'Set it in .env.local for full three-tier memory support.',
+    );
+  }
+
   return new Memory({
     storage: getStudioPgStore(),
-    vector: getStudioPgVector(),
-    embedder: getGateway().textEmbeddingModel(
-      process.env.AI_EMBEDDING_MODEL || 'openai/text-embedding-3-small',
-    ),
+    ...(embedder ? { vector: getStudioPgVector(), embedder } : {}),
     options: {
       lastMessages: 20,
-      semanticRecall: {
-        topK: 5,
-        messageRange: 2,
-        threshold: 0.7,
-      },
+      ...(embedder
+        ? {
+            semanticRecall: {
+              topK: 5,
+              messageRange: 2,
+              threshold: 0.7,
+            },
+          }
+        : {}),
       workingMemory: {
         enabled: true,
         schema: GearshackUserProfileSchema,
@@ -143,6 +160,15 @@ function createStudioMemory(): Memory | undefined {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExecutableTool = { execute?: (args: any, context: any) => Promise<any> };
 
+/**
+ * Wraps a tool's execute function to inject STUDIO_USER_ID into the requestContext
+ * when it is not already set, enabling user-scoped tools to work in Studio.
+ *
+ * The object spread `{ ...tool }` is safe here because all Mastra tools produced
+ * by `createTool()` are plain objects — their methods live as own enumerable
+ * properties, not on a prototype chain. Class-based tools are not used in this
+ * codebase, so no prototype methods are at risk of being silently dropped.
+ */
 function withStudioContext<T extends ExecutableTool>(tool: T): T {
   if (!tool.execute || !STUDIO_USER_ID) return tool;
 
@@ -210,7 +236,7 @@ Respond in English by default. If the user writes in German, switch to German.`;
 // vars are not set (e.g., during Next.js build or unrelated test imports).
 // ---------------------------------------------------------------------------
 
-let _gearAssistant: Agent | null = null;
+let gearAssistantInstance: Agent | null = null;
 
 /**
  * Returns the Gear Assistant agent for Mastra Studio.
@@ -220,10 +246,15 @@ let _gearAssistant: Agent | null = null;
  *
  * Uses a distinct id ('gear-assistant-studio') from the production agent
  * ('gear-assistant') for clearer tracing and log attribution.
+ *
+ * inputProcessors (ToolCallFilter + TokenLimiter) are intentionally omitted:
+ * - Studio traces benefit from seeing full tool outputs without filtering
+ * - Sessions are short-lived, so context window exhaustion is not a concern
+ * - Production agents in lib/mastra/mastra-agent.ts still apply both processors
  */
 export function getGearAssistant(): Agent {
-  if (!_gearAssistant) {
-    _gearAssistant = new Agent({
+  if (!gearAssistantInstance) {
+    gearAssistantInstance = new Agent({
       id: 'gear-assistant-studio',
       name: 'Gear Assistant (Studio)',
       instructions: STUDIO_SYSTEM_PROMPT,
@@ -248,5 +279,5 @@ export function getGearAssistant(): Agent {
       },
     });
   }
-  return _gearAssistant;
+  return gearAssistantInstance;
 }

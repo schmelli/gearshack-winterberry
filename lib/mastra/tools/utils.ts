@@ -8,7 +8,10 @@
  *
  * In production, userId is injected by `streamMastraResponse` via `requestContext`.
  * In Mastra Studio (local dev), no requestContext is set — fall back to the
- * MASTRA_DEV_USER_ID environment variable so tools function during Studio sessions.
+ * MASTRA_STUDIO_USER_ID environment variable so tools function during Studio sessions.
+ *
+ * The fallback is guarded by NODE_ENV to ensure it is never active in production,
+ * preventing accidental identity adoption if the env var is misconfigured.
  *
  * @param executionContext - Mastra tool execution context
  * @returns userId string or null if not authenticated
@@ -17,8 +20,11 @@ export function extractUserId(executionContext: unknown): string | null {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
   const userId = requestContext?.get('userId') as string | undefined;
-  // Studio fallback: MASTRA_DEV_USER_ID is never set in production, only .env.local
-  return userId || process.env.MASTRA_DEV_USER_ID || null;
+  // Studio fallback: only active outside production to prevent accidental identity
+  // adoption if MASTRA_STUDIO_USER_ID is ever set in a production environment.
+  const studioFallback =
+    process.env.NODE_ENV !== 'production' ? (process.env.MASTRA_STUDIO_USER_ID ?? null) : null;
+  return userId || studioFallback || null;
 }
 
 /**
