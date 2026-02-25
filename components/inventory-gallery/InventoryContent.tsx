@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Plus, Heart, Link2 } from 'lucide-react';
+import { Plus, Heart, Link2, Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
@@ -19,6 +19,7 @@ import { GalleryToolbar } from '@/components/inventory-gallery/GalleryToolbar';
 import { WishlistToggle } from '@/components/wishlist/WishlistToggle';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { UrlImportDialog } from '@/components/gear-editor/UrlImportDialog';
+import { VisionScanDialog } from '@/components/vision-scan/VisionScanDialog';
 import { Announcement } from '@/components/ui/visually-hidden';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
@@ -129,6 +130,7 @@ export function InventoryContent({
 }: InventoryContentProps) {
   const t = useTranslations('Inventory');
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [visionScanOpen, setVisionScanOpen] = useState(false);
 
   // Handler for view change announcements
   const handleViewChangeAnnouncement = useCallback(
@@ -167,6 +169,15 @@ export function InventoryContent({
           onViewChangeAnnouncement={handleViewChangeAnnouncement}
         />
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setVisionScanOpen(true)}
+          >
+            <Camera className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('visionScan')}</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -287,6 +298,12 @@ export function InventoryContent({
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         mode={viewMode}
+      />
+
+      {/* Vision Scan Dialog */}
+      <VisionScanDialog
+        open={visionScanOpen}
+        onOpenChange={setVisionScanOpen}
       />
     </main>
   );

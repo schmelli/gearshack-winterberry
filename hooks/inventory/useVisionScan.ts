@@ -1,0 +1,310 @@
+/**
+ * useVisionScan Hook
+ *
+ * Feature: Image-to-Inventory via Vision
+ *
+ * Business logic for AI-powered gear detection from photos.
+ * State machine: idle → uploading → analyzing → matching → review → importing → success/error
+ */
+
+'use client';
+
+import { useState, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
+import type {
+  VisionScanState,
+  VisionScanStatus,
+  CatalogMatchResult,
+  VisionScanResponse,
+} from '@/types/vision-scan';
+import type { GearCondition } from '@/types/gear';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface UseVisionScanOptions {
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
+  onImportComplete?: (count: number) => void;
+}
+
+export interface UseVisionScanReturn {
+  state: VisionScanState;
+  scanImage: (file: File) => Promise<void>;
+  toggleItem: (index: number) => void;
+  selectAll: () => void;
+  deselectAll: () => void;
+  importSelected: (userId: string) => Promise<void>;
+  reset: () => void;
+}
+
+// =============================================================================
+// Initial State
+// =============================================================================
+
+const INITIAL_STATE: VisionScanState = {
+  status: 'idle',
+  results: [],
+  selectedIndices: new Set(),
+  error: null,
+  importedCount: 0,
+};
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function mapVisionConditionToGear(
+  condition: 'new' | 'good' | 'fair' | 'poor' | null
+): GearCondition {
+  switch (condition) {
+    case 'new':
+      return 'new';
+    case 'good':
+    case 'fair':
+      return 'used';
+    case 'poor':
+      return 'worn';
+    default:
+      return 'used';
+  }
+}
+
+// =============================================================================
+// Hook Implementation
+// =============================================================================
+
+export function useVisionScan({
+  t,
+  onImportComplete,
+}: UseVisionScanOptions): UseVisionScanReturn {
+  const [state, setState] = useState<VisionScanState>(INITIAL_STATE);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const setStatus = useCallback((status: VisionScanStatus) => {
+    setState((prev) => ({ ...prev, status }));
+  }, []);
+
+  // =========================================================================
+  // Scan Image
+  // =========================================================================
+
+  const scanImage = useCallback(
+    async (file: File) => {
+      // Abort any in-flight request
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setState({
+        status: 'uploading',
+        results: [],
+        selectedIndices: new Set(),
+        error: null,
+        importedCount: 0,
+      });
+
+      try {
+        // Move to analyzing state after upload starts
+        setStatus('analyzing');
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('/api/vision/scan', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorData = (await response.json()) as VisionScanResponse;
+          throw new Error(errorData.error || `Scan failed (${response.status})`);
+        }
+
+        const data = (await response.json()) as VisionScanResponse;
+
+        if (!data.success) {
+          throw new Error(data.error || 'Scan failed');
+        }
+
+        if (data.items.length === 0) {
+          setState({
+            status: 'review',
+            results: [],
+            selectedIndices: new Set(),
+            error: null,
+            importedCount: 0,
+          });
+          toast.info(t('noItemsDetected'));
+          return;
+        }
+
+        // Pre-select all items with confidence >= 0.5
+        const selectedIndices = new Set<number>();
+        data.items.forEach((item, index) => {
+          if (item.detected.confidence >= 0.5) {
+            selectedIndices.add(index);
+          }
+        });
+
+        setState({
+          status: 'review',
+          results: data.items,
+          selectedIndices,
+          error: null,
+          importedCount: 0,
+        });
+
+        toast.success(
+          t('itemsDetected', { count: data.items.length })
+        );
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return; // Cancelled, don't update state
+        }
+
+        const message =
+          error instanceof Error ? error.message : 'Failed to scan image';
+        setState((prev) => ({
+          ...prev,
+          status: 'error',
+          error: message,
+        }));
+        toast.error(t('scanFailed'), { description: message });
+      }
+    },
+    [t, setStatus]
+  );
+
+  // =========================================================================
+  // Selection Controls
+  // =========================================================================
+
+  const toggleItem = useCallback((index: number) => {
+    setState((prev) => {
+      const next = new Set(prev.selectedIndices);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return { ...prev, selectedIndices: next };
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      selectedIndices: new Set(prev.results.map((_, i) => i)),
+    }));
+  }, []);
+
+  const deselectAll = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      selectedIndices: new Set(),
+    }));
+  }, []);
+
+  // =========================================================================
+  // Import Selected Items
+  // =========================================================================
+
+  const importSelected = useCallback(
+    async (userId: string) => {
+      const selectedItems: CatalogMatchResult[] = [];
+      state.results.forEach((item, index) => {
+        if (state.selectedIndices.has(index)) {
+          selectedItems.push(item);
+        }
+      });
+
+      if (selectedItems.length === 0) {
+        toast.warning(t('noItemsSelected'));
+        return;
+      }
+
+      setStatus('importing');
+
+      try {
+        const supabase = createClient();
+        let importedCount = 0;
+
+        for (const item of selectedItems) {
+          const catalogMatch = item.catalogMatch;
+          const detected = item.detected;
+
+          const insertData: Record<string, unknown> = {
+            user_id: userId,
+            name: catalogMatch?.productName || detected.name,
+            brand: catalogMatch?.brandName || detected.brand,
+            weight_grams:
+              catalogMatch?.weightGrams || detected.estimatedWeightGrams,
+            product_type_id: catalogMatch?.productTypeId || null,
+            condition: mapVisionConditionToGear(detected.condition),
+            status: 'own',
+          };
+
+          const { error } = await supabase
+            .from('gear_items')
+            .insert(insertData);
+
+          if (error) {
+            console.error(
+              `[VisionScan] Failed to import "${detected.name}":`,
+              error
+            );
+            continue;
+          }
+
+          importedCount++;
+        }
+
+        setState((prev) => ({
+          ...prev,
+          status: 'success',
+          importedCount,
+        }));
+
+        toast.success(
+          t('importSuccess', { count: importedCount })
+        );
+
+        onImportComplete?.(importedCount);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'Import failed';
+        setState((prev) => ({
+          ...prev,
+          status: 'error',
+          error: message,
+        }));
+        toast.error(t('importFailed'), { description: message });
+      }
+    },
+    [state.results, state.selectedIndices, t, setStatus, onImportComplete]
+  );
+
+  // =========================================================================
+  // Reset
+  // =========================================================================
+
+  const reset = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setState(INITIAL_STATE);
+  }, []);
+
+  return {
+    state,
+    scanImage,
+    toggleItem,
+    selectAll,
+    deselectAll,
+    importSelected,
+    reset,
+  };
+}
+
+export default useVisionScan;
