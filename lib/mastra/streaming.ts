@@ -224,8 +224,7 @@ export function encodeErrorEvent(message: string, code?: string): string {
 
 /**
  * Encode a confirm_action event for SSE transmission.
- * Sent when a workflow suspends and requires user confirmation before continuing
- * (e.g. the addToLoadout suspend/resume pattern).
+ * Sent when a workflow suspends and needs user confirmation.
  *
  * @param confirmation - Confirmation data with runId, message, and details
  * @returns Encoded SSE confirm_action event
@@ -352,7 +351,6 @@ function encodeMastraChatEvent(
       return encodeWorkflowProgressEvent(event.step, 'running', event.message);
 
     case 'confirm_action':
-      // Suspend/resume: forward the confirmation request to the client
       return encodeConfirmActionEvent(event.confirmation);
 
     case 'done':
