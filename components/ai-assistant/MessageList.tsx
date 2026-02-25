@@ -56,10 +56,15 @@ export function MessageList({
   const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages or workflow step updates
+  // Auto-scroll to bottom on new messages or workflow step updates.
+  // Only scrolls if the user is already near the bottom (within 150px) to avoid
+  // interrupting users who have scrolled up to read previous messages.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom <= 150) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages, workflowSteps]);
 

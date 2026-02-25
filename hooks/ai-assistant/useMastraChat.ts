@@ -35,9 +35,6 @@ import type { WorkflowStep } from '@/types/ai-assistant';
  */
 export type ChatState = 'idle' | 'loading' | 'streaming' | 'success' | 'error';
 
-// WorkflowStep is defined in @/types/ai-assistant and re-exported for consumers
-export type { WorkflowStep } from '@/types/ai-assistant';
-
 /**
  * Message structure for Mastra chat
  */
@@ -624,7 +621,7 @@ function completeRunningSteps(steps: WorkflowStep[]): WorkflowStep[] {
 const WorkflowProgressDataSchema = z.object({
   step: z.string(),
   status: z.enum(['pending', 'running', 'completed', 'failed']),
-  message: z.string(),
+  message: z.string().optional(),
 });
 type ValidatedProgressData = z.infer<typeof WorkflowProgressDataSchema>;
 

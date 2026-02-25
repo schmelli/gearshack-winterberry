@@ -10,8 +10,10 @@
 
 /**
  * A single workflow step with its current status.
- * The backend emits 'running' for each step; we infer 'completed'
- * when the next step starts or when text content begins streaming.
+ * - 'pending': Reserved for future use (queued steps not yet started).
+ * - 'running': Actively being processed (emitted by backend).
+ * - 'completed': Inferred by the hook when the next step starts or text begins streaming.
+ * - 'failed': Terminal failure (emitted by backend).
  */
 export interface WorkflowStep {
   step: string;

@@ -22,7 +22,11 @@ const STEP_EMOJIS: Record<string, string> = {
   thinking: '🧠',
 };
 
-/** Map step statuses to icon elements */
+/**
+ * Map step statuses to icon elements.
+ * 'pending' is reserved for future use (e.g., showing queued steps before they start).
+ * The backend currently only emits 'running' and 'failed'; 'completed' is inferred by the hook.
+ */
 const STATUS_ICONS: Record<WorkflowStep['status'], ReactElement> = {
   pending: <Loader2 className="h-3 w-3 shrink-0 text-muted-foreground" />,
   running: <Loader2 className="h-3 w-3 shrink-0 animate-spin text-amber-500" />,
@@ -48,8 +52,8 @@ export function WorkflowProgress({ steps }: WorkflowProgressProps) {
 
   return (
     <div className="space-y-1.5 text-xs text-muted-foreground">
-      {steps.map((s, i) => (
-        <div key={`${s.step}-${i}`} className="flex items-center gap-2">
+      {steps.map((s) => (
+        <div key={s.step} className="flex items-center gap-2">
           {STATUS_ICONS[s.status]}
           <span>
             {STEP_EMOJIS[s.step] ?? '⚙️'} {stepLabels[s.step] ?? t('progress.unknown')}
