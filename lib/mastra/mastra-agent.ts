@@ -109,8 +109,15 @@ function getPgVector(): PgVector {
         'Settings > Database > Connection string (URI)'
       );
     }
+    // Include dimensions in the id so each embedding model gets its own internal
+    // Mastra vector table. Without this, switching from openai/text-embedding-3-small
+    // (1536d) to cohere/embed-multilingual-v3.0 (1024d) would cause a dimension
+    // mismatch error when Mastra tries to insert 1024-dim vectors into the table
+    // previously created for 1536-dim vectors.
+    //   openai/text-embedding-3-small  → gearshack-memory-vector-1536d
+    //   cohere/embed-multilingual-v3.0 → gearshack-memory-vector-1024d
     pgVectorInstance = new PgVector({
-      id: 'gearshack-memory-vector',
+      id: `gearshack-memory-vector-${getEmbeddingDimensions()}d`,
       connectionString: DATABASE_URL,
     });
   }
