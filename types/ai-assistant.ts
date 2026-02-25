@@ -84,26 +84,13 @@ export type Action =
   | CompareAction
   | NavigateAction;
 
-// NOTE: ConfirmAddToLoadoutAction is defined below but is NOT included in the
-// Action union — the UI uses ConfirmActionData (types/mastra.ts) and the
-// ConfirmAddToLoadout component instead of the generic Action renderer.
+// NOTE: AI confirmation prompts (add-to-loadout) use ConfirmActionData from
+// types/mastra.ts and the ConfirmAddToLoadout component — not an Action type.
 
 export interface AddToWishlistAction {
   type: 'add_to_wishlist';
   gearItemId: string;
   status: 'pending' | 'completed' | 'failed';
-  error: string | null;
-}
-
-export interface ConfirmAddToLoadoutAction {
-  type: 'confirm_add_to_loadout';
-  runId: string;
-  gearItemId: string;
-  gearItemName: string;
-  loadoutId: string;
-  loadoutName: string;
-  message: string;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
   error: string | null;
 }
 

@@ -14,10 +14,12 @@ import { User, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { InlineGearCard } from './InlineGearCard';
 import { ActionButtons } from './ActionButtons';
+import { ConfirmAddToLoadout } from './ConfirmAddToLoadout';
 import { InlinePlayButton } from './AudioPlaybackControls';
 import { useChatActions } from '@/hooks/ai-assistant/useChatActions';
 import { formatDistanceToNow } from 'date-fns';
 import type { Action } from '@/types/ai-assistant';
+import type { ConfirmActionData } from '@/types/mastra';
 
 interface InlineCard {
   id: string;
@@ -39,6 +41,10 @@ interface MessageBubbleProps {
   onSpeak?: () => void;
   /** Whether audio is currently playing */
   isPlayingAudio?: boolean;
+  /** Pending confirmations for suspend/resume pattern */
+  pendingConfirmations?: ConfirmActionData[];
+  /** Callback to resolve a pending confirmation */
+  onResolveConfirmation?: (runId: string, approved: boolean) => Promise<void>;
 }
 
 export function MessageBubble({
@@ -46,6 +52,8 @@ export function MessageBubble({
   isStreaming = false,
   onSpeak,
   isPlayingAudio = false,
+  pendingConfirmations,
+  onResolveConfirmation,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const { executeAction, isExecuting } = useChatActions();
@@ -129,6 +137,19 @@ export function MessageBubble({
           <div className="space-y-2">
             {message.inline_cards.map((card, index) => (
               <InlineGearCard key={card.id || index} gearId={card.id} />
+            ))}
+          </div>
+        )}
+
+        {/* Pending Confirmations (Suspend/Resume Pattern) */}
+        {!isUser && pendingConfirmations && pendingConfirmations.length > 0 && onResolveConfirmation && (
+          <div className="space-y-2">
+            {pendingConfirmations.map((conf) => (
+              <ConfirmAddToLoadout
+                key={conf.runId}
+                confirmation={conf}
+                onResolve={onResolveConfirmation}
+              />
             ))}
           </div>
         )}

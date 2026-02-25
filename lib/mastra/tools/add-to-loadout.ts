@@ -82,11 +82,21 @@ const addToLoadoutOutputSchema = z.object({
 });
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Canonical tool name. Import this constant in `app/api/mastra/chat/route.ts`
+ * for the `confirm_action` detection check to avoid silent breakage on rename.
+ */
+export const ADD_TO_LOADOUT_TOOL_NAME = 'addToLoadout' as const;
+
+// =============================================================================
 // Tool Definition
 // =============================================================================
 
 export const addToLoadoutTool = createTool({
-  id: 'addToLoadout',
+  id: ADD_TO_LOADOUT_TOOL_NAME,
 
   description: `Add a gear item to a user's loadout.
 

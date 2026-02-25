@@ -66,6 +66,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
     conversationId,
     resetConversation,
     progressMessage,
+    resolveConfirmation,
   } = useMastraChat();
 
   // Voice output hook for TTS
@@ -85,6 +86,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
     content: msg.content,
     created_at: msg.createdAt,
     inline_cards: msg.toolCalls?.map((tc) => ({ id: tc.toolName, ...tc })),
+    pendingConfirmations: msg.pendingConfirmations,
   }));
 
   // Auto-play TTS for new assistant messages when voice is enabled
@@ -210,6 +212,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
           onSpeakMessage={voiceEnabled ? speak : undefined}
           isPlayingAudio={isPlaying}
           progressMessage={progressMessage}
+          onResolveConfirmation={resolveConfirmation}
         />
 
         {/* Chat Input */}

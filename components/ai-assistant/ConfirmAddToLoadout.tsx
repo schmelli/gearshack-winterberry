@@ -40,9 +40,10 @@ export function ConfirmAddToLoadout({
     try {
       await onResolve(confirmation.runId, true);
       setStatus('resolved');
-    } catch (err) {
+    } catch {
+      // Always show a localised error — raw server error messages must not surface to users
       setStatus('pending');
-      toast.error(err instanceof Error ? err.message : t('confirmAction.errorApprove'));
+      toast.error(t('confirmAction.errorApprove'));
     }
   };
 
@@ -51,9 +52,10 @@ export function ConfirmAddToLoadout({
     try {
       await onResolve(confirmation.runId, false);
       setStatus('resolved');
-    } catch (err) {
+    } catch {
+      // Always show a localised error — raw server error messages must not surface to users
       setStatus('pending');
-      toast.error(err instanceof Error ? err.message : t('confirmAction.errorCancel'));
+      toast.error(t('confirmAction.errorCancel'));
     }
   };
 

@@ -5426,6 +5426,56 @@ export type Database = {
           },
         ]
       }
+      /**
+       * Pending confirmations for human-in-the-loop workflow suspension.
+       * Accessed via service role client only — no anon/authenticated RLS policies
+       * are defined intentionally. The resume API authenticates via Supabase Auth
+       * and uses the service role for atomic operations.
+       *
+       * @see lib/mastra/workflows/pending-confirmations.ts
+       * @see app/api/mastra/workflows/add-gear/resume/route.ts
+       */
+      pending_confirmations: {
+        Row: {
+          run_id: string
+          user_id: string
+          suspended_step: string
+          message: string
+          payload: Json
+          created_at: string
+          expires_at: string
+          status: 'pending' | 'approved' | 'cancelled' | 'expired'
+        }
+        Insert: {
+          run_id?: string
+          user_id: string
+          suspended_step: string
+          message: string
+          payload: Json
+          created_at?: string
+          expires_at: string
+          status?: 'pending' | 'approved' | 'cancelled' | 'expired'
+        }
+        Update: {
+          run_id?: string
+          user_id?: string
+          suspended_step?: string
+          message?: string
+          payload?: Json
+          created_at?: string
+          expires_at?: string
+          status?: 'pending' | 'approved' | 'cancelled' | 'expired'
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_confirmations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_contributions: {
         Row: {
           brand_name: string | null

@@ -571,8 +571,9 @@ export function useMastraChat(): UseMastraChatResult {
         const result = await response.json();
 
         if (!response.ok) {
-          // Throw so callers can keep the confirmation card visible/retryable
-          throw new Error(result.error || t('confirmAction.errorApprove'));
+          // Always throw a localised error — raw server messages must not reach the UI.
+          // The component's catch block will show an error toast.
+          throw new Error(t('confirmAction.errorApprove'));
         }
 
         // Remove the resolved confirmation from message state so the card unmounts
@@ -600,7 +601,8 @@ export function useMastraChat(): UseMastraChatResult {
             loadoutName: result.details?.loadoutName ?? '',
           }));
         } else {
-          throw new Error(result.error || t('confirmAction.errorApprove'));
+          // Unexpected result shape — throw localised error so the card stays visible
+          throw new Error(t('confirmAction.errorApprove'));
         }
       } catch (err) {
         // Re-throw so the ConfirmAddToLoadout component can show an error toast

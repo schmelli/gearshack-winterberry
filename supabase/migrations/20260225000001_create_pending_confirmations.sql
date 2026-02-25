@@ -23,8 +23,16 @@ CREATE INDEX IF NOT EXISTS idx_pending_confirmations_user_status
 CREATE INDEX IF NOT EXISTS idx_pending_confirmations_expires_at
   ON pending_confirmations (expires_at);
 
--- RLS is enabled; only service role key is used for this table
--- (all application code uses createServiceRoleClient which bypasses RLS)
+-- RLS is enabled but NO anon/authenticated policies are defined for this table.
+-- This is intentional: ALL application code uses createServiceRoleClient() which
+-- bypasses RLS entirely. Defining policies would be misleading — the security
+-- boundary is the server-side authentication check in the resume API endpoint,
+-- not Postgres row-level policies.
+--
+-- If you ever need to access this table from client-side code, add explicit policies
+-- and remove the service role usage in pending-confirmations.ts.
+COMMENT ON TABLE pending_confirmations IS
+  'Service-role access only. No anon/authenticated RLS policies — intentional design.';
 ALTER TABLE pending_confirmations ENABLE ROW LEVEL SECURITY;
 
 -- Periodic cleanup: mark expired rows as 'expired'

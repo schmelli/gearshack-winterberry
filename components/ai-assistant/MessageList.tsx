@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ConfirmActionData } from '@/types/mastra';
 
 interface InlineCard {
   id: string;
@@ -25,6 +26,7 @@ interface Message {
   content: string;
   created_at: string;
   inline_cards?: InlineCard[];
+  pendingConfirmations?: ConfirmActionData[];
 }
 
 interface MessageListProps {
@@ -38,6 +40,8 @@ interface MessageListProps {
   isPlayingAudio?: boolean;
   /** Current workflow progress message from the AI pipeline */
   progressMessage?: string | null;
+  /** Callback to resolve a pending confirmation (suspend/resume pattern) */
+  onResolveConfirmation?: (runId: string, approved: boolean) => Promise<void>;
 }
 
 export function MessageList({
@@ -47,6 +51,7 @@ export function MessageList({
   onSpeakMessage,
   isPlayingAudio = false,
   progressMessage = null,
+  onResolveConfirmation,
 }: MessageListProps) {
   const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -111,6 +116,8 @@ export function MessageList({
               isStreaming={showStreamingIndicator}
               onSpeak={isAssistantMessage && onSpeakMessage ? () => onSpeakMessage(message.content) : undefined}
               isPlayingAudio={isPlayingAudio}
+              pendingConfirmations={message.pendingConfirmations}
+              onResolveConfirmation={onResolveConfirmation}
             />
           );
         })}

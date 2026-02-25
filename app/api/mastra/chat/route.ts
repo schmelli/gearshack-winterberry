@@ -78,6 +78,7 @@ import {
 } from '@/lib/ai-assistant/query-parser';
 import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
 import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
+import { ADD_TO_LOADOUT_TOOL_NAME } from '@/lib/mastra/tools/add-to-loadout';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -651,8 +652,9 @@ export async function POST(request: Request): Promise<Response> {
 
               // Detect addToLoadout tool results that require user confirmation
               // (Suspend/Resume pattern for human-in-the-loop write safety)
+              // Uses ADD_TO_LOADOUT_TOOL_NAME constant to prevent silent breakage on rename.
               if (
-                (tc.toolName === 'addToLoadout' || tc.name === 'addToLoadout') &&
+                (tc.toolName === ADD_TO_LOADOUT_TOOL_NAME || tc.name === ADD_TO_LOADOUT_TOOL_NAME) &&
                 isConfirmableResult(tc.result)
               ) {
                 const confirmData: ConfirmActionData = {
