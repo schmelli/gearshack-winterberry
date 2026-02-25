@@ -40,7 +40,8 @@ interface UseRepliesReturn {
   loadReplies: (postId: string) => Promise<void>;
   createReply: (
     input: CreateReplyInput,
-    authorInfo: { name: string; avatar: string | null }
+    authorInfo: { name: string; avatar: string | null },
+    parentPostContent?: string
   ) => Promise<BulletinReplyWithAuthor | null>;
   updateReply: (replyId: string, content: string) => Promise<BulletinReply | null>;
   deleteReply: (replyId: string) => Promise<boolean>;
@@ -95,7 +96,8 @@ export function useReplies(): UseRepliesReturn {
   const createReply = useCallback(
     async (
       input: CreateReplyInput,
-      authorInfo: { name: string; avatar: string | null }
+      authorInfo: { name: string; avatar: string | null },
+      parentPostContent?: string
     ): Promise<BulletinReplyWithAuthor | null> => {
       setOperationState('loading');
       setError(null);
@@ -120,6 +122,7 @@ export function useReplies(): UseRepliesReturn {
           content: reply.content,
           author_name: authorInfo.name,
           author_id: reply.author_id,
+          parent_post_content: parentPostContent,
           created_at: reply.created_at,
         });
 

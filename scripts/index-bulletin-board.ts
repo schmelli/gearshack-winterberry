@@ -20,10 +20,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { embed, embedMany } from 'ai';
+import { embedMany } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import fs from 'fs';
 import path from 'path';
+import { extractBrandNames, extractGearNames } from '../lib/community-rag/chunker';
 
 // --- Zero-Dependency Env Loader (same pattern as seed-ontology.ts) ---
 function loadEnv(filename: string) {
@@ -79,38 +80,6 @@ const args = process.argv.slice(2);
 const forceReindex = args.includes('--force');
 const postsOnly = args.includes('--posts-only');
 const repliesOnly = args.includes('--replies-only');
-
-// ============================================================================
-// Known Brands (for metadata extraction)
-// ============================================================================
-
-const KNOWN_BRANDS = [
-  'Therm-a-Rest', 'NeoAir', 'MSR', 'Jetboil', 'Big Agnes', 'Nemo',
-  'Hilleberg', 'Zpacks', 'Gossamer Gear', 'ULA', 'Granite Gear',
-  'Osprey', 'Gregory', 'Deuter', 'Arc\'teryx', 'Patagonia',
-  'Mountain Hardwear', 'Sea to Summit', 'Exped', 'Western Mountaineering',
-  'Enlightened Equipment', 'Katabatic', 'Tarptent', 'Six Moon Designs',
-  'Black Diamond', 'Petzl', 'Salomon', 'La Sportiva', 'Scarpa',
-  'Merrell', 'Altra', 'Sawyer', 'Katadyn', 'Garmin', 'Suunto',
-  'Toaks', 'Snow Peak', 'Soto', 'Cumulus', 'Rab', 'Montbell',
-  'Klymit', 'Hyperlite Mountain Gear', 'Feathered Friends',
-];
-
-function extractBrands(text: string): string[] {
-  const lower = text.toLowerCase();
-  return KNOWN_BRANDS.filter(b => lower.includes(b.toLowerCase()));
-}
-
-function extractGearNames(text: string): string[] {
-  const pattern = /(?:^|\s)([A-Z][a-zA-Z]*(?:\s+[A-Z][a-zA-Z0-9]*){1,3})(?:\s|[.,;!?]|$)/g;
-  const names: string[] = [];
-  let match;
-  while ((match = pattern.exec(text)) !== null) {
-    const candidate = match[1].trim();
-    if (candidate.length > 3) names.push(candidate);
-  }
-  return [...new Set(names)].slice(0, 10);
-}
 
 // ============================================================================
 // Indexing Functions
@@ -186,7 +155,7 @@ async function indexPosts(): Promise<{ indexed: number; skipped: number; failed:
       author_id: post.author_id,
       tags: post.tag ? [post.tag] : [],
       gear_names: extractGearNames(post.content as string),
-      brand_names: extractBrands(post.content as string),
+      brand_names: extractBrandNames(post.content as string),
       source_created_at: post.created_at,
     });
   }
@@ -242,10 +211,11 @@ async function indexReplies(): Promise<{ indexed: number; skipped: number; faile
 
   const existingIds = await getExistingSourceIds('bulletin_reply');
 
-  // Fetch replies with their parent post content for context
+  // Fetch replies with their parent post content for context (exclude soft-deleted)
   const { data: replies, error } = await supabase
     .from('v_bulletin_replies_with_author')
     .select('id, post_id, content, author_id, author_name, created_at')
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -308,7 +278,7 @@ async function indexReplies(): Promise<{ indexed: number; skipped: number; faile
       author_id: reply.author_id,
       tags: [],
       gear_names: extractGearNames(reply.content as string),
-      brand_names: extractBrands(reply.content as string),
+      brand_names: extractBrandNames(reply.content as string),
       source_created_at: reply.created_at,
     });
   }

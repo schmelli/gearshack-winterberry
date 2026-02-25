@@ -9,6 +9,8 @@
 
 import { embed, embedMany } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 import type { CommunityChunk, IndexingResult } from './types';
 import { COMMUNITY_RAG_CONFIG } from './types';
 
@@ -85,8 +87,7 @@ export async function generateChunkEmbeddings(
  * @returns Indexing result with success/failure counts
  */
 export async function upsertChunksWithEmbeddings(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   chunks: CommunityChunk[],
   embeddings: number[][]
 ): Promise<IndexingResult> {
@@ -147,8 +148,7 @@ export async function upsertChunksWithEmbeddings(
  * Delete all chunks for a given source (e.g., when a post is deleted).
  */
 export async function deleteChunksForSource(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   sourceType: string,
   sourceId: string
 ): Promise<void> {

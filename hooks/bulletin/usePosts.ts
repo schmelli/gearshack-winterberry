@@ -124,6 +124,7 @@ export function usePosts(): UsePostsReturn {
           source_id: post.id,
           content: post.content,
           tag: post.tag,
+          author_id: post.author_id,
         });
 
         setOperationState('success');

@@ -23,8 +23,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
   buildPostChunks,
   buildReplyChunks,
@@ -82,12 +81,30 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Handle upsert
-    const { content, tag, author_name, author_id, parent_post_content, created_at } = body;
+    const { content, tag, author_name, parent_post_content, created_at } = body;
 
     if (!content || typeof content !== 'string' || content.length < 20) {
       return NextResponse.json(
         { error: 'Content must be at least 20 characters for indexing' },
         { status: 400 }
+      );
+    }
+
+    // Verify ownership: the authenticated user must be the author of the source record.
+    // This prevents a malicious user from overwriting embeddings for content they don't own.
+    const ownershipTable =
+      source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
+    const { data: sourceRecord, error: ownerError } = await supabase
+      .from(ownershipTable)
+      .select('id, author_id')
+      .eq('id', source_id)
+      .eq('author_id', user.id)
+      .single();
+
+    if (ownerError || !sourceRecord) {
+      return NextResponse.json(
+        { error: 'Forbidden: you are not the author of this content' },
+        { status: 403 }
       );
     }
 
@@ -99,17 +116,23 @@ export async function POST(request: Request): Promise<Response> {
         id: source_id,
         content,
         tag: tag || null,
-        author_id: author_id || user.id,
+        author_id: user.id,
         created_at: created_at || new Date().toISOString(),
         author_name: author_name || undefined,
       };
       chunks = buildPostChunks(post);
     } else {
+      if (!body.post_id || typeof body.post_id !== 'string') {
+        return NextResponse.json(
+          { error_code: 'MISSING_OR_INVALID_POST_ID' },
+          { status: 400 }
+        );
+      }
       const reply: BulletinReplyForIndexing = {
         id: source_id,
-        post_id: body.post_id || '',
+        post_id: body.post_id,
         content,
-        author_id: author_id || user.id,
+        author_id: user.id,
         created_at: created_at || new Date().toISOString(),
         author_name: author_name || undefined,
       };
