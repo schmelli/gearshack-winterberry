@@ -49,3 +49,7 @@ export {
   type GearshackListenOptions,
   type ExtendedTranscriptionResult,
 } from './voice/mastra-voice-adapter';
+
+// NOTE: Eval APIs are intentionally NOT exported from this root index.
+// They are CI/server-only tooling and should not enter the client bundle.
+// Import directly: import { ... } from '@/lib/mastra/evals'
