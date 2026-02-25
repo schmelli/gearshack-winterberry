@@ -38,11 +38,6 @@ import {
 } from './schemas/working-memory';
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
-// Mastra Voice adapter (ElevenLabs via Mastra's abstraction layer)
-import {
-  GearshackElevenLabsVoice,
-  type GearshackVoiceConfig,
-} from './voice/mastra-voice-adapter';
 
 // =============================================================================
 // Environment Configuration
@@ -246,14 +241,14 @@ function selectModel(queryComplexity?: QueryComplexity) {
 }
 
 /**
- * Create Mastra Agent with three-tier memory, tools, voice, and input processors
+ * Create Mastra Agent with three-tier memory, tools, and input processors
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
  *
- * Voice integration via Mastra's MastraVoice abstraction enables
- * provider-independent TTS/STT. Use agent.getVoice() to access
- * speak(), listen(), and getSpeakers() methods.
+ * Voice (TTS/STT) is handled independently by the dedicated voice API routes
+ * (/api/mastra/voice/synthesize and /api/mastra/voice/transcribe) via Mastra's
+ * MastraVoice abstraction — it does not need to be attached to the agent.
  *
  * Input Processors (applied to memory-injected messages before LLM call):
  * 1. ToolCallFilter: Strips verbose tool call/result pairs from history
@@ -264,29 +259,17 @@ function selectModel(queryComplexity?: QueryComplexity) {
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
  * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
- * @param voiceConfig - Optional voice configuration (language, voice, model)
  */
 export function createGearAgent(
   userId: string,
   systemPrompt: string,
-  queryComplexity?: QueryComplexity,
-  voiceConfig?: GearshackVoiceConfig
+  queryComplexity?: QueryComplexity
 ) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
 
   const { model: selectedModel, modelId } = selectModel(queryComplexity);
-
-  // Mastra Voice pipeline: ElevenLabs via MastraVoice abstraction
-  // Enables provider switching without changing API routes
-  const voice = new GearshackElevenLabsVoice({
-    defaultVoice: voiceConfig?.defaultVoice ?? 'rachel',
-    defaultModel: voiceConfig?.defaultModel ?? 'eleven_turbo_v2_5',
-    language: voiceConfig?.language ?? 'auto',
-    stability: voiceConfig?.stability,
-    similarityBoost: voiceConfig?.similarityBoost,
-  });
 
   const agent = new Agent({
     id: 'gear-assistant',
@@ -295,7 +278,6 @@ export function createGearAgent(
     model: selectedModel,
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
-    voice,
     tools: {
       // Composite Domain Tools (Feature 060: preferred for most queries)
       analyzeLoadout: analyzeLoadoutTool,
@@ -316,7 +298,7 @@ export function createGearAgent(
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, voice: ElevenLabs/${voiceConfig?.defaultVoice ?? 'rachel'}, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
+    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
