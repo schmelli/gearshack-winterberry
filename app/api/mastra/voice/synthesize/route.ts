@@ -16,7 +16,7 @@
 
 import { Readable } from 'node:stream';
 import { createClient } from '@/lib/supabase/server';
-import { getContentType, VOICE_IDS, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
+import { getContentType, isCacheablePhrase, getCachedAudio, VOICE_IDS, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
 import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
@@ -115,14 +115,15 @@ function validateRequest(body: unknown): {
 /**
  * POST /api/mastra/voice/synthesize
  *
- * Synthesize speech from text using OpenAI TTS.
+ * Synthesize speech from text using ElevenLabs TTS via the Mastra Voice adapter.
  *
  * Request:
- *   - text: Text to synthesize (required, max 4096 chars)
- *   - voice: Voice to use (optional, default: 'nova')
- *   - model: Model to use (optional, default: 'tts-1')
- *   - format: Output format (optional, default: 'mp3')
- *   - speed: Playback speed 0.25-4.0 (optional, default: 1.0)
+ *   - text: Text to synthesize (required, max 5000 chars)
+ *   - voice: ElevenLabs voice name (optional, default: 'rachel')
+ *   - model: ElevenLabs model (optional, default: 'eleven_turbo_v2_5')
+ *   - format: Audio format (optional, default: 'mp3_44100_128')
+ *   - stability: Voice stability 0.0–1.0 (optional, default: 0.5)
+ *   - similarityBoost: Similarity boost 0.0–1.0 (optional, default: 0.75)
  *   - stream: Enable streaming (optional, default: true)
  *
  * Response:
@@ -222,7 +223,11 @@ export async function POST(request: Request): Promise<Response> {
     const voiceAdapter = getVoiceInstance();
 
     if (stream) {
-      // Streaming response via Mastra Voice speak() — handles caching internally
+      // Determine cache status BEFORE calling speak() so we can set X-Cache accurately.
+      // speak() itself also checks the cache; this in-memory double-check is negligible.
+      const isCached = isCacheablePhrase(text) && getCachedAudio(text, voice, format) !== null;
+
+      // Streaming response via Mastra Voice speak() — cache reads handled internally
       const audioStream = await voiceAdapter.speak(text, {
         speaker: voice,
         model,
@@ -240,7 +245,7 @@ export async function POST(request: Request): Promise<Response> {
           'Content-Type': getContentType(format),
           'Transfer-Encoding': 'chunked',
           'Cache-Control': 'no-cache',
-          'X-Cache': 'MISS',
+          'X-Cache': isCached ? 'HIT' : 'MISS',
         },
       });
     } else {
@@ -253,12 +258,16 @@ export async function POST(request: Request): Promise<Response> {
         similarityBoost,
       });
 
+      // durationMs === 0 signals a cache hit (see speakBuffered JSDoc)
+      const isCached = result.durationMs === 0;
+
       logInfo('Voice synthesis completed', {
         userId: user.id,
         metadata: {
           textLength: text.length,
           audioSize: result.audio.length,
           durationMs: result.durationMs,
+          cacheHit: isCached,
         },
       });
 
@@ -268,7 +277,7 @@ export async function POST(request: Request): Promise<Response> {
         headers: {
           'Content-Type': result.contentType,
           'Content-Length': String(result.audio.length),
-          'X-Cache': 'MISS',
+          'X-Cache': isCached ? 'HIT' : 'MISS',
           'Cache-Control': 'private, max-age=3600',
         },
       });

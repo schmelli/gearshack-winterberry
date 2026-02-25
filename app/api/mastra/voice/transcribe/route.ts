@@ -43,17 +43,18 @@ interface TranscriptionResponse {
 /**
  * POST /api/mastra/voice/transcribe
  *
- * Transcribe audio to text using OpenAI Whisper.
+ * Transcribe audio to text using ElevenLabs STT via the Mastra Voice adapter.
  *
  * Request:
  *   - Content-Type: multipart/form-data
- *   - audio: Audio file (webm, mp3, wav, etc.)
+ *   - audio: Audio file (webm, mp3, wav, m4a, ogg, flac — max 25MB)
  *   - language (optional): Language hint ('en', 'de', 'auto')
  *
  * Response:
- *   - 200: Transcription result with confidence
- *   - 400: Invalid request (missing audio)
+ *   - 200: Transcription result with confidence score and retry suggestion
+ *   - 400: Invalid request (missing audio or unsupported format)
  *   - 401: Unauthorized
+ *   - 413: File too large (> 25MB)
  *   - 429: Rate limit exceeded
  *   - 500: Transcription failed
  */
@@ -268,14 +269,14 @@ export async function POST(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+    // Log the full error internally but never expose raw provider error messages
+    // to the client (could leak auth status, rate limit details, model names, etc.)
     logError('Transcription endpoint error', error instanceof Error ? error : undefined);
 
     return new Response(
       JSON.stringify({
         error: 'Transcription failed',
-        message: errorMessage,
+        message: 'Unable to transcribe audio. Please try again later.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

@@ -81,6 +81,23 @@ export interface ExtendedTranscriptionResult extends TranscriptionResult {
 }
 
 // ============================================================================
+// Default configuration values (single source of truth)
+// ============================================================================
+
+/**
+ * Default voice adapter configuration.
+ * Used by the constructor to avoid duplicating defaults across multiple places.
+ */
+const DEFAULT_VOICE_CONFIG = {
+  defaultVoice: 'rachel' as TTSVoice,
+  defaultModel: 'eleven_turbo_v2_5' as TTSModel,
+  defaultFormat: 'mp3_44100_128' as TTSFormat,
+  language: 'auto' as TranscriptionLanguage,
+  stability: 0.5,
+  similarityBoost: 0.75,
+} as const;
+
+// ============================================================================
 // Resolved config type (all fields required with defaults applied)
 // ============================================================================
 
@@ -139,23 +156,23 @@ export class GearshackElevenLabsVoice extends MastraVoice {
     }
     super({
       speechModel: {
-        name: config.defaultModel ?? 'eleven_turbo_v2_5',
+        name: config.defaultModel ?? DEFAULT_VOICE_CONFIG.defaultModel,
         apiKey,
       },
       listeningModel: {
         name: 'elevenlabs-stt',
         apiKey,
       },
-      speaker: config.defaultVoice ?? 'rachel',
+      speaker: config.defaultVoice ?? DEFAULT_VOICE_CONFIG.defaultVoice,
     });
 
     this.voiceConfig = {
-      defaultVoice: config.defaultVoice ?? 'rachel',
-      defaultModel: config.defaultModel ?? 'eleven_turbo_v2_5',
-      defaultFormat: config.defaultFormat ?? 'mp3_44100_128',
-      language: config.language ?? 'auto',
-      stability: config.stability ?? 0.5,
-      similarityBoost: config.similarityBoost ?? 0.75,
+      defaultVoice: config.defaultVoice ?? DEFAULT_VOICE_CONFIG.defaultVoice,
+      defaultModel: config.defaultModel ?? DEFAULT_VOICE_CONFIG.defaultModel,
+      defaultFormat: config.defaultFormat ?? DEFAULT_VOICE_CONFIG.defaultFormat,
+      language: config.language ?? DEFAULT_VOICE_CONFIG.language,
+      stability: config.stability ?? DEFAULT_VOICE_CONFIG.stability,
+      similarityBoost: config.similarityBoost ?? DEFAULT_VOICE_CONFIG.similarityBoost,
     };
   }
 
@@ -209,6 +226,9 @@ export class GearshackElevenLabsVoice extends MastraVoice {
     }
 
     // Synthesize via ElevenLabs streaming API
+    // Note: streaming responses are NOT written back to cache on a miss.
+    // Buffering the stream to cache it would defeat streaming's latency benefit.
+    // Use speakBuffered() if cache population on first synthesis is required.
     const webStream = await synthesizeSpeechStream(text, {
       voice,
       model,
@@ -328,6 +348,7 @@ export class GearshackElevenLabsVoice extends MastraVoice {
           audio: cached,
           format,
           contentType: getContentType(format),
+          // durationMs: 0 signals a cache hit — only meaningful for live synthesis
           durationMs: 0,
         };
       }
