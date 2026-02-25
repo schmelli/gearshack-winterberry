@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { ExperimentAnalytics, VariantAnalytics } from '@/types/prompt-ab';
 
 // Force Node.js runtime
@@ -96,14 +96,20 @@ export async function GET(request: NextRequest) {
     // for post-mortem analysis.  Default: only active experiments.
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    // Cast to untyped client for views/tables not yet in generated types.
-    // prompt_ab_analytics and prompt_ab_experiments were added in migration
-    // 20260225000001 and types have not yet been regenerated.
-    const untypedSupabase = supabase as unknown as SupabaseClient;
+    // Use service role client for all data queries.
+    // The prompt_ab_experiments table has NO SELECT policy for authenticated users
+    // (intentional — exposing variant details would defeat experiment blinding).
+    // The analytics views join against prompt_ab_experiments, so they also return
+    // empty for user-scoped clients.  Service role bypasses RLS for server-side
+    // admin operations.  Authentication is still verified above via createClient().
+    //
+    // Cast to untyped client: prompt_ab_analytics and prompt_ab_experiments were added
+    // in migration 20260225000001 and generated types have not yet been regenerated.
+    const serviceClient = createServiceRoleClient() as unknown as SupabaseClient;
 
     // Query the appropriate analytics view
     const viewName = includeInactive ? 'prompt_ab_analytics_all' : 'prompt_ab_analytics';
-    let query = untypedSupabase
+    let query = serviceClient
       .from(viewName)
       .select('*');
 
@@ -147,8 +153,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch experiment metadata (all matching, regardless of is_active status)
-    const { data: experiments } = await untypedSupabase
+    // Fetch experiment metadata (all matching, regardless of is_active status).
+    // Uses the same service role client so the RLS restriction on
+    // prompt_ab_experiments does not block this query.
+    const { data: experiments } = await serviceClient
       .from('prompt_ab_experiments')
       .select('name, description, is_active, created_at')
       .in('name', Array.from(experimentMap.keys()));

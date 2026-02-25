@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { logWarn } from '@/lib/mastra/logging';
 import type {
   PromptABExperiment,
   PromptVariant,
@@ -178,8 +179,26 @@ export async function getActiveExperiment(
       .limit(1)
       .single();
 
-    if (error || !data) {
-      // No active experiment — update negative cache to avoid repeat DB hits
+    if (error) {
+      // PGRST116 = PostgREST "no rows returned" for a .single() call —
+      // this is the expected state when no active experiment exists.
+      // Stamp the negative cache so we skip the DB for the next 5 min.
+      //
+      // Any other error code is a transient/infrastructure failure (network
+      // timeout, connection refused, etc.).  Do NOT stamp the negative cache
+      // for these — the next request should retry instead of being silently
+      // suppressed for 5 minutes.
+      if (error.code === 'PGRST116') {
+        noExperimentFetchedAt = now;
+        experimentCache = null;
+      } else {
+        console.error('[PromptAB] Transient DB error fetching experiment', { error });
+      }
+      return null;
+    }
+
+    if (!data) {
+      // Defensive: .single() without error shouldn't return null data, but handle it.
       noExperimentFetchedAt = now;
       experimentCache = null;
       return null;
@@ -303,19 +322,33 @@ export async function logAssignment(
   conversationId: string
 ): Promise<void> {
   try {
-    await supabaseClient.from('prompt_ab_assignments').insert({
-      experiment_id: resolution.experimentId,
-      user_id: userId,
-      variant_id: resolution.variantId,
-      conversation_id: conversationId,
-      experiment_name: resolution.experimentName,
-    });
+    // Upsert with ignoreDuplicates to prevent unbounded row growth.
+    // Every chat message calls logAssignment; without deduplication the table
+    // would accumulate one row per message (not per conversation).
+    // The unique index on (experiment_id, user_id, conversation_id) WHERE
+    // conversation_id IS NOT NULL (added in migration 20260225000002) makes
+    // this upsert a no-op for subsequent messages in the same conversation.
+    await supabaseClient.from('prompt_ab_assignments').upsert(
+      {
+        experiment_id: resolution.experimentId,
+        user_id: userId,
+        variant_id: resolution.variantId,
+        conversation_id: conversationId,
+        experiment_name: resolution.experimentName,
+      },
+      {
+        onConflict: 'experiment_id,user_id,conversation_id',
+        ignoreDuplicates: true,
+      }
+    );
   } catch {
     // Non-blocking: assignment logging failure should not affect chat
-    console.warn('[PromptAB] Failed to log assignment', {
-      experimentName: resolution.experimentName,
-      variantId: resolution.variantId,
-      userId,
+    logWarn('[PromptAB] Failed to log assignment', {
+      metadata: {
+        experimentName: resolution.experimentName,
+        variantId: resolution.variantId,
+        userId,
+      },
     });
   }
 }

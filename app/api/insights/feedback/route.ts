@@ -25,9 +25,11 @@ const feedbackSchema = z.object({
   gearBrand: z.string().max(100).optional(),
   gearName: z.string().max(200).optional(),
   categoryId: z.string().max(100).optional(),
-  // Note: promptVariant and experimentName are accepted from clients for backward
-  // compatibility but are NOT used directly — the server always looks up the
-  // canonical assignment from prompt_ab_assignments to prevent analytics skewing.
+  // Note: promptVariant and experimentName are accepted in the schema to avoid
+  // client-side errors when the client includes them (they are sent in the SSE
+  // done event), but are deliberately IGNORED server-side.  The server always
+  // looks up the canonical assignment from prompt_ab_assignments to prevent
+  // users from forging variant IDs and skewing A/B analytics.
   promptVariant: z.string().max(10).optional(),
   experimentName: z.string().max(100).optional(),
 });
