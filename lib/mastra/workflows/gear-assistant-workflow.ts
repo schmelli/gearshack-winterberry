@@ -8,9 +8,14 @@
  * Benefits:
  * - Automatic OTel tracing per step (visible in Mastra Studio)
  * - Typed input/output schemas with Zod validation
- * - Structured error handling with per-step retries
+ * - Structured error handling with granular per-step failure reporting
  * - Workflow Visualizer in Mastra Studio
  * - Suspend/Resume capability for future Human-in-the-Loop flows
+ *
+ * Note: Per-step retries (retryConfig) are not yet configured. The current
+ * error handling surfaces which step failed but does not automatically retry.
+ * Network-bound steps (classifyIntent → Gemini) could benefit from retries: 1
+ * in a follow-up. See TODO below.
  *
  * @see https://mastra.ai/docs/workflows/overview
  */
@@ -20,6 +25,8 @@ import { z } from 'zod';
 import {
   classifyIntent,
   generateFastAnswer,
+  DATA_REQUIREMENT_TYPES,
+  QUERY_COMPLEXITY_VALUES,
   type DataRequirement,
   type QueryComplexity,
 } from '../intent-router';
@@ -41,17 +48,6 @@ import type { UserContext } from '@/types/ai-assistant';
 // =============================================================================
 // Schema Definitions
 // =============================================================================
-
-/** All valid DataRequirement type values — keep in sync with DataRequirement['type'] */
-const DATA_REQUIREMENT_TYPES = [
-  'inventory_stats',
-  'inventory_category',
-  'loadout_analysis',
-  'gear_items_filtered',
-  'category_tree',
-  'geargraph_products',
-  'web_search',
-] as const;
 
 /** Valid subscription tiers */
 const SUBSCRIPTION_TIERS = ['standard', 'trailblazer'] as const;
@@ -84,9 +80,6 @@ const PassThroughSchema = WorkflowInputSchema.pick({
   enableTools: true,
   subscriptionTier: true,
 });
-
-/** All valid QueryComplexity values — keep in sync with QueryComplexity in intent-router */
-const QUERY_COMPLEXITY_VALUES = ['simple', 'complex'] as const;
 
 /** Step 1 output: intent classification result */
 const ClassifyIntentOutputSchema = PassThroughSchema.extend({
@@ -139,6 +132,10 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
    * Typed as z.unknown() because Zod cannot validate the full LoadoutContext
    * shape at the Mastra step boundary — the type is asserted in the route handler
    * where the context is consumed.
+   *
+   * TODO: Define a `LoadoutContextSchema` in `lib/mastra/context-preloader.ts`
+   * matching the `LoadoutContext` interface and import it here to replace
+   * `z.unknown()` with a fully-validated typed schema.
    */
   loadoutContext: z.unknown().nullable(),
 });
