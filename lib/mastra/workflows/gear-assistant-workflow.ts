@@ -22,7 +22,7 @@ import {
   type DataRequirement,
 } from '../intent-router';
 import { prefetchData, type PrefetchedContext } from '../parallel-prefetch';
-import { buildMastraSystemPrompt, type PromptContext } from '../config';
+import { buildMastraSystemPrompt, LOCALIZED_CONTENT, type PromptContext } from '../config';
 import {
   getCachedLoadoutContext,
   preloadLoadoutContext,
@@ -41,6 +41,20 @@ import type { UserContext } from '@/types/ai-assistant';
 // Schema Definitions
 // =============================================================================
 
+/** All valid DataRequirement type values — keep in sync with DataRequirement['type'] */
+const DATA_REQUIREMENT_TYPES = [
+  'inventory_stats',
+  'inventory_category',
+  'loadout_analysis',
+  'gear_items_filtered',
+  'category_tree',
+  'geargraph_products',
+  'web_search',
+] as const;
+
+/** Valid subscription tiers */
+const SUBSCRIPTION_TIERS = ['standard', 'trailblazer'] as const;
+
 /** Workflow input: everything the route handler provides */
 const WorkflowInputSchema = z.object({
   message: z.string(),
@@ -51,33 +65,39 @@ const WorkflowInputSchema = z.object({
   inventoryCount: z.number().default(0),
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean().default(true),
-  subscriptionTier: z.string().default('standard'),
+  subscriptionTier: z.enum(SUBSCRIPTION_TIERS).default('standard'),
+});
+
+/**
+ * Common pass-through fields that propagate unchanged through all steps.
+ * Using pick() + extend() avoids repeating these in every step schema.
+ */
+const PassThroughSchema = WorkflowInputSchema.pick({
+  message: true,
+  userId: true,
+  conversationId: true,
+  locale: true,
+  screen: true,
+  inventoryCount: true,
+  currentLoadoutId: true,
+  enableTools: true,
+  subscriptionTier: true,
 });
 
 /** Step 1 output: intent classification result */
-const ClassifyIntentOutputSchema = z.object({
+const ClassifyIntentOutputSchema = PassThroughSchema.extend({
   intent: z.string(),
   confidence: z.number(),
   canAnswerDirectly: z.boolean(),
   dataRequirements: z.array(z.object({
-    type: z.string(),
+    type: z.enum(DATA_REQUIREMENT_TYPES),
     params: z.record(z.string(), z.unknown()).optional(),
   })),
   extractedEntities: z.record(z.string(), z.unknown()),
-  /** Pass-through fields from input for downstream steps */
-  message: z.string(),
-  userId: z.string(),
-  conversationId: z.string(),
-  locale: z.string(),
-  screen: z.string(),
-  inventoryCount: z.number(),
-  currentLoadoutId: z.string().optional(),
-  enableTools: z.boolean(),
-  subscriptionTier: z.string(),
 });
 
 /** Step 2 output: prefetched data context */
-const PrefetchDataOutputSchema = z.object({
+const PrefetchDataOutputSchema = PassThroughSchema.extend({
   intent: z.string(),
   confidence: z.number(),
   canAnswerDirectly: z.boolean(),
@@ -87,20 +107,18 @@ const PrefetchDataOutputSchema = z.object({
   prefetchComplete: z.boolean(),
   prefetchLatencyMs: z.number(),
   formattedContext: z.string(),
-  /** Pass-through fields */
-  message: z.string(),
-  userId: z.string(),
-  conversationId: z.string(),
-  locale: z.string(),
-  screen: z.string(),
-  inventoryCount: z.number(),
-  currentLoadoutId: z.string().optional(),
-  enableTools: z.boolean(),
-  subscriptionTier: z.string(),
 });
 
 /** Step 3 output: assembled context ready for agent */
-const BuildContextOutputSchema = z.object({
+const BuildContextOutputSchema = PassThroughSchema.pick({
+  message: true,
+  userId: true,
+  conversationId: true,
+  currentLoadoutId: true,
+  enableTools: true,
+  locale: true,
+  subscriptionTier: true,
+}).extend({
   /** Enriched system prompt with prefetched data */
   enrichedSystemPrompt: z.string(),
   /** Fast-path answer if available (skips agent call) */
@@ -109,15 +127,7 @@ const BuildContextOutputSchema = z.object({
   intent: z.string(),
   confidence: z.number(),
   /** Loadout context for proactive suggestions on loadout-detail screen */
-  loadoutContext: z.any().nullable(),
-  /** Pass-through fields for agent streaming */
-  message: z.string(),
-  userId: z.string(),
-  conversationId: z.string(),
-  currentLoadoutId: z.string().optional(),
-  enableTools: z.boolean(),
-  locale: z.string(),
-  subscriptionTier: z.string(),
+  loadoutContext: z.custom<LoadoutContext>().nullable(),
 });
 
 // =============================================================================
@@ -213,10 +223,11 @@ const prefetchDataStep = createStep({
       subscriptionTier,
     } = inputData;
 
-    // Convert back to typed requirements
+    // Convert back to typed requirements — no cast needed because the schema
+    // uses z.enum(DATA_REQUIREMENT_TYPES) which already narrows to DataRequirement['type']
     const typedRequirements: DataRequirement[] = dataRequirements.map(
-      (req: { type: string; params?: Record<string, unknown> }) => ({
-        type: req.type as DataRequirement['type'],
+      (req: { type: DataRequirement['type']; params?: Record<string, unknown> }) => ({
+        type: req.type,
         params: req.params,
       }),
     );
@@ -338,13 +349,11 @@ const buildContextStep = createStep({
     // 4. Build base system prompt
     const systemPrompt = buildMastraSystemPrompt(promptContext);
 
-    // 5. Inject pre-fetched context
+    // 5. Inject pre-fetched context using centralized localized label
     let enrichedSystemPrompt = systemPrompt;
     if (formattedContext) {
-      const contextLabel =
-        locale === 'de'
-          ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
-          : '**Pre-loaded Data (use this to answer quickly):**';
+      const safeLocale = (locale === 'de' ? 'de' : 'en') as 'en' | 'de';
+      const contextLabel = LOCALIZED_CONTENT[safeLocale].preloadedDataLabel;
       enrichedSystemPrompt = `${systemPrompt}\n\n${contextLabel}\n${formattedContext}`;
     }
 

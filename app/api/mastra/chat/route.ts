@@ -338,7 +338,7 @@ export async function POST(request: Request): Promise<Response> {
               inventoryCount: (context?.inventoryCount as number) || 0,
               currentLoadoutId,
               enableTools,
-              subscriptionTier: (context?.subscriptionTier as string) || 'standard',
+              subscriptionTier: (context?.subscriptionTier === 'trailblazer' ? 'trailblazer' : 'standard'),
             },
           });
 

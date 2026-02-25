@@ -46,6 +46,8 @@ interface LocalizedContent {
   categoryReference: string;
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
+  /** Label for the pre-loaded data section in the system prompt */
+  preloadedDataLabel: string;
 }
 
 // =============================================================================
@@ -132,6 +134,8 @@ When analyzing gear for trips, gently check:
 **Tone**: Supportive, never alarmist. Use "You might want to consider..." and "Worth noting..." rather than "This is dangerous" or "You need to...". Only escalate language for genuinely dangerous mismatches (e.g., summer bag for arctic expedition). Always frame constructively and end with encouragement.`,
 
   categoryReference: '',
+
+  preloadedDataLabel: '**Pre-loaded Data (use this to answer quickly):**',
 
   gearGraphGuidance: `**Using GearGraph for Trip-Specific Recommendations:**
 
@@ -225,6 +229,8 @@ Bei der Ausruestungsanalyse fuer Trips sanft pruefen:
 **Ton**: Unterstuetzend, niemals alarmierend. Verwende "Du koenntest ueberlegen..." und "Gut zu wissen..." statt "Das ist gefaehrlich" oder "Du musst...". Nur bei wirklich gefaehrlichen Fehlanpassungen staerkere Sprache (z.B. Sommerschlafsack fuer Arktis-Expedition). Immer konstruktiv formulieren und mit Ermutigung enden.`,
 
   categoryReference: '',
+
+  preloadedDataLabel: '**Vorab geladene Daten (nutze diese um schnell zu antworten):**',
 
   gearGraphGuidance: `**GearGraph fuer Ziel-spezifische Empfehlungen nutzen:**
 
