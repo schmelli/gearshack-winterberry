@@ -485,18 +485,18 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.dataValidation}`);
   }
 
-  // 9b. Category Reference (skip if empty - handled by composite tools)
+  // 10. Category Reference (skip if empty - handled by composite tools)
   if (content.categoryReference) {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 10. GearGraph trip-planning guidance (always shown)
+  // 11. GearGraph trip-planning guidance (always shown)
   // Teaches the agent how to use GearGraph for destination/condition queries
   if (content.gearGraphGuidance) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }
 
-  // 11. Loadout Analysis Guidance (only when viewing a loadout)
+  // 12. Loadout Analysis Guidance (only when viewing a loadout)
   // This enables deep trip analysis with destination research and safety feedback
   if (viewingLoadout) {
     sections.push(`\n${content.loadoutAnalysis}`);
