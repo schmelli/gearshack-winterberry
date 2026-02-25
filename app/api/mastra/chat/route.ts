@@ -61,6 +61,7 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
+import { createGearAgent, streamMastraResponse, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
 import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { VariantResolution } from '@/types/prompt-ab';
@@ -74,6 +75,12 @@ import { mastra } from '@/lib/mastra/instance';
 import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
+import { classifyIntent } from '@/lib/mastra/intent-router';
+import {
+  getSemanticCacheHit,
+  storeInSemanticCache,
+  isCacheableIntent,
+} from '@/lib/mastra/semantic-cache';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -405,6 +412,58 @@ export async function POST(request: Request): Promise<Response> {
           //   Step 3 (buildContext): System prompt assembly + fast-path attempt
           // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
+
+          // --- Phase 1b: Semantic Response Cache check ---
+          // Classify intent upfront so we can check the cache for factual questions
+          // (general_knowledge, gear_comparison) before running the full workflow.
+          // Note: classifyIntent is also called inside the gear-assistant workflow
+          // (Step 1); the redundant call on cache-miss is accepted as a minor cost
+          // to keep the cache check outside the workflow boundary.
+          const intentResult = await classifyIntent(
+            message,
+            context?.screen as string | undefined,
+            currentLoadoutId
+          );
+
+          if (isCacheableIntent(intentResult.intent)) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
+
+            if (cacheHit) {
+              // Snapshot latency once — used for both the log and the done event
+              const totalLatencyMs = requestTimer();
+
+              logInfo('Serving response from semantic cache', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  intent: intentResult.intent,
+                  cacheId: cacheHit.cacheId,
+                  similarity: cacheHit.similarity,
+                  latencyMs: totalLatencyMs,
+                },
+              });
+
+              fullResponse = cacheHit.response;
+              controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
+              controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+              recordAgentLatency(totalLatencyMs / 1000, 'simple');
+
+              // Persist the user message + cached response to Mastra memory so
+              // the agent retains conversational context for follow-up questions.
+              // Fire-and-forget: failures here must never affect the served response.
+              persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                })
+              );
+
+              controller.close();
+              return;
+            }
+          }
+
+          // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
           // Emit context progress BEFORE starting the workflow so the user sees
           // visible feedback during the multi-second classify + prefetch phase.
           // The workflow encapsulates all three steps as a black box, so this is
@@ -731,6 +790,25 @@ export async function POST(request: Request): Promise<Response> {
               }),
             },
           });
+
+          // Store cacheable responses in semantic cache (fire-and-forget)
+          if (
+            isNaturalCompletion &&
+            isCacheableIntent(intentResult.intent) &&
+            fullResponse.length > 0
+          ) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            storeInSemanticCache(
+              message,
+              fullResponse,
+              intentResult.intent,
+              cacheLocale
+            ).catch((err: unknown) => {
+              logWarn('Background cache store failed', {
+                metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+              });
+            });
+          }
 
           controller.close();
         } catch (streamError) {

@@ -38,6 +38,7 @@ import {
 } from './schemas/working-memory';
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
+import { logWarn } from './logging';
 
 // =============================================================================
 // Environment Configuration
@@ -92,10 +93,20 @@ if (TOKEN_LIMIT > 195_000) {
 
 // Input processors (module-level to avoid repeated allocation per request)
 // Order matters: ToolCallFilter first to reduce noise, TokenLimiter last to enforce budget
-// NOTE: Excluding these tools removes their results from conversation history.
-// The agent may re-run them across turns; this is acceptable because the
-// payload size savings outweigh the extra latency.
 const INPUT_PROCESSORS = [
+  // ToolCallFilter: Strips call+result pairs for the two largest tools from conversation history.
+  //
+  // WHY analyzeLoadout and inventoryInsights specifically:
+  //   - `analyzeLoadout` returns full loadout JSON (can be 10–50 KB per call)
+  //   - `inventoryInsights` returns aggregated stats over all gear items (similarly large)
+  //   Keeping these in history would exhaust the 180k token budget after only a few turns,
+  //   even though the actual answers fit in a few sentences.
+  //
+  // TRADE-OFF: The agent cannot see prior tool results in its context window on follow-up turns.
+  // It may re-invoke these tools if the user asks a follow-up; this is acceptable because:
+  //   1. The incremental token cost of a repeat call is lower than carrying the full result forward
+  //   2. Data may have changed between turns (e.g. user added a gear item)
+  //   3. Sonnet can reconstruct context from its own text replies rather than raw tool output
   new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
   new TokenLimiter({ limit: TOKEN_LIMIT }),
 ];
@@ -103,6 +114,13 @@ const INPUT_PROCESSORS = [
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
 let pgVectorInstance: PgVector | null = null;
+
+// Module-level persistence memory singleton for cache-hit exchanges.
+// Shared across all calls to persistCacheHitToMemory() — avoids creating a
+// new Memory instance (and potentially a new DB connection) on every cache hit.
+// Uses history-only mode: no vector store or embedder needed since cache-hit
+// messages are not indexed for semantic recall.
+let persistenceMemoryInstance: Memory | null = null;
 
 function getPgStore(): PostgresStore {
   if (!pgStoreInstance) {
@@ -301,6 +319,93 @@ export function createGearAgent(
     `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
+}
+
+// =============================================================================
+// Cache-Hit Memory Persistence
+// =============================================================================
+
+/**
+ * Returns the shared persistence-only Memory instance, creating it on first call.
+ *
+ * Uses history-only mode (no vector store / embedder) because cache-hit messages
+ * are not indexed for semantic recall — we only need DB write access.
+ */
+function getPersistenceMemory(): Memory {
+  if (!persistenceMemoryInstance) {
+    persistenceMemoryInstance = new Memory({
+      storage: getPgStore(),
+      // No vector or embedder: cache-hit messages are not added to semantic recall index
+      options: {
+        lastMessages: MEMORY_LAST_MESSAGES,
+        semanticRecall: false,
+        workingMemory: { enabled: false },
+      },
+    });
+  }
+  return persistenceMemoryInstance;
+}
+
+/**
+ * Persist a cache-hit exchange to Mastra's conversation memory.
+ *
+ * When a response is served from the semantic cache, `streamMastraResponse`
+ * (and therefore `agent.stream()`) is never called, so Mastra's PostgresStore
+ * never records the user's message or the cached reply. Without this, the
+ * agent loses conversational context for follow-up questions.
+ *
+ * Fire-and-forget safe: all errors are swallowed and logged, so a failure
+ * here never affects the streaming response already sent to the client.
+ *
+ * @param userId - User ID (Mastra resourceId)
+ * @param conversationId - Conversation ID (Mastra threadId)
+ * @param userMessage - The user's original question
+ * @param cachedResponse - The cached assistant reply that was served
+ */
+export async function persistCacheHitToMemory(
+  userId: string,
+  conversationId: string,
+  userMessage: string,
+  cachedResponse: string
+): Promise<void> {
+  try {
+    const memory = getPersistenceMemory();
+
+    // NOTE: Memory.saveMessages is an internal Mastra API not yet publicly typed.
+    // Tested against @mastra/memory ^1.0.0 (see package.json). If this breaks after
+    // a Mastra upgrade, check the @mastra/memory CHANGELOG for saveMessages() changes.
+    // TECH-DEBT: Track upstream typing at https://github.com/mastra-ai/mastra — once
+    // saveMessages is exported from the public API surface, remove the cast below.
+    // The runtime typeof guard provides a safety net for API renames in the meantime.
+    const memWithSave = memory as unknown as {
+      saveMessages: (params: {
+        messages: Array<{ role: string; content: string }>;
+        threadId: string;
+        resourceId: string;
+      }) => Promise<unknown>;
+    };
+
+    if (typeof memWithSave.saveMessages !== 'function') {
+      logWarn('[Cache] Memory.saveMessages not available in this Mastra version — skipping persistence', {
+        metadata: { conversationId, userId },
+      });
+      return;
+    }
+
+    await memWithSave.saveMessages({
+      messages: [
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: cachedResponse },
+      ],
+      threadId: conversationId,
+      resourceId: userId,
+    });
+  } catch (error) {
+    // Log but never throw — cache hit UX must not be affected by persistence failures
+    logWarn('[Cache] Failed to persist cache-hit exchange to memory', {
+      metadata: { error: error instanceof Error ? error.message : String(error) },
+    });
+  }
 }
 
 // =============================================================================
