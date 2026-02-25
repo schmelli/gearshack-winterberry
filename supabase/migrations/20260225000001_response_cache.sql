@@ -10,19 +10,60 @@
 --   - 0.95 cosine similarity threshold (very strict — near-identical questions only)
 --   - Global cache (not per-user) for factual questions
 --   - Automatic cleanup via pg_cron
+--
+-- =============================================================================
+-- ROLLBACK (manual — run these statements to tear down this migration)
+-- =============================================================================
+-- SELECT cron.unschedule('cleanup-response-cache');
+-- DROP TABLE IF EXISTS response_cache CASCADE;
+-- DROP FUNCTION IF EXISTS search_response_cache(vector, float, text, text);
+-- DROP FUNCTION IF EXISTS increment_cache_hit_count(uuid);
+-- DROP FUNCTION IF EXISTS cleanup_expired_response_cache();
+-- DROP FUNCTION IF EXISTS update_response_cache_updated_at();
+-- =============================================================================
 
 -- Create the response_cache table
 CREATE TABLE IF NOT EXISTS response_cache (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  query_text text NOT NULL,
+  -- query_text is bounded by a CHECK constraint to prevent B-tree index row size overflow.
+  -- PostgreSQL's B-tree index limit is ~8191 bytes; very long queries would cause the
+  -- UNIQUE index on (query_text, locale, intent_type) to throw at upsert time.
+  -- 2000 chars covers all practical user queries while staying well within the limit.
+  query_text text NOT NULL CHECK (char_length(query_text) <= 2000),
   query_embedding vector(1536) NOT NULL,
   cached_response text NOT NULL,
-  intent_type text NOT NULL DEFAULT 'general_knowledge',
+  -- CHECK constraint provides a database-level PII defense layer:
+  -- even if a future code path misconfigures RESPONSE_CACHE_INTENTS, the DB
+  -- rejects writes for intent types that are not known to be user-independent.
+  -- Update this list if CACHEABLE_INTENTS in semantic-cache.ts is expanded
+  -- (after confirming the new intent cannot carry PII).
+  intent_type text NOT NULL DEFAULT 'general_knowledge'
+    CHECK (intent_type IN ('general_knowledge', 'gear_comparison')),
   locale text NOT NULL DEFAULT 'en',
   hit_count integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
+  -- updated_at tracks when a cache entry was last refreshed (sliding TTL upserts
+  -- update this column, making it easy to audit how fresh a cached answer is).
+  updated_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '48 hours')
 );
+
+-- Trigger: auto-update updated_at on every row UPDATE (e.g. sliding-TTL upserts)
+CREATE OR REPLACE FUNCTION update_response_cache_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_response_cache_updated_at ON response_cache;
+CREATE TRIGGER trg_response_cache_updated_at
+  BEFORE UPDATE ON response_cache
+  FOR EACH ROW
+  EXECUTE FUNCTION update_response_cache_updated_at();
 
 -- HNSW index for fast cosine similarity search
 CREATE INDEX IF NOT EXISTS idx_response_cache_embedding_hnsw
@@ -95,6 +136,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- In pgvector <= 0.6, HNSW does not support pre-filtered (WHERE-clause) searches.
+  -- The planner may perform an approximate scan over the full index and then apply
+  -- the locale/intent_type/expires_at predicates as a post-scan filter, discarding
+  -- rows that don't match. Raising ef_search from the default (40) to 100 increases
+  -- the candidate set evaluated by HNSW, improving recall under heavy post-filtering.
+  -- pgvector 0.7+ added iterator-based filtered HNSW and may not need this.
+  -- TODO: remove once Supabase ships pgvector >= 0.7 and we can rely on filtered HNSW.
+  SET LOCAL hnsw.ef_search = 100;
+
   -- Use a CTE to compute cosine similarity once per candidate row.
   -- Without a CTE, the <=> operator would be evaluated twice: once in WHERE
   -- to apply the threshold, and again in SELECT to return the value.

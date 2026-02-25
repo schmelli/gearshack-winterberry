@@ -14,6 +14,15 @@
  *   - TTL: 48 hours for general_knowledge intents
  *   - Global cache (not per-user) — factual answers are user-independent
  *
+ * Latency Profile:
+ *   - Cache HIT:  ~50–200ms embedding + ~10–50ms DB = 60–250ms total
+ *                 (vs 500ms–3s for a full LLM call — significant saving)
+ *   - Cache MISS: same 60–250ms embedding + DB overhead is ADDED to the
+ *                 downstream LLM latency. During cold-start (empty cache),
+ *                 100% of requests pay this cost. Monitor `embeddingLatencyMs`
+ *                 and `dbLatencyMs` in the DEBUG logs to evaluate whether an
+ *                 exact-match pre-filter would reduce the miss-path overhead.
+ *
  * PII / Data-Governance Boundary:
  *   Raw query text is stored in the global `response_cache.query_text` column.
  *   This is acceptable ONLY because the cache is gated to intent types in
@@ -32,6 +41,7 @@
 import { embed } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { logInfo, logDebug, logWarn, logError, createTimer } from './logging';
 import {
   recordCacheHit,
@@ -59,8 +69,14 @@ const MIN_RESPONSE_LENGTH = 50;
 /** Maximum cached response length to prevent storing huge responses */
 const MAX_RESPONSE_LENGTH = 10000;
 
-/** Feature flag to enable/disable response caching */
-const CACHE_ENABLED = process.env.RESPONSE_CACHE_ENABLED !== 'false';
+/**
+ * Feature flag to enable/disable response caching.
+ *
+ * Opt-in (must be explicitly set to 'true') so that existing deployments
+ * are not silently charged for embedding API calls after a deploy.
+ * Set RESPONSE_CACHE_ENABLED=true in .env.local / production env vars to enable.
+ */
+const CACHE_ENABLED = process.env.RESPONSE_CACHE_ENABLED === 'true';
 
 /**
  * Intent types eligible for caching (factual, user-independent).
@@ -136,10 +152,16 @@ export async function getSemanticCacheHit(
     const embeddingLatencyMs = embedTimer();
     if (!queryEmbedding) return null;
 
-    // Search cache via Supabase RPC
+    // Search cache via Supabase RPC.
+    // Cast to SupabaseClient<unknown> to bypass strict generated-type checks for
+    // `response_cache` and its RPC functions — these are created by the migration
+    // in 20260225000001_response_cache.sql but not yet reflected in the generated
+    // types/supabase.ts until the migration is applied and types are regenerated.
     const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untypedClient = supabase as unknown as SupabaseClient<any>;
     const dbTimer = createTimer();
-    const { data, error } = await supabase.rpc('search_response_cache', {
+    const { data, error } = await untypedClient.rpc('search_response_cache', {
       query_embedding: queryEmbedding,
       similarity_threshold: threshold,
       query_locale: locale,
@@ -147,7 +169,7 @@ export async function getSemanticCacheHit(
       // Without this, a gear_comparison response could be served for a general_knowledge
       // query on the same topic (intent-specific framing may differ).
       query_intent_type: intentType,
-    });
+    }) as { data: Array<{ id: string; cached_response: string; similarity: number; hit_count: number; query_text: string }> | null; error: { message: string } | null };
     const dbLatencyMs = dbTimer();
 
     const latencyMs = getTotalElapsed();
@@ -163,7 +185,7 @@ export async function getSemanticCacheHit(
       const hit = data[0];
 
       // Increment hit count asynchronously (fire-and-forget)
-      supabase.rpc('increment_cache_hit_count', { cache_id: hit.id }).then(
+      untypedClient.rpc('increment_cache_hit_count', { cache_id: hit.id }).then(
         () => {},
         (err: Error) => logWarn('Failed to increment cache hit count', {
           metadata: { cacheId: hit.id, error: err.message },
@@ -249,11 +271,18 @@ export async function storeInSemanticCache(
     return;
   }
 
+  // Enforce query_text length bound before hitting the DB CHECK constraint.
+  // The database enforces char_length(query_text) <= 2000 to prevent B-tree
+  // index row size overflow; we truncate here rather than surface a DB error.
+  const boundedQuery = query.slice(0, 2000);
+
   try {
-    const queryEmbedding = await generateQueryEmbedding(query);
+    const queryEmbedding = await generateQueryEmbedding(boundedQuery);
     if (!queryEmbedding) return;
 
     const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untypedClient = supabase as unknown as SupabaseClient<any>;
 
     // Calculate expiry based on TTL
     const expiresAt = new Date();
@@ -263,12 +292,14 @@ export async function storeInSemanticCache(
     // with the new cached_response, query_embedding, and expires_at. This implements
     // a sliding TTL: popular queries re-stamp their expiry on every successful LLM
     // response and always serve the most recent answer rather than a stale first-write.
-    const { error } = await supabase.from('response_cache').upsert({
-      query_text: query,
+    // updated_at is set explicitly here (the trigger also sets it, but explicit is clearer).
+    const { error } = await untypedClient.from('response_cache').upsert({
+      query_text: boundedQuery,
       query_embedding: queryEmbedding,
       cached_response: response,
       intent_type: intentType,
       locale,
+      updated_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString(),
     }, { onConflict: 'query_text,locale,intent_type', ignoreDuplicates: false });
 
@@ -279,7 +310,7 @@ export async function storeInSemanticCache(
 
     logInfo('Response stored in semantic cache', {
       metadata: {
-        queryPreview: query.substring(0, 80),
+        queryPreview: boundedQuery.substring(0, 80),
         responseLength: response.length,
         intentType,
         locale,
