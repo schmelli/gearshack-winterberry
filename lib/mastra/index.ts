@@ -38,3 +38,20 @@ export {
 
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
+
+// Evals module (Feature: mastra-evals)
+// Quality evaluation scorers for AI agent responses
+export {
+  createGearFaithfulnessScorer,
+  createGearHallucinationScorer,
+  createGearToolCallAccuracyScorer,
+  createExpectedToolScorer,
+  createGearAssistantWithEvals,
+  gearSearchDataset,
+  loadoutAnalysisDataset,
+  hallucinationPreventionDataset,
+  allDatasets,
+  getAllTestCases,
+  type EvalTestCase,
+  type EvalTestDataset,
+} from './evals';

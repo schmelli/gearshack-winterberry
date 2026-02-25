@@ -15,7 +15,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "seed:ontology": "tsx scripts/seed-ontology.ts",
-    "migrate:working-memory": "tsx scripts/migrate-working-memory.ts"
+    "migrate:working-memory": "tsx scripts/migrate-working-memory.ts",
+    "eval": "tsx lib/mastra/evals/run-evals.ts",
+    "eval:ci": "EVAL_SAMPLING_RATE=1.0 tsx lib/mastra/evals/run-evals.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.56",
@@ -25,6 +27,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@imgly/background-removal": "^1.7.0",
     "@mastra/core": "^1.0.4",
+    "@mastra/evals": "^1.1.2",
     "@mastra/memory": "^1.0.0",
     "@mastra/pg": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.1",

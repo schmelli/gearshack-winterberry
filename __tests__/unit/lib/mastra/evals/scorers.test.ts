@@ -1,0 +1,217 @@
+/**
+ * Unit Tests for Mastra Eval Scorers
+ * Feature: mastra-evals
+ *
+ * Tests the scorer factory functions to verify they create valid
+ * MastraScorer instances with correct configuration.
+ *
+ * Note: These are unit tests that verify scorer creation and configuration.
+ * Full integration tests (running scorers against live agents) require
+ * API keys and are run separately via the CI eval runner.
+ */
+
+import { describe, it, expect, vi } from 'vitest';
+
+// =============================================================================
+// Mock heavy dependencies to avoid requiring API keys at test time
+// =============================================================================
+
+vi.mock('@ai-sdk/gateway', () => ({
+  createGateway: vi.fn(() => {
+    const gateway = vi.fn(() => 'mocked-model');
+    // @ts-expect-error – mock duck-typed gateway
+    gateway.textEmbeddingModel = vi.fn(() => 'mocked-embedding-model');
+    return gateway;
+  }),
+}));
+
+vi.mock('@mastra/core/agent', () => ({
+  Agent: vi.fn(),
+}));
+
+vi.mock('@mastra/core/tools', () => ({
+  createTool: vi.fn(() => ({})),
+}));
+
+// Mock the tools that are imported by the eval module
+vi.mock('@/lib/mastra/tools/analyze-loadout', () => ({
+  analyzeLoadoutTool: { id: 'analyzeLoadout', description: 'mock' },
+}));
+vi.mock('@/lib/mastra/tools/inventory-insights', () => ({
+  inventoryInsightsTool: { id: 'inventoryInsights', description: 'mock' },
+}));
+vi.mock('@/lib/mastra/tools/search-gear-knowledge', () => ({
+  searchGearKnowledgeTool: { id: 'searchGearKnowledge', description: 'mock' },
+}));
+
+// Mock the prompt builder
+vi.mock('@/lib/mastra/prompt-builder', () => ({
+  buildMastraSystemPrompt: vi.fn(() => 'mocked system prompt'),
+  LOCALIZED_CONTENT: { en: {}, de: {} },
+}));
+
+// =============================================================================
+// Tests: Test Datasets
+// =============================================================================
+
+describe('Eval Test Datasets', () => {
+  it('gearSearchDataset has valid test cases', async () => {
+    const { gearSearchDataset } = await import('@/lib/mastra/evals/test-datasets');
+
+    expect(gearSearchDataset.name).toBe('gear-search');
+    expect(gearSearchDataset.cases.length).toBeGreaterThan(0);
+
+    for (const testCase of gearSearchDataset.cases) {
+      expect(testCase.label).toBeTruthy();
+      expect(testCase.input).toBeTruthy();
+      expect(testCase.expectedTools).toBeDefined();
+      expect(testCase.expectedTools!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('loadoutAnalysisDataset has valid test cases', async () => {
+    const { loadoutAnalysisDataset } = await import('@/lib/mastra/evals/test-datasets');
+
+    expect(loadoutAnalysisDataset.name).toBe('loadout-analysis');
+    expect(loadoutAnalysisDataset.cases.length).toBeGreaterThan(0);
+
+    for (const testCase of loadoutAnalysisDataset.cases) {
+      expect(testCase.label).toBeTruthy();
+      expect(testCase.input).toBeTruthy();
+      expect(testCase.expectedTools).toContain('analyzeLoadout');
+    }
+  });
+
+  it('hallucinationPreventionDataset has valid test cases', async () => {
+    const { hallucinationPreventionDataset } = await import('@/lib/mastra/evals/test-datasets');
+
+    expect(hallucinationPreventionDataset.name).toBe('hallucination-prevention');
+    expect(hallucinationPreventionDataset.cases.length).toBeGreaterThan(0);
+
+    for (const testCase of hallucinationPreventionDataset.cases) {
+      expect(testCase.label).toBeTruthy();
+      expect(testCase.input).toBeTruthy();
+      expect(testCase.expectedTools).toBeDefined();
+    }
+  });
+
+  it('getAllTestCases returns combined cases from all datasets', async () => {
+    const { getAllTestCases, allDatasets } = await import('@/lib/mastra/evals/test-datasets');
+
+    const allCases = getAllTestCases();
+    const expectedCount = allDatasets.reduce(
+      (sum, dataset) => sum + dataset.cases.length,
+      0
+    );
+
+    expect(allCases.length).toBe(expectedCount);
+    expect(allCases.length).toBeGreaterThan(10);
+  });
+
+  it('all test cases have unique labels', async () => {
+    const { getAllTestCases } = await import('@/lib/mastra/evals/test-datasets');
+
+    const allCases = getAllTestCases();
+    const labels = allCases.map((tc) => tc.label);
+    const uniqueLabels = new Set(labels);
+
+    expect(uniqueLabels.size).toBe(labels.length);
+  });
+
+  it('gear search cases expect searchGearKnowledge tool', async () => {
+    const { gearSearchDataset } = await import('@/lib/mastra/evals/test-datasets');
+
+    for (const testCase of gearSearchDataset.cases) {
+      expect(testCase.expectedTools).toContain('searchGearKnowledge');
+    }
+  });
+
+  it('loadout cases expect analyzeLoadout tool', async () => {
+    const { loadoutAnalysisDataset } = await import('@/lib/mastra/evals/test-datasets');
+
+    for (const testCase of loadoutAnalysisDataset.cases) {
+      expect(testCase.expectedTools).toContain('analyzeLoadout');
+    }
+  });
+});
+
+// =============================================================================
+// Tests: Scorer Factories
+// =============================================================================
+
+describe('Scorer Factory Functions', () => {
+  it('createGearFaithfulnessScorer creates a scorer', async () => {
+    const { createGearFaithfulnessScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const scorer = createGearFaithfulnessScorer('mocked-model');
+    expect(scorer).toBeDefined();
+  });
+
+  it('createGearHallucinationScorer creates a scorer', async () => {
+    const { createGearHallucinationScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const scorer = createGearHallucinationScorer('mocked-model');
+    expect(scorer).toBeDefined();
+  });
+
+  it('createExpectedToolScorer creates a code-based scorer', async () => {
+    const { createExpectedToolScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const scorer = createExpectedToolScorer('analyzeLoadout');
+    expect(scorer).toBeDefined();
+  });
+
+  it('createExpectedToolScorer accepts strict mode option', async () => {
+    const { createExpectedToolScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const scorer = createExpectedToolScorer('searchGearKnowledge', {
+      strictMode: true,
+    });
+    expect(scorer).toBeDefined();
+  });
+
+  it('createExpectedToolScorer accepts expectedToolOrder option', async () => {
+    const { createExpectedToolScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const scorer = createExpectedToolScorer('searchGearKnowledge', {
+      expectedToolOrder: ['searchGearKnowledge', 'analyzeLoadout'],
+    });
+    expect(scorer).toBeDefined();
+  });
+});
+
+// =============================================================================
+// Tests: Eval Agent Config
+// =============================================================================
+
+describe('Eval Agent Configuration', () => {
+  it('EVAL_TOOLS contains the three composite tools', async () => {
+    const { EVAL_TOOLS } = await import('@/lib/mastra/evals/gear-assistant.eval');
+
+    expect(EVAL_TOOLS).toHaveProperty('analyzeLoadout');
+    expect(EVAL_TOOLS).toHaveProperty('searchGearKnowledge');
+    expect(EVAL_TOOLS).toHaveProperty('inventoryInsights');
+    expect(Object.keys(EVAL_TOOLS)).toHaveLength(3);
+  });
+
+  it('exports index re-exports all public APIs', async () => {
+    const evalModule = await import('@/lib/mastra/evals/index');
+
+    // Scorer factories
+    expect(evalModule.createGearFaithfulnessScorer).toBeDefined();
+    expect(evalModule.createGearHallucinationScorer).toBeDefined();
+    expect(evalModule.createGearToolCallAccuracyScorer).toBeDefined();
+    expect(evalModule.createExpectedToolScorer).toBeDefined();
+
+    // Test datasets
+    expect(evalModule.gearSearchDataset).toBeDefined();
+    expect(evalModule.loadoutAnalysisDataset).toBeDefined();
+    expect(evalModule.hallucinationPreventionDataset).toBeDefined();
+    expect(evalModule.allDatasets).toBeDefined();
+    expect(evalModule.getAllTestCases).toBeDefined();
+
+    // Eval agent
+    expect(evalModule.createGearAssistantWithEvals).toBeDefined();
+    expect(evalModule.EVAL_TOOLS).toBeDefined();
+  });
+});
