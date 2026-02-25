@@ -247,6 +247,10 @@ export async function storeInSemanticCache(
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + CACHE_TTL_HOURS);
 
+    // Use ignoreDuplicates: false so that on conflict the existing row is UPDATED
+    // with the new cached_response, query_embedding, and expires_at. This implements
+    // a sliding TTL: popular queries re-stamp their expiry on every successful LLM
+    // response and always serve the most recent answer rather than a stale first-write.
     const { error } = await supabase.from('response_cache').upsert({
       query_text: query,
       query_embedding: queryEmbedding,
@@ -254,7 +258,7 @@ export async function storeInSemanticCache(
       intent_type: intentType,
       locale,
       expires_at: expiresAt.toISOString(),
-    }, { onConflict: 'query_text,locale,intent_type', ignoreDuplicates: true });
+    }, { onConflict: 'query_text,locale,intent_type', ignoreDuplicates: false });
 
     if (error) {
       logError('Failed to store response in cache', new Error(error.message));
