@@ -14,6 +14,18 @@
  *   - TTL: 48 hours for general_knowledge intents
  *   - Global cache (not per-user) — factual answers are user-independent
  *
+ * PII / Data-Governance Boundary:
+ *   Raw query text is stored in the global `response_cache.query_text` column.
+ *   This is acceptable ONLY because the cache is gated to intent types in
+ *   CACHEABLE_INTENTS (default: general_knowledge, gear_comparison). These
+ *   intents are defined to be factual and user-independent.
+ *
+ *   IMPORTANT: The assumption that cached queries never contain PII relies
+ *   entirely on the accuracy of the upstream intent classifier. A misclassified
+ *   personal query (e.g. "What's the best tent for my trip near [location]?")
+ *   could still be stored. Before adding any new intent to CACHEABLE_INTENTS
+ *   (via the RESPONSE_CACHE_INTENTS env var), confirm it cannot carry PII.
+ *
  * @see supabase/migrations/20260225000001_response_cache.sql
  */
 
@@ -67,10 +79,16 @@ const CACHEABLE_INTENTS = new Set(
     .filter(Boolean)
 );
 
-// Eagerly-initialized gateway constant — fails fast if the API key is missing
-// (CACHE_ENABLED guards all public functions, so this is only reached when caching is on)
+// Eagerly-initialized gateway for embedding generation.
+// Warn at module load time if the key is missing — this surfaces a clear startup message
+// instead of a confusing auth error on the first cache lookup.
+const _embeddingApiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+if (CACHE_ENABLED && !_embeddingApiKey) {
+  logWarn('[SemanticCache] AI_GATEWAY_API_KEY not set — response cache disabled at startup. ' +
+    'Set AI_GATEWAY_API_KEY or AI_GATEWAY_KEY to enable caching.', {});
+}
 const embeddingGateway = createGateway({
-  apiKey: process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY || '',
+  apiKey: _embeddingApiKey || '',
 });
 
 // =============================================================================
@@ -96,12 +114,14 @@ export function isCacheableIntent(intentType: string): boolean {
  * @param query - The user's question
  * @param locale - User locale (en/de)
  * @param threshold - Similarity threshold (default: 0.95)
+ * @param intentType - Intent type, passed through to Prometheus labels (default: 'unknown')
  * @returns Cached response string or null if no match
  */
 export async function getSemanticCacheHit(
   query: string,
   locale: string = 'en',
-  threshold: number = SIMILARITY_THRESHOLD
+  threshold: number = SIMILARITY_THRESHOLD,
+  intentType: string = 'unknown'
 ): Promise<{ response: string; cacheId: string; similarity: number } | null> {
   if (!CACHE_ENABLED) return null;
 
@@ -117,7 +137,6 @@ export async function getSemanticCacheHit(
     const { data, error } = await supabase.rpc('search_response_cache', {
       query_embedding: queryEmbedding,
       similarity_threshold: threshold,
-      max_age_hours: CACHE_TTL_HOURS,
       query_locale: locale,
     });
 
@@ -126,7 +145,7 @@ export async function getSemanticCacheHit(
 
     if (error) {
       logError('Cache search RPC failed', new Error(error.message));
-      recordCacheMiss();
+      recordCacheMiss(intentType);
       return null;
     }
 
@@ -147,11 +166,12 @@ export async function getSemanticCacheHit(
           similarity: hit.similarity,
           hitCount: hit.hit_count + 1,
           originalQuery: hit.query_text?.substring(0, 80),
+          intentType,
           latencyMs,
         },
       });
 
-      recordCacheHit();
+      recordCacheHit(intentType);
       return {
         response: hit.cached_response,
         cacheId: hit.id,
@@ -164,20 +184,22 @@ export async function getSemanticCacheHit(
         queryPreview: query.substring(0, 80),
         locale,
         threshold,
+        intentType,
         latencyMs,
       },
     });
 
-    recordCacheMiss();
+    recordCacheMiss(intentType);
     return null;
   } catch (error) {
     logWarn('Semantic cache lookup failed', {
       metadata: {
         error: error instanceof Error ? error.message : 'Unknown',
+        intentType,
         latencyMs: getElapsed(),
       },
     });
-    recordCacheMiss();
+    recordCacheMiss(intentType);
     return null;
   }
 }
@@ -200,6 +222,9 @@ export async function storeInSemanticCache(
   locale: string = 'en'
 ): Promise<void> {
   if (!CACHE_ENABLED) return;
+  // Defensive guard: all call sites should already gate on isCacheableIntent(),
+  // but re-checking here prevents accidental storage if the function is called
+  // directly in tests or future code paths that bypass the caller-side check.
   if (!isCacheableIntent(intentType)) return;
 
   // Skip caching very short or very long responses
@@ -244,7 +269,7 @@ export async function storeInSemanticCache(
       },
     });
 
-    recordCacheStore();
+    recordCacheStore(intentType);
   } catch (error) {
     // Cache storage failures should never break the user experience
     logWarn('Failed to store in semantic cache', {

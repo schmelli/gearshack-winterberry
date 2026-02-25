@@ -34,7 +34,9 @@ import {
   encodeDoneEvent,
   encodeErrorEvent,
   encodeWorkflowProgressEvent,
+  encodeConfirmActionEvent,
 } from '@/lib/mastra/streaming';
+import type { ConfirmActionData } from '@/types/mastra';
 import {
   logInfo,
   logError,
@@ -84,6 +86,40 @@ import {
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
+
+// =====================================================
+// Type Guards
+// =====================================================
+
+/** Shape of an addToLoadout tool result that requires user confirmation */
+interface ConfirmableToolResult {
+  requiresConfirmation: true;
+  runId: string;
+  message: string;
+  gearItemId: string;
+  gearItemName: string;
+  loadoutId: string;
+  loadoutName: string;
+}
+
+/**
+ * Type guard for addToLoadout tool results that require user confirmation.
+ * Validates all required string fields before constructing ConfirmActionData,
+ * preventing runtime errors from unexpected AI output structures.
+ */
+function isConfirmableResult(result: unknown): result is ConfirmableToolResult {
+  if (!result || typeof result !== 'object') return false;
+  const r = result as Record<string, unknown>;
+  return (
+    r.requiresConfirmation === true &&
+    typeof r.runId === 'string' && r.runId.length > 0 &&
+    typeof r.message === 'string' &&
+    typeof r.gearItemId === 'string' &&
+    typeof r.gearItemName === 'string' &&
+    typeof r.loadoutId === 'string' &&
+    typeof r.loadoutName === 'string'
+  );
+}
 
 // =====================================================
 // Request Validation
@@ -287,6 +323,46 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // 3.5. Check subscription tier — AI Assistant requires Trailblazer tier.
+    // Skip in development/test environments when AI_RATE_LIMITING_DISABLED=true
+    // (matches the bypass used for rate limiting in the original stream route).
+    const subscriptionCheckDisabled =
+      process.env.AI_RATE_LIMITING_DISABLED === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    let userSubscriptionTier: 'standard' | 'trailblazer' = 'standard';
+
+    if (!subscriptionCheckDisabled) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        logError('Failed to verify subscription tier', profileError);
+        return new Response(
+          JSON.stringify({ error: 'Unable to verify account status.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      userSubscriptionTier =
+        (profile.subscription_tier as 'standard' | 'trailblazer') || 'standard';
+
+      if (userSubscriptionTier !== 'trailblazer') {
+        logWarn('Subscription tier check failed - Trailblazer required', {
+          userId: user.id,
+        });
+        return new Response(
+          JSON.stringify({
+            error: 'AI assistant is only available for Trailblazer subscribers.',
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // 4. Set logging context (T030)
     setLogContext({
       userId: user.id,
@@ -445,7 +521,7 @@ export async function POST(request: Request): Promise<Response> {
           // This avoids a full LLM call for frequent factual questions.
           if (isCacheableIntent(intentResult.intent)) {
             const cacheLocale = (context?.locale as string) || 'en';
-            const cacheHit = await getSemanticCacheHit(message, cacheLocale);
+            const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
 
             if (cacheHit) {
               // Snapshot latency once — used for both the log and the done event
@@ -543,7 +619,7 @@ export async function POST(request: Request): Promise<Response> {
           const { promptContext, loadoutContext } = await buildPromptContext(
             context,
             user.id,
-            undefined, // subscriptionTier
+            userSubscriptionTier,
             parsedQuery,
           );
           const systemPrompt = buildMastraSystemPrompt(promptContext);
@@ -568,12 +644,12 @@ export async function POST(request: Request): Promise<Response> {
           // --- Phase 3: Agent generation (emit "thinking" progress) ---
           emitProgress('thinking', progressMessages[locale].thinking);
 
-          // Create Mastra Agent and stream response
+          // Create Mastra Agent with complexity-based model routing and stream response
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              const agent = createGearAgent(user.id, enrichedPrompt);
+              const agent = createGearAgent(user.id, enrichedPrompt, intentResult.queryComplexity);
               return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
             },
             { userId: user.id }
@@ -619,6 +695,36 @@ export async function POST(request: Request): Promise<Response> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
             for (const tc of toolCalls as any[]) {
               recordToolCall(tc.toolName || tc.name || 'unknown');
+
+              // Detect addToLoadout tool results that require user confirmation
+              // (Suspend/Resume pattern for human-in-the-loop write safety)
+              if (
+                (tc.toolName === 'addToLoadout' || tc.name === 'addToLoadout') &&
+                isConfirmableResult(tc.result)
+              ) {
+                const confirmData: ConfirmActionData = {
+                  runId: tc.result.runId,
+                  actionType: 'add_to_loadout',
+                  message: tc.result.message,
+                  details: {
+                    gearItemId: tc.result.gearItemId,
+                    gearItemName: tc.result.gearItemName,
+                    loadoutId: tc.result.loadoutId,
+                    loadoutName: tc.result.loadoutName,
+                  },
+                };
+                controller.enqueue(encoder.encode(encodeConfirmActionEvent(confirmData)));
+
+                logDebug('Confirm action event emitted (suspend/resume)', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    runId: confirmData.runId,
+                    gearItemName: confirmData.details.gearItemName,
+                    loadoutName: confirmData.details.loadoutName,
+                  },
+                });
+              }
             }
           }
 
@@ -684,6 +790,8 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
+              queryComplexity: intentResult.queryComplexity,
+              intent: intentResult.intent,
             },
           });
 

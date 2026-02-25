@@ -52,6 +52,9 @@ lib/              # Utilities (cn() helper for Tailwind class merging)
 hooks/            # Custom hooks for business logic
 types/            # TypeScript interfaces and types
 specs/            # Feature specifications (check before implementing)
+src/mastra/       # Mastra Studio entry point (local dev only — NOT imported by Next.js)
+  agents/         # Static agent definitions for Studio (gear-assistant.ts)
+  index.ts        # Central Mastra instance; entry point for `npx mastra dev`
 ```
 
 ### Import Alias

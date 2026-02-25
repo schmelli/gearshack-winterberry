@@ -30,10 +30,15 @@ import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
+// Multilingual embedding configuration (Vorschlag 16)
+import { createEmbedder, getEmbeddingModelId, getEmbeddingDimensions } from './embeddings';
 // Three-tier memory system
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
+import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import type { QueryComplexity } from './intent-router';
+import { logWarn } from './logging';
 
 // =============================================================================
 // Environment Configuration
@@ -88,10 +93,20 @@ if (TOKEN_LIMIT > 195_000) {
 
 // Input processors (module-level to avoid repeated allocation per request)
 // Order matters: ToolCallFilter first to reduce noise, TokenLimiter last to enforce budget
-// NOTE: Excluding these tools removes their results from conversation history.
-// The agent may re-run them across turns; this is acceptable because the
-// payload size savings outweigh the extra latency.
 const INPUT_PROCESSORS = [
+  // ToolCallFilter: Strips call+result pairs for the two largest tools from conversation history.
+  //
+  // WHY analyzeLoadout and inventoryInsights specifically:
+  //   - `analyzeLoadout` returns full loadout JSON (can be 10–50 KB per call)
+  //   - `inventoryInsights` returns aggregated stats over all gear items (similarly large)
+  //   Keeping these in history would exhaust the 180k token budget after only a few turns,
+  //   even though the actual answers fit in a few sentences.
+  //
+  // TRADE-OFF: The agent cannot see prior tool results in its context window on follow-up turns.
+  // It may re-invoke these tools if the user asks a follow-up; this is acceptable because:
+  //   1. The incremental token cost of a repeat call is lower than carrying the full result forward
+  //   2. Data may have changed between turns (e.g. user added a gear item)
+  //   3. Sonnet can reconstruct context from its own text replies rather than raw tool output
   new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
   new TokenLimiter({ limit: TOKEN_LIMIT }),
 ];
@@ -99,6 +114,13 @@ const INPUT_PROCESSORS = [
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
 let pgVectorInstance: PgVector | null = null;
+
+// Module-level persistence memory singleton for cache-hit exchanges.
+// Shared across all calls to persistCacheHitToMemory() — avoids creating a
+// new Memory instance (and potentially a new DB connection) on every cache hit.
+// Uses history-only mode: no vector store or embedder needed since cache-hit
+// messages are not indexed for semantic recall.
+let persistenceMemoryInstance: Memory | null = null;
 
 function getPgStore(): PostgresStore {
   if (!pgStoreInstance) {
@@ -126,8 +148,15 @@ function getPgVector(): PgVector {
         'Settings > Database > Connection string (URI)'
       );
     }
+    // Include dimensions in the id so each embedding model gets its own internal
+    // Mastra vector table. Without this, switching from openai/text-embedding-3-small
+    // (1536d) to cohere/embed-multilingual-v3.0 (1024d) would cause a dimension
+    // mismatch error when Mastra tries to insert 1024-dim vectors into the table
+    // previously created for 1536-dim vectors.
+    //   openai/text-embedding-3-small  → gearshack-memory-vector-1536d
+    //   cohere/embed-multilingual-v3.0 → gearshack-memory-vector-1024d
     pgVectorInstance = new PgVector({
-      id: 'gearshack-memory-vector',
+      id: `gearshack-memory-vector-${getEmbeddingDimensions()}d`,
       connectionString: DATABASE_URL,
     });
   }
@@ -153,7 +182,9 @@ function getPgVector(): PgVector {
  * Tier 3: Semantic Recall (resource-scoped)
  *   - Vector similarity search across ALL past conversations
  *   - Finds relevant context from weeks/months ago
- *   - Uses text-embedding-3-small via Vercel AI Gateway
+ *   - Configurable embedder via EMBEDDING_MODEL env var:
+ *     - openai/text-embedding-3-small (1536d, default)
+ *     - cohere/embed-multilingual-v3.0 (1024d, DE/EN parity)
  *   - Powered by pgvector in Supabase PostgreSQL
  *
  * Storage Architecture:
@@ -192,7 +223,8 @@ function createAgentMemory(): Memory {
     // pgvector for semantic recall embeddings
     vector: getPgVector(),
     // Embedder for semantic recall via Vercel AI Gateway
-    embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
+    // Supports multilingual (DE/EN) via EMBEDDING_MODEL env var
+    embedder: createEmbedder(getGateway()),
     options: memoryOptions,
   });
 
@@ -202,6 +234,29 @@ function createAgentMemory(): Memory {
 // =============================================================================
 // Agent Creation
 // =============================================================================
+
+/**
+ * Select the appropriate model based on query complexity.
+ *
+ * Simple queries (inventory counts, item lookups, general knowledge) → Haiku (10x cheaper, 5x faster)
+ * Complex queries (shakedown analysis, trip planning, comparisons) → Sonnet (full reasoning)
+ *
+ * @param queryComplexity - Complexity derived from intent classification
+ * @returns Object with AI Gateway model instance and resolved model ID
+ */
+function selectModel(queryComplexity?: QueryComplexity) {
+  const gateway = getGateway();
+
+  if (!COMPLEXITY_ROUTING_CONFIG.ENABLED || !queryComplexity) {
+    return { model: gateway(AI_CHAT_MODEL), modelId: AI_CHAT_MODEL };
+  }
+
+  const modelId = queryComplexity === 'simple'
+    ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
+    : COMPLEXITY_ROUTING_CONFIG.COMPLEX_MODEL;
+
+  return { model: gateway(modelId), modelId };
+}
 
 /**
  * Create Mastra Agent with three-tier memory, tools, and input processors
@@ -217,17 +272,20 @@ function createAgentMemory(): Memory {
  *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
+ * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
  */
-export function createGearAgent(userId: string, systemPrompt: string) {
+export function createGearAgent(userId: string, systemPrompt: string, queryComplexity?: QueryComplexity) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
+
+  const { model: selectedModel, modelId } = selectModel(queryComplexity);
 
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
-    model: getGateway()(AI_CHAT_MODEL),
+    model: selectedModel,
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
     tools: {
@@ -250,7 +308,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
+    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
@@ -275,6 +333,27 @@ export function createGearAgent(userId: string, systemPrompt: string) {
  * @param userMessage - The user's original question
  * @param cachedResponse - The cached assistant reply that was served
  */
+/**
+ * Returns the shared persistence-only Memory instance, creating it on first call.
+ *
+ * Uses history-only mode (no vector store / embedder) because cache-hit messages
+ * are not indexed for semantic recall — we only need DB write access.
+ */
+function getPersistenceMemory(): Memory {
+  if (!persistenceMemoryInstance) {
+    persistenceMemoryInstance = new Memory({
+      storage: getPgStore(),
+      // No vector or embedder: cache-hit messages are not added to semantic recall index
+      options: {
+        lastMessages: MEMORY_LAST_MESSAGES,
+        semanticRecall: false,
+        workingMemory: { enabled: false },
+      },
+    });
+  }
+  return persistenceMemoryInstance;
+}
+
 export async function persistCacheHitToMemory(
   userId: string,
   conversationId: string,
@@ -282,25 +361,28 @@ export async function persistCacheHitToMemory(
   cachedResponse: string
 ): Promise<void> {
   try {
-    const memory = new Memory({
-      storage: getPgStore(),
-      // No vector store or embedder needed — we're only persisting conversation
-      // history, not building semantic recall entries for cache-hit messages.
-      options: {
-        lastMessages: MEMORY_LAST_MESSAGES,
-        // Disable semantic recall to avoid unnecessary embedding API calls
-        semanticRecall: false,
-        workingMemory: { enabled: false },
-      },
-    });
+    const memory = getPersistenceMemory();
 
-    await (memory as Memory & {
+    // NOTE: Memory.saveMessages is an internal Mastra API not yet publicly typed.
+    // Tested against @mastra/memory v0.7.x. If this breaks after a Mastra upgrade,
+    // check the @mastra/memory CHANGELOG for saveMessages() signature changes.
+    // The runtime typeof guard below provides a safety net for API renames.
+    const memWithSave = memory as unknown as {
       saveMessages: (params: {
         messages: Array<{ role: string; content: string }>;
         threadId: string;
         resourceId: string;
       }) => Promise<unknown>;
-    }).saveMessages({
+    };
+
+    if (typeof memWithSave.saveMessages !== 'function') {
+      logWarn('[Cache] Memory.saveMessages not available in this Mastra version — skipping persistence', {
+        metadata: { conversationId, userId },
+      });
+      return;
+    }
+
+    await memWithSave.saveMessages({
       messages: [
         { role: 'user', content: userMessage },
         { role: 'assistant', content: cachedResponse },
@@ -310,10 +392,9 @@ export async function persistCacheHitToMemory(
     });
   } catch (error) {
     // Log but never throw — cache hit UX must not be affected by persistence failures
-    console.warn(
-      '[Cache] Failed to persist cache-hit exchange to memory:',
-      error instanceof Error ? error.message : String(error)
-    );
+    logWarn('[Cache] Failed to persist cache-hit exchange to memory', {
+      metadata: { error: error instanceof Error ? error.message : String(error) },
+    });
   }
 }
 

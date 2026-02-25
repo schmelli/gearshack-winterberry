@@ -69,7 +69,6 @@ COMMENT ON COLUMN response_cache.query_text IS
 CREATE OR REPLACE FUNCTION search_response_cache(
   query_embedding vector(1536),
   similarity_threshold float DEFAULT 0.95,
-  max_age_hours int DEFAULT 48,
   query_locale text DEFAULT 'en'
 )
 RETURNS TABLE (
@@ -98,10 +97,11 @@ BEGIN
       rc.query_text
     FROM response_cache rc
     WHERE
-      -- Only return non-expired entries
+      -- Only return non-expired entries (expires_at is set at insert time as created_at + TTL,
+      -- so this single condition covers both the TTL window and any future manual expiry overrides.
+      -- A separate created_at filter would be redundant for rows inserted with the default TTL
+      -- and would shadow any deliberate short-TTL overrides.)
       rc.expires_at > now()
-      -- Apply max_age_hours as an additional recency guard (caller controls TTL window)
-      AND rc.created_at > now() - (max_age_hours * interval '1 hour')
       -- Filter by locale
       AND rc.locale = query_locale
   )
@@ -118,7 +118,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION search_response_cache(vector, float, int, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION search_response_cache(vector, float, text) TO authenticated;
 
 COMMENT ON FUNCTION search_response_cache IS
   'Searches the response cache for semantically similar questions. Returns the best matching cached response if similarity exceeds threshold and entry is not expired.';
@@ -163,16 +163,26 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION cleanup_expired_response_cache() TO authenticated;
+-- Only service_role may call cleanup — authenticated end-users have no business
+-- triggering a cache purge. pg_cron runs as superuser and bypasses this check.
 GRANT EXECUTE ON FUNCTION cleanup_expired_response_cache() TO service_role;
 
 COMMENT ON FUNCTION cleanup_expired_response_cache IS
   'Removes expired entries from response_cache. Call periodically via pg_cron or application-level scheduler.';
 
--- Schedule cleanup every 6 hours (if pg_cron is available)
+-- Schedule cleanup every 6 hours (if pg_cron is available).
+-- Unschedule first to ensure this block is idempotent — applying the migration
+-- more than once (e.g. after a rollback-and-reapply) would otherwise raise
+-- a duplicate job-name error from pg_cron.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    BEGIN
+      PERFORM cron.unschedule('cleanup-response-cache');
+    EXCEPTION WHEN OTHERS THEN
+      -- Job didn't exist yet; that's fine, continue to schedule below
+      NULL;
+    END;
     PERFORM cron.schedule(
       'cleanup-response-cache',
       '0 */6 * * *',
