@@ -476,6 +476,8 @@
       "addToLoadout": "Add \"{gearItemName}\" to \"{loadoutName}\"?",
       "approve": "Approve",
       "cancel": "Cancel",
+      "success": "Added \"{gearItemName}\" to \"{loadoutName}\".",
+      "cancelled": "Cancelled adding \"{gearItemName}\" to \"{loadoutName}\".",
       "errorApprove": "Failed to approve action. Please try again.",
       "errorCancel": "Failed to cancel action. Please try again."
     },

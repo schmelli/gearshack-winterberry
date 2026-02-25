@@ -476,6 +476,8 @@
       "addToLoadout": "\"{gearItemName}\" zu \"{loadoutName}\" hinzufügen?",
       "approve": "Bestätigen",
       "cancel": "Abbrechen",
+      "success": "\"{gearItemName}\" wurde zu \"{loadoutName}\" hinzugefügt.",
+      "cancelled": "Hinzufügen von \"{gearItemName}\" zu \"{loadoutName}\" abgebrochen.",
       "errorApprove": "Aktion konnte nicht bestätigt werden. Bitte erneut versuchen.",
       "errorCancel": "Aktion konnte nicht abgebrochen werden. Bitte erneut versuchen."
     },

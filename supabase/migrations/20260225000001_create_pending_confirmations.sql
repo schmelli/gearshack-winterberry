@@ -46,3 +46,16 @@ BEGIN
     AND created_at < NOW() - INTERVAL '1 hour';
 END;
 $$;
+
+-- TODO: Schedule periodic cleanup via pg_cron (requires pg_cron extension enabled in Supabase).
+-- Run in Supabase SQL editor after enabling pg_cron:
+--
+--   SELECT cron.schedule(
+--     'cleanup-pending-confirmations',
+--     '*/15 * * * *',
+--     'SELECT cleanup_expired_pending_confirmations()'
+--   );
+--
+-- Without this, the table will accumulate expired rows (application reads still check
+-- expires_at, so no data leaks — just table bloat). An alternative is a lightweight
+-- Supabase Edge Function cron job.

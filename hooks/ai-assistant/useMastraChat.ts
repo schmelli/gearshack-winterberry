@@ -572,7 +572,7 @@ export function useMastraChat(): UseMastraChatResult {
 
         if (!response.ok) {
           // Throw so callers can keep the confirmation card visible/retryable
-          throw new Error(result.error || 'Failed to process confirmation.');
+          throw new Error(result.error || t('confirmAction.errorApprove'));
         }
 
         // Remove the resolved confirmation from message state so the card unmounts
@@ -588,20 +588,29 @@ export function useMastraChat(): UseMastraChatResult {
           })
         );
 
-        if (result.cancelled) {
-          toast.info(result.message);
-        } else if (result.success) {
-          toast.success(result.message);
+        // Map structured result codes to i18n messages instead of using API strings
+        if (result.resultCode === 'ADD_TO_LOADOUT_CANCELLED') {
+          toast.info(t('confirmAction.cancelled', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else if (result.success && result.resultCode === 'ADD_TO_LOADOUT_SUCCESS') {
+          toast.success(t('confirmAction.success', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
         } else {
-          throw new Error(result.message || 'Action failed.');
+          throw new Error(result.error || t('confirmAction.errorApprove'));
         }
       } catch (err) {
         // Re-throw so the ConfirmAddToLoadout component can show an error toast
         // and keep the card visible for retry
-        throw err instanceof Error ? err : new Error('Failed to process confirmation.');
+        throw err instanceof Error ? err : new Error(t('confirmAction.errorApprove'));
       }
     },
-    []
+    // t is stable (next-intl), setMessages is stable (useState setter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setMessages, t]
   );
 
   // Load conversation history on mount if conversationId exists.

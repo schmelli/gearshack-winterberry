@@ -26,7 +26,6 @@ import { createClient } from '@/lib/supabase/server';
 import { logInfo, logError } from '@/lib/mastra/logging';
 import {
   resolveConfirmation,
-  getConfirmation,
 } from '@/lib/mastra/workflows/pending-confirmations';
 import { executeAddToLoadout } from '@/lib/mastra/workflows/add-gear-workflow';
 
@@ -114,44 +113,46 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 4. Check confirmation exists before resolving
-    const existing = await getConfirmation(runId);
-    if (!existing) {
-      return Response.json(
-        { error: 'Confirmation not found or expired. Please try the action again.' },
-        { status: 404 }
-      );
-    }
-
-    // 5. Resolve the confirmation (approve or cancel)
+    // 4. Resolve the confirmation atomically (approve or cancel).
+    // The atomic UPDATE … WHERE handles all failure cases (not found, wrong user,
+    // already resolved, expired) in a single round-trip, eliminating the TOCTOU
+    // window that a separate pre-check would introduce.
     const confirmation = await resolveConfirmation(runId, user.id, approved);
     if (!confirmation) {
       return Response.json(
-        { error: 'Unable to process confirmation. It may have already been resolved or belongs to another user.' },
+        { error: 'Confirmation not found, expired, already resolved, or belongs to another user.' },
         { status: 404 }
       );
     }
 
-    // 6. If cancelled, return success with cancelled status
+    // 5. If cancelled, return success with cancelled status
     if (!approved) {
       logInfo('[Resume] User cancelled', { metadata: { runId } });
       return Response.json({
         success: true,
         cancelled: true,
-        message: `Cancelled adding "${confirmation.payload.gearItemName}" to "${confirmation.payload.loadoutName}".`,
+        resultCode: 'ADD_TO_LOADOUT_CANCELLED',
+        details: {
+          gearItemName: confirmation.payload.gearItemName,
+          loadoutName: confirmation.payload.loadoutName,
+        },
       });
     }
 
-    // 7. Execute the actual add-to-loadout operation (this is the "resume" step)
+    // 6. Execute the actual add-to-loadout operation (this is the "resume" step)
     // Pass userId for ownership re-verification before the write.
     logInfo('[Resume] User approved, executing add', { metadata: { runId } });
     const result = await executeAddToLoadout(confirmation.payload, user.id);
 
     return Response.json({
       success: result.success,
-      message: result.message,
-      loadoutItemId: result.loadoutItemId,
-      updatedTotalWeight: result.updatedTotalWeight,
+      resultCode: result.success ? 'ADD_TO_LOADOUT_SUCCESS' : 'ADD_TO_LOADOUT_FAILED',
+      details: {
+        gearItemName: confirmation.payload.gearItemName,
+        loadoutName: confirmation.payload.loadoutName,
+        loadoutItemId: result.loadoutItemId,
+        updatedTotalWeight: result.updatedTotalWeight,
+      },
       error: result.error,
     });
   } catch (error) {

@@ -143,13 +143,13 @@ export async function suspendForConfirmation(
 
   if (error || !data) {
     logError('[PendingConfirmations] Failed to insert confirmation', error, {
-      metadata: { runId, item: payload.gearItemName, loadout: payload.loadoutName },
+      metadata: { item: payload.gearItemName, loadout: payload.loadoutName },
     });
     throw new Error(`Failed to store pending confirmation: ${error?.message ?? 'Unknown error'}`);
   }
 
   logInfo('[PendingConfirmations] Suspended', {
-    metadata: { runId, item: payload.gearItemName, loadout: payload.loadoutName },
+    metadata: { runId: data.run_id, item: payload.gearItemName, loadout: payload.loadoutName },
   });
 
   return fromDbRow(data);
