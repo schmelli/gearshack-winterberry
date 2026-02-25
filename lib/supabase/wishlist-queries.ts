@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { cleanProductUrl } from '@/lib/utils';
 import type { WishlistItem, AddWishlistItemParams, UpdateWishlistItemParams } from '@/types/wishlist';
 import type { Database } from '@/types/database';
 import type { NobgImages } from '@/types/gear';
@@ -196,7 +197,7 @@ export async function addWishlistItem(item: AddWishlistItemParams): Promise<Wish
     description: item.description,
     brand_url: item.brandUrl,
     model_number: item.modelNumber,
-    product_url: item.productUrl,
+    product_url: cleanProductUrl(item.productUrl) ?? item.productUrl,
 
     product_type_id: item.productTypeId,
 

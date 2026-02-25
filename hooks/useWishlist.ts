@@ -213,11 +213,16 @@ export function useWishlist(): UseWishlistReturn {
     // -------------------------------------------------------------------------
     const triggerMissingMsrp = async () => {
       try {
-        const itemsWithoutMsrp = wishlistItems.filter(
+        // Priority 1: items without any price
+        const noPriceItems = wishlistItems.filter(
           (item) => item.manufacturerPrice === null || item.manufacturerPrice === undefined
         );
-        // Process up to 3 items per load (staggered 3 s apart to avoid rate limits)
-        const toDiscover = itemsWithoutMsrp.slice(0, 3);
+        // Priority 2: items with price (server checks if stale >30 days)
+        const withPriceItems = wishlistItems.filter(
+          (item) => item.manufacturerPrice !== null && item.manufacturerPrice !== undefined
+        );
+        // Process up to 3 items per load (no-price first, then stale)
+        const toDiscover = [...noPriceItems, ...withPriceItems].slice(0, 3);
         for (let i = 0; i < toDiscover.length; i++) {
           if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 3000));
           const item = toDiscover[i];

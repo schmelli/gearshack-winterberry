@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createFirecrawlClient } from '@/lib/firecrawl/client';
+import { cleanProductUrl } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -147,6 +148,56 @@ function extractPriceFromMarkdown(
 }
 
 // =============================================================================
+// Scrape Relevance Validation
+// =============================================================================
+
+/**
+ * Tokenize a name into meaningful lowercase words (≥2 chars).
+ * Merges short-prefix hyphens (X-Mid → XMid) for consistent matching.
+ */
+function tokenize(text: string): Set<string> {
+  const normalized = text
+    .toLowerCase()
+    .replace(/\b([a-z]{1,2})-(\w)/gi, '$1$2') // X-Mid → XMid
+    .replace(/[^a-z0-9\s]/gi, ' ');
+  return new Set(
+    normalized.split(/\s+/).filter((w) => w.length >= 2)
+  );
+}
+
+/**
+ * Check whether a scraped page is relevant to the target product.
+ * Uses Jaccard similarity on the item name vs the page title/content header.
+ * Rejects pages for accessories, bundles, or completely different products.
+ *
+ * @returns true if at least 40% of the item name tokens appear in the page
+ */
+function isRelevantPage(
+  itemName: string,
+  pageTitle: string | undefined,
+  pageMarkdown: string | undefined
+): boolean {
+  const itemTokens = tokenize(itemName);
+  if (itemTokens.size === 0) return true; // Cannot validate — allow
+
+  // Build a token set from the page title + first 500 chars of markdown
+  const headerText = [
+    pageTitle ?? '',
+    (pageMarkdown ?? '').slice(0, 500),
+  ].join(' ');
+  const pageTokens = tokenize(headerText);
+
+  // Count how many item tokens appear on the page
+  let hits = 0;
+  for (const token of itemTokens) {
+    if (pageTokens.has(token)) hits++;
+  }
+
+  const coverage = hits / itemTokens.size;
+  return coverage >= 0.4;
+}
+
+// =============================================================================
 // Core discovery using Firecrawl search()
 // =============================================================================
 
@@ -188,6 +239,12 @@ async function discoverMsrpViaFirecrawl(
       for (const item of result.results) {
         if (!item.url || !item.markdown) continue;
 
+        // Relevance gate: skip pages that don't match the product name
+        if (!isRelevantPage(itemName, item.title, item.markdown)) {
+          console.log(`[MSRP Discovery] Skipping irrelevant page: ${item.title ?? item.url}`);
+          continue;
+        }
+
         // Try JSON-LD first (most reliable)
         if (item.html) {
           const jsonLdPrice = extractPriceFromJsonLd(item.html);
@@ -223,11 +280,19 @@ async function discoverMsrpViaFirecrawl(
  */
 async function discoverFromKnownUrl(
   url: string,
+  itemName: string,
   preferredCurrency: string
 ): Promise<DiscoveredPrice | null> {
   try {
     const firecrawl = createFirecrawlClient();
     const result = await firecrawl.scrape(url, { formats: ['markdown', 'html'] });
+
+    // Relevance gate: verify the page matches the product before extracting prices
+    const pageTitle = result.data?.metadata?.title;
+    if (!isRelevantPage(itemName, pageTitle, result.data?.markdown)) {
+      console.log(`[MSRP Discovery] Known URL page mismatch for "${itemName}": ${pageTitle ?? url}`);
+      return null;
+    }
 
     if (result.data?.html) {
       const jsonLdPrice = extractPriceFromJsonLd(result.data.html);
@@ -267,10 +332,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'gearItemId and itemName are required' }, { status: 400 });
     }
 
-    // Verify ownership, skip if price already set
+    // Verify ownership; allow re-discovery after STALE_DAYS if price already set
+    const STALE_DAYS = 30;
     const { data: gearItem } = await supabase
       .from('gear_items')
-      .select('id, manufacturer_price, product_url')
+      .select('id, manufacturer_price, product_url, updated_at')
       .eq('id', gearItemId)
       .eq('user_id', user.id)
       .single();
@@ -278,19 +344,26 @@ export async function POST(request: NextRequest) {
     if (!gearItem) {
       return NextResponse.json({ error: 'Gear item not found' }, { status: 404 });
     }
+
+    // Skip if price was recently set (within STALE_DAYS) — allows periodic refresh
     if (gearItem.manufacturer_price !== null) {
-      return NextResponse.json({ skipped: true, reason: 'price_already_set' });
+      const updatedAt = new Date(gearItem.updated_at);
+      const staleCutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000);
+      if (updatedAt > staleCutoff) {
+        return NextResponse.json({ skipped: true, reason: 'price_recently_set' });
+      }
+      console.log(`[MSRP Discovery] ${itemName}: price is ${STALE_DAYS}+ days old — refreshing`);
     }
 
     const acceptLanguage = request.headers.get('accept-language') ?? 'de';
     const preferredCurrency = acceptLanguage.startsWith('de') ? 'EUR' : 'USD';
-    const effectiveProductUrl = productUrl ?? gearItem.product_url ?? null;
+    const effectiveProductUrl = cleanProductUrl(productUrl) ?? cleanProductUrl(gearItem.product_url) ?? null;
 
     let discovered: DiscoveredPrice | null = null;
 
     // Strategy 1: Scrape known product URL directly
     if (effectiveProductUrl) {
-      discovered = await discoverFromKnownUrl(effectiveProductUrl, preferredCurrency);
+      discovered = await discoverFromKnownUrl(effectiveProductUrl, itemName, preferredCurrency);
     }
 
     // Strategy 2: Firecrawl search + scrape in one call
@@ -311,8 +384,9 @@ export async function POST(request: NextRequest) {
       manufacturer_price: discovered.amount,
       manufacturer_currency: discovered.currency,
     };
-    if (discovered.productUrl && !effectiveProductUrl) {
-      updatePayload.product_url = discovered.productUrl;
+    const cleanDiscoveredUrl = cleanProductUrl(discovered.productUrl);
+    if (cleanDiscoveredUrl && !effectiveProductUrl) {
+      updatePayload.product_url = cleanDiscoveredUrl;
     }
 
     const { error: updateError } = await supabase

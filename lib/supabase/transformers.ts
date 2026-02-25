@@ -10,6 +10,7 @@
 
 import type { GearItem, GearCondition, GearStatus, WeightUnit, NobgImages } from '@/types/gear';
 import type { Tables, TablesInsert, TablesUpdate, Json } from '@/types/database';
+import { cleanProductUrl } from '@/lib/utils';
 
 // =============================================================================
 // Type Aliases
@@ -115,7 +116,7 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     description: item.description,
     brand_url: item.brandUrl,
     model_number: item.modelNumber,
-    product_url: item.productUrl,
+    product_url: cleanProductUrl(item.productUrl) ?? item.productUrl,
 
     product_type_id: item.productTypeId,
 
@@ -167,7 +168,7 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.description !== undefined) update.description = item.description;
   if (item.brandUrl !== undefined) update.brand_url = item.brandUrl;
   if (item.modelNumber !== undefined) update.model_number = item.modelNumber;
-  if (item.productUrl !== undefined) update.product_url = item.productUrl;
+  if (item.productUrl !== undefined) update.product_url = cleanProductUrl(item.productUrl) ?? item.productUrl;
 
   if (item.productTypeId !== undefined) update.product_type_id = item.productTypeId;
 
