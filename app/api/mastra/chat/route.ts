@@ -365,6 +365,11 @@ export async function POST(request: Request): Promise<Response> {
           //   Step 3 (buildContext): System prompt assembly + fast-path attempt
           // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
+          // Emit context progress BEFORE starting the workflow so the user sees
+          // visible feedback during the multi-second classify + prefetch phase.
+          // The workflow encapsulates all three steps as a black box, so this is
+          // the only opportunity to show an intermediate progress state.
+          emitProgress('context', progressMessages[locale].context);
 
           const workflow = mastra.getWorkflow('gear-assistant');
           const run = await workflow.createRun({ resourceId: user.id });
@@ -393,8 +398,6 @@ export async function POST(request: Request): Promise<Response> {
               `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
             );
           }
-
-          emitProgress('context', progressMessages[locale].context);
 
           // Cast required because Mastra's generic types do not propagate the workflow
           // output type through workflowResult.result — the schema is validated at
