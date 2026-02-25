@@ -129,8 +129,8 @@ VALUES (
   'prompt-focus-v1',
   'Tests whether ultralight-focused (A) or value-focused (B) prompt suffix improves user satisfaction',
   '[
-    {"id": "A", "label": "Ultralight Focus", "suffix_en": "Always prioritize weight savings and ultralight alternatives in your suggestions.", "suffix_de": "Priorisiere immer Gewichtseinsparungen und Ultraleicht-Alternativen in deinen Vorschlaegen."},
-    {"id": "B", "label": "Value Focus", "suffix_en": "Always consider budget constraints and value-for-money in your suggestions.", "suffix_de": "Beruecksichtige immer Budgetbeschraenkungen und das Preis-Leistungs-Verhaeltnis in deinen Vorschlaegen."}
+    {"id": "A", "label": "Ultralight Focus", "suffix_en": "Always prioritize weight savings and ultralight alternatives in your suggestions.", "suffix_de": "Priorisiere immer Gewichtseinsparungen und Ultraleicht-Alternativen in deinen Vorschlägen."},
+    {"id": "B", "label": "Value Focus", "suffix_en": "Always consider budget constraints and value-for-money in your suggestions.", "suffix_de": "Berücksichtige immer Budgetbeschränkungen und das Preis-Leistungs-Verhältnis in deinen Vorschlägen."}
   ]'::jsonb,
   true,
   100
@@ -141,31 +141,50 @@ ON CONFLICT (name) DO NOTHING;
 -- 6. Analytics View
 -- =============================================================================
 
+-- Refactored from LATERAL JOIN (N+1) to CTEs for O(1) scalability.
+-- Assignment and feedback counts are aggregated separately then joined once.
 CREATE OR REPLACE VIEW prompt_ab_analytics AS
-SELECT
-  e.name AS experiment_name,
-  a.variant_id,
-  COUNT(DISTINCT a.user_id) AS unique_users,
-  COUNT(a.id) AS total_sessions,
-  -- Join with insight_feedback for satisfaction metrics
-  COALESCE(f.positive_count, 0) AS positive_feedbacks,
-  COALESCE(f.negative_count, 0) AS negative_feedbacks,
-  COALESCE(f.total_feedback, 0) AS total_feedbacks,
-  CASE
-    WHEN COALESCE(f.total_feedback, 0) > 0
-    THEN ROUND(f.positive_count::numeric / f.total_feedback * 100, 1)
-    ELSE 0
-  END AS satisfaction_rate_pct
-FROM prompt_ab_experiments e
-JOIN prompt_ab_assignments a ON a.experiment_id = e.id
-LEFT JOIN LATERAL (
+WITH assignment_stats AS (
   SELECT
-    COUNT(*) FILTER (WHERE if2.is_positive = true) AS positive_count,
-    COUNT(*) FILTER (WHERE if2.is_positive = false) AS negative_count,
-    COUNT(*) AS total_feedback
-  FROM insight_feedback if2
-  WHERE if2.experiment_name = e.name
-    AND if2.prompt_variant = a.variant_id
-) f ON true
-WHERE e.is_active = true
-GROUP BY e.name, a.variant_id, f.positive_count, f.negative_count, f.total_feedback;
+    a.experiment_id,
+    a.variant_id,
+    COUNT(DISTINCT a.user_id) AS unique_users,
+    COUNT(a.id)               AS total_sessions
+  FROM prompt_ab_assignments a
+  GROUP BY a.experiment_id, a.variant_id
+),
+feedback_stats AS (
+  SELECT
+    f.experiment_name,
+    f.prompt_variant,
+    COUNT(*) FILTER (WHERE f.is_positive = true)  AS positive_feedbacks,
+    COUNT(*) FILTER (WHERE f.is_positive = false) AS negative_feedbacks,
+    COUNT(*)                                       AS total_feedbacks
+  FROM insight_feedback f
+  WHERE f.experiment_name IS NOT NULL
+    AND f.prompt_variant  IS NOT NULL
+  GROUP BY f.experiment_name, f.prompt_variant
+)
+SELECT
+  e.name                                          AS experiment_name,
+  ast.variant_id,
+  ast.unique_users,
+  ast.total_sessions,
+  COALESCE(fst.positive_feedbacks,  0)            AS positive_feedbacks,
+  COALESCE(fst.negative_feedbacks,  0)            AS negative_feedbacks,
+  COALESCE(fst.total_feedbacks,     0)            AS total_feedbacks,
+  CASE
+    WHEN COALESCE(fst.total_feedbacks, 0) > 0
+    THEN ROUND(
+           fst.positive_feedbacks::numeric / fst.total_feedbacks * 100,
+           1
+         )
+    ELSE 0
+  END                                             AS satisfaction_rate_pct
+FROM prompt_ab_experiments e
+JOIN assignment_stats ast
+  ON ast.experiment_id = e.id
+LEFT JOIN feedback_stats fst
+  ON  fst.experiment_name = e.name
+  AND fst.prompt_variant   = ast.variant_id
+WHERE e.is_active = true;

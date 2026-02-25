@@ -11,11 +11,26 @@
  * - Graceful degradation: if DB unavailable, returns no variant (control group)
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import type {
   PromptABExperiment,
   PromptVariant,
   VariantResolution,
 } from '@/types/prompt-ab';
+
+// =============================================================================
+// Zod Validation Schema for DB data
+// =============================================================================
+
+const promptVariantSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  suffix_en: z.string(),
+  suffix_de: z.string(),
+});
+
+const promptVariantArraySchema = z.array(promptVariantSchema);
 
 // =============================================================================
 // In-Memory Cache for Active Experiments
@@ -29,13 +44,26 @@ interface CachedExperiment {
 /** Cache TTL: 5 minutes */
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * NOTE: This cache is module-level (per Node.js process / server instance).
+ * In serverless environments each cold start resets the cache, so TTL
+ * primarily helps within a single long-running server process. This is
+ * intentional — the TTL still reduces DB queries significantly under load.
+ */
 let experimentCache: CachedExperiment | null = null;
+
+/**
+ * Tracks the last time we confirmed there was NO active experiment.
+ * Prevents hitting the DB on every request when no experiment is running.
+ */
+let noExperimentFetchedAt: number | null = null;
 
 /**
  * Clear the experiment cache (useful for testing or forced refresh)
  */
 export function clearExperimentCache(): void {
   experimentCache = null;
+  noExperimentFetchedAt = null;
 }
 
 // =============================================================================
@@ -109,19 +137,32 @@ export function isInTraffic(userId: string, trafficPercentage: number): boolean 
  * Uses an in-memory cache with 5-minute TTL to avoid
  * hitting the database on every chat request.
  *
+ * NOTE: Only the most recently created active experiment is returned.
+ * Multi-experiment support is a future enhancement.
+ *
  * @param supabaseClient - Supabase service role client
  * @returns The active experiment, or null if none exists
  */
 export async function getActiveExperiment(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic Supabase client type
-  supabaseClient: any
+  supabaseClient: SupabaseClient
 ): Promise<PromptABExperiment | null> {
-  // Check cache first
-  if (
-    experimentCache &&
-    Date.now() - experimentCache.fetchedAt < CACHE_TTL_MS
-  ) {
-    return experimentCache.experiment;
+  const now = Date.now();
+
+  // Check positive cache: a known active experiment
+  if (experimentCache && now - experimentCache.fetchedAt < CACHE_TTL_MS) {
+    const cached = experimentCache.experiment;
+    // Also validate ends_at hasn't passed since we cached it
+    if (cached.ends_at && new Date(cached.ends_at) < new Date()) {
+      // Experiment expired while in cache — invalidate and fall through to DB
+      experimentCache = null;
+    } else {
+      return cached;
+    }
+  }
+
+  // Check negative cache: we recently confirmed no active experiment exists
+  if (noExperimentFetchedAt !== null && now - noExperimentFetchedAt < CACHE_TTL_MS) {
+    return null;
   }
 
   try {
@@ -134,38 +175,53 @@ export async function getActiveExperiment(
       .single();
 
     if (error || !data) {
-      // No active experiment
+      // No active experiment — update negative cache to avoid repeat DB hits
+      noExperimentFetchedAt = now;
       experimentCache = null;
+      return null;
+    }
+
+    // Validate variants JSONB field at runtime to catch malformed DB data
+    const variantsResult = promptVariantArraySchema.safeParse(data.variants);
+    if (!variantsResult.success) {
+      console.error('[PromptAB] Invalid variants schema in DB', {
+        experimentName: data.name,
+        error: variantsResult.error.flatten(),
+      });
+      noExperimentFetchedAt = now;
       return null;
     }
 
     const experiment: PromptABExperiment = {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      variants: data.variants as PromptVariant[],
-      is_active: data.is_active,
-      traffic_percentage: data.traffic_percentage,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      ends_at: data.ends_at,
+      id: data.id as string,
+      name: data.name as string,
+      description: data.description as string | null,
+      variants: variantsResult.data,
+      is_active: data.is_active as boolean,
+      traffic_percentage: data.traffic_percentage as number,
+      created_at: data.created_at as string,
+      updated_at: data.updated_at as string,
+      ends_at: data.ends_at as string | null,
     };
 
-    // Check if experiment has expired
+    // Check if experiment has already expired
     if (experiment.ends_at && new Date(experiment.ends_at) < new Date()) {
+      noExperimentFetchedAt = now;
       experimentCache = null;
       return null;
     }
 
-    // Update cache
+    // Update positive cache
     experimentCache = {
       experiment,
-      fetchedAt: Date.now(),
+      fetchedAt: now,
     };
+    noExperimentFetchedAt = null;
 
     return experiment;
-  } catch {
+  } catch (error) {
     // Graceful degradation: return null if DB unavailable
+    console.error('[PromptAB] Failed to fetch active experiment', { error });
     return null;
   }
 }
@@ -188,8 +244,7 @@ export async function getActiveExperiment(
 export async function resolveVariant(
   userId: string,
   locale: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic Supabase client type
-  supabaseClient: any
+  supabaseClient: SupabaseClient
 ): Promise<VariantResolution | null> {
   const experiment = await getActiveExperiment(supabaseClient);
 
@@ -238,8 +293,7 @@ export async function resolveVariant(
  * @param conversationId - Chat conversation UUID
  */
 export async function logAssignment(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic Supabase client type
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   resolution: VariantResolution,
   userId: string,
   conversationId: string

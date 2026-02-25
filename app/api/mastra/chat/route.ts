@@ -505,11 +505,10 @@ export async function POST(request: Request): Promise<Response> {
             variantResolution = await resolveVariant(user.id, userLocale, serviceClient);
 
             if (variantResolution?.isInExperiment) {
-              // Track variant in OTel span attributes
+              // Track variant in OTel span attributes (no PII — user.id omitted)
               addSpanAttributes({
                 'prompt.variant': variantResolution.variantId,
                 'prompt.experiment': variantResolution.experimentName,
-                'user.id': user.id,
               });
 
               logDebug('A/B variant assigned', {
@@ -687,9 +686,16 @@ export async function POST(request: Request): Promise<Response> {
             );
           }
 
-          // Send completion event
+          // Send completion event (include variant info so client can correlate feedback)
           controller.enqueue(
-            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
+            encoder.encode(encodeDoneEvent(
+              messageId,
+              finishReason || 'stop',
+              undefined,
+              totalLatencyMs,
+              variantResolution?.isInExperiment ? variantResolution.variantId : undefined,
+              variantResolution?.isInExperiment ? variantResolution.experimentName : undefined,
+            ))
           );
 
           logInfo('Mastra chat request completed', {

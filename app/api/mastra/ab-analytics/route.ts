@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { ExperimentAnalytics, VariantAnalytics } from '@/types/prompt-ab';
 
@@ -53,11 +54,18 @@ function isStatisticallySignificant(variants: VariantAnalytics[]): boolean {
     }
   }
 
-  // Critical value for p < 0.05 with df = variants.length - 1
-  // df=1: 3.841, df=2: 5.991, df=3: 7.815
-  const criticalValues: Record<number, number> = { 1: 3.841, 2: 5.991, 3: 7.815 };
+  // Critical values for p < 0.05 with df = variants.length - 1
+  // df=1: 3.841, df=2: 5.991, df=3: 7.815, df=4: 9.488, df=5: 11.070
+  // Use the most conservative known value (df=5) as fallback for larger experiments.
+  const criticalValues: Record<number, number> = {
+    1: 3.841,
+    2: 5.991,
+    3: 7.815,
+    4: 9.488,
+    5: 11.070,
+  };
   const df = variants.length - 1;
-  const criticalValue = criticalValues[df] ?? 3.841;
+  const criticalValue = criticalValues[df] ?? criticalValues[5];
 
   return chiSquared > criticalValue;
 }
@@ -85,9 +93,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const experimentName = searchParams.get('experiment');
 
+    // Cast to untyped client for views/tables not yet in generated types.
+    // prompt_ab_analytics and prompt_ab_experiments were added in migration
+    // 20260225000001 and types have not yet been regenerated.
+    const untypedSupabase = supabase as unknown as SupabaseClient;
+
     // Query the analytics view
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- prompt_ab_analytics view not in generated types
-    let query = (supabase as any)
+    let query = untypedSupabase
       .from('prompt_ab_analytics')
       .select('*');
 
@@ -132,8 +144,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch experiment metadata
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- prompt_ab_experiments not in generated types
-    const { data: experiments } = await (supabase as any)
+    const { data: experiments } = await untypedSupabase
       .from('prompt_ab_experiments')
       .select('name, description, is_active, created_at')
       .in('name', Array.from(experimentMap.keys()));
@@ -154,7 +165,7 @@ export async function GET(request: NextRequest) {
           name,
           description: expMeta?.description ?? null,
           is_active: expMeta?.is_active ?? true,
-          created_at: expMeta?.created_at ?? '',
+          created_at: expMeta?.created_at ?? null,
         },
         variants,
         is_significant: isStatisticallySignificant(variants),

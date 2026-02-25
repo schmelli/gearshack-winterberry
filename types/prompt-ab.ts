@@ -98,7 +98,10 @@ export interface VariantAnalytics {
  * Complete analytics response for an experiment
  */
 export interface ExperimentAnalytics {
-  experiment: Pick<PromptABExperiment, 'name' | 'description' | 'is_active' | 'created_at'>;
+  experiment: Omit<Pick<PromptABExperiment, 'name' | 'description' | 'is_active' | 'created_at'>, 'created_at'> & {
+    /** null when experiment metadata is not found */
+    created_at: string | null;
+  };
   variants: VariantAnalytics[];
   /** Statistical significance indicator (basic chi-squared) */
   is_significant: boolean;
