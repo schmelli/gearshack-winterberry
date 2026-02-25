@@ -189,10 +189,12 @@ export const useSupabaseStore = create<SupabaseStore>()(
         if (!userId) { toast.error(t('signInToDelete')); return; }
 
         const supabase = createClient();
+        // Item may be in the store (inventory) or only in DB (wishlist).
+        // Always attempt the DB delete regardless.
         const deletedItem = items.find((item) => item.id === id);
         const previousLoadouts = loadouts;
-        if (!deletedItem) return;
 
+        // Optimistically remove from local store (no-op if item isn't in store)
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
           loadouts: state.loadouts.map((l) => ({ ...l, itemIds: l.itemIds.filter((iid) => iid !== id), updatedAt: new Date() })),
@@ -205,11 +207,16 @@ export const useSupabaseStore = create<SupabaseStore>()(
           set((state) => ({ syncState: completeSyncOperation(state.syncState) }));
         } catch (error) {
           console.error('Failed to delete item:', error);
-          set((state) => ({
-            items: [...state.items, deletedItem].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
-            loadouts: previousLoadouts,
-            syncState: failSyncOperation(state.syncState, 'Failed to delete item'),
-          }));
+          // Rollback only if item was in the store (inventory items)
+          if (deletedItem) {
+            set((state) => ({
+              items: [...state.items, deletedItem].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+              loadouts: previousLoadouts,
+              syncState: failSyncOperation(state.syncState, 'Failed to delete item'),
+            }));
+          } else {
+            set((state) => ({ syncState: failSyncOperation(state.syncState, 'Failed to delete item') }));
+          }
           toast.error(t('deleteItemFailed'));
         }
       },
