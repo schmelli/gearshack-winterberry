@@ -10,10 +10,10 @@
 
 'use client';
 
-import { type ReactElement } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { WorkflowStep } from '@/hooks/ai-assistant/useMastraChat';
+import type { WorkflowStep } from '@/types/ai-assistant';
 
 /** Map step names to emojis for visual context */
 const STEP_EMOJIS: Record<string, string> = {
@@ -37,12 +37,12 @@ interface WorkflowProgressProps {
 export function WorkflowProgress({ steps }: WorkflowProgressProps) {
   const t = useTranslations('AIAssistant');
 
-  // Build label map from known translation keys; unknown steps fall back to the step name
-  const stepLabels: Record<string, string> = {
+  // Memoised label map — t() is stable across renders, so this only rebuilds when locale changes
+  const stepLabels = useMemo<Record<string, string>>(() => ({
     memory: t('progress.memory'),
     context: t('progress.context'),
     thinking: t('progress.thinking'),
-  };
+  }), [t]);
 
   if (steps.length === 0) return null;
 
@@ -52,7 +52,7 @@ export function WorkflowProgress({ steps }: WorkflowProgressProps) {
         <div key={`${s.step}-${i}`} className="flex items-center gap-2">
           {STATUS_ICONS[s.status]}
           <span>
-            {STEP_EMOJIS[s.step] ?? '⚙️'} {stepLabels[s.step] ?? s.step}
+            {STEP_EMOJIS[s.step] ?? '⚙️'} {stepLabels[s.step] ?? t('progress.unknown')}
           </span>
         </div>
       ))}

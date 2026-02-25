@@ -15,7 +15,7 @@ import { MessageBubble } from './MessageBubble';
 import { WorkflowProgress } from './WorkflowProgress';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { WorkflowStep } from '@/hooks/ai-assistant/useMastraChat';
+import type { WorkflowStep } from '@/types/ai-assistant';
 
 interface InlineCard {
   id: string;

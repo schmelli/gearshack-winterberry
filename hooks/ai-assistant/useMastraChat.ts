@@ -13,11 +13,13 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { z } from 'zod';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgressData } from '@/lib/ai-assistant/stream-parser';
+import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
+import type { WorkflowStep } from '@/types/ai-assistant';
 
 // =====================================================
 // Types
@@ -33,16 +35,8 @@ import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgress
  */
 export type ChatState = 'idle' | 'loading' | 'streaming' | 'success' | 'error';
 
-/**
- * A single workflow step with its current status.
- * The backend emits 'running' for each step; we infer 'completed'
- * when the next step starts or when text content begins streaming.
- */
-export interface WorkflowStep {
-  step: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  message: string;
-}
+// WorkflowStep is defined in @/types/ai-assistant and re-exported for consumers
+export type { WorkflowStep } from '@/types/ai-assistant';
 
 /**
  * Message structure for Mastra chat
@@ -148,6 +142,8 @@ export function useMastraChat(): UseMastraChatResult {
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
   // Ref for text debounce timeout cleanup on abort
   const textUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref for the workflow-steps clear timeout — must be cancelled if a new request starts
+  const clearWorkflowStepsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to track if history has been loaded for this conversation
   const historyLoadedRef = useRef<string | null>(null);
 
@@ -217,6 +213,11 @@ export function useMastraChat(): UseMastraChatResult {
    * Abort any in-flight request
    */
   const abort = useCallback(() => {
+    // Cancel any pending workflow-steps clear timeout from a previous request
+    if (clearWorkflowStepsTimeoutRef.current) {
+      clearTimeout(clearWorkflowStepsTimeoutRef.current);
+      clearWorkflowStepsTimeoutRef.current = null;
+    }
     // Clean up any pending text update timeout
     if (textUpdateTimeoutRef.current) {
       clearTimeout(textUpdateTimeoutRef.current);
@@ -477,8 +478,12 @@ export function useMastraChat(): UseMastraChatResult {
         // Transition to success state
         setProgressMessage(null);
         setState('success');
-        // Delay clearing steps so users can see the final completed state before it disappears
-        setTimeout(() => setWorkflowSteps([]), 800);
+        // Delay clearing steps so users can see the final completed state before it disappears.
+        // Track in a ref so a rapid subsequent request can cancel this before it fires.
+        clearWorkflowStepsTimeoutRef.current = setTimeout(() => {
+          clearWorkflowStepsTimeoutRef.current = null;
+          setWorkflowSteps([]);
+        }, 800);
 
         logAIEvent('info', 'Mastra chat response completed', {
           userId: user.uid,
@@ -615,6 +620,14 @@ function completeRunningSteps(steps: WorkflowStep[]): WorkflowStep[] {
   return steps.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s);
 }
 
+/** Zod schema for runtime validation of backend workflow_progress events */
+const WorkflowProgressDataSchema = z.object({
+  step: z.string(),
+  status: z.enum(['pending', 'running', 'completed', 'failed']),
+  message: z.string(),
+});
+type ValidatedProgressData = z.infer<typeof WorkflowProgressDataSchema>;
+
 /**
  * Process a single SSE event from the stream
  */
@@ -624,7 +637,7 @@ async function processStreamEvent(
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
   onMemoryUpdate: (update: MemoryUpdate) => void,
-  onProgress?: (message: string, data?: WorkflowProgressData) => void
+  onProgress?: (message: string, data?: ValidatedProgressData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -639,12 +652,13 @@ async function processStreamEvent(
       }
       break;
 
-    case 'workflow_progress':
-      if (typeof event.data === 'object' && 'message' in event.data) {
-        const progressData = event.data as WorkflowProgressData;
-        onProgress?.(progressData.message, progressData);
+    case 'workflow_progress': {
+      const parsed = WorkflowProgressDataSchema.safeParse(event.data);
+      if (parsed.success) {
+        onProgress?.(parsed.data.message, parsed.data);
       }
       break;
+    }
 
     case 'done':
       // Stream complete - nothing to do, state transition handled in main flow

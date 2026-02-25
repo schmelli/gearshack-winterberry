@@ -5,6 +5,22 @@
  */
 
 // =====================================================
+// Workflow Progress
+// =====================================================
+
+/**
+ * A single workflow step with its current status.
+ * The backend emits 'running' for each step; we infer 'completed'
+ * when the next step starts or when text content begins streaming.
+ */
+export interface WorkflowStep {
+  step: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  /** Raw message from the backend. Used for debugging/telemetry; display uses i18n translations. */
+  message?: string;
+}
+
+// =====================================================
 // Core Entities
 // =====================================================
 
