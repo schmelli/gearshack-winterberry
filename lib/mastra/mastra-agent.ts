@@ -14,6 +14,7 @@
  */
 
 import { Agent } from '@mastra/core/agent';
+import { TokenLimiter, ToolCallFilter } from '@mastra/core/processors';
 import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
@@ -76,6 +77,10 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
+
+// Token limiter configuration
+// Claude Sonnet context window is 200k tokens; keep headroom for system prompt + generation
+const TOKEN_LIMIT = parseInt(process.env.MASTRA_TOKEN_LIMIT || '180000', 10);
 
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
@@ -185,10 +190,16 @@ function createAgentMemory(): Memory {
 // =============================================================================
 
 /**
- * Create Mastra Agent with three-tier memory and tools
+ * Create Mastra Agent with three-tier memory, tools, and input processors
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
+ *
+ * Input Processors (applied to memory-injected messages before LLM call):
+ * 1. ToolCallFilter: Strips verbose tool call/result pairs from history
+ *    (analyzeLoadout, inventoryInsights return large JSON payloads)
+ * 2. TokenLimiter: Enforces a hard token budget (default 180k) to stay
+ *    safely within Claude Sonnet's 200k context window
  *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
@@ -204,6 +215,12 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     instructions: systemPrompt,
     model: getGateway()(AI_CHAT_MODEL),
     memory: agentMemory,
+    // Memory processors: filter verbose tool results, then enforce token budget
+    // Order matters: ToolCallFilter first to remove noise, TokenLimiter last to enforce limit
+    inputProcessors: [
+      new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
+      new TokenLimiter({ limit: TOKEN_LIMIT }),
+    ],
     tools: {
       // Composite Domain Tools (Feature 060: preferred for most queries)
       analyzeLoadout: analyzeLoadoutTool,
@@ -224,7 +241,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
   );
   return agent;
 }
