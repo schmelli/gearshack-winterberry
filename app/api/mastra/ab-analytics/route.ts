@@ -92,15 +92,19 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const experimentName = searchParams.get('experiment');
+    // When true, queries prompt_ab_analytics_all (includes inactive/completed experiments)
+    // for post-mortem analysis.  Default: only active experiments.
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     // Cast to untyped client for views/tables not yet in generated types.
     // prompt_ab_analytics and prompt_ab_experiments were added in migration
     // 20260225000001 and types have not yet been regenerated.
     const untypedSupabase = supabase as unknown as SupabaseClient;
 
-    // Query the analytics view
+    // Query the appropriate analytics view
+    const viewName = includeInactive ? 'prompt_ab_analytics_all' : 'prompt_ab_analytics';
     let query = untypedSupabase
-      .from('prompt_ab_analytics')
+      .from(viewName)
       .select('*');
 
     if (experimentName) {
@@ -143,7 +147,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch experiment metadata
+    // Fetch experiment metadata (all matching, regardless of is_active status)
     const { data: experiments } = await untypedSupabase
       .from('prompt_ab_experiments')
       .select('name, description, is_active, created_at')

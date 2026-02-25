@@ -98,8 +98,11 @@ export interface VariantAnalytics {
  * Complete analytics response for an experiment
  */
 export interface ExperimentAnalytics {
-  experiment: Omit<Pick<PromptABExperiment, 'name' | 'description' | 'is_active' | 'created_at'>, 'created_at'> & {
-    /** null when experiment metadata is not found */
+  experiment: {
+    name: string;
+    description: string | null;
+    is_active: boolean;
+    /** null when experiment metadata is not found in the lookup query */
     created_at: string | null;
   };
   variants: VariantAnalytics[];

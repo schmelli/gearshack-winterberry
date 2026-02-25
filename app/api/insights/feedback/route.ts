@@ -25,9 +25,10 @@ const feedbackSchema = z.object({
   gearBrand: z.string().max(100).optional(),
   gearName: z.string().max(200).optional(),
   categoryId: z.string().max(100).optional(),
-  /** A/B test variant ID (e.g., "A", "B") for prompt experiment tracking */
+  // Note: promptVariant and experimentName are accepted from clients for backward
+  // compatibility but are NOT used directly — the server always looks up the
+  // canonical assignment from prompt_ab_assignments to prevent analytics skewing.
   promptVariant: z.string().max(10).optional(),
-  /** A/B test experiment name for correlation */
   experimentName: z.string().max(100).optional(),
 });
 
@@ -68,10 +69,30 @@ export async function POST(request: NextRequest) {
 
     const {
       insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId,
-      promptVariant, experimentName,
     } = parseResult.data;
 
     const contentHash = hashContent(insightContent);
+
+    // Look up the user's most recent A/B assignment server-side.
+    // We intentionally ignore client-submitted promptVariant/experimentName to
+    // prevent users from forging variant IDs and skewing analytics.
+    let serverVariant: string | null = null;
+    let serverExperiment: string | null = null;
+    try {
+      const { data: assignment } = await (supabase as any)
+        .from('prompt_ab_assignments')
+        .select('variant_id, experiment_name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (assignment) {
+        serverVariant = assignment.variant_id as string;
+        serverExperiment = assignment.experiment_name as string;
+      }
+    } catch {
+      // Non-critical: proceed without A/B correlation if lookup fails
+    }
 
     // Upsert the feedback (update if exists, insert if not)
     const { data, error } = await (supabase as any)
@@ -86,8 +107,8 @@ export async function POST(request: NextRequest) {
           gear_brand: gearBrand || null,
           gear_name: gearName || null,
           category_id: categoryId || null,
-          prompt_variant: promptVariant || null,
-          experiment_name: experimentName || null,
+          prompt_variant: serverVariant,
+          experiment_name: serverExperiment,
         },
         {
           onConflict: 'user_id,insight_content_hash',

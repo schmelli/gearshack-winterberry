@@ -524,10 +524,14 @@ export async function POST(request: Request): Promise<Response> {
                 variantResolution.experimentName,
                 variantResolution.variantId
               );
+            }
 
-              // Log assignment non-blocking
-              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch(() => {
-                // Intentionally swallowed — non-critical
+            // Log assignment for ALL resolutions (including control group) so the
+            // analytics view has a baseline to compare against.  Without control-group
+            // rows the A/B comparison is statistically invalid.
+            if (variantResolution) {
+              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch((err) => {
+                logWarn('[PromptAB] logAssignment threw unexpectedly', { error: err });
               });
             }
           } catch {

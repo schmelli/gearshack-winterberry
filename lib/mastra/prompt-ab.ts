@@ -24,10 +24,11 @@ import type {
 // =============================================================================
 
 const promptVariantSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  suffix_en: z.string(),
-  suffix_de: z.string(),
+  id: z.string().max(10),
+  label: z.string().max(100),
+  // Max 500 chars to prevent excessively long injections into the system prompt
+  suffix_en: z.string().max(500),
+  suffix_de: z.string().max(500),
 });
 
 const promptVariantArraySchema = z.array(promptVariantSchema);
@@ -166,10 +167,13 @@ export async function getActiveExperiment(
   }
 
   try {
+    // Filter by ends_at at the DB level to avoid fetching already-expired experiments.
+    // The client-side expiry check below handles the cache-served case.
     const { data, error } = await supabaseClient
       .from('prompt_ab_experiments')
       .select('*')
       .eq('is_active', true)
+      .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

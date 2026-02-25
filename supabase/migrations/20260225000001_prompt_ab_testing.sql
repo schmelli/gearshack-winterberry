@@ -143,6 +143,10 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Refactored from LATERAL JOIN (N+1) to CTEs for O(1) scalability.
 -- Assignment and feedback counts are aggregated separately then joined once.
+--
+-- prompt_ab_analytics      → active experiments only (default dashboard view)
+-- prompt_ab_analytics_all  → all experiments including completed ones (post-mortem analysis)
+
 CREATE OR REPLACE VIEW prompt_ab_analytics AS
 WITH assignment_stats AS (
   SELECT
@@ -188,3 +192,50 @@ LEFT JOIN feedback_stats fst
   ON  fst.experiment_name = e.name
   AND fst.prompt_variant   = ast.variant_id
 WHERE e.is_active = true;
+
+-- Same as above but includes inactive/completed experiments for post-mortem analysis.
+-- Use via GET /api/mastra/ab-analytics?includeInactive=true
+CREATE OR REPLACE VIEW prompt_ab_analytics_all AS
+WITH assignment_stats AS (
+  SELECT
+    a.experiment_id,
+    a.variant_id,
+    COUNT(DISTINCT a.user_id) AS unique_users,
+    COUNT(a.id)               AS total_sessions
+  FROM prompt_ab_assignments a
+  GROUP BY a.experiment_id, a.variant_id
+),
+feedback_stats AS (
+  SELECT
+    f.experiment_name,
+    f.prompt_variant,
+    COUNT(*) FILTER (WHERE f.is_positive = true)  AS positive_feedbacks,
+    COUNT(*) FILTER (WHERE f.is_positive = false) AS negative_feedbacks,
+    COUNT(*)                                       AS total_feedbacks
+  FROM insight_feedback f
+  WHERE f.experiment_name IS NOT NULL
+    AND f.prompt_variant  IS NOT NULL
+  GROUP BY f.experiment_name, f.prompt_variant
+)
+SELECT
+  e.name                                          AS experiment_name,
+  ast.variant_id,
+  ast.unique_users,
+  ast.total_sessions,
+  COALESCE(fst.positive_feedbacks,  0)            AS positive_feedbacks,
+  COALESCE(fst.negative_feedbacks,  0)            AS negative_feedbacks,
+  COALESCE(fst.total_feedbacks,     0)            AS total_feedbacks,
+  CASE
+    WHEN COALESCE(fst.total_feedbacks, 0) > 0
+    THEN ROUND(
+           fst.positive_feedbacks::numeric / fst.total_feedbacks * 100,
+           1
+         )
+    ELSE 0
+  END                                             AS satisfaction_rate_pct
+FROM prompt_ab_experiments e
+JOIN assignment_stats ast
+  ON ast.experiment_id = e.id
+LEFT JOIN feedback_stats fst
+  ON  fst.experiment_name = e.name
+  AND fst.prompt_variant   = ast.variant_id;
