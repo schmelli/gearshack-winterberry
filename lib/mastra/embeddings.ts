@@ -102,6 +102,10 @@ export function isLocaleSupported(locale: string): boolean {
 // Embedder Factory
 // =============================================================================
 
+// Log active model once at module load (env-driven, static per deployment)
+const _activeConfig = getEmbeddingModelConfig();
+console.log(`[Embeddings] Active model: ${_activeConfig.modelId} (${_activeConfig.dimensions} dims, multilingual: ${_activeConfig.multilingual})`);
+
 /**
  * Create an embedder instance for the configured model via Vercel AI Gateway.
  *
@@ -114,7 +118,5 @@ export function isLocaleSupported(locale: string): boolean {
  * @param gateway - Vercel AI Gateway instance (lazy-loaded in mastra-agent.ts)
  */
 export function createEmbedder(gateway: ReturnType<typeof createGateway>) {
-  const modelId = getEmbeddingModelId();
-  console.log(`[Embeddings] Using model: ${modelId} (${getEmbeddingDimensions()} dims, multilingual: ${getEmbeddingModelConfig().multilingual})`);
-  return gateway.textEmbeddingModel(modelId);
+  return gateway.textEmbeddingModel(getEmbeddingModelId());
 }

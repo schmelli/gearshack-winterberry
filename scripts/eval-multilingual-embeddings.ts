@@ -113,7 +113,9 @@ function cosineSimilarity(a: number[], b: number[]): number {
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denominator === 0) return 0;
+  return dotProduct / denominator;
 }
 
 function mean(values: number[]): number {
@@ -151,7 +153,7 @@ interface EvalResult {
 async function evaluateModel(
   gateway: ReturnType<typeof createGateway>,
   modelId: string,
-  _dims: number
+  dims: number
 ): Promise<EvalResult> {
   const startTime = Date.now();
 
@@ -169,6 +171,12 @@ async function evaluateModel(
     model: embeddingModel,
     values: allTexts,
   });
+
+  // Verify actual dimensions match expected
+  const actualDims = embeddings[0]?.length ?? 0;
+  if (actualDims !== dims) {
+    console.warn(`  [WARNING] Dimension mismatch for ${modelId}: expected ${dims}, got ${actualDims}`);
+  }
 
   const deEmbeddings = embeddings.slice(0, QUERY_PAIRS.length);
   const enEmbeddings = embeddings.slice(QUERY_PAIRS.length);

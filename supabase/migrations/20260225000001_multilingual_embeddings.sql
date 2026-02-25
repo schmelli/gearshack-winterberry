@@ -42,7 +42,8 @@ ALTER TABLE embedding_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role manages embedding config"
   ON embedding_config
   FOR ALL
-  USING (auth.role() = 'service_role');
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
 
 -- =============================================================================
 -- 2. Add 1024-dim Embedding Columns
@@ -101,8 +102,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- SECURITY: Validate that caller can only search their own messages
-  IF p_user_id != auth.uid() THEN
+  -- SECURITY: Validate that caller can only search their own messages.
+  -- Service role callers (auth.uid() IS NULL) are trusted and bypass this check
+  -- to allow background jobs and admin operations to search any user's messages.
+  IF auth.role() != 'service_role' AND p_user_id != auth.uid() THEN
     RAISE EXCEPTION 'Access denied: can only search own messages';
   END IF;
 
@@ -146,17 +149,20 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Validate model name
-  IF p_model NOT IN ('openai/text-embedding-3-small', 'cohere/embed-multilingual-v3.0') THEN
-    RAISE EXCEPTION 'Unknown embedding model: %', p_model;
+  -- SECURITY: Only service_role may switch the active model (it affects all users)
+  IF auth.role() != 'service_role' THEN
+    RAISE EXCEPTION 'Access denied: only service_role can set active embedding model';
   END IF;
 
-  -- Validate dimensions
-  IF p_dimensions NOT IN (1024, 1536) THEN
-    RAISE EXCEPTION 'Invalid dimensions: must be 1024 or 1536';
+  -- Validate model/dimension as a consistent pair to prevent mismatches
+  IF NOT (
+    (p_model = 'openai/text-embedding-3-small'  AND p_dimensions = 1536) OR
+    (p_model = 'cohere/embed-multilingual-v3.0' AND p_dimensions = 1024)
+  ) THEN
+    RAISE EXCEPTION 'Invalid model/dimension pair: model=%, dimensions=% — must be openai/text-embedding-3-small+1536 or cohere/embed-multilingual-v3.0+1024', p_model, p_dimensions;
   END IF;
 
-  UPDATE embedding_config SET value = p_model, updated_at = now() WHERE key = 'active_model';
+  UPDATE embedding_config SET value = p_model,           updated_at = now() WHERE key = 'active_model';
   UPDATE embedding_config SET value = p_dimensions::TEXT, updated_at = now() WHERE key = 'active_dimensions';
 END;
 $$;
@@ -176,3 +182,17 @@ COMMENT ON COLUMN catalog_products.embedding_ml IS
 
 COMMENT ON FUNCTION search_similar_messages_ml IS
   'Semantic search for 1024-dim multilingual embeddings. Counterpart to search_similar_messages (1536-dim).';
+
+COMMENT ON FUNCTION set_active_embedding_model IS
+  'Update the active embedding model in embedding_config. Service role only. Validates model/dimension consistency.';
+
+-- =============================================================================
+-- 6. Access Grants
+-- =============================================================================
+
+-- Authenticated users may call the semantic search function for their own messages
+-- (the function body itself enforces user isolation via the auth.uid() check)
+GRANT EXECUTE ON FUNCTION search_similar_messages_ml(UUID, vector, INTEGER, FLOAT) TO authenticated;
+
+-- Only service_role may switch the active model (also enforced in function body)
+GRANT EXECUTE ON FUNCTION set_active_embedding_model(TEXT, INTEGER) TO service_role;
