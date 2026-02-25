@@ -7,6 +7,7 @@
  */
 
 import type { Action } from '@/types/ai-assistant';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -15,7 +16,7 @@ import type { Action } from '@/types/ai-assistant';
 /**
  * SSE Event types emitted by the streaming endpoint
  */
-export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_progress';
+export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_progress' | 'confirm_action';
 
 /**
  * Workflow progress data from pipeline stages
@@ -31,7 +32,7 @@ export interface WorkflowProgressData {
  */
 export interface SSEEvent {
   type: SSEEventType;
-  data: string | ToolCallData | DoneData | ErrorData | WorkflowProgressData;
+  data: string | ToolCallData | DoneData | ErrorData | WorkflowProgressData | ConfirmActionData;
 }
 
 /**
@@ -84,6 +85,7 @@ export const SSE_EVENT_TOOL_CALL = 'tool_call';
 export const SSE_EVENT_DONE = 'done';
 export const SSE_EVENT_ERROR = 'error';
 export const SSE_EVENT_WORKFLOW_PROGRESS = 'workflow_progress';
+export const SSE_EVENT_CONFIRM_ACTION = 'confirm_action';
 
 
 // =====================================================
@@ -135,6 +137,9 @@ export function parseSSEEvent(eventString: string): SSEEvent | null {
 
       case SSE_EVENT_WORKFLOW_PROGRESS:
         return { type: eventType, data: JSON.parse(dataLine) as WorkflowProgressData };
+
+      case SSE_EVENT_CONFIRM_ACTION:
+        return { type: eventType, data: JSON.parse(dataLine) as ConfirmActionData };
 
       default:
         // Unknown event type, treat as text

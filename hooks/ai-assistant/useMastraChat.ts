@@ -18,6 +18,7 @@ import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgressData } from '@/lib/ai-assistant/stream-parser';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -43,6 +44,8 @@ export interface MastraMessage {
   createdAt: string;
   toolCalls?: ToolCallData[];
   memoryUpdates?: MemoryUpdate[];
+  /** Pending confirmation actions (suspend/resume pattern) */
+  pendingConfirmations?: ConfirmActionData[];
 }
 
 /**
@@ -98,6 +101,8 @@ export interface UseMastraChatResult {
   abort: () => void;
   /** Current workflow progress message (shown during pipeline phases) */
   progressMessage: string | null;
+  /** Handle user response to a pending confirmation (suspend/resume) */
+  resolveConfirmation: (runId: string, approved: boolean) => Promise<void>;
 }
 
 // =====================================================
@@ -427,6 +432,22 @@ export function useMastraChat(): UseMastraChatResult {
             },
             (progress) => {
               setProgressMessage(progress);
+            },
+            (confirmation) => {
+              // Handle confirm_action events (suspend/resume pattern)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        pendingConfirmations: [
+                          ...(msg.pendingConfirmations || []),
+                          confirmation,
+                        ],
+                      }
+                    : msg
+                )
+              );
             }
           );
         }
@@ -533,6 +554,65 @@ export function useMastraChat(): UseMastraChatResult {
     await sendMessage(text, options);
   }, [sendMessage, t]);
 
+  /**
+   * Resolve a pending confirmation (suspend/resume workflow)
+   * Calls the resume API endpoint and updates message state
+   */
+  const resolveConfirmation = useCallback(
+    async (runId: string, approved: boolean): Promise<void> => {
+      try {
+        const response = await fetch('/api/mastra/workflows/add-gear/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, approved }),
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          // Throw so callers can keep the confirmation card visible/retryable
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+
+        // Remove the resolved confirmation from message state so the card unmounts
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (!msg.pendingConfirmations?.some((c) => c.runId === runId)) return msg;
+            return {
+              ...msg,
+              pendingConfirmations: msg.pendingConfirmations.filter(
+                (c) => c.runId !== runId
+              ),
+            };
+          })
+        );
+
+        // Map structured result codes to i18n messages instead of using API strings
+        if (result.resultCode === 'ADD_TO_LOADOUT_CANCELLED') {
+          toast.info(t('confirmAction.cancelled', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else if (result.success && result.resultCode === 'ADD_TO_LOADOUT_SUCCESS') {
+          toast.success(t('confirmAction.success', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else {
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+      } catch (err) {
+        // Re-throw so the ConfirmAddToLoadout component can show an error toast
+        // and keep the card visible for retry
+        throw err instanceof Error ? err : new Error(t('confirmAction.errorApprove'));
+      }
+    },
+    // t is stable (next-intl), setMessages is stable (useState setter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setMessages, t]
+  );
+
   // Load conversation history on mount if conversationId exists.
   // Guard with state === 'idle' to prevent overwriting optimistic message updates
   // if the user sends a message before history finishes loading.
@@ -562,6 +642,7 @@ export function useMastraChat(): UseMastraChatResult {
     conversationId,
     abort,
     progressMessage,
+    resolveConfirmation,
   };
 }
 
@@ -578,7 +659,8 @@ async function processStreamEvent(
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
   onMemoryUpdate: (update: MemoryUpdate) => void,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  onConfirmAction?: (confirmation: ConfirmActionData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -597,6 +679,13 @@ async function processStreamEvent(
       if (typeof event.data === 'object' && 'message' in event.data) {
         const progressData = event.data as WorkflowProgressData;
         onProgress?.(progressData.message);
+      }
+      break;
+
+    case 'confirm_action':
+      // Suspend/resume pattern: workflow suspended, needs user confirmation
+      if (typeof event.data === 'object' && 'runId' in event.data) {
+        onConfirmAction?.(event.data as ConfirmActionData);
       }
       break;
 
