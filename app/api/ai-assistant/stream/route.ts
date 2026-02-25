@@ -17,12 +17,13 @@
 const MASTRA_CHAT_PATH = '/api/mastra/chat';
 
 export async function POST(request: Request) {
-  const url = new URL(request.url);
-  url.pathname = MASTRA_CHAT_PATH;
+  // Build redirect URL from origin only — do NOT preserve query params from the
+  // original request, as they were specific to the old streaming endpoint schema.
+  const redirectUrl = new URL(MASTRA_CHAT_PATH, request.url);
   return new Response(null, {
     status: 308,
     headers: {
-      Location: url.toString(),
+      Location: redirectUrl.toString(),
       Deprecation: 'true',
       Link: `<${MASTRA_CHAT_PATH}>; rel="successor-version"`,
       'Sunset': 'Sat, 01 Aug 2026 00:00:00 GMT',
