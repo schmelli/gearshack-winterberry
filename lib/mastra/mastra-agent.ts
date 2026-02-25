@@ -264,6 +264,10 @@ function selectModel(queryComplexity?: QueryComplexity) {
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
  *
+ * Voice (TTS/STT) is handled independently by the dedicated voice API routes
+ * (/api/mastra/voice/synthesize and /api/mastra/voice/transcribe) via Mastra's
+ * MastraVoice abstraction — it does not need to be attached to the agent.
+ *
  * Input Processors (applied to memory-injected messages before LLM call):
  * 1. ToolCallFilter: Strips verbose tool call/result pairs from history
  *    (analyzeLoadout, inventoryInsights return large JSON payloads)
@@ -274,7 +278,11 @@ function selectModel(queryComplexity?: QueryComplexity) {
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
  * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
  */
-export function createGearAgent(userId: string, systemPrompt: string, queryComplexity?: QueryComplexity) {
+export function createGearAgent(
+  userId: string,
+  systemPrompt: string,
+  queryComplexity?: QueryComplexity
+) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
