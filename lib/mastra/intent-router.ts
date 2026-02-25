@@ -263,7 +263,7 @@ export async function classifyIntent(
       intent: 'complex',
       confidence: 0,
       canAnswerDirectly: false,
-      queryComplexity: 'complex' as QueryComplexity,
+      queryComplexity: 'complex',
       dataRequirements: [],
       extractedEntities: {},
     };

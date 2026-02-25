@@ -199,14 +199,14 @@ function selectModel(queryComplexity?: QueryComplexity) {
   const gateway = getGateway();
 
   if (!COMPLEXITY_ROUTING_CONFIG.ENABLED || !queryComplexity) {
-    return gateway(AI_CHAT_MODEL);
+    return { model: gateway(AI_CHAT_MODEL), modelId: AI_CHAT_MODEL };
   }
 
   const modelId = queryComplexity === 'simple'
     ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
     : COMPLEXITY_ROUTING_CONFIG.COMPLEX_MODEL;
 
-  return gateway(modelId);
+  return { model: gateway(modelId), modelId };
 }
 
 /**
@@ -224,10 +224,7 @@ export function createGearAgent(userId: string, systemPrompt: string, queryCompl
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
 
-  const selectedModel = selectModel(queryComplexity);
-  const modelId = queryComplexity === 'simple' && COMPLEXITY_ROUTING_CONFIG.ENABLED
-    ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
-    : AI_CHAT_MODEL;
+  const { model: selectedModel, modelId } = selectModel(queryComplexity);
 
   const agent = new Agent({
     id: 'gear-assistant',

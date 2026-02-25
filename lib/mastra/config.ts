@@ -340,7 +340,12 @@ export const FAST_ANSWER_CONFIG = {
 export const COMPLEXITY_ROUTING_CONFIG = {
   /** Model for simple queries: inventory counts, item lookups, general knowledge (10x cheaper, 5x faster) */
   SIMPLE_MODEL: process.env.AI_SIMPLE_MODEL || 'anthropic/claude-haiku-4-5',
-  /** Model for complex queries: shakedown analysis, trip planning, gear comparison */
+  /**
+   * Model for complex queries: shakedown analysis, trip planning, gear comparison.
+   * NOTE: Reads from the same AI_CHAT_MODEL env var as the AI_CHAT_MODEL constant in
+   * mastra-agent.ts. Changing that env var affects both the default model fallback and
+   * this complex routing model — update both usages if splitting them in the future.
+   */
   COMPLEX_MODEL: process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5',
   /** Enable/disable complexity routing (set to 'false' to always use the complex model) */
   ENABLED: process.env.COMPLEXITY_ROUTING_ENABLED !== 'false',
