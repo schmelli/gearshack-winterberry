@@ -61,7 +61,7 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createGearAgent, streamMastraResponse, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
 import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { VariantResolution } from '@/types/prompt-ab';
@@ -190,6 +190,45 @@ function validateRequest(body: unknown): {
 }
 
 // =====================================================
+// Subscription Tier Lookup
+// =====================================================
+
+/**
+ * Fetch user's subscription tier from the profiles table.
+ * Defaults to 'standard' on any error to ensure graceful degradation.
+ * Does NOT hard-gate access — tier is used for tool selection only.
+ */
+async function fetchSubscriptionTier(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<'standard' | 'trailblazer'> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      logDebug('Could not fetch subscription tier, defaulting to standard', {
+        userId,
+        metadata: { error: error?.message },
+      });
+      return 'standard';
+    }
+
+    const tier = data.subscription_tier;
+    return tier === 'trailblazer' ? 'trailblazer' : 'standard';
+  } catch (err) {
+    logDebug('Unexpected error fetching subscription tier, defaulting to standard', {
+      userId,
+      metadata: { error: err instanceof Error ? err.message : String(err) },
+    });
+    return 'standard';
+  }
+}
+
+// =====================================================
 // POST Handler
 // =====================================================
 
@@ -239,52 +278,16 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 3.5. Check subscription tier — AI Assistant requires Trailblazer tier.
-    // Skip in development/test environments when AI_RATE_LIMITING_DISABLED=true
-    // (matches the bypass used for rate limiting in the original stream route).
-    const subscriptionCheckDisabled =
-      process.env.AI_RATE_LIMITING_DISABLED === 'true' &&
-      process.env.NODE_ENV !== 'production';
-
-    let userSubscriptionTier: 'standard' | 'trailblazer' = 'standard';
-
-    if (!subscriptionCheckDisabled) {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profile) {
-        logError('Failed to verify subscription tier', profileError);
-        return new Response(
-          JSON.stringify({ error: 'Unable to verify account status.' }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      userSubscriptionTier =
-        (profile.subscription_tier as 'standard' | 'trailblazer') || 'standard';
-
-      if (userSubscriptionTier !== 'trailblazer') {
-        logWarn('Subscription tier check failed - Trailblazer required', {
-          userId: user.id,
-        });
-        return new Response(
-          JSON.stringify({
-            error: 'AI assistant is only available for Trailblazer subscribers.',
-          }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    // 3b. Fetch subscription tier for dynamic tool selection (defaults to 'standard' on error).
+    // No hard gate — tier determines available tools, not access to the AI assistant.
+    const subscriptionTier = await fetchSubscriptionTier(supabase, user.id);
 
     // 4. Set logging context (T030)
     setLogContext({
       userId: user.id,
       conversationId,
       traceId,
-      metadata: { enableTools, enableVoice },
+      metadata: { enableTools, enableVoice, subscriptionTier },
     });
 
     logInfo('Mastra chat request started', {
@@ -293,6 +296,7 @@ export async function POST(request: Request): Promise<Response> {
         hasContext: !!context,
         enableTools,
         enableVoice,
+        subscriptionTier,
       },
     });
 
@@ -482,7 +486,7 @@ export async function POST(request: Request): Promise<Response> {
               inventoryCount: (context?.inventoryCount as number) || 0,
               currentLoadoutId,
               enableTools,
-              subscriptionTier: userSubscriptionTier,
+              subscriptionTier,
             },
           });
 
@@ -597,27 +601,31 @@ export async function POST(request: Request): Promise<Response> {
           // =============================================================
           emitProgress('thinking', progressMessages[locale].thinking);
 
-          // Create Mastra Agent with complexity-based model routing and stream response
+          // Build RuntimeContext for the Dynamic Agent Pattern:
+          // - subscriptionTier → determines which tools available (standard vs trailblazer)
+          // - lang → prompt language fallback
+          // - enrichedPromptSuffix → the full system prompt built by the workflow + A/B variant
+          // - currentLoadoutId → passed through for loadout-aware tools
+          const runtimeContext = createGearshackRequestContext({
+            userId: user.id,
+            subscriptionTier,
+            lang: (context?.locale as string) || 'en',
+            enrichedPromptSuffix: effectiveSystemPrompt,
+            currentLoadoutId,
+          });
+
+          // Create Dynamic Mastra Agent with complexity routing and stream response.
+          // Agent resolves instructions & tools at runtime via runtimeContext.
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
               const agent = createGearAgent(
-                user.id,
-                effectiveSystemPrompt,
                 // Explicit fallback to 'simple' when classification didn't return
                 // a complexity value (e.g. fallback path in classifyIntent).
-                // createGearAgent handles undefined gracefully, but the explicit
-                // fallback makes the model routing intent clear.
                 pipelineOutput.queryComplexity ?? 'simple',
               );
-              return await streamMastraResponse(
-                agent,
-                message,
-                user.id,
-                conversationId,
-                currentLoadoutId,
-              );
+              return await streamMastraResponse(agent, message, user.id, conversationId, runtimeContext);
             },
             { userId: user.id },
           );

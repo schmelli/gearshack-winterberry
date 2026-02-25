@@ -1,23 +1,26 @@
 /**
- * Mastra Agent with Three-Tier Memory System
- * Feature: 002-mastra-memory-system
+ * Mastra Agent with Dynamic Agent Pattern & Three-Tier Memory System
+ * Feature: 002-mastra-memory-system, Dynamic Agent Pattern
  *
- * Uses Mastra's Agent class with:
- * 1. Working Memory: Structured user profile (Zod schema) - resource-scoped
- * 2. Conversation History: Last N messages - thread-scoped
- * 3. Semantic Recall: Vector similarity search - resource-scoped
+ * Uses Mastra's Dynamic Agent pattern with RequestContext:
+ * - Dynamic instructions: System prompt built at runtime based on subscription tier & locale
+ * - Dynamic tools: Tool selection varies by subscription tier (standard vs trailblazer)
+ * - Three-tier memory: Working Memory, Conversation History, Semantic Recall
  *
  * Storage: Supabase PostgreSQL with pgvector via @mastra/pg
  *
+ * @see https://mastra.ai/docs/agents/dynamic-agents
+ * @see https://mastra.ai/docs/agents/runtime-context
  * @see https://mastra.ai/docs/memory/overview
- * @see https://mastra.ai/docs/memory/semantic-recall
  */
 
 import { Agent } from '@mastra/core/agent';
+import { RequestContext } from '@mastra/core/request-context';
 import { TokenLimiter, ToolCallFilter } from '@mastra/core/processors';
 import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
+import { buildMastraSystemPrompt, type PromptContext } from './prompt-builder';
 // Composite Domain Tools (Feature 060: AI Agent Evolution)
 import { analyzeLoadoutTool } from './tools/analyze-loadout';
 import { inventoryInsightsTool } from './tools/inventory-insights';
@@ -39,6 +42,34 @@ import {
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
 import { logWarn } from './logging';
+
+// =============================================================================
+// Request Context Type Definition
+// =============================================================================
+
+/**
+ * Type-safe request context for the Gearshack agent.
+ * Passed via requestContext to dynamic instructions and tools callbacks.
+ *
+ * In Mastra v1.0+, DynamicArgument callbacks receive { requestContext }
+ * which is the RequestContext instance passed to agent.stream()/generate().
+ *
+ * @see https://mastra.ai/docs/agents/runtime-context
+ */
+export type GearshackRequestContext = {
+  /** Authenticated user ID */
+  userId: string;
+  /** User's subscription tier — determines available tools */
+  subscriptionTier: 'standard' | 'trailblazer';
+  /** User's locale (e.g., 'en', 'de') */
+  lang: string;
+  /** Pre-built prompt context for system prompt generation (optional when enrichedPromptSuffix is the full prompt) */
+  promptContext?: PromptContext;
+  /** Optional pre-fetched data to append to the system prompt */
+  enrichedPromptSuffix: string | undefined;
+  /** Current loadout ID for loadout-aware tools */
+  currentLoadoutId: string | undefined;
+};
 
 // =============================================================================
 // Environment Configuration
@@ -164,6 +195,46 @@ function getPgVector(): PgVector {
 }
 
 // =============================================================================
+// Tier-Based Tool Sets
+// =============================================================================
+
+/**
+ * Standard tier tools: Basic inventory browsing and search capabilities.
+ * Available to all users (free/standard tier).
+ *
+ * 4 tools: inventory stats, unified search, catalog search, direct SQL fallback
+ */
+const STANDARD_TOOLS = {
+  inventoryInsights: inventoryInsightsTool,
+  searchGearKnowledge: searchGearKnowledgeTool,
+  searchGear: searchGearTool,
+  queryUserData: queryUserDataSqlTool,
+};
+
+/**
+ * Trailblazer tier tools: Full access to all 9 tools including
+ * advanced analysis, actions, graph relationships, and web search.
+ *
+ * 9 tools: 3 composite + 1 action + 2 GearGraph MCP + 3 legacy
+ */
+const TRAILBLAZER_TOOLS = {
+  // Composite Domain Tools (Feature 060: preferred for most queries)
+  analyzeLoadout: analyzeLoadoutTool,
+  inventoryInsights: inventoryInsightsTool,
+  searchGearKnowledge: searchGearKnowledgeTool,
+  // Action tools
+  addToLoadout: addToLoadoutTool,
+  // GearGraph MCP Tools: catalog search + alternatives via graph relationships
+  // findAlternatives uses graph edges (LIGHTER_THAN, SIMILAR_TO, etc.) — NOT replaceable with SQL
+  searchGear: searchGearTool,
+  findAlternatives: findAlternativesTool,
+  // Legacy tools (fallback for edge cases + direct Cypher)
+  queryUserData: queryUserDataSqlTool,
+  queryGearGraph: queryGearGraphTool,
+  searchWeb: searchWebTool,
+};
+
+// =============================================================================
 // Three-Tier Memory Configuration
 // =============================================================================
 
@@ -232,7 +303,7 @@ function createAgentMemory(): Memory {
 }
 
 // =============================================================================
-// Agent Creation
+// Agent Creation — Dynamic Agent Pattern
 // =============================================================================
 
 /**
@@ -259,7 +330,12 @@ function selectModel(queryComplexity?: QueryComplexity) {
 }
 
 /**
- * Create Mastra Agent with three-tier memory, tools, and input processors
+ * Create Mastra Agent with Dynamic Agent Pattern, three-tier memory, and input processors.
+ *
+ * Uses Mastra's Dynamic Agent Pattern (DynamicArgument<T>): instructions and
+ * tools are async functions that receive { requestContext } and resolve at
+ * runtime, enabling tier-based tool restriction and locale-aware prompt
+ * generation without recreating the agent per-variant.
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
@@ -274,15 +350,10 @@ function selectModel(queryComplexity?: QueryComplexity) {
  * 2. TokenLimiter: Enforces a hard token budget (default 180k) to stay
  *    safely within Claude Sonnet's 200k context window
  *
- * @param userId - Current user ID for runtimeContext
- * @param systemPrompt - Dynamic system prompt (includes working memory context)
  * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
+ * @see https://mastra.ai/docs/agents/dynamic-agents
  */
-export function createGearAgent(
-  userId: string,
-  systemPrompt: string,
-  queryComplexity?: QueryComplexity
-) {
+export function createGearAgent(queryComplexity?: QueryComplexity) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
@@ -292,33 +363,109 @@ export function createGearAgent(
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
-    instructions: systemPrompt,
+
+    // Dynamic instructions: built at runtime from requestContext.
+    // When the workflow pipeline pre-builds the full system prompt, it is passed
+    // as enrichedPromptSuffix (which IS the complete prompt in that path).
+    // When promptContext is provided, buildMastraSystemPrompt generates the base prompt.
+    // DynamicArgument<AgentInstructions> = string | (({ requestContext }) => string | Promise<string>)
+    instructions: async ({ requestContext }) => {
+      const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
+      const promptContext = requestContext.get('promptContext') as PromptContext | undefined;
+      const enrichedSuffix = requestContext.get('enrichedPromptSuffix') as string | undefined;
+      const lang = (requestContext.get('lang') as string) || 'en';
+
+      // If enrichedSuffix is the full pre-built prompt (workflow path), use it directly
+      // Otherwise build from promptContext (legacy path)
+      let prompt: string;
+      if (enrichedSuffix && !promptContext) {
+        // Workflow path: enrichedSuffix IS the complete system prompt
+        prompt = enrichedSuffix;
+      } else if (promptContext) {
+        // Legacy path: build from promptContext, then append suffix if present
+        prompt = buildMastraSystemPrompt(promptContext);
+        if (enrichedSuffix) {
+          prompt = `${prompt}\n\n${enrichedSuffix}`;
+        }
+      } else {
+        // Minimal fallback — locale-aware
+        prompt = lang === 'de'
+          ? 'Du bist der Gearshack Ausrüstungsassistent. Hilf Nutzern mit ihren Outdoor-Ausrüstungsfragen.'
+          : 'You are the Gearshack gear assistant. Help users with their outdoor gear questions.';
+      }
+
+      // Append tier-specific tool availability note for standard users
+      if (tier === 'standard') {
+        prompt += '\n\n**Your Access Level:** Standard. You have access to inventory insights, gear search, and catalog browsing tools. For advanced features like loadout analysis, gear alternatives, web search, and GearGraph queries, suggest the user upgrade to Trailblazer.';
+      }
+
+      return prompt;
+    },
+
     model: selectedModel,
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
-    tools: {
-      // Composite Domain Tools (Feature 060: preferred for most queries)
-      analyzeLoadout: analyzeLoadoutTool,
-      inventoryInsights: inventoryInsightsTool,
-      searchGearKnowledge: searchGearKnowledgeTool,
-      // Action tools
-      addToLoadout: addToLoadoutTool,
-      // GearGraph MCP Tools: catalog search + alternatives via GearGraph graph relationships
-      // These call the GearGraph MCP server (NEXT_PUBLIC_GEARGRAPH_API_URL/sse)
-      // findAlternatives uses graph edges (LIGHTER_THAN, SIMILAR_TO, etc.) — NOT replaceable with SQL
-      searchGear: searchGearTool,
-      findAlternatives: findAlternativesTool,
-      // Legacy tools (fallback for edge cases + direct Cypher)
-      queryUserData: queryUserDataSqlTool,
-      queryGearGraph: queryGearGraphTool,
-      searchWeb: searchWebTool,
+
+    // Dynamic tools: selected at runtime based on subscription tier.
+    // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
+    // Standard tier gets basic browse/search tools (4)
+    // Trailblazer tier gets full toolset (9) including analysis, actions, and graph
+    tools: async ({ requestContext }) => {
+      const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
+      return tier === 'trailblazer'
+        ? { ...TRAILBLAZER_TOOLS }
+        : { ...STANDARD_TOOLS };
     },
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
+    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier-based), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
+}
+
+// =============================================================================
+// Request Context Factory
+// =============================================================================
+
+/**
+ * Create a RequestContext populated with Gearshack-specific values.
+ *
+ * This factory builds the typed RequestContext that drives the Dynamic Agent:
+ * - subscriptionTier → determines which tools are available
+ * - lang → determines prompt language (en/de)
+ * - promptContext → (optional) provides data for system prompt generation via buildMastraSystemPrompt
+ * - enrichedPromptSuffix → pre-built prompt or pre-fetched data to inject
+ * - userId / currentLoadoutId → passed through for tool execution
+ *
+ * When using the workflow pipeline, pass enrichedPromptSuffix = effectiveSystemPrompt
+ * (the full prompt built by the workflow) and omit promptContext.
+ *
+ * @param params - Context parameters for the current request
+ * @returns Populated RequestContext ready for agent.stream()
+ */
+export function createGearshackRequestContext(params: {
+  userId: string;
+  subscriptionTier: 'standard' | 'trailblazer';
+  lang: string;
+  promptContext?: PromptContext;
+  enrichedPromptSuffix?: string;
+  currentLoadoutId?: string;
+}): RequestContext<GearshackRequestContext> {
+  const requestContext = new RequestContext<GearshackRequestContext>();
+  requestContext.set('userId', params.userId);
+  requestContext.set('subscriptionTier', params.subscriptionTier);
+  requestContext.set('lang', params.lang);
+  if (params.promptContext !== undefined) {
+    requestContext.set('promptContext', params.promptContext);
+  }
+  if (params.enrichedPromptSuffix !== undefined) {
+    requestContext.set('enrichedPromptSuffix', params.enrichedPromptSuffix);
+  }
+  if (params.currentLoadoutId !== undefined) {
+    requestContext.set('currentLoadoutId', params.currentLoadoutId);
+  }
+  return requestContext;
 }
 
 // =============================================================================
@@ -413,39 +560,35 @@ export async function persistCacheHitToMemory(
 // =============================================================================
 
 /**
- * Stream response from Mastra Agent
- * Compatible interface with our current streaming setup
+ * Stream response from Mastra Agent with RequestContext
  *
- * @param agent - Mastra Agent instance
+ * The requestContext drives the Dynamic Agent's behavior:
+ * - instructions callback reads tier, locale, promptContext → builds system prompt
+ * - tools callback reads tier → selects appropriate toolset
+ * - Tool execution receives userId, currentLoadoutId for data access
+ *
+ * @param agent - Mastra Agent instance (created via createGearAgent)
  * @param message - Current user message
- * @param userId - User ID for tool execution context
+ * @param userId - User ID for memory scoping (resourceId)
  * @param conversationId - Conversation/thread ID for Mastra memory persistence
- * @param currentLoadoutId - Current loadout ID for loadout-specific queries
+ * @param requestContext - Populated RequestContext with tier, locale, and prompt data
  */
 export async function streamMastraResponse(
   agent: Agent,
   message: string,
   userId: string,
   conversationId: string,
-  currentLoadoutId?: string
+  requestContext: RequestContext<GearshackRequestContext>
 ) {
-  // Set request context for tool execution (renamed from runtimeContext in Mastra v1.0+)
-  const requestContext = new Map<string, unknown>();
-  requestContext.set('userId', userId);
-
-  // Add currentLoadoutId to context for loadout-aware tools
-  if (currentLoadoutId) {
-    requestContext.set('currentLoadoutId', currentLoadoutId);
-  }
-
-  // NEU: Nur die aktuelle Message - Mastra holt History via threadId
+  // Only the current message — Mastra retrieves history via threadId
   const messages = [{ role: 'user' as const, content: message }];
 
-  // Stream with threadId so Mastra's PostgresStore injects conversation history
+  // Stream with requestContext so dynamic instructions/tools resolve per-request,
+  // and threadId so Mastra's PostgresStore injects conversation history
   const stream = await agent.stream(messages, {
     resourceId: userId,
     threadId: conversationId,
-    requestContext: requestContext,
+    requestContext,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
