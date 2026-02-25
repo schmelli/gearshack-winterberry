@@ -361,6 +361,8 @@ export interface PromptContext {
   catalogResults?: string;
   /** Semantic recall context from past conversations */
   semanticRecallContext?: string;
+  /** A/B test prompt variant suffix (appended to system prompt) */
+  abTestSuffix?: string;
 }
 
 // =============================================================================
@@ -514,6 +516,11 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   if (viewingLoadout) {
     sections.push(`\n${content.loadoutAnalysis}`);
     sections.push(`\n${content.safetyGuidance}`);
+  }
+
+  // 11. A/B Test Variant Suffix (appended when experiment is active)
+  if (context.abTestSuffix) {
+    sections.push(`\n${context.abTestSuffix}`);
   }
 
   return sections.join('\n');

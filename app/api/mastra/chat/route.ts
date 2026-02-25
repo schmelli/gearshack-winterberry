@@ -56,10 +56,16 @@ import {
   recordChatError,
   recordToolCall,
   classifyQuery,
+  recordPromptVariantAssignment,
+  recordPromptVariantLatency,
 } from '@/lib/mastra/metrics';
-import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
+import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { createGearAgent, streamMastraResponse, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
+import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { VariantResolution } from '@/types/prompt-ab';
+import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   generateProactiveSuggestions,
   formatSuggestionsForStream,
@@ -497,6 +503,60 @@ export async function POST(request: Request): Promise<Response> {
           // runtime by Zod inside the workflow engine before this point.
           const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
 
+          // --- A/B Test: Resolve prompt variant for this user ---
+          // The workflow builds enrichedSystemPrompt; we append the variant suffix
+          // here so A/B testing is decoupled from the workflow internals.
+          let variantResolution: VariantResolution | null = null;
+          try {
+            const serviceClient = createServiceRoleClient();
+            const userLocale = (context?.locale as string) || 'en';
+            variantResolution = await resolveVariant(user.id, userLocale, serviceClient);
+
+            if (variantResolution?.isInExperiment) {
+              // Track variant in OTel span attributes (no PII — user.id omitted)
+              addSpanAttributes({
+                'prompt.variant': variantResolution.variantId,
+                'prompt.experiment': variantResolution.experimentName,
+              });
+
+              logDebug('A/B variant assigned', {
+                userId: user.id,
+                metadata: {
+                  experiment: variantResolution.experimentName,
+                  variant: variantResolution.variantId,
+                },
+              });
+
+              // Record Prometheus metrics
+              recordPromptVariantAssignment(
+                variantResolution.experimentName,
+                variantResolution.variantId
+              );
+            }
+
+            // Log assignment for ALL resolutions (including control group) so the
+            // analytics view has a baseline to compare against.  Without control-group
+            // rows the A/B comparison is statistically invalid.
+            if (variantResolution) {
+              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch((err) => {
+                logWarn('[PromptAB] logAssignment threw unexpectedly', { error: err });
+              });
+            }
+          } catch {
+            // Graceful degradation: proceed without A/B variant
+            logWarn('A/B variant resolution failed, proceeding without variant', {
+              userId: user.id,
+            });
+          }
+
+          // Inject A/B variant suffix into the workflow-generated system prompt.
+          // This keeps A/B testing decoupled from the workflow step that builds
+          // enrichedSystemPrompt, so experiments can be added without touching the workflow.
+          const effectiveSystemPrompt =
+            variantResolution?.isInExperiment && variantResolution.promptSuffix
+              ? `${pipelineOutput.enrichedSystemPrompt}\n\n${variantResolution.promptSuffix}`
+              : pipelineOutput.enrichedSystemPrompt;
+
           logInfo('Gear-assistant workflow completed', {
             userId: user.id,
             conversationId,
@@ -545,7 +605,7 @@ export async function POST(request: Request): Promise<Response> {
             async () => {
               const agent = createGearAgent(
                 user.id,
-                pipelineOutput.enrichedSystemPrompt,
+                effectiveSystemPrompt,
                 // Explicit fallback to 'simple' when classification didn't return
                 // a complexity value (e.g. fallback path in classifyIntent).
                 // createGearAgent handles undefined gracefully, but the explicit
@@ -695,9 +755,25 @@ export async function POST(request: Request): Promise<Response> {
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
-          // Send completion event
+          // Record A/B variant latency (for comparing variant performance)
+          if (variantResolution?.isInExperiment) {
+            recordPromptVariantLatency(
+              variantResolution.experimentName,
+              variantResolution.variantId,
+              totalLatencyMs / 1000
+            );
+          }
+
+          // Send completion event (include variant info so client can correlate feedback)
           controller.enqueue(
-            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs)),
+            encoder.encode(encodeDoneEvent(
+              messageId,
+              finishReason || 'stop',
+              undefined,
+              totalLatencyMs,
+              variantResolution?.isInExperiment ? variantResolution.variantId : undefined,
+              variantResolution?.isInExperiment ? variantResolution.experimentName : undefined,
+            ))
           );
 
           logInfo('Mastra chat request completed', {
@@ -708,6 +784,10 @@ export async function POST(request: Request): Promise<Response> {
               toolCallCount: toolCalls?.length || 0,
               queryComplexity: pipelineOutput.queryComplexity,
               intent: pipelineOutput.intent,
+              ...(variantResolution?.isInExperiment && {
+                promptVariant: variantResolution.variantId,
+                promptExperiment: variantResolution.experimentName,
+              }),
             },
           });
 

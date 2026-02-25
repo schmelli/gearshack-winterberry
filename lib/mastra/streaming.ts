@@ -75,6 +75,10 @@ export interface SSEDoneData {
   finishReason?: string;
   tokensUsed?: number;
   latencyMs?: number;
+  /** A/B test variant ID so the client can attach it to feedback submissions */
+  promptVariant?: string;
+  /** A/B test experiment name for feedback correlation */
+  experimentName?: string;
 }
 
 /**
@@ -195,15 +199,19 @@ export function encodeWorkflowProgressEvent(
  * @param finishReason - Optional reason for completion
  * @param tokensUsed - Optional token count
  * @param latencyMs - Optional latency in milliseconds
+ * @param promptVariant - Optional A/B test variant ID for client feedback correlation
+ * @param experimentName - Optional A/B test experiment name for client feedback correlation
  * @returns Encoded SSE done event
  */
 export function encodeDoneEvent(
   messageId: string,
   finishReason?: string,
   tokensUsed?: number,
-  latencyMs?: number
+  latencyMs?: number,
+  promptVariant?: string,
+  experimentName?: string
 ): string {
-  const data: SSEDoneData = { messageId, finishReason, tokensUsed, latencyMs };
+  const data: SSEDoneData = { messageId, finishReason, tokensUsed, latencyMs, promptVariant, experimentName };
   return encodeSSEEvent('done', data);
 }
 
