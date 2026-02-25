@@ -46,7 +46,12 @@ interface LocalizedContent {
   categoryReference: string;
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
-  /** Few-shot examples demonstrating ideal vs poor response quality */
+  /**
+   * Few-shot examples demonstrating ideal vs poor response quality.
+   * Optional: allows future locales to omit the section without a code change.
+   * When present, injection is further gated on `hasInventory` at call time,
+   * since all examples are only meaningful when the user has gear data.
+   */
   fewShotExamples?: string;
 }
 
@@ -171,7 +176,7 @@ WHY: The good response gives a clear recommendation with reasoning, quantifies t
 
 **Example 4 — Loadout Analysis:**
 User: "Analyze my winter camping loadout"
-GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. [WARNING] One concern: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
+GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. Worth noting: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
 BAD: "Your loadout looks good for winter camping. Make sure you stay warm and have the right gear."
 WHY: The good response provides specific weight analysis, identifies the heaviest item with a lighter alternative, and catches a critical safety issue (sleeping pad R-value) that could make or break the trip.`,
 };
@@ -293,7 +298,7 @@ WARUM: Die gute Antwort gibt eine klare Empfehlung mit Begruendung, quantifizier
 
 **Beispiel 4 — Loadout-Analyse:**
 Nutzer: "Analysiere mein Winter-Camping-Loadout"
-GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. [WARNUNG] Ein Punkt: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
+GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. Gut zu wissen: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
 SCHLECHT: "Dein Loadout sieht gut aus fuer Winter-Camping. Stell sicher, dass du warm bleibst und die richtige Ausruestung hast."
 WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den schwersten Gegenstand mit leichterer Alternative und erkennt ein kritisches Sicherheitsthema (Isomatten R-Wert), das den Trip machen oder brechen kann.`,
 };
@@ -462,8 +467,10 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
 
-  // 5. Few-Shot Examples (calibrate response quality)
-  if (content.fewShotExamples) {
+  // 5. Few-Shot Examples (calibrate response quality — only when user has inventory)
+  // Gated on hasInventory because all 4 examples reference real gear data;
+  // injecting them for users with no gear wastes tokens and adds irrelevant context.
+  if (content.fewShotExamples && hasInventory) {
     sections.push(`\n${content.fewShotExamples}`);
   }
 
