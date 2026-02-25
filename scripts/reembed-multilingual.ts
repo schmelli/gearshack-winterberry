@@ -148,14 +148,13 @@ async function backfillCatalogProducts(
   console.log(`[catalog_products] ${total} rows need embedding_ml populated.`);
 
   let processed = 0;
-  let offset = 0;
 
   while (processed < total) {
     const { data: rows, error } = await supabase
       .from('catalog_products')
       .select('id, name, description')
       .is('embedding_ml', null)
-      .range(offset, offset + BATCH_SIZE - 1);
+      .range(0, BATCH_SIZE - 1);
 
     if (error) throw new Error(`Fetch failed: ${error.message}`);
     if (!rows || rows.length === 0) break;
@@ -187,7 +186,10 @@ async function backfillCatalogProducts(
     }
 
     processed += rows.length;
-    offset += rows.length;
+    // Don't advance offset — we just cleared those rows from the result set.
+    // The query filters for embedding_ml IS NULL, so updated rows drop out of
+    // the result set. The next iteration fetches the next unprocessed batch
+    // starting from offset 0.
     console.log(`  ${formatProgress(processed, total)}`);
   }
 
