@@ -40,7 +40,7 @@ export type ChatState = 'idle' | 'loading' | 'streaming' | 'success' | 'error';
  */
 export interface WorkflowStep {
   step: string;
-  status: 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed';
   message: string;
 }
 
@@ -406,11 +406,7 @@ export function useMastraChat(): UseMastraChatResult {
               // Clear progress message once actual content starts flowing
               setProgressMessage(null);
               // Mark all running steps as completed when text content arrives
-              setWorkflowSteps(prev =>
-                prev.length > 0 && prev.some(s => s.status === 'running')
-                  ? prev.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s)
-                  : prev
-              );
+              setWorkflowSteps(prev => completeRunningSteps(prev));
               fullContent += text;
               textUpdateBuffer += text;
 
@@ -452,12 +448,15 @@ export function useMastraChat(): UseMastraChatResult {
               // Track granular step status: mark previous running steps as completed
               if (progressData) {
                 setWorkflowSteps(prev => {
-                  const updated = prev.map(s =>
-                    s.status === 'running' ? { ...s, status: 'completed' as const } : s
-                  );
+                  const updated = completeRunningSteps(prev);
+                  const status: WorkflowStep['status'] =
+                    progressData.status === 'failed' ? 'failed' :
+                    progressData.status === 'completed' ? 'completed' :
+                    progressData.status === 'pending' ? 'pending' :
+                    'running';
                   return [...updated, {
                     step: progressData.step,
-                    status: progressData.status === 'failed' ? 'failed' as const : 'running' as const,
+                    status,
                     message: progressData.message,
                   }];
                 });
@@ -477,8 +476,9 @@ export function useMastraChat(): UseMastraChatResult {
 
         // Transition to success state
         setProgressMessage(null);
-        setWorkflowSteps([]);
         setState('success');
+        // Delay clearing steps so users can see the final completed state before it disappears
+        setTimeout(() => setWorkflowSteps([]), 800);
 
         logAIEvent('info', 'Mastra chat response completed', {
           userId: user.uid,
@@ -605,6 +605,15 @@ export function useMastraChat(): UseMastraChatResult {
 // =====================================================
 // Helper Functions
 // =====================================================
+
+/**
+ * Mark all currently running steps as completed.
+ * Returns the same array reference if no change is needed (avoids unnecessary re-renders).
+ */
+function completeRunningSteps(steps: WorkflowStep[]): WorkflowStep[] {
+  if (!steps.some(s => s.status === 'running')) return steps;
+  return steps.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s);
+}
 
 /**
  * Process a single SSE event from the stream

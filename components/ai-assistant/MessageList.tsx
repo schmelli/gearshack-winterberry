@@ -56,12 +56,12 @@ export function MessageList({
   const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages or workflow step updates
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, workflowSteps]);
 
   // Empty state
   if (messages.length === 0) {
