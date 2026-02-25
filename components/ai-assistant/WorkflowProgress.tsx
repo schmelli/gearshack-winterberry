@@ -47,7 +47,7 @@ interface WorkflowProgressProps {
 export function WorkflowProgress({ steps }: WorkflowProgressProps) {
   const t = useTranslations('AIAssistant');
 
-  // Memoised label map — t() is stable across renders, so this only rebuilds when locale changes
+  // Memoised label map — rebuilds only when the locale changes (and with it, the t function reference)
   const stepLabels = useMemo<Record<string, string>>(() => ({
     memory: t('progress.memory'),
     context: t('progress.context'),
@@ -59,7 +59,7 @@ export function WorkflowProgress({ steps }: WorkflowProgressProps) {
   return (
     <div className="space-y-1.5 text-xs text-muted-foreground">
       {steps.map((s) => (
-        <div key={s.step} className="flex items-center gap-2">
+        <div key={`${s.step}-${s.status}`} className="flex items-center gap-2">
           {STATUS_ICONS[s.status]}
           <span>
             {STEP_EMOJIS[s.step] ?? '⚙️'} {stepLabels[s.step] ?? t('progress.unknown')}

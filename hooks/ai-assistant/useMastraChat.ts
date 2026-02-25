@@ -447,7 +447,11 @@ export function useMastraChat(): UseMastraChatResult {
               );
             },
             (progress, progressData) => {
-              setProgressMessage(progress);
+              // When structured step data is present, WorkflowProgress renders instead of
+              // the plain progressMessage bubble — skip the extra state update.
+              if (!progressData) {
+                setProgressMessage(progress);
+              }
               // Track granular step status: mark previous running steps as completed
               if (progressData) {
                 setWorkflowSteps(prev => {
