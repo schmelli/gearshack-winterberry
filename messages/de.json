@@ -475,7 +475,9 @@
       "title": "Bestätigung erforderlich",
       "addToLoadout": "\"{gearItemName}\" zu \"{loadoutName}\" hinzufügen?",
       "approve": "Bestätigen",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "errorApprove": "Aktion konnte nicht bestätigt werden. Bitte erneut versuchen.",
+      "errorCancel": "Aktion konnte nicht abgebrochen werden. Bitte erneut versuchen."
     },
     "errors": {
       "authRequired": "Authentifizierung erforderlich. Bitte melde dich an, um den KI-Assistenten zu nutzen.",

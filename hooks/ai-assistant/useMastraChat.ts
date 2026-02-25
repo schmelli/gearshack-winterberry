@@ -571,21 +571,20 @@ export function useMastraChat(): UseMastraChatResult {
         const result = await response.json();
 
         if (!response.ok) {
-          toast.error(result.error || 'Failed to process confirmation.');
-          return;
+          // Throw so callers can keep the confirmation card visible/retryable
+          throw new Error(result.error || 'Failed to process confirmation.');
         }
 
-        // Update the message that contains this confirmation
+        // Remove the resolved confirmation from message state so the card unmounts
         setMessages((prev) =>
           prev.map((msg) => {
-            if (!msg.pendingConfirmations) return msg;
-            const updated = msg.pendingConfirmations.map((conf) =>
-              conf.runId === runId ? { ...conf, resolved: true } : conf
-            );
-            const hasChange = updated.some(
-              (c, i) => c !== msg.pendingConfirmations![i]
-            );
-            return hasChange ? { ...msg, pendingConfirmations: updated } : msg;
+            if (!msg.pendingConfirmations?.some((c) => c.runId === runId)) return msg;
+            return {
+              ...msg,
+              pendingConfirmations: msg.pendingConfirmations.filter(
+                (c) => c.runId !== runId
+              ),
+            };
           })
         );
 
@@ -594,12 +593,12 @@ export function useMastraChat(): UseMastraChatResult {
         } else if (result.success) {
           toast.success(result.message);
         } else {
-          toast.error(result.message || 'Action failed.');
+          throw new Error(result.message || 'Action failed.');
         }
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : 'Failed to process confirmation.'
-        );
+        // Re-throw so the ConfirmAddToLoadout component can show an error toast
+        // and keep the card visible for retry
+        throw err instanceof Error ? err : new Error('Failed to process confirmation.');
       }
     },
     []

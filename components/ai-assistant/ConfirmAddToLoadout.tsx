@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, X, PackagePlus, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import type { ConfirmActionData } from '@/types/mastra';
 
 interface ConfirmAddToLoadoutProps {
@@ -39,8 +40,9 @@ export function ConfirmAddToLoadout({
     try {
       await onResolve(confirmation.runId, true);
       setStatus('resolved');
-    } catch {
+    } catch (err) {
       setStatus('pending');
+      toast.error(err instanceof Error ? err.message : t('confirmAction.errorApprove'));
     }
   };
 
@@ -49,8 +51,9 @@ export function ConfirmAddToLoadout({
     try {
       await onResolve(confirmation.runId, false);
       setStatus('resolved');
-    } catch {
+    } catch (err) {
       setStatus('pending');
+      toast.error(err instanceof Error ? err.message : t('confirmAction.errorCancel'));
     }
   };
 

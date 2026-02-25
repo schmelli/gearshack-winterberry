@@ -80,10 +80,13 @@ export interface CommunityOfferCard {
 
 export type Action =
   | AddToWishlistAction
-  | ConfirmAddToLoadoutAction
   | SendMessageAction
   | CompareAction
   | NavigateAction;
+
+// NOTE: ConfirmAddToLoadoutAction is defined below but is NOT included in the
+// Action union — the UI uses ConfirmActionData (types/mastra.ts) and the
+// ConfirmAddToLoadout component instead of the generic Action renderer.
 
 export interface AddToWishlistAction {
   type: 'add_to_wishlist';

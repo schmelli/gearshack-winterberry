@@ -475,7 +475,9 @@
       "title": "Confirmation Required",
       "addToLoadout": "Add \"{gearItemName}\" to \"{loadoutName}\"?",
       "approve": "Approve",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorApprove": "Failed to approve action. Please try again.",
+      "errorCancel": "Failed to cancel action. Please try again."
     },
     "errors": {
       "authRequired": "Authentication required. Please sign in to use the AI assistant.",

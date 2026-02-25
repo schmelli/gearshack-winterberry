@@ -23,6 +23,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { extractUserId, extractCurrentLoadoutId } from './utils';
+import { logError } from '@/lib/mastra/logging';
 import { addToLoadoutWithConfirmation } from '../workflows/add-gear-workflow';
 
 // =============================================================================
@@ -161,7 +162,7 @@ sent them a confirmation card and they need to approve it.`,
         error: result.error,
       };
     } catch (error) {
-      console.error('[addToLoadout] Error:', error);
+      logError('[addToLoadout] Unexpected error', error);
       return {
         success: false,
         message: 'An unexpected error occurred while processing the request.',

@@ -23,6 +23,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { logInfo, logError } from '@/lib/mastra/logging';
 import {
   resolveConfirmation,
   getConfirmation,
@@ -114,7 +115,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 4. Check confirmation exists before resolving
-    const existing = getConfirmation(runId);
+    const existing = await getConfirmation(runId);
     if (!existing) {
       return Response.json(
         { error: 'Confirmation not found or expired. Please try the action again.' },
@@ -123,7 +124,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 5. Resolve the confirmation (approve or cancel)
-    const confirmation = resolveConfirmation(runId, user.id, approved);
+    const confirmation = await resolveConfirmation(runId, user.id, approved);
     if (!confirmation) {
       return Response.json(
         { error: 'Unable to process confirmation. It may have already been resolved or belongs to another user.' },
@@ -133,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // 6. If cancelled, return success with cancelled status
     if (!approved) {
-      console.log(`[Resume] User cancelled: runId=${runId}`);
+      logInfo('[Resume] User cancelled', { metadata: { runId } });
       return Response.json({
         success: true,
         cancelled: true,
@@ -142,8 +143,9 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 7. Execute the actual add-to-loadout operation (this is the "resume" step)
-    console.log(`[Resume] User approved: runId=${runId}, executing add...`);
-    const result = await executeAddToLoadout(confirmation.payload);
+    // Pass userId for ownership re-verification before the write.
+    logInfo('[Resume] User approved, executing add', { metadata: { runId } });
+    const result = await executeAddToLoadout(confirmation.payload, user.id);
 
     return Response.json({
       success: result.success,
@@ -153,7 +155,7 @@ export async function POST(request: Request): Promise<Response> {
       error: result.error,
     });
   } catch (error) {
-    console.error('[Resume API] Error:', error);
+    logError('[Resume API] Unexpected error', error);
     return Response.json(
       { error: 'An unexpected error occurred.' },
       { status: 500 }
