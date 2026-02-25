@@ -652,7 +652,9 @@ async function processStreamEvent(
     case 'workflow_progress': {
       const parsed = WorkflowProgressDataSchema.safeParse(event.data);
       if (parsed.success) {
-        onProgress?.(parsed.data.message, parsed.data);
+        // Use nullish coalesce: message is optional in the schema (string | undefined),
+        // but the onProgress callback signature requires string for setProgressMessage.
+        onProgress?.(parsed.data.message ?? '', parsed.data);
       }
       break;
     }
