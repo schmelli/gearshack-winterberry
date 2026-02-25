@@ -477,7 +477,7 @@ async function logCatalogGap(
     scope: string;
     categoryHint: string | null;
     filters: Record<string, unknown>;
-    userId: string;
+    userId: string | null;
   }
 ): Promise<void> {
   const { query, scope, categoryHint, filters, userId } = params;
@@ -487,7 +487,7 @@ async function logCatalogGap(
     p_scope: scope,
     p_category_hint: categoryHint,
     p_filters: filters,
-    p_user_id: userId,
+    p_user_id: userId || null,
   });
 
   if (error) {

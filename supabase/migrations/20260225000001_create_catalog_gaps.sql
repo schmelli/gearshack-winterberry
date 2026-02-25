@@ -109,10 +109,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_id UUID;
-  v_normalized TEXT;
 BEGIN
-  v_normalized := lower(trim(p_query));
-
   INSERT INTO catalog_gaps (query, scope, category_hint, filters_used, user_ids, unique_users)
   VALUES (
     p_query,
@@ -139,7 +136,7 @@ BEGIN
       THEN catalog_gaps.unique_users + 1
       ELSE catalog_gaps.unique_users
     END,
-    -- Update scope if it was broader
+    -- Use new scope if provided, otherwise keep existing
     scope = COALESCE(EXCLUDED.scope, catalog_gaps.scope),
     -- Update category_hint if we have a new one
     category_hint = COALESCE(EXCLUDED.category_hint, catalog_gaps.category_hint),
@@ -164,7 +161,10 @@ COMMENT ON FUNCTION upsert_catalog_gap IS 'Inserts or updates a catalog gap entr
 CREATE OR REPLACE FUNCTION get_catalog_gap_summary()
 RETURNS TABLE(total_open_gaps BIGINT, total_searches_missed BIGINT)
 LANGUAGE sql
-SECURITY DEFINER
+-- No SECURITY DEFINER: runs under caller's RLS context.
+-- Non-admin callers are blocked by the admin_catalog_gaps_select RLS policy,
+-- so they receive zero/null aggregates instead of real data.
+-- The admin API already verifies admin role before calling this RPC.
 SET search_path = public
 AS $$
   SELECT

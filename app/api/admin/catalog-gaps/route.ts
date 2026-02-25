@@ -150,6 +150,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (countResult.error) {
+      console.error('[Admin Catalog Gaps] Count query error:', countResult.error);
+      return NextResponse.json(
+        { error: 'Failed to count catalog gaps' },
+        { status: 500 }
+      );
+    }
+
     const totalMatchingCount = (countResult.count as number) ?? 0;
     const totalPages = Math.ceil(totalMatchingCount / limit);
     const summaryRow = summaryResult.data as {
@@ -237,13 +245,20 @@ export async function PATCH(request: NextRequest) {
       })
       .eq('id', id)
       .select('id, query, status')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('[Admin Catalog Gaps] Update error:', error);
       return NextResponse.json(
         { error: 'Failed to update catalog gap' },
         { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Catalog gap not found' },
+        { status: 404 }
       );
     }
 
