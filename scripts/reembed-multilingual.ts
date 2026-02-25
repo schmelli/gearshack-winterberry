@@ -77,7 +77,7 @@ async function backfillConversationMemory(
   console.log(`[conversation_memory] ${total} rows need embedding_ml populated.`);
 
   let processed = 0;
-  let offset = 0;
+  const offset = 0;
 
   while (processed < total) {
     const { data: rows, error } = await supabase
