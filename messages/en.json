@@ -471,6 +471,16 @@
   "AIChat": {
     "loginRequired": "You must be logged in to use AI Assistant",
     "noMessageToRetry": "No message to retry",
+    "confirmAction": {
+      "title": "Confirmation Required",
+      "addToLoadout": "Add \"{gearItemName}\" to \"{loadoutName}\"?",
+      "approve": "Approve",
+      "cancel": "Cancel",
+      "success": "Added \"{gearItemName}\" to \"{loadoutName}\".",
+      "cancelled": "Cancelled adding \"{gearItemName}\" to \"{loadoutName}\".",
+      "errorApprove": "Failed to approve action. Please try again.",
+      "errorCancel": "Failed to cancel action. Please try again."
+    },
     "errors": {
       "authRequired": "Authentication required. Please sign in to use the AI assistant.",
       "messageTooLong": "Message too long. Maximum length is 10,000 characters."
@@ -3790,7 +3800,8 @@
     "progress": {
       "memory": "Loading your profile...",
       "context": "Analysing your gear...",
-      "thinking": "Preparing answer..."
+      "thinking": "Preparing answer...",
+      "unknown": "Processing..."
     },
     "ariaLabels": {
       "aiAssistant": "AI Assistant",

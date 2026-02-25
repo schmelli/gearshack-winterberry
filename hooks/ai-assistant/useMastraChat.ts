@@ -13,11 +13,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { z } from 'zod';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { parseSSEStream, type SSEEvent, type ToolCallData, type WorkflowProgressData } from '@/lib/ai-assistant/stream-parser';
+import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
+import type { WorkflowStep } from '@/types/ai-assistant';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -43,6 +46,8 @@ export interface MastraMessage {
   createdAt: string;
   toolCalls?: ToolCallData[];
   memoryUpdates?: MemoryUpdate[];
+  /** Pending confirmation actions (suspend/resume pattern) */
+  pendingConfirmations?: ConfirmActionData[];
 }
 
 /**
@@ -98,6 +103,10 @@ export interface UseMastraChatResult {
   abort: () => void;
   /** Current workflow progress message (shown during pipeline phases) */
   progressMessage: string | null;
+  /** Granular workflow step tracking with per-step status */
+  workflowSteps: WorkflowStep[];
+  /** Handle user response to a pending confirmation (suspend/resume) */
+  resolveConfirmation: (runId: string, approved: boolean) => Promise<void>;
 }
 
 // =====================================================
@@ -120,6 +129,7 @@ export function useMastraChat(): UseMastraChatResult {
   const [state, setState] = useState<ChatState>('idle');
   const [error, setError] = useState<ChatError | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   // Initialize conversationId from localStorage
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -134,6 +144,8 @@ export function useMastraChat(): UseMastraChatResult {
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
   // Ref for text debounce timeout cleanup on abort
   const textUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref for the workflow-steps clear timeout — must be cancelled if a new request starts
+  const clearWorkflowStepsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to track if history has been loaded for this conversation
   const historyLoadedRef = useRef<string | null>(null);
 
@@ -203,6 +215,11 @@ export function useMastraChat(): UseMastraChatResult {
    * Abort any in-flight request
    */
   const abort = useCallback(() => {
+    // Cancel any pending workflow-steps clear timeout from a previous request
+    if (clearWorkflowStepsTimeoutRef.current) {
+      clearTimeout(clearWorkflowStepsTimeoutRef.current);
+      clearWorkflowStepsTimeoutRef.current = null;
+    }
     // Clean up any pending text update timeout
     if (textUpdateTimeoutRef.current) {
       clearTimeout(textUpdateTimeoutRef.current);
@@ -213,6 +230,7 @@ export function useMastraChat(): UseMastraChatResult {
       abortControllerRef.current = null;
       setState('idle');
       setProgressMessage(null);
+      setWorkflowSteps([]);
       logAIEvent('info', 'Chat request aborted by user');
     }
   }, []);
@@ -265,6 +283,7 @@ export function useMastraChat(): UseMastraChatResult {
       // Clear previous error and progress
       setError(null);
       setProgressMessage(null);
+      setWorkflowSteps([]);
 
       // Transition to loading state
       setState('loading');
@@ -389,6 +408,8 @@ export function useMastraChat(): UseMastraChatResult {
             (text) => {
               // Clear progress message once actual content starts flowing
               setProgressMessage(null);
+              // Mark all running steps as completed when text content arrives
+              setWorkflowSteps(prev => completeRunningSteps(prev));
               fullContent += text;
               textUpdateBuffer += text;
 
@@ -425,8 +446,44 @@ export function useMastraChat(): UseMastraChatResult {
                 )
               );
             },
-            (progress) => {
-              setProgressMessage(progress);
+            (progress, progressData) => {
+              // When structured step data is present, WorkflowProgress renders instead of
+              // the plain progressMessage bubble — skip the extra state update.
+              if (!progressData) {
+                setProgressMessage(progress);
+              }
+              // Track granular step status: mark previous running steps as completed
+              if (progressData) {
+                setWorkflowSteps(prev => {
+                  const updated = completeRunningSteps(prev);
+                  const status: WorkflowStep['status'] =
+                    progressData.status === 'failed' ? 'failed' :
+                    progressData.status === 'completed' ? 'completed' :
+                    progressData.status === 'pending' ? 'pending' :
+                    'running';
+                  return [...updated, {
+                    step: progressData.step,
+                    status,
+                    message: progressData.message,
+                  }];
+                });
+              }
+            },
+            (confirmation) => {
+              // Handle confirm_action events (suspend/resume pattern)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        pendingConfirmations: [
+                          ...(msg.pendingConfirmations || []),
+                          confirmation,
+                        ],
+                      }
+                    : msg
+                )
+              );
             }
           );
         }
@@ -443,6 +500,12 @@ export function useMastraChat(): UseMastraChatResult {
         // Transition to success state
         setProgressMessage(null);
         setState('success');
+        // Delay clearing steps so users can see the final completed state before it disappears.
+        // Track in a ref so a rapid subsequent request can cancel this before it fires.
+        clearWorkflowStepsTimeoutRef.current = setTimeout(() => {
+          clearWorkflowStepsTimeoutRef.current = null;
+          setWorkflowSteps([]);
+        }, 800);
 
         logAIEvent('info', 'Mastra chat response completed', {
           userId: user.uid,
@@ -533,6 +596,65 @@ export function useMastraChat(): UseMastraChatResult {
     await sendMessage(text, options);
   }, [sendMessage, t]);
 
+  /**
+   * Resolve a pending confirmation (suspend/resume workflow)
+   * Calls the resume API endpoint and updates message state
+   */
+  const resolveConfirmation = useCallback(
+    async (runId: string, approved: boolean): Promise<void> => {
+      try {
+        const response = await fetch('/api/mastra/workflows/add-gear/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, approved }),
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          // Throw so callers can keep the confirmation card visible/retryable
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+
+        // Remove the resolved confirmation from message state so the card unmounts
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (!msg.pendingConfirmations?.some((c) => c.runId === runId)) return msg;
+            return {
+              ...msg,
+              pendingConfirmations: msg.pendingConfirmations.filter(
+                (c) => c.runId !== runId
+              ),
+            };
+          })
+        );
+
+        // Map structured result codes to i18n messages instead of using API strings
+        if (result.resultCode === 'ADD_TO_LOADOUT_CANCELLED') {
+          toast.info(t('confirmAction.cancelled', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else if (result.success && result.resultCode === 'ADD_TO_LOADOUT_SUCCESS') {
+          toast.success(t('confirmAction.success', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else {
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+      } catch (err) {
+        // Re-throw so the ConfirmAddToLoadout component can show an error toast
+        // and keep the card visible for retry
+        throw err instanceof Error ? err : new Error(t('confirmAction.errorApprove'));
+      }
+    },
+    // t is stable (next-intl), setMessages is stable (useState setter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setMessages, t]
+  );
+
   // Load conversation history on mount if conversationId exists.
   // Guard with state === 'idle' to prevent overwriting optimistic message updates
   // if the user sends a message before history finishes loading.
@@ -562,12 +684,31 @@ export function useMastraChat(): UseMastraChatResult {
     conversationId,
     abort,
     progressMessage,
+    workflowSteps,
+    resolveConfirmation,
   };
 }
 
 // =====================================================
 // Helper Functions
 // =====================================================
+
+/**
+ * Mark all currently running steps as completed.
+ * Returns the same array reference if no change is needed (avoids unnecessary re-renders).
+ */
+function completeRunningSteps(steps: WorkflowStep[]): WorkflowStep[] {
+  if (!steps.some(s => s.status === 'running')) return steps;
+  return steps.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s);
+}
+
+/** Zod schema for runtime validation of backend workflow_progress events */
+const WorkflowProgressDataSchema = z.object({
+  step: z.string(),
+  status: z.enum(['pending', 'running', 'completed', 'failed']),
+  message: z.string().optional(),
+});
+type ValidatedProgressData = z.infer<typeof WorkflowProgressDataSchema>;
 
 /**
  * Process a single SSE event from the stream
@@ -578,7 +719,8 @@ async function processStreamEvent(
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
   onMemoryUpdate: (update: MemoryUpdate) => void,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string, data?: ValidatedProgressData) => void,
+  onConfirmAction?: (confirmation: ConfirmActionData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -593,10 +735,20 @@ async function processStreamEvent(
       }
       break;
 
-    case 'workflow_progress':
-      if (typeof event.data === 'object' && 'message' in event.data) {
-        const progressData = event.data as WorkflowProgressData;
-        onProgress?.(progressData.message);
+    case 'workflow_progress': {
+      const parsed = WorkflowProgressDataSchema.safeParse(event.data);
+      if (parsed.success) {
+        // Use nullish coalesce: message is optional in the schema (string | undefined),
+        // but the onProgress callback signature requires string for setProgressMessage.
+        onProgress?.(parsed.data.message ?? '', parsed.data);
+      }
+      break;
+    }
+
+    case 'confirm_action':
+      // Suspend/resume pattern: workflow suspended, needs user confirmation
+      if (typeof event.data === 'object' && 'runId' in event.data) {
+        onConfirmAction?.(event.data as ConfirmActionData);
       }
       break;
 

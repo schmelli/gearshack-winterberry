@@ -427,6 +427,55 @@ export const voiceEndToEndDurationSeconds = new Histogram({
   registers: [register],
 });
 
+// ==================== Response Cache Metrics ====================
+
+/**
+ * Semantic cache hits total
+ * Feature: Response Caching (Vorschlag 19)
+ * Labels: intent_type (general_knowledge, gear_comparison, ...)
+ *
+ * NOTE: intent_type label is defined here from the start — adding labels to an
+ * existing Prometheus metric requires renaming the metric (breaking dashboards).
+ */
+export const cacheHitsTotal = new Counter({
+  name: 'mastra_cache_hits_total',
+  help: 'Total number of semantic response cache hits',
+  labelNames: ['intent_type'] as const,
+  registers: [register],
+});
+
+/**
+ * Semantic cache misses total
+ * Labels: intent_type (general_knowledge, gear_comparison, ...)
+ */
+export const cacheMissesTotal = new Counter({
+  name: 'mastra_cache_misses_total',
+  help: 'Total number of semantic response cache misses',
+  labelNames: ['intent_type'] as const,
+  registers: [register],
+});
+
+/**
+ * Cache store operations total
+ * Labels: intent_type (general_knowledge, gear_comparison, ...)
+ */
+export const cacheStoresTotal = new Counter({
+  name: 'mastra_cache_stores_total',
+  help: 'Total number of responses stored in semantic cache',
+  labelNames: ['intent_type'] as const,
+  registers: [register],
+});
+
+/**
+ * Cache lookup latency in seconds (Prometheus convention: seconds for latency histograms)
+ */
+export const cacheLatencySeconds = new Histogram({
+  name: 'mastra_cache_latency_seconds',
+  help: 'Semantic cache lookup latency in seconds',
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1],
+  registers: [register],
+});
+
 // ==================== Rate Limiting Metrics ====================
 
 /**
@@ -448,6 +497,31 @@ export const rateLimitActiveWindows = new Gauge({
   name: 'mastra_rate_limit_active_windows',
   help: 'Current number of active rate limit windows',
   labelNames: ['operation_type'] as const,
+  registers: [register],
+});
+
+// ==================== A/B Testing Metrics ====================
+
+/**
+ * Total prompt variant assignments by experiment and variant
+ * Labels: experiment, variant
+ */
+export const promptVariantAssignmentsTotal = new Counter({
+  name: 'mastra_prompt_variant_assignments_total',
+  help: 'Total number of prompt variant assignments',
+  labelNames: ['experiment', 'variant'] as const,
+  registers: [register],
+});
+
+/**
+ * Chat response latency by prompt variant
+ * Labels: experiment, variant
+ */
+export const promptVariantLatencySeconds = new Histogram({
+  name: 'mastra_prompt_variant_latency_seconds',
+  help: 'Chat response latency by prompt variant in seconds',
+  buckets: [0.5, 1, 2, 5, 10],
+  labelNames: ['experiment', 'variant'] as const,
   registers: [register],
 });
 
@@ -798,6 +872,32 @@ export function setUsersWithMemory(count: number): void {
   usersWithMemoryTotal.set(count);
 }
 
+// ==================== A/B Testing Metric Functions ====================
+
+/**
+ * Records a prompt variant assignment
+ */
+export function recordPromptVariantAssignment(
+  experimentName: string,
+  variantId: string
+): void {
+  promptVariantAssignmentsTotal.inc({ experiment: experimentName, variant: variantId });
+}
+
+/**
+ * Records chat latency for a specific prompt variant
+ */
+export function recordPromptVariantLatency(
+  experimentName: string,
+  variantId: string,
+  latencySeconds: number
+): void {
+  promptVariantLatencySeconds.observe(
+    { experiment: experimentName, variant: variantId },
+    latencySeconds
+  );
+}
+
 // ==================== Metrics Collection ====================
 
 /**
@@ -861,4 +961,37 @@ export function startTimer(): () => number {
     // Return duration in milliseconds
     return endTime - startTime;
   };
+}
+
+// ==================== Cache Helper Functions ====================
+
+/**
+ * Records a semantic cache hit
+ * @param intentType - Intent type that produced the cache hit (for Prometheus label)
+ */
+export function recordCacheHit(intentType = 'unknown'): void {
+  cacheHitsTotal.inc({ intent_type: intentType });
+}
+
+/**
+ * Records a semantic cache miss
+ * @param intentType - Intent type that missed the cache (for Prometheus label)
+ */
+export function recordCacheMiss(intentType = 'unknown'): void {
+  cacheMissesTotal.inc({ intent_type: intentType });
+}
+
+/**
+ * Records a response stored in semantic cache
+ * @param intentType - Intent type of the stored response (for Prometheus label)
+ */
+export function recordCacheStore(intentType = 'unknown'): void {
+  cacheStoresTotal.inc({ intent_type: intentType });
+}
+
+/**
+ * Records cache lookup latency in seconds
+ */
+export function recordCacheLatency(latencyMs: number): void {
+  cacheLatencySeconds.observe(latencyMs / 1000);
 }

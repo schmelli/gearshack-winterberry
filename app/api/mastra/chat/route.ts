@@ -6,6 +6,10 @@
  * Provides streaming SSE responses for the Mastra agentic chat system
  * with persistent conversation memory, rate limiting, and observability.
  *
+ * Pipeline: Uses the Mastra Workflow `gear-assistant` for structured
+ * orchestration of Classify → Prefetch → Build Context, then streams
+ * the agent response via SSE.
+ *
  * SSE Event Types:
  * - text: Text content chunk
  * - tool_call: Tool invocation metadata
@@ -24,6 +28,7 @@
  * - Structured logging at each step
  * - Prometheus metrics (latency, counters, errors)
  * - Distributed tracing spans
+ * - Per-step OTel tracing via Mastra Workflow engine
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -34,6 +39,7 @@ import {
   encodeDoneEvent,
   encodeErrorEvent,
   encodeWorkflowProgressEvent,
+  encodeConfirmActionEvent,
 } from '@/lib/mastra/streaming';
 import {
   logInfo,
@@ -50,35 +56,67 @@ import {
   recordChatError,
   recordToolCall,
   classifyQuery,
+  recordPromptVariantAssignment,
+  recordPromptVariantLatency,
 } from '@/lib/mastra/metrics';
-import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
+import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { type PromptContext } from '@/lib/mastra/config';
-import { createGearAgent, streamMastraResponse, createGearshackRequestContext } from '@/lib/mastra/mastra-agent';
-import {
-  getCachedLoadoutContext,
-  preloadLoadoutContext,
-  formatLoadoutContextForPrompt,
-  type LoadoutContext,
-} from '@/lib/mastra/context-preloader';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
+import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { VariantResolution } from '@/types/prompt-ab';
 import {
   generateProactiveSuggestions,
   formatSuggestionsForStream,
   shouldShowProactiveSuggestions,
 } from '@/lib/mastra/proactive-suggestions';
-import type { MastraChatRequest } from '@/types/mastra';
-import type { UserContext } from '@/types/ai-assistant';
+import { mastra } from '@/lib/mastra/instance';
+import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
+import type { LoadoutContext } from '@/lib/mastra/context-preloader';
+import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
+import { classifyIntent } from '@/lib/mastra/intent-router';
 import {
-  parseQuery,
-  isComplexOptimizationQuery,
-  formatParsedQueryForPrompt,
-  type ParsedQuery,
-} from '@/lib/ai-assistant/query-parser';
-import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
-import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
+  getSemanticCacheHit,
+  storeInSemanticCache,
+  isCacheableIntent,
+} from '@/lib/mastra/semantic-cache';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
+
+// =====================================================
+// Type Guards
+// =====================================================
+
+/** Shape of an addToLoadout tool result that requires user confirmation */
+interface ConfirmableToolResult {
+  requiresConfirmation: true;
+  runId: string;
+  message: string;
+  gearItemId: string;
+  gearItemName: string;
+  loadoutId: string;
+  loadoutName: string;
+}
+
+/**
+ * Type guard for addToLoadout tool results that require user confirmation.
+ * Validates all required string fields before constructing ConfirmActionData,
+ * preventing runtime errors from unexpected AI output structures.
+ */
+function isConfirmableResult(result: unknown): result is ConfirmableToolResult {
+  if (!result || typeof result !== 'object') return false;
+  const r = result as Record<string, unknown>;
+  return (
+    r.requiresConfirmation === true &&
+    typeof r.runId === 'string' && r.runId.length > 0 &&
+    typeof r.message === 'string' &&
+    typeof r.gearItemId === 'string' &&
+    typeof r.gearItemName === 'string' &&
+    typeof r.loadoutId === 'string' &&
+    typeof r.loadoutName === 'string'
+  );
+}
 
 // =====================================================
 // Request Validation
@@ -158,6 +196,7 @@ function validateRequest(body: unknown): {
 /**
  * Fetch user's subscription tier from the profiles table.
  * Defaults to 'standard' on any error to ensure graceful degradation.
+ * Does NOT hard-gate access — tier is used for tool selection only.
  */
 async function fetchSubscriptionTier(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -180,90 +219,13 @@ async function fetchSubscriptionTier(
 
     const tier = data.subscription_tier;
     return tier === 'trailblazer' ? 'trailblazer' : 'standard';
-  } catch {
+  } catch (err) {
+    logDebug('Unexpected error fetching subscription tier, defaulting to standard', {
+      userId,
+      metadata: { error: err instanceof Error ? err.message : String(err) },
+    });
     return 'standard';
   }
-}
-
-// =====================================================
-// System Prompt Builder
-// =====================================================
-
-async function buildPromptContext(
-  userContext: Record<string, unknown> | undefined,
-  userId: string,
-  subscriptionTier?: 'standard' | 'trailblazer',
-  parsedQuery?: ParsedQuery,
-): Promise<{ promptContext: PromptContext; loadoutContext: LoadoutContext | null }> {
-  const locale = (userContext?.locale as string) || 'en';
-  const screen = (userContext?.screen as string) || 'inventory';
-  const inventoryCount = (userContext?.inventoryCount as number) || 0;
-  const currentLoadoutId = userContext?.currentLoadoutId as string | undefined;
-
-  // Build UserContext for prompt builder
-  const promptUserContext: UserContext = {
-    screen,
-    locale,
-    inventoryCount,
-    currentLoadoutId,
-    userId,
-    subscriptionTier: subscriptionTier || 'standard',
-  };
-
-  const promptContext: PromptContext = {
-    userContext: promptUserContext,
-  };
-
-  // Add parsed query constraints to prompt (for better tool selection)
-  if (parsedQuery && parsedQuery.confidence > 0.5) {
-    const constraintInfo = formatParsedQueryForPrompt(parsedQuery);
-    if (constraintInfo) {
-      promptContext.catalogResults = promptContext.catalogResults
-        ? `${promptContext.catalogResults}\n\n${constraintInfo}`
-        : constraintInfo;
-
-      logDebug('Query constraints added to prompt', {
-        userId,
-        metadata: {
-          intent: parsedQuery.intent,
-          confidence: parsedQuery.confidence,
-          hasConstraints: Object.keys(parsedQuery.constraints).length > 0,
-        },
-      });
-    }
-  }
-
-  // Pre-load loadout context if viewing a loadout (Improvement #3: Context Pre-loading)
-  let loadoutContext: LoadoutContext | null = null;
-  if (screen === 'loadout-detail' && currentLoadoutId) {
-    // Try to get from cache first (instant - no DB query)
-    loadoutContext = getCachedLoadoutContext(currentLoadoutId, userId);
-
-    // If not cached, pre-load it now
-    if (!loadoutContext) {
-      loadoutContext = await preloadLoadoutContext(currentLoadoutId, userId);
-    }
-
-    // Add loadout context to system prompt
-    if (loadoutContext) {
-      const formattedContext = formatLoadoutContextForPrompt(loadoutContext, locale as 'en' | 'de');
-      promptContext.catalogResults = promptContext.catalogResults
-        ? `${promptContext.catalogResults}\n\n${formattedContext}`
-        : formattedContext;
-
-      logDebug('Loadout context added to system prompt', {
-        userId,
-        metadata: {
-          loadoutId: currentLoadoutId,
-          itemCount: loadoutContext.gearItems.length,
-          totalWeight: loadoutContext.loadout.totalWeight,
-          cached: !!getCachedLoadoutContext(currentLoadoutId, userId),
-        },
-      });
-    }
-  }
-
-  return { promptContext, loadoutContext };
 }
 
 // =====================================================
@@ -316,7 +278,8 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 3b. Fetch subscription tier from profiles table (non-blocking for logging setup)
+    // 3b. Fetch subscription tier for dynamic tool selection (defaults to 'standard' on error).
+    // No hard gate — tier determines available tools, not access to the AI assistant.
     const subscriptionTier = await fetchSubscriptionTier(supabase, user.id);
 
     // 4. Set logging context (T030)
@@ -341,25 +304,6 @@ export async function POST(request: Request): Promise<Response> {
     const queryType = classifyQuery(message);
     const operationType = enableVoice ? 'voice' : (queryType === 'complex' ? 'workflow' : 'simple_query');
     recordChatRequest(operationType);
-
-    // 5b. Parse query for constraints (budget, weight, intent) - AI Reliability Improvement
-    const parsedQuery = parseQuery(message);
-    const isOptimizationQuery = isComplexOptimizationQuery(parsedQuery);
-
-    if (parsedQuery.confidence > 0.5) {
-      logDebug('Query parsed for constraints', {
-        userId: user.id,
-        metadata: {
-          intent: parsedQuery.intent,
-          target: parsedQuery.target,
-          sortPreference: parsedQuery.sortPreference,
-          hasMaxBudget: !!parsedQuery.constraints.maxBudget,
-          hasMaxWeight: !!parsedQuery.constraints.maxWeight,
-          isOptimization: isOptimizationQuery,
-          confidence: parsedQuery.confidence,
-        },
-      });
-    }
 
     // 6. Check rate limits (must remain outside stream for proper HTTP status codes)
     const currentLoadoutId = context?.currentLoadoutId as string | undefined;
@@ -463,125 +407,227 @@ export async function POST(request: Request): Promise<Response> {
         };
 
         try {
-          // --- Phase 1: Intent classification ---
+          // =============================================================
+          // Phase 1-3: Execute Mastra Workflow (Classify → Prefetch → Build Context)
+          // The gear-assistant workflow handles:
+          //   Step 1 (classifyIntent): Gemini Flash intent classification
+          //   Step 2 (prefetchData): Parallel data fetching
+          //   Step 3 (buildContext): System prompt assembly + fast-path attempt
+          // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
 
+          // --- Phase 1b: Semantic Response Cache check ---
+          // Classify intent upfront so we can check the cache for factual questions
+          // (general_knowledge, gear_comparison) before running the full workflow.
+          // Note: classifyIntent is also called inside the gear-assistant workflow
+          // (Step 1); the redundant call on cache-miss is accepted as a minor cost
+          // to keep the cache check outside the workflow boundary.
           const intentResult = await classifyIntent(
             message,
             context?.screen as string | undefined,
             currentLoadoutId
           );
 
-          // --- Phase 2: Context / Prefetch (emit progress) ---
-          emitProgress('context', progressMessages[locale].context);
+          if (isCacheableIntent(intentResult.intent)) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
 
-          // Pre-fetch data based on intent classification
-          let prefetchedContext: PrefetchedContext | null = null;
-          if (intentResult.dataRequirements.length > 0) {
-            const prefetchLocale = (context?.locale as string) || 'en';
-            prefetchedContext = await prefetchData(
-              intentResult.dataRequirements,
-              user.id,
-              prefetchLocale
-            );
+            if (cacheHit) {
+              // Snapshot latency once — used for both the log and the done event
+              const totalLatencyMs = requestTimer();
 
-            logDebug('Pre-fetch completed', {
-              userId: user.id,
-              metadata: {
-                intent: intentResult.intent,
-                requirementCount: intentResult.dataRequirements.length,
-                totalLatencyMs: prefetchedContext.totalLatencyMs,
-              },
-            });
-          }
-
-          // Fast-path for simple factual questions
-          if (
-            intentResult.canAnswerDirectly &&
-            intentResult.intent === 'simple_fact' &&
-            prefetchedContext &&
-            Object.keys(prefetchedContext.results).length > 0
-          ) {
-            const fastLocale = (context?.locale as string) || 'en';
-            const fastAnswer = await generateFastAnswer(
-              message,
-              prefetchedContext.results,
-              fastLocale
-            );
-
-            if (fastAnswer) {
-              logInfo('Fast-path answer served', {
+              logInfo('Serving response from semantic cache', {
                 userId: user.id,
                 conversationId,
                 metadata: {
                   intent: intentResult.intent,
-                  latencyMs: requestTimer(),
+                  cacheId: cacheHit.cacheId,
+                  similarity: cacheHit.similarity,
+                  latencyMs: totalLatencyMs,
                 },
               });
 
-              fullResponse = fastAnswer;
-              const totalLatencyMs = requestTimer();
-              controller.enqueue(encoder.encode(encodeTextEvent(fastAnswer)));
+              fullResponse = cacheHit.response;
+              controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
               controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
-
               recordAgentLatency(totalLatencyMs / 1000, 'simple');
+
+              // Persist the user message + cached response to Mastra memory so
+              // the agent retains conversational context for follow-up questions.
+              // Fire-and-forget: failures here must never affect the served response.
+              persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                })
+              );
+
               controller.close();
               return;
             }
           }
 
-          // Build prompt context with memory context, loadout context, and parsed query constraints
-          const { promptContext, loadoutContext } = await buildPromptContext(
-            context,
-            user.id,
-            subscriptionTier,
-            parsedQuery,
-          );
+          // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
+          // Emit context progress BEFORE starting the workflow so the user sees
+          // visible feedback during the multi-second classify + prefetch phase.
+          // The workflow encapsulates all three steps as a black box, so this is
+          // the only opportunity to show an intermediate progress state.
+          emitProgress('context', progressMessages[locale].context);
 
-          // Build enriched prompt suffix from pre-fetched data (injected into prompt by dynamic agent)
-          let enrichedPromptSuffix: string | undefined;
-          if (prefetchedContext && prefetchedContext.formattedContext) {
-            const contextLabel = (context?.locale as string) === 'de'
-              ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
-              : '**Pre-loaded Data (use this to answer quickly):**';
-            enrichedPromptSuffix = `${contextLabel}\n${prefetchedContext.formattedContext}`;
+          const workflow = mastra.getWorkflow('gear-assistant');
+          const run = await workflow.createRun({ resourceId: user.id });
 
-            logDebug('Pre-fetched context prepared for runtimeContext', {
+          const workflowResult = await run.start({
+            inputData: {
+              message,
               userId: user.id,
-              metadata: {
-                contextLength: prefetchedContext.formattedContext.length,
-                intent: intentResult.intent,
-              },
+              conversationId,
+              locale: (context?.locale as string) || 'en',
+              screen: (context?.screen as string) || 'inventory',
+              inventoryCount: (context?.inventoryCount as number) || 0,
+              currentLoadoutId,
+              enableTools,
+              subscriptionTier,
+            },
+          });
+
+          // Extract workflow output
+          if (workflowResult.status !== 'success' || !workflowResult.result) {
+            const stepErrors = Object.entries(workflowResult.steps)
+              .filter(([, step]) => step?.status === 'failed')
+              .map(([name]) => name);
+
+            throw new Error(
+              `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
+            );
+          }
+
+          // Cast required because Mastra's generic types do not propagate the workflow
+          // output type through workflowResult.result — the schema is validated at
+          // runtime by Zod inside the workflow engine before this point.
+          const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
+
+          // --- A/B Test: Resolve prompt variant for this user ---
+          // The workflow builds enrichedSystemPrompt; we append the variant suffix
+          // here so A/B testing is decoupled from the workflow internals.
+          let variantResolution: VariantResolution | null = null;
+          try {
+            const serviceClient = createServiceRoleClient();
+            const userLocale = (context?.locale as string) || 'en';
+            variantResolution = await resolveVariant(user.id, userLocale, serviceClient);
+
+            if (variantResolution?.isInExperiment) {
+              // Track variant in OTel span attributes (no PII — user.id omitted)
+              addSpanAttributes({
+                'prompt.variant': variantResolution.variantId,
+                'prompt.experiment': variantResolution.experimentName,
+              });
+
+              logDebug('A/B variant assigned', {
+                userId: user.id,
+                metadata: {
+                  experiment: variantResolution.experimentName,
+                  variant: variantResolution.variantId,
+                },
+              });
+
+              // Record Prometheus metrics
+              recordPromptVariantAssignment(
+                variantResolution.experimentName,
+                variantResolution.variantId
+              );
+            }
+
+            // Log assignment for ALL resolutions (including control group) so the
+            // analytics view has a baseline to compare against.  Without control-group
+            // rows the A/B comparison is statistically invalid.
+            if (variantResolution) {
+              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch((err) => {
+                logWarn('[PromptAB] logAssignment threw unexpectedly', { error: err });
+              });
+            }
+          } catch {
+            // Graceful degradation: proceed without A/B variant
+            logWarn('A/B variant resolution failed, proceeding without variant', {
+              userId: user.id,
             });
           }
 
-          // --- Phase 3: Agent generation (emit "thinking" progress) ---
+          // Inject A/B variant suffix into the workflow-generated system prompt.
+          // This keeps A/B testing decoupled from the workflow step that builds
+          // enrichedSystemPrompt, so experiments can be added without touching the workflow.
+          const effectiveSystemPrompt =
+            variantResolution?.isInExperiment && variantResolution.promptSuffix
+              ? `${pipelineOutput.enrichedSystemPrompt}\n\n${variantResolution.promptSuffix}`
+              : pipelineOutput.enrichedSystemPrompt;
+
+          logInfo('Gear-assistant workflow completed', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              intent: pipelineOutput.intent,
+              confidence: pipelineOutput.confidence,
+              hasFastAnswer: !!pipelineOutput.fastAnswer,
+              workflowSteps: Object.keys(workflowResult.steps),
+            },
+          });
+
+          // =============================================================
+          // Fast-path: If the workflow produced a fast answer, return it
+          // =============================================================
+          if (pipelineOutput.fastAnswer) {
+            logInfo('Fast-path answer served via workflow', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                intent: pipelineOutput.intent,
+                latencyMs: requestTimer(),
+              },
+            });
+
+            fullResponse = pipelineOutput.fastAnswer;
+            const totalLatencyMs = requestTimer();
+            controller.enqueue(encoder.encode(encodeTextEvent(pipelineOutput.fastAnswer)));
+            controller.enqueue(
+              encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)),
+            );
+
+            recordAgentLatency(totalLatencyMs / 1000, 'simple');
+            controller.close();
+            return;
+          }
+
+          // =============================================================
+          // Phase 4: Agent Streaming (uses workflow output as context)
+          // =============================================================
           emitProgress('thinking', progressMessages[locale].thinking);
 
           // Build RuntimeContext for the Dynamic Agent Pattern:
-          // - subscriptionTier → determines which tools are available
-          // - lang → determines prompt language
-          // - promptContext → data for system prompt generation
-          // - enrichedPromptSuffix → pre-fetched data to inject
+          // - subscriptionTier → determines which tools available (standard vs trailblazer)
+          // - lang → prompt language fallback
+          // - enrichedPromptSuffix → the full system prompt built by the workflow + A/B variant
+          // - currentLoadoutId → passed through for loadout-aware tools
           const runtimeContext = createGearshackRequestContext({
             userId: user.id,
             subscriptionTier,
             lang: (context?.locale as string) || 'en',
-            promptContext,
-            enrichedPromptSuffix,
+            enrichedPromptSuffix: effectiveSystemPrompt,
             currentLoadoutId,
           });
 
-          // Create Dynamic Mastra Agent and stream response
-          // Agent resolves instructions & tools at runtime via runtimeContext
+          // Create Dynamic Mastra Agent with complexity routing and stream response.
+          // Agent resolves instructions & tools at runtime via runtimeContext.
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              const agent = createGearAgent();
+              const agent = createGearAgent(
+                // Explicit fallback to 'simple' when classification didn't return
+                // a complexity value (e.g. fallback path in classifyIntent).
+                pipelineOutput.queryComplexity ?? 'simple',
+              );
               return await streamMastraResponse(agent, message, user.id, conversationId, runtimeContext);
             },
-            { userId: user.id }
+            { userId: user.id },
           );
 
           // Stream text chunks
@@ -624,6 +670,36 @@ export async function POST(request: Request): Promise<Response> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
             for (const tc of toolCalls as any[]) {
               recordToolCall(tc.toolName || tc.name || 'unknown');
+
+              // Detect addToLoadout tool results that require user confirmation
+              // (Suspend/Resume pattern for human-in-the-loop write safety)
+              if (
+                (tc.toolName === 'addToLoadout' || tc.name === 'addToLoadout') &&
+                isConfirmableResult(tc.result)
+              ) {
+                const confirmData: ConfirmActionData = {
+                  runId: tc.result.runId,
+                  actionType: 'add_to_loadout',
+                  message: tc.result.message,
+                  details: {
+                    gearItemId: tc.result.gearItemId,
+                    gearItemName: tc.result.gearItemName,
+                    loadoutId: tc.result.loadoutId,
+                    loadoutName: tc.result.loadoutName,
+                  },
+                };
+                controller.enqueue(encoder.encode(encodeConfirmActionEvent(confirmData)));
+
+                logDebug('Confirm action event emitted (suspend/resume)', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    runId: confirmData.runId,
+                    gearItemName: confirmData.details.gearItemName,
+                    loadoutName: confirmData.details.loadoutName,
+                  },
+                });
+              }
             }
           }
 
@@ -650,15 +726,23 @@ export async function POST(request: Request): Promise<Response> {
           const isNaturalCompletion = finishReason === 'stop';
           if (isNaturalCompletion && shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
             const suggestions = generateProactiveSuggestions(
-              promptContext.userContext,
-              loadoutContext,
-              (context?.locale as 'en' | 'de') || 'en'
+              {
+                screen: (context?.screen as string) || 'inventory',
+                locale: (context?.locale as string) || 'en',
+                inventoryCount: (context?.inventoryCount as number) || 0,
+                currentLoadoutId,
+                userId: user.id,
+                subscriptionTier: pipelineOutput.subscriptionTier || 'standard',
+              },
+              // loadoutContext is z.unknown() at the Zod boundary; cast to the known type here
+              (pipelineOutput.loadoutContext as LoadoutContext | null),
+              (context?.locale as 'en' | 'de') || 'en',
             );
 
             if (suggestions.length > 0) {
               const suggestionsText = formatSuggestionsForStream(
                 suggestions,
-                (context?.locale as 'en' | 'de') || 'en'
+                (context?.locale as 'en' | 'de') || 'en',
               );
               controller.enqueue(encoder.encode(encodeTextEvent(suggestionsText)));
               fullResponse += suggestionsText;
@@ -678,9 +762,25 @@ export async function POST(request: Request): Promise<Response> {
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
-          // Send completion event
+          // Record A/B variant latency (for comparing variant performance)
+          if (variantResolution?.isInExperiment) {
+            recordPromptVariantLatency(
+              variantResolution.experimentName,
+              variantResolution.variantId,
+              totalLatencyMs / 1000
+            );
+          }
+
+          // Send completion event (include variant info so client can correlate feedback)
           controller.enqueue(
-            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
+            encoder.encode(encodeDoneEvent(
+              messageId,
+              finishReason || 'stop',
+              undefined,
+              totalLatencyMs,
+              variantResolution?.isInExperiment ? variantResolution.variantId : undefined,
+              variantResolution?.isInExperiment ? variantResolution.experimentName : undefined,
+            ))
           );
 
           logInfo('Mastra chat request completed', {
@@ -689,8 +789,33 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
+              queryComplexity: pipelineOutput.queryComplexity,
+              intent: pipelineOutput.intent,
+              ...(variantResolution?.isInExperiment && {
+                promptVariant: variantResolution.variantId,
+                promptExperiment: variantResolution.experimentName,
+              }),
             },
           });
+
+          // Store cacheable responses in semantic cache (fire-and-forget)
+          if (
+            isNaturalCompletion &&
+            isCacheableIntent(intentResult.intent) &&
+            fullResponse.length > 0
+          ) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            storeInSemanticCache(
+              message,
+              fullResponse,
+              intentResult.intent,
+              cacheLocale
+            ).catch((err: unknown) => {
+              logWarn('Background cache store failed', {
+                metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+              });
+            });
+          }
 
           controller.close();
         } catch (streamError) {

@@ -49,6 +49,15 @@ interface LocalizedContent {
   categoryReference: string;
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
+  /** Label for the pre-loaded data section in the system prompt */
+  preloadedDataLabel: string;
+  /**
+   * Few-shot examples demonstrating ideal vs poor response quality.
+   * Optional: allows future locales to omit the section without a code change.
+   * When present, injection is further gated on `hasInventory` at call time,
+   * since all examples are only meaningful when the user has gear data.
+   */
+  fewShotExamples?: string;
 }
 
 // =============================================================================
@@ -79,7 +88,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
   tools: `**Available Tools (9 total — Trailblazer):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer. Use this for gear recommendations, alternatives, and catalog lookups.
+- **searchGearKnowledge**: Unified search across user inventory, product catalog, AND community knowledge (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips from the GearGraph knowledge base, AND \`communityInsights\` — real experiences from community members (bulletin board posts/replies) found via semantic vector search. ALWAYS read and incorporate both types of insights. When community insights are present, cite them as "According to the community..." or "X users report that...".
 - **addToLoadout**: Add a gear item to the user's loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.
 - **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing: "What tents are under 1kg?" Returns ranked results with relevance scores. Powered by GearGraph MCP.
 - **findAlternatives**: Find lighter/cheaper/similar/higher-rated alternatives for a specific gear item using GearGraph graph relationships (LIGHTER_THAN, SIMILAR_TO edges). Use when user asks "What's a lighter alternative to my tent?" Requires a gear_items UUID from searchGearKnowledge results.
@@ -112,7 +121,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
 
   limitations: `**Limitations:**
 - You cannot place orders or process transactions
-- You do not have access to private messages or community posts
+- You do not have access to private messages
 - You can add gear items to loadouts using the addToLoadout tool, but you cannot create or delete gear items`,
 
   toolBestPractices: '',
@@ -142,6 +151,8 @@ When analyzing gear for trips, gently check:
 
   categoryReference: '',
 
+  preloadedDataLabel: '**Pre-loaded Data (use this to answer quickly):**',
+
   gearGraphGuidance: `**Using GearGraph for Trip-Specific Recommendations:**
 
 When a user asks which of their gear is best for a specific destination or conditions (e.g., "best stove for Scandinavia in winter"), combine inventory knowledge with GearGraph wisdom:
@@ -152,6 +163,35 @@ When a user asks which of their gear is best for a specific destination or condi
    - Activity-suited items: \`MATCH (p:Product)-[:SUITED_FOR]->(a:Activity {name: 'Backpacking'}) WHERE p.category = 'stoves' RETURN p.name, p.weight\`
 3. **Find complementary gear** using PAIRS_WITH: \`MATCH (p:Product {name: 'MSR PocketRocket'})-[:PAIRS_WITH]->(c:Product) RETURN c.name, c.category\`
 4. **Give an opinionated answer**: Cross-reference what the user OWNS with GearGraph insights. Don't just list — recommend the BEST option with clear reasoning about WHY it fits the conditions.`,
+
+  fewShotExamples: `## Response Examples (Few-Shot)
+
+Use these examples to calibrate your response quality. GOOD responses are data-driven, specific, and actionable. BAD responses are vague and generic.
+NOTE: All inventory data in these examples is hypothetical — always substitute the user's actual data when responding.
+
+**Example 1 — Weight Optimization Query:**
+User: "How can I reduce my base weight?"
+GOOD: "Your Big 3 accounts for 68% of your 7.2kg base weight. The biggest savings come from your shelter (2.1kg Hilleberg Nallo 3) — switching to a tarp like the MLD Duomid would save ~900g. Your sleep system is already ultralight at 620g, so I'd focus on shelter and pack next. Want me to search for alternatives?"
+BAD: "You should consider buying lighter gear and checking different brands."
+WHY: The good response references actual inventory data, quantifies savings, identifies specific items, and prioritizes actions. The bad response could apply to anyone and provides zero actionable insight.
+
+**Example 2 — Missing Essentials Check:**
+User: "Is my loadout ready for Scotland?"
+GOOD: "Solid loadout for the Highlands! Three things I'd flag: 1) Your Osprey Exos has an open back — you'll want a rain cover or dry bags since Scottish rain is near-constant. 2) No mid-layer insulation — Scottish summers can drop to 5°C at elevation, and your 100-weight fleece won't cut it on the Cuillin Ridge. 3) No GPS or PLB — if you're doing the Cape Wrath Trail, you'll lose phone signal for 3+ days."
+BAD: "Scotland can be cold and wet, so make sure you have appropriate gear."
+WHY: The good response demonstrates destination knowledge, references specific items from the loadout, gives temperature data, and explains WHY each gap matters. The bad response is generic travel advice anyone could give.
+
+**Example 3 — Gear Comparison:**
+User: "Should I take my MSR PocketRocket or the Jetboil Flash?"
+GOOD: "For your 5-day solo trip, I'd go PocketRocket. Here's why: it's 73g vs 371g — that's nearly 300g saved. The Jetboil's fast boil is great for groups, but you're solo with a 750ml pot. Trade-off: the PocketRocket is slower (3.5 min vs 1.5 min per boil) and less wind-resistant. If you're above treeline, maybe keep the Jetboil. Below treeline? PocketRocket, no question."
+BAD: "Both are good stoves. The PocketRocket is lighter and the Jetboil boils faster. It depends on your preference."
+WHY: The good response gives a clear recommendation with reasoning, quantifies the weight difference, considers the trip context, and addresses trade-offs honestly. The bad response sits on the fence and adds no expert value.
+
+**Example 4 — Loadout Analysis:**
+User: "Analyze my winter camping loadout"
+GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. Worth noting: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
+BAD: "Your loadout looks good for winter camping. Make sure you stay warm and have the right gear."
+WHY: The good response provides specific weight analysis, identifies the heaviest item with a lighter alternative, and catches a critical safety issue (sleeping pad R-value) that could make or break the trip.`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -178,7 +218,7 @@ const GERMAN_CONTENT: LocalizedContent = {
   tools: `**Verfuegbare Tools (9 insgesamt — Trailblazer):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort. Nutze dieses Tool auch fuer Gear-Empfehlungen, Alternativen und Katalog-Suchen.
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND \`communityInsights\` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".
 - **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.
 - **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.
 - **findAlternatives**: Findet leichtere/guenstigere/aehnliche/besser-bewertete Alternativen fuer ein bestimmtes Gear-Item ueber GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benoetigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.
@@ -211,7 +251,7 @@ const GERMAN_CONTENT: LocalizedContent = {
 
   limitations: `**Einschraenkungen:**
 - Du kannst keine Bestellungen aufgeben oder Transaktionen durchfuehren
-- Du hast keinen Zugriff auf private Nachrichten oder Community-Posts
+- Du hast keinen Zugriff auf private Nachrichten
 - Du kannst Ausruestung zu Loadouts hinzufuegen (addToLoadout), aber keine Ausruestungsgegenstaende erstellen oder loeschen`,
 
   toolBestPractices: '',
@@ -241,6 +281,8 @@ Bei der Ausruestungsanalyse fuer Trips sanft pruefen:
 
   categoryReference: '',
 
+  preloadedDataLabel: '**Vorab geladene Daten (nutze diese um schnell zu antworten):**',
+
   gearGraphGuidance: `**GearGraph fuer Ziel-spezifische Empfehlungen nutzen:**
 
 Wenn ein Nutzer fragt welches seiner Gear-Items am besten fuer ein bestimmtes Reiseziel oder Bedingungen geeignet ist (z.B. "bester Kocher fuer Skandinavien im Winter"), kombiniere Inventar-Wissen mit GearGraph-Expertise:
@@ -251,6 +293,35 @@ Wenn ein Nutzer fragt welches seiner Gear-Items am besten fuer ein bestimmtes Re
    - Aktivitaets-geeignete Items: \`MATCH (p:Product)-[:SUITED_FOR]->(a:Activity {name: 'Backpacking'}) WHERE p.category = 'stoves' RETURN p.name, p.weight\`
 3. **Komplementaere Ausruestung** ueber PAIRS_WITH finden: \`MATCH (p:Product {name: 'MSR PocketRocket'})-[:PAIRS_WITH]->(c:Product) RETURN c.name, c.category\`
 4. **Meinungsstarke Empfehlung**: Vergleiche was der Nutzer BESITZT mit GearGraph-Erkenntnissen. Nicht nur auflisten — das BESTE empfehlen mit klarer Begruendung warum es zu den Bedingungen passt.`,
+
+  fewShotExamples: `## Antwortbeispiele (Few-Shot)
+
+Nutze diese Beispiele um deine Antwortqualitaet zu kalibrieren. GUTE Antworten sind datengetrieben, spezifisch und umsetzbar. SCHLECHTE Antworten sind vage und generisch.
+HINWEIS: Alle Inventar-Daten in diesen Beispielen sind hypothetisch — ersetze sie immer durch die tatsaechlichen Daten des Nutzers wenn du antwortest.
+
+**Beispiel 1 — Gewichtsoptimierung:**
+Nutzer: "Wie kann ich mein Basisgewicht reduzieren?"
+GUT: "Deine Big 3 machen 68% deines 7,2kg Basisgewichts aus. Das groesste Sparpotenzial liegt beim Shelter (2,1kg Hilleberg Nallo 3) — ein Wechsel zu einem Tarp wie dem MLD Duomid spart ~900g. Dein Schlafsystem ist mit 620g schon ultraleicht, also wuerde ich mich auf Shelter und Rucksack konzentrieren. Soll ich nach Alternativen suchen?"
+SCHLECHT: "Du solltest leichtere Ausruestung kaufen und verschiedene Marken pruefen."
+WARUM: Die gute Antwort bezieht sich auf tatsaechliche Inventar-Daten, quantifiziert Einsparungen, benennt konkrete Gegenstaende und priorisiert Massnahmen. Die schlechte Antwort koennte fuer jeden gelten und liefert null umsetzbare Erkenntnisse.
+
+**Beispiel 2 — Fehlende Essentials:**
+Nutzer: "Ist mein Loadout bereit fuer Schottland?"
+GUT: "Solides Loadout fuer die Highlands! Drei Punkte die ich anmerken wuerde: 1) Dein Osprey Exos hat einen offenen Ruecken — du brauchst eine Regenhuelle oder Dry Bags, denn schottischer Regen ist quasi Dauerzustand. 2) Keine Mid-Layer Isolation — schottische Sommer koennen auf 5°C fallen in der Hoehe, und dein 100er-Fleece reicht nicht am Cuillin Ridge. 3) Kein GPS oder PLB — auf dem Cape Wrath Trail hast du 3+ Tage kein Handysignal."
+SCHLECHT: "Schottland kann kalt und nass sein, also stell sicher, dass du passende Ausruestung hast."
+WARUM: Die gute Antwort zeigt Zielort-Wissen, referenziert konkrete Items aus dem Loadout, nennt Temperaturdaten und erklaert WARUM jede Luecke wichtig ist. Die schlechte Antwort ist generischer Reise-Ratschlag.
+
+**Beispiel 3 — Ausruestungsvergleich:**
+Nutzer: "Soll ich meinen MSR PocketRocket oder den Jetboil Flash mitnehmen?"
+GUT: "Fuer deinen 5-Tage Solo-Trip wuerde ich den PocketRocket nehmen. Hier ist warum: 73g vs 371g — das sind fast 300g gespart. Der Jetboil ist super fuers schnelle Kochen in Gruppen, aber du bist allein mit einem 750ml Topf. Trade-off: Der PocketRocket ist langsamer (3,5 Min vs 1,5 Min pro Aufkochen) und weniger windresistent. Ueber der Baumgrenze vielleicht doch den Jetboil behalten. Darunter? PocketRocket, eindeutig."
+SCHLECHT: "Beide sind gute Kocher. Der PocketRocket ist leichter und der Jetboil kocht schneller. Kommt auf deine Vorliebe an."
+WARUM: Die gute Antwort gibt eine klare Empfehlung mit Begruendung, quantifiziert den Gewichtsunterschied, beruecksichtigt den Trip-Kontext und spricht Trade-offs ehrlich an. Die schlechte Antwort ist unentschlossen und liefert keinen Experten-Mehrwert.
+
+**Beispiel 4 — Loadout-Analyse:**
+Nutzer: "Analysiere mein Winter-Camping-Loadout"
+GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. Gut zu wissen: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
+SCHLECHT: "Dein Loadout sieht gut aus fuer Winter-Camping. Stell sicher, dass du warm bleibst und die richtige Ausruestung hast."
+WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den schwersten Gegenstand mit leichterer Alternative und erkennt ein kritisches Sicherheitsthema (Isomatten R-Wert), das den Trip machen oder brechen kann.`,
 };
 
 /**
@@ -305,6 +376,8 @@ export interface PromptContext {
   catalogResults?: string;
   /** Semantic recall context from past conversations */
   semanticRecallContext?: string;
+  /** A/B test prompt variant suffix (appended to system prompt) */
+  abTestSuffix?: string;
 }
 
 // =============================================================================
@@ -418,40 +491,52 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
 
-  // 5. Limitations
+  // 5. Few-Shot Examples (calibrate response quality — only when user has inventory)
+  // Gated on hasInventory because all 4 examples reference real gear data;
+  // injecting them for users with no gear wastes tokens and adds irrelevant context.
+  if (content.fewShotExamples && hasInventory) {
+    sections.push(`\n${content.fewShotExamples}`);
+  }
+
+  // 6. Limitations
   sections.push(`\n${content.limitations}`);
 
-  // 6. Tool Usage Best Practices (skip if empty - handled by composite tools)
+  // 7. Tool Usage Best Practices (skip if empty - handled by composite tools)
   if (content.toolBestPractices) {
     sections.push(`\n${content.toolBestPractices}`);
   }
 
-  // 7. Tool Selection Rules (skip if empty - handled by composite tools)
+  // 8. Tool Selection Rules (skip if empty - handled by composite tools)
   if (content.toolSelectionRules) {
     sections.push(`\n${content.toolSelectionRules}`);
   }
 
-  // 8. Data Validation (skip if empty - handled by composite tools)
+  // 9. Data Validation (skip if empty - handled by composite tools)
   if (content.dataValidation) {
     sections.push(`\n${content.dataValidation}`);
   }
 
-  // 8b. Category Reference (skip if empty - handled by composite tools)
+  // 10. Category Reference (skip if empty - handled by composite tools)
   if (content.categoryReference) {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 9. GearGraph trip-planning guidance (always shown)
+  // 11. GearGraph trip-planning guidance (always shown)
   // Teaches the agent how to use GearGraph for destination/condition queries
   if (content.gearGraphGuidance) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }
 
-  // 10. Loadout Analysis Guidance (only when viewing a loadout)
+  // 12. Loadout Analysis Guidance (only when viewing a loadout)
   // This enables deep trip analysis with destination research and safety feedback
   if (viewingLoadout) {
     sections.push(`\n${content.loadoutAnalysis}`);
     sections.push(`\n${content.safetyGuidance}`);
+  }
+
+  // 11. A/B Test Variant Suffix (appended when experiment is active)
+  if (context.abTestSuffix) {
+    sections.push(`\n${context.abTestSuffix}`);
   }
 
   return sections.join('\n');

@@ -6,8 +6,8 @@
  * Extracts text content and tool call metadata for client-side handling.
  */
 
-import type { ToolCallResult } from './ai-client';
 import type { Action } from '@/types/ai-assistant';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -16,7 +16,7 @@ import type { Action } from '@/types/ai-assistant';
 /**
  * SSE Event types emitted by the streaming endpoint
  */
-export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_progress';
+export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_progress' | 'confirm_action';
 
 /**
  * Workflow progress data from pipeline stages
@@ -24,7 +24,8 @@ export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_p
 export interface WorkflowProgressData {
   step: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  message: string;
+  /** Optional human-readable message; used for debugging/telemetry. Display uses i18n translations. */
+  message?: string;
 }
 
 /**
@@ -32,7 +33,7 @@ export interface WorkflowProgressData {
  */
 export interface SSEEvent {
   type: SSEEventType;
-  data: string | ToolCallData | DoneData | ErrorData | WorkflowProgressData;
+  data: string | ToolCallData | DoneData | ErrorData | WorkflowProgressData | ConfirmActionData;
 }
 
 /**
@@ -85,89 +86,8 @@ export const SSE_EVENT_TOOL_CALL = 'tool_call';
 export const SSE_EVENT_DONE = 'done';
 export const SSE_EVENT_ERROR = 'error';
 export const SSE_EVENT_WORKFLOW_PROGRESS = 'workflow_progress';
+export const SSE_EVENT_CONFIRM_ACTION = 'confirm_action';
 
-// =====================================================
-// Stream Encoding Utilities
-// =====================================================
-
-/**
- * Encode an SSE event for transmission
- *
- * Per SSE spec, multi-line data must have each line prefixed with "data: "
- *
- * @param eventType - Type of event (text, tool_call, done, error)
- * @param data - Event data (string for text, object for others)
- * @returns Encoded SSE string
- */
-export function encodeSSEEvent(eventType: SSEEventType, data: unknown): string {
-  const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-
-  // Split multi-line data and prefix each line with "data: " per SSE spec
-  const lines = dataString.split('\n');
-  const dataLines = lines.map(line => `data: ${line}`).join('\n');
-
-  return `event: ${eventType}\n${dataLines}\n\n`;
-}
-
-/**
- * Encode a text chunk for SSE transmission
- * Uses simple format for backwards compatibility
- *
- * @param text - Text chunk to encode
- * @returns Encoded SSE text event
- */
-export function encodeTextChunk(text: string): string {
-  return encodeSSEEvent(SSE_EVENT_TEXT, text);
-}
-
-/**
- * Encode a tool call for SSE transmission
- *
- * @param toolCall - Tool call data
- * @returns Encoded SSE tool_call event
- */
-export function encodeToolCall(toolCall: ToolCallResult): string {
-  const data: ToolCallData = {
-    toolCallId: toolCall.toolCallId,
-    toolName: toolCall.toolName,
-    args: toolCall.args,
-  };
-  return encodeSSEEvent(SSE_EVENT_TOOL_CALL, data);
-}
-
-/**
- * Encode the done event with final metadata
- *
- * @param finishReason - Why the stream ended
- * @param toolCalls - All tool calls from the response
- * @returns Encoded SSE done event
- */
-export function encodeDoneEvent(
-  finishReason: string,
-  toolCalls: ToolCallResult[]
-): string {
-  const data: DoneData = {
-    finishReason,
-    toolCalls: toolCalls.map((tc) => ({
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      args: tc.args,
-    })),
-  };
-  return encodeSSEEvent(SSE_EVENT_DONE, data);
-}
-
-/**
- * Encode an error event
- *
- * @param message - Error message
- * @param code - Optional error code
- * @returns Encoded SSE error event
- */
-export function encodeErrorEvent(message: string, code?: string): string {
-  const data: ErrorData = { message, code };
-  return encodeSSEEvent(SSE_EVENT_ERROR, data);
-}
 
 // =====================================================
 // Stream Parsing Utilities
@@ -218,6 +138,9 @@ export function parseSSEEvent(eventString: string): SSEEvent | null {
 
       case SSE_EVENT_WORKFLOW_PROGRESS:
         return { type: eventType, data: JSON.parse(dataLine) as WorkflowProgressData };
+
+      case SSE_EVENT_CONFIRM_ACTION:
+        return { type: eventType, data: JSON.parse(dataLine) as ConfirmActionData };
 
       default:
         // Unknown event type, treat as text

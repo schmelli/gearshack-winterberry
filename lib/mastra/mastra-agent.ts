@@ -16,6 +16,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { RequestContext } from '@mastra/core/request-context';
+import { TokenLimiter, ToolCallFilter } from '@mastra/core/processors';
 import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
@@ -32,10 +33,15 @@ import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
+// Multilingual embedding configuration (Vorschlag 16)
+import { createEmbedder, getEmbeddingModelId, getEmbeddingDimensions } from './embeddings';
 // Three-tier memory system
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
+import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import type { QueryComplexity } from './intent-router';
+import { logWarn } from './logging';
 
 // =============================================================================
 // Request Context Type Definition
@@ -57,8 +63,8 @@ export type GearshackRequestContext = {
   subscriptionTier: 'standard' | 'trailblazer';
   /** User's locale (e.g., 'en', 'de') */
   lang: string;
-  /** Pre-built prompt context for system prompt generation */
-  promptContext: PromptContext;
+  /** Pre-built prompt context for system prompt generation (optional when enrichedPromptSuffix is the full prompt) */
+  promptContext?: PromptContext;
   /** Optional pre-fetched data to append to the system prompt */
   enrichedPromptSuffix: string | undefined;
   /** Current loadout ID for loadout-aware tools */
@@ -108,9 +114,44 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
 
+// Token limiter configuration
+// Claude Sonnet context window is 200k tokens; keep headroom for system prompt + generation
+const parsedTokenLimit = parseInt(process.env.MASTRA_TOKEN_LIMIT || '180000', 10);
+const TOKEN_LIMIT = Number.isFinite(parsedTokenLimit) && parsedTokenLimit > 0 ? parsedTokenLimit : 180_000;
+if (TOKEN_LIMIT > 195_000) {
+  console.warn(`[Mastra Agent] TOKEN_LIMIT (${TOKEN_LIMIT}) exceeds recommended headroom for Claude Sonnet's 200k context window`);
+}
+
+// Input processors (module-level to avoid repeated allocation per request)
+// Order matters: ToolCallFilter first to reduce noise, TokenLimiter last to enforce budget
+const INPUT_PROCESSORS = [
+  // ToolCallFilter: Strips call+result pairs for the two largest tools from conversation history.
+  //
+  // WHY analyzeLoadout and inventoryInsights specifically:
+  //   - `analyzeLoadout` returns full loadout JSON (can be 10–50 KB per call)
+  //   - `inventoryInsights` returns aggregated stats over all gear items (similarly large)
+  //   Keeping these in history would exhaust the 180k token budget after only a few turns,
+  //   even though the actual answers fit in a few sentences.
+  //
+  // TRADE-OFF: The agent cannot see prior tool results in its context window on follow-up turns.
+  // It may re-invoke these tools if the user asks a follow-up; this is acceptable because:
+  //   1. The incremental token cost of a repeat call is lower than carrying the full result forward
+  //   2. Data may have changed between turns (e.g. user added a gear item)
+  //   3. Sonnet can reconstruct context from its own text replies rather than raw tool output
+  new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
+  new TokenLimiter({ limit: TOKEN_LIMIT }),
+];
+
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
 let pgVectorInstance: PgVector | null = null;
+
+// Module-level persistence memory singleton for cache-hit exchanges.
+// Shared across all calls to persistCacheHitToMemory() — avoids creating a
+// new Memory instance (and potentially a new DB connection) on every cache hit.
+// Uses history-only mode: no vector store or embedder needed since cache-hit
+// messages are not indexed for semantic recall.
+let persistenceMemoryInstance: Memory | null = null;
 
 function getPgStore(): PostgresStore {
   if (!pgStoreInstance) {
@@ -138,8 +179,15 @@ function getPgVector(): PgVector {
         'Settings > Database > Connection string (URI)'
       );
     }
+    // Include dimensions in the id so each embedding model gets its own internal
+    // Mastra vector table. Without this, switching from openai/text-embedding-3-small
+    // (1536d) to cohere/embed-multilingual-v3.0 (1024d) would cause a dimension
+    // mismatch error when Mastra tries to insert 1024-dim vectors into the table
+    // previously created for 1536-dim vectors.
+    //   openai/text-embedding-3-small  → gearshack-memory-vector-1536d
+    //   cohere/embed-multilingual-v3.0 → gearshack-memory-vector-1024d
     pgVectorInstance = new PgVector({
-      id: 'gearshack-memory-vector',
+      id: `gearshack-memory-vector-${getEmbeddingDimensions()}d`,
       connectionString: DATABASE_URL,
     });
   }
@@ -205,7 +253,9 @@ const TRAILBLAZER_TOOLS = {
  * Tier 3: Semantic Recall (resource-scoped)
  *   - Vector similarity search across ALL past conversations
  *   - Finds relevant context from weeks/months ago
- *   - Uses text-embedding-3-small via Vercel AI Gateway
+ *   - Configurable embedder via EMBEDDING_MODEL env var:
+ *     - openai/text-embedding-3-small (1536d, default)
+ *     - cohere/embed-multilingual-v3.0 (1024d, DE/EN parity)
  *   - Powered by pgvector in Supabase PostgreSQL
  *
  * Storage Architecture:
@@ -244,7 +294,8 @@ function createAgentMemory(): Memory {
     // pgvector for semantic recall embeddings
     vector: getPgVector(),
     // Embedder for semantic recall via Vercel AI Gateway
-    embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
+    // Supports multilingual (DE/EN) via EMBEDDING_MODEL env var
+    embedder: createEmbedder(getGateway()),
     options: memoryOptions,
   });
 
@@ -256,61 +307,111 @@ function createAgentMemory(): Memory {
 // =============================================================================
 
 /**
- * Create Mastra Agent with dynamic instructions, tools, and three-tier memory.
+ * Select the appropriate model based on query complexity.
+ *
+ * Simple queries (inventory counts, item lookups, general knowledge) → Haiku (10x cheaper, 5x faster)
+ * Complex queries (shakedown analysis, trip planning, comparisons) → Sonnet (full reasoning)
+ *
+ * @param queryComplexity - Complexity derived from intent classification
+ * @returns Object with AI Gateway model instance and resolved model ID
+ */
+function selectModel(queryComplexity?: QueryComplexity) {
+  const gateway = getGateway();
+
+  if (!COMPLEXITY_ROUTING_CONFIG.ENABLED || !queryComplexity) {
+    return { model: gateway(AI_CHAT_MODEL), modelId: AI_CHAT_MODEL };
+  }
+
+  const modelId = queryComplexity === 'simple'
+    ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
+    : COMPLEXITY_ROUTING_CONFIG.COMPLEX_MODEL;
+
+  return { model: gateway(modelId), modelId };
+}
+
+/**
+ * Create Mastra Agent with Dynamic Agent Pattern, three-tier memory, and input processors.
  *
  * Uses Mastra's Dynamic Agent Pattern (DynamicArgument<T>): instructions and
  * tools are async functions that receive { requestContext } and resolve at
  * runtime, enabling tier-based tool restriction and locale-aware prompt
- * generation directly in the Agent definition.
+ * generation without recreating the agent per-variant.
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
  *
+ * Voice (TTS/STT) is handled independently by the dedicated voice API routes
+ * (/api/mastra/voice/synthesize and /api/mastra/voice/transcribe) via Mastra's
+ * MastraVoice abstraction — it does not need to be attached to the agent.
+ *
+ * Input Processors (applied to memory-injected messages before LLM call):
+ * 1. ToolCallFilter: Strips verbose tool call/result pairs from history
+ *    (analyzeLoadout, inventoryInsights return large JSON payloads)
+ * 2. TokenLimiter: Enforces a hard token budget (default 180k) to stay
+ *    safely within Claude Sonnet's 200k context window
+ *
+ * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
  * @see https://mastra.ai/docs/agents/dynamic-agents
  */
-export function createGearAgent() {
+export function createGearAgent(queryComplexity?: QueryComplexity) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
+
+  const { model: selectedModel, modelId } = selectModel(queryComplexity);
 
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
 
-    // Dynamic instructions: built at runtime from requestContext
+    // Dynamic instructions: built at runtime from requestContext.
+    // When the workflow pipeline pre-builds the full system prompt, it is passed
+    // as enrichedPromptSuffix (which IS the complete prompt in that path).
+    // When promptContext is provided, buildMastraSystemPrompt generates the base prompt.
     // DynamicArgument<AgentInstructions> = string | (({ requestContext }) => string | Promise<string>)
     instructions: async ({ requestContext }) => {
-      const tier = (requestContext.get('subscriptionTier') as string) || 'standard';
+      const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
       const promptContext = requestContext.get('promptContext') as PromptContext | undefined;
       const enrichedSuffix = requestContext.get('enrichedPromptSuffix') as string | undefined;
+      const lang = (requestContext.get('lang') as string) || 'en';
 
-      // Build base system prompt from pre-computed context
-      let prompt = promptContext
-        ? buildMastraSystemPrompt(promptContext)
-        : 'You are the Gearshack gear assistant. Help users with their outdoor gear questions.';
-
-      // Append tier-specific tool availability note
-      if (tier === 'standard') {
-        prompt += '\n\n**Your Access Level:** Standard. You have access to inventory insights, gear search, and catalog browsing tools. For advanced features like loadout analysis, gear alternatives, web search, and GearGraph queries, suggest the user upgrade to Trailblazer.';
+      // If enrichedSuffix is the full pre-built prompt (workflow path), use it directly
+      // Otherwise build from promptContext (legacy path)
+      let prompt: string;
+      if (enrichedSuffix && !promptContext) {
+        // Workflow path: enrichedSuffix IS the complete system prompt
+        prompt = enrichedSuffix;
+      } else if (promptContext) {
+        // Legacy path: build from promptContext, then append suffix if present
+        prompt = buildMastraSystemPrompt(promptContext);
+        if (enrichedSuffix) {
+          prompt = `${prompt}\n\n${enrichedSuffix}`;
+        }
+      } else {
+        // Minimal fallback — locale-aware
+        prompt = lang === 'de'
+          ? 'Du bist der Gearshack Ausrüstungsassistent. Hilf Nutzern mit ihren Outdoor-Ausrüstungsfragen.'
+          : 'You are the Gearshack gear assistant. Help users with their outdoor gear questions.';
       }
 
-      // Append pre-fetched data context (intent router results, loadout data, etc.)
-      if (enrichedSuffix) {
-        prompt = `${prompt}\n\n${enrichedSuffix}`;
+      // Append tier-specific tool availability note for standard users
+      if (tier === 'standard') {
+        prompt += '\n\n**Your Access Level:** Standard. You have access to inventory insights, gear search, and catalog browsing tools. For advanced features like loadout analysis, gear alternatives, web search, and GearGraph queries, suggest the user upgrade to Trailblazer.';
       }
 
       return prompt;
     },
 
-    model: getGateway()(AI_CHAT_MODEL),
+    model: selectedModel,
     memory: agentMemory,
+    inputProcessors: INPUT_PROCESSORS,
 
-    // Dynamic tools: selected at runtime based on subscription tier
+    // Dynamic tools: selected at runtime based on subscription tier.
     // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
     // Standard tier gets basic browse/search tools (4)
     // Trailblazer tier gets full toolset (9) including analysis, actions, and graph
     tools: async ({ requestContext }) => {
-      const tier = (requestContext.get('subscriptionTier') as string) || 'standard';
+      const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
       return tier === 'trailblazer'
         ? { ...TRAILBLAZER_TOOLS }
         : { ...STANDARD_TOOLS };
@@ -318,7 +419,7 @@ export function createGearAgent() {
   });
 
   console.log(
-    `[Mastra Agent] Created with ${AI_CHAT_MODEL}, dynamic tools (tier-based), three-tier memory`
+    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier-based), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
@@ -333,9 +434,12 @@ export function createGearAgent() {
  * This factory builds the typed RequestContext that drives the Dynamic Agent:
  * - subscriptionTier → determines which tools are available
  * - lang → determines prompt language (en/de)
- * - promptContext → provides data for system prompt generation
- * - enrichedPromptSuffix → pre-fetched data to inject into prompt
+ * - promptContext → (optional) provides data for system prompt generation via buildMastraSystemPrompt
+ * - enrichedPromptSuffix → pre-built prompt or pre-fetched data to inject
  * - userId / currentLoadoutId → passed through for tool execution
+ *
+ * When using the workflow pipeline, pass enrichedPromptSuffix = effectiveSystemPrompt
+ * (the full prompt built by the workflow) and omit promptContext.
  *
  * @param params - Context parameters for the current request
  * @returns Populated RequestContext ready for agent.stream()
@@ -344,7 +448,7 @@ export function createGearshackRequestContext(params: {
   userId: string;
   subscriptionTier: 'standard' | 'trailblazer';
   lang: string;
-  promptContext: PromptContext;
+  promptContext?: PromptContext;
   enrichedPromptSuffix?: string;
   currentLoadoutId?: string;
 }): RequestContext<GearshackRequestContext> {
@@ -352,7 +456,9 @@ export function createGearshackRequestContext(params: {
   requestContext.set('userId', params.userId);
   requestContext.set('subscriptionTier', params.subscriptionTier);
   requestContext.set('lang', params.lang);
-  requestContext.set('promptContext', params.promptContext);
+  if (params.promptContext !== undefined) {
+    requestContext.set('promptContext', params.promptContext);
+  }
   if (params.enrichedPromptSuffix !== undefined) {
     requestContext.set('enrichedPromptSuffix', params.enrichedPromptSuffix);
   }
@@ -360,6 +466,93 @@ export function createGearshackRequestContext(params: {
     requestContext.set('currentLoadoutId', params.currentLoadoutId);
   }
   return requestContext;
+}
+
+// =============================================================================
+// Cache-Hit Memory Persistence
+// =============================================================================
+
+/**
+ * Returns the shared persistence-only Memory instance, creating it on first call.
+ *
+ * Uses history-only mode (no vector store / embedder) because cache-hit messages
+ * are not indexed for semantic recall — we only need DB write access.
+ */
+function getPersistenceMemory(): Memory {
+  if (!persistenceMemoryInstance) {
+    persistenceMemoryInstance = new Memory({
+      storage: getPgStore(),
+      // No vector or embedder: cache-hit messages are not added to semantic recall index
+      options: {
+        lastMessages: MEMORY_LAST_MESSAGES,
+        semanticRecall: false,
+        workingMemory: { enabled: false },
+      },
+    });
+  }
+  return persistenceMemoryInstance;
+}
+
+/**
+ * Persist a cache-hit exchange to Mastra's conversation memory.
+ *
+ * When a response is served from the semantic cache, `streamMastraResponse`
+ * (and therefore `agent.stream()`) is never called, so Mastra's PostgresStore
+ * never records the user's message or the cached reply. Without this, the
+ * agent loses conversational context for follow-up questions.
+ *
+ * Fire-and-forget safe: all errors are swallowed and logged, so a failure
+ * here never affects the streaming response already sent to the client.
+ *
+ * @param userId - User ID (Mastra resourceId)
+ * @param conversationId - Conversation ID (Mastra threadId)
+ * @param userMessage - The user's original question
+ * @param cachedResponse - The cached assistant reply that was served
+ */
+export async function persistCacheHitToMemory(
+  userId: string,
+  conversationId: string,
+  userMessage: string,
+  cachedResponse: string
+): Promise<void> {
+  try {
+    const memory = getPersistenceMemory();
+
+    // NOTE: Memory.saveMessages is an internal Mastra API not yet publicly typed.
+    // Tested against @mastra/memory ^1.0.0 (see package.json). If this breaks after
+    // a Mastra upgrade, check the @mastra/memory CHANGELOG for saveMessages() changes.
+    // TECH-DEBT: Track upstream typing at https://github.com/mastra-ai/mastra — once
+    // saveMessages is exported from the public API surface, remove the cast below.
+    // The runtime typeof guard provides a safety net for API renames in the meantime.
+    const memWithSave = memory as unknown as {
+      saveMessages: (params: {
+        messages: Array<{ role: string; content: string }>;
+        threadId: string;
+        resourceId: string;
+      }) => Promise<unknown>;
+    };
+
+    if (typeof memWithSave.saveMessages !== 'function') {
+      logWarn('[Cache] Memory.saveMessages not available in this Mastra version — skipping persistence', {
+        metadata: { conversationId, userId },
+      });
+      return;
+    }
+
+    await memWithSave.saveMessages({
+      messages: [
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: cachedResponse },
+      ],
+      threadId: conversationId,
+      resourceId: userId,
+    });
+  } catch (error) {
+    // Log but never throw — cache hit UX must not be affected by persistence failures
+    logWarn('[Cache] Failed to persist cache-hit exchange to memory', {
+      metadata: { error: error instanceof Error ? error.message : String(error) },
+    });
+  }
 }
 
 // =============================================================================
