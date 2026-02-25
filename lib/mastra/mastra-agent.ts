@@ -34,6 +34,8 @@ import { searchWebTool } from './tools/search-web';
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
+import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import type { QueryComplexity } from './intent-router';
 
 // =============================================================================
 // Environment Configuration
@@ -204,6 +206,29 @@ function createAgentMemory(): Memory {
 // =============================================================================
 
 /**
+ * Select the appropriate model based on query complexity.
+ *
+ * Simple queries (inventory counts, item lookups, general knowledge) → Haiku (10x cheaper, 5x faster)
+ * Complex queries (shakedown analysis, trip planning, comparisons) → Sonnet (full reasoning)
+ *
+ * @param queryComplexity - Complexity derived from intent classification
+ * @returns Object with AI Gateway model instance and resolved model ID
+ */
+function selectModel(queryComplexity?: QueryComplexity) {
+  const gateway = getGateway();
+
+  if (!COMPLEXITY_ROUTING_CONFIG.ENABLED || !queryComplexity) {
+    return { model: gateway(AI_CHAT_MODEL), modelId: AI_CHAT_MODEL };
+  }
+
+  const modelId = queryComplexity === 'simple'
+    ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
+    : COMPLEXITY_ROUTING_CONFIG.COMPLEX_MODEL;
+
+  return { model: gateway(modelId), modelId };
+}
+
+/**
  * Create Mastra Agent with three-tier memory, tools, and input processors
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
@@ -217,17 +242,20 @@ function createAgentMemory(): Memory {
  *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
+ * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
  */
-export function createGearAgent(userId: string, systemPrompt: string) {
+export function createGearAgent(userId: string, systemPrompt: string, queryComplexity?: QueryComplexity) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
+
+  const { model: selectedModel, modelId } = selectModel(queryComplexity);
 
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
-    model: getGateway()(AI_CHAT_MODEL),
+    model: selectedModel,
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
     tools: {
@@ -250,7 +278,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
+    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
   );
   return agent;
 }

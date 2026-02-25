@@ -521,12 +521,12 @@ export async function POST(request: Request): Promise<Response> {
           // --- Phase 3: Agent generation (emit "thinking" progress) ---
           emitProgress('thinking', progressMessages[locale].thinking);
 
-          // Create Mastra Agent and stream response
+          // Create Mastra Agent with complexity-based model routing and stream response
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              const agent = createGearAgent(user.id, enrichedPrompt);
+              const agent = createGearAgent(user.id, enrichedPrompt, intentResult.queryComplexity);
               return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
             },
             { userId: user.id }
@@ -637,6 +637,8 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
+              queryComplexity: intentResult.queryComplexity,
+              intent: intentResult.intent,
             },
           });
 
