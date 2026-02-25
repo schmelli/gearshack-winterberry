@@ -130,14 +130,21 @@ export class GearshackElevenLabsVoice extends MastraVoice {
   private voiceConfig: ResolvedVoiceConfig;
 
   constructor(config: GearshackVoiceConfig = {}) {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'ELEVENLABS_API_KEY is not set. GearshackElevenLabsVoice cannot be initialized. ' +
+        'Please add ELEVENLABS_API_KEY to your environment variables.'
+      );
+    }
     super({
       speechModel: {
         name: config.defaultModel ?? 'eleven_turbo_v2_5',
-        apiKey: process.env.ELEVENLABS_API_KEY ?? '',
+        apiKey,
       },
       listeningModel: {
         name: 'elevenlabs-stt',
-        apiKey: process.env.ELEVENLABS_API_KEY ?? '',
+        apiKey,
       },
       speaker: config.defaultVoice ?? 'rachel',
     });
@@ -380,7 +387,7 @@ export class GearshackElevenLabsVoice extends MastraVoice {
       } else if (typeof chunk === 'string') {
         chunks.push(Buffer.from(chunk, 'utf-8'));
       } else {
-        chunks.push(Buffer.from(chunk));
+        throw new Error(`Unsupported chunk type in stream: ${typeof chunk}`);
       }
     }
     return Buffer.concat(chunks);
