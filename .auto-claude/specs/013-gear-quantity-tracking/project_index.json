@@ -1,0 +1,555 @@
+{
+  "project_root": "/Users/schmelli/Coding/gearshack-winterberry",
+  "project_type": "single",
+  "services": {
+    "main": {
+      "name": "main",
+      "path": "/Users/schmelli/Coding/gearshack-winterberry",
+      "language": "TypeScript",
+      "framework": "Next.js",
+      "type": "frontend",
+      "package_manager": "npm",
+      "default_port": 3000,
+      "styling": "Tailwind CSS",
+      "state_management": "Zustand",
+      "dev_command": "npm run dev",
+      "key_directories": {
+        "lib": {
+          "path": "lib",
+          "purpose": "Library code"
+        },
+        "app": {
+          "path": "app",
+          "purpose": "Application code"
+        },
+        "components": {
+          "path": "components",
+          "purpose": "UI components"
+        },
+        "hooks": {
+          "path": "hooks",
+          "purpose": "Custom hooks"
+        },
+        "__tests__": {
+          "path": "__tests__",
+          "purpose": "Tests"
+        }
+      },
+      "dependencies": [
+        "@ai-sdk/anthropic",
+        "@ai-sdk/gateway",
+        "@ai-sdk/google",
+        "@hookform/resolvers",
+        "@imgly/background-removal",
+        "@mastra/memory",
+        "@modelcontextprotocol/sdk",
+        "@opentelemetry/api",
+        "@opentelemetry/auto-instrumentations-node",
+        "@opentelemetry/exporter-logs-otlp-http",
+        "@opentelemetry/exporter-metrics-otlp-http",
+        "@opentelemetry/exporter-trace-otlp-http",
+        "@opentelemetry/instrumentation",
+        "@opentelemetry/instrumentation-http",
+        "@opentelemetry/instrumentation-pg",
+        "@opentelemetry/resources",
+        "@opentelemetry/sdk-node",
+        "@radix-ui/react-accordion",
+        "@radix-ui/react-alert-dialog",
+        "@radix-ui/react-aspect-ratio"
+      ],
+      "dev_dependencies": [
+        "@tailwindcss/postcss",
+        "@testing-library/dom",
+        "@testing-library/jest-dom",
+        "@testing-library/react",
+        "@testing-library/user-event",
+        "@types/bcryptjs",
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "@vitejs/plugin-react"
+      ],
+      "testing": "Vitest",
+      "test_directory": "__tests__",
+      "environment": {
+        "variables": {
+          "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "NEXT_PUBLIC_FIREBASE_PROJECT_ID": {
+            "value": "gearshack-springbreak",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": {
+            "value": "gearshack-springbreak.firebasestorage.app",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": {
+            "value": "254500740687",
+            "source": ".env.local",
+            "type": "number",
+            "sensitive": false,
+            "required": false
+          },
+          "NEXT_PUBLIC_FIREBASE_APP_ID": {
+            "value": "1:254500740687:web:341de2ec4ce93e084f143a",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID": {
+            "value": "G-B9LVTWR1ZD",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "SERPER_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "GEARGRAPH_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME": {
+            "value": "dn2cnpf91",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET": {
+            "value": "gearshack_web_uploads",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_SUPABASE_URL": {
+            "value": "https://pxtvbgilzzppnbienmot.supabase.co",
+            "source": ".env.local",
+            "type": "url",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "SUPABASE_SERVICE_ROLE_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "DEEPSEEK_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "MEMGRAPH_USER": {
+            "value": "memgraph",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "MEMGRAPH_PASSWORD": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "YOUTUBE_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "SENTRY_AUTH_TOKEN": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "CLOUDINARY_CLOUD_NAME": {
+            "value": "dn2cnpf91",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "CLOUDINARY_URL": {
+            "value": "cloudinary://431327326713742:IW64c3tzT5gSzCWp4MeOStQDWhk@dn2cnpf91",
+            "source": ".env.local",
+            "type": "path",
+            "sensitive": false,
+            "required": false
+          },
+          "CLOUDINARY_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "number",
+            "sensitive": true,
+            "required": true
+          },
+          "CLOUDINARY_API_SECRET": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "CLOUDINARY_AI_ENABLED": {
+            "value": "true",
+            "source": ".env.local",
+            "type": "boolean",
+            "sensitive": false,
+            "required": false
+          },
+          "AI_GATEWAY_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "AI_IMAGE_MODEL": {
+            "value": "google/gemini-2.5-flash-image",
+            "source": ".env.local",
+            "type": "path",
+            "sensitive": false,
+            "required": true
+          },
+          "AI_GATEWAY_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "AI_CHAT_ENABLED": {
+            "value": "true",
+            "source": ".env.local",
+            "type": "boolean",
+            "sensitive": false,
+            "required": true
+          },
+          "AI_CHAT_MODEL": {
+            "value": "google/gemini-2.5-flash",
+            "source": ".env.local",
+            "type": "path",
+            "sensitive": false,
+            "required": true
+          },
+          "SERPAPI_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "PARTNER_API_SECRET": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "AI_GATEWAY_BASE_URL": {
+            "value": "https://ai-gateway.vercel.sh/v1/ai",
+            "source": ".env.local",
+            "type": "url",
+            "sensitive": false,
+            "required": true
+          },
+          "CRON_SECRET": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "path",
+            "sensitive": true,
+            "required": true
+          },
+          "MASTRA_RUNTIME": {
+            "value": "nodejs",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "MCP_TRANSPORT": {
+            "value": "stdio",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MCP_SERVER_URL": {
+            "value": "http://localhost:8080",
+            "source": ".env.local",
+            "type": "url",
+            "sensitive": false,
+            "required": true
+          },
+          "OPENAI_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "WHISPER_ENABLED": {
+            "value": "true",
+            "source": ".env.local",
+            "type": "boolean",
+            "sensitive": false,
+            "required": false
+          },
+          "TTS_ENABLED": {
+            "value": "true",
+            "source": ".env.local",
+            "type": "boolean",
+            "sensitive": false,
+            "required": false
+          },
+          "TTS_PROVIDER": {
+            "value": "openai",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "VOICE_LANGUAGE": {
+            "value": "en-US",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "ELEVENLABS_API_KEY": {
+            "value": "<REDACTED>",
+            "source": ".env.local",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "GRAPHITI_ENABLED": {
+            "value": "true",
+            "source": ".env.local",
+            "type": "boolean",
+            "sensitive": false,
+            "required": false
+          },
+          "AI_GENERATION_ENABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_OFFER_FEE_RATE": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_MIN_OFFER_FEE": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_MAX_OFFER_FEE": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "WEB_SEARCH_ENABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "WEB_SEARCH_DAILY_LIMIT": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "WEB_SEARCH_MONTHLY_LIMIT": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "WEB_SEARCH_CONVERSATION_LIMIT": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "AI_RATE_LIMITING_DISABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "NEXT_PUBLIC_AI_RATE_LIMITING_DISABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_MODEL": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_MEMORY_RETENTION_DAYS": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_MEMORY_HISTORY_LIMIT": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_LOG_LEVEL": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_METRICS_ENABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_TRACING_ENABLED": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MASTRA_MAX_AUDIO_SIZE_MB": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MCP_TOOL_CACHE_TTL_MS": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "MCP_TOOL_TIMEOUT_MS": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          },
+          "OPENWEATHER_API_KEY": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": true,
+            "required": true
+          },
+          "ADMIN_USER_IDS": {
+            "value": null,
+            "source": ".env.example",
+            "type": "string",
+            "sensitive": false,
+            "required": true
+          }
+        },
+        "required_count": 40,
+        "optional_count": 0,
+        "detected_count": 64
+      },
+      "services": {
+        "monitoring": [
+          {
+            "type": "logging",
+            "client": "pino"
+          }
+        ]
+      },
+      "monitoring": {
+        "apm_tools": [
+          "logging"
+        ]
+      }
+    }
+  },
+  "infrastructure": {
+    "ci": "GitHub Actions",
+    "ci_workflows": [
+      "claude-code-review.yml",
+      "claude.yml"
+    ],
+    "deployment": "Vercel"
+  },
+  "conventions": {
+    "typescript": true
+  }
+}

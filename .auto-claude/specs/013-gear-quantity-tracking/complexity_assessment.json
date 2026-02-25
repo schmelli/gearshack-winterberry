@@ -1,0 +1,69 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Feature touches 6-8 files across multiple UI components with non-trivial validation and calculation logic, but has no external integrations, no infrastructure changes, and follows existing codebase patterns.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "Affects gear form, inventory view, gallery view, loadout builder, and weight calculation utilities. All within gear management domain."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Database column already exists. No external APIs or new packages required."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Pure feature activation - database column pre-exists, no schema migration needed."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Can follow existing patterns for form fields, validation, state management, and weight calculations."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Weight calculations must multiply correctly by quantity",
+        "Loadout builder quantity validation must prevent over-allocation",
+        "Backward compatibility - existing items must default to quantity=1"
+      ],
+      "notes": "Incorrect weight math or quantity validation could break existing loadout functionality. Need careful testing of edge cases."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Weight calculations and quantity validation logic are critical for loadout accuracy. Requires unit tests for calculation functions and integration tests to verify form→inventory→loadout flow works correctly."
+  },
+
+  "created_at": "2026-01-01T00:00:00.000Z"
+}

@@ -1,0 +1,178 @@
+/**
+ * ProfileModal Component
+ *
+ * Feature: 008-auth-and-profile, 001-community-shakedowns
+ * T029: Profile modal using shadcn Dialog
+ * T034: View/edit mode toggle
+ * T071: Shakedown expertise stats and badges
+ * Design: Soft shadow, gradient header, no border
+ * Stats tiles, favorites carousel, edit icon
+ */
+
+'use client';
+
+import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useGearItems } from '@/hooks/useGearItems';
+import { useLoadouts } from '@/hooks/useLoadouts';
+import { useGearDetailModal } from '@/hooks/useGearDetailModal';
+import { ProfileView } from '@/components/profile/ProfileView';
+import { ProfileEditForm } from '@/components/profile/ProfileEditForm';
+import type { ProfileFormData } from '@/lib/validations/profile-schema';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+type ProfileMode = 'view' | 'edit';
+
+interface ProfileModalProps {
+  /** Whether the modal is open */
+  open: boolean;
+  /** Callback when modal should close */
+  onOpenChange: (open: boolean) => void;
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
+  const t = useTranslations('ProfileModal');
+  const { user, profile } = useAuthContext();
+  const { mergedUser, rawProfile, updateProfile, refreshProfile } = profile;
+  const [mode, setMode] = useState<ProfileMode>('view');
+
+  // Get gear items and loadouts for stats
+  const { items: gearItems } = useGearItems(user?.uid ?? null);
+  const { loadouts } = useLoadouts(user?.uid ?? null);
+
+  // Gear detail modal state
+  const { open: openGearDetail } = useGearDetailModal();
+
+  // Compute stats
+  const stats = useMemo(() => ({
+    itemCount: gearItems.length,
+    loadoutCount: loadouts.length,
+    shakedownCount: rawProfile?.shakedowns_created ?? 0,
+  }), [gearItems.length, loadouts.length, rawProfile?.shakedowns_created]);
+
+  // Compute shakedown expertise stats (T071)
+  const shakedownStats = useMemo(() => {
+    if (!rawProfile) return undefined;
+    return {
+      shakedownsCreated: rawProfile.shakedowns_created,
+      shakedownsReviewed: rawProfile.shakedowns_reviewed,
+      helpfulVotesReceived: rawProfile.shakedown_helpful_received,
+    };
+  }, [rawProfile]);
+
+  // Get favorite items - filter by isFavourite flag
+  const favorites = useMemo(() => {
+    return gearItems
+      .filter(item => item.isFavourite)
+      .slice(0, 10) // Limit to 10 favourites in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for sale
+  const forSale = useMemo(() => {
+    return gearItems
+      .filter(item => item.isForSale)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for rent/borrow
+  const forRent = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeBorrowed)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Get items for trade
+  const forTrade = useMemo(() => {
+    return gearItems
+      .filter(item => item.canBeTraded)
+      .slice(0, 10) // Limit to 10 items in carousel
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.primaryImageUrl,
+      }));
+  }, [gearItems]);
+
+  // Handle save (T036: preserves isVIP and first_launch in firestore utility)
+  const handleSave = useCallback(async (data: ProfileFormData) => {
+    await updateProfile(data);
+    await refreshProfile();
+    setMode('view');
+  }, [updateProfile, refreshProfile]);
+
+  // Handle cancel (T037)
+  const handleCancel = useCallback(() => {
+    setMode('view');
+  }, []);
+
+  // Handle close - reset to view mode
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen) {
+      setMode('view');
+    }
+    onOpenChange(newOpen);
+  }, [onOpenChange]);
+
+  // Don't render if no user data
+  if (!mergedUser) {
+    return null;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-md border-0 shadow-2xl p-0"
+      >
+        {mode === 'view' ? (
+          <ProfileView
+            user={mergedUser}
+            onEditClick={() => setMode('edit')}
+            onItemClick={openGearDetail}
+            stats={stats}
+            favorites={favorites}
+            forSale={forSale}
+            forRent={forRent}
+            forTrade={forTrade}
+            shakedownStats={shakedownStats}
+          />
+        ) : (
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4">{t('editTitle')}</h2>
+            <ProfileEditForm
+              user={mergedUser}
+              onSave={handleSave}
+              onCancel={handleCancel}
+            />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

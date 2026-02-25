@@ -1,0 +1,205 @@
+/**
+ * LocationPicker - Location Selection for Messages
+ *
+ * Feature: 046-user-messaging-system
+ * Task: T056
+ *
+ * Dialog for selecting a location to share in messages.
+ */
+
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { MapPin, Navigation } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { LocationAutocomplete } from '@/components/profile/LocationAutocomplete';
+import type { LocationSelection } from '@/types/profile';
+import type { LocationMetadata } from '@/types/messaging';
+import { useTranslations } from 'next-intl';
+
+interface LocationPickerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (metadata: LocationMetadata) => void;
+}
+
+/**
+ * Dialog for selecting a location to share.
+ */
+export function LocationPicker({ open, onOpenChange, onSelect }: LocationPickerProps) {
+  const t = useTranslations('Messaging');
+  const tCommon = useTranslations('Common');
+  const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // Track timeout for cleanup on unmount
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleLocationSelect = (location: LocationSelection | null) => {
+    setSelectedLocation(location);
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        // Validate position data
+        if (!position?.coords?.latitude || !position?.coords?.longitude) {
+          console.error('[LocationPicker] Invalid position data received');
+          setIsGettingLocation(false);
+          return;
+        }
+        const { latitude, longitude } = position.coords;
+
+        // Reverse geocode to get place name with timeout protection
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        timeoutRef.current = setTimeout(() => controller.abort(), 10000);
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { signal: controller.signal }
+          );
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          // Clear AbortController ref after successful fetch
+          abortControllerRef.current = null;
+          const data = await response.json();
+          const placeName =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.village ||
+            data.display_name?.split(',')[0] ||
+            t('locationPicker.currentLocation');
+
+          setSelectedLocation({
+            name: placeName,
+            formattedAddress: placeName,
+            latitude,
+            longitude,
+            placeId: '',
+          });
+        } catch {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          // Clear AbortController ref after error
+          abortControllerRef.current = null;
+          // Fallback to basic coordinates on timeout or error
+          const currentLocationText = t('locationPicker.currentLocation');
+          setSelectedLocation({
+            name: currentLocationText,
+            formattedAddress: currentLocationText,
+            latitude,
+            longitude,
+            placeId: '',
+          });
+        }
+        setIsGettingLocation(false);
+      },
+      () => {
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleConfirm = () => {
+    if (selectedLocation && selectedLocation.latitude && selectedLocation.longitude) {
+      const metadata: LocationMetadata = {
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+        place_name: selectedLocation.formattedAddress,
+      };
+      onSelect(metadata);
+      onOpenChange(false);
+      setSelectedLocation(null);
+    }
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    setSelectedLocation(null);
+  };
+
+  const canConfirm = selectedLocation && selectedLocation.latitude && selectedLocation.longitude;
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('locationPicker.title')}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Location Search */}
+          <LocationAutocomplete
+            value={selectedLocation?.formattedAddress ?? ''}
+            onSelect={handleLocationSelect}
+            placeholder={t('locationPicker.searchPlaceholder')}
+          />
+
+          {/* Current Location Button */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleGetCurrentLocation}
+            disabled={isGettingLocation}
+          >
+            <Navigation className="mr-2 h-4 w-4" />
+            {isGettingLocation ? t('locationPicker.gettingLocation') : t('locationPicker.useCurrentLocation')}
+          </Button>
+
+          {/* Selected Location Preview */}
+          {selectedLocation && selectedLocation.latitude && selectedLocation.longitude && (
+            <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-3">
+              <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium text-sm">{selectedLocation.formattedAddress}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={handleClose}>
+            {tCommon('cancel')}
+          </Button>
+          <Button onClick={handleConfirm} disabled={!canConfirm}>
+            {t('locationPicker.shareLocation')}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

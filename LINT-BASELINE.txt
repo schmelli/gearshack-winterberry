@@ -1,0 +1,1439 @@
+
+> gearshack-winterberry@0.1.0 lint
+> eslint
+
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/fixtures/gear.ts
+  193:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/integration/api/shakedowns.test.ts
+  568:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  586:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/integration/api/vip.test.ts
+   56:7   warning  'mockUser' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  116:13  warning  'data' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/integration/weight-conversion.test.ts
+  238:13  warning  'queryBuilder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/mocks/supabase.ts
+  66:29  warning  'callback' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/CategoryPlaceholder.test.tsx
+  8:36  warning  'beforeEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ConversationList.test.tsx
+  59:5  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/GalleryToolbar.test.tsx
+  8:36  warning  'beforeEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/GearCard.test.tsx
+  13:15  warning  'ViewDensity' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/GearEditorForm.test.tsx
+  8:53  warning  'Mock' is defined but never used     @typescript-eslint/no-unused-vars
+  9:37  warning  'waitFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/LoginForm.test.tsx
+    9:37  warning  'waitFor' is defined but never used    @typescript-eslint/no-unused-vars
+   10:8   warning  'userEvent' is defined but never used  @typescript-eslint/no-unused-vars
+  165:5   warning  'control' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/MessageBubble.test.tsx
+   51:5   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+   88:37  warning  'asChild' is defined but never used                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  116:32  warning  'asChild' is defined but never used                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/MessageInput.test.tsx
+   80:5   warning  'ref' is defined but never used           @typescript-eslint/no-unused-vars
+  107:5   warning  'open' is defined but never used          @typescript-eslint/no-unused-vars
+  108:5   warning  'onOpenChange' is defined but never used  @typescript-eslint/no-unused-vars
+  114:32  warning  'asChild' is defined but never used       @typescript-eslint/no-unused-vars
+  135:5   warning  'imageUrl' is defined but never used      @typescript-eslint/no-unused-vars
+  154:5   warning  'onOpenChange' is defined but never used  @typescript-eslint/no-unused-vars
+  155:5   warning  'onSelect' is defined but never used      @typescript-eslint/no-unused-vars
+  166:5   warning  'onOpenChange' is defined but never used  @typescript-eslint/no-unused-vars
+  167:5   warning  'onSelect' is defined but never used      @typescript-eslint/no-unused-vars
+  179:5   warning  'disabled' is defined but never used      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/OnlineStatusIndicator.test.tsx
+   39:22  warning  'timestamp' is defined but never used  @typescript-eslint/no-unused-vars
+  109:37  warning  'asChild' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/PostCard.test.tsx
+    9:37  warning  'act' is defined but never used                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  105:5   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/PostMenu.test.tsx
+  89:5  warning  'asChild' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ProfileView.test.tsx
+  8:36  warning  'beforeEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ReplyComposer.test.tsx
+  10:8  warning  'userEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ReplyThread.test.tsx
+   95:5   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  132:37  warning  'asChild' is defined but never used                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/SearchBar.test.tsx
+   9:37  warning  'waitFor' is defined but never used    @typescript-eslint/no-unused-vars
+  10:8   warning  'userEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ThemeToggle.test.tsx
+  8:48  warning  'afterEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/ViewDensityToggle.test.tsx
+  11:15  warning  'ViewDensity' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/WeightDisplay.test.tsx
+   9:26  warning  'fireEvent' is defined but never used     @typescript-eslint/no-unused-vars
+  46:6   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/WeightInput.test.tsx
+  34:6   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/components/messaging/MessageInput.test.tsx
+   7:48  warning  'afterEach' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  20:7   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/offers/useUserOffers.test.ts
+  122:7  warning  'mockOfferDetailData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  144:7  warning  'mockLocationData' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/price-tracking/useFuzzyMatching.test.ts
+  8:27  warning  'waitFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/price-tracking/usePriceHistory.test.ts
+  94:15  warning  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/price-tracking/usePriceSearch.test.ts
+  8:27  warning  'waitFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/useGearItems.test.ts
+   11:10  warning  'mockUser' is defined but never used                @typescript-eslint/no-unused-vars
+   11:20  warning  'createQueryBuilderMock' is defined but never used  @typescript-eslint/no-unused-vars
+   12:10  warning  'mockGearItems' is defined but never used           @typescript-eslint/no-unused-vars
+  157:34  warning  'resolve' is defined but never used                 @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/useMerchantAuth.test.ts
+  11:53  warning  'Mock' is defined but never used                @typescript-eslint/no-unused-vars
+  16:8   warning  'MerchantAuthStatus' is defined but never used  @typescript-eslint/no-unused-vars
+  18:25  warning  'MerchantStatus' is defined but never used      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/useSocialHooks.test.ts
+   13:48  warning  'afterEach' is defined but never used              @typescript-eslint/no-unused-vars
+  161:13  warning  'initialCount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/hooks/useWishlist.test.ts
+  34:17  warning  'existingItem' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/mastra/voice/whisper.test.ts
+   20:8   warning  'TranscriptionResult' is defined but never used  @typescript-eslint/no-unused-vars
+  309:13  warning  'formData' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/utils/weight.test.ts
+   31:7   warning  'PAD_GRAMS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  196:47  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  200:52  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/validations/catalog-schema.test.ts
+  88:15  warning  'external_id' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/validations/gear-schema.test.ts
+  399:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/validations/loadout-schema.test.ts
+  198:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  236:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/__tests__/unit/lib/validations/profile-schema.test.ts
+  109:15  warning  'trailName' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/admin/categories/page.tsx
+  39:5  warning  'isMoving' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/admin/wiki/WikiManagementContent.tsx
+  52:32  warning  'slug' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/community/marketplace/page.tsx
+  43:9  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/community/merchant-loadouts/MerchantLoadoutsBrowseClient.tsx
+  13:10  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+  15:46  warning  'Users' is defined but never used     @typescript-eslint/no-unused-vars
+  20:10  warning  'cn' is defined but never used        @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/community/post/[postId]/page.tsx
+  49:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/community/wiki/[slug]/edit/page.tsx
+  21:9  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/inventory/page.tsx
+  126:12  warning  '_wishlistError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  305:10  warning  '_items' is defined but never used                   @typescript-eslint/no-unused-vars
+  324:11  warning  '_gearId' is defined but never used                  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/loadouts/[id]/page.tsx
+   98:6   warning  React Hook useEffect has a missing dependency: 'loadout'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  110:5   warning  'categoryWeights' is assigned a value but never used                                                        @typescript-eslint/no-unused-vars
+  323:38  warning  '_level' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/merchant/billing/MerchantBillingClient.tsx
+  35:15  warning  'BillingCycleDetail' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/merchant/loadouts/MerchantLoadoutsListClient.tsx
+  28:29  warning  'CardHeader' is defined but never used  @typescript-eslint/no-unused-vars
+  28:41  warning  'CardTitle' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/merchant/loadouts/[id]/edit/EditLoadoutClient.tsx
+  134:13  warning  'existingLocationIds' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/merchant/offers/MerchantOffersListClient.tsx
+  113:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/app/[locale]/merchant/settings/MerchantSettingsClient.tsx
+  39:3  warning  'DialogTrigger' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/admin/vip/[id]/invite/route.ts
+   46:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/ai-assistant/stream/route.ts
+   72:11  warning  'aiConfig' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   77:73  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+   90:44  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  115:49  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/alerts/preferences/route.ts
+   14:27  warning  'request' is defined but never used                    @typescript-eslint/no-unused-vars
+   28:31  error    'prefsError' is never reassigned. Use 'const' instead  prefer-const
+   28:65  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   36:73  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   99:13  warning  'id' is assigned a value but never used                @typescript-eslint/no-unused-vars
+   99:17  warning  'user_id' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   99:26  warning  'created_at' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   99:38  warning  'updated_at' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   99:73  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  109:75  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/catalog/items/search/route.ts
+  152:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/catalog/products/search/route.ts
+  131:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/cron/check-prices/route.ts
+   16:42  warning  'PersonalOfferWithPartner' is defined but never used  @typescript-eslint/no-unused-vars
+   35:78  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   75:32  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  100:24  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  214:47  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  231:33  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/cron/enrich-gear-items/route.ts
+   76:70  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  102:73  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  112:5   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  114:28  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  114:83  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  148:65  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  225:63  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  259:60  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  269:60  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  280:61  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  296:61  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/cron/process-alert-queue/route.ts
+  34:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  44:31  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  66:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  87:62  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/gear-items/apply-enrichment/route.ts
+   40:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   80:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  154:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/insights/feedback/route.ts
+   70:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/loadout-images/delete/route.ts
+  37:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/loadout-images/generate/route.ts
+  76:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/loadout-images/history/route.ts
+  35:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/loadout-images/save-fallback/route.ts
+  41:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/loadout-images/set-active/route.ts
+  36:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/mastra/chat/route.ts
+   54:10  warning  'checkAndIncrementRateLimit' is defined but never used  @typescript-eslint/no-unused-vars
+   54:43  warning  'OperationType' is defined but never used               @typescript-eslint/no-unused-vars
+   76:8   warning  'UserPreferences' is defined but never used             @typescript-eslint/no-unused-vars
+  759:46  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  765:43  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/messaging/conversations/start/route.ts
+  50:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  89:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/messaging/reports/route.ts
+  49:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/messaging/users/search/route.ts
+  43:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/partner-offers/route.ts
+    1:1   error    Do not use "@ts-nocheck" because it alters compilation errors                                                        @typescript-eslint/ban-ts-comment
+   14:8   warning  'PartnerOfferRequest' is defined but never used                                                                      @typescript-eslint/no-unused-vars
+   52:71  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   54:7   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   59:35  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  108:58  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  143:75  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/price-tracking/search/confirm-match/route.ts
+   9:36  warning  'PriceTracking' is defined but never used  @typescript-eslint/no-unused-vars
+  35:73  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  50:48  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/price-tracking/search/route.ts
+  38:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  95:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/price-tracking/track/route.ts
+  12:8   warning  'EnableTrackingRequest' is defined but never used  @typescript-eslint/no-unused-vars
+  39:51  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  54:48  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/price-tracking/untrack/route.ts
+  35:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shakedowns/[id]/complete/route.ts
+  162:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  418:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shakedowns/[id]/reopen/route.ts
+  204:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shakedowns/helpful/route.ts
+  103:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shakedowns/route.ts
+  410:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shares/[token]/password/route.ts
+   84:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/shares/[token]/verify-password/route.ts
+   38:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/sync-catalog/brands/route.ts
+  84:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/app/api/sync-catalog/items/route.ts
+   96:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/BannerForm.tsx
+  70:18  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/BannerForm.tsx:70:18
+  68 |       visibilityEnd:
+  69 |         banner?.visibilityEnd ??
+> 70 |         new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+     |                  ^^^^^^^^^^ Cannot call impure function
+  71 |       displayOrder: banner?.displayOrder ?? 0,
+  72 |       isActive: banner?.isActive ?? true,
+  73 |     },  react-hooks/purity
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/CategoryEditDialog.tsx
+  71:22  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/CategoryEditDialog.tsx:71:22
+  69 |   });
+  70 |
+> 71 |   const labelValue = watch('label');
+     |                      ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  72 |
+  73 |   // Auto-generate slug from label
+  74 |   useEffect(() => {  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/CategoryTree.tsx
+  232:21  error  Do not pass children as props. Instead, nest children between the opening and closing tags  react/no-children-prop
+  291:13  error  Do not pass children as props. Instead, nest children between the opening and closing tags  react/no-children-prop
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/dashboard/AdminDashboard.tsx
+  28:41  warning  'CardTitle' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/ClaimInvitationForm.tsx
+  133:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/LoadoutItemsDialog.tsx
+  51:18  warning  'status' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/VipAdminDashboard.tsx
+  17:29  warning  'CardHeader' is defined but never used  @typescript-eslint/no-unused-vars
+  17:41  warning  'CardTitle' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/VipAdminList.tsx
+  82:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  96:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/VipFormDialog.tsx
+  115:23  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/vip/VipFormDialog.tsx:115:23
+  113 |
+  114 |   // Auto-generate slug from name
+> 115 |   const watchedName = form.watch('name');
+      |                       ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  116 |   useEffect(() => {
+  117 |     if (!isEditing && watchedName) {
+  118 |       const slug = watchedName  react-hooks/incompatible-library
+  138:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/admin/wiki/WikiGeneratorForm.tsx
+  32:15  warning  'WikiGenerationResult' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/ai-assistant/ChatInterface.tsx
+  36:33  warning  'onClose' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/ai-assistant/MessageBubble.tsx
+   27:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/ai-assistant/MessageList.tsx
+  22:18  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  75:17  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  75:30  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/schmelli/Coding/gearshack-winterberry/components/ai-assistant/UpgradeModal.tsx
+  93:19  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  93:36  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/schmelli/Coding/gearshack-winterberry/components/auth/AdminRoute.tsx
+  10:10  warning  'useEffect' is defined but never used        @typescript-eslint/no-unused-vars
+  11:10  warning  'useRouter' is defined but never used        @typescript-eslint/no-unused-vars
+  11:21  warning  'usePathname' is defined but never used      @typescript-eslint/no-unused-vars
+  12:10  warning  'useTranslations' is defined but never used  @typescript-eslint/no-unused-vars
+  13:10  warning  'useAuthContext' is defined but never used   @typescript-eslint/no-unused-vars
+  14:10  warning  'useIsAdmin' is defined but never used       @typescript-eslint/no-unused-vars
+  16:10  warning  'toast' is defined but never used            @typescript-eslint/no-unused-vars
+  23:10  warning  'LoadingSpinner' is defined but never used   @typescript-eslint/no-unused-vars
+  31:10  warning  'AccessDenied' is defined but never used     @typescript-eslint/no-unused-vars
+  41:40  warning  'fallback' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/auth/SupabaseAuthProvider.tsx
+  182:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/LinkedContentPreview.tsx
+   53:68  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   69:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   70:32  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   71:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   72:37  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  130:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/PostComposer.tsx
+   90:19  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/PostComposer.tsx:90:19
+  88 |   });
+  89 |
+> 90 |   const content = watch('content') || '';
+     |                   ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  91 |   const charCount = content.length;
+  92 |   const isOverWarning = charCount >= BULLETIN_CONSTANTS.WARNING_THRESHOLD;
+  93 |   const isAtLimit = charCount >= BULLETIN_CONSTANTS.MAX_POST_LENGTH;  react-hooks/incompatible-library
+  116:9   warning  The 'handleFormSubmit' function makes the dependencies of useCallback Hook (at line 133) change on every render. To fix this, wrap the definition of 'handleFormSubmit' in its own useCallback() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/PostMenu.tsx
+  38:3  warning  'canEdit' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/RichContentRenderer.tsx
+  160:31  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+  169:31  warning  'node' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/VipMention.tsx
+  23:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/bulletin/YouTubePreview.tsx
+  30:9   warning  't' is assigned a value but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  94:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/gear-editor/SmartProductSearchModal.tsx
+  76:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/components/gear-editor/SmartProductSearchModal.tsx:76:7
+  74 |     if (open && initialQuery && !hasAutoSearched.current) {
+  75 |       hasAutoSearched.current = true;
+> 76 |       setSearchInput(initialQuery);
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  77 |       performSearch(initialQuery);
+  78 |     }
+  79 |   }, [open, initialQuery, performSearch]);  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/components/gear/SpecIcon.tsx
+  169:8  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/gear/SpecIcon.tsx:169:8
+  167 |   if (LucideIcon) {
+  168 |     return (
+> 169 |       <LucideIcon
+      |        ^^^^^^^^^^ This component is created during render
+  170 |         className={cn('text-muted-foreground', className)}
+  171 |         style={{ width: size, height: size }}
+  172 |         aria-label={alt || `${type} icon`}
+
+/Users/schmelli/Coding/gearshack-winterberry/components/gear/SpecIcon.tsx:161:22
+  159 |   const [hasError, setHasError] = useState(false);
+  160 |   const iconPath = getIconPath(type, categoryId);
+> 161 |   const LucideIcon = getLucideIcon(type);
+      |                      ^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  162 |
+  163 |   // Stable error handler to avoid creating new functions on every render
+  164 |   const handleError = useCallback(() => setHasError(true), []);  react-hooks/static-components
+
+/Users/schmelli/Coding/gearshack-winterberry/components/loadouts/EnhancedWeightDonut.tsx
+  315:40  warning  'index' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/loadouts/LoadoutExportMenu.tsx
+  60:10  warning  'buildCategoryLabel' is defined but never used  @typescript-eslint/no-unused-vars
+  66:10  warning  'formatBoolean' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/loadouts/VirtualGearShakedown.tsx
+   83:11  warning  'getLabelById' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+  172:6   warning  React Hook useEffect has a missing dependency: 'tComments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/MerchantBadge.tsx
+  205:9  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/MerchantLoadoutCard.tsx
+   95:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  132:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/MerchantLoadoutDetail.tsx
+   24:3   warning  'ShoppingBag' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   26:3   warning  'ExternalLink' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   40:3   warning  'Accordion' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   41:3   warning  'AccordionContent' is defined but never used                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   42:3   warning  'AccordionItem' is defined but never used                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   43:3   warning  'AccordionTrigger' is defined but never used                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  120:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  207:13  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  207:31  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  346:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  400:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/MerchantLoadoutGrid.tsx
+  260:9  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/OfferCreationForm.tsx
+   13:38  warning  'useState' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   32:10  warning  'Label' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  121:27  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/OfferCreationForm.tsx:121:27
+  119 |   });
+  120 |
+> 121 |   const watchOfferPrice = form.watch('offerPrice');
+      |                           ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  122 |   const watchExpiresInDays = form.watch('expiresInDays');
+  123 |
+  124 |   // Calculate derived values  react-hooks/incompatible-library
+  168:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/WishlistInsightDetail.tsx
+   31:10  warning  'AspectRatio' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  237:27  error    React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?                                                                                                react-hooks/rules-of-hooks
+  249:6   warning  React Hook useMemo has a missing dependency: 'detail'. Either include it or remove the dependency array                                                                                                                                                                                  react-hooks/exhaustive-deps
+  265:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/merchant/WishlistInsightsPanel.tsx
+  17:29  warning  'CardHeader' is defined but never used         @typescript-eslint/no-unused-vars
+  17:41  warning  'CardTitle' is defined but never used          @typescript-eslint/no-unused-vars
+  67:10  warning  'getProximityColor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/offers/OfferCard.tsx
+  106:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/offers/OfferDetailSheet.tsx
+   21:3   warning  'ExternalLink' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  131:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/offers/OfferResponseActions.tsx
+  67:3  warning  'offerId' is defined but never used     @typescript-eslint/no-unused-vars
+  68:3  warning  'merchantId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/profile/ProfileView.tsx
+  97:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/settings/AlertPreferencesForm.tsx
+  216:48  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedown/SharedLoadoutAppView.tsx
+  71:11  warning  'getLabelById' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedown/SharedLoadoutHero.tsx
+  82:10  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/FeedbackSection.tsx
+  112:19  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/FeedbackSection.tsx:112:19
+  110 |   });
+  111 |
+> 112 |   const content = form.watch('content');
+      |                   ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  113 |   const charCount = content.length;
+  114 |
+  115 |   const handleSubmit = async (data: FeedbackFormData) => {  react-hooks/incompatible-library
+  220:19  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/FeedbackSection.tsx:220:19
+  218 |   });
+  219 |
+> 220 |   const content = form.watch('content');
+      |                   ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  221 |   const charCount = content.length;
+  222 |
+  223 |   const handleSubmit = async (data: FeedbackFormData) => {  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/ItemFeedbackModal.tsx
+  189:19  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/ItemFeedbackModal.tsx:189:19
+  187 |   });
+  188 |
+> 189 |   const content = form.watch('content');
+      |                   ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  190 |   const charCount = content.length;
+  191 |
+  192 |   const handleSubmit = async (data: FeedbackFormData) => {  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/ShakedownCreator.tsx
+   57:26  warning  'ExperienceLevel' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   57:43  warning  'ShakedownPrivacy' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  168:21  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/ShakedownCreator.tsx:168:21
+  166 |
+  167 |   // Watch start date to set min for end date
+> 168 |   const startDate = form.watch('tripStartDate');
+      |                     ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  169 |
+  170 |   return (
+  171 |     <Card className="w-full max-w-2xl mx-auto">  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/components/shakedowns/ShakedownFilters.tsx
+  19:29  warning  'ChevronDown' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/social/FriendActivityFeed.tsx
+  143:9   warning  'getActivityDescription' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  180:10  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/social/FriendActivityFeed.tsx:180:10
+  178 |       {/* Activity icon */}
+  179 |       <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', iconColor)}>
+> 180 |         <Icon className="h-5 w-5" />
+      |          ^^^^ This component is created during render
+  181 |       </div>
+  182 |
+  183 |       {/* Content */}
+
+/Users/schmelli/Coding/gearshack-winterberry/components/social/FriendActivityFeed.tsx:124:16
+  122 |   const t = useTranslations('Social');
+  123 |   const tCommunity = useTranslations('Community');
+> 124 |   const Icon = getActivityIcon(activity.activity_type);
+      |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  125 |   const iconColor = getActivityColor(activity.activity_type);
+  126 |   const activityInfo = getActivityTypeInfo(activity.activity_type);
+  127 |  react-hooks/static-components
+
+/Users/schmelli/Coding/gearshack-winterberry/components/social/PrivacySettingsPanel.tsx
+  31:28  warning  'getPresetInfo' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/FeaturedVipsSection.tsx
+  15:41  warning  'Loader2' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/SavedVipLoadoutsSection.tsx
+  36:9  warning  't' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  39:9  warning  'vipUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipClaimContent.tsx
+  240:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipCompareContent.tsx
+  23:39  warning  'UserLoadout' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipComparisonView.tsx
+  17:10  warning  'Separator' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipLoadoutCard.tsx
+  55:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipLoadoutContent.tsx
+  76:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipLoadoutDetail.tsx
+   19:3   warning  'ExternalLink' is defined but never used  @typescript-eslint/no-unused-vars
+   26:10  warning  'Badge' is defined but never used         @typescript-eslint/no-unused-vars
+   97:9   warning  't' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  257:36  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  257:66  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  258:46  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  258:78  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/components/vip/VipProfileModal.tsx
+  22:3  warning  'UserMinus' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/wiki/WikiPageEditor.tsx
+  84:24  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/components/wiki/WikiPageEditor.tsx:84:24
+  82 |   });
+  83 |
+> 84 |   const watchContent = watch(activeLocale === 'de' ? 'content_de' : 'content_en');
+     |                        ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  85 |
+  86 |   const onSubmit = async (data: WikiPageFormValues) => {
+  87 |     let result;  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/components/wiki/WikiPageView.tsx
+  13:40  warning  'User' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/wishlist/CommunityAvailabilityPanel.tsx
+  303:26  warning  'retryCount' is defined but never used  @typescript-eslint/no-unused-vars
+  393:10  warning  '_error' is defined but never used      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/components/wishlist/PriceResultItem.tsx
+  12:24  warning  'MapPin' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  34:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/schmelli/Coding/gearshack-winterberry/coverage/block-navigation.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/Users/schmelli/Coding/gearshack-winterberry/coverage/lcov-report/block-navigation.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/admin/useAdminUsers.ts
+  307:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  316:16  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  363:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  372:16  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  432:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  441:16  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  478:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  487:16  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/admin/vip/useLoadoutItemsAdmin.ts
+  18:6   warning  'LoadoutItemRow' is defined but never used  @typescript-eslint/no-unused-vars
+  19:6   warning  'GearItemRow' is defined but never used     @typescript-eslint/no-unused-vars
+  95:60  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/admin/vip/useVipLoadoutsAdmin.ts
+   19:6   warning  'LoadoutRow' is defined but never used    @typescript-eslint/no-unused-vars
+   20:6   warning  'ProfileRow' is defined but never used    @typescript-eslint/no-unused-vars
+  116:42  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:69  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:48  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:35  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:50  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useAIChat.ts
+  19:10  warning  'sendAIMessage' is defined but never used  @typescript-eslint/no-unused-vars
+  33:18  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useChatActions.ts
+   14:33  warning  'useEffect' is defined but never used     @typescript-eslint/no-unused-vars
+  130:55  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:53  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:53  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:50  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useConversationHistory.ts
+  84:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useConversationSync.ts
+  98:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useConversationSync.ts:98:7
+   96 |   useEffect(() => {
+   97 |     if (!conversationId) {
+>  98 |       setIsConnected(false);
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+   99 |       return;
+  100 |     }
+  101 |  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useMastraChat.ts
+  405:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useRateLimiting.ts
+   90:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+  144:58  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useRateLimiting.ts:144:58
+  142 |   // Calculate seconds until reset
+  143 |   const remainingTime = state.resetsAt
+> 144 |     ? Math.max(0, Math.floor((state.resetsAt.getTime() - Date.now()) / 1000))
+      |                                                          ^^^^^^^^^^ Cannot call impure function
+  145 |     : 0;
+  146 |
+  147 |   return {  react-hooks/purity
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/ai-assistant/useVoiceOutput.ts
+  263:6  warning  React Hook useCallback has an unnecessary dependency: 'speed'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/banner/useBannerAdmin.ts
+  183:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/banner/useBannerAdmin.ts:183:5
+  181 |   // Load banners on mount
+  182 |   useEffect(() => {
+> 183 |     loadBanners();
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  184 |   }, [loadBanners]);
+  185 |
+  186 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/banner/useBannerCarousel.ts
+  62:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/banner/useBannerCarousel.ts:62:5
+  60 |   // Load banners on mount
+  61 |   useEffect(() => {
+> 62 |     loadBanners();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  63 |   }, [loadBanners]);
+  64 |
+  65 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/bulletin/useBulletinBoard.ts
+  240:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/bulletin/useBulletinBoard.ts:240:5
+  238 |   // Load posts when filters change
+  239 |   useEffect(() => {
+> 240 |     loadPosts();
+      |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  241 |   }, [loadPosts]);
+  242 |
+  243 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/bulletin/useModerationReports.ts
+   49:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/community/useAnnouncements.ts
+  16:15  warning  'Database' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantCatalog.ts
+   13:44  warning  'useMemo' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  371:38  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `merchant`, but the source dependencies were [merchant?.id, selectedIds, clearSelection]. Inferred less specific property than source.
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantCatalog.ts:371:38
+  369 |   }, []);
+  370 |
+> 371 |   const bulkDeactivate = useCallback(async (): Promise<number> => {
+      |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 372 |     if (!merchant?.id || selectedIds.size === 0) return 0;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 373 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 388 |     return successCount;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 389 |   }, [merchant?.id, selectedIds, clearSelection]);
+      | ^^^^ Could not preserve existing manual memoization
+  390 |
+  391 |   return {
+  392 |     selectedIds,  react-hooks/preserve-manual-memoization
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantLoadouts.ts
+   37:3  warning  'VALID_LOADOUT_TRANSITIONS' is defined but never used                                                   @typescript-eslint/no-unused-vars
+  164:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  199:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  225:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  308:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  337:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  362:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  391:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantLoadoutsPublic.ts
+  139:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantLoadoutsPublic.ts:139:5
+  137 |   // Fetch on mount and when dependencies change
+  138 |   useEffect(() => {
+> 139 |     fetchLoadouts();
+      |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  140 |   }, [fetchLoadouts]);
+  141 |
+  142 |   // Update filters (resets to page 1)  react-hooks/set-state-in-effect
+  315:38  warning  '_merchantLoadoutId' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantLocations.ts
+  202:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  266:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  319:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  365:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useMerchantOffers.ts
+   28:3  warning  'MerchantOffer' is defined but never used                                                               @typescript-eslint/no-unused-vars
+  349:5  warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/merchant/useWishlistInsights.ts
+  135:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  137:20  error    Unexpected any. Specify a different type                                                                                                            @typescript-eslint/no-explicit-any
+  161:6   warning  React Hook useCallback has unnecessary dependencies: 'filters.offset' and 'filters.recentDays'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/offers/useWishlistItemOffers.ts
+  152:9  warning  'isMounted' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/useCommunityAvailability.ts
+  54:6  warning  React Hook useEffect has a missing dependency: 'loadAvailability'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/useFuzzyMatching.ts
+  11:15  warning  'FuzzyMatch' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/usePersonalOffers.ts
+    1:1  error    Do not use "@ts-nocheck" because it alters compilation errors                                                  @typescript-eslint/ban-ts-comment
+  104:6  warning  React Hook useEffect has a missing dependency: 'loadOffers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/usePriceAlerts.ts
+  1:1  error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/usePriceHistory.ts
+  46:6  warning  React Hook useEffect has a missing dependency: 'fetchHistory'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/usePriceTracking.ts
+  48:6  warning  React Hook useEffect has a missing dependency: 'loadTrackingStatus'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/price-tracking/useWishlistPriceResults.ts
+  126:6  warning  React Hook useEffect has a missing dependency: 'loadPriceResults'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/social/useOnlineStatus.ts
+   48:5  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `user`, but the source dependencies were [user?.uid]. Inferred less specific property than source.
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/social/useOnlineStatus.ts:48:5
+  46 |    */
+  47 |   const updateStatus = useCallback(
+> 48 |     async (newStatus: OnlineStatus): Promise<void> => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 49 |       if (!user?.uid) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |       }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |     },
+     | ^^^^^^ Could not preserve existing manual memoization
+  59 |     [user?.uid]
+  60 |   );
+  61 |                                                        react-hooks/preserve-manual-memoization
+  174:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/social/useOnlineStatus.ts:174:5
+  172 |
+  173 |     // Initial refresh
+> 174 |     refreshFriendsStatus();
+      |     ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  175 |
+  176 |     // Periodic refresh
+  177 |     statusRefreshTimerRef.current = setInterval(refreshFriendsStatus, STATUS_REFRESH_INTERVAL);  react-hooks/set-state-in-effect
+  189:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/social/useOnlineStatus.ts:189:7
+  187 |   useEffect(() => {
+  188 |     if (user?.uid) {
+> 189 |       updateStatus('online');
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  190 |       resetInactivityTimer();
+  191 |     }
+  192 |                                                                        react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useCatalogSearch.ts
+  49:9   warning  'encodeEmbedding' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  57:27  warning  'embedding' is defined but never used                 @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useImageUpload.ts
+  50:12  warning  '_file' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useInventoryView.ts
+  13:23  warning  'useMemo' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useLoadoutCreationForm.ts
+  65:27  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useLoadoutCreationForm.ts:65:27
+  63 |   });
+  64 |
+> 65 |   const selectedSeasons = form.watch('seasons') ?? [];
+     |                           ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  66 |   const selectedActivities = form.watch('activityTypes') ?? [];
+  67 |
+  68 |   const toggleSeason = (season: Season) => {  react-hooks/incompatible-library
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useProgressiveCategorySelect.ts
+  86:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useProgressiveCategorySelect.ts:86:9
+  84 |
+  85 |       if (categoryId && subcategoryId) {
+> 86 |         setState({
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  87 |           level: 3,
+  88 |           categoryId,
+  89 |           subcategoryId,  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useSupabaseAuth.ts
+  35:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/useSupabaseProfile.ts
+  17:23  warning  'TablesInsert' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useAdminVips.ts
+  65:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useAdminVips.ts:65:5
+  63 |   // Fetch on mount
+  64 |   useEffect(() => {
+> 65 |     fetchVips();
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  66 |   }, [fetchVips]);
+  67 |
+  68 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useFeaturedVips.ts
+  66:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useFeaturedVips.ts:66:5
+  64 |   // Fetch on mount
+  65 |   useEffect(() => {
+> 66 |     fetchFeaturedVips();
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |   }, [fetchFeaturedVips]);
+  68 |
+  69 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useVipComparison.ts
+  12:20  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+  12:44  warning  'useMemo' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useVipLoadout.ts
+  83:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useVipLoadout.ts:83:5
+  81 |   // Fetch on mount and when slugs change
+  82 |   useEffect(() => {
+> 83 |     fetchLoadout();
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  84 |   }, [fetchLoadout]);
+  85 |
+  86 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useVipProfile.ts
+  80:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/schmelli/Coding/gearshack-winterberry/hooks/vip/useVipProfile.ts:80:5
+  78 |   // Fetch on mount and when slug changes
+  79 |   useEffect(() => {
+> 80 |     fetchVip();
+     |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  81 |   }, [fetchVip]);
+  82 |
+  83 |   return {  react-hooks/set-state-in-effect
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/ai-client.ts
+   97:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  299:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  308:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  368:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  441:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  493:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  494:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/cache-strategy.ts
+  10:15  warning  'CachedResponse' is defined but never used   @typescript-eslint/no-unused-vars
+  27:10  warning  'getLocaleColumn' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/community-search.ts
+  217:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  217:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/inventory-analyzer.ts
+  107:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  340:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/observability.ts
+  267:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/prompt-builder.ts
+  38:5  warning  'subscriptionTier' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  70:9  warning  'languageName' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/rate-limiter.ts
+  10:15  warning  'SupabaseClient' is defined but never used     @typescript-eslint/no-unused-vars
+  25:11  warning  'WebSearchUsageRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/response-parser.ts
+  20:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/retry.ts
+  111:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/sync-protocol.ts
+  39:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/tools/query-user-data.ts
+  117:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/ai-assistant/web-search-service.ts
+  22:35  warning  'isWebSearchAvailable' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/external-apis/price-search.ts
+  16:8  warning  'ProductPriceReference' is defined but never used      @typescript-eslint/no-unused-vars
+  58:7  error    'allResults' is never reassigned. Use 'const' instead  prefer-const
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/external-apis/search-query-builder.ts
+  103:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  157:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/agent.ts
+  15:57  warning  'SupabaseAuthUser' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/context-preloader.ts
+   15:15  warning  'Database' is defined but never used      @typescript-eslint/no-unused-vars
+  122:61  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:62  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/logging.ts
+  16:28  warning  'SanitizationResult' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/mastra-agent.ts
+  60:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/rate-limiter.ts
+  329:16  warning  'incrementRateLimit' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/tools/query-user-data.ts
+  236:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  429:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/mastra/workflows/trip-planner.ts
+   21:10  warning  'z' is defined but never used                       @typescript-eslint/no-unused-vars
+   23:10  warning  'WorkflowExecutor' is defined but never used        @typescript-eslint/no-unused-vars
+   23:28  warning  'createWorkflowExecutor' is defined but never used  @typescript-eslint/no-unused-vars
+   23:57  warning  'StepHandler' is defined but never used             @typescript-eslint/no-unused-vars
+   27:35  warning  'WorkflowStep' is defined but never used            @typescript-eslint/no-unused-vars
+   27:49  warning  'WorkflowContext' is defined but never used         @typescript-eslint/no-unused-vars
+  459:3   warning  'intent' is defined but never used                  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/rate-limit.ts
+  157:11  warning  'resetDate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/server/announcements.ts
+  10:15  warning  'Database' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/services/alert-service.ts
+    1:1   error    Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+  105:16  warning  'sendPushNotification' is defined but never used               @typescript-eslint/no-unused-vars
+  123:16  warning  'sendEmailAlert' is defined but never used                     @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/services/batch-operations.ts
+  1:1  error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/services/category-service.ts
+   23:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   55:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   66:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  179:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  220:7  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  271:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  273:3  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  279:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  285:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/services/price-comparison-service.ts
+   1:1   error    Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+   9:28  warning  'PriceHistoryEntry' is defined but never used                  @typescript-eslint/no-unused-vars
+  61:27  error    Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/bulletin-queries.ts
+   42:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  201:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  225:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  247:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  267:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  295:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  313:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  323:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  351:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  372:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  396:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  436:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  476:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  483:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  493:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  523:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  541:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/catalog.ts
+  282:13  warning  'hasMatch' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/categories.ts
+  35:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/community-matching.ts
+  14:10  warning  'z' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/merchant-loadout-queries.ts
+  24:3  warning  'LoadoutPricing' is defined but never used    @typescript-eslint/no-unused-vars
+  63:5  warning  'userLat' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  64:5  warning  'userLng' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/messaging-queries.ts
+  13:3  warning  'Conversation' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/supabase/price-tracking-queries.ts
+  1:1  error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/utils/logger.ts
+  57:15  warning  'timestamp' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  69:21  warning  '_' is defined but never used                   @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/vip/vip-admin-service.ts
+  51:7  error  'loadoutCountMap' is never reassigned. Use 'const' instead  prefer-const
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/vip/vip-notifications.ts
+  122:75  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  146:55  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  176:3   warning  'locale' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  244:50  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  269:48  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  278:40  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+/Users/schmelli/Coding/gearshack-winterberry/lib/vip/vip-service.ts
+   33:3   warning  'CreateVipRequest' is defined but never used         @typescript-eslint/no-unused-vars
+   34:3   warning  'UpdateVipRequest' is defined but never used         @typescript-eslint/no-unused-vars
+   63:46  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   85:56  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  103:35  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  104:53  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  110:41  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  154:35  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  185:56  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  242:51  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  256:17  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  258:54  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  270:53  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  281:39  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  282:42  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  285:51  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  296:37  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  371:44  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  387:48  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  398:57  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  406:46  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  429:55  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  439:53  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  455:35  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  472:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  512:50  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  532:40  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  541:40  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  566:40  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  586:40  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  608:50  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  624:14  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  629:47  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  634:32  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  740:40  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  760:17  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  771:38  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  788:26  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  800:32  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  844:60  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  906:10  warning  'transformVipLoadout' is defined but never used      @typescript-eslint/no-unused-vars
+  950:10  warning  'transformVipLoadoutItem' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/scripts/apply-ai-migration.ts
+  73:17  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/scripts/extract-categories.ts
+  25:11  warning  'Category' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/scripts/seed-ontology.ts
+  26:12  warning  'e' is defined but never used              @typescript-eslint/no-unused-vars
+  93:28  warning  'rest' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/scripts/verify-social-graph.ts
+  23:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/schmelli/Coding/gearshack-winterberry/types/database-helpers.ts
+  13:6  warning  'GearItem' is defined but never used         @typescript-eslint/no-unused-vars
+  14:6  warning  'PartnerRetailer' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 562 problems (281 errors, 281 warnings)
+  2 errors and 8 warnings potentially fixable with the `--fix` option.
+

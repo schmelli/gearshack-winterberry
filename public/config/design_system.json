@@ -1,0 +1,50 @@
+{
+  "typography": {
+    "gearCardManufacturer": {
+      "fontSize": 11.0,
+      "fontWeight": 600,
+      "letterSpacing": 0.5,
+      "height": 1.2
+    },
+    "gearCardTitle": {
+      "fontSize": 15.0,
+      "fontWeight": 700,
+      "height": 1.2
+    },
+    "gearCardDescription": {
+      "fontSize": 12.0,
+      "fontWeight": 400,
+      "height": 1.2
+    },
+    "gearCardFooter": {
+      "fontSize": 11.0,
+      "fontWeight": 500,
+      "height": 1.2
+    },
+    "gearCardWeight": {
+      "fontSize": 10.0,
+      "fontWeight": 600,
+      "height": 1.2
+    }
+  },
+  "colors": {
+    "primary": "#2E5939",
+    "secondary": "#FF7043",
+    "tertiary": "#00897B",
+    "error": "#BA1A1A",
+    "success": "#4CAF50",
+    "warning": "#FF9800",
+    "info": "#2196F3",
+    "wishlist": "#FFA500"
+  },
+  "spacing": {
+    "xxs": 2.0,
+    "xs": 4.0,
+    "sm": 8.0,
+    "md": 16.0,
+    "lg": 24.0,
+    "xl": 32.0,
+    "xxl": 48.0,
+    "xxxl": 64.0
+  }
+}

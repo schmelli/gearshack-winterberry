@@ -1,0 +1,433 @@
+/**
+ * Ontology Seed Script
+ *
+ * Feature: 043-ontology-i18n-import
+ * Tasks: T008-T016
+ *
+ * Imports hiking gear taxonomy from JSON into the categories table.
+ * Supports 3 hierarchy levels with i18n translations (EN/DE).
+ *
+ * Usage:
+ *   npm run seed:ontology
+ *   npm run seed:ontology -- --dry-run
+ *
+ * Prerequisites:
+ *   - Migration 20251211_categories_i18n.sql applied
+ *   - SUPABASE_SERVICE_ROLE_KEY in .env.local
+ *   - Ontology JSON in scripts/data/Hiking_Gear_Ontology_i18n.json
+ */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { Database } from '../types/database';
+
+// =============================================================================
+// T008: Zod Validation Schema with slug normalization
+// =============================================================================
+
+/**
+ * Normalizes slug to lowercase with underscores only
+ */
+function normalizeSlug(slug: string): string {
+  return slug
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+}
+
+/**
+ * Zod schema for ontology item with slug normalization
+ */
+const OntologyItemSchema: z.ZodType<{
+  slug: string;
+  en: string;
+  de: string;
+  subcategories?: Array<{
+    slug: string;
+    en: string;
+    de: string;
+    productTypes?: Array<{
+      slug: string;
+      en: string;
+      de: string;
+    }>;
+  }>;
+  productTypes?: Array<{
+    slug: string;
+    en: string;
+    de: string;
+  }>;
+}> = z.object({
+  slug: z.string().min(1).transform(normalizeSlug),
+  en: z.string().min(1),
+  de: z.string().min(1),
+  subcategories: z.array(z.lazy(() => OntologyItemSchema)).optional(),
+  productTypes: z.array(z.lazy(() => OntologyItemSchema)).optional(),
+});
+
+const OntologySchema = z.object({
+  categories: z.array(OntologyItemSchema),
+});
+
+type OntologyData = z.infer<typeof OntologySchema>;
+type OntologyItem = z.infer<typeof OntologyItemSchema>;
+
+// =============================================================================
+// T009: Supabase Admin Client
+// =============================================================================
+
+type TypedSupabaseClient = SupabaseClient<Database>;
+
+function createAdminClient(): TypedSupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment');
+  }
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set in environment');
+  }
+
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+// =============================================================================
+// T010: Delete All Categories (FR-009 replace strategy)
+// =============================================================================
+
+async function deleteAllCategories(
+  supabase: TypedSupabaseClient,
+  dryRun: boolean
+): Promise<number> {
+  if (dryRun) {
+    const { count } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true });
+    console.log(`[DRY-RUN] Would delete ${count ?? 0} existing categories`);
+    return count ?? 0;
+  }
+
+  // Get count before deletion
+  const { count: beforeCount } = await supabase
+    .from('categories')
+    .select('*', { count: 'exact', head: true });
+
+  // Delete all categories (CASCADE will handle children)
+  const { error } = await supabase.from('categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+  if (error) {
+    throw new Error(`Failed to delete categories: ${error.message}`);
+  }
+
+  return beforeCount ?? 0;
+}
+
+// =============================================================================
+// T011: Process Level 1 Categories
+// =============================================================================
+
+async function processLevel1Categories(
+  supabase: TypedSupabaseClient,
+  categories: OntologyItem[],
+  dryRun: boolean
+): Promise<{ upserted: number; errors: string[] }> {
+  const errors: string[] = [];
+  let upserted = 0;
+
+  for (const cat of categories) {
+    const record = {
+      slug: cat.slug,
+      label: cat.en,
+      level: 1,
+      parent_id: null,
+      i18n: { en: cat.en, de: cat.de },
+    };
+
+    if (dryRun) {
+      console.log(`[DRY-RUN] Would upsert L1: ${cat.slug} (${cat.en})`);
+      upserted++;
+      continue;
+    }
+
+    const { error } = await supabase
+      .from('categories')
+      .upsert(record, { onConflict: 'slug' });
+
+    if (error) {
+      errors.push(`L1 ${cat.slug}: ${error.message}`);
+    } else {
+      upserted++;
+    }
+  }
+
+  return { upserted, errors };
+}
+
+// =============================================================================
+// T012: Process Level 2 Categories (Subcategories)
+// =============================================================================
+
+async function processLevel2Categories(
+  supabase: TypedSupabaseClient,
+  categories: OntologyItem[],
+  dryRun: boolean
+): Promise<{ upserted: number; errors: string[] }> {
+  const errors: string[] = [];
+  let upserted = 0;
+
+  for (const l1 of categories) {
+    if (!l1.subcategories) continue;
+
+    // Lookup parent ID by slug
+    const { data: parent, error: parentError } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', l1.slug)
+      .single();
+
+    if (parentError || !parent) {
+      errors.push(`Missing parent for L2: ${l1.slug}`);
+      continue;
+    }
+
+    for (const l2 of l1.subcategories) {
+      const record = {
+        slug: l2.slug,
+        label: l2.en,
+        level: 2,
+        parent_id: parent.id,
+        i18n: { en: l2.en, de: l2.de },
+      };
+
+      if (dryRun) {
+        console.log(`[DRY-RUN] Would upsert L2: ${l2.slug} (${l2.en}) → parent: ${l1.slug}`);
+        upserted++;
+        continue;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .upsert(record, { onConflict: 'slug' });
+
+      if (error) {
+        errors.push(`L2 ${l2.slug}: ${error.message}`);
+      } else {
+        upserted++;
+      }
+    }
+  }
+
+  return { upserted, errors };
+}
+
+// =============================================================================
+// T013: Process Level 3 Categories (Product Types)
+// =============================================================================
+
+async function processLevel3Categories(
+  supabase: TypedSupabaseClient,
+  categories: OntologyItem[],
+  dryRun: boolean
+): Promise<{ upserted: number; errors: string[] }> {
+  const errors: string[] = [];
+  let upserted = 0;
+
+  for (const l1 of categories) {
+    if (!l1.subcategories) continue;
+
+    for (const l2 of l1.subcategories) {
+      if (!l2.productTypes) continue;
+
+      // Lookup parent ID by slug
+      const { data: parent, error: parentError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', l2.slug)
+        .single();
+
+      if (parentError || !parent) {
+        errors.push(`Missing parent for L3: ${l2.slug}`);
+        continue;
+      }
+
+      for (const l3 of l2.productTypes) {
+        const record = {
+          slug: l3.slug,
+          label: l3.en,
+          level: 3,
+          parent_id: parent.id,
+          i18n: { en: l3.en, de: l3.de },
+        };
+
+        if (dryRun) {
+          console.log(`[DRY-RUN] Would upsert L3: ${l3.slug} (${l3.en}) → parent: ${l2.slug}`);
+          upserted++;
+          continue;
+        }
+
+        const { error } = await supabase
+          .from('categories')
+          .upsert(record, { onConflict: 'slug' });
+
+        if (error) {
+          errors.push(`L3 ${l3.slug}: ${error.message}`);
+        } else {
+          upserted++;
+        }
+      }
+    }
+  }
+
+  return { upserted, errors };
+}
+
+// =============================================================================
+// T014: Main Orchestration Function
+// =============================================================================
+
+async function main() {
+  const startTime = Date.now();
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+
+  console.log('========================================');
+  console.log('Ontology Seed Script');
+  console.log(`Mode: ${dryRun ? 'DRY-RUN (no changes)' : 'LIVE'}`);
+  console.log('========================================\n');
+
+  // T015: Error handling - Check for JSON file
+  const jsonPath = path.join(__dirname, 'data', 'Hiking_Gear_Ontology_i18n.json');
+
+  if (!fs.existsSync(jsonPath)) {
+    console.error(`❌ ERROR: Ontology JSON file not found`);
+    console.error(`   Expected at: ${jsonPath}`);
+    console.error(`   Please place your Hiking_Gear_Ontology_i18n.json file in scripts/data/`);
+    process.exit(1);
+  }
+
+  // T015: Error handling - Parse and validate JSON
+  let ontologyData: OntologyData;
+  try {
+    const rawJson = fs.readFileSync(jsonPath, 'utf-8');
+    const parsed = JSON.parse(rawJson);
+    ontologyData = OntologySchema.parse(parsed);
+    console.log(`✓ Loaded and validated ontology JSON`);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error(`❌ ERROR: Invalid ontology JSON structure`);
+      console.error(`   Validation errors:`);
+      error.issues.forEach((e) => {
+        console.error(`   - ${e.path.join('.')}: ${e.message}`);
+      });
+    } else if (error instanceof SyntaxError) {
+      console.error(`❌ ERROR: Malformed JSON file`);
+      console.error(`   ${error.message}`);
+    } else {
+      console.error(`❌ ERROR: Failed to read JSON file`);
+      console.error(`   ${error}`);
+    }
+    process.exit(1);
+  }
+
+  // Count items for summary
+  const l1Count = ontologyData.categories.length;
+  let l2Count = 0;
+  let l3Count = 0;
+
+  for (const l1 of ontologyData.categories) {
+    if (l1.subcategories) {
+      l2Count += l1.subcategories.length;
+      for (const l2 of l1.subcategories) {
+        if (l2.productTypes) {
+          l3Count += l2.productTypes.length;
+        }
+      }
+    }
+  }
+
+  console.log(`   - Level 1 (Categories): ${l1Count}`);
+  console.log(`   - Level 2 (Subcategories): ${l2Count}`);
+  console.log(`   - Level 3 (Product Types): ${l3Count}`);
+  console.log(`   - Total: ${l1Count + l2Count + l3Count}\n`);
+
+  // Create Supabase admin client
+  const supabase = createAdminClient();
+  console.log(`✓ Connected to Supabase\n`);
+
+  // Delete existing categories (FR-009)
+  console.log('Step 1: Deleting existing categories...');
+  const deletedCount = await deleteAllCategories(supabase, dryRun);
+  console.log(`   Deleted: ${deletedCount} categories\n`);
+
+  // Process Level 1
+  console.log('Step 2: Upserting Level 1 categories...');
+  const l1Result = await processLevel1Categories(supabase, ontologyData.categories, dryRun);
+  console.log(`   Upserted: ${l1Result.upserted}`);
+  if (l1Result.errors.length > 0) {
+    console.log(`   Errors: ${l1Result.errors.length}`);
+    l1Result.errors.forEach((e) => console.log(`     - ${e}`));
+  }
+  console.log('');
+
+  // Process Level 2
+  console.log('Step 3: Upserting Level 2 subcategories...');
+  const l2Result = await processLevel2Categories(supabase, ontologyData.categories, dryRun);
+  console.log(`   Upserted: ${l2Result.upserted}`);
+  if (l2Result.errors.length > 0) {
+    console.log(`   Errors: ${l2Result.errors.length}`);
+    l2Result.errors.forEach((e) => console.log(`     - ${e}`));
+  }
+  console.log('');
+
+  // Process Level 3
+  console.log('Step 4: Upserting Level 3 product types...');
+  const l3Result = await processLevel3Categories(supabase, ontologyData.categories, dryRun);
+  console.log(`   Upserted: ${l3Result.upserted}`);
+  if (l3Result.errors.length > 0) {
+    console.log(`   Errors: ${l3Result.errors.length}`);
+    l3Result.errors.forEach((e) => console.log(`     - ${e}`));
+  }
+  console.log('');
+
+  // T016 & T019: Summary logging
+  const totalUpserted = l1Result.upserted + l2Result.upserted + l3Result.upserted;
+  const totalErrors = l1Result.errors.length + l2Result.errors.length + l3Result.errors.length;
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+  console.log('========================================');
+  console.log('SUMMARY');
+  console.log('========================================');
+  console.log(`Mode: ${dryRun ? 'DRY-RUN' : 'LIVE'}`);
+  console.log(`Deleted: ${deletedCount} existing categories`);
+  console.log(`Upserted: ${totalUpserted} categories`);
+  console.log(`  - L1: ${l1Result.upserted}`);
+  console.log(`  - L2: ${l2Result.upserted}`);
+  console.log(`  - L3: ${l3Result.upserted}`);
+  console.log(`Errors: ${totalErrors}`);
+  console.log(`Time: ${elapsed}s`);
+  console.log('========================================');
+
+  if (totalErrors > 0) {
+    console.log('\n⚠️  Completed with errors. Check messages above.');
+    process.exit(1);
+  } else {
+    console.log('\n✅ Ontology import completed successfully!');
+    if (dryRun) {
+      console.log('   Run without --dry-run to apply changes.');
+    }
+  }
+}
+
+// Run main function
+main().catch((error) => {
+  console.error('❌ Fatal error:', error);
+  process.exit(1);
+});

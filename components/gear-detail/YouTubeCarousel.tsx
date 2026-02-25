@@ -1,0 +1,183 @@
+/**
+ * YouTube Carousel Component
+ *
+ * Feature: 045-gear-detail-modal
+ * Tasks: T036-T041
+ *
+ * Horizontal scroll carousel displaying YouTube product review videos.
+ * Shows thumbnails with title and channel name, opens YouTube on click.
+ */
+
+'use client';
+
+import Image from 'next/image';
+import { useTranslations } from 'next-intl';
+import { Play, RotateCcw, Youtube } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { YouTubeVideo } from '@/types/youtube';
+import { cn } from '@/lib/utils';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface YouTubeCarouselProps {
+  /** Array of YouTube videos (null = loading) */
+  videos: YouTubeVideo[] | null;
+  /** Whether videos are loading */
+  isLoading: boolean;
+  /** Error message if fetch failed */
+  error: string | null;
+  /** Whether quota is exhausted (retry won't help) */
+  isQuotaExhausted?: boolean;
+  /** Callback to retry fetch */
+  onRetry?: () => void;
+  /** Optional class name */
+  className?: string;
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+export function YouTubeCarousel({
+  videos,
+  isLoading,
+  error,
+  isQuotaExhausted = false,
+  onRetry,
+  className,
+}: YouTubeCarouselProps) {
+  const t = useTranslations('YouTubeReviews');
+
+  // T041: Error state with retry button (check first to handle error + null videos case)
+  if (error) {
+    return (
+      <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
+        <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          {isQuotaExhausted
+            ? t('quotaExhausted')
+            : error}
+        </p>
+        {/* Hide retry button when quota exhausted - retrying won't help */}
+        {onRetry && !isQuotaExhausted && (
+          <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
+            <RotateCcw className="mr-2 h-3 w-3" />
+            {t('tryAgain')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // T039: Loading skeleton state - also show when videos is null (not yet loaded)
+  if (isLoading || videos === null) {
+    return (
+      <div className={cn('space-y-3', className)}>
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-48 shrink-0 space-y-2">
+              <Skeleton className="aspect-video w-full rounded-md" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // T040: Empty state when no videos found (only when videos is an empty array, not null)
+  if (videos.length === 0) {
+    return (
+      <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
+        <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          {t('noReviews')}
+        </p>
+      </div>
+    );
+  }
+
+  // T036, T037, T038: Carousel with video cards
+  return (
+    <div
+      className={cn(
+        'flex gap-3 overflow-x-auto pb-3',
+        // Custom scrollbar styling
+        '[&::-webkit-scrollbar]:h-2',
+        '[&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-muted/50',
+        '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+        '[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50',
+        className
+      )}
+    >
+      {videos.map((video) => (
+        <VideoCard key={video.videoId} video={video} />
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// Video Card Sub-Component
+// =============================================================================
+
+interface VideoCardProps {
+  video: YouTubeVideo;
+}
+
+// SECURITY: YouTube video IDs are exactly 11 characters, alphanumeric plus - and _
+const YOUTUBE_VIDEO_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
+function VideoCard({ video }: VideoCardProps) {
+  // T038: Click-to-YouTube (opens video in new tab)
+  const handleClick = () => {
+    // SECURITY: Validate videoId format to prevent XSS via malicious URLs
+    if (!YOUTUBE_VIDEO_ID_REGEX.test(video.videoId)) {
+      console.error('[YouTubeCarousel] Invalid videoId format:', video.videoId);
+      return;
+    }
+    window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank');
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={cn(
+        'group w-48 shrink-0 cursor-pointer rounded-lg border bg-card p-2 text-left',
+        'transition-colors hover:border-primary/50 hover:bg-muted/50'
+      )}
+    >
+      {/* T037: Video thumbnail with play icon overlay */}
+      <div className="relative aspect-video overflow-hidden rounded-md bg-muted">
+        <Image
+          src={video.thumbnailUrl}
+          alt={video.title}
+          fill
+          className="object-cover transition-transform group-hover:scale-105"
+          sizes="192px"
+        />
+        {/* Play icon overlay */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-white">
+            <Play className="h-5 w-5 fill-current" />
+          </div>
+        </div>
+      </div>
+
+      {/* T037: Title and channel name */}
+      <div className="mt-2 space-y-1">
+        <p className="line-clamp-2 text-xs font-medium leading-tight">
+          {video.title}
+        </p>
+        <p className="text-xs text-muted-foreground">{video.channelTitle}</p>
+      </div>
+    </button>
+  );
+}
+
+export default YouTubeCarousel;

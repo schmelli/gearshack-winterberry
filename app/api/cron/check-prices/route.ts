@@ -1,0 +1,285 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking/personal_offers tables not in generated types */
+/**
+ * Cron job: Daily price checks for all tracked items
+ * Feature: 050-price-tracking (US2)
+ * Date: 2025-12-17
+ * Schedule: Daily at 2 AM UTC
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { searchAllSources } from '@/lib/external-apis/price-search';
+import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
+import { sendPersonalOfferAlert } from '@/lib/services/alert-service';
+import { batchCreatePriceAlerts, batchCheckConversions } from '@/lib/services/batch-operations';
+import { RATE_LIMITING } from '@/lib/constants/price-tracking';
+import { createModuleLogger } from '@/lib/utils/logger';
+import type { PriceTrackingWithGearItem } from '@/types/database-helpers';
+import PQueue from 'p-queue';
+
+const log = createModuleLogger('cron:check-prices');
+
+// Rate limit concurrent searches
+const queue = new PQueue({ concurrency: RATE_LIMITING.MAX_CONCURRENT_SEARCHES });
+
+/**
+ * Timing-safe comparison of authorization header to prevent timing attacks.
+ * Uses constant-time comparison to avoid leaking secret length or content.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  const expected = `Bearer ${expectedSecret}`;
+  if (authHeader.length !== expected.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Verify cron secret using timing-safe comparison
+    const authHeader = request.headers.get('authorization');
+    if (!verifyAuthHeader(authHeader, process.env.CRON_SECRET)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = createServiceRoleClient();
+
+    // Get all active tracking items
+    const { data: trackingItems, error: trackingError } = await (supabase as any)
+      .from('price_tracking')
+      .select(`
+        id,
+        user_id,
+        gear_item_id,
+        alerts_enabled,
+        gear_items (
+          name
+        )
+      `)
+      .eq('enabled', true);
+
+    if (trackingError) {
+      log.error('Failed to fetch tracking items', {}, trackingError);
+      return NextResponse.json({ error: 'Failed to fetch tracking items' }, { status: 500 });
+    }
+
+    if (!trackingItems || trackingItems.length === 0) {
+      log.info('No tracking items to process');
+      return NextResponse.json({
+        success: true,
+        message: 'No items to track',
+        processed: 0,
+      });
+    }
+
+    log.info('Starting price check job', { item_count: trackingItems.length });
+
+    // Process each item and collect price drop alerts (Review fix #12: Batch alerts)
+    const priceDropAlerts: Array<{
+      user_id: string;
+      tracking_id: string;
+      alert_type: 'price_drop';
+      title: string;
+      message: string;
+      link_url: string;
+    }> = [];
+
+    const results = await Promise.allSettled(
+      trackingItems.map((item: any) =>
+        queue.add(() => processTrackingItem(supabase, item, priceDropAlerts))
+      )
+    );
+
+    // Count successes and failures
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+
+    // Batch create all price drop alerts (Review fix #12)
+    if (priceDropAlerts.length > 0) {
+      log.info('Creating price drop alerts', { alert_count: priceDropAlerts.length });
+      await batchCreatePriceAlerts(priceDropAlerts);
+    }
+
+    // Batch check conversions (Review fix #12)
+    const conversionData = trackingItems.map((item: any) => ({
+      tracking_id: item.id,
+      gear_item_id: item.gear_item_id,
+      user_id: item.user_id,
+    }));
+    await batchCheckConversions(conversionData);
+
+    // Update last_checked_at for all items
+    const { error: updateError } = await (supabase as any)
+      .from('price_tracking')
+      .update({ last_checked_at: new Date().toISOString() })
+      .in('id', trackingItems.map((item: any) => item.id));
+
+    if (updateError) {
+      log.warn('Failed to update last_checked_at timestamps', {}, updateError);
+      // Non-fatal: continue but log for monitoring
+    }
+
+    log.info('Price check job completed', {
+      processed: trackingItems.length,
+      successful,
+      failed,
+    });
+
+    return NextResponse.json({
+      success: true,
+      processed: trackingItems.length,
+      successful,
+      failed,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error('Cron job error', {}, error as Error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Process a single tracking item (Review fix #12: Collects alerts for batching)
+ */
+async function processTrackingItem(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  item: PriceTrackingWithGearItem,
+  priceDropAlerts: Array<{
+    user_id: string;
+    tracking_id: string;
+    alert_type: 'price_drop';
+    title: string;
+    message: string;
+    link_url: string;
+  }>
+): Promise<void> {
+  try {
+    const itemName = item.gear_items?.name;
+    if (!itemName) {
+      log.warn('No name found for gear item', {
+        tracking_id: item.id,
+        gear_item_id: item.gear_item_id,
+      });
+      return;
+    }
+
+    // Search all sources
+    const searchResults = await searchAllSources(supabase, itemName, item.id);
+
+    if (searchResults.results.length === 0) {
+      log.debug('No price results found', {
+        tracking_id: item.id,
+        item_name: itemName,
+      });
+      return;
+    }
+
+    // Run comparison and snapshot recording in parallel for better performance
+    // These operations are independent - both use searchResults but don't depend on each other
+    // Note: Second result intentionally ignored - snapshot recording is fire-and-forget
+    const [comparison, _snapshotResult] = await Promise.all([
+      compareWithHistory(item.id, searchResults.results),
+      recordPriceSnapshot(item.id, searchResults.results), // Fire-and-forget operation
+    ]);
+
+    // Collect alert if price dropped (will be batch created later)
+    if (comparison.hasPriceDrop && item.alerts_enabled) {
+      const savingsAmount = comparison.previousLowest - comparison.newLowest;
+      const savingsPercent = ((savingsAmount / comparison.previousLowest) * 100).toFixed(0);
+
+      priceDropAlerts.push({
+        user_id: item.user_id,
+        tracking_id: item.id,
+        alert_type: 'price_drop',
+        title: `Price drop! ${itemName}`,
+        message: `Now €${comparison.newLowest.toFixed(2)} (was €${comparison.previousLowest.toFixed(2)}) - Save ${savingsPercent}%!`,
+        link_url: `/wishlist/${item.gear_item_id}`,
+      });
+
+      log.info('Price drop detected', {
+        tracking_id: item.id,
+        item_name: itemName,
+        previous_price: comparison.previousLowest,
+        new_price: comparison.newLowest,
+        savings_percent: savingsPercent,
+      });
+    }
+
+    // Check for new personal offers (US5)
+    await checkPersonalOffers(item.id, item.user_id, itemName);
+  } catch (error) {
+    log.error('Failed to process tracking item', { tracking_id: item.id }, error as Error);
+    throw error;
+  }
+}
+
+// Conversion checking moved to batch operation in batch-operations.ts (Review fix #12)
+
+/**
+ * Check for new personal offers and send notifications (US5)
+ */
+async function checkPersonalOffers(
+  trackingId: string,
+  userId: string,
+  itemName: string
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+
+  // Get active personal offers for this tracking item
+  const { data: offers } = await (supabase as any)
+    .from('personal_offers')
+    .select(`
+      *,
+      partner_retailers (
+        name
+      )
+    `)
+    .eq('tracking_id', trackingId)
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (!offers || offers.length === 0) {
+    return;
+  }
+
+  // Send notification for each offer (notification tracking handled in price_alerts table)
+  for (const offer of offers as any[]) {
+    try {
+      const partnerName = offer.partner_retailers?.name;
+      if (!partnerName) {
+        log.warn('Partner retailer not found for offer', { offer_id: offer.id });
+        continue;
+      }
+
+      await sendPersonalOfferAlert(
+        userId,
+        offer.id,
+        partnerName,
+        offer.product_name,
+        offer.offer_price,
+        offer.original_price,
+        offer.product_url
+      );
+
+      log.info('Personal offer alert sent', {
+        tracking_id: trackingId,
+        offer_id: offer.id,
+        partner_name: partnerName,
+        item_name: itemName,
+      });
+    } catch (error) {
+      log.error('Failed to send personal offer alert', { offer_id: offer.id }, error as Error);
+    }
+  }
+}

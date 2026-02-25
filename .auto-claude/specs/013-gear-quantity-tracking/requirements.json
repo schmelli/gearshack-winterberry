@@ -1,0 +1,4 @@
+{
+  "task_description": "# Gear Quantity Tracking\n\nEnable the existing database quantity column to track multiple units of the same gear item, allowing proper inventory counts.\n\n## Rationale\nDatabase column exists but is unused (known gap). Competitor PackLight users complain about inability to track quantities (pain-4-1). Essential for consumables and spares.\n\n## User Stories\n- As a backpacker, I want to track that I own 4 fuel canisters so that I know how many are available for my trip\n\n## Acceptance Criteria\n- [ ] Gear form includes quantity field with default of 1\n- [ ] Inventory shows total count when quantity > 1\n- [ ] Loadout builder respects available quantity\n- [ ] Weight calculations multiply by quantity where applicable\n- [ ] Gallery view displays quantity badge on multi-unit items\n",
+  "workflow_type": "feature"
+}

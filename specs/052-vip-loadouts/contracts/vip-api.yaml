@@ -1,0 +1,832 @@
+openapi: 3.0.3
+info:
+  title: VIP Loadouts API
+  description: API contracts for VIP Loadouts feature (Feature 052)
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API routes
+
+tags:
+  - name: VIP Discovery
+    description: Public VIP browsing and search
+  - name: VIP Following
+    description: Follow/unfollow VIP accounts
+  - name: VIP Bookmarks
+    description: Bookmark VIP loadouts
+  - name: VIP Loadouts
+    description: VIP loadout operations
+  - name: Admin VIP
+    description: Admin VIP management
+
+paths:
+  /vip:
+    get:
+      tags: [VIP Discovery]
+      summary: List VIPs with optional search
+      description: Returns paginated list of VIPs. Supports search by name and filtering by featured status.
+      parameters:
+        - name: q
+          in: query
+          description: Search query (name, bio, loadout keywords)
+          schema:
+            type: string
+        - name: featured
+          in: query
+          description: Filter to featured VIPs only
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of VIPs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipListResponse'
+
+  /vip/{slug}:
+    get:
+      tags: [VIP Discovery]
+      summary: Get VIP profile by slug
+      description: Returns full VIP profile with loadouts summary
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: VIP URL slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: VIP profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipProfile'
+        '404':
+          description: VIP not found
+
+  /vip/{slug}/loadouts:
+    get:
+      tags: [VIP Loadouts]
+      summary: List VIP's loadouts
+      description: Returns all published loadouts for a VIP
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of loadouts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipLoadoutListResponse'
+
+  /vip/{slug}/loadouts/{loadoutSlug}:
+    get:
+      tags: [VIP Loadouts]
+      summary: Get VIP loadout detail
+      description: Returns full loadout with all items
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: loadoutSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Loadout detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipLoadoutDetail'
+        '404':
+          description: Loadout not found
+
+  /vip/follow:
+    post:
+      tags: [VIP Following]
+      summary: Follow a VIP
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vipId]
+              properties:
+                vipId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Successfully followed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: VIP not found
+
+    delete:
+      tags: [VIP Following]
+      summary: Unfollow a VIP
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vipId]
+              properties:
+                vipId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Successfully unfollowed
+        '401':
+          description: Unauthorized
+
+  /vip/bookmark:
+    post:
+      tags: [VIP Bookmarks]
+      summary: Bookmark a VIP loadout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [loadoutId]
+              properties:
+                loadoutId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Successfully bookmarked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarkResponse'
+        '401':
+          description: Unauthorized
+
+    delete:
+      tags: [VIP Bookmarks]
+      summary: Remove bookmark from VIP loadout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [loadoutId]
+              properties:
+                loadoutId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Successfully removed bookmark
+        '401':
+          description: Unauthorized
+
+  /vip/loadouts/copy:
+    post:
+      tags: [VIP Loadouts]
+      summary: Copy VIP loadout to user's account
+      description: Creates a new loadout in user's account with items as wishlist status
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vipLoadoutId]
+              properties:
+                vipLoadoutId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Loadout copied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopyLoadoutResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: VIP loadout not found
+
+  # Admin endpoints
+  /admin/vip:
+    get:
+      tags: [Admin VIP]
+      summary: List all VIPs (admin)
+      description: Returns all VIPs including archived for admin management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [curated, claimed, archived]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of VIPs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVipListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+
+    post:
+      tags: [Admin VIP]
+      summary: Create new VIP account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVipRequest'
+      responses:
+        '201':
+          description: VIP created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipProfile'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+
+  /admin/vip/{id}:
+    get:
+      tags: [Admin VIP]
+      summary: Get VIP details (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: VIP details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipProfile'
+
+    patch:
+      tags: [Admin VIP]
+      summary: Update VIP account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVipRequest'
+      responses:
+        '200':
+          description: VIP updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipProfile'
+
+    delete:
+      tags: [Admin VIP]
+      summary: Archive VIP account
+      description: Soft deletes VIP, retained for 30 days
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Archive reason (e.g., takedown request)
+      responses:
+        '200':
+          description: VIP archived
+
+  /admin/vip/{id}/loadouts:
+    get:
+      tags: [Admin VIP]
+      summary: List VIP loadouts (admin)
+      description: Returns all loadouts including drafts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of loadouts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipLoadoutListResponse'
+
+    post:
+      tags: [Admin VIP]
+      summary: Create VIP loadout
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVipLoadoutRequest'
+      responses:
+        '201':
+          description: Loadout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VipLoadoutDetail'
+
+  /admin/vip/{id}/loadouts/{loadoutId}:
+    patch:
+      tags: [Admin VIP]
+      summary: Update VIP loadout
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVipLoadoutRequest'
+      responses:
+        '200':
+          description: Loadout updated
+
+    delete:
+      tags: [Admin VIP]
+      summary: Delete VIP loadout
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loadout deleted
+
+  /admin/vip/{id}/loadouts/{loadoutId}/publish:
+    post:
+      tags: [Admin VIP]
+      summary: Publish VIP loadout
+      description: Publishes loadout and notifies followers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: loadoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loadout published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notificationCount:
+                    type: integer
+                    description: Number of followers notified
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    VipSummary:
+      type: object
+      required: [id, name, slug, avatarUrl, followerCount, loadoutCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [curated, claimed]
+        isFeatured:
+          type: boolean
+        followerCount:
+          type: integer
+        loadoutCount:
+          type: integer
+        isFollowing:
+          type: boolean
+          description: Whether current user follows this VIP
+
+    VipProfile:
+      allOf:
+        - $ref: '#/components/schemas/VipSummary'
+        - type: object
+          properties:
+            socialLinks:
+              $ref: '#/components/schemas/SocialLinks'
+            loadouts:
+              type: array
+              items:
+                $ref: '#/components/schemas/VipLoadoutSummary'
+
+    SocialLinks:
+      type: object
+      properties:
+        youtube:
+          type: string
+          format: uri
+        instagram:
+          type: string
+          format: uri
+        website:
+          type: string
+          format: uri
+        twitter:
+          type: string
+          format: uri
+
+    VipLoadoutSummary:
+      type: object
+      required: [id, name, slug, sourceUrl, isSourceAvailable]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        description:
+          type: string
+        tripType:
+          type: string
+        dateRange:
+          type: string
+        isSourceAvailable:
+          type: boolean
+        totalWeightGrams:
+          type: integer
+        itemCount:
+          type: integer
+        isBookmarked:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+
+    VipLoadoutDetail:
+      allOf:
+        - $ref: '#/components/schemas/VipLoadoutSummary'
+        - type: object
+          properties:
+            vip:
+              $ref: '#/components/schemas/VipSummary'
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/VipLoadoutItem'
+            categoryBreakdown:
+              type: array
+              items:
+                type: object
+                properties:
+                  category:
+                    type: string
+                  weightGrams:
+                    type: integer
+                  itemCount:
+                    type: integer
+
+    VipLoadoutItem:
+      type: object
+      required: [id, name, weightGrams, quantity, category]
+      properties:
+        id:
+          type: string
+          format: uuid
+        gearItemId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        weightGrams:
+          type: integer
+        quantity:
+          type: integer
+        notes:
+          type: string
+        category:
+          type: string
+        sortOrder:
+          type: integer
+
+    VipListResponse:
+      type: object
+      properties:
+        vips:
+          type: array
+          items:
+            $ref: '#/components/schemas/VipSummary'
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+
+    VipLoadoutListResponse:
+      type: object
+      properties:
+        loadouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/VipLoadoutSummary'
+
+    AdminVipListResponse:
+      type: object
+      properties:
+        vips:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/VipProfile'
+              - type: object
+                properties:
+                  archivedAt:
+                    type: string
+                    format: date-time
+                  archiveReason:
+                    type: string
+        total:
+          type: integer
+
+    FollowResponse:
+      type: object
+      properties:
+        isFollowing:
+          type: boolean
+        followerCount:
+          type: integer
+
+    BookmarkResponse:
+      type: object
+      properties:
+        isBookmarked:
+          type: boolean
+
+    CopyLoadoutResponse:
+      type: object
+      properties:
+        loadoutId:
+          type: string
+          format: uuid
+          description: ID of newly created user loadout
+        loadoutName:
+          type: string
+
+    CreateVipRequest:
+      type: object
+      required: [name, bio, avatarUrl, socialLinks]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        socialLinks:
+          $ref: '#/components/schemas/SocialLinks'
+        isFeatured:
+          type: boolean
+          default: false
+
+    UpdateVipRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        socialLinks:
+          $ref: '#/components/schemas/SocialLinks'
+        isFeatured:
+          type: boolean
+
+    CreateVipLoadoutRequest:
+      type: object
+      required: [name, sourceUrl, items]
+      properties:
+        name:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        description:
+          type: string
+        tripType:
+          type: string
+        dateRange:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateLoadoutItemRequest'
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+
+    CreateLoadoutItemRequest:
+      type: object
+      required: [name, weightGrams, category]
+      properties:
+        gearItemId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        weightGrams:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+        notes:
+          type: string
+        category:
+          type: string
+
+    UpdateVipLoadoutRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        description:
+          type: string
+        tripType:
+          type: string
+        dateRange:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateLoadoutItemRequest'
+        status:
+          type: string
+          enum: [draft, published]
