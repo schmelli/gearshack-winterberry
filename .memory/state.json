@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "project": "Gearshack Winterberry",
+  "description": "Gearshack is a hiking and outdoor equipment management platform",
+  "memories": [],
+  "lastUpdated": "2026-02-25T16:32:10.701Z",
+  "extractionCount": 1,
+  "snapshot": {
+    "enabled": true,
+    "branch": "__memory-snapshots",
+    "remote": "origin"
+  }
+}
