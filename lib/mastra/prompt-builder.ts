@@ -46,6 +46,13 @@ interface LocalizedContent {
   categoryReference: string;
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
+  /**
+   * Few-shot examples demonstrating ideal vs poor response quality.
+   * Optional: allows future locales to omit the section without a code change.
+   * When present, injection is further gated on `hasInventory` at call time,
+   * since all examples are only meaningful when the user has gear data.
+   */
+  fewShotExamples?: string;
 }
 
 // =============================================================================

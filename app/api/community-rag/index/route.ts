@@ -85,19 +85,17 @@ export async function POST(request: Request): Promise<Response> {
     // Verify ownership: the authenticated user must be the author of the source record.
     // This prevents a malicious user from overwriting or deleting embeddings for
     // content they don't own. Applies to BOTH upsert and delete actions.
+    // Also guards against indexing soft-deleted content — both posts and replies
+    // support soft deletion via the is_deleted flag.
     const ownershipTable =
       source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
-    let ownershipQuery = supabase
+    const { data: sourceRecord, error: ownerError } = await supabase
       .from(ownershipTable)
       .select('id, author_id')
       .eq('id', source_id)
-      .eq('author_id', user.id);
-    // For replies, also verify the reply hasn't been soft-deleted to prevent
-    // indexing deleted content via the API
-    if (source_type === 'bulletin_reply') {
-      ownershipQuery = ownershipQuery.eq('is_deleted', false);
-    }
-    const { data: sourceRecord, error: ownerError } = await ownershipQuery.single();
+      .eq('author_id', user.id)
+      .eq('is_deleted', false)
+      .single();
 
     if (ownerError || !sourceRecord) {
       return NextResponse.json(
