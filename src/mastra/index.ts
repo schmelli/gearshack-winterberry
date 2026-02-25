@@ -55,9 +55,15 @@ const vectors = DATABASE_URL
 // Logger
 // ---------------------------------------------------------------------------
 
+const _rawLevel = process.env.MASTRA_LOG_LEVEL;
+const _logLevel: 'info' | 'debug' | 'warn' | 'error' =
+  _rawLevel === 'debug' || _rawLevel === 'warn' || _rawLevel === 'error'
+    ? _rawLevel
+    : 'info';
+
 const logger = createLogger({
   name: 'gearshack-ai',
-  level: (process.env.MASTRA_LOG_LEVEL as 'info' | 'debug' | 'warn' | 'error') || 'info',
+  level: _logLevel,
 });
 
 // ---------------------------------------------------------------------------

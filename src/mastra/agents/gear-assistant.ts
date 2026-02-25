@@ -19,34 +19,41 @@ import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
 
 // Tools
-import { analyzeLoadoutTool } from '../../../lib/mastra/tools/analyze-loadout';
-import { inventoryInsightsTool } from '../../../lib/mastra/tools/inventory-insights';
-import { searchGearKnowledgeTool } from '../../../lib/mastra/tools/search-gear-knowledge';
-import { addToLoadoutTool } from '../../../lib/mastra/tools/add-to-loadout';
-import { searchGearTool, findAlternativesTool } from '../../../lib/mastra/tools/mcp-graph';
-import { queryUserDataSqlTool } from '../../../lib/mastra/tools/query-user-data-sql';
-import { queryGearGraphTool } from '../../../lib/mastra/tools/query-geargraph-v2';
-import { searchWebTool } from '../../../lib/mastra/tools/search-web';
+import { analyzeLoadoutTool } from '@/lib/mastra/tools/analyze-loadout';
+import { inventoryInsightsTool } from '@/lib/mastra/tools/inventory-insights';
+import { searchGearKnowledgeTool } from '@/lib/mastra/tools/search-gear-knowledge';
+import { addToLoadoutTool } from '@/lib/mastra/tools/add-to-loadout';
+import { searchGearTool, findAlternativesTool } from '@/lib/mastra/tools/mcp-graph';
+import { queryUserDataSqlTool } from '@/lib/mastra/tools/query-user-data-sql';
+import { queryGearGraphTool } from '@/lib/mastra/tools/query-geargraph-v2';
+import { searchWebTool } from '@/lib/mastra/tools/search-web';
 
 // Working memory schema
-import { GearshackUserProfileSchema } from '../../../lib/mastra/schemas/working-memory';
+import { GearshackUserProfileSchema } from '@/lib/mastra/schemas/working-memory';
 
 // ---------------------------------------------------------------------------
 // Environment
 // ---------------------------------------------------------------------------
 
-const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 const DATABASE_URL = process.env.DATABASE_URL;
 
+// Lazy singleton — avoids creating a new gateway instance on each call and
+// defers key validation until first use (matches production pattern in mastra-agent.ts).
+let _gateway: ReturnType<typeof createGateway> | null = null;
+
 function getGateway() {
-  if (!AI_GATEWAY_KEY) {
-    throw new Error(
-      '[Mastra Studio] AI_GATEWAY_API_KEY or AI_GATEWAY_KEY is required. ' +
-      'Copy from .env.example and set in .env.local.'
-    );
+  if (!_gateway) {
+    const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+    if (!AI_GATEWAY_KEY) {
+      throw new Error(
+        '[Mastra Studio] AI_GATEWAY_API_KEY or AI_GATEWAY_KEY is required. ' +
+        'Copy from .env.example and set in .env.local.'
+      );
+    }
+    _gateway = createGateway({ apiKey: AI_GATEWAY_KEY });
   }
-  return createGateway({ apiKey: AI_GATEWAY_KEY });
+  return _gateway;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +142,13 @@ Respond in English by default. If the user writes in German, switch to German.`;
  *
  * Registered in `src/mastra/index.ts` so that `npx mastra dev` exposes it
  * in the Studio UI (Agent Chat, Tool Playground, Tracing).
+ *
+ * Required .env.local variables for full tool access:
+ *   MASTRA_DEV_USER_ID=<your-supabase-user-uuid>
+ *     Without this, all user-scoped tools (analyzeLoadout, inventoryInsights,
+ *     addToLoadout, queryUserData) will return "User not authenticated".
+ *     Set it to your own Supabase auth UUID for local development.
+ *     ⚠️  Never set this in production — only .env.local.
  */
 export const gearAssistant = new Agent({
   id: 'gear-assistant',
