@@ -17,7 +17,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { MastraChatEvent } from '@/types/mastra';
+import type { MastraChatEvent, ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -31,6 +31,7 @@ export type SSEEventType =
   | 'tool_call'
   | 'tool_result'
   | 'workflow_progress'
+  | 'confirm_action'
   | 'done'
   | 'error';
 
@@ -213,6 +214,17 @@ export function encodeErrorEvent(message: string, code?: string): string {
   return encodeSSEEvent('error', data);
 }
 
+/**
+ * Encode a confirm_action event for SSE transmission.
+ * Sent when a workflow suspends and needs user confirmation.
+ *
+ * @param confirmation - Confirmation data with runId, message, and details
+ * @returns Encoded SSE confirm_action event
+ */
+export function encodeConfirmActionEvent(confirmation: ConfirmActionData): string {
+  return encodeSSEEvent('confirm_action', confirmation);
+}
+
 // =====================================================
 // Mastra Stream Wrapper
 // =====================================================
@@ -329,6 +341,9 @@ function encodeMastraChatEvent(
     case 'workflow_progress':
       options.onWorkflowProgress?.(event.step, event.message);
       return encodeWorkflowProgressEvent(event.step, 'running', event.message);
+
+    case 'confirm_action':
+      return encodeConfirmActionEvent(event.confirmation);
 
     case 'done':
       // Skip done event here - we emit our own at stream end
