@@ -82,12 +82,7 @@ function getGateway() {
 
 async function fileToBase64(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
-  }
-  return btoa(binary);
+  return Buffer.from(arrayBuffer).toString('base64');
 }
 
 // =============================================================================
@@ -105,7 +100,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
 
     if (authError || !user) {
       return NextResponse.json(
-        { success: false, items: [], error: 'Unauthorized' },
+        { success: false, items: [], error: 'UNAUTHORIZED' },
         { status: 401 }
       );
     }
@@ -113,7 +108,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     // 2. Check AI configuration
     if (!process.env.AI_GATEWAY_API_KEY) {
       return NextResponse.json(
-        { success: false, items: [], error: 'AI vision is not configured' },
+        { success: false, items: [], error: 'AI_NOT_CONFIGURED' },
         { status: 503 }
       );
     }
@@ -124,7 +119,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
 
     if (!imageFile || !(imageFile instanceof File)) {
       return NextResponse.json(
-        { success: false, items: [], error: 'No image provided' },
+        { success: false, items: [], error: 'NO_IMAGE_PROVIDED' },
         { status: 400 }
       );
     }
@@ -135,7 +130,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
         {
           success: false,
           items: [],
-          error: `Invalid image type: ${imageFile.type}. Allowed: JPEG, PNG, WebP`,
+          error: 'INVALID_IMAGE_TYPE',
         },
         { status: 400 }
       );
@@ -146,7 +141,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
         {
           success: false,
           items: [],
-          error: 'Image too large. Maximum size is 10MB.',
+          error: 'IMAGE_TOO_LARGE',
         },
         { status: 400 }
       );
@@ -156,7 +151,6 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     const imageBase64 = await fileToBase64(imageFile);
 
     // 6. AI Vision analysis with timeout
-    console.log('[Vision] Analyzing image for gear items...');
     const gateway = getGateway();
 
     const abortController = new AbortController();
@@ -192,7 +186,6 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     }
 
     const detectedItems = aiResult.object.detectedItems;
-    console.log(`[Vision] Detected ${detectedItems.length} gear items`);
 
     if (detectedItems.length === 0) {
       return NextResponse.json({
@@ -202,14 +195,9 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     }
 
     // 7. Match with catalog
-    console.log('[Vision] Matching detected items with catalog...');
     const matchedItems = await matchDetectedItemsWithCatalog(
       supabase,
       detectedItems
-    );
-
-    console.log(
-      `[Vision] Matched ${matchedItems.filter((m) => m.catalogMatch).length}/${matchedItems.length} items with catalog`
     );
 
     return NextResponse.json({
@@ -221,20 +209,13 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
 
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json(
-        { success: false, items: [], error: 'Vision analysis timed out' },
+        { success: false, items: [], error: 'VISION_TIMEOUT' },
         { status: 504 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        items: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to analyze image',
-      },
+      { success: false, items: [], error: 'SCAN_FAILED' },
       { status: 500 }
     );
   }

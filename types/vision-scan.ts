@@ -51,7 +51,6 @@ export type VisionScanStatus =
   | 'idle'
   | 'uploading'
   | 'analyzing'
-  | 'matching'
   | 'review'
   | 'importing'
   | 'success'

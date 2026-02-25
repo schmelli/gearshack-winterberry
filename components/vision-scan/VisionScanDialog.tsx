@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useVisionScan } from '@/hooks/inventory/useVisionScan';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { VisionScanResults } from './VisionScanResults';
 
 // =============================================================================
@@ -45,7 +44,6 @@ export function VisionScanDialog({
   onImportComplete,
 }: VisionScanDialogProps) {
   const t = useTranslations('VisionScan');
-  const { user } = useSupabaseAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -57,7 +55,6 @@ export function VisionScanDialog({
     importSelected,
     reset,
   } = useVisionScan({
-    t,
     onImportComplete: (count) => {
       onImportComplete?.();
       // Auto-close after short delay on success
@@ -91,15 +88,12 @@ export function VisionScanDialog({
   }, []);
 
   const handleImport = useCallback(() => {
-    if (user?.id) {
-      importSelected(user.id);
-    }
-  }, [user?.id, importSelected]);
+    importSelected();
+  }, [importSelected]);
 
   const isProcessing =
     state.status === 'uploading' ||
-    state.status === 'analyzing' ||
-    state.status === 'matching';
+    state.status === 'analyzing';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -159,7 +153,6 @@ export function VisionScanDialog({
               <p className="text-sm font-medium">
                 {state.status === 'uploading' && t('statusUploading')}
                 {state.status === 'analyzing' && t('statusAnalyzing')}
-                {state.status === 'matching' && t('statusMatching')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('pleaseWait')}
@@ -190,7 +183,6 @@ export function VisionScanDialog({
                 onToggleItem={toggleItem}
                 onSelectAll={selectAll}
                 onDeselectAll={deselectAll}
-                t={t}
               />
             )}
           </>

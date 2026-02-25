@@ -11,6 +11,7 @@
 'use client';
 
 import { Check, X, Star, Package } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,6 @@ interface VisionScanResultsProps {
   onToggleItem: (index: number) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
-  t: (key: string, params?: Record<string, string | number | Date>) => string;
 }
 
 // =============================================================================
@@ -34,16 +34,15 @@ interface VisionScanResultsProps {
 // =============================================================================
 
 function getConfidenceBadge(
-  confidence: number,
-  t: VisionScanResultsProps['t']
-): { label: string; variant: 'default' | 'secondary' | 'outline' } {
+  confidence: number
+): { variant: 'default' | 'secondary' | 'outline' } {
   if (confidence >= 0.8) {
-    return { label: t('highConfidence'), variant: 'default' };
+    return { variant: 'default' };
   }
   if (confidence >= 0.5) {
-    return { label: t('mediumConfidence'), variant: 'secondary' };
+    return { variant: 'secondary' };
   }
-  return { label: t('lowConfidence'), variant: 'outline' };
+  return { variant: 'outline' };
 }
 
 // =============================================================================
@@ -56,8 +55,8 @@ export function VisionScanResults({
   onToggleItem,
   onSelectAll,
   onDeselectAll,
-  t,
 }: VisionScanResultsProps) {
+  const t = useTranslations('VisionScan');
   const selectedCount = selectedIndices.size;
   const allSelected = selectedCount === results.length;
 
@@ -84,7 +83,7 @@ export function VisionScanResults({
         {results.map((result, index) => {
           const { detected, catalogMatch } = result;
           const isSelected = selectedIndices.has(index);
-          const confidence = getConfidenceBadge(detected.confidence, t);
+          const confidence = getConfidenceBadge(detected.confidence);
 
           return (
             <div

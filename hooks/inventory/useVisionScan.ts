@@ -4,28 +4,28 @@
  * Feature: Image-to-Inventory via Vision
  *
  * Business logic for AI-powered gear detection from photos.
- * State machine: idle → uploading → analyzing → matching → review → importing → success/error
+ * State machine: idle → uploading → analyzing → review → importing → success/error
  */
 
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { useTranslations } from 'next-intl';
+import { useSupabaseStore } from '@/hooks/useSupabaseStore';
 import type {
   VisionScanState,
   VisionScanStatus,
   CatalogMatchResult,
   VisionScanResponse,
 } from '@/types/vision-scan';
-import type { GearCondition } from '@/types/gear';
+import type { GearCondition, GearItem } from '@/types/gear';
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface UseVisionScanOptions {
-  t: (key: string, params?: Record<string, string | number | Date>) => string;
   onImportComplete?: (count: number) => void;
 }
 
@@ -35,7 +35,7 @@ export interface UseVisionScanReturn {
   toggleItem: (index: number) => void;
   selectAll: () => void;
   deselectAll: () => void;
-  importSelected: (userId: string) => Promise<void>;
+  importSelected: () => Promise<void>;
   reset: () => void;
 }
 
@@ -71,16 +71,51 @@ function mapVisionConditionToGear(
   }
 }
 
+/**
+ * Map structured API error codes to i18n-friendly messages.
+ * Keeps internals off the network and lets the client own the UX copy.
+ */
+function mapApiError(
+  code: string | undefined,
+  t: (key: string) => string
+): string {
+  switch (code) {
+    case 'UNAUTHORIZED':
+      return t('errorUnauthorized');
+    case 'AI_NOT_CONFIGURED':
+      return t('errorNotConfigured');
+    case 'NO_IMAGE_PROVIDED':
+      return t('errorNoImage');
+    case 'INVALID_IMAGE_TYPE':
+      return t('errorInvalidType');
+    case 'IMAGE_TOO_LARGE':
+      return t('errorTooLarge');
+    case 'VISION_TIMEOUT':
+      return t('errorTimeout');
+    case 'SCAN_FAILED':
+    default:
+      return t('scanFailed');
+  }
+}
+
 // =============================================================================
 // Hook Implementation
 // =============================================================================
 
 export function useVisionScan({
-  t,
   onImportComplete,
-}: UseVisionScanOptions): UseVisionScanReturn {
+}: UseVisionScanOptions = {}): UseVisionScanReturn {
+  const t = useTranslations('VisionScan');
+  const addItem = useSupabaseStore((state) => state.addItem);
   const [state, setState] = useState<VisionScanState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Clean up any in-flight request when the component unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const setStatus = useCallback((status: VisionScanStatus) => {
     setState((prev) => ({ ...prev, status }));
@@ -118,15 +153,10 @@ export function useVisionScan({
           signal: controller.signal,
         });
 
-        if (!response.ok) {
-          const errorData = (await response.json()) as VisionScanResponse;
-          throw new Error(errorData.error || `Scan failed (${response.status})`);
-        }
-
         const data = (await response.json()) as VisionScanResponse;
 
-        if (!data.success) {
-          throw new Error(data.error || 'Scan failed');
+        if (!response.ok || !data.success) {
+          throw new Error(mapApiError(data.error, t));
         }
 
         if (data.items.length === 0) {
@@ -157,16 +187,14 @@ export function useVisionScan({
           importedCount: 0,
         });
 
-        toast.success(
-          t('itemsDetected', { count: data.items.length })
-        );
+        toast.success(t('itemsDetected', { count: data.items.length }));
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') {
           return; // Cancelled, don't update state
         }
 
         const message =
-          error instanceof Error ? error.message : 'Failed to scan image';
+          error instanceof Error ? error.message : t('scanFailed');
         setState((prev) => ({
           ...prev,
           status: 'error',
@@ -212,80 +240,113 @@ export function useVisionScan({
   // Import Selected Items
   // =========================================================================
 
-  const importSelected = useCallback(
-    async (userId: string) => {
-      const selectedItems: CatalogMatchResult[] = [];
-      state.results.forEach((item, index) => {
-        if (state.selectedIndices.has(index)) {
-          selectedItems.push(item);
-        }
-      });
-
-      if (selectedItems.length === 0) {
-        toast.warning(t('noItemsSelected'));
-        return;
+  const importSelected = useCallback(async () => {
+    const selectedItems: CatalogMatchResult[] = [];
+    state.results.forEach((item, index) => {
+      if (state.selectedIndices.has(index)) {
+        selectedItems.push(item);
       }
+    });
 
-      setStatus('importing');
+    if (selectedItems.length === 0) {
+      toast.warning(t('noItemsSelected'));
+      return;
+    }
 
-      try {
-        const supabase = createClient();
-        let importedCount = 0;
+    setStatus('importing');
 
-        for (const item of selectedItems) {
-          const catalogMatch = item.catalogMatch;
-          const detected = item.detected;
-
-          const insertData: Record<string, unknown> = {
-            user_id: userId,
-            name: catalogMatch?.productName || detected.name,
-            brand: catalogMatch?.brandName || detected.brand,
-            weight_grams:
-              catalogMatch?.weightGrams || detected.estimatedWeightGrams,
-            product_type_id: catalogMatch?.productTypeId || null,
-            condition: mapVisionConditionToGear(detected.condition),
-            status: 'own',
-          };
-
-          const { error } = await supabase
-            .from('gear_items')
-            .insert(insertData);
-
-          if (error) {
-            console.error(
-              `[VisionScan] Failed to import "${detected.name}":`,
-              error
-            );
-            continue;
-          }
-
-          importedCount++;
-        }
-
-        setState((prev) => ({
-          ...prev,
-          status: 'success',
-          importedCount,
+    try {
+      // Build all GearItem payloads upfront
+      const itemPayloads: Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'>[] =
+        selectedItems.map(({ detected, catalogMatch }) => ({
+          name: catalogMatch?.productName || detected.name,
+          brand: catalogMatch?.brandName || detected.brand || null,
+          description: null,
+          brandUrl: null,
+          modelNumber: null,
+          productUrl: null,
+          productTypeId: catalogMatch?.productTypeId || null,
+          weightGrams:
+            catalogMatch?.weightGrams ||
+            detected.estimatedWeightGrams ||
+            null,
+          weightDisplayUnit: 'g',
+          lengthCm: null,
+          widthCm: null,
+          heightCm: null,
+          size: null,
+          color: null,
+          volumeLiters: null,
+          materials: null,
+          tentConstruction: null,
+          pricePaid: null,
+          currency: null,
+          purchaseDate: null,
+          retailer: null,
+          retailerUrl: null,
+          manufacturerPrice: catalogMatch?.priceUsd || null,
+          manufacturerCurrency: catalogMatch?.priceUsd ? 'USD' : null,
+          primaryImageUrl: null,
+          galleryImageUrls: [],
+          nobgImages: undefined,
+          condition: mapVisionConditionToGear(detected.condition),
+          status: 'own',
+          notes: null,
+          quantity: 1,
+          isFavourite: false,
+          isForSale: false,
+          canBeBorrowed: false,
+          canBeTraded: false,
+          sourceMerchantId: null,
+          sourceOfferId: null,
+          sourceLoadoutId: null,
+          sourceAttribution: null,
+          dependencyIds: [],
         }));
 
-        toast.success(
-          t('importSuccess', { count: importedCount })
-        );
+      // Batch import in parallel via the Zustand store so the UI refreshes
+      // immediately without requiring a page reload.
+      const importResults = await Promise.allSettled(
+        itemPayloads.map((payload) => addItem(payload))
+      );
 
-        onImportComplete?.(importedCount);
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : 'Import failed';
-        setState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: message,
-        }));
-        toast.error(t('importFailed'), { description: message });
+      const importedCount = importResults.filter(
+        (r) => r.status === 'fulfilled'
+      ).length;
+
+      const failedNames = importResults
+        .map((r, i) => ({ result: r, name: selectedItems[i].detected.name }))
+        .filter(({ result }) => result.status === 'rejected')
+        .map(({ name }) => name);
+
+      setState((prev) => ({
+        ...prev,
+        status: 'success',
+        importedCount,
+      }));
+
+      if (failedNames.length === 0) {
+        toast.success(t('importSuccess', { count: importedCount }));
+      } else {
+        toast.success(t('importSuccess', { count: importedCount }), {
+          description: t('importPartialFailure', {
+            failed: failedNames.join(', '),
+          }),
+        });
       }
-    },
-    [state.results, state.selectedIndices, t, setStatus, onImportComplete]
-  );
+
+      onImportComplete?.(importedCount);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : t('importFailed');
+      setState((prev) => ({
+        ...prev,
+        status: 'error',
+        error: message,
+      }));
+      toast.error(t('importFailed'), { description: message });
+    }
+  }, [state.results, state.selectedIndices, t, setStatus, onImportComplete, addItem]);
 
   // =========================================================================
   // Reset

@@ -54,28 +54,20 @@ export async function matchDetectedItemsWithCatalog(
   supabase: SupabaseClient<Database>,
   detectedItems: DetectedGearItem[]
 ): Promise<CatalogMatchResult[]> {
-  const results: CatalogMatchResult[] = [];
-
-  for (const detected of detectedItems) {
-    try {
-      const match = await findBestCatalogMatch(supabase, detected);
-      results.push({
-        detected,
-        catalogMatch: match,
-      });
-    } catch (error) {
-      console.error(
-        `[VisionMatcher] Failed to match "${detected.name}":`,
-        error
-      );
-      results.push({
-        detected,
-        catalogMatch: null,
-      });
-    }
-  }
-
-  return results;
+  return Promise.all(
+    detectedItems.map(async (detected) => {
+      try {
+        const catalogMatch = await findBestCatalogMatch(supabase, detected);
+        return { detected, catalogMatch };
+      } catch (error) {
+        console.error(
+          `[VisionMatcher] Failed to match "${detected.name}":`,
+          error
+        );
+        return { detected, catalogMatch: null };
+      }
+    })
+  );
 }
 
 // =============================================================================
