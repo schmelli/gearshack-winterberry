@@ -126,8 +126,13 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
   /** Intent metadata for metrics */
   intent: z.string(),
   confidence: z.number(),
-  /** Loadout context for proactive suggestions on loadout-detail screen */
-  loadoutContext: z.custom<LoadoutContext>().nullable(),
+  /**
+   * Loadout context for proactive suggestions on loadout-detail screen.
+   * Typed as z.unknown() because Zod cannot validate the full LoadoutContext
+   * shape at the Mastra step boundary — the type is asserted in the route handler
+   * where the context is consumed.
+   */
+  loadoutContext: z.unknown().nullable(),
 });
 
 // =============================================================================

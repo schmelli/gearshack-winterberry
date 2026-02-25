@@ -66,6 +66,7 @@ import {
 } from '@/lib/mastra/proactive-suggestions';
 import { mastra } from '@/lib/mastra/instance';
 import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
+import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest } from '@/types/mastra';
 
 // Force Node.js runtime for Mastra compatibility
@@ -355,6 +356,9 @@ export async function POST(request: Request): Promise<Response> {
 
           emitProgress('context', progressMessages[locale].context);
 
+          // Cast required because Mastra's generic types do not propagate the workflow
+          // output type through workflowResult.result — the schema is validated at
+          // runtime by Zod inside the workflow engine before this point.
           const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
 
           logInfo('Gear-assistant workflow completed', {
@@ -488,7 +492,8 @@ export async function POST(request: Request): Promise<Response> {
                 userId: user.id,
                 subscriptionTier: pipelineOutput.subscriptionTier || 'standard',
               },
-              pipelineOutput.loadoutContext,
+              // loadoutContext is z.unknown() at the Zod boundary; cast to the known type here
+              (pipelineOutput.loadoutContext as LoadoutContext | null),
               (context?.locale as 'en' | 'de') || 'en',
             );
 
