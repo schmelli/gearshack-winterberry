@@ -32,14 +32,19 @@ WITH (m = 16, ef_construction = 64);
 
 -- Index for TTL cleanup (find expired entries efficiently)
 -- Note: no partial predicate — PostgreSQL evaluates partial index predicates at
--- row insertion time, not scan time, so `WHERE expires_at < now()` would only
--- index rows that were already expired when inserted (i.e. never).
+-- *plan* time (when the query plan is compiled/cached), not at each execution.
+-- A volatile expression like `now()` baked into a partial predicate would become
+-- stale the moment the plan is cached, making the predicate meaningless for
+-- future-expiring rows. A full index on expires_at is correct here.
 CREATE INDEX IF NOT EXISTS idx_response_cache_expires_at
 ON response_cache (expires_at);
 
--- Index for locale + expiry filtering (used together in search_response_cache WHERE clause)
-CREATE INDEX IF NOT EXISTS idx_response_cache_locale_expires_at
-ON response_cache (locale, expires_at);
+-- Composite index for the pre-filter used in search_response_cache:
+--   WHERE rc.expires_at > now() AND rc.locale = query_locale AND rc.intent_type = query_intent_type
+-- All three columns appear in the WHERE clause before the HNSW ANN scan.
+-- Including all three avoids a filter step after the index scan as the table grows.
+CREATE INDEX IF NOT EXISTS idx_response_cache_locale_intent_expires
+ON response_cache (locale, intent_type, expires_at);
 
 -- Unique constraint to prevent duplicate entries from concurrent cache stores
 CREATE UNIQUE INDEX IF NOT EXISTS idx_response_cache_dedup
@@ -152,7 +157,10 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION increment_cache_hit_count(uuid) TO authenticated;
+-- Only service_role may call this function — authenticated end-users could otherwise
+-- inflate hit counts for arbitrary cache entries, skewing analytics that drive
+-- decisions about which responses to keep warm.
+GRANT EXECUTE ON FUNCTION increment_cache_hit_count(uuid) TO service_role;
 
 -- =============================================================================
 -- Cleanup: remove expired cache entries (runs via pg_cron if available)

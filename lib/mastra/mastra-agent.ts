@@ -364,9 +364,11 @@ export async function persistCacheHitToMemory(
     const memory = getPersistenceMemory();
 
     // NOTE: Memory.saveMessages is an internal Mastra API not yet publicly typed.
-    // Tested against @mastra/memory v0.7.x. If this breaks after a Mastra upgrade,
-    // check the @mastra/memory CHANGELOG for saveMessages() signature changes.
-    // The runtime typeof guard below provides a safety net for API renames.
+    // Tested against @mastra/memory ^1.0.0 (see package.json). If this breaks after
+    // a Mastra upgrade, check the @mastra/memory CHANGELOG for saveMessages() changes.
+    // TECH-DEBT: Track upstream typing at https://github.com/mastra-ai/mastra — once
+    // saveMessages is exported from the public API surface, remove the cast below.
+    // The runtime typeof guard provides a safety net for API renames in the meantime.
     const memWithSave = memory as unknown as {
       saveMessages: (params: {
         messages: Array<{ role: string; content: string }>;

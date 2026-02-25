@@ -123,15 +123,22 @@ export async function getSemanticCacheHit(
 ): Promise<{ response: string; cacheId: string; similarity: number } | null> {
   if (!CACHE_ENABLED) return null;
 
-  const getElapsed = createTimer();
+  const getTotalElapsed = createTimer();
 
   try {
-    // Generate embedding for the incoming query
+    // Generate embedding for the incoming query — timed separately so we can
+    // distinguish embedding API latency from Supabase RPC latency in logs.
+    // This is especially useful during cold-start when the cache is empty:
+    // 100% of requests pay embedding latency, so understanding the split helps
+    // evaluate whether a pre-filter exact-match optimisation is worthwhile.
+    const embedTimer = createTimer();
     const queryEmbedding = await generateQueryEmbedding(query);
+    const embeddingLatencyMs = embedTimer();
     if (!queryEmbedding) return null;
 
     // Search cache via Supabase RPC
     const supabase = await createClient();
+    const dbTimer = createTimer();
     const { data, error } = await supabase.rpc('search_response_cache', {
       query_embedding: queryEmbedding,
       similarity_threshold: threshold,
@@ -141,8 +148,9 @@ export async function getSemanticCacheHit(
       // query on the same topic (intent-specific framing may differ).
       query_intent_type: intentType,
     });
+    const dbLatencyMs = dbTimer();
 
-    const latencyMs = getElapsed();
+    const latencyMs = getTotalElapsed();
     recordCacheLatency(latencyMs);
 
     if (error) {
@@ -170,6 +178,8 @@ export async function getSemanticCacheHit(
           originalQuery: hit.query_text?.substring(0, 80),
           intentType,
           latencyMs,
+          embeddingLatencyMs,
+          dbLatencyMs,
         },
       });
 
@@ -188,6 +198,8 @@ export async function getSemanticCacheHit(
         threshold,
         intentType,
         latencyMs,
+        embeddingLatencyMs,
+        dbLatencyMs,
       },
     });
 
@@ -198,7 +210,7 @@ export async function getSemanticCacheHit(
       metadata: {
         error: error instanceof Error ? error.message : 'Unknown',
         intentType,
-        latencyMs: getElapsed(),
+        latencyMs: getTotalElapsed(),
       },
     });
     recordCacheMiss(intentType);
