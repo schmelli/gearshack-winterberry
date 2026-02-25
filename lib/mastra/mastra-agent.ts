@@ -353,8 +353,12 @@ export function createGearshackRequestContext(params: {
   requestContext.set('subscriptionTier', params.subscriptionTier);
   requestContext.set('lang', params.lang);
   requestContext.set('promptContext', params.promptContext);
-  requestContext.set('enrichedPromptSuffix', params.enrichedPromptSuffix);
-  requestContext.set('currentLoadoutId', params.currentLoadoutId);
+  if (params.enrichedPromptSuffix !== undefined) {
+    requestContext.set('enrichedPromptSuffix', params.enrichedPromptSuffix);
+  }
+  if (params.currentLoadoutId !== undefined) {
+    requestContext.set('currentLoadoutId', params.currentLoadoutId);
+  }
   return requestContext;
 }
 
