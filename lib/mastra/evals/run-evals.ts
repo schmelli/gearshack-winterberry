@@ -28,7 +28,7 @@ import {
   loadoutAnalysisDataset,
   hallucinationPreventionDataset,
 } from './test-datasets';
-import type { EvalTestDataset } from './test-datasets';
+import type { EvalTestCase, EvalTestDataset } from './test-datasets';
 
 // =============================================================================
 // Configuration
@@ -63,49 +63,96 @@ async function runDatasetEvals(
   console.log(`   ${dataset.description}`);
   console.log(`   ${dataset.cases.length} test cases\n`);
 
-  // Determine primary expected tool for this dataset
-  const primaryTool = dataset.cases[0]?.expectedTools?.[0];
-  const toolScorer = primaryTool
-    ? createExpectedToolScorer(primaryTool)
-    : undefined;
+  // Group test cases by their expected tool so each group gets its own scorer.
+  // A single scorer for the whole dataset would incorrectly grade mixed datasets
+  // (e.g. hallucinationPreventionDataset has both searchGearKnowledge and
+  // inventoryInsights cases — applying only the first tool's scorer to all cases
+  // silently fails the others).
+  const casesByTool = new Map<string | undefined, EvalTestCase[]>();
+  for (const tc of dataset.cases) {
+    const tool = tc.expectedTools?.[0];
+    const group = casesByTool.get(tool) ?? [];
+    group.push(tc);
+    casesByTool.set(tool, group);
+  }
 
-  const scorers = [
-    ...(toolScorer ? [toolScorer] : []),
-  ];
+  const onItemComplete = ({ item, scorerResults }: {
+    item: { input: unknown; groundTruth?: Record<string, unknown> };
+    scorerResults: Record<string, unknown>;
+  }) => {
+    const input = typeof item.input === 'string'
+      ? item.input.substring(0, 60)
+      : JSON.stringify(item.input).substring(0, 60);
+    const scoreStr = Object.entries(scorerResults)
+      .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(2) : v}`)
+      .join(', ');
+    console.log(`   ✓ "${input}..." → ${scoreStr}`);
+  };
 
-  // Run evals
-  const result = await runEvals({
-    data: dataset.cases.map((tc) => ({
-      input: tc.input,
-      groundTruth: tc.groundTruth,
-    })),
-    scorers,
-    target: agent,
-    onItemComplete: ({ item, scorerResults }) => {
-      const input = typeof item.input === 'string'
-        ? item.input.substring(0, 60)
-        : JSON.stringify(item.input).substring(0, 60);
-      const scoreStr = Object.entries(scorerResults)
-        .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(2) : v}`)
-        .join(', ');
-      console.log(`   ✓ "${input}..." → ${scoreStr}`);
-    },
-  });
+  // Run evals per group and accumulate weighted scores
+  const groupResults: { scores: Record<string, number>; count: number }[] = [];
 
-  const passed = checkThresholds(result.scores);
+  for (const [expectedTool, cases] of casesByTool) {
+    const scorers = expectedTool ? [createExpectedToolScorer(expectedTool)] : [];
+    const result = await runEvals({
+      data: cases.map((tc) => ({
+        input: tc.input,
+        groundTruth: tc.groundTruth,
+      })),
+      scorers,
+      target: agent,
+      onItemComplete,
+    });
+    groupResults.push({ scores: result.scores, count: cases.length });
+  }
+
+  // Compute weighted-average scores across all groups
+  const totalItems = groupResults.reduce((sum, g) => sum + g.count, 0);
+  const mergedScores: Record<string, number> = {};
+  for (const { scores, count } of groupResults) {
+    const weight = count / totalItems;
+    for (const [metric, score] of Object.entries(scores)) {
+      if (typeof score === 'number') {
+        mergedScores[metric] = (mergedScores[metric] ?? 0) + score * weight;
+      }
+    }
+  }
+
+  const passed = checkThresholds(mergedScores);
 
   console.log(`\n   Results for ${dataset.name}:`);
-  for (const [metric, score] of Object.entries(result.scores)) {
-    const status = passed ? '✅' : '❌';
+  for (const [metric, score] of Object.entries(mergedScores)) {
+    // Display per-metric pass/fail, not the overall dataset status
+    const metricPassed = isMetricPassed(metric, score);
+    const status = metricPassed ? '✅' : '❌';
     console.log(`   ${status} ${metric}: ${typeof score === 'number' ? score.toFixed(3) : score}`);
   }
 
   return {
     datasetName: dataset.name,
-    scores: result.scores,
-    totalItems: result.summary.totalItems,
+    scores: mergedScores,
+    totalItems,
     passed,
   };
+}
+
+/**
+ * Returns true if a single metric score is within its configured threshold.
+ * Use this for per-metric display; use checkThresholds() for the overall pass/fail.
+ */
+function isMetricPassed(metric: string, score: number): boolean {
+  const metricLower = metric.toLowerCase();
+  if (metricLower.includes('faithfulness')) {
+    return score >= THRESHOLDS.faithfulness;
+  }
+  if (metricLower.includes('hallucination')) {
+    return score <= THRESHOLDS.hallucination;
+  }
+  if (metricLower.includes('tool-call')) {
+    return score >= THRESHOLDS.toolCallAccuracy;
+  }
+  // Unknown metric: treat as passed (no threshold configured)
+  return true;
 }
 
 function checkThresholds(scores: Record<string, number>): boolean {
@@ -130,7 +177,8 @@ function checkThresholds(scores: Record<string, number>): boolean {
       passed = false;
     }
 
-    if (metricLower.includes('tool') && score < THRESHOLDS.toolCallAccuracy) {
+    // Use 'tool-call' (not 'tool') to avoid matching unrelated scorer names
+    if (metricLower.includes('tool-call') && score < THRESHOLDS.toolCallAccuracy) {
       console.warn(
         `⚠️  Tool-call accuracy score ${score.toFixed(3)} below threshold ${THRESHOLDS.toolCallAccuracy}`
       );
@@ -156,8 +204,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Create eval agent (sampling rate = 1.0 for CI)
-  const agent = createGearAssistantWithEvals({ samplingRate: 1.0 });
+  // Create eval agent (sampling rate = 1.0 for CI — also reads EVAL_SAMPLING_RATE env var)
+  const samplingRate = parseFloat(process.env.EVAL_SAMPLING_RATE || '1.0');
+  const agent = createGearAssistantWithEvals({ samplingRate });
 
   // Run each dataset
   const datasets = [

@@ -42,9 +42,15 @@ export function createGearFaithfulnessScorer(model: MastraModelConfig) {
   return createFaithfulnessScorer({
     model,
     options: {
-      // Dynamic context: extract tool results at scoring time
-      // This captures searchGearKnowledge and analyzeLoadout results
-      // that the agent used to formulate its response
+      // Extract tool results at scoring time so the faithfulness scorer
+      // can verify agent claims against real data returned by the tools
+      // (searchGearKnowledge, analyzeLoadout, inventoryInsights).
+      getContext: ({ run }) => {
+        const toolResults = extractToolResults(run.output);
+        return toolResults.map((t) =>
+          JSON.stringify({ tool: t.toolName, result: t.result })
+        );
+      },
     },
   });
 }
