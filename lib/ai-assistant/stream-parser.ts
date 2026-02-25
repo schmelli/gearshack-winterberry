@@ -24,7 +24,8 @@ export type SSEEventType = 'text' | 'tool_call' | 'done' | 'error' | 'workflow_p
 export interface WorkflowProgressData {
   step: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  message: string;
+  /** Optional human-readable message; used for debugging/telemetry. Display uses i18n translations. */
+  message?: string;
 }
 
 /**

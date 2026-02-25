@@ -54,12 +54,17 @@ export interface SSEToolResultData {
 }
 
 /**
- * Workflow progress data for SSE transmission
+ * Workflow progress data for SSE transmission.
+ *
+ * `message` is optional to align with the client-side `WorkflowProgressData`
+ * interface in `lib/ai-assistant/stream-parser.ts` and the Zod schema in the
+ * `useMastraChat` hook.  The `encodeWorkflowProgressEvent` helper still
+ * requires a `message` argument so the server always populates it in practice.
  */
 export interface SSEWorkflowProgressData {
   step: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  message: string;
+  message?: string;
 }
 
 /**

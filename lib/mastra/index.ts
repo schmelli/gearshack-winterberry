@@ -39,6 +39,13 @@ export {
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
 
+// Mastra Framework Instance & Workflows
+export { mastra } from './instance';
+export {
+  gearAssistantWorkflow,
+  type GearAssistantWorkflowOutput,
+} from './workflows/gear-assistant-workflow';
+
 // NOTE: Eval APIs are intentionally NOT exported from this root index.
 // They are CI/server-only tooling and should not enter the client bundle.
 // Import directly: import { ... } from '@/lib/mastra/evals'
