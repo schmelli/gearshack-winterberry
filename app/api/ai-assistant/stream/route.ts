@@ -14,10 +14,18 @@
  * @deprecated Use /api/mastra/chat instead
  */
 
-export const runtime = 'nodejs';
+const MASTRA_CHAT_PATH = '/api/mastra/chat';
 
 export async function POST(request: Request) {
   const url = new URL(request.url);
-  url.pathname = '/api/mastra/chat';
-  return Response.redirect(url.toString(), 308);
+  url.pathname = MASTRA_CHAT_PATH;
+  return new Response(null, {
+    status: 308,
+    headers: {
+      Location: url.toString(),
+      Deprecation: 'true',
+      Link: `<${MASTRA_CHAT_PATH}>; rel="successor-version"`,
+      'Sunset': 'Sat, 01 Aug 2026 00:00:00 GMT',
+    },
+  });
 }
