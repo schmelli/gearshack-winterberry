@@ -166,23 +166,23 @@ export function checkThresholds(scores: Record<string, number>): boolean {
     const metricLower = metric.toLowerCase();
 
     if (metricLower.includes('faithfulness') && score < THRESHOLDS.faithfulness) {
-      console.warn(
-        `⚠️  Faithfulness score ${score.toFixed(3)} below threshold ${THRESHOLDS.faithfulness}`
+      console.error(
+        `❌ Faithfulness score ${score.toFixed(3)} below threshold ${THRESHOLDS.faithfulness}`
       );
       passed = false;
     }
 
     if (metricLower.includes('hallucination') && score > THRESHOLDS.hallucination) {
-      console.warn(
-        `⚠️  Hallucination score ${score.toFixed(3)} above threshold ${THRESHOLDS.hallucination} (lower is better)`
+      console.error(
+        `❌ Hallucination score ${score.toFixed(3)} above threshold ${THRESHOLDS.hallucination} (lower is better)`
       );
       passed = false;
     }
 
     // Use 'tool-call' (not 'tool') to avoid matching unrelated scorer names
     if (metricLower.includes('tool-call') && score < THRESHOLDS.toolCallAccuracy) {
-      console.warn(
-        `⚠️  Tool-call accuracy score ${score.toFixed(3)} below threshold ${THRESHOLDS.toolCallAccuracy}`
+      console.error(
+        `❌ Tool-call accuracy score ${score.toFixed(3)} below threshold ${THRESHOLDS.toolCallAccuracy}`
       );
       passed = false;
     }

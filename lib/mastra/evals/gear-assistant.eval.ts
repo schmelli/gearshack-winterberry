@@ -113,16 +113,21 @@ const EVAL_TOOLS = {
 export function createGearAssistantWithEvals(options?: {
   samplingRate?: number;
   lang?: 'en' | 'de';
+  userContext?: Partial<{ screen: string; inventoryCount: number; currentLoadoutId?: string }>;
 }) {
-  const samplingRate = options?.samplingRate ?? EVAL_SAMPLING_RATE;
+  // Clamp sampling rate to valid [0, 1] range to prevent nonsense downstream
+  const rawRate = options?.samplingRate ?? EVAL_SAMPLING_RATE;
+  const samplingRate = Math.max(0, Math.min(1, rawRate));
   const lang = options?.lang ?? 'en';
 
-  // Build system prompt for eval context
+  // Build system prompt for eval context, allowing callers to override
+  // userContext for more realistic per-scenario testing
   const systemPrompt = buildMastraSystemPrompt({
     userContext: {
       screen: 'inventory',
       locale: lang,
       inventoryCount: 0,
+      ...options?.userContext,
     },
   });
 

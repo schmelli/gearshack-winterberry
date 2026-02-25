@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import type { Tool } from '@mastra/core/tools';
 
 // =============================================================================
 // Mock heavy dependencies to avoid requiring API keys at test time
@@ -192,7 +193,7 @@ describe('Scorer Factory Functions', () => {
       { id: 'inventoryInsights', description: 'Get inventory insights' },
     ];
 
-    const scorer = createGearToolCallAccuracyScorer('mocked-model', mockTools as never);
+    const scorer = createGearToolCallAccuracyScorer('mocked-model', mockTools as unknown as Tool[]);
     expect(scorer).toBeDefined();
   });
 });
@@ -305,6 +306,15 @@ describe('Eval Agent Configuration', () => {
     expect(EVAL_TOOLS).toHaveProperty('searchGearKnowledge');
     expect(EVAL_TOOLS).toHaveProperty('inventoryInsights');
     expect(Object.keys(EVAL_TOOLS)).toHaveLength(3);
+  });
+
+  it('clamps samplingRate to [0, 1] bounds', async () => {
+    const { createGearAssistantWithEvals } = await import('@/lib/mastra/evals/gear-assistant.eval');
+
+    // Verify factory does not throw for out-of-range sampling rates
+    expect(() => createGearAssistantWithEvals({ samplingRate: 1.5 })).not.toThrow();
+    expect(() => createGearAssistantWithEvals({ samplingRate: -0.1 })).not.toThrow();
+    expect(() => createGearAssistantWithEvals({ samplingRate: 0.5 })).not.toThrow();
   });
 
   it('exports index re-exports all public APIs', async () => {

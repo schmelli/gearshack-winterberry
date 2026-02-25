@@ -39,19 +39,6 @@ export {
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
 
-// Evals module (Feature: mastra-evals)
-// Quality evaluation scorers for AI agent responses
-export {
-  createGearFaithfulnessScorer,
-  createGearHallucinationScorer,
-  createGearToolCallAccuracyScorer,
-  createExpectedToolScorer,
-  createGearAssistantWithEvals,
-  gearSearchDataset,
-  loadoutAnalysisDataset,
-  hallucinationPreventionDataset,
-  allDatasets,
-  getAllTestCases,
-  type EvalTestCase,
-  type EvalTestDataset,
-} from './evals';
+// NOTE: Eval APIs are intentionally NOT exported from this root index.
+// They are CI/server-only tooling and should not enter the client bundle.
+// Import directly: import { ... } from '@/lib/mastra/evals'
