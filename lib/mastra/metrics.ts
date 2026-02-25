@@ -451,6 +451,31 @@ export const rateLimitActiveWindows = new Gauge({
   registers: [register],
 });
 
+// ==================== A/B Testing Metrics ====================
+
+/**
+ * Total prompt variant assignments by experiment and variant
+ * Labels: experiment, variant
+ */
+export const promptVariantAssignmentsTotal = new Counter({
+  name: 'mastra_prompt_variant_assignments_total',
+  help: 'Total number of prompt variant assignments',
+  labelNames: ['experiment', 'variant'] as const,
+  registers: [register],
+});
+
+/**
+ * Chat response latency by prompt variant
+ * Labels: experiment, variant
+ */
+export const promptVariantLatencySeconds = new Histogram({
+  name: 'mastra_prompt_variant_latency_seconds',
+  help: 'Chat response latency by prompt variant in seconds',
+  buckets: [0.5, 1, 2, 5, 10],
+  labelNames: ['experiment', 'variant'] as const,
+  registers: [register],
+});
+
 // ==================== System Health Metrics ====================
 
 // Store agent start time for uptime calculation
@@ -796,6 +821,32 @@ export function setActiveConversations(count: number): void {
  */
 export function setUsersWithMemory(count: number): void {
   usersWithMemoryTotal.set(count);
+}
+
+// ==================== A/B Testing Metric Functions ====================
+
+/**
+ * Records a prompt variant assignment
+ */
+export function recordPromptVariantAssignment(
+  experimentName: string,
+  variantId: string
+): void {
+  promptVariantAssignmentsTotal.inc({ experiment: experimentName, variant: variantId });
+}
+
+/**
+ * Records chat latency for a specific prompt variant
+ */
+export function recordPromptVariantLatency(
+  experimentName: string,
+  variantId: string,
+  latencySeconds: number
+): void {
+  promptVariantLatencySeconds.observe(
+    { experiment: experimentName, variant: variantId },
+    latencySeconds
+  );
 }
 
 // ==================== Metrics Collection ====================
