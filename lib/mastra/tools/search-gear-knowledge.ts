@@ -110,7 +110,12 @@ const REFORMULATION_MODEL = process.env.REFORMULATION_MODEL ?? 'anthropic/claude
 /** Timeout for the reformulation LLM call (ms) */
 const REFORMULATION_TIMEOUT_MS = 3000;
 
-/** Lazy-loaded gateway instance for reformulation calls */
+/**
+ * Lazy-loaded gateway instance for reformulation calls.
+ * NOTE: AI_GATEWAY_API_KEY / AI_GATEWAY_KEY must be present at module load time.
+ * If these env vars are absent when the module first initializes, this singleton
+ * will remain null for the lifetime of the module instance (no hot-reload on env changes).
+ */
 let reformulationGateway: ReturnType<typeof createGateway> | null = null;
 
 function getReformulationGateway() {
@@ -138,6 +143,11 @@ async function reformulateQuery(query: string): Promise<string | null> {
   const gateway = getReformulationGateway();
   if (!gateway) return null;
 
+  // Truncate long input to avoid excessive LLM cost and latency beyond what the
+  // timeout would reliably catch. Real gear queries are short; anything over
+  // 500 chars is almost certainly not a meaningful search term.
+  const queryForLLM = query.length > 500 ? query.slice(0, 500) : query;
+
   let timerId: ReturnType<typeof setTimeout> | undefined;
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -147,7 +157,7 @@ async function reformulateQuery(query: string): Promise<string | null> {
     const { text } = await Promise.race([
       generateText({
         model: gateway(REFORMULATION_MODEL),
-        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name and core product category. If the query is in German, translate key terms to English equivalents. Query: ${JSON.stringify(query)}. Return only the simplified query, nothing else.`,
+        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name, core product category, and the original language of the query. Query: ${JSON.stringify(queryForLLM)}. Return only the simplified query, nothing else.`,
         temperature: 0,
       }),
       timeoutPromise,
@@ -307,31 +317,25 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
       if (totalResults === 0 && query.length > 10) {
         const getElapsed = createTimer();
         reformulatedQuery = await reformulateQuery(query);
+        const reformulationLatencyMs = getElapsed();
 
         if (reformulatedQuery) {
-          logInfo('Query reformulated (Agentic RAG)', {
-            metadata: {
-              original: query,
-              reformulated: reformulatedQuery,
-              latencyMs: getElapsed(),
-            },
-          });
-
           const retryResults = await executeSearches(reformulatedQuery, userId);
           myGear = retryResults.myGear;
           catalogProducts = retryResults.catalogProducts;
           totalResults = myGear.length + catalogProducts.length;
 
-          logInfo('Reformulated search completed', {
+          logInfo('Agentic RAG: query reformulated and retried', {
             metadata: {
               original: query,
               reformulated: reformulatedQuery,
+              reformulationLatencyMs,
               found: totalResults,
             },
           });
         } else {
           logWarn('Query reformulation returned no alternative', {
-            metadata: { original: query, latencyMs: getElapsed() },
+            metadata: { original: query, latencyMs: reformulationLatencyMs },
           });
         }
       }
