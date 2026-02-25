@@ -25,6 +25,7 @@ import { createGateway } from '@ai-sdk/gateway';
 import fs from 'fs';
 import path from 'path';
 import { extractBrandNames, extractGearNames } from '../lib/community-rag/chunker';
+import { COMMUNITY_RAG_CONFIG } from '../lib/community-rag/types';
 
 // --- Zero-Dependency Env Loader (same pattern as seed-ontology.ts) ---
 function loadEnv(filename: string) {
@@ -72,8 +73,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const gateway = createGateway({ apiKey: aiGatewayKey });
 const embeddingModel = gateway.textEmbeddingModel('openai/text-embedding-3-small');
 
-const BATCH_SIZE = 25; // Embedding API batch limit
-const MIN_CONTENT_LENGTH = 20;
+const BATCH_SIZE = COMMUNITY_RAG_CONFIG.BATCH_SIZE;
+const MIN_CONTENT_LENGTH = COMMUNITY_RAG_CONFIG.MIN_CONTENT_LENGTH;
 
 // Parse CLI args
 const args = process.argv.slice(2);

@@ -72,6 +72,35 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Validate source_id is a valid UUID to prevent malformed DB queries
+    const UUID_REGEX =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(source_id)) {
+      return NextResponse.json(
+        { error: 'Invalid source_id format. Must be a valid UUID.' },
+        { status: 400 }
+      );
+    }
+
+    // Verify ownership: the authenticated user must be the author of the source record.
+    // This prevents a malicious user from overwriting or deleting embeddings for
+    // content they don't own. Applies to BOTH upsert and delete actions.
+    const ownershipTable =
+      source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
+    const { data: sourceRecord, error: ownerError } = await supabase
+      .from(ownershipTable)
+      .select('id, author_id')
+      .eq('id', source_id)
+      .eq('author_id', user.id)
+      .single();
+
+    if (ownerError || !sourceRecord) {
+      return NextResponse.json(
+        { error: 'Forbidden: you are not the author of this content' },
+        { status: 403 }
+      );
+    }
+
     const serviceClient = createServiceRoleClient();
 
     // Handle deletion
@@ -87,24 +116,6 @@ export async function POST(request: Request): Promise<Response> {
       return NextResponse.json(
         { error: 'Content must be at least 20 characters for indexing' },
         { status: 400 }
-      );
-    }
-
-    // Verify ownership: the authenticated user must be the author of the source record.
-    // This prevents a malicious user from overwriting embeddings for content they don't own.
-    const ownershipTable =
-      source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
-    const { data: sourceRecord, error: ownerError } = await supabase
-      .from(ownershipTable)
-      .select('id, author_id')
-      .eq('id', source_id)
-      .eq('author_id', user.id)
-      .single();
-
-    if (ownerError || !sourceRecord) {
-      return NextResponse.json(
-        { error: 'Forbidden: you are not the author of this content' },
-        { status: 403 }
       );
     }
 
@@ -124,7 +135,7 @@ export async function POST(request: Request): Promise<Response> {
     } else {
       if (!body.post_id || typeof body.post_id !== 'string') {
         return NextResponse.json(
-          { error_code: 'MISSING_OR_INVALID_POST_ID' },
+          { error: 'Missing or invalid post_id for bulletin_reply' },
           { status: 400 }
         );
       }

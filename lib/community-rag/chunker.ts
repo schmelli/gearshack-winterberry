@@ -28,7 +28,7 @@ const KNOWN_BRANDS = [
   'Scarpa', 'Merrell', 'Altra', 'Hoka', 'Brooks', 'Sawyer',
   'Katadyn', 'Platypus', 'BeFree', 'Cnoc', 'Garmin', 'Suunto',
   'Trail Designs', 'Toaks', 'Snow Peak', 'Soto', 'BRS',
-  'Cumulus', 'Pajak', 'Rab', 'Montbell', 'Thermarest', 'Klymit',
+  'Cumulus', 'Pajak', 'Rab', 'Montbell', 'Klymit',
   'Nalgene', 'Hydrapak', 'Evernew', 'Hennessy', 'Warbonnet',
   'Hammock Gear', 'Dutch', 'Thinlight', 'GG', 'HMG',
   'Hyperlite Mountain Gear', 'MLD', 'Mountain Laurel Designs',
