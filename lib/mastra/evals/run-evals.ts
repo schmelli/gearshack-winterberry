@@ -139,8 +139,9 @@ async function runDatasetEvals(
 /**
  * Returns true if a single metric score is within its configured threshold.
  * Use this for per-metric display; use checkThresholds() for the overall pass/fail.
+ * Exported for unit testing.
  */
-function isMetricPassed(metric: string, score: number): boolean {
+export function isMetricPassed(metric: string, score: number): boolean {
   const metricLower = metric.toLowerCase();
   if (metricLower.includes('faithfulness')) {
     return score >= THRESHOLDS.faithfulness;
@@ -155,7 +156,8 @@ function isMetricPassed(metric: string, score: number): boolean {
   return true;
 }
 
-function checkThresholds(scores: Record<string, number>): boolean {
+/** Exported for unit testing. */
+export function checkThresholds(scores: Record<string, number>): boolean {
   let passed = true;
 
   for (const [metric, score] of Object.entries(scores)) {

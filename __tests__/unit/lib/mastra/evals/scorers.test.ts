@@ -29,6 +29,10 @@ vi.mock('@mastra/core/agent', () => ({
   Agent: vi.fn(),
 }));
 
+vi.mock('@mastra/core/evals', () => ({
+  runEvals: vi.fn(),
+}));
+
 vi.mock('@mastra/core/tools', () => ({
   createTool: vi.fn(() => ({})),
 }));
@@ -177,6 +181,115 @@ describe('Scorer Factory Functions', () => {
       expectedToolOrder: ['searchGearKnowledge', 'analyzeLoadout'],
     });
     expect(scorer).toBeDefined();
+  });
+
+  it('createGearToolCallAccuracyScorer creates an LLM-based scorer', async () => {
+    const { createGearToolCallAccuracyScorer } = await import('@/lib/mastra/evals/scorers');
+
+    const mockTools = [
+      { id: 'analyzeLoadout', description: 'Analyze a loadout' },
+      { id: 'searchGearKnowledge', description: 'Search gear knowledge' },
+      { id: 'inventoryInsights', description: 'Get inventory insights' },
+    ];
+
+    const scorer = createGearToolCallAccuracyScorer('mocked-model', mockTools as never);
+    expect(scorer).toBeDefined();
+  });
+});
+
+// =============================================================================
+// Tests: checkThresholds and isMetricPassed
+// =============================================================================
+
+describe('checkThresholds', () => {
+  it('returns true when all scores meet thresholds', async () => {
+    const { checkThresholds } = await import('@/lib/mastra/evals/run-evals');
+
+    const result = checkThresholds({
+      faithfulness: 0.9,
+      hallucination: 0.1,
+      'tool-call-accuracy': 0.95,
+    });
+
+    expect(result).toBe(true);
+  });
+
+  it('returns false when faithfulness is below threshold', async () => {
+    const { checkThresholds } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(checkThresholds({ faithfulness: 0.5 })).toBe(false);
+  });
+
+  it('returns false when hallucination is above threshold', async () => {
+    const { checkThresholds } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(checkThresholds({ hallucination: 0.8 })).toBe(false);
+  });
+
+  it('returns false when tool-call-accuracy is below threshold', async () => {
+    const { checkThresholds } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(checkThresholds({ 'tool-call-accuracy': 0.5 })).toBe(false);
+  });
+
+  it('returns true for non-numeric score entries', async () => {
+    const { checkThresholds } = await import('@/lib/mastra/evals/run-evals');
+
+    const result = checkThresholds({
+      someMetric: 'not-a-number' as unknown as number,
+    });
+
+    expect(result).toBe(true);
+  });
+});
+
+describe('isMetricPassed', () => {
+  it('faithfulness passes at or above threshold', async () => {
+    const { isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(isMetricPassed('faithfulness', 0.7)).toBe(true);
+    expect(isMetricPassed('faithfulness', 0.9)).toBe(true);
+    expect(isMetricPassed('faithfulness', 0.69)).toBe(false);
+  });
+
+  it('hallucination passes at or below threshold', async () => {
+    const { isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(isMetricPassed('hallucination', 0.3)).toBe(true);
+    expect(isMetricPassed('hallucination', 0.1)).toBe(true);
+    expect(isMetricPassed('hallucination', 0.31)).toBe(false);
+  });
+
+  it('tool-call-accuracy passes at or above threshold', async () => {
+    const { isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(isMetricPassed('tool-call-accuracy', 0.8)).toBe(true);
+    expect(isMetricPassed('tool-call-accuracy', 1.0)).toBe(true);
+    expect(isMetricPassed('tool-call-accuracy', 0.79)).toBe(false);
+  });
+
+  it('does not false-match tool-named metrics that are not tool-call scorers', async () => {
+    const { isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    // 'toolbox-accuracy' should NOT trigger the tool-call threshold (no threshold configured)
+    expect(isMetricPassed('toolbox-accuracy', 0.1)).toBe(true);
+    expect(isMetricPassed('multi-tool', 0.0)).toBe(true);
+  });
+
+  it('returns true for unknown metrics (no configured threshold)', async () => {
+    const { isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    expect(isMetricPassed('custom-metric', 0.0)).toBe(true);
+  });
+
+  it('checkThresholds and isMetricPassed agree per-metric when one passes and one fails', async () => {
+    const { checkThresholds, isMetricPassed } = await import('@/lib/mastra/evals/run-evals');
+
+    // faithfulness passes (0.9 >= 0.7), hallucination fails (0.8 > 0.3)
+    const scores = { faithfulness: 0.9, hallucination: 0.8 };
+    expect(checkThresholds(scores)).toBe(false);
+    expect(isMetricPassed('faithfulness', 0.9)).toBe(true);
+    expect(isMetricPassed('hallucination', 0.8)).toBe(false);
   });
 });
 

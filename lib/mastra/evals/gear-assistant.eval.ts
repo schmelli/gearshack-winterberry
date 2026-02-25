@@ -161,11 +161,15 @@ export function createGearAssistantWithEvals(options?: {
     },
   });
 
-  console.log(
-    `[Mastra Evals] Created eval agent with ${AI_CHAT_MODEL}, ` +
-    `judge=${EVAL_JUDGE_MODEL}, sampling=${samplingRate}, ` +
-    `3 scorers (faithfulness, hallucination, tool-call-accuracy)`
-  );
+  // Only log in non-production or when explicitly enabled via MASTRA_DEBUG
+  // to avoid noise from sampling-based calls in production
+  if (process.env.MASTRA_DEBUG === '1' || process.env.NODE_ENV !== 'production') {
+    console.log(
+      `[Mastra Evals] Created eval agent with ${AI_CHAT_MODEL}, ` +
+      `judge=${EVAL_JUDGE_MODEL}, sampling=${samplingRate}, ` +
+      `3 scorers (faithfulness, hallucination, tool-call-accuracy)`
+    );
+  }
 
   return agent;
 }
