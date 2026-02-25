@@ -24,6 +24,7 @@ import type {
   ReplyNode,
   PostError,
 } from '@/types/bulletin';
+import { triggerReplyIndexing, triggerIndexDeletion } from '@/lib/community-rag/client';
 
 type ReplyOperationState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -111,6 +112,17 @@ export function useReplies(): UseRepliesReturn {
 
         // Add to local state
         setReplies((prev) => [...prev, replyWithAuthor]);
+
+        // Fire-and-forget: Index reply into community knowledge for RAG
+        triggerReplyIndexing({
+          source_id: reply.id,
+          post_id: input.post_id,
+          content: reply.content,
+          author_name: authorInfo.name,
+          author_id: reply.author_id,
+          created_at: reply.created_at,
+        });
+
         setOperationState('success');
         return replyWithAuthor;
       } catch (err) {
@@ -171,6 +183,9 @@ export function useReplies(): UseRepliesReturn {
         setReplies((prev) =>
           prev.map((r) => (r.id === replyId ? { ...r, is_deleted: true } : r))
         );
+
+        // Fire-and-forget: Remove deleted reply from RAG index
+        triggerIndexDeletion('bulletin_reply', replyId);
 
         setOperationState('success');
         return true;

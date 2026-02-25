@@ -24,6 +24,7 @@ import type {
   UpdatePostInput,
   PostError,
 } from '@/types/bulletin';
+import { triggerPostIndexing, triggerIndexDeletion } from '@/lib/community-rag/client';
 
 type PostOperationState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -83,6 +84,16 @@ export function usePosts(): UsePostsReturn {
           author_avatar: authorInfo.avatar,
         };
 
+        // Fire-and-forget: Index post into community knowledge for RAG
+        triggerPostIndexing({
+          source_id: post.id,
+          content: post.content,
+          tag: post.tag,
+          author_name: authorInfo.name,
+          author_id: post.author_id,
+          created_at: post.created_at,
+        });
+
         setOperationState('success');
         return postWithAuthor;
       } catch (err) {
@@ -107,6 +118,14 @@ export function usePosts(): UsePostsReturn {
 
       try {
         const post = await updateBulletinPost(supabase, postId, input);
+
+        // Fire-and-forget: Re-index updated post for RAG
+        triggerPostIndexing({
+          source_id: post.id,
+          content: post.content,
+          tag: post.tag,
+        });
+
         setOperationState('success');
         return post;
       } catch (err) {
@@ -128,6 +147,10 @@ export function usePosts(): UsePostsReturn {
 
       try {
         await deleteBulletinPost(supabase, postId);
+
+        // Fire-and-forget: Remove deleted post from RAG index
+        triggerIndexDeletion('bulletin_post', postId);
+
         setOperationState('success');
         return true;
       } catch (err) {

@@ -1,6 +1,6 @@
 /**
  * Composite Tool: searchGearKnowledge
- * Feature: 060-ai-agent-evolution
+ * Feature: 060-ai-agent-evolution + Community-RAG Integration (Vorschlag 15)
  *
  * Unified search across ALL data sources in a single call:
  * - User's own gear inventory
@@ -8,16 +8,19 @@
  * - GearGraph knowledge graph (via Cypher)
  * - Categories and brands
  * - GearGraph INSIGHTS (HAS_TIP relationships) for found gear items
+ * - Community knowledge (bulletin board posts/replies via pgvector RAG)
  *
  * Replaces separate queryUserData + queryCatalog + queryGearGraph calls.
  *
  * @see specs/060-ai-agent-evolution/analysis.md - Vorschlag 2
+ * @see Community-RAG Integration (Vorschlag 15, Kap. 17)
  */
 
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
+import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -147,6 +150,11 @@ const searchGearKnowledgeOutputSchema = z.object({
     itemName: z.string().describe('Gear item this insight applies to'),
     content: z.string().describe('Expert tip, recommendation, or warning from the GearGraph knowledge base'),
   })).optional().describe('Expert insights from the GearGraph knowledge base for found gear items (HAS_TIP relationships)'),
+  communityInsights: z.array(z.object({
+    source: z.string().describe('Source type (e.g., "Community Post [gear_advice]", "Community Reply")'),
+    content: z.string().describe('Relevant community experience or discussion from bulletin board posts'),
+    similarity: z.number().describe('Semantic similarity score (0-1)'),
+  })).optional().describe('Relevant community experiences and discussions from the bulletin board, found via semantic search (pgvector RAG). Contains real user experiences about gear — always cite these as "According to the community..." when present.'),
   totalResults: z.number(),
   error: z.string().optional(),
 });
@@ -173,7 +181,9 @@ Key use cases:
 
 CRITICAL: This tool uses category-aware search. Searching for "Kocher" (German for stove) will find items categorized as stoves even if their names are "MSR PocketRocket" or "Jetboil Flash". Never use queryUserData for category-based inventory searches.
 
-Results include a \`gearGraphInsights\` field with expert tips from the GearGraph knowledge base. Always incorporate these insights when present.`,
+Results include:
+- \`gearGraphInsights\`: Expert tips from the GearGraph knowledge base. Always incorporate these insights when present.
+- \`communityInsights\`: Real experiences from community members (bulletin board posts/replies), found via semantic search. When present, cite these as "According to the community..." or "Community members report that...". This is unique knowledge that comes from real users sharing their gear experiences.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -223,13 +233,21 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
 
       const totalResults = myGear.length + catalogProducts.length;
 
-      // 3. Fetch GearGraph INSIGHTS for found items (enrichment, non-blocking)
-      // Query the (GearItem)-[:HAS_TIP]->(Insight) relationships for expert tips
+      // 3. Fetch GearGraph INSIGHTS and Community Knowledge in parallel
+      // Both are enrichment layers — non-blocking, graceful degradation
       const insightSearchTerms = [
         ...myGear.map(item => ({ name: item.name as string, brand: (item.brand || null) as string | null })),
         ...catalogProducts.map(item => ({ name: item.name as string, brand: (item.brand_name || null) as string | null })),
       ];
-      const gearGraphInsights = await fetchInsightsFromGearGraph(insightSearchTerms);
+
+      const [gearGraphInsights, communityResults] = await Promise.all([
+        // 3a. GearGraph INSIGHTS (HAS_TIP relationships)
+        fetchInsightsFromGearGraph(insightSearchTerms),
+        // 3b. Community Knowledge (bulletin board posts via pgvector RAG)
+        searchCommunityKnowledge(query, { topK: 3 }).catch(() => []),
+      ]);
+
+      const communityInsights = formatCommunityResults(communityResults);
 
       // Build summary
       const summaryParts: string[] = [];
@@ -242,7 +260,10 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
       if (gearGraphInsights.length > 0) {
         summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
-      if (totalResults === 0) {
+      if (communityInsights.length > 0) {
+        summaryParts.push(`${communityInsights.length} relevant community experiences`);
+      }
+      if (totalResults === 0 && communityInsights.length === 0) {
         summaryParts.push(`No results found for "${query}"`);
       }
 
@@ -268,6 +289,7 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
           description: (item.description || null) as string | null,
         })),
         gearGraphInsights: gearGraphInsights.length > 0 ? gearGraphInsights : undefined,
+        communityInsights: communityInsights.length > 0 ? communityInsights : undefined,
         totalResults,
       };
     } catch (error) {
