@@ -19,7 +19,9 @@ import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import {
   classifyIntent,
+  generateFastAnswer,
   type DataRequirement,
+  type QueryComplexity,
 } from '../intent-router';
 import { prefetchData, type PrefetchedContext } from '../parallel-prefetch';
 import { buildMastraSystemPrompt, LOCALIZED_CONTENT, type PromptContext } from '../config';
@@ -33,7 +35,6 @@ import {
   parseQuery,
   formatParsedQueryForPrompt,
 } from '@/lib/ai-assistant/query-parser';
-import { generateFastAnswer } from '../intent-router';
 import { logDebug, logInfo } from '../logging';
 import type { UserContext } from '@/types/ai-assistant';
 
@@ -84,11 +85,15 @@ const PassThroughSchema = WorkflowInputSchema.pick({
   subscriptionTier: true,
 });
 
+/** All valid QueryComplexity values — keep in sync with QueryComplexity in intent-router */
+const QUERY_COMPLEXITY_VALUES = ['simple', 'complex'] as const;
+
 /** Step 1 output: intent classification result */
 const ClassifyIntentOutputSchema = PassThroughSchema.extend({
   intent: z.string(),
   confidence: z.number(),
   canAnswerDirectly: z.boolean(),
+  queryComplexity: z.enum(QUERY_COMPLEXITY_VALUES).optional(),
   dataRequirements: z.array(z.object({
     type: z.enum(DATA_REQUIREMENT_TYPES),
     params: z.record(z.string(), z.unknown()).optional(),
@@ -101,6 +106,7 @@ const PrefetchDataOutputSchema = PassThroughSchema.extend({
   intent: z.string(),
   confidence: z.number(),
   canAnswerDirectly: z.boolean(),
+  queryComplexity: z.enum(QUERY_COMPLEXITY_VALUES).optional(),
   extractedEntities: z.record(z.string(), z.unknown()),
   /** Prefetch results */
   prefetchedResults: z.record(z.string(), z.unknown()),
@@ -126,6 +132,8 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
   /** Intent metadata for metrics */
   intent: z.string(),
   confidence: z.number(),
+  /** Complexity for model routing (simple → Haiku, complex → Sonnet) */
+  queryComplexity: z.enum(QUERY_COMPLEXITY_VALUES).optional(),
   /**
    * Loadout context for proactive suggestions on loadout-detail screen.
    * Typed as z.unknown() because Zod cannot validate the full LoadoutContext
@@ -169,6 +177,7 @@ const classifyIntentStep = createStep({
       metadata: {
         intent: intentResult.intent,
         confidence: intentResult.confidence,
+        queryComplexity: intentResult.queryComplexity,
         dataRequirements: intentResult.dataRequirements.length,
       },
     });
@@ -177,6 +186,7 @@ const classifyIntentStep = createStep({
       intent: intentResult.intent,
       confidence: intentResult.confidence,
       canAnswerDirectly: intentResult.canAnswerDirectly,
+      queryComplexity: intentResult.queryComplexity as QueryComplexity | undefined,
       dataRequirements: intentResult.dataRequirements.map((req: DataRequirement) => ({
         type: req.type,
         params: req.params,
@@ -215,6 +225,7 @@ const prefetchDataStep = createStep({
       intent,
       confidence,
       canAnswerDirectly,
+      queryComplexity,
       dataRequirements,
       extractedEntities,
       message,
@@ -257,6 +268,7 @@ const prefetchDataStep = createStep({
       intent,
       confidence,
       canAnswerDirectly,
+      queryComplexity,
       extractedEntities,
       prefetchedResults: prefetchedContext?.results ?? {},
       prefetchComplete: prefetchedContext?.complete ?? true,
@@ -295,6 +307,7 @@ const buildContextStep = createStep({
       intent,
       confidence,
       canAnswerDirectly,
+      queryComplexity,
       prefetchedResults,
       formattedContext,
       message,
@@ -385,6 +398,7 @@ const buildContextStep = createStep({
       fastAnswer,
       intent,
       confidence,
+      queryComplexity,
       loadoutContext,
       message,
       userId,
