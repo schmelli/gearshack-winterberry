@@ -65,7 +65,6 @@ import { createGearAgent, streamMastraResponse, persistCacheHitToMemory } from '
 import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { VariantResolution } from '@/types/prompt-ab';
-import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
 import {
   generateProactiveSuggestions,
   formatSuggestionsForStream,
