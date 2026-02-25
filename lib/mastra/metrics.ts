@@ -458,19 +458,7 @@ export const cacheStoresTotal = new Counter({
 });
 
 /**
- * Cache lookup latency in milliseconds
- */
-export const cacheLatencyMs = new Histogram({
-  name: 'mastra_cache_latency_ms',
-  help: 'Semantic cache lookup latency in milliseconds',
-  buckets: [10, 50, 100, 250, 500, 1000],
-  registers: [register],
-});
-
-/**
- * Cache lookup latency in seconds (mirrors _ms histogram for consistency with
- * other dual-unit pairs in this file, e.g. mastra_memory_query_latency_ms /
- * mastra_memory_query_duration_seconds)
+ * Cache lookup latency in seconds (Prometheus convention: seconds for latency histograms)
  */
 export const cacheLatencySeconds = new Histogram({
   name: 'mastra_cache_latency_seconds',
@@ -939,9 +927,8 @@ export function recordCacheStore(): void {
 }
 
 /**
- * Records cache lookup latency in both milliseconds and seconds
+ * Records cache lookup latency in seconds
  */
 export function recordCacheLatency(latencyMs: number): void {
-  cacheLatencyMs.observe(latencyMs);
   cacheLatencySeconds.observe(latencyMs / 1000);
 }

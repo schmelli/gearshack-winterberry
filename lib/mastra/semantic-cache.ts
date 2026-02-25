@@ -52,11 +52,20 @@ const MAX_RESPONSE_LENGTH = 10000;
 /** Feature flag to enable/disable response caching */
 const CACHE_ENABLED = process.env.RESPONSE_CACHE_ENABLED !== 'false';
 
-/** Intent types that are eligible for caching (factual, user-independent) */
-const CACHEABLE_INTENTS = new Set([
-  'general_knowledge',
-  'gear_comparison',
-]);
+/**
+ * Intent types eligible for caching (factual, user-independent).
+ *
+ * Configurable at runtime via RESPONSE_CACHE_INTENTS env var
+ * (comma-separated, e.g. "general_knowledge,gear_comparison").
+ * Only add intents here that are guaranteed to produce user-independent,
+ * non-PII answers — this list directly controls what ends up in query_text.
+ */
+const CACHEABLE_INTENTS = new Set(
+  (process.env.RESPONSE_CACHE_INTENTS || 'general_knowledge,gear_comparison')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
 
 // Eagerly-initialized gateway constant — fails fast if the API key is missing
 // (CACHE_ENABLED guards all public functions, so this is only reached when caching is on)

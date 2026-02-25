@@ -54,7 +54,7 @@ import {
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
 import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
+import { createGearAgent, streamMastraResponse, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
   preloadLoadoutContext,
@@ -448,6 +448,9 @@ export async function POST(request: Request): Promise<Response> {
             const cacheHit = await getSemanticCacheHit(message, cacheLocale);
 
             if (cacheHit) {
+              // Snapshot latency once — used for both the log and the done event
+              const totalLatencyMs = requestTimer();
+
               logInfo('Serving response from semantic cache', {
                 userId: user.id,
                 conversationId,
@@ -455,16 +458,24 @@ export async function POST(request: Request): Promise<Response> {
                   intent: intentResult.intent,
                   cacheId: cacheHit.cacheId,
                   similarity: cacheHit.similarity,
-                  latencyMs: requestTimer(),
+                  latencyMs: totalLatencyMs,
                 },
               });
 
               fullResponse = cacheHit.response;
-              const totalLatencyMs = requestTimer();
               controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
               controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
-
               recordAgentLatency(totalLatencyMs / 1000, 'simple');
+
+              // Persist the user message + cached response to Mastra memory so
+              // the agent retains conversational context for follow-up questions.
+              // Fire-and-forget: failures here must never affect the served response.
+              persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                })
+              );
+
               controller.close();
               return;
             }
