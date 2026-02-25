@@ -10,6 +10,10 @@
  * Production API routes continue to use `createGearAgent()` from
  * `lib/mastra/mastra-agent.ts` for per-user, per-request isolation.
  *
+ * ⚠️  DEVELOPMENT ONLY: Never point DATABASE_URL at a production database
+ *     when running Studio. Tools that accept direct SQL/Cypher queries have
+ *     no user-session auth layer beyond the MASTRA_STUDIO_USER_ID stub.
+ *
  * @see lib/mastra/mastra-agent.ts - Production agent factory
  */
 
@@ -18,7 +22,7 @@ import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
 
-// Tools
+// Tools — @/* alias per CLAUDE.md convention
 import { analyzeLoadoutTool } from '@/lib/mastra/tools/analyze-loadout';
 import { inventoryInsightsTool } from '@/lib/mastra/tools/inventory-insights';
 import { searchGearKnowledgeTool } from '@/lib/mastra/tools/search-gear-knowledge';
@@ -32,28 +36,65 @@ import { searchWebTool } from '@/lib/mastra/tools/search-web';
 import { GearshackUserProfileSchema } from '@/lib/mastra/schemas/working-memory';
 
 // ---------------------------------------------------------------------------
-// Environment
+// Environment (read once at module load — safe, no side effects)
 // ---------------------------------------------------------------------------
 
 const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5';
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Lazy singleton — avoids creating a new gateway instance on each call and
-// defers key validation until first use (matches production pattern in mastra-agent.ts).
-let _gateway: ReturnType<typeof createGateway> | null = null;
+/**
+ * Stub user ID for Studio tool execution.
+ * Set MASTRA_STUDIO_USER_ID to your Supabase user ID in .env.local to enable
+ * user-scoped tools (analyzeLoadout, inventoryInsights, addToLoadout, etc.).
+ */
+const STUDIO_USER_ID = process.env.MASTRA_STUDIO_USER_ID ?? '';
+
+// ---------------------------------------------------------------------------
+// Gateway — lazy singleton (matches production pattern in lib/mastra/mastra-agent.ts)
+// Deferred to first call to avoid throwing at import time if key is missing.
+// ---------------------------------------------------------------------------
+
+let gatewayInstance: ReturnType<typeof createGateway> | null = null;
 
 function getGateway() {
-  if (!_gateway) {
-    const AI_GATEWAY_KEY = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
-    if (!AI_GATEWAY_KEY) {
+  if (!gatewayInstance) {
+    const key = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+    if (!key) {
       throw new Error(
         '[Mastra Studio] AI_GATEWAY_API_KEY or AI_GATEWAY_KEY is required. ' +
-        'Copy from .env.example and set in .env.local.'
+          'Copy from .env.example and set in .env.local.',
       );
     }
-    _gateway = createGateway({ apiKey: AI_GATEWAY_KEY });
+    gatewayInstance = createGateway({ apiKey: key });
   }
-  return _gateway;
+  return gatewayInstance;
+}
+
+// ---------------------------------------------------------------------------
+// Storage — lazy singletons (avoid opening DB connections at import time)
+// ---------------------------------------------------------------------------
+
+let pgStoreInstance: PostgresStore | null = null;
+let pgVectorInstance: PgVector | null = null;
+
+function getStudioPgStore(): PostgresStore {
+  if (!pgStoreInstance) {
+    pgStoreInstance = new PostgresStore({
+      id: 'gearshack-studio-storage',
+      connectionString: DATABASE_URL!,
+    });
+  }
+  return pgStoreInstance;
+}
+
+function getStudioPgVector(): PgVector {
+  if (!pgVectorInstance) {
+    pgVectorInstance = new PgVector({
+      id: 'gearshack-studio-vector',
+      connectionString: DATABASE_URL!,
+    });
+  }
+  return pgVectorInstance;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,26 +104,18 @@ function getGateway() {
 function createStudioMemory(): Memory | undefined {
   if (!DATABASE_URL) {
     console.warn(
-      '[Mastra Studio] DATABASE_URL not set — running without memory. ' +
-      'Set it in .env.local for full three-tier memory support.'
+      '[Mastra Studio] DATABASE_URL not set — running without persistent memory. ' +
+        'Set it in .env.local for full three-tier memory support.',
     );
     return undefined;
   }
 
-  const store = new PostgresStore({
-    id: 'gearshack-studio-storage',
-    connectionString: DATABASE_URL,
-  });
-
-  const vector = new PgVector({
-    id: 'gearshack-studio-vector',
-    connectionString: DATABASE_URL,
-  });
-
   return new Memory({
-    storage: store,
-    vector,
-    embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
+    storage: getStudioPgStore(),
+    vector: getStudioPgVector(),
+    embedder: getGateway().textEmbeddingModel(
+      process.env.AI_EMBEDDING_MODEL || 'openai/text-embedding-3-small',
+    ),
     options: {
       lastMessages: 20,
       semanticRecall: {
@@ -96,6 +129,37 @@ function createStudioMemory(): Memory | undefined {
       },
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Tool context wrapper
+//
+// Most user-scoped tools (analyzeLoadout, inventoryInsights, etc.) read
+// userId from requestContext. In production this comes from the authenticated
+// request. In Studio there is no session, so we inject MASTRA_STUDIO_USER_ID
+// as a fallback so the tools are usable in Agent Chat and Tool Playground.
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExecutableTool = { execute?: (args: any, context: any) => Promise<any> };
+
+function withStudioContext<T extends ExecutableTool>(tool: T): T {
+  if (!tool.execute || !STUDIO_USER_ID) return tool;
+
+  const original = tool.execute.bind(tool);
+  return {
+    ...tool,
+    execute: async (args: unknown, context: unknown) => {
+      const ctx = context as Record<string, unknown>;
+      const existing = ctx?.requestContext as Map<string, unknown> | undefined;
+      // Only inject if userId not already provided by the caller
+      if (existing?.has('userId')) return original(args, context);
+
+      const requestContext = new Map<string, unknown>(existing);
+      requestContext.set('userId', STUDIO_USER_ID);
+      return original(args, { ...ctx, requestContext });
+    },
+  } as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +188,11 @@ This is a Mastra Studio development session. You have access to the full toolset
 - queryGearGraph — Cypher queries to explore GearGraph product relationships
 - searchWeb — Real-time web search for trail conditions, gear reviews, current info
 
+**Studio Note — User-Scoped Tools:**
+User-scoped tools (analyzeLoadout, inventoryInsights, searchGearKnowledge, addToLoadout, queryUserData)
+require a userId. In Studio this is provided via the MASTRA_STUDIO_USER_ID environment variable.
+If tools return auth errors, set MASTRA_STUDIO_USER_ID=<your-supabase-user-id> in .env.local.
+
 **Guidelines:**
 - Use metric units (kg, g) for weight
 - Be enthusiastic and opinionated — you're a passionate gear nerd
@@ -134,41 +203,50 @@ This is a Mastra Studio development session. You have access to the full toolset
 Respond in English by default. If the user writes in German, switch to German.`;
 
 // ---------------------------------------------------------------------------
-// Agent Export
+// Agent Export — lazy singleton
+//
+// Agent initialization is deferred to the first call of getGearAssistant() to
+// avoid module-level side effects. This prevents import-time throws when env
+// vars are not set (e.g., during Next.js build or unrelated test imports).
 // ---------------------------------------------------------------------------
 
+let _gearAssistant: Agent | null = null;
+
 /**
- * Gear Assistant agent for Mastra Studio.
+ * Returns the Gear Assistant agent for Mastra Studio.
  *
  * Registered in `src/mastra/index.ts` so that `npx mastra dev` exposes it
  * in the Studio UI (Agent Chat, Tool Playground, Tracing).
  *
- * Required .env.local variables for full tool access:
- *   MASTRA_DEV_USER_ID=<your-supabase-user-uuid>
- *     Without this, all user-scoped tools (analyzeLoadout, inventoryInsights,
- *     addToLoadout, queryUserData) will return "User not authenticated".
- *     Set it to your own Supabase auth UUID for local development.
- *     ⚠️  Never set this in production — only .env.local.
+ * Uses a distinct id ('gear-assistant-studio') from the production agent
+ * ('gear-assistant') for clearer tracing and log attribution.
  */
-export const gearAssistant = new Agent({
-  id: 'gear-assistant',
-  name: 'Gear Assistant',
-  instructions: STUDIO_SYSTEM_PROMPT,
-  model: getGateway()(AI_CHAT_MODEL),
-  memory: createStudioMemory(),
-  tools: {
-    // Composite Domain Tools (Feature 060)
-    analyzeLoadout: analyzeLoadoutTool,
-    inventoryInsights: inventoryInsightsTool,
-    searchGearKnowledge: searchGearKnowledgeTool,
-    // Action tools
-    addToLoadout: addToLoadoutTool,
-    // GearGraph MCP Tools
-    searchGear: searchGearTool,
-    findAlternatives: findAlternativesTool,
-    // Legacy tools (fallback)
-    queryUserData: queryUserDataSqlTool,
-    queryGearGraph: queryGearGraphTool,
-    searchWeb: searchWebTool,
-  },
-});
+export function getGearAssistant(): Agent {
+  if (!_gearAssistant) {
+    _gearAssistant = new Agent({
+      id: 'gear-assistant-studio',
+      name: 'Gear Assistant (Studio)',
+      instructions: STUDIO_SYSTEM_PROMPT,
+      model: getGateway()(AI_CHAT_MODEL),
+      memory: createStudioMemory(),
+      tools: {
+        // Composite Domain Tools (Feature 060)
+        analyzeLoadout: withStudioContext(analyzeLoadoutTool),
+        inventoryInsights: withStudioContext(inventoryInsightsTool),
+        searchGearKnowledge: withStudioContext(searchGearKnowledgeTool),
+        // Action tools
+        addToLoadout: withStudioContext(addToLoadoutTool),
+        // GearGraph MCP Tools — catalog-only, no userId required
+        searchGear: searchGearTool,
+        findAlternatives: findAlternativesTool,
+        // Legacy tools (fallback)
+        // ⚠️ Dev only: queryUserData and queryGearGraph have direct DB access.
+        //    Never point DATABASE_URL at a production database while using Studio.
+        queryUserData: withStudioContext(queryUserDataSqlTool),
+        queryGearGraph: queryGearGraphTool,
+        searchWeb: searchWebTool,
+      },
+    });
+  }
+  return _gearAssistant;
+}

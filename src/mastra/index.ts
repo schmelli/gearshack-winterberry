@@ -25,59 +25,65 @@
 
 import { Mastra } from '@mastra/core';
 import { createLogger } from '@mastra/core/logger';
-import { PgVector, PostgresStore } from '@mastra/pg';
+import { Agent } from '@mastra/core/agent';
 
-import { gearAssistant } from './agents/gear-assistant';
-
-// ---------------------------------------------------------------------------
-// Shared Storage (optional — only when DATABASE_URL is available)
-// ---------------------------------------------------------------------------
-
-const DATABASE_URL = process.env.DATABASE_URL;
-
-const storage = DATABASE_URL
-  ? new PostgresStore({
-      id: 'gearshack-mastra-storage',
-      connectionString: DATABASE_URL,
-    })
-  : undefined;
-
-const vectors = DATABASE_URL
-  ? {
-      pgVector: new PgVector({
-        id: 'gearshack-mastra-vector',
-        connectionString: DATABASE_URL,
-      }),
-    }
-  : undefined;
+import { getGearAssistant } from './agents/gear-assistant';
 
 // ---------------------------------------------------------------------------
 // Logger
 // ---------------------------------------------------------------------------
 
-const _rawLevel = process.env.MASTRA_LOG_LEVEL;
-const _logLevel: 'info' | 'debug' | 'warn' | 'error' =
-  _rawLevel === 'debug' || _rawLevel === 'warn' || _rawLevel === 'error'
-    ? _rawLevel
-    : 'info';
+const VALID_LOG_LEVELS = ['info', 'debug', 'warn', 'error'] as const;
+type LogLevel = (typeof VALID_LOG_LEVELS)[number];
+
+function getLogLevel(): LogLevel {
+  const level = process.env.MASTRA_LOG_LEVEL;
+  if (level && (VALID_LOG_LEVELS as readonly string[]).includes(level)) {
+    return level as LogLevel;
+  }
+  return 'info';
+}
 
 const logger = createLogger({
   name: 'gearshack-ai',
-  level: _logLevel,
+  level: getLogLevel(),
 });
 
 // ---------------------------------------------------------------------------
+// Agent Initialization
+//
+// Agent creation is lazy inside getGearAssistant(), but we call it here so
+// that startup errors (missing AI_GATEWAY_API_KEY, etc.) are surfaced with a
+// clear message rather than a bare stack trace inside the Studio UI.
+// ---------------------------------------------------------------------------
+
+function initAgent(): Agent {
+  try {
+    return getGearAssistant();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`\n[Mastra Studio] Failed to initialize Gear Assistant:\n  ${msg}\n`);
+    console.error('  → Ensure AI_GATEWAY_API_KEY (or AI_GATEWAY_KEY) is set in .env.local\n');
+    process.exit(1);
+  }
+}
+
+const gearAssistant = initAgent();
+
+// ---------------------------------------------------------------------------
 // Central Mastra Instance
+//
+// Note: storage/vectors are intentionally omitted at the Mastra level.
+// The agent's Memory instance already owns its own PgStore and PgVector —
+// adding them here too would open redundant database connections.
 // ---------------------------------------------------------------------------
 
 export const mastra = new Mastra({
   agents: {
     gearAssistant,
   },
-  storage,
-  vectors,
   logger,
   server: {
-    port: 4111,
+    port: Number(process.env.MASTRA_STUDIO_PORT) || 4111,
   },
 });
