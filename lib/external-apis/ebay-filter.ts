@@ -142,14 +142,25 @@ function containsProductType(title: string, keywords: string[] | undefined): boo
 }
 
 /**
+ * Normalize a string for similarity comparison.
+ *
+ * Merges short-prefix hyphens so "X-Mid" and "Xmid" produce the same token.
+ * Only merges when prefix is 1-2 characters (typical model prefixes like X-, UL-).
+ */
+function normalizeForComparison(str: string): string {
+  return str.toLowerCase().replace(/\b([a-z]{1,2})-(\w)/gi, '$1$2');
+}
+
+/**
  * Calculate similarity score between two strings (Jaccard similarity)
  * Returns a value between 0 and 1.
  *
- * Splits on spaces AND hyphens so "X-Dome" matches "X Dome" in eBay titles.
+ * Normalizes hyphens before comparison so "X-Mid" and "Xmid" match as the
+ * same token. Remaining hyphens are used as word separators.
  */
 function calculateSimilarity(str1: string, str2: string): number {
-  const words1 = new Set(str1.toLowerCase().split(/[\s\-]+/).filter(Boolean));
-  const words2 = new Set(str2.toLowerCase().split(/[\s\-]+/).filter(Boolean));
+  const words1 = new Set(normalizeForComparison(str1).split(/[\s\-]+/).filter(Boolean));
+  const words2 = new Set(normalizeForComparison(str2).split(/[\s\-]+/).filter(Boolean));
 
   if (words1.size === 0 || words2.size === 0) return 0;
 
@@ -277,4 +288,5 @@ export {
   containsBrand,
   containsProductType,
   calculateSimilarity,
+  normalizeForComparison,
 };

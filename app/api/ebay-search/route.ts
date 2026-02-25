@@ -30,6 +30,36 @@ import type { EbaySearchResponse, EbayListing } from '@/types/ebay';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 // =============================================================================
+// Query Normalization
+// =============================================================================
+
+/**
+ * Normalize search query for better eBay matching.
+ *
+ * Handles common product name variations that cause zero results:
+ * - "X-Mid" vs "Xmid" (hyphenated model prefixes)
+ * - "UL-2" vs "UL2" (model number hyphens)
+ * - "Durston Gear" → "Durston" (brand noise words)
+ */
+function normalizeEbayQuery(query: string): string {
+  let normalized = query;
+
+  // Remove common brand suffixes that add noise to eBay search
+  // "Durston Gear" → "Durston", "Nemo Equipment" → "Nemo"
+  normalized = normalized.replace(/\b(Gear|Equipment|Outdoors?|Co\.?|Inc\.?|LLC)\b/gi, '');
+
+  // Merge short prefix + hyphen: "X-Mid" → "XMid", "UL-2" → "UL2"
+  // Only merges when prefix is 1-2 characters (typical model name patterns)
+  // Does NOT affect longer words like "Sea-to-Summit"
+  normalized = normalized.replace(/\b([A-Za-z]{1,2})-(\w)/g, '$1$2');
+
+  // Clean up multiple spaces
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+
+  return normalized;
+}
+
+// =============================================================================
 // Route Handler
 // =============================================================================
 
@@ -93,8 +123,10 @@ export async function GET(request: NextRequest) {
     // Get eBay site config for locale
     const siteConfig = getEbaySiteForLocale(locale);
 
-    // Normalize query for cache key
-    const normalizedQuery = query.toLowerCase().trim();
+    // Normalize query for flexible eBay matching:
+    // "Durston Gear X-Mid Pro 2" → "Durston XMid Pro 2"
+    const ebayQuery = normalizeEbayQuery(query);
+    const normalizedQuery = ebayQuery.toLowerCase().trim();
     const _cacheKey = `${normalizedQuery}:${siteConfig.site}`; // Reserved for manual cache lookups
 
     // Check cache first
@@ -116,9 +148,9 @@ export async function GET(request: NextRequest) {
 
     } else {
 
-      const rawListings = await searchEbayLocalized(query, siteConfig, 20);
+      const rawListings = await searchEbayLocalized(ebayQuery, siteConfig, 20);
 
-      // Apply smart filtering
+      // Apply smart filtering (use original query for similarity matching)
       listings = filterEbayListings(rawListings, {
         brand,
         productTypeKeywords,
@@ -131,7 +163,7 @@ export async function GET(request: NextRequest) {
       // US brands (Durston, Zpacks, etc.) have more inventory on ebay.com.
       if (listings.length === 0 && siteConfig.site !== 'ebay.com') {
         const fallbackSiteConfig = EBAY_SITES['en']; // ebay.com
-        const fallbackRaw = await searchEbayLocalized(query, fallbackSiteConfig, 20);
+        const fallbackRaw = await searchEbayLocalized(ebayQuery, fallbackSiteConfig, 20);
         const fallbackFiltered = filterEbayListings(fallbackRaw, {
           brand,
           productTypeKeywords,
