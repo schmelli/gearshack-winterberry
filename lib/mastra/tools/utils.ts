@@ -1,7 +1,31 @@
 /**
  * Shared utilities for Mastra composite tools
- * Feature: 060-ai-agent-evolution
+ * Feature: 060-ai-agent-evolution, Dynamic Agent Pattern
+ *
+ * Supports both runtimeContext (Dynamic Agent Pattern) and
+ * legacy requestContext for backward compatibility.
  */
+
+/**
+ * Resolve the context Map from Mastra execution context.
+ * Checks runtimeContext first (Dynamic Agent Pattern), then
+ * falls back to requestContext (legacy) for backward compatibility.
+ */
+function resolveContextMap(executionContext: unknown): Map<string, unknown> | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ctx = executionContext as any;
+  // Prefer runtimeContext (Dynamic Agent Pattern via RuntimeContext class)
+  const runtimeCtx = ctx?.runtimeContext;
+  if (runtimeCtx && typeof runtimeCtx.get === 'function') {
+    return runtimeCtx as Map<string, unknown>;
+  }
+  // Fall back to requestContext (legacy Map-based approach)
+  const requestCtx = ctx?.requestContext;
+  if (requestCtx && typeof requestCtx.get === 'function') {
+    return requestCtx as Map<string, unknown>;
+  }
+  return undefined;
+}
 
 /**
  * Extract userId from Mastra execution context
@@ -10,9 +34,8 @@
  * @returns userId string or null if not authenticated
  */
 export function extractUserId(executionContext: unknown): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
-  return requestContext?.get('userId') as string | undefined || null;
+  const ctxMap = resolveContextMap(executionContext);
+  return (ctxMap?.get('userId') as string | undefined) || null;
 }
 
 /**
@@ -22,9 +45,20 @@ export function extractUserId(executionContext: unknown): string | null {
  * @returns currentLoadoutId string or null if not in loadout context
  */
 export function extractCurrentLoadoutId(executionContext: unknown): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
-  return requestContext?.get('currentLoadoutId') as string | undefined || null;
+  const ctxMap = resolveContextMap(executionContext);
+  return (ctxMap?.get('currentLoadoutId') as string | undefined) || null;
+}
+
+/**
+ * Extract subscriptionTier from Mastra execution context
+ *
+ * @param executionContext - Mastra tool execution context
+ * @returns subscriptionTier or 'standard' as default
+ */
+export function extractSubscriptionTier(executionContext: unknown): 'standard' | 'trailblazer' {
+  const ctxMap = resolveContextMap(executionContext);
+  const tier = ctxMap?.get('subscriptionTier') as string | undefined;
+  return tier === 'trailblazer' ? 'trailblazer' : 'standard';
 }
 
 /**

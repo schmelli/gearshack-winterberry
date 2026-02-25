@@ -53,8 +53,8 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-import { createGearAgent, streamMastraResponse } from '@/lib/mastra/mastra-agent';
+import { type PromptContext } from '@/lib/mastra/config';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext } from '@/lib/mastra/mastra-agent';
 import {
   getCachedLoadoutContext,
   preloadLoadoutContext,
@@ -149,6 +149,40 @@ function validateRequest(body: unknown): {
       enableVoice: request.enableVoice as boolean | undefined,
     },
   };
+}
+
+// =====================================================
+// Subscription Tier Lookup
+// =====================================================
+
+/**
+ * Fetch user's subscription tier from the profiles table.
+ * Defaults to 'standard' on any error to ensure graceful degradation.
+ */
+async function fetchSubscriptionTier(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<'standard' | 'trailblazer'> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      logDebug('Could not fetch subscription tier, defaulting to standard', {
+        userId,
+        metadata: { error: error?.message },
+      });
+      return 'standard';
+    }
+
+    const tier = data.subscription_tier;
+    return tier === 'trailblazer' ? 'trailblazer' : 'standard';
+  } catch {
+    return 'standard';
+  }
 }
 
 // =====================================================
@@ -282,12 +316,15 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // 3b. Fetch subscription tier from profiles table (non-blocking for logging setup)
+    const subscriptionTier = await fetchSubscriptionTier(supabase, user.id);
+
     // 4. Set logging context (T030)
     setLogContext({
       userId: user.id,
       conversationId,
       traceId,
-      metadata: { enableTools, enableVoice },
+      metadata: { enableTools, enableVoice, subscriptionTier },
     });
 
     logInfo('Mastra chat request started', {
@@ -296,6 +333,7 @@ export async function POST(request: Request): Promise<Response> {
         hasContext: !!context,
         enableTools,
         enableVoice,
+        subscriptionTier,
       },
     });
 
@@ -492,24 +530,23 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // Build system prompt with memory context, loadout context, and parsed query constraints
+          // Build prompt context with memory context, loadout context, and parsed query constraints
           const { promptContext, loadoutContext } = await buildPromptContext(
             context,
             user.id,
-            undefined, // subscriptionTier
+            subscriptionTier,
             parsedQuery,
           );
-          const systemPrompt = buildMastraSystemPrompt(promptContext);
 
-          // Inject pre-fetched context into system prompt
-          let enrichedPrompt = systemPrompt;
+          // Build enriched prompt suffix from pre-fetched data (injected into prompt by dynamic agent)
+          let enrichedPromptSuffix: string | undefined;
           if (prefetchedContext && prefetchedContext.formattedContext) {
             const contextLabel = (context?.locale as string) === 'de'
               ? '**Vorab geladene Daten (nutze diese um schnell zu antworten):**'
               : '**Pre-loaded Data (use this to answer quickly):**';
-            enrichedPrompt = `${systemPrompt}\n\n${contextLabel}\n${prefetchedContext.formattedContext}`;
+            enrichedPromptSuffix = `${contextLabel}\n${prefetchedContext.formattedContext}`;
 
-            logDebug('Pre-fetched context injected into prompt', {
+            logDebug('Pre-fetched context prepared for runtimeContext', {
               userId: user.id,
               metadata: {
                 contextLength: prefetchedContext.formattedContext.length,
@@ -521,13 +558,28 @@ export async function POST(request: Request): Promise<Response> {
           // --- Phase 3: Agent generation (emit "thinking" progress) ---
           emitProgress('thinking', progressMessages[locale].thinking);
 
-          // Create Mastra Agent and stream response
+          // Build RuntimeContext for the Dynamic Agent Pattern:
+          // - subscriptionTier → determines which tools are available
+          // - lang → determines prompt language
+          // - promptContext → data for system prompt generation
+          // - enrichedPromptSuffix → pre-fetched data to inject
+          const runtimeContext = createGearshackRequestContext({
+            userId: user.id,
+            subscriptionTier,
+            lang: (context?.locale as string) || 'en',
+            promptContext,
+            enrichedPromptSuffix,
+            currentLoadoutId,
+          });
+
+          // Create Dynamic Mastra Agent and stream response
+          // Agent resolves instructions & tools at runtime via runtimeContext
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              const agent = createGearAgent(user.id, enrichedPrompt);
-              return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
+              const agent = createGearAgent();
+              return await streamMastraResponse(agent, message, user.id, conversationId, runtimeContext);
             },
             { userId: user.id }
           );

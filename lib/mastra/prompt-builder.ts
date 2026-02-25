@@ -32,7 +32,10 @@ interface LocalizedContent {
       heaviestCategory?: string
     ) => string;
   };
+  /** Full tool list for trailblazer tier (9 tools) */
   tools: string;
+  /** Reduced tool list for standard tier (4 tools) */
+  toolsStandard: string;
   capabilities: string;
   limitations: string;
   toolBestPractices: string;
@@ -73,7 +76,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Available Tools (9 total):**
+  tools: `**Available Tools (9 total — Trailblazer):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
 - **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer. Use this for gear recommendations, alternatives, and catalog lookups.
@@ -83,6 +86,12 @@ const ENGLISH_CONTENT: LocalizedContent = {
 - **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)
 - **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchWeb**: Real-time web search for trail conditions, gear reviews, current info`,
+
+  toolsStandard: `**Available Tools (4 — Standard):**
+- **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
+- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations. Use this for gear recommendations and catalog lookups.
+- **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing.
+- **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)`,
 
   capabilities: `**Conversational Style & Tone:**
 - **Be enthusiastic and personal** - You're a passionate gear nerd chatting with a friend, not a database returning query results
@@ -166,7 +175,7 @@ const GERMAN_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Verfuegbare Tools (9 insgesamt):**
+  tools: `**Verfuegbare Tools (9 insgesamt — Trailblazer):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
 - **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort. Nutze dieses Tool auch fuer Gear-Empfehlungen, Alternativen und Katalog-Suchen.
@@ -176,6 +185,12 @@ const GERMAN_CONTENT: LocalizedContent = {
 - **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)
 - **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos`,
+
+  toolsStandard: `**Verfuegbare Tools (4 — Standard):**
+- **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen. Nutze dieses Tool fuer Gear-Empfehlungen und Katalog-Suchen.
+- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche.
+- **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)`,
 
   capabilities: `**Gespraechsstil & Ton:**
 - **Sei begeistert und persoenlich** - Du bist ein leidenschaftlicher Gear-Nerd, der mit einem Freund plaudert, keine Datenbank die Abfragen beantwortet
@@ -396,8 +411,9 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     );
   }
 
-  // 3. Available Tools
-  sections.push(`\n${content.tools}`);
+  // 3. Available Tools (tier-aware: standard users see 4 tools, trailblazer sees all 9)
+  const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
+  sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
 
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
