@@ -157,7 +157,13 @@ async function reformulateQuery(query: string): Promise<string | null> {
     const { text } = await Promise.race([
       generateText({
         model: gateway(REFORMULATION_MODEL),
-        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name, core product category, and the original language of the query. Query: ${JSON.stringify(queryForLLM)}. Return only the simplified query, nothing else.`,
+        messages: [
+          {
+            role: 'system',
+            content: 'Simplify gear search queries. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name, core product category, and the original language of the query. Reply with only the simplified query, nothing else.',
+          },
+          { role: 'user', content: queryForLLM },
+        ],
         temperature: 0,
       }),
       timeoutPromise,
@@ -214,7 +220,7 @@ const searchGearKnowledgeInputSchema = z.object({
 const searchGearKnowledgeOutputSchema = z.object({
   success: z.boolean(),
   summary: z.string().describe('Human-readable summary of search results'),
-  reformulatedQuery: z.string().nullable().optional()
+  reformulatedQuery: z.string().optional()
     .describe('Simplified query used when original returned no results (Agentic RAG). Present when query was automatically reformulated.'),
   myGear: z.array(z.object({
     id: z.string(),
@@ -264,7 +270,9 @@ Key use cases:
 
 CRITICAL: This tool uses category-aware search. Searching for "Kocher" (German for stove) will find items categorized as stoves even if their names are "MSR PocketRocket" or "Jetboil Flash". Never use queryUserData for category-based inventory searches.
 
-Results include a \`gearGraphInsights\` field with expert tips from the GearGraph knowledge base. Always incorporate these insights when present.`,
+Results include a \`gearGraphInsights\` field with expert tips from the GearGraph knowledge base. Always incorporate these insights when present.
+
+LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic RAG) — a fast LLM call (max 3 s) plus a second DB round-trip. Expect up to ~4 s additional latency for zero-result searches on queries longer than 10 characters. All other queries are unaffected.`,
 
   inputSchema: searchGearKnowledgeInputSchema,
   outputSchema: searchGearKnowledgeOutputSchema,
@@ -359,8 +367,15 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
       if (gearGraphInsights.length > 0) {
         summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
+      // Agentic RAG: inform the agent when results came from a reformulated query
+      if (reformulatedQuery && totalResults > 0) {
+        summaryParts.push(`Note: query was automatically simplified from "${query}" to "${reformulatedQuery}" to broaden results`);
+      }
       if (totalResults === 0) {
-        summaryParts.push(`No results found for "${query}"`);
+        const noResultsMsg = reformulatedQuery
+          ? `No results found for "${query}" (also tried simplified query "${reformulatedQuery}")`
+          : `No results found for "${query}"`;
+        summaryParts.push(noResultsMsg);
       }
 
       return {
