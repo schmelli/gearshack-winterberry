@@ -51,6 +51,7 @@ const WorkflowInputSchema = z.object({
   inventoryCount: z.number().default(0),
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean().default(true),
+  subscriptionTier: z.string().default('standard'),
 });
 
 /** Step 1 output: intent classification result */
@@ -72,6 +73,7 @@ const ClassifyIntentOutputSchema = z.object({
   inventoryCount: z.number(),
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean(),
+  subscriptionTier: z.string(),
 });
 
 /** Step 2 output: prefetched data context */
@@ -94,6 +96,7 @@ const PrefetchDataOutputSchema = z.object({
   inventoryCount: z.number(),
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean(),
+  subscriptionTier: z.string(),
 });
 
 /** Step 3 output: assembled context ready for agent */
@@ -105,6 +108,8 @@ const BuildContextOutputSchema = z.object({
   /** Intent metadata for metrics */
   intent: z.string(),
   confidence: z.number(),
+  /** Loadout context for proactive suggestions on loadout-detail screen */
+  loadoutContext: z.any().nullable(),
   /** Pass-through fields for agent streaming */
   message: z.string(),
   userId: z.string(),
@@ -112,6 +117,7 @@ const BuildContextOutputSchema = z.object({
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean(),
   locale: z.string(),
+  subscriptionTier: z.string(),
 });
 
 // =============================================================================
@@ -138,6 +144,7 @@ const classifyIntentStep = createStep({
       locale,
       inventoryCount,
       enableTools,
+      subscriptionTier,
     } = inputData;
 
     const intentResult = await classifyIntent(message, screen, currentLoadoutId);
@@ -169,6 +176,7 @@ const classifyIntentStep = createStep({
       inventoryCount,
       currentLoadoutId,
       enableTools,
+      subscriptionTier,
     };
   },
 });
@@ -202,6 +210,7 @@ const prefetchDataStep = createStep({
       inventoryCount,
       currentLoadoutId,
       enableTools,
+      subscriptionTier,
     } = inputData;
 
     // Convert back to typed requirements
@@ -246,6 +255,7 @@ const prefetchDataStep = createStep({
       inventoryCount,
       currentLoadoutId,
       enableTools,
+      subscriptionTier,
     };
   },
 });
@@ -279,6 +289,7 @@ const buildContextStep = createStep({
       inventoryCount,
       currentLoadoutId,
       enableTools,
+      subscriptionTier,
     } = inputData;
 
     // 1. Parse query for additional constraints (budget, weight, intent)
@@ -291,7 +302,7 @@ const buildContextStep = createStep({
       inventoryCount,
       currentLoadoutId,
       userId,
-      subscriptionTier: 'standard',
+      subscriptionTier,
     };
 
     const promptContext: PromptContext = {
@@ -360,12 +371,14 @@ const buildContextStep = createStep({
       fastAnswer,
       intent,
       confidence,
+      loadoutContext,
       message,
       userId,
       conversationId,
       currentLoadoutId,
       enableTools,
       locale,
+      subscriptionTier,
     };
   },
 });

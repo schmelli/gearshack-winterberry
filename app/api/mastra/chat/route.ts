@@ -142,8 +142,6 @@ function validateRequest(body: unknown): {
   };
 }
 
-// buildPromptContext logic is now handled by the gear-assistant workflow's buildContext step
-
 // =====================================================
 // POST Handler
 // =====================================================
@@ -340,6 +338,7 @@ export async function POST(request: Request): Promise<Response> {
               inventoryCount: (context?.inventoryCount as number) || 0,
               currentLoadoutId,
               enableTools,
+              subscriptionTier: (context?.subscriptionTier as string) || 'standard',
             },
           });
 
@@ -353,6 +352,8 @@ export async function POST(request: Request): Promise<Response> {
               `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
             );
           }
+
+          emitProgress('context', progressMessages[locale].context);
 
           const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
 
@@ -485,9 +486,9 @@ export async function POST(request: Request): Promise<Response> {
                 inventoryCount: (context?.inventoryCount as number) || 0,
                 currentLoadoutId,
                 userId: user.id,
-                subscriptionTier: 'standard',
+                subscriptionTier: pipelineOutput.subscriptionTier || 'standard',
               },
-              null,
+              pipelineOutput.loadoutContext,
               (context?.locale as 'en' | 'de') || 'en',
             );
 
