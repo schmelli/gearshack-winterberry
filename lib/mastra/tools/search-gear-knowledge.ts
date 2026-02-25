@@ -227,8 +227,9 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
       // 3. Log catalog gap if zero results (non-blocking)
       if (totalResults === 0) {
         // OTel span event for tracing dashboard
+        // Truncate query to limit PII exposure in distributed traces
         recordSpanEvent('catalog_gap_detected', {
-          'catalog_gap.query': query,
+          'catalog_gap.query': query.length > 100 ? `${query.slice(0, 97)}...` : query,
           'catalog_gap.scope': scope,
           'catalog_gap.category_hint': filters?.category || '',
         });
@@ -491,8 +492,6 @@ async function logCatalogGap(
 
   if (error) {
     console.error('[searchGearKnowledge] catalog_gap upsert error:', error.message);
-  } else {
-    console.log(`[searchGearKnowledge] Catalog gap logged: query="${query}" scope=${scope}`);
   }
 }
 
