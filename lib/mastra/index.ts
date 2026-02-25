@@ -38,3 +38,10 @@ export {
 
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
+
+// Mastra Framework Instance & Workflows
+export { mastra } from './instance';
+export {
+  gearAssistantWorkflow,
+  type GearAssistantWorkflowOutput,
+} from './workflows/gear-assistant-workflow';
