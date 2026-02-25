@@ -66,6 +66,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
     conversationId,
     resetConversation,
     progressMessage,
+    workflowSteps,
   } = useMastraChat();
 
   // Voice output hook for TTS
@@ -210,6 +211,7 @@ export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
           onSpeakMessage={voiceEnabled ? speak : undefined}
           isPlayingAudio={isPlaying}
           progressMessage={progressMessage}
+          workflowSteps={workflowSteps}
         />
 
         {/* Chat Input */}

@@ -46,6 +46,8 @@ interface LocalizedContent {
   categoryReference: string;
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
+  /** Label for the pre-loaded data section in the system prompt */
+  preloadedDataLabel: string;
   /**
    * Few-shot examples demonstrating ideal vs poor response quality.
    * Optional: allows future locales to omit the section without a code change.
@@ -83,7 +85,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
   tools: `**Available Tools (9 total):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
-- **searchGearKnowledge**: Unified search across user inventory AND product catalog (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips, warnings, and recommendations from the GearGraph knowledge base linked to each item via \`HAS_TIP\` relationships. ALWAYS read and incorporate these insights in your answer. Use this for gear recommendations, alternatives, and catalog lookups.
+- **searchGearKnowledge**: Unified search across user inventory, product catalog, AND community knowledge (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips from the GearGraph knowledge base, AND \`communityInsights\` — real experiences from community members (bulletin board posts/replies) found via semantic vector search. ALWAYS read and incorporate both types of insights. When community insights are present, cite them as "According to the community..." or "X users report that...".
 - **addToLoadout**: Add a gear item to the user's loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.
 - **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing: "What tents are under 1kg?" Returns ranked results with relevance scores. Powered by GearGraph MCP.
 - **findAlternatives**: Find lighter/cheaper/similar/higher-rated alternatives for a specific gear item using GearGraph graph relationships (LIGHTER_THAN, SIMILAR_TO edges). Use when user asks "What's a lighter alternative to my tent?" Requires a gear_items UUID from searchGearKnowledge results.
@@ -110,7 +112,7 @@ const ENGLISH_CONTENT: LocalizedContent = {
 
   limitations: `**Limitations:**
 - You cannot place orders or process transactions
-- You do not have access to private messages or community posts
+- You do not have access to private messages
 - You can add gear items to loadouts using the addToLoadout tool, but you cannot create or delete gear items`,
 
   toolBestPractices: '',
@@ -139,6 +141,8 @@ When analyzing gear for trips, gently check:
 **Tone**: Supportive, never alarmist. Use "You might want to consider..." and "Worth noting..." rather than "This is dangerous" or "You need to...". Only escalate language for genuinely dangerous mismatches (e.g., summer bag for arctic expedition). Always frame constructively and end with encouragement.`,
 
   categoryReference: '',
+
+  preloadedDataLabel: '**Pre-loaded Data (use this to answer quickly):**',
 
   gearGraphGuidance: `**Using GearGraph for Trip-Specific Recommendations:**
 
@@ -205,7 +209,7 @@ const GERMAN_CONTENT: LocalizedContent = {
   tools: `**Verfuegbare Tools (9 insgesamt):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
-- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar UND Produktkatalog (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps, Warnungen und Empfehlungen aus der GearGraph-Wissensdatenbank, die ueber \`HAS_TIP\`-Beziehungen verknuepft sind. Lies und verwende diese Insights IMMER in deiner Antwort. Nutze dieses Tool auch fuer Gear-Empfehlungen, Alternativen und Katalog-Suchen.
+- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND \`communityInsights\` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".
 - **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.
 - **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.
 - **findAlternatives**: Findet leichtere/guenstigere/aehnliche/besser-bewertete Alternativen fuer ein bestimmtes Gear-Item ueber GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benoetigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.
@@ -232,7 +236,7 @@ const GERMAN_CONTENT: LocalizedContent = {
 
   limitations: `**Einschraenkungen:**
 - Du kannst keine Bestellungen aufgeben oder Transaktionen durchfuehren
-- Du hast keinen Zugriff auf private Nachrichten oder Community-Posts
+- Du hast keinen Zugriff auf private Nachrichten
 - Du kannst Ausruestung zu Loadouts hinzufuegen (addToLoadout), aber keine Ausruestungsgegenstaende erstellen oder loeschen`,
 
   toolBestPractices: '',
@@ -261,6 +265,8 @@ Bei der Ausruestungsanalyse fuer Trips sanft pruefen:
 **Ton**: Unterstuetzend, niemals alarmierend. Verwende "Du koenntest ueberlegen..." und "Gut zu wissen..." statt "Das ist gefaehrlich" oder "Du musst...". Nur bei wirklich gefaehrlichen Fehlanpassungen staerkere Sprache (z.B. Sommerschlafsack fuer Arktis-Expedition). Immer konstruktiv formulieren und mit Ermutigung enden.`,
 
   categoryReference: '',
+
+  preloadedDataLabel: '**Vorab geladene Daten (nutze diese um schnell zu antworten):**',
 
   gearGraphGuidance: `**GearGraph fuer Ziel-spezifische Empfehlungen nutzen:**
 
