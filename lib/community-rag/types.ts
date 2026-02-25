@@ -116,7 +116,13 @@ export const COMMUNITY_RAG_CONFIG = {
   DEFAULT_THRESHOLD: 0.65,
   /** Default number of results */
   DEFAULT_TOP_K: 5,
-  /** Embedding model to use */
+  /**
+   * Embedding model to use.
+   * NOTE: This model produces 1536-dimensional vectors, which must match the
+   * `vector(1536)` column in the community_knowledge_chunks migration.
+   * If you change this model, create a new migration to alter the column and
+   * rebuild the HNSW index — existing embeddings will be incompatible.
+   */
   EMBEDDING_MODEL: 'openai/text-embedding-3-small',
   /** Batch size for bulk indexing */
   BATCH_SIZE: 50,

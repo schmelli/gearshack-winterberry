@@ -47,8 +47,9 @@ export function triggerPostIndexing(params: IndexPostParams): void {
       author_id: params.author_id,
       created_at: params.created_at,
     }),
-  }).catch(() => {
-    // Silently fail — indexing is not critical
+  }).catch((err: unknown) => {
+    // Fire-and-forget: indexing is non-critical, but log for observability
+    console.warn('[Community RAG] Post indexing trigger failed:', err instanceof Error ? err.message : String(err));
   });
 }
 
@@ -71,8 +72,9 @@ export function triggerReplyIndexing(params: IndexReplyParams): void {
       parent_post_content: params.parent_post_content,
       created_at: params.created_at,
     }),
-  }).catch(() => {
-    // Silently fail
+  }).catch((err: unknown) => {
+    // Fire-and-forget: indexing is non-critical, but log for observability
+    console.warn('[Community RAG] Reply indexing trigger failed:', err instanceof Error ? err.message : String(err));
   });
 }
 
@@ -93,7 +95,8 @@ export function triggerIndexDeletion(
       source_type: sourceType,
       source_id: sourceId,
     }),
-  }).catch(() => {
-    // Silently fail
+  }).catch((err: unknown) => {
+    // Fire-and-forget: deletion is non-critical, but log for observability
+    console.warn('[Community RAG] Index deletion trigger failed:', err instanceof Error ? err.message : String(err));
   });
 }

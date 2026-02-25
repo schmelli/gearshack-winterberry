@@ -10,6 +10,9 @@
  * - GearGraph INSIGHTS (HAS_TIP relationships) for found gear items
  * - Community knowledge (bulletin board posts/replies via pgvector RAG)
  *
+ * Also logs catalog gaps (zero-result searches) for data-driven catalog improvements,
+ * and emits OpenTelemetry span events for the tracing dashboard.
+ *
  * Replaces separate queryUserData + queryCatalog + queryGearGraph calls.
  *
  * @see specs/060-ai-agent-evolution/analysis.md - Vorschlag 2
@@ -21,6 +24,7 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
+import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -233,7 +237,38 @@ Results include:
 
       const totalResults = myGear.length + catalogProducts.length;
 
-      // 3. Fetch GearGraph INSIGHTS and Community Knowledge in parallel
+      // 3. Log catalog gap if zero results (non-blocking)
+      if (totalResults === 0) {
+        // OTel span event for tracing dashboard
+        // Truncate query to limit PII exposure in distributed traces
+        recordSpanEvent('catalog_gap_detected', {
+          'catalog_gap.query': query.length > 100 ? `${query.slice(0, 97)}...` : query,
+          'catalog_gap.scope': scope,
+          'catalog_gap.category_hint': filters?.category || '',
+        });
+        addSpanAttributes({
+          'search.result_count': 0,
+          'search.is_catalog_gap': true,
+        });
+
+        // Structured logging to catalog_gaps table (fire-and-forget)
+        logCatalogGap(supabase, {
+          query,
+          scope,
+          categoryHint: filters?.category || null,
+          filters: filters ? JSON.parse(JSON.stringify(filters)) : {},
+          userId,
+        }).catch((err) => {
+          console.error('[searchGearKnowledge] Failed to log catalog gap:', err);
+        });
+      } else {
+        addSpanAttributes({
+          'search.result_count': totalResults,
+          'search.is_catalog_gap': false,
+        });
+      }
+
+      // 4. Fetch GearGraph INSIGHTS and Community Knowledge in parallel
       // Both are enrichment layers — non-blocking, graceful degradation
       const insightSearchTerms = [
         ...myGear.map(item => ({ name: item.name as string, brand: (item.brand || null) as string | null })),
@@ -448,6 +483,41 @@ async function searchUserGear(
   }));
 
   return { type: 'user_gear', data: flattened };
+}
+
+// =============================================================================
+// Catalog Gap Logging
+// =============================================================================
+
+/**
+ * Log a catalog gap (zero-result search) for data-driven catalog improvements.
+ * Uses the upsert_catalog_gap RPC function for atomic increment + deduplication.
+ * This is fire-and-forget — failures are logged but never block the search response.
+ */
+async function logCatalogGap(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  params: {
+    query: string;
+    scope: string;
+    categoryHint: string | null;
+    filters: Record<string, unknown>;
+    userId: string | null;
+  }
+): Promise<void> {
+  const { query, scope, categoryHint, filters, userId } = params;
+
+  const { error } = await supabase.rpc('upsert_catalog_gap', {
+    p_query: query,
+    p_scope: scope,
+    p_category_hint: categoryHint,
+    p_filters: filters,
+    p_user_id: userId || null,
+  });
+
+  if (error) {
+    console.error('[searchGearKnowledge] catalog_gap upsert error:', error.message);
+  }
 }
 
 async function searchCatalog(

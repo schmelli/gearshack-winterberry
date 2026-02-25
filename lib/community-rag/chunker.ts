@@ -21,7 +21,7 @@ const KNOWN_BRANDS = [
   'Therm-a-Rest', 'NeoAir', 'MSR', 'Jetboil', 'Big Agnes', 'Nemo',
   'Hilleberg', 'Zpacks', 'Gossamer Gear', 'ULA', 'Granite Gear',
   'Osprey', 'Gregory', 'Deuter', 'Arc\'teryx', 'Patagonia',
-  'Mountain Hardwear', 'Sea to Summit', 'Exped', 'Thermarest',
+  'Mountain Hardwear', 'Sea to Summit', 'Exped',
   'Western Mountaineering', 'Enlightened Equipment', 'Katabatic',
   'Nunatak', 'Tarptent', 'Six Moon Designs', 'Sierra Designs',
   'REI', 'Black Diamond', 'Petzl', 'Salomon', 'La Sportiva',

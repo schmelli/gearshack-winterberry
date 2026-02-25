@@ -87,12 +87,17 @@ export async function POST(request: Request): Promise<Response> {
     // content they don't own. Applies to BOTH upsert and delete actions.
     const ownershipTable =
       source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
-    const { data: sourceRecord, error: ownerError } = await supabase
+    let ownershipQuery = supabase
       .from(ownershipTable)
       .select('id, author_id')
       .eq('id', source_id)
-      .eq('author_id', user.id)
-      .single();
+      .eq('author_id', user.id);
+    // For replies, also verify the reply hasn't been soft-deleted to prevent
+    // indexing deleted content via the API
+    if (source_type === 'bulletin_reply') {
+      ownershipQuery = ownershipQuery.eq('is_deleted', false);
+    }
+    const { data: sourceRecord, error: ownerError } = await ownershipQuery.single();
 
     if (ownerError || !sourceRecord) {
       return NextResponse.json(
@@ -133,9 +138,9 @@ export async function POST(request: Request): Promise<Response> {
       };
       chunks = buildPostChunks(post);
     } else {
-      if (!body.post_id || typeof body.post_id !== 'string') {
+      if (!body.post_id || typeof body.post_id !== 'string' || !UUID_REGEX.test(body.post_id)) {
         return NextResponse.json(
-          { error: 'Missing or invalid post_id for bulletin_reply' },
+          { error: 'Missing or invalid post_id for bulletin_reply. Must be a valid UUID.' },
           { status: 400 }
         );
       }
