@@ -71,7 +71,7 @@ export interface SynthesisResult {
 /**
  * ElevenLabs voice ID mapping
  */
-const VOICE_IDS: Record<TTSVoice, string> = {
+export const VOICE_IDS: Record<TTSVoice, string> = {
   rachel: '21m00Tcm4TlvDq8ikWAM',
   domi: 'AZnzlk1XvdvUeBnXmlld',
   bella: 'EXAVITQu4vr4xnSDxMaL',

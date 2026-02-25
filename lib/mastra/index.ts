@@ -38,3 +38,14 @@ export {
 
 // Three-tier memory system (Feature 002)
 export { GearshackUserProfileSchema, type GearshackUserProfile } from './schemas/working-memory';
+
+// Mastra Voice adapter (ElevenLabs via Mastra's MastraVoice abstraction)
+export {
+  GearshackElevenLabsVoice,
+  createGearshackVoice,
+  getVoiceInstance,
+  type GearshackVoiceConfig,
+  type GearshackSpeakOptions,
+  type GearshackListenOptions,
+  type ExtendedTranscriptionResult,
+} from './voice/mastra-voice-adapter';

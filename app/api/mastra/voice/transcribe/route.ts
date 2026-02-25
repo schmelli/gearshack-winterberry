@@ -8,16 +8,14 @@
  *   - Accepts audio file via FormData
  *   - Returns transcription with confidence score
  *   - Suggests retry if confidence below threshold (70%)
+ *
+ * Uses Mastra Voice adapter for provider-independent STT pipeline.
+ * @see lib/mastra/voice/mastra-voice-adapter.ts
  */
 
 import { createClient } from '@/lib/supabase/server';
-import {
-  transcribeAudio,
-  isConfidenceAcceptable,
-  getLowConfidenceMessage,
-  CONFIDENCE_THRESHOLD,
-  type TranscriptionLanguage,
-} from '@/lib/mastra/voice/whisper';
+import { CONFIDENCE_THRESHOLD, type TranscriptionLanguage } from '@/lib/mastra/voice/whisper';
+import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 import { fileTypeFromBuffer } from 'file-type';
@@ -219,20 +217,18 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Use the buffer we already created for magic byte validation
-    const buffer = fileBuffer;
-
     // Determine language
     let language: TranscriptionLanguage = 'auto';
     if (languageHint === 'en' || languageHint === 'de') {
       language = languageHint;
     }
 
-    // Transcribe audio
-    const result = await transcribeAudio(buffer, audioFile.name, { language });
-
-    // Check confidence threshold (T070)
-    const needsRetry = !isConfidenceAcceptable(result.confidence);
+    // Transcribe audio via Mastra Voice pipeline (provider-independent)
+    const voice = getVoiceInstance();
+    const result = await voice.listenWithMetadata(fileBuffer, {
+      language,
+      filename: audioFile.name,
+    });
 
     const response: TranscriptionResponse = {
       success: true,
@@ -240,12 +236,12 @@ export async function POST(request: Request): Promise<Response> {
       language: result.language,
       confidence: result.confidence,
       durationMs: result.durationMs,
-      needsRetry,
+      needsRetry: result.needsRetry,
     };
 
     // Add retry message if confidence is low
-    if (needsRetry) {
-      response.retryMessage = getLowConfidenceMessage();
+    if (result.needsRetry) {
+      response.retryMessage = result.retryMessage;
 
       logWarn('Low confidence transcription', {
         userId: user.id,
@@ -263,7 +259,7 @@ export async function POST(request: Request): Promise<Response> {
         textLength: result.text.length,
         confidence: result.confidence,
         durationMs: result.durationMs,
-        needsRetry,
+        needsRetry: result.needsRetry,
       },
     });
 

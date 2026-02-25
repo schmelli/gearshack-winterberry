@@ -9,20 +9,15 @@
  *   - Accepts text and voice options
  *   - Returns streaming audio (mp3)
  *   - Caches common phrases for faster responses
+ *
+ * Uses Mastra Voice adapter for provider-independent TTS pipeline.
+ * @see lib/mastra/voice/mastra-voice-adapter.ts
  */
 
+import { Readable } from 'node:stream';
 import { createClient } from '@/lib/supabase/server';
-import {
-  synthesizeSpeechStream,
-  synthesizeSpeech,
-  getContentType,
-  isCacheablePhrase,
-  getCachedAudio,
-  cacheAudio,
-  type TTSVoice,
-  type TTSModel,
-  type TTSFormat,
-} from '@/lib/mastra/voice/tts';
+import { getContentType, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
+import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 
@@ -223,39 +218,23 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Check cache for common phrases (T081)
-    if (isCacheablePhrase(text)) {
-      const cachedAudio = getCachedAudio(text, voice);
-      if (cachedAudio) {
-        logInfo('Returning cached TTS audio', {
-          userId: user.id,
-          metadata: { textLength: text.length, voice },
-        });
+    // Use Mastra Voice pipeline (provider-independent TTS)
+    const voiceAdapter = getVoiceInstance();
 
-        // Cast Buffer to BodyInit for Response compatibility (Buffer extends Uint8Array in Node.js)
-        return new Response(cachedAudio as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            'Content-Type': getContentType(format),
-            'X-Cache': 'HIT',
-            'Cache-Control': 'private, max-age=86400',
-          },
-        });
-      }
-    }
-
-    // Synthesize audio
     if (stream) {
-      // Streaming response (T075)
-      const audioStream = await synthesizeSpeechStream(text, {
-        voice,
+      // Streaming response via Mastra Voice speak() — handles caching internally
+      const audioStream = await voiceAdapter.speak(text, {
+        speaker: voice,
         model,
         format,
         stability,
         similarityBoost,
       });
 
-      return new Response(audioStream, {
+      // Convert Node.js Readable to Web ReadableStream for Response
+      const webStream = Readable.toWeb(audioStream as Readable);
+
+      return new Response(webStream as ReadableStream, {
         status: 200,
         headers: {
           'Content-Type': getContentType(format),
@@ -265,19 +244,14 @@ export async function POST(request: Request): Promise<Response> {
         },
       });
     } else {
-      // Buffered response (for caching)
-      const result = await synthesizeSpeech(text, {
-        voice,
+      // Buffered response via Mastra Voice speakBuffered() — caches common phrases
+      const result = await voiceAdapter.speakBuffered(text, {
+        speaker: voice,
         model,
         format,
         stability,
         similarityBoost,
       });
-
-      // Cache if this is a common phrase (T081)
-      if (isCacheablePhrase(text)) {
-        cacheAudio(text, result.audio, voice, format);
-      }
 
       logInfo('Voice synthesis completed', {
         userId: user.id,

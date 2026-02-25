@@ -526,7 +526,9 @@ export async function POST(request: Request): Promise<Response> {
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              const agent = createGearAgent(user.id, enrichedPrompt);
+              const agent = createGearAgent(user.id, enrichedPrompt, {
+                language: locale === 'de' ? 'de' : 'en',
+              });
               return await streamMastraResponse(agent, message, user.id, conversationId, currentLoadoutId);
             },
             { userId: user.id }

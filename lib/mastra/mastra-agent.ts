@@ -33,6 +33,11 @@ import { searchWebTool } from './tools/search-web';
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
+// Mastra Voice adapter (ElevenLabs via Mastra's abstraction layer)
+import {
+  GearshackElevenLabsVoice,
+  type GearshackVoiceConfig,
+} from './voice/mastra-voice-adapter';
 
 // =============================================================================
 // Environment Configuration
@@ -185,18 +190,37 @@ function createAgentMemory(): Memory {
 // =============================================================================
 
 /**
- * Create Mastra Agent with three-tier memory and tools
+ * Create Mastra Agent with three-tier memory, tools, and voice
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
  *
+ * Voice integration via Mastra's MastraVoice abstraction enables
+ * provider-independent TTS/STT. Use agent.getVoice() to access
+ * speak(), listen(), and getSpeakers() methods.
+ *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
+ * @param voiceConfig - Optional voice configuration (language, voice, model)
  */
-export function createGearAgent(userId: string, systemPrompt: string) {
+export function createGearAgent(
+  userId: string,
+  systemPrompt: string,
+  voiceConfig?: GearshackVoiceConfig
+) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
+
+  // Mastra Voice pipeline: ElevenLabs via MastraVoice abstraction
+  // Enables provider switching without changing API routes
+  const voice = new GearshackElevenLabsVoice({
+    defaultVoice: voiceConfig?.defaultVoice ?? 'rachel',
+    defaultModel: voiceConfig?.defaultModel ?? 'eleven_turbo_v2_5',
+    language: voiceConfig?.language ?? 'auto',
+    stability: voiceConfig?.stability,
+    similarityBoost: voiceConfig?.similarityBoost,
+  });
 
   const agent = new Agent({
     id: 'gear-assistant',
@@ -204,6 +228,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     instructions: systemPrompt,
     model: getGateway()(AI_CHAT_MODEL),
     memory: agentMemory,
+    voice,
     tools: {
       // Composite Domain Tools (Feature 060: preferred for most queries)
       analyzeLoadout: analyzeLoadoutTool,
@@ -224,7 +249,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools, three-tier memory, voice: ElevenLabs/${voiceConfig?.defaultVoice ?? 'rachel'}`
   );
   return agent;
 }
