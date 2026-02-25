@@ -22,6 +22,7 @@ import {
   isCacheablePhrase,
   getCachedAudio,
   cacheAudio,
+  getContentType,
   VOICE_OPTIONS,
   VOICE_IDS,
   type TTSVoice,
@@ -161,8 +162,12 @@ export class GearshackElevenLabsVoice extends MastraVoice {
    * Returns a Node.js ReadableStream of audio data.
    * Automatically checks cache for common phrases.
    *
+   * This method satisfies MastraVoice's interface. For typed access to
+   * provider-specific options (model, format, stability, similarityBoost),
+   * cast `options` to {@link GearshackSpeakOptions} or use {@link speakBuffered}.
+   *
    * @param input - Text string or stream to synthesize
-   * @param options - Optional speaker and synthesis settings
+   * @param options - Optional speaker and synthesis settings (see {@link GearshackSpeakOptions})
    * @returns Audio stream
    */
   async speak(
@@ -299,10 +304,26 @@ export class GearshackElevenLabsVoice extends MastraVoice {
     options: Partial<GearshackSpeakOptions> = {}
   ): Promise<SynthesisResult> {
     const voice = this.resolveVoice(options.speaker);
-    const model = options.model ?? this.voiceConfig.defaultModel;
     const format = options.format ?? this.voiceConfig.defaultFormat;
+    const model = options.model ?? this.voiceConfig.defaultModel;
     const stability = options.stability ?? this.voiceConfig.stability;
     const similarityBoost = options.similarityBoost ?? this.voiceConfig.similarityBoost;
+
+    // Check TTS cache for common phrases — mirrors original route behavior
+    if (isCacheablePhrase(text)) {
+      const cached = getCachedAudio(text, voice);
+      if (cached) {
+        logDebug('Mastra Voice speakBuffered() cache hit', {
+          metadata: { textLength: text.length, voice },
+        });
+        return {
+          audio: cached,
+          format,
+          contentType: getContentType(format),
+          durationMs: 0,
+        };
+      }
+    }
 
     const result = await synthesizeSpeech(text, {
       voice,
@@ -312,7 +333,7 @@ export class GearshackElevenLabsVoice extends MastraVoice {
       similarityBoost,
     });
 
-    // Cache common phrases
+    // Cache common phrases for future requests
     if (isCacheablePhrase(text)) {
       cacheAudio(text, result.audio, voice, format);
     }
@@ -336,8 +357,8 @@ export class GearshackElevenLabsVoice extends MastraVoice {
   private resolveVoice(speaker?: string): TTSVoice {
     if (!speaker) return this.voiceConfig.defaultVoice;
 
-    // Check if it's a valid TTSVoice name
-    const validVoices: TTSVoice[] = ['rachel', 'domi', 'bella', 'antoni', 'josh', 'adam'];
+    // Derive valid voices from VOICE_IDS — single source of truth
+    const validVoices = Object.keys(VOICE_IDS) as TTSVoice[];
     if (validVoices.includes(speaker as TTSVoice)) {
       return speaker as TTSVoice;
     }
