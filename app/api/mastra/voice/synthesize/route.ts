@@ -16,7 +16,7 @@
 
 import { Readable } from 'node:stream';
 import { createClient } from '@/lib/supabase/server';
-import { getContentType, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
+import { getContentType, VOICE_IDS, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
 import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
@@ -60,8 +60,8 @@ function validateRequest(body: unknown): {
     return { valid: false, error: 'text must not exceed 5000 characters' };
   }
 
-  // Validate voice if provided (ElevenLabs voices)
-  const validVoices: TTSVoice[] = ['rachel', 'domi', 'bella', 'antoni', 'josh', 'adam'];
+  // Validate voice if provided — derived from VOICE_IDS to stay in sync with tts.ts
+  const validVoices = Object.keys(VOICE_IDS) as TTSVoice[];
   if (request.voice !== undefined && !validVoices.includes(request.voice as TTSVoice)) {
     return { valid: false, error: `voice must be one of: ${validVoices.join(', ')}` };
   }

@@ -385,12 +385,20 @@ const MAX_CACHE_ENTRIES = 100;
 /**
  * Get cached TTS audio if available
  *
+ * The cache key includes voice AND format to prevent returning audio in the
+ * wrong format (e.g. returning a cached MP3 buffer when PCM was requested).
+ *
  * @param text - Text that was synthesized
  * @param voice - Voice used
+ * @param format - Audio format (required to avoid cross-format cache hits)
  * @returns Cached audio buffer or null
  */
-export function getCachedAudio(text: string, voice: TTSVoice = 'rachel'): Buffer | null {
-  const key = `${voice}:${text.toLowerCase().trim()}`;
+export function getCachedAudio(
+  text: string,
+  voice: TTSVoice = 'rachel',
+  format: TTSFormat = 'mp3_44100_128'
+): Buffer | null {
+  const key = `${voice}:${format}:${text.toLowerCase().trim()}`;
   const cached = ttsCache.get(key);
 
   if (!cached) {
@@ -413,6 +421,9 @@ export function getCachedAudio(text: string, voice: TTSVoice = 'rachel'): Buffer
 /**
  * Cache TTS audio for future requests
  *
+ * The cache key includes voice AND format so that the same phrase cached in
+ * MP3 and PCM occupy separate entries and never collide.
+ *
  * @param text - Text that was synthesized
  * @param audio - Audio buffer to cache
  * @param voice - Voice used
@@ -424,7 +435,7 @@ export function cacheAudio(
   voice: TTSVoice = 'rachel',
   format: TTSFormat = 'mp3_44100_128'
 ): void {
-  const key = `${voice}:${text.toLowerCase().trim()}`;
+  const key = `${voice}:${format}:${text.toLowerCase().trim()}`;
 
   // MEMORY SAFETY: Evict oldest entries if cache is at capacity
   if (ttsCache.size >= MAX_CACHE_ENTRIES && !ttsCache.has(key)) {

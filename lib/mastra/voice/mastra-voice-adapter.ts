@@ -197,12 +197,12 @@ export class GearshackElevenLabsVoice extends MastraVoice {
       metadata: { textLength: text.length, voice, model },
     });
 
-    // Check TTS cache for common phrases
+    // Check TTS cache for common phrases (keyed by voice + format + text)
     if (isCacheablePhrase(text)) {
-      const cached = getCachedAudio(text, voice);
+      const cached = getCachedAudio(text, voice, format);
       if (cached) {
         logDebug('Mastra Voice speak() cache hit', {
-          metadata: { textLength: text.length, voice },
+          metadata: { textLength: text.length, voice, format },
         });
         return Readable.from(cached);
       }
@@ -316,12 +316,13 @@ export class GearshackElevenLabsVoice extends MastraVoice {
     const stability = options.stability ?? this.voiceConfig.stability;
     const similarityBoost = options.similarityBoost ?? this.voiceConfig.similarityBoost;
 
-    // Check TTS cache for common phrases — mirrors original route behavior
+    // Check TTS cache for common phrases — keyed by voice + format + text
+    // to prevent cross-format cache hits (e.g. MP3 data with audio/pcm header)
     if (isCacheablePhrase(text)) {
-      const cached = getCachedAudio(text, voice);
+      const cached = getCachedAudio(text, voice, format);
       if (cached) {
         logDebug('Mastra Voice speakBuffered() cache hit', {
-          metadata: { textLength: text.length, voice },
+          metadata: { textLength: text.length, voice, format },
         });
         return {
           audio: cached,
