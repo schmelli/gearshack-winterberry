@@ -318,6 +318,9 @@ const buildContextStep = createStep({
       subscriptionTier,
     } = inputData;
 
+    // Narrow locale once — used in multiple places below to avoid repeated casts
+    const safeLocale = (locale === 'de' ? 'de' : 'en') as 'en' | 'de';
+
     // 1. Parse query for additional constraints (budget, weight, intent)
     const parsedQuery = parseQuery(message);
 
@@ -353,7 +356,7 @@ const buildContextStep = createStep({
       if (loadoutContext) {
         const formattedLoadoutCtx = formatLoadoutContextForPrompt(
           loadoutContext,
-          locale as 'en' | 'de',
+          safeLocale,
         );
         promptContext.catalogResults = promptContext.catalogResults
           ? `${promptContext.catalogResults}\n\n${formattedLoadoutCtx}`
@@ -367,7 +370,6 @@ const buildContextStep = createStep({
     // 5. Inject pre-fetched context using centralized localized label
     let enrichedSystemPrompt = systemPrompt;
     if (formattedContext) {
-      const safeLocale = (locale === 'de' ? 'de' : 'en') as 'en' | 'de';
       const contextLabel = LOCALIZED_CONTENT[safeLocale].preloadedDataLabel;
       enrichedSystemPrompt = `${systemPrompt}\n\n${contextLabel}\n${formattedContext}`;
     }

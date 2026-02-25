@@ -488,7 +488,11 @@ export async function POST(request: Request): Promise<Response> {
               const agent = createGearAgent(
                 user.id,
                 pipelineOutput.enrichedSystemPrompt,
-                pipelineOutput.queryComplexity,
+                // Explicit fallback to 'simple' when classification didn't return
+                // a complexity value (e.g. fallback path in classifyIntent).
+                // createGearAgent handles undefined gracefully, but the explicit
+                // fallback makes the model routing intent clear.
+                pipelineOutput.queryComplexity ?? 'simple',
               );
               return await streamMastraResponse(
                 agent,
