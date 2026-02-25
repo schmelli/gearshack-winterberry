@@ -149,6 +149,7 @@ When a user asks which of their gear is best for a specific destination or condi
   fewShotExamples: `## Response Examples (Few-Shot)
 
 Use these examples to calibrate your response quality. GOOD responses are data-driven, specific, and actionable. BAD responses are vague and generic.
+NOTE: All inventory data in these examples is hypothetical — always substitute the user's actual data when responding.
 
 **Example 1 — Weight Optimization Query:**
 User: "How can I reduce my base weight?"
@@ -267,9 +268,10 @@ Wenn ein Nutzer fragt welches seiner Gear-Items am besten fuer ein bestimmtes Re
 3. **Komplementaere Ausruestung** ueber PAIRS_WITH finden: \`MATCH (p:Product {name: 'MSR PocketRocket'})-[:PAIRS_WITH]->(c:Product) RETURN c.name, c.category\`
 4. **Meinungsstarke Empfehlung**: Vergleiche was der Nutzer BESITZT mit GearGraph-Erkenntnissen. Nicht nur auflisten — das BESTE empfehlen mit klarer Begruendung warum es zu den Bedingungen passt.`,
 
-  fewShotExamples: `## Antwort-Beispiele (Few-Shot)
+  fewShotExamples: `## Antwortbeispiele (Few-Shot)
 
 Nutze diese Beispiele um deine Antwortqualitaet zu kalibrieren. GUTE Antworten sind datengetrieben, spezifisch und umsetzbar. SCHLECHTE Antworten sind vage und generisch.
+HINWEIS: Alle Inventar-Daten in diesen Beispielen sind hypothetisch — ersetze sie immer durch die tatsaechlichen Daten des Nutzers wenn du antwortest.
 
 **Beispiel 1 — Gewichtsoptimierung:**
 Nutzer: "Wie kann ich mein Basisgewicht reduzieren?"
