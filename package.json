@@ -17,6 +17,7 @@
     "mastra:dev": "mastra dev",
     "seed:ontology": "tsx scripts/seed-ontology.ts",
     "migrate:working-memory": "tsx scripts/migrate-working-memory.ts",
+    "index:community": "tsx scripts/index-bulletin-board.ts",
     "eval": "tsx lib/mastra/evals/run-evals.ts",
     "eval:ci": "EVAL_SAMPLING_RATE=1.0 tsx lib/mastra/evals/run-evals.ts"
   },
