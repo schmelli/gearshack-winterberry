@@ -13,7 +13,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { logWarn } from '@/lib/mastra/logging';
+import { logWarn, logError } from '@/lib/mastra/logging';
 import type {
   PromptABExperiment,
   PromptVariant,
@@ -192,7 +192,9 @@ export async function getActiveExperiment(
         noExperimentFetchedAt = now;
         experimentCache = null;
       } else {
-        console.error('[PromptAB] Transient DB error fetching experiment', { error });
+        logWarn('[PromptAB] Transient DB error fetching experiment — will retry on next request', {
+          metadata: { errorCode: (error as Record<string, unknown>)?.code },
+        });
       }
       return null;
     }
@@ -207,9 +209,8 @@ export async function getActiveExperiment(
     // Validate variants JSONB field at runtime to catch malformed DB data
     const variantsResult = promptVariantArraySchema.safeParse(data.variants);
     if (!variantsResult.success) {
-      console.error('[PromptAB] Invalid variants schema in DB', {
-        experimentName: data.name,
-        error: variantsResult.error.flatten(),
+      logError('[PromptAB] Invalid variants schema in DB', variantsResult.error, {
+        metadata: { experimentName: data.name as string },
       });
       noExperimentFetchedAt = now;
       return null;
@@ -244,7 +245,9 @@ export async function getActiveExperiment(
     return experiment;
   } catch (error) {
     // Graceful degradation: return null if DB unavailable
-    console.error('[PromptAB] Failed to fetch active experiment', { error });
+    logWarn('[PromptAB] Failed to fetch active experiment', {
+      metadata: { error: error instanceof Error ? error.message : String(error) },
+    });
     return null;
   }
 }
