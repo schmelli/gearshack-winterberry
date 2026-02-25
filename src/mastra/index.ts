@@ -25,7 +25,6 @@
 
 import { Mastra } from '@mastra/core';
 import { createLogger } from '@mastra/core/logger';
-import { Agent } from '@mastra/core/agent';
 
 import { getGearAssistant } from './agents/gear-assistant';
 
@@ -57,7 +56,7 @@ const logger = createLogger({
 // clear message rather than a bare stack trace inside the Studio UI.
 // ---------------------------------------------------------------------------
 
-function initAgent(): Agent {
+function initAgent() {
   try {
     return getGearAssistant();
   } catch (err) {
@@ -84,6 +83,7 @@ export const mastra = new Mastra({
   },
   logger,
   server: {
+    // Number('') → NaN, NaN || 4111 falls back correctly; invalid strings are silently ignored
     port: Number(process.env.MASTRA_STUDIO_PORT) || 4111,
   },
 });

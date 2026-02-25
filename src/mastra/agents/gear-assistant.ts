@@ -157,8 +157,7 @@ function createStudioMemory(): Memory | undefined {
 // as a fallback so the tools are usable in Agent Chat and Tool Playground.
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExecutableTool = { execute?: (args: any, context: any) => Promise<any> };
+type ExecutableTool = { execute?: (args: unknown, context: unknown) => Promise<unknown> };
 
 /**
  * Wraps a tool's execute function to inject STUDIO_USER_ID into the requestContext
