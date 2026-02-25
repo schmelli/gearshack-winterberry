@@ -16,7 +16,12 @@
  * - 'failed': Terminal failure (emitted by backend).
  */
 export interface WorkflowStep {
-  step: string;
+  /**
+   * Step name. The known values are 'memory', 'context', and 'thinking'.
+   * The `(string & {})` tail allows unknown future steps without losing
+   * autocomplete for the three known values.
+   */
+  step: 'memory' | 'context' | 'thinking' | (string & {});
   status: 'pending' | 'running' | 'completed' | 'failed';
   /** Raw message from the backend. Used for debugging/telemetry; display uses i18n translations. */
   message?: string;

@@ -58,8 +58,11 @@ export function WorkflowProgress({ steps }: WorkflowProgressProps) {
 
   return (
     <div className="space-y-1.5 text-xs text-muted-foreground">
-      {steps.map((s) => (
-        <div key={`${s.step}-${s.status}`} className="flex items-center gap-2">
+      {steps.map((s, i) => (
+        // Use index as key: step names can repeat (e.g. memory running → completed → running on retry),
+        // and the same step can appear twice with the same status during completeRunningSteps transitions.
+        // The array is append-only within a request and cleared between requests, so index is stable.
+        <div key={i} className="flex items-center gap-2">
           {STATUS_ICONS[s.status]}
           <span>
             {STEP_EMOJIS[s.step] ?? '⚙️'} {stepLabels[s.step] ?? t('progress.unknown')}
