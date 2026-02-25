@@ -26,6 +26,15 @@ export {
   EVAL_JUDGE_MODEL,
 } from './gear-assistant.eval';
 
+// CI runner utilities (server/CI only — do not import in client code)
+export {
+  runDatasetEvals,
+  mergeWeightedScores,
+  checkThresholds,
+  isMetricPassed,
+  type DatasetResult,
+} from './run-evals';
+
 // Test datasets
 export {
   gearSearchDataset,

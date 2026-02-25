@@ -199,7 +199,51 @@ describe('Scorer Factory Functions', () => {
 });
 
 // =============================================================================
-// Tests: checkThresholds and isMetricPassed
+// Tests: mergeWeightedScores
+// =============================================================================
+
+describe('mergeWeightedScores', () => {
+  it('returns empty object for empty groups', async () => {
+    const { mergeWeightedScores } = await import('@/lib/mastra/evals/run-evals');
+    expect(mergeWeightedScores([])).toEqual({});
+  });
+
+  it('returns the single group scores unchanged for a single group', async () => {
+    const { mergeWeightedScores } = await import('@/lib/mastra/evals/run-evals');
+    const result = mergeWeightedScores([
+      { scores: { faithfulness: 0.8, hallucination: 0.2 }, count: 5 },
+    ]);
+    expect(result.faithfulness).toBeCloseTo(0.8);
+    expect(result.hallucination).toBeCloseTo(0.2);
+  });
+
+  it('computes weighted average across groups proportional to case count', async () => {
+    const { mergeWeightedScores } = await import('@/lib/mastra/evals/run-evals');
+
+    // Group A: 4 cases, score 1.0; Group B: 6 cases, score 0.0
+    // Expected: 4/10 * 1.0 + 6/10 * 0.0 = 0.4
+    const result = mergeWeightedScores([
+      { scores: { faithfulness: 1.0 }, count: 4 },
+      { scores: { faithfulness: 0.0 }, count: 6 },
+    ]);
+    expect(result.faithfulness).toBeCloseTo(0.4);
+  });
+
+  it('merges metrics from different groups without loss', async () => {
+    const { mergeWeightedScores } = await import('@/lib/mastra/evals/run-evals');
+    const result = mergeWeightedScores([
+      { scores: { faithfulness: 0.9 }, count: 3 },
+      { scores: { 'tool-call-accuracy': 0.85 }, count: 7 },
+    ]);
+    // faithfulness only in group A: weight = 3/10 = 0.3 → 0.9 * 0.3 = 0.27
+    expect(result.faithfulness).toBeCloseTo(0.27);
+    // tool-call-accuracy only in group B: weight = 7/10 = 0.7 → 0.85 * 0.7 = 0.595
+    expect(result['tool-call-accuracy']).toBeCloseTo(0.595);
+  });
+});
+
+// =============================================================================
+// Tests: checkThresholds
 // =============================================================================
 
 describe('checkThresholds', () => {
@@ -315,6 +359,17 @@ describe('Eval Agent Configuration', () => {
     expect(() => createGearAssistantWithEvals({ samplingRate: 1.5 })).not.toThrow();
     expect(() => createGearAssistantWithEvals({ samplingRate: -0.1 })).not.toThrow();
     expect(() => createGearAssistantWithEvals({ samplingRate: 0.5 })).not.toThrow();
+  });
+
+  it('importing run-evals does not call process.exit (ESM guard)', async () => {
+    // This test verifies the ESM guard: importing the module must NOT trigger main().
+    // If the guard is missing, main() calls process.exit(1) immediately because
+    // AI_GATEWAY_API_KEY is unset in the test environment, killing the test runner.
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as () => never);
+    await import('@/lib/mastra/evals/run-evals');
+    // process.exit should NOT have been called on import
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
   });
 
   it('exports index re-exports all public APIs', async () => {

@@ -38,14 +38,16 @@ const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5'
 
 // Eval judge model: use a fast, capable model for scoring
 // Default to the same gateway model (can be overridden via env)
-const EVAL_JUDGE_MODEL = process.env.EVAL_JUDGE_MODEL || 'openai/gpt-4o-mini';
+// Exported as a const string — callers who override EVAL_JUDGE_MODEL after import
+// should read process.env.EVAL_JUDGE_MODEL directly rather than using this export.
+export const EVAL_JUDGE_MODEL = process.env.EVAL_JUDGE_MODEL || 'openai/gpt-4o-mini';
 
 // Sampling rate for live evaluations (0-1)
 // Default: 0.1 (10%) to minimize cost in production
 // Set to 1.0 in CI for comprehensive evaluation
-const EVAL_SAMPLING_RATE = parseFloat(
-  process.env.EVAL_SAMPLING_RATE || '0.1'
-);
+// parseFloat can return NaN for invalid env values — fall back to 0.1 safely.
+const _parsedSamplingRate = parseFloat(process.env.EVAL_SAMPLING_RATE ?? '');
+const EVAL_SAMPLING_RATE = Number.isNaN(_parsedSamplingRate) ? 0.1 : _parsedSamplingRate;
 
 // =============================================================================
 // Gateway (lazy-loaded)
@@ -78,7 +80,7 @@ function getEvalGateway() {
  * - searchGearKnowledge (gear search - RAG)
  * - inventoryInsights (inventory stats)
  */
-const EVAL_TOOLS = {
+export const EVAL_TOOLS = {
   analyzeLoadout: analyzeLoadoutTool,
   searchGearKnowledge: searchGearKnowledgeTool,
   inventoryInsights: inventoryInsightsTool,
@@ -166,9 +168,10 @@ export function createGearAssistantWithEvals(options?: {
     },
   });
 
-  // Only log in non-production or when explicitly enabled via MASTRA_DEBUG
-  // to avoid noise from sampling-based calls in production
-  if (process.env.MASTRA_DEBUG === '1' || process.env.NODE_ENV !== 'production') {
+  // Only log when MASTRA_DEBUG is explicitly enabled.
+  // Intentionally NOT using NODE_ENV !== 'production' because NODE_ENV === 'test'
+  // in Vitest, which would cause this to fire unconditionally during unit tests.
+  if (process.env.MASTRA_DEBUG === '1') {
     console.log(
       `[Mastra Evals] Created eval agent with ${AI_CHAT_MODEL}, ` +
       `judge=${EVAL_JUDGE_MODEL}, sampling=${samplingRate}, ` +
@@ -178,9 +181,3 @@ export function createGearAssistantWithEvals(options?: {
 
   return agent;
 }
-
-// =============================================================================
-// Exports
-// =============================================================================
-
-export { EVAL_TOOLS, EVAL_JUDGE_MODEL };

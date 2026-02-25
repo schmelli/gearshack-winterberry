@@ -34,28 +34,79 @@ import type { EvalTestCase, EvalTestDataset } from './test-datasets';
 // Configuration
 // =============================================================================
 
+/**
+ * NaN-safe threshold parser.
+ * `parseFloat('abc')` returns NaN; `Math.min(1, NaN)` is NaN (not clamped).
+ * This ensures misconfigured env vars fall back to the default silently.
+ */
+function parseThreshold(envVar: string | undefined, defaultValue: number): number {
+  const parsed = parseFloat(envVar ?? '');
+  return Number.isNaN(parsed) ? defaultValue : parsed;
+}
+
 /** Score thresholds — CI fails if any score drops below these */
 const THRESHOLDS = {
   /** Minimum faithfulness score (0-1). Target: 0.7 */
-  faithfulness: parseFloat(process.env.EVAL_THRESHOLD_FAITHFULNESS || '0.7'),
+  faithfulness: parseThreshold(process.env.EVAL_THRESHOLD_FAITHFULNESS, 0.7),
   /** Maximum hallucination score (0-1). Target: 0.3 (lower is better) */
-  hallucination: parseFloat(process.env.EVAL_THRESHOLD_HALLUCINATION || '0.3'),
+  hallucination: parseThreshold(process.env.EVAL_THRESHOLD_HALLUCINATION, 0.3),
   /** Minimum tool-call accuracy score (0-1). Target: 0.8 */
-  toolCallAccuracy: parseFloat(process.env.EVAL_THRESHOLD_TOOL_ACCURACY || '0.8'),
+  toolCallAccuracy: parseThreshold(process.env.EVAL_THRESHOLD_TOOL_ACCURACY, 0.8),
 };
 
 // =============================================================================
 // Runner
 // =============================================================================
 
-interface DatasetResult {
+export interface DatasetResult {
   datasetName: string;
   scores: Record<string, number>;
   totalItems: number;
   passed: boolean;
 }
 
-async function runDatasetEvals(
+/**
+ * Compute a weighted-average merge of per-group score maps.
+ * Exported for unit testing — the aggregation math is non-trivial.
+ *
+ * Metrics that appear in only some groups will have weights that sum to
+ * less than 1.0; a warning is emitted when this occurs to surface divergent
+ * scorer configurations.
+ */
+export function mergeWeightedScores(
+  groups: { scores: Record<string, number>; count: number }[]
+): Record<string, number> {
+  const totalItems = groups.reduce((sum, g) => sum + g.count, 0);
+  if (totalItems === 0) return {};
+
+  // Track which metrics appeared and their total weight
+  const metricWeightSum: Record<string, number> = {};
+  const merged: Record<string, number> = {};
+
+  for (const { scores, count } of groups) {
+    const weight = count / totalItems;
+    for (const [metric, score] of Object.entries(scores)) {
+      if (typeof score === 'number') {
+        merged[metric] = (merged[metric] ?? 0) + score * weight;
+        metricWeightSum[metric] = (metricWeightSum[metric] ?? 0) + weight;
+      }
+    }
+  }
+
+  // Warn if any metric's weights don't sum to ~1.0 (heterogeneous scorer configs)
+  for (const [metric, weightSum] of Object.entries(metricWeightSum)) {
+    if (Math.abs(weightSum - 1.0) > 0.01) {
+      console.warn(
+        `[Mastra Evals] Metric "${metric}" only appeared in ${(weightSum * 100).toFixed(0)}% of cases. ` +
+        'Scores may not be comparable across datasets with differing scorer configs.'
+      );
+    }
+  }
+
+  return merged;
+}
+
+export async function runDatasetEvals(
   dataset: EvalTestDataset,
   agent: ReturnType<typeof createGearAssistantWithEvals>
 ): Promise<DatasetResult> {
@@ -107,16 +158,8 @@ async function runDatasetEvals(
   }
 
   // Compute weighted-average scores across all groups
+  const mergedScores = mergeWeightedScores(groupResults);
   const totalItems = groupResults.reduce((sum, g) => sum + g.count, 0);
-  const mergedScores: Record<string, number> = {};
-  for (const { scores, count } of groupResults) {
-    const weight = count / totalItems;
-    for (const [metric, score] of Object.entries(scores)) {
-      if (typeof score === 'number') {
-        mergedScores[metric] = (mergedScores[metric] ?? 0) + score * weight;
-      }
-    }
-  }
 
   const passed = checkThresholds(mergedScores);
 
@@ -206,8 +249,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Create eval agent (sampling rate = 1.0 for CI — also reads EVAL_SAMPLING_RATE env var)
-  const samplingRate = parseFloat(process.env.EVAL_SAMPLING_RATE || '1.0');
+  // Create eval agent with 100% sampling for CI. Falls back to 1.0 if env var is malformed.
+  const samplingRateParsed = parseFloat(process.env.EVAL_SAMPLING_RATE ?? '');
+  const samplingRate = Number.isNaN(samplingRateParsed) ? 1.0 : samplingRateParsed;
   const agent = createGearAssistantWithEvals({ samplingRate });
 
   // Run each dataset
@@ -258,7 +302,19 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+// Guard: only run main() when this file is the CLI entry point (e.g. `tsx run-evals.ts`).
+// When imported as a module (e.g. in unit tests), process.argv[1] points to the
+// test runner — NOT to this file — so this block is correctly skipped.
+const isDirectRun =
+  process.argv[1] != null &&
+  (process.argv[1].endsWith('/run-evals.ts') ||
+    process.argv[1].endsWith('/run-evals.js') ||
+    process.argv[1].endsWith('\\run-evals.ts') ||
+    process.argv[1].endsWith('\\run-evals.js'));
+
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
