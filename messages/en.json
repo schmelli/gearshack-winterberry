@@ -979,6 +979,52 @@
       "edit": "Edit"
     }
   },
+  "CommunityWeight": {
+    "section": {
+      "title": "Community Weight",
+      "addReport": "Report weight",
+      "updateReport": "Update report",
+      "basedOnReports": "Based on {count, plural, one {# report} other {# reports}}",
+      "vsManufacturer": "vs. manufacturer",
+      "pendingVerification": "{count, plural, one {# report} other {# reports}} so far — {needed} more needed for verification",
+      "noReportsYet": "No community weight reports yet. Be the first to report!",
+      "showReports": "Show {count, plural, one {# report} other {# reports}}",
+      "hideReports": "Hide reports"
+    },
+    "badge": {
+      "verified": "Verified",
+      "reportsCount": "{count, plural, one {# report} other {# reports}}",
+      "verifiedTooltip": "Community-verified weight: {weight}",
+      "pendingTooltip": "{count, plural, one {# report} other {# reports}} — {needed} more needed",
+      "reportCount": "{count, plural, one {# community report} other {# community reports}}"
+    },
+    "dialog": {
+      "titleNew": "Report Actual Weight",
+      "titleEdit": "Update Weight Report",
+      "description": "Help the community by sharing the actual measured weight of this product.",
+      "descriptionWithName": "Report the actual measured weight for {name}.",
+      "manufacturerWeight": "Manufacturer weight",
+      "weightLabel": "Measured weight",
+      "weightPlaceholder": "e.g. 385",
+      "contextLabel": "Measurement notes (optional)",
+      "contextPlaceholder": "e.g. weighed with stuff sack, kitchen scale",
+      "cancel": "Cancel",
+      "submit": "Submit report",
+      "update": "Update report"
+    },
+    "reports": {
+      "empty": "No weight reports yet.",
+      "yourReport": "Your report"
+    },
+    "errors": {
+      "required": "Weight is required",
+      "mustBeInteger": "Weight must be a whole number",
+      "tooLight": "Weight must be at least 1 gram",
+      "tooHeavy": "Weight must be less than 100,000 grams",
+      "contextTooLong": "Notes must be 500 characters or less",
+      "invalidUuid": "Invalid product identifier"
+    }
+  },
   "Loadouts": {
     "meta": {
       "title": "My Loadouts - Gearshack",

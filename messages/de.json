@@ -979,6 +979,52 @@
       "edit": "Bearbeiten"
     }
   },
+  "CommunityWeight": {
+    "section": {
+      "title": "Community-Gewicht",
+      "addReport": "Gewicht melden",
+      "updateReport": "Meldung aktualisieren",
+      "basedOnReports": "Basierend auf {count, plural, one {# Meldung} other {# Meldungen}}",
+      "vsManufacturer": "vs. Hersteller",
+      "pendingVerification": "{count, plural, one {# Meldung} other {# Meldungen}} bisher — noch {needed} für Verifizierung nötig",
+      "noReportsYet": "Noch keine Community-Gewichtsmeldungen. Sei der Erste!",
+      "showReports": "{count, plural, one {# Meldung} other {# Meldungen}} anzeigen",
+      "hideReports": "Meldungen ausblenden"
+    },
+    "badge": {
+      "verified": "Verifiziert",
+      "reportsCount": "{count, plural, one {# Meldung} other {# Meldungen}}",
+      "verifiedTooltip": "Community-verifiziertes Gewicht: {weight}",
+      "pendingTooltip": "{count, plural, one {# Meldung} other {# Meldungen}} — noch {needed} nötig",
+      "reportCount": "{count, plural, one {# Community-Meldung} other {# Community-Meldungen}}"
+    },
+    "dialog": {
+      "titleNew": "Tatsächliches Gewicht melden",
+      "titleEdit": "Gewichtsmeldung aktualisieren",
+      "description": "Hilf der Community, indem du das tatsächlich gemessene Gewicht dieses Produkts teilst.",
+      "descriptionWithName": "Melde das tatsächlich gemessene Gewicht für {name}.",
+      "manufacturerWeight": "Herstellergewicht",
+      "weightLabel": "Gemessenes Gewicht",
+      "weightPlaceholder": "z.B. 385",
+      "contextLabel": "Messhinweise (optional)",
+      "contextPlaceholder": "z.B. mit Packsack gewogen, Küchenwaage",
+      "cancel": "Abbrechen",
+      "submit": "Meldung absenden",
+      "update": "Meldung aktualisieren"
+    },
+    "reports": {
+      "empty": "Noch keine Gewichtsmeldungen.",
+      "yourReport": "Deine Meldung"
+    },
+    "errors": {
+      "required": "Gewicht ist erforderlich",
+      "mustBeInteger": "Gewicht muss eine ganze Zahl sein",
+      "tooLight": "Gewicht muss mindestens 1 Gramm betragen",
+      "tooHeavy": "Gewicht muss weniger als 100.000 Gramm betragen",
+      "contextTooLong": "Hinweise dürfen maximal 500 Zeichen lang sein",
+      "invalidUuid": "Ungültige Produktkennung"
+    }
+  },
   "Loadouts": {
     "meta": {
       "title": "Meine Packlisten - Gearshack",

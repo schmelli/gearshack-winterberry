@@ -36,8 +36,10 @@ import { GearDetailWishlistPricing } from '@/components/gear-detail/GearDetailWi
 import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
 import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
 import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
+import { CommunityWeightSection } from '@/components/community-weight/CommunityWeightSection';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useCatalogProductMatch } from '@/hooks/useCatalogProductMatch';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
 import { cn } from '@/lib/utils';
@@ -151,6 +153,9 @@ export function GearDetailContent({
     isWishlistItem
   );
 
+  // Community-verified Weights: Resolve catalog product for this gear item
+  const { match: catalogMatch } = useCatalogProductMatch(item.id);
+
   // Feature 057: Derive product type keywords for eBay filtering
   const productTypeKeywords = useMemo(() => {
     if (!item.productTypeId || !categories.length) return [];
@@ -229,6 +234,15 @@ export function GearDetailContent({
             </AccordionTrigger>
             <AccordionContent>
               <GearDetailSpecifications item={item} />
+              {/* Community-verified Weight Reports */}
+              {catalogMatch && (
+                <CommunityWeightSection
+                  catalogProductId={catalogMatch.catalogProductId}
+                  manufacturerWeightGrams={catalogMatch.manufacturerWeightGrams}
+                  productName={catalogMatch.productName ?? item.name}
+                  className="mt-4 pt-4 border-t"
+                />
+              )}
             </AccordionContent>
           </AccordionItem>
 
