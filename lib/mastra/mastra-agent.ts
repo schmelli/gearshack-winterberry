@@ -30,6 +30,8 @@ import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
 import { searchWebTool } from './tools/search-web';
+// Multilingual embedding configuration (Vorschlag 16)
+import { createEmbedder, getEmbeddingModelId, getEmbeddingDimensions } from './embeddings';
 // Three-tier memory system
 import {
   GearshackUserProfileSchema,
@@ -128,8 +130,15 @@ function getPgVector(): PgVector {
         'Settings > Database > Connection string (URI)'
       );
     }
+    // Include dimensions in the id so each embedding model gets its own internal
+    // Mastra vector table. Without this, switching from openai/text-embedding-3-small
+    // (1536d) to cohere/embed-multilingual-v3.0 (1024d) would cause a dimension
+    // mismatch error when Mastra tries to insert 1024-dim vectors into the table
+    // previously created for 1536-dim vectors.
+    //   openai/text-embedding-3-small  → gearshack-memory-vector-1536d
+    //   cohere/embed-multilingual-v3.0 → gearshack-memory-vector-1024d
     pgVectorInstance = new PgVector({
-      id: 'gearshack-memory-vector',
+      id: `gearshack-memory-vector-${getEmbeddingDimensions()}d`,
       connectionString: DATABASE_URL,
     });
   }
@@ -155,7 +164,9 @@ function getPgVector(): PgVector {
  * Tier 3: Semantic Recall (resource-scoped)
  *   - Vector similarity search across ALL past conversations
  *   - Finds relevant context from weeks/months ago
- *   - Uses text-embedding-3-small via Vercel AI Gateway
+ *   - Configurable embedder via EMBEDDING_MODEL env var:
+ *     - openai/text-embedding-3-small (1536d, default)
+ *     - cohere/embed-multilingual-v3.0 (1024d, DE/EN parity)
  *   - Powered by pgvector in Supabase PostgreSQL
  *
  * Storage Architecture:
@@ -194,7 +205,8 @@ function createAgentMemory(): Memory {
     // pgvector for semantic recall embeddings
     vector: getPgVector(),
     // Embedder for semantic recall via Vercel AI Gateway
-    embedder: getGateway().textEmbeddingModel('openai/text-embedding-3-small'),
+    // Supports multilingual (DE/EN) via EMBEDDING_MODEL env var
+    embedder: createEmbedder(getGateway()),
     options: memoryOptions,
   });
 
@@ -278,7 +290,7 @@ export function createGearAgent(userId: string, systemPrompt: string, queryCompl
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
+    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
