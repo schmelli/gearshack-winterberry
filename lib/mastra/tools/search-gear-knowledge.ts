@@ -106,7 +106,7 @@ async function fetchInsightsFromGearGraph(
 // =============================================================================
 
 /** Model for query reformulation — Haiku for cost-efficiency */
-const REFORMULATION_MODEL = 'anthropic/claude-haiku-4-5';
+const REFORMULATION_MODEL = process.env.REFORMULATION_MODEL ?? 'anthropic/claude-haiku-4-5-20251001';
 /** Timeout for the reformulation LLM call (ms) */
 const REFORMULATION_TIMEOUT_MS = 3000;
 
@@ -138,26 +138,35 @@ async function reformulateQuery(query: string): Promise<string | null> {
   const gateway = getReformulationGateway();
   if (!gateway) return null;
 
+  let timerId: ReturnType<typeof setTimeout> | undefined;
   try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timerId = setTimeout(() => reject(new Error('Reformulation timeout')), REFORMULATION_TIMEOUT_MS);
+    });
+
     const { text } = await Promise.race([
       generateText({
         model: gateway(REFORMULATION_MODEL),
-        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name and core product category. If the query is in German, translate key terms to English equivalents. Query: "${query}". Return only the simplified query, nothing else.`,
+        prompt: `Simplify this gear search query for better database search results. Remove model numbers, volume/size specifications (like "58L"), and year designations. Keep the brand name and core product category. If the query is in German, translate key terms to English equivalents. Query: ${JSON.stringify(query)}. Return only the simplified query, nothing else.`,
         temperature: 0,
       }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Reformulation timeout')), REFORMULATION_TIMEOUT_MS)
-      ),
+      timeoutPromise,
     ]);
 
+    clearTimeout(timerId);
+
     const reformulated = text.trim();
-    // Sanity check: don't accept empty results or results identical to input
-    if (!reformulated || reformulated.toLowerCase() === query.toLowerCase()) {
+    // Sanity check: don't accept empty results, results identical to input, or oversized results
+    if (!reformulated || reformulated.toLowerCase() === query.toLowerCase() || reformulated.length > 200) {
       return null;
     }
     return reformulated;
-  } catch {
+  } catch (error) {
+    clearTimeout(timerId);
     // Graceful degradation — reformulation is an optimization, not critical
+    logWarn('Query reformulation failed', {
+      metadata: { original: query, error: error instanceof Error ? error.message : String(error) },
+    });
     return null;
   }
 }
@@ -195,6 +204,8 @@ const searchGearKnowledgeInputSchema = z.object({
 const searchGearKnowledgeOutputSchema = z.object({
   success: z.boolean(),
   summary: z.string().describe('Human-readable summary of search results'),
+  reformulatedQuery: z.string().nullable().optional()
+    .describe('Simplified query used when original returned no results (Agentic RAG). Present when query was automatically reformulated.'),
   myGear: z.array(z.object({
     id: z.string(),
     name: z.string(),
@@ -259,13 +270,12 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
 
       const supabase = createServiceRoleClient();
       const { query, scope, filters, sortBy, limit, offset } = input;
-      const authenticatedUserId: string = userId;
 
       // Helper: execute parallel searches for a given query string
-      async function executeSearches(searchQuery: string) {
+      async function executeSearches(searchQuery: string, currentUserId: string) {
         const searches: Promise<{ type: string; data: unknown }>[] = [];
         if (scope === 'my_gear' || scope === 'all') {
-          searches.push(searchUserGear(supabase, authenticatedUserId, searchQuery, filters, sortBy, limit, offset));
+          searches.push(searchUserGear(supabase, currentUserId, searchQuery, filters, sortBy, limit, offset));
         }
         if (scope === 'catalog' || scope === 'all') {
           searches.push(searchCatalog(supabase, searchQuery, filters, sortBy, limit, offset));
@@ -288,7 +298,7 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
       }
 
       // 1. Initial search with original query
-      let { myGear, catalogProducts } = await executeSearches(query);
+      let { myGear, catalogProducts } = await executeSearches(query, userId);
       let totalResults = myGear.length + catalogProducts.length;
       let reformulatedQuery: string | null = null;
 
@@ -307,7 +317,7 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
             },
           });
 
-          const retryResults = await executeSearches(reformulatedQuery);
+          const retryResults = await executeSearches(reformulatedQuery, userId);
           myGear = retryResults.myGear;
           catalogProducts = retryResults.catalogProducts;
           totalResults = myGear.length + catalogProducts.length;
@@ -336,9 +346,6 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
 
       // Build summary
       const summaryParts: string[] = [];
-      if (reformulatedQuery && totalResults > 0) {
-        summaryParts.push(`No results for "${query}", but found results using simplified search "${reformulatedQuery}"`);
-      }
       if (myGear.length > 0) {
         summaryParts.push(`Found ${myGear.length} matching items in your inventory`);
       }
@@ -349,12 +356,13 @@ Results include a \`gearGraphInsights\` field with expert tips from the GearGrap
         summaryParts.push(`${gearGraphInsights.length} expert insights from GearGraph`);
       }
       if (totalResults === 0) {
-        summaryParts.push(`No results found for "${query}"${reformulatedQuery ? ` (also tried "${reformulatedQuery}")` : ''}`);
+        summaryParts.push(`No results found for "${query}"`);
       }
 
       return {
         success: true,
         summary: summaryParts.join('. ') + '.',
+        reformulatedQuery: reformulatedQuery ?? undefined,
         myGear: myGear.map(item => ({
           id: item.id as string,
           name: item.name as string,
