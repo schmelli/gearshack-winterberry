@@ -47,7 +47,7 @@ interface LocalizedContent {
   /** GearGraph knowledge guidance for trip-specific queries */
   gearGraphGuidance: string;
   /** Few-shot examples demonstrating ideal vs poor response quality */
-  fewShotExamples: string;
+  fewShotExamples?: string;
 }
 
 // =============================================================================
@@ -158,7 +158,7 @@ WHY: The good response references actual inventory data, quantifies savings, ide
 
 **Example 2 — Missing Essentials Check:**
 User: "Is my loadout ready for Scotland?"
-GOOD: "Solid loadout for the Highlands! Three things I'd flag: 1) Your Osprey Exos has an open back — you'll want a rain cover or dry bags since Scottish rain is near-constant. 2) No mid-layer insulation — Scottish summers can drop to 5°C at elevation, and your 15°C fleece won't cut it on the Cuillin Ridge. 3) No GPS or PLB — if you're doing the Cape Wrath Trail, you'll lose phone signal for 3+ days."
+GOOD: "Solid loadout for the Highlands! Three things I'd flag: 1) Your Osprey Exos has an open back — you'll want a rain cover or dry bags since Scottish rain is near-constant. 2) No mid-layer insulation — Scottish summers can drop to 5°C at elevation, and your 100-weight fleece won't cut it on the Cuillin Ridge. 3) No GPS or PLB — if you're doing the Cape Wrath Trail, you'll lose phone signal for 3+ days."
 BAD: "Scotland can be cold and wet, so make sure you have appropriate gear."
 WHY: The good response demonstrates destination knowledge, references specific items from the loadout, gives temperature data, and explains WHY each gap matters. The bad response is generic travel advice anyone could give.
 
@@ -170,7 +170,7 @@ WHY: The good response gives a clear recommendation with reasoning, quantifies t
 
 **Example 4 — Loadout Analysis:**
 User: "Analyze my winter camping loadout"
-GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. 🔴 One concern: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
+GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. [WARNING] One concern: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
 BAD: "Your loadout looks good for winter camping. Make sure you stay warm and have the right gear."
 WHY: The good response provides specific weight analysis, identifies the heaviest item with a lighter alternative, and catches a critical safety issue (sleeping pad R-value) that could make or break the trip.`,
 };
@@ -279,7 +279,7 @@ WARUM: Die gute Antwort bezieht sich auf tatsaechliche Inventar-Daten, quantifiz
 
 **Beispiel 2 — Fehlende Essentials:**
 Nutzer: "Ist mein Loadout bereit fuer Schottland?"
-GUT: "Solides Loadout fuer die Highlands! Drei Punkte die ich anmerken wuerde: 1) Dein Osprey Exos hat einen offenen Ruecken — du brauchst eine Regenhuelle oder Dry Bags, denn schottischer Regen ist quasi Dauerzustand. 2) Keine Mid-Layer Isolation — schottische Sommer koennen auf 5°C fallen in der Hoehe, und dein 15°C Fleece reicht nicht am Cuillin Ridge. 3) Kein GPS oder PLB — auf dem Cape Wrath Trail hast du 3+ Tage kein Handysignal."
+GUT: "Solides Loadout fuer die Highlands! Drei Punkte die ich anmerken wuerde: 1) Dein Osprey Exos hat einen offenen Ruecken — du brauchst eine Regenhuelle oder Dry Bags, denn schottischer Regen ist quasi Dauerzustand. 2) Keine Mid-Layer Isolation — schottische Sommer koennen auf 5°C fallen in der Hoehe, und dein 100er-Fleece reicht nicht am Cuillin Ridge. 3) Kein GPS oder PLB — auf dem Cape Wrath Trail hast du 3+ Tage kein Handysignal."
 SCHLECHT: "Schottland kann kalt und nass sein, also stell sicher, dass du passende Ausruestung hast."
 WARUM: Die gute Antwort zeigt Zielort-Wissen, referenziert konkrete Items aus dem Loadout, nennt Temperaturdaten und erklaert WARUM jede Luecke wichtig ist. Die schlechte Antwort ist generischer Reise-Ratschlag.
 
@@ -291,7 +291,7 @@ WARUM: Die gute Antwort gibt eine klare Empfehlung mit Begruendung, quantifizier
 
 **Beispiel 4 — Loadout-Analyse:**
 Nutzer: "Analysiere mein Winter-Camping-Loadout"
-GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. 🔴 Ein Punkt: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
+GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. [WARNUNG] Ein Punkt: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
 SCHLECHT: "Dein Loadout sieht gut aus fuer Winter-Camping. Stell sicher, dass du warm bleibst und die richtige Ausruestung hast."
 WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den schwersten Gegenstand mit leichterer Alternative und erkennt ein kritisches Sicherheitsthema (Isomatten R-Wert), das den Trip machen oder brechen kann.`,
 };
@@ -460,39 +460,41 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
 
-  // 4b. Few-Shot Examples (calibrate response quality)
-  sections.push(`\n${content.fewShotExamples}`);
+  // 5. Few-Shot Examples (calibrate response quality)
+  if (content.fewShotExamples) {
+    sections.push(`\n${content.fewShotExamples}`);
+  }
 
-  // 5. Limitations
+  // 6. Limitations
   sections.push(`\n${content.limitations}`);
 
-  // 6. Tool Usage Best Practices (skip if empty - handled by composite tools)
+  // 7. Tool Usage Best Practices (skip if empty - handled by composite tools)
   if (content.toolBestPractices) {
     sections.push(`\n${content.toolBestPractices}`);
   }
 
-  // 7. Tool Selection Rules (skip if empty - handled by composite tools)
+  // 8. Tool Selection Rules (skip if empty - handled by composite tools)
   if (content.toolSelectionRules) {
     sections.push(`\n${content.toolSelectionRules}`);
   }
 
-  // 8. Data Validation (skip if empty - handled by composite tools)
+  // 9. Data Validation (skip if empty - handled by composite tools)
   if (content.dataValidation) {
     sections.push(`\n${content.dataValidation}`);
   }
 
-  // 8b. Category Reference (skip if empty - handled by composite tools)
+  // 9b. Category Reference (skip if empty - handled by composite tools)
   if (content.categoryReference) {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 9. GearGraph trip-planning guidance (always shown)
+  // 10. GearGraph trip-planning guidance (always shown)
   // Teaches the agent how to use GearGraph for destination/condition queries
   if (content.gearGraphGuidance) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }
 
-  // 10. Loadout Analysis Guidance (only when viewing a loadout)
+  // 11. Loadout Analysis Guidance (only when viewing a loadout)
   // This enables deep trip analysis with destination research and safety feedback
   if (viewingLoadout) {
     sections.push(`\n${content.loadoutAnalysis}`);
