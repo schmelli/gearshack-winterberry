@@ -24,6 +24,7 @@ import type {
   ReplyNode,
   PostError,
 } from '@/types/bulletin';
+import { triggerReplyIndexing, triggerIndexDeletion } from '@/lib/community-rag/client';
 
 type ReplyOperationState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -39,7 +40,8 @@ interface UseRepliesReturn {
   loadReplies: (postId: string) => Promise<void>;
   createReply: (
     input: CreateReplyInput,
-    authorInfo: { name: string; avatar: string | null }
+    authorInfo: { name: string; avatar: string | null },
+    parentPostContent?: string
   ) => Promise<BulletinReplyWithAuthor | null>;
   updateReply: (replyId: string, content: string) => Promise<BulletinReply | null>;
   deleteReply: (replyId: string) => Promise<boolean>;
@@ -94,7 +96,8 @@ export function useReplies(): UseRepliesReturn {
   const createReply = useCallback(
     async (
       input: CreateReplyInput,
-      authorInfo: { name: string; avatar: string | null }
+      authorInfo: { name: string; avatar: string | null },
+      parentPostContent?: string
     ): Promise<BulletinReplyWithAuthor | null> => {
       setOperationState('loading');
       setError(null);
@@ -111,6 +114,18 @@ export function useReplies(): UseRepliesReturn {
 
         // Add to local state
         setReplies((prev) => [...prev, replyWithAuthor]);
+
+        // Fire-and-forget: Index reply into community knowledge for RAG
+        triggerReplyIndexing({
+          source_id: reply.id,
+          post_id: input.post_id,
+          content: reply.content,
+          author_name: authorInfo.name,
+          author_id: reply.author_id,
+          parent_post_content: parentPostContent,
+          created_at: reply.created_at,
+        });
+
         setOperationState('success');
         return replyWithAuthor;
       } catch (err) {
@@ -171,6 +186,9 @@ export function useReplies(): UseRepliesReturn {
         setReplies((prev) =>
           prev.map((r) => (r.id === replyId ? { ...r, is_deleted: true } : r))
         );
+
+        // Fire-and-forget: Remove deleted reply from RAG index
+        triggerIndexDeletion('bulletin_reply', replyId);
 
         setOperationState('success');
         return true;
