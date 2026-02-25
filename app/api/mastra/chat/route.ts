@@ -76,6 +76,11 @@ import {
 } from '@/lib/ai-assistant/query-parser';
 import { classifyIntent, generateFastAnswer } from '@/lib/mastra/intent-router';
 import { prefetchData, type PrefetchedContext } from '@/lib/mastra/parallel-prefetch';
+import {
+  getSemanticCacheHit,
+  storeInSemanticCache,
+  isCacheableIntent,
+} from '@/lib/mastra/semantic-cache';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
@@ -434,6 +439,37 @@ export async function POST(request: Request): Promise<Response> {
             currentLoadoutId
           );
 
+          // --- Phase 1b: Semantic Response Cache check ---
+          // For cacheable intents (general_knowledge, gear_comparison),
+          // check if a semantically similar question was already answered.
+          // This avoids a full LLM call for frequent factual questions.
+          if (isCacheableIntent(intentResult.intent)) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            const cacheHit = await getSemanticCacheHit(message, cacheLocale);
+
+            if (cacheHit) {
+              logInfo('Serving response from semantic cache', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  intent: intentResult.intent,
+                  cacheId: cacheHit.cacheId,
+                  similarity: cacheHit.similarity,
+                  latencyMs: requestTimer(),
+                },
+              });
+
+              fullResponse = cacheHit.response;
+              const totalLatencyMs = requestTimer();
+              controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
+              controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+
+              recordAgentLatency(totalLatencyMs / 1000, 'simple');
+              controller.close();
+              return;
+            }
+          }
+
           // --- Phase 2: Context / Prefetch (emit progress) ---
           emitProgress('context', progressMessages[locale].context);
 
@@ -639,6 +675,25 @@ export async function POST(request: Request): Promise<Response> {
               toolCallCount: toolCalls?.length || 0,
             },
           });
+
+          // Store cacheable responses in semantic cache (fire-and-forget)
+          if (
+            isNaturalCompletion &&
+            isCacheableIntent(intentResult.intent) &&
+            fullResponse.length > 0
+          ) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            storeInSemanticCache(
+              message,
+              fullResponse,
+              intentResult.intent,
+              cacheLocale
+            ).catch((err: unknown) => {
+              logWarn('Background cache store failed', {
+                metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+              });
+            });
+          }
 
           controller.close();
         } catch (streamError) {

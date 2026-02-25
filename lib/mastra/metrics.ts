@@ -427,6 +427,46 @@ export const voiceEndToEndDurationSeconds = new Histogram({
   registers: [register],
 });
 
+// ==================== Response Cache Metrics ====================
+
+/**
+ * Semantic cache hits total
+ * Feature: Response Caching (Vorschlag 19)
+ */
+export const cacheHitsTotal = new Counter({
+  name: 'mastra_cache_hits_total',
+  help: 'Total number of semantic response cache hits',
+  registers: [register],
+});
+
+/**
+ * Semantic cache misses total
+ */
+export const cacheMissesTotal = new Counter({
+  name: 'mastra_cache_misses_total',
+  help: 'Total number of semantic response cache misses',
+  registers: [register],
+});
+
+/**
+ * Cache store operations total
+ */
+export const cacheStoresTotal = new Counter({
+  name: 'mastra_cache_stores_total',
+  help: 'Total number of responses stored in semantic cache',
+  registers: [register],
+});
+
+/**
+ * Cache lookup latency in milliseconds
+ */
+export const cacheLatencyMs = new Histogram({
+  name: 'mastra_cache_latency_ms',
+  help: 'Semantic cache lookup latency in milliseconds',
+  buckets: [10, 50, 100, 250, 500, 1000],
+  registers: [register],
+});
+
 // ==================== Rate Limiting Metrics ====================
 
 /**
@@ -861,4 +901,34 @@ export function startTimer(): () => number {
     // Return duration in milliseconds
     return endTime - startTime;
   };
+}
+
+// ==================== Cache Helper Functions ====================
+
+/**
+ * Records a semantic cache hit
+ */
+export function recordCacheHit(): void {
+  cacheHitsTotal.inc();
+}
+
+/**
+ * Records a semantic cache miss
+ */
+export function recordCacheMiss(): void {
+  cacheMissesTotal.inc();
+}
+
+/**
+ * Records a response stored in semantic cache
+ */
+export function recordCacheStore(): void {
+  cacheStoresTotal.inc();
+}
+
+/**
+ * Records cache lookup latency in milliseconds
+ */
+export function recordCacheLatency(latencyMs: number): void {
+  cacheLatencyMs.observe(latencyMs);
 }
