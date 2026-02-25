@@ -41,7 +41,8 @@ interface RawUserWeightReport {
 
 interface RawGetWeightReportsResponse {
   reports: RawWeightReport[];
-  stats: RawWeightReportStats;
+  /** Null when p_catalog_product_id does not exist in catalog_products */
+  stats: RawWeightReportStats | null;
   user_report: RawUserWeightReport | null;
 }
 
@@ -66,7 +67,8 @@ function transformReport(raw: RawWeightReport): WeightReport {
   };
 }
 
-function transformStats(raw: RawWeightReportStats): WeightReportStats {
+function transformStats(raw: RawWeightReportStats | null): WeightReportStats | null {
+  if (!raw) return null;
   return {
     reportCount: raw.report_count,
     communityWeightGrams: raw.community_weight_grams,
@@ -103,7 +105,7 @@ export async function getWeightReports(
   const raw = data as RawGetWeightReportsResponse;
   return {
     reports: (raw.reports || []).map(transformReport),
-    stats: transformStats(raw.stats),
+    stats: transformStats(raw.stats),   // null when catalog product not found
     userReport: transformUserReport(raw.user_report),
   };
 }

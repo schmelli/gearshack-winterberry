@@ -23,15 +23,15 @@ const getParamsSchema = z.object({
 });
 
 const postBodySchema = z.object({
-  catalogProductId: z.string().uuid('Invalid UUID format for catalogProductId'),
+  catalogProductId: z.string().uuid('CommunityWeight.errors.invalidUuid'),
   reportedWeightGrams: z
     .number()
-    .int('Weight must be a whole number')
-    .min(1, 'Weight must be at least 1 gram')
-    .max(99999, 'Weight must be less than 100,000 grams'),
+    .int('CommunityWeight.errors.mustBeInteger')
+    .min(1, 'CommunityWeight.errors.tooLight')
+    .max(99999, 'CommunityWeight.errors.tooHeavy'),
   measurementContext: z
     .string()
-    .max(500, 'Context must be 500 characters or less')
+    .max(500, 'CommunityWeight.errors.contextTooLong')
     .optional(),
 });
 
@@ -63,6 +63,14 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await getWeightReports(supabase, parseResult.data.catalogProductId);
+
+    // stats is null when the catalog product does not exist
+    if (data.stats === null) {
+      return NextResponse.json(
+        { error: 'Catalog product not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({ success: true, ...data }, { status: 200 });
   } catch (error) {
@@ -119,8 +127,27 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[API] Submit weight report failed:', error);
 
-    const message =
-      error instanceof Error ? error.message : 'Failed to submit weight report';
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (error instanceof Error) {
+      if (error.message.includes('CATALOG_PRODUCT_NOT_FOUND')) {
+        return NextResponse.json(
+          { error: 'Catalog product not found' },
+          { status: 404 }
+        );
+      }
+      if (error.message.includes('NOT_AUTHENTICATED')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      if (error.message.includes('WEIGHT_OUT_OF_RANGE')) {
+        return NextResponse.json(
+          { error: 'CommunityWeight.errors.tooHeavy', code: 'WEIGHT_OUT_OF_RANGE' },
+          { status: 422 }
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to submit weight report' },
+      { status: 500 }
+    );
   }
 }

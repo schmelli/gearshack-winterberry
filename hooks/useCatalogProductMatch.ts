@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 
 interface CatalogProductMatch {
@@ -66,10 +67,13 @@ export function useCatalogProductMatch(
           .maybeSingle();
 
         if (!cancelled && !error && data) {
-          const product = data.catalog_products as {
-            name: string | null;
-            weight_grams: number | null;
-          } | null;
+          const CatalogProductSchema = z
+            .object({
+              name: z.string().nullable(),
+              weight_grams: z.number().nullable(),
+            })
+            .nullable();
+          const product = CatalogProductSchema.parse(data.catalog_products);
 
           setMatch({
             catalogProductId: data.catalog_product_id,

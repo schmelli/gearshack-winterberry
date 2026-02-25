@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS weight_reports (
   measurement_context TEXT CHECK (char_length(measurement_context) <= 500),
 
   -- Timestamps
-  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 COMMENT ON TABLE weight_reports IS 'User-submitted actual weight measurements for catalog products';
@@ -110,17 +111,17 @@ BEGIN
   -- Get current user
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
+    RAISE EXCEPTION 'NOT_AUTHENTICATED';
   END IF;
 
   -- Validate weight range
   IF p_reported_weight_grams <= 0 OR p_reported_weight_grams >= 100000 THEN
-    RAISE EXCEPTION 'Weight must be between 1 and 99999 grams';
+    RAISE EXCEPTION 'WEIGHT_OUT_OF_RANGE';
   END IF;
 
   -- Validate catalog product exists
   IF NOT EXISTS (SELECT 1 FROM catalog_products WHERE id = p_catalog_product_id) THEN
-    RAISE EXCEPTION 'Catalog product not found';
+    RAISE EXCEPTION 'CATALOG_PRODUCT_NOT_FOUND';
   END IF;
 
   -- Upsert weight report (one per user per product)
@@ -129,8 +130,8 @@ BEGIN
   ON CONFLICT (catalog_product_id, reported_by_user_id)
   DO UPDATE SET
     reported_weight_grams = EXCLUDED.reported_weight_grams,
-    measurement_context = EXCLUDED.measurement_context,
-    created_at = now()
+    measurement_context   = EXCLUDED.measurement_context,
+    updated_at            = now()
   RETURNING id INTO v_report_id;
 
   -- Recalculate community weight

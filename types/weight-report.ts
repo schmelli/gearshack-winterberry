@@ -37,7 +37,8 @@ export interface UserWeightReport {
 /** Full response from get_weight_reports RPC */
 export interface WeightReportsResponse {
   reports: WeightReport[];
-  stats: WeightReportStats;
+  /** Null when the catalog product does not exist */
+  stats: WeightReportStats | null;
   userReport: UserWeightReport | null;
 }
 

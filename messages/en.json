@@ -1011,7 +1011,8 @@
       "mustBeInteger": "Weight must be a whole number",
       "tooLight": "Weight must be at least 1 gram",
       "tooHeavy": "Weight must be less than 100,000 grams",
-      "contextTooLong": "Notes must be 500 characters or less"
+      "contextTooLong": "Notes must be 500 characters or less",
+      "invalidUuid": "Invalid product identifier"
     }
   },
   "Loadouts": {

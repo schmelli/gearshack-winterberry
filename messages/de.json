@@ -1011,7 +1011,8 @@
       "mustBeInteger": "Gewicht muss eine ganze Zahl sein",
       "tooLight": "Gewicht muss mindestens 1 Gramm betragen",
       "tooHeavy": "Gewicht muss weniger als 100.000 Gramm betragen",
-      "contextTooLong": "Hinweise dürfen maximal 500 Zeichen lang sein"
+      "contextTooLong": "Hinweise dürfen maximal 500 Zeichen lang sein",
+      "invalidUuid": "Ungültige Produktkennung"
     }
   },
   "Loadouts": {

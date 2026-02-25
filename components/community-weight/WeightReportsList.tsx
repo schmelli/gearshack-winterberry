@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useFormatter } from 'next-intl';
 import { Scale, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WeightReport } from '@/types/weight-report';
@@ -26,28 +26,12 @@ interface WeightReportsListProps {
 }
 
 // =============================================================================
-// Helpers
-// =============================================================================
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return '1d ago';
-  if (diffDays < 30) return `${diffDays}d ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
-  return `${Math.floor(diffDays / 365)}y ago`;
-}
-
-// =============================================================================
 // Component
 // =============================================================================
 
 export function WeightReportsList({ reports, className }: WeightReportsListProps) {
   const t = useTranslations('CommunityWeight');
+  const format = useFormatter();
 
   if (reports.length === 0) {
     return (
@@ -76,7 +60,7 @@ export function WeightReportsList({ reports, className }: WeightReportsListProps
                 {report.reportedWeightGrams.toLocaleString()} g
               </span>
               <span className="text-xs text-muted-foreground shrink-0">
-                {formatRelativeTime(report.createdAt)}
+                {format.relativeTime(new Date(report.createdAt))}
               </span>
             </div>
             {report.measurementContext && (

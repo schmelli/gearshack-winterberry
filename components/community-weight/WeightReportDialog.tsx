@@ -142,7 +142,13 @@ export function WeightReportDialog({
             </div>
             {errors.reportedWeightGrams && (
               <p className="text-sm text-destructive">
-                {t(errors.reportedWeightGrams.message as 'errors.required')}
+                {t(
+                  (errors.reportedWeightGrams.message ?? 'errors.required') as
+                    | 'errors.required'
+                    | 'errors.mustBeInteger'
+                    | 'errors.tooLight'
+                    | 'errors.tooHeavy'
+                )}
               </p>
             )}
           </div>
@@ -161,7 +167,10 @@ export function WeightReportDialog({
             />
             {errors.measurementContext && (
               <p className="text-sm text-destructive">
-                {t(errors.measurementContext.message as 'errors.contextTooLong')}
+                {t(
+                  (errors.measurementContext.message ?? 'errors.contextTooLong') as
+                    | 'errors.contextTooLong'
+                )}
               </p>
             )}
           </div>

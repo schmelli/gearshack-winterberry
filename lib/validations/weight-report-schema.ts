@@ -8,19 +8,19 @@ import { z } from 'zod';
 export const weightReportSchema = z.object({
   reportedWeightGrams: z
     .string()
-    .min(1, 'CommunityWeight.errors.required')
+    .min(1, 'errors.required')
     .refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)), {
-      message: 'CommunityWeight.errors.mustBeInteger',
+      message: 'errors.mustBeInteger',
     })
     .refine((val) => Number(val) >= 1, {
-      message: 'CommunityWeight.errors.tooLight',
+      message: 'errors.tooLight',
     })
     .refine((val) => Number(val) <= 99999, {
-      message: 'CommunityWeight.errors.tooHeavy',
+      message: 'errors.tooHeavy',
     }),
   measurementContext: z
     .string()
-    .max(500, 'CommunityWeight.errors.contextTooLong')
+    .max(500, 'errors.contextTooLong')
     .optional()
     .or(z.literal('')),
 });
