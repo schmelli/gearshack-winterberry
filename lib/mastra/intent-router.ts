@@ -45,11 +45,16 @@ export interface DataRequirement {
   params?: Record<string, unknown>;
 }
 
+/** Query complexity for model routing */
+export type QueryComplexity = 'simple' | 'complex';
+
 /** Intent classification result */
 export interface IntentClassification {
   intent: IntentType;
   confidence: number;
   canAnswerDirectly: boolean;
+  /** Query complexity for model routing (simple → Haiku, complex → Sonnet) */
+  queryComplexity: QueryComplexity;
   dataRequirements: DataRequirement[];
   extractedEntities: {
     categories?: string[];
@@ -135,6 +140,33 @@ RULES:
 - Handle both English and German queries`;
 
 // =============================================================================
+// Complexity Derivation
+// =============================================================================
+
+/**
+ * Derive query complexity from classified intent.
+ *
+ * Simple intents (→ Haiku, 10x cheaper, 5x faster):
+ *   - simple_fact: countable lookups ("How many tents?")
+ *   - inventory_query: filter/search in inventory
+ *   - general_knowledge: factual outdoor knowledge
+ *
+ * Complex intents (→ Sonnet, full reasoning):
+ *   - loadout_analysis, gear_comparison, suitability_check,
+ *     weight_optimization, recommendation, complex
+ */
+function deriveQueryComplexity(intent: IntentType): QueryComplexity {
+  switch (intent) {
+    case 'simple_fact':
+    case 'inventory_query':
+    case 'general_knowledge':
+      return 'simple';
+    default:
+      return 'complex';
+  }
+}
+
+// =============================================================================
 // Main Router Function
 // =============================================================================
 
@@ -186,10 +218,14 @@ export async function classifyIntent(
       currentLoadoutId
     );
 
+    const classifiedIntent = classification.intent as IntentType;
+    const queryComplexity = deriveQueryComplexity(classifiedIntent);
+
     const intentResult: IntentClassification = {
-      intent: classification.intent as IntentType,
+      intent: classifiedIntent,
       confidence: classification.confidence,
       canAnswerDirectly: classification.canAnswerDirectly,
+      queryComplexity,
       dataRequirements,
       extractedEntities: {
         categories: classification.categories,
@@ -207,6 +243,7 @@ export async function classifyIntent(
         intent: intentResult.intent,
         confidence: intentResult.confidence,
         canAnswerDirectly: intentResult.canAnswerDirectly,
+        queryComplexity: intentResult.queryComplexity,
         dataRequirements: dataRequirements.length,
         latencyMs: getElapsed(),
       },
@@ -226,6 +263,7 @@ export async function classifyIntent(
       intent: 'complex',
       confidence: 0,
       canAnswerDirectly: false,
+      queryComplexity: 'complex',
       dataRequirements: [],
       extractedEntities: {},
     };

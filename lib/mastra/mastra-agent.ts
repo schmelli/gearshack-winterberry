@@ -14,6 +14,7 @@
  */
 
 import { Agent } from '@mastra/core/agent';
+import { TokenLimiter, ToolCallFilter } from '@mastra/core/processors';
 import { Memory } from '@mastra/memory';
 import { PostgresStore, PgVector } from '@mastra/pg';
 import { createGateway } from '@ai-sdk/gateway';
@@ -33,6 +34,8 @@ import { searchWebTool } from './tools/search-web';
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
+import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import type { QueryComplexity } from './intent-router';
 
 // =============================================================================
 // Environment Configuration
@@ -76,6 +79,24 @@ const SEMANTIC_MESSAGE_RANGE = parseInt(process.env.SEMANTIC_RECALL_MESSAGE_RANG
 
 // Working memory feature flag
 const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
+
+// Token limiter configuration
+// Claude Sonnet context window is 200k tokens; keep headroom for system prompt + generation
+const parsedTokenLimit = parseInt(process.env.MASTRA_TOKEN_LIMIT || '180000', 10);
+const TOKEN_LIMIT = Number.isFinite(parsedTokenLimit) && parsedTokenLimit > 0 ? parsedTokenLimit : 180_000;
+if (TOKEN_LIMIT > 195_000) {
+  console.warn(`[Mastra Agent] TOKEN_LIMIT (${TOKEN_LIMIT}) exceeds recommended headroom for Claude Sonnet's 200k context window`);
+}
+
+// Input processors (module-level to avoid repeated allocation per request)
+// Order matters: ToolCallFilter first to reduce noise, TokenLimiter last to enforce budget
+// NOTE: Excluding these tools removes their results from conversation history.
+// The agent may re-run them across turns; this is acceptable because the
+// payload size savings outweigh the extra latency.
+const INPUT_PROCESSORS = [
+  new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
+  new TokenLimiter({ limit: TOKEN_LIMIT }),
+];
 
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
@@ -185,25 +206,58 @@ function createAgentMemory(): Memory {
 // =============================================================================
 
 /**
- * Create Mastra Agent with three-tier memory and tools
+ * Select the appropriate model based on query complexity.
+ *
+ * Simple queries (inventory counts, item lookups, general knowledge) → Haiku (10x cheaper, 5x faster)
+ * Complex queries (shakedown analysis, trip planning, comparisons) → Sonnet (full reasoning)
+ *
+ * @param queryComplexity - Complexity derived from intent classification
+ * @returns Object with AI Gateway model instance and resolved model ID
+ */
+function selectModel(queryComplexity?: QueryComplexity) {
+  const gateway = getGateway();
+
+  if (!COMPLEXITY_ROUTING_CONFIG.ENABLED || !queryComplexity) {
+    return { model: gateway(AI_CHAT_MODEL), modelId: AI_CHAT_MODEL };
+  }
+
+  const modelId = queryComplexity === 'simple'
+    ? COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL
+    : COMPLEXITY_ROUTING_CONFIG.COMPLEX_MODEL;
+
+  return { model: gateway(modelId), modelId };
+}
+
+/**
+ * Create Mastra Agent with three-tier memory, tools, and input processors
  *
  * IMPORTANT: Creates a NEW memory instance for each agent to avoid
  * cross-user data leakage in serverless/multi-user environments.
  *
+ * Input Processors (applied to memory-injected messages before LLM call):
+ * 1. ToolCallFilter: Strips verbose tool call/result pairs from history
+ *    (analyzeLoadout, inventoryInsights return large JSON payloads)
+ * 2. TokenLimiter: Enforces a hard token budget (default 180k) to stay
+ *    safely within Claude Sonnet's 200k context window
+ *
  * @param userId - Current user ID for runtimeContext
  * @param systemPrompt - Dynamic system prompt (includes working memory context)
+ * @param queryComplexity - Optional complexity for model routing (simple → Haiku, complex → Sonnet)
  */
-export function createGearAgent(userId: string, systemPrompt: string) {
+export function createGearAgent(userId: string, systemPrompt: string, queryComplexity?: QueryComplexity) {
   // BUGFIX: Create a new memory instance for each agent to prevent
   // shared state between users in serverless environments
   const agentMemory = createAgentMemory();
+
+  const { model: selectedModel, modelId } = selectModel(queryComplexity);
 
   const agent = new Agent({
     id: 'gear-assistant',
     name: 'Gear Assistant',
     instructions: systemPrompt,
-    model: getGateway()(AI_CHAT_MODEL),
+    model: selectedModel,
     memory: agentMemory,
+    inputProcessors: INPUT_PROCESSORS,
     tools: {
       // Composite Domain Tools (Feature 060: preferred for most queries)
       analyzeLoadout: analyzeLoadoutTool,
@@ -224,7 +278,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
   });
 
   console.log(
-    `[Mastra Agent] Created for user ${userId} with ${AI_CHAT_MODEL}, 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory`
+    `[Mastra Agent] Created for user ${userId} with ${modelId} (complexity: ${queryComplexity ?? 'default'}), 9 tools (3 composite + 1 action + 2 GearGraph MCP + 3 legacy), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT})`
   );
   return agent;
 }
