@@ -80,7 +80,21 @@ const WORKING_MEMORY_ENABLED = process.env.WORKING_MEMORY_ENABLED !== 'false';
 
 // Token limiter configuration
 // Claude Sonnet context window is 200k tokens; keep headroom for system prompt + generation
-const TOKEN_LIMIT = parseInt(process.env.MASTRA_TOKEN_LIMIT || '180000', 10);
+const parsedTokenLimit = parseInt(process.env.MASTRA_TOKEN_LIMIT || '180000', 10);
+const TOKEN_LIMIT = Number.isFinite(parsedTokenLimit) && parsedTokenLimit > 0 ? parsedTokenLimit : 180_000;
+if (TOKEN_LIMIT > 195_000) {
+  console.warn(`[Mastra Agent] TOKEN_LIMIT (${TOKEN_LIMIT}) exceeds recommended headroom for Claude Sonnet's 200k context window`);
+}
+
+// Input processors (module-level to avoid repeated allocation per request)
+// Order matters: ToolCallFilter first to reduce noise, TokenLimiter last to enforce budget
+// NOTE: Excluding these tools removes their results from conversation history.
+// The agent may re-run them across turns; this is acceptable because the
+// payload size savings outweigh the extra latency.
+const INPUT_PROCESSORS = [
+  new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
+  new TokenLimiter({ limit: TOKEN_LIMIT }),
+];
 
 // Lazy-loaded storage instances (initialized on first use)
 let pgStoreInstance: PostgresStore | null = null;
@@ -215,12 +229,7 @@ export function createGearAgent(userId: string, systemPrompt: string) {
     instructions: systemPrompt,
     model: getGateway()(AI_CHAT_MODEL),
     memory: agentMemory,
-    // Memory processors: filter verbose tool results, then enforce token budget
-    // Order matters: ToolCallFilter first to remove noise, TokenLimiter last to enforce limit
-    inputProcessors: [
-      new ToolCallFilter({ exclude: ['analyzeLoadout', 'inventoryInsights'] }),
-      new TokenLimiter({ limit: TOKEN_LIMIT }),
-    ],
+    inputProcessors: INPUT_PROCESSORS,
     tools: {
       // Composite Domain Tools (Feature 060: preferred for most queries)
       analyzeLoadout: analyzeLoadoutTool,
