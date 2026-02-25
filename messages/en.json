@@ -3800,7 +3800,8 @@
     "progress": {
       "memory": "Loading your profile...",
       "context": "Analysing your gear...",
-      "thinking": "Preparing answer..."
+      "thinking": "Preparing answer...",
+      "unknown": "Processing..."
     },
     "ariaLabels": {
       "aiAssistant": "AI Assistant",

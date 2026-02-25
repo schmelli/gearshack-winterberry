@@ -5,6 +5,29 @@
  */
 
 // =====================================================
+// Workflow Progress
+// =====================================================
+
+/**
+ * A single workflow step with its current status.
+ * - 'pending': Reserved for future use (queued steps not yet started).
+ * - 'running': Actively being processed (emitted by backend).
+ * - 'completed': Inferred by the hook when the next step starts or text begins streaming.
+ * - 'failed': Terminal failure (emitted by backend).
+ */
+export interface WorkflowStep {
+  /**
+   * Step name. The known values are 'memory', 'context', and 'thinking'.
+   * The `(string & {})` tail allows unknown future steps without losing
+   * autocomplete for the three known values.
+   */
+  step: 'memory' | 'context' | 'thinking' | (string & {});
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  /** Raw message from the backend. Used for debugging/telemetry; display uses i18n translations. */
+  message?: string;
+}
+
+// =====================================================
 // Core Entities
 // =====================================================
 
