@@ -12,12 +12,17 @@
  * afterGenerate:
  *   - PII redaction from agent responses (reuses log-sanitizer patterns)
  *
- * Integration: Called by streamMastraResponse() and the Studio agent wrapper.
+ * Integration: Called by streamMastraResponse() in mastra-agent.ts.
  * This keeps the guardrails at the agent boundary rather than at the HTTP
  * layer alone, protecting against injection in any calling context.
  *
+ * NOTE: SQL injection is NOT checked here — queryUserDataSqlTool has its own
+ * DANGEROUS_SQL_KEYWORDS validation at the tool boundary, which is the correct
+ * place because it validates the actual SQL WHERE clause, not natural language.
+ *
  * @see lib/mastra/mastra-agent.ts - streamMastraResponse integration
  * @see lib/mastra/log-sanitizer.ts - PII detection patterns reused here
+ * @see lib/mastra/tools/query-user-data-sql.ts - SQL injection protection
  */
 
 import { sanitizeString } from './log-sanitizer';
@@ -41,13 +46,18 @@ const MAX_MESSAGE_LENGTH = 5000;
  * - Direct instruction override ("ignore previous instructions")
  * - System prompt impersonation ("[SYSTEM]", "<|system|>")
  * - Jailbreak keywords
- * - Role-play escape ("you are now", "act as")
- * - Delimiter injection ("###", "---" used as section breaks)
+ * - Role-play escape ("you are now an unrestricted...")
+ * - Delimiter injection ("### SYSTEM" used to break context)
  *
- * NOTE: Patterns are intentionally broad to catch variations.
- * False positives are preferred over false negatives when the agent
- * has direct database access. The error message is generic to avoid
- * leaking detection logic to potential attackers.
+ * Design decisions:
+ * - SQL injection is NOT checked here — queryUserDataSqlTool validates
+ *   at the tool boundary where it can distinguish SQL from natural language.
+ *   Blocking "delete from" at the message level would reject "Can I delete
+ *   from my loadout?" which is a legitimate user question.
+ * - Patterns target adversarial structures, not everyday vocabulary.
+ *   "developer mode" alone is too broad; we match the phrase in injection
+ *   context ("enable developer mode", "switch to developer mode").
+ * - The error message is generic to avoid leaking detection logic.
  */
 const INJECTION_PATTERNS: readonly RegExp[] = [
   // Direct instruction override
@@ -56,7 +66,7 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /FORGET\s+(ALL\s+)?(YOUR\s+)?(PREVIOUS\s+)?INSTRUCTIONS/i,
   /OVERRIDE\s+(SYSTEM|SAFETY|YOUR)\s+(PROMPT|INSTRUCTIONS|RULES)/i,
 
-  // System prompt impersonation
+  // System prompt impersonation (LLM-specific delimiters)
   /\[SYSTEM\]/i,
   /\[INST\]/i,
   /<\|system\|>/i,
@@ -64,31 +74,22 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /SYSTEM:\s*you\s+are/i,
 
   // Jailbreak / DAN patterns
-  /\bjailbreak\b/i,
   /\bDAN\s+mode\b/i,
   /\bDo\s+Anything\s+Now\b/i,
-  /\bdeveloper\s+mode\b/i,
+  /\b(enable|switch\s+to|activate|enter)\s+developer\s+mode\b/i,
 
-  // Role-play escape attempts
-  /you\s+are\s+now\s+(a|an|the)\s+/i,
+  // Role-play escape attempts (require "unrestricted"/"unfiltered"/"evil" qualifier)
   /act\s+as\s+(a|an|the)\s+(unrestricted|unfiltered|evil)/i,
   /pretend\s+(you\s+are|to\s+be)\s+(a|an)\s+(unrestricted|unfiltered)/i,
 
   // Delimiter injection (used to break out of user message context)
   /^#{3,}\s*SYSTEM/im,
 
-  // Direct data exfiltration attempts via the SQL tool
-  /DROP\s+TABLE/i,
-  /DELETE\s+FROM/i,
-  /TRUNCATE\s+TABLE/i,
-  /ALTER\s+TABLE/i,
-  /INSERT\s+INTO.*VALUES/i,
-  /UPDATE\s+\w+\s+SET/i,
-
-  // Prompt leaking attempts
-  /repeat\s+(your|the)\s+(system\s+)?prompt/i,
-  /show\s+(me\s+)?(your|the)\s+(system\s+)?prompt/i,
-  /what\s+(are|is)\s+your\s+(system\s+)?(instructions|prompt|rules)/i,
+  // Prompt leaking attempts (require "system prompt" as a phrase)
+  /repeat\s+(your|the)\s+system\s+prompt/i,
+  /show\s+(me\s+)?(your|the)\s+system\s+prompt/i,
+  /what\s+(are|is)\s+your\s+system\s+(instructions|prompt)/i,
+  /(print|output|reveal|display)\s+(your|the)\s+system\s+prompt/i,
 ];
 
 // =============================================================================
@@ -244,60 +245,6 @@ export function afterGenerate(
     redactionCount: result.redactionCount,
     hadPII: result.redactionCount > 0,
   };
-}
-
-// =============================================================================
-// Stream Transform — afterGenerate for streaming responses
-// =============================================================================
-
-/**
- * Creates a TransformStream that applies PII sanitization to text chunks.
- *
- * For streaming responses, PII patterns might span chunk boundaries.
- * This transform uses a small buffer (128 chars) to catch patterns that
- * straddle two chunks. The buffer is flushed when the stream ends.
- *
- * @param userId - User ID for logging context
- * @param conversationId - Conversation ID for logging context
- * @returns TransformStream<string, string> that sanitizes text chunks
- */
-export function createOutputSanitizationStream(
-  userId?: string,
-  conversationId?: string,
-): TransformStream<string, string> {
-  // Buffer to hold trailing characters that might be part of a cross-chunk PII pattern
-  const BUFFER_SIZE = 128;
-  let buffer = '';
-
-  return new TransformStream<string, string>({
-    transform(chunk, controller) {
-      // Concatenate buffer with new chunk
-      const combined = buffer + chunk;
-
-      if (combined.length <= BUFFER_SIZE) {
-        // Not enough data to flush — keep buffering
-        buffer = combined;
-        return;
-      }
-
-      // Flush everything except the trailing buffer
-      const flushEnd = combined.length - BUFFER_SIZE;
-      const toFlush = combined.slice(0, flushEnd);
-      buffer = combined.slice(flushEnd);
-
-      const result = afterGenerate(toFlush, userId, conversationId);
-      controller.enqueue(result.sanitizedText);
-    },
-
-    flush(controller) {
-      // Flush remaining buffer
-      if (buffer.length > 0) {
-        const result = afterGenerate(buffer, userId, conversationId);
-        controller.enqueue(result.sanitizedText);
-        buffer = '';
-      }
-    },
-  });
 }
 
 // =============================================================================
