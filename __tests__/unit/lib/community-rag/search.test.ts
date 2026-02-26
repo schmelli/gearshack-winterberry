@@ -107,14 +107,16 @@ describe('searchCommunityKnowledge — quality filter options', () => {
       );
     });
 
-    it('passes minReplies: 0 as filter_min_replies (effectively disables filter)', async () => {
+    it('normalises minReplies: 0 to null (0 === no filter; avoids redundant WHERE predicate)', async () => {
+      // `reply_count >= 0` is always true, identical to IS NULL (no filter).
+      // searchCommunityKnowledge normalises 0 → null for canonical DB semantics.
       const mockRpc = setupMockRpc();
 
       await searchCommunityKnowledge('stove', { minReplies: 0 });
 
       expect(mockRpc).toHaveBeenCalledWith(
         'search_community_knowledge',
-        expect.objectContaining({ filter_min_replies: 0 })
+        expect.objectContaining({ filter_min_replies: null })
       );
     });
   });
@@ -202,6 +204,20 @@ describe('searchCommunityKnowledge — quality filter options', () => {
       const mockRpc = setupMockRpc();
 
       await searchCommunityKnowledge('tent');
+
+      expect(mockRpc).toHaveBeenCalledWith(
+        'search_community_knowledge',
+        expect.objectContaining({ filter_max_age_months: null })
+      );
+    });
+
+    it('normalises maxAgeMonths: 0 to null (prevents empty-result footgun)', async () => {
+      // SQL: NOW() - (0 * interval '1 month') = NOW(), so only content timestamped
+      // *after the current moment* would pass — returning zero results.
+      // 0 should mean "disabled" (no recency filter), not "nothing matches".
+      const mockRpc = setupMockRpc();
+
+      await searchCommunityKnowledge('boots', { maxAgeMonths: 0 });
 
       expect(mockRpc).toHaveBeenCalledWith(
         'search_community_knowledge',

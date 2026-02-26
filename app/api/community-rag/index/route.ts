@@ -89,12 +89,13 @@ export async function POST(request: Request): Promise<Response> {
     // support soft deletion via the is_deleted flag.
     const ownershipTable =
       source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
-    // For posts, also fetch reply_count as engagement signal for quality filtering
-    const selectFields =
-      source_type === 'bulletin_post' ? 'id, author_id, reply_count' : 'id, author_id';
+    // Ownership check only needs id + author_id — reply_count is fetched separately
+    // via a live COUNT from bulletin_replies (see below) to match the bulk indexer
+    // and trigger approach, preventing stale denormalized values from overwriting
+    // the trigger-maintained community_knowledge_chunks.reply_count on re-index.
     const { data: sourceRecord, error: ownerError } = await supabase
       .from(ownershipTable)
-      .select(selectFields)
+      .select('id, author_id')
       .eq('id', source_id)
       .eq('author_id', user.id)
       .eq('is_deleted', false)
@@ -129,12 +130,30 @@ export async function POST(request: Request): Promise<Response> {
     let chunks;
 
     if (source_type === 'bulletin_post') {
-      // sourceRecord was fetched with `select('id, author_id, reply_count')` for posts
-      // (see selectFields above). We use a narrow typed interface here instead of a
-      // catch-all cast to preserve type safety without splitting into two query branches.
-      // reply_count is typed as `number | null` because Supabase can return null for
-      // any column (e.g. for rows pre-dating the migration); the `?? 0` below handles it.
-      const postRecord = sourceRecord as { id: string; author_id: string; reply_count: number | null };
+      // Fetch live reply count from source-of-truth (bulletin_replies) rather than reading
+      // the denormalized bulletin_posts.reply_count cache.
+      //
+      // Why: the trigger in migration _002 maintains community_knowledge_chunks.reply_count
+      // via a live COUNT(*) from bulletin_replies. If we read bulletin_posts.reply_count here
+      // (a separately maintained denormalized cache), a re-index after the post received
+      // replies could overwrite the accurate trigger-maintained count with a stale cached
+      // value — defeating the purpose of the trigger.
+      //
+      // The extra COUNT query is lightweight (uses idx_bulletin_replies_post_id_active).
+      // Graceful fallback to 0 if the query fails — indexing always completes.
+      const { count: liveReplyCount, error: replyCountError } = await serviceClient
+        .from('bulletin_replies')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', source_id)
+        .eq('is_deleted', false);
+
+      if (replyCountError) {
+        console.warn(
+          `[Community RAG] Could not fetch live reply count for post ${source_id}, falling back to 0:`,
+          replyCountError.message
+        );
+      }
+
       const post: BulletinPostForIndexing = {
         id: source_id,
         content,
@@ -142,7 +161,7 @@ export async function POST(request: Request): Promise<Response> {
         author_id: user.id,
         created_at: created_at || new Date().toISOString(),
         author_name: author_name || undefined,
-        reply_count: postRecord.reply_count ?? 0,
+        reply_count: liveReplyCount ?? 0,
       };
       chunks = buildPostChunks(post);
     } else {

@@ -86,14 +86,21 @@ export async function searchCommunityKnowledge(
     // Call the Supabase RPC function for vector search
     const supabase = createServiceRoleClient();
 
+    // Normalize 0 → null for both filter params before sending to DB:
+    //   - minReplies: 0 → `reply_count >= 0` (always true) === `null` (no filter applied),
+    //     but sends an unnecessary WHERE predicate. Normalise for canonical behaviour.
+    //   - maxAgeMonths: 0 → `NOW() - 0 months = NOW()`, which returns zero results since no
+    //     content is timestamped in the future. 0 should mean "disabled" (= null), not empty.
+    // The tool layer already guards against this for env-var paths; this normalisation ensures
+    // direct callers of searchCommunityKnowledge also get consistent semantics.
     const { data, error } = await supabase.rpc('search_community_knowledge', {
       query_embedding: `[${queryEmbedding.join(',')}]`,
       similarity_threshold: threshold,
       max_results: topK,
       filter_source_type: sourceType,
       filter_tags: tags,
-      filter_max_age_months: maxAgeMonths,
-      filter_min_replies: effectiveMinReplies,
+      filter_max_age_months: maxAgeMonths === 0 ? null : (maxAgeMonths ?? null),
+      filter_min_replies: effectiveMinReplies === 0 ? null : effectiveMinReplies,
     });
 
     if (error) {
