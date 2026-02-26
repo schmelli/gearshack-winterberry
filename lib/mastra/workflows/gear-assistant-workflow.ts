@@ -12,10 +12,9 @@
  * - Workflow Visualizer in Mastra Studio
  * - Suspend/Resume capability for future Human-in-the-Loop flows
  *
- * Note: Per-step retries (retryConfig) are not yet configured. The current
- * error handling surfaces which step failed but does not automatically retry.
- * Network-bound steps (classifyIntent → Gemini) could benefit from retries: 1
- * in a follow-up. See TODO below.
+ * Per-step retries: Network-bound steps use Mastra's native retryConfig to
+ * absorb transient failures. classifyIntent (Gemini API) retries once after 1s;
+ * prefetchData (Supabase) retries once after 500ms.
  *
  * @see https://mastra.ai/docs/workflows/overview
  */
@@ -152,6 +151,10 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
 const classifyIntentStep = createStep({
   id: 'classifyIntent',
   description: 'Classify user intent using Gemini Flash for fast routing',
+  retryConfig: {
+    attempts: 2,
+    delay: 1000,
+  },
   inputSchema: WorkflowInputSchema,
   outputSchema: ClassifyIntentOutputSchema,
   execute: async ({ inputData }) => {
@@ -215,6 +218,10 @@ const classifyIntentStep = createStep({
 const prefetchDataStep = createStep({
   id: 'prefetchData',
   description: 'Parallel pre-fetch data based on intent classification',
+  retryConfig: {
+    attempts: 2,
+    delay: 500,
+  },
   inputSchema: ClassifyIntentOutputSchema,
   outputSchema: PrefetchDataOutputSchema,
   execute: async ({ inputData }) => {
