@@ -26,11 +26,32 @@ describe('buildMastraSystemPrompt', () => {
     expect(prompt.length).toBeGreaterThan(100);
   });
 
-  it('does not include manual working memory instructions', () => {
+  it('does not include legacy working memory API references', () => {
     const prompt = buildMastraSystemPrompt(baseContext);
-    // These strings were in buildWorkingMemoryInstructions() — should be gone
+    // These strings were in the old buildWorkingMemoryInstructions() — should be gone
     expect(prompt).not.toContain('persistUserProfile');
     expect(prompt).not.toContain('user_working_memory');
+  });
+
+  it('includes working memory profile update instructions', () => {
+    const prompt = buildMastraSystemPrompt(baseContext);
+    // The prompt should teach the agent to actively update working memory
+    expect(prompt).toContain('Working Memory');
+    expect(prompt).toContain('goals.upcomingTrips[]');
+    expect(prompt).toContain('preferences.weightPhilosophy');
+    expect(prompt).toContain('facts[]');
+    expect(prompt).toContain('brands.favorites[]');
+  });
+
+  it('includes German working memory instructions for de locale', () => {
+    const deContext: PromptContext = {
+      ...baseContext,
+      userContext: { ...baseContext.userContext, locale: 'de' },
+    };
+    const prompt = buildMastraSystemPrompt(deContext);
+    expect(prompt).toContain('Nutzerprofil-Aktualisierungen');
+    expect(prompt).toContain('goals.upcomingTrips[]');
+    expect(prompt).toContain('preferences.weightPhilosophy');
   });
 
   it('still includes core identity section', () => {

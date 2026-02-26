@@ -529,10 +529,12 @@ export function createGearAgent(queryComplexity?: QueryComplexity) {
     // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
     //
     // Two-axis selection (Supervisor-Agent-Pattern, Kapitel 22):
-    // 1. Tier: standard (4 tools) vs trailblazer (up to 9)
-    // 2. Domain: gear/community/marketplace/profile — reduces trailblazer from 9 to 3–7
+    // 1. Tier: standard (4 tools) vs trailblazer (up to 10)
+    // 2. Domain: gear/community/marketplace/profile — reduces trailblazer from 10 to 2–9
     //
-    // Net effect: non-gear queries on trailblazer get 2–4 tools instead of 9,
+    // Standard tier gets basic browse/search tools (4).
+    // Trailblazer tier gets full toolset (10) including analysis, actions, critic, and graph.
+    // Net effect: non-gear queries on trailblazer get 2–4 tools instead of 10,
     // reducing prompt size by ~40% and improving tool selection accuracy.
     tools: async ({ requestContext }) => {
       const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';

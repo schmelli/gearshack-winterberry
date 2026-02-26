@@ -28,6 +28,7 @@ import {
   loadoutAnalysisDataset,
   hallucinationPreventionDataset,
 } from './test-datasets';
+import { allSyntheticDatasets } from './synthetic-datasets';
 import type { EvalTestCase, EvalTestDataset } from './test-datasets';
 
 // =============================================================================
@@ -254,12 +255,18 @@ async function main() {
   const samplingRate = Number.isNaN(samplingRateParsed) ? 1.0 : samplingRateParsed;
   const agent = createGearAssistantWithEvals({ samplingRate });
 
-  // Run each dataset
+  // Run each dataset (hand-crafted + synthetic from production traces)
   const datasets = [
     gearSearchDataset,
     loadoutAnalysisDataset,
     hallucinationPreventionDataset,
+    ...allSyntheticDatasets.filter((d) => d.cases.length > 0),
   ];
+
+  const syntheticCount = allSyntheticDatasets.reduce((sum, d) => sum + d.cases.length, 0);
+  if (syntheticCount > 0) {
+    console.log(`Including ${syntheticCount} synthetic test cases from production traces.`);
+  }
 
   const results: DatasetResult[] = [];
 

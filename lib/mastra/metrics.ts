@@ -427,6 +427,22 @@ export const voiceEndToEndDurationSeconds = new Histogram({
   registers: [register],
 });
 
+// ==================== Workflow Fallback Metrics ====================
+
+/**
+ * Workflow fallback executions — incremented when the gear-assistant workflow
+ * fails and the route falls back to a minimal direct-agent call.
+ *
+ * Intentionally NOT part of chatErrorsTotal / errorsTotal: a fallback is a
+ * degraded-mode success (the user receives a valid response), not an error.
+ * Keeping it separate prevents SLO alert inflation.
+ */
+export const workflowFallbacksTotal = new Counter({
+  name: 'mastra_workflow_fallbacks_total',
+  help: 'Total number of times the workflow pipeline fell back to a direct agent call',
+  registers: [register],
+});
+
 // ==================== Response Cache Metrics ====================
 
 /**
@@ -473,6 +489,20 @@ export const cacheLatencySeconds = new Histogram({
   name: 'mastra_cache_latency_seconds',
   help: 'Semantic cache lookup latency in seconds',
   buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1],
+  registers: [register],
+});
+
+/**
+ * Cache writes skipped due to PII guard heuristic
+ * Labels: pattern_name (each matched pattern is recorded separately, so one
+ *   cache-write skip may increment this counter multiple times when several
+ *   patterns co-occur. Use `sum by (pattern_name)` for per-pattern breakdowns.)
+ * Feature: PII Guard Middleware (Kap. 9)
+ */
+export const cachePiiSkipsTotal = new Counter({
+  name: 'mastra_cache_pii_skips_total',
+  help: 'Total cache writes skipped by PII guard heuristic',
+  labelNames: ['pattern_name'] as const,
   registers: [register],
 });
 
@@ -574,6 +604,7 @@ export type ErrorType =
   | 'ai_unavailable'
   | 'stream_error'
   | 'server_error'
+  | 'workflow_fallback'
   | 'unknown';
 
 /**
@@ -630,6 +661,20 @@ export function recordAgentLatency(
 export function recordChatError(errorType: ErrorType): void {
   chatErrorsTotal.inc({ error_type: errorType });
   errorsTotal.inc({ error_type: errorType });
+}
+
+/**
+ * Records a workflow pipeline fallback event.
+ *
+ * A fallback means the gear-assistant workflow failed but the user still
+ * received a valid response via a minimal direct-agent call.  This is a
+ * degraded-mode success, NOT an error — so it increments the dedicated
+ * `mastra_workflow_fallbacks_total` counter and does NOT touch
+ * `mastra_chat_errors_total` or `mastra_errors_total`, preventing SLO
+ * alert inflation.
+ */
+export function recordWorkflowFallback(): void {
+  workflowFallbacksTotal.inc();
 }
 
 /**
@@ -994,4 +1039,15 @@ export function recordCacheStore(intentType = 'unknown'): void {
  */
 export function recordCacheLatency(latencyMs: number): void {
   cacheLatencySeconds.observe(latencyMs / 1000);
+}
+
+/**
+ * Records a cache write skipped by the PII guard heuristic.
+ * Call once per matched pattern — the caller loops over all matched patterns
+ * so that per-pattern Prometheus counters are accurate even when multiple
+ * patterns co-occur in a single query.
+ * @param patternName - Name of the matched PII pattern (for debugging)
+ */
+export function recordCachePiiSkip(patternName = 'unknown'): void {
+  cachePiiSkipsTotal.inc({ pattern_name: patternName });
 }

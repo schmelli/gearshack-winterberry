@@ -29,11 +29,14 @@
  *   CACHEABLE_INTENTS (default: general_knowledge, gear_comparison). These
  *   intents are defined to be factual and user-independent.
  *
- *   IMPORTANT: The assumption that cached queries never contain PII relies
- *   entirely on the accuracy of the upstream intent classifier. A misclassified
- *   personal query (e.g. "What's the best tent for my trip near [location]?")
- *   could still be stored. Before adding any new intent to CACHEABLE_INTENTS
- *   (via the RESPONSE_CACHE_INTENTS env var), confirm it cannot carry PII.
+ *   Defence Layer 1: Intent gating via CACHEABLE_INTENTS
+ *   Defence Layer 2: PII Guard heuristic (cache-pii-guard.ts) — scans raw
+ *     query text for personal context markers (possessive pronouns, geographic
+ *     destinations, temporal planning references) independent of intent classification.
+ *   Defence Layer 3: Database CHECK constraint on intent_type column.
+ *
+ *   Before adding any new intent to CACHEABLE_INTENTS (via the
+ *   RESPONSE_CACHE_INTENTS env var), confirm it cannot carry PII.
  *
  * @see supabase/migrations/20260225000001_response_cache.sql
  */
@@ -48,7 +51,9 @@ import {
   recordCacheMiss,
   recordCacheStore,
   recordCacheLatency,
+  recordCachePiiSkip,
 } from './metrics';
+import { checkQueryForPersonalContext } from './cache-pii-guard';
 
 // =============================================================================
 // Configuration
@@ -262,6 +267,37 @@ export async function storeInSemanticCache(
   // but re-checking here prevents accidental storage if the function is called
   // directly in tests or future code paths that bypass the caller-side check.
   if (!isCacheableIntent(intentType)) return;
+
+  // PII Guard: Heuristic check independent of the intent router.
+  // Even if the intent classifier labels a query as cacheable, block storage
+  // when the raw query text contains personal context markers (possessive
+  // pronouns, destinations, temporal planning references). This prevents
+  // GDPR/DSGVO exposure if the intent router misclassifies a personal query
+  // as general_knowledge. See: Kap. 9, Agent Middleware — PII Guard.
+  const piiCheck = checkQueryForPersonalContext(query);
+  if (piiCheck.containsPersonalContext) {
+    // Log without the query text — the guard detected personal context,
+    // so including the query (even truncated) would leak PII into logs.
+    logInfo('Semantic cache write skipped: PII guard matched', {
+      metadata: {
+        matchedPatterns: piiCheck.matchedPatterns,
+        patternCount: piiCheck.matchedPatterns.length,
+        intentType,
+        queryLength: query.length,
+      },
+    });
+    // Record a metric increment for every matched pattern so that
+    // `sum by (pattern_name)` Prometheus queries give accurate per-pattern
+    // counts even when multiple patterns co-occur in a single query.
+    if (piiCheck.matchedPatterns.length > 0) {
+      for (const pattern of piiCheck.matchedPatterns) {
+        recordCachePiiSkip(pattern);
+      }
+    } else {
+      recordCachePiiSkip('unknown');
+    }
+    return;
+  }
 
   // Skip caching very short or very long responses
   if (response.length < MIN_RESPONSE_LENGTH || response.length > MAX_RESPONSE_LENGTH) {

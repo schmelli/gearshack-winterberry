@@ -647,6 +647,7 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   // When domainToolNames is provided (Supervisor-Agent-Pattern), compose tool descriptions
   // from individual per-tool entries — only includes tools relevant to the classified domain.
   // Falls back to the full tier-based tool strings for backward compatibility.
+  // Standard users see 4 tools, trailblazer sees up to 10 (filtered by domain when available).
   const safeLocaleForTools = (isGerman ? 'de' : 'en') as 'en' | 'de';
   if (context.domainToolNames && context.domainToolNames.length > 0) {
     const domainToolSection = buildToolSection(safeLocaleForTools, context.domainToolNames);

@@ -430,9 +430,16 @@ export async function POST(request: Request): Promise<Response> {
           // sequential. On a cold Haiku start the domain call could still add latency, but
           // the 400ms timeout and 'gear' fallback cap the worst-case impact.
           //
-          // GRACEFUL DEGRADATION: The entire block is wrapped so that a failure in either
+          // After classification, we check the semantic cache for factual questions
+          // (general_knowledge, gear_comparison) before running the full workflow.
+          // Note: classifyIntent is also called inside the gear-assistant workflow
+          // (Step 1); the redundant call on cache-miss is accepted as a minor cost
+          // to keep the cache check outside the workflow boundary.
+          //
+          // GRACEFUL DEGRADATION: The entire block is wrapped so that a failure in
           // classifyIntent, classifyDomain, or getSemanticCacheHit does not prevent the
-          // workflow from running.  intentResult defaults to 'complex' (not cacheable) and
+          // workflow from running.  intentResult defaults to 'complex' (not cacheable)
+          // so the downstream cache-store at end-of-stream is skipped.
           // classifiedDomain defaults to DEFAULT_DOMAIN ('gear') on any error.
           let intentResult: { intent: string } = { intent: 'complex' };
           let classifiedDomain = DEFAULT_DOMAIN;
