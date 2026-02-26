@@ -58,18 +58,22 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
       /\b(mein|meine[rnsm]?|unser(?:e[mrns]?|e)?)\s+(trip|wanderung|tour|loadout|ausrüstung|zelt|rucksack|schlafsack|jacke|stiefel|schuhe|setup|packliste|trekking|expedition)\b/i,
   },
   // 3. Personal destination references — preposition + capitalized place name
-  //    Matches: "to Patagonia", "nach München"
+  //    Matches: "to Patagonia", "nach München", "TO Patagonia", "NACH München"
   //    Requires directional preposition to avoid matching gear brand names.
   //    NOTE: "for" and "für" are excluded because they match brand names
   //    ("for Osprey", "for Thermarest") and German capitalized nouns
   //    ("für Regenjacken"). "to" and "nach" are strong destination indicators.
+  //    Prepositions are matched case-insensitively via explicit char-class pairs
+  //    ([Tt][Oo], [Nn][Aa][Cc][Hh]) so that all-caps input ("TO Patagonia",
+  //    "NACH München") is caught while place-name capitalisation detection
+  //    ([A-ZÄÖÜ][a-zäöüß]{2,}) remains case-sensitive (no /i flag on the regex).
   //    Known limitation: title-cased input like "Guide to Layering" can
   //    trigger a false positive. In conversational chat, users rarely
   //    title-case verbs after "to", so this tradeoff is acceptable.
   {
     name: 'personal_destination',
     pattern:
-      /\b(to|nach)\s+[A-ZÄÖÜ][a-zäöüß]{2,}(?:\s+[A-ZÄÖÜ][a-zäöüß]{2,})*\b/,
+      /\b(?:[Tt][Oo]|[Nn][Aa][Cc][Hh])\s+[A-ZÄÖÜ][a-zäöüß]{2,}(?:\s+[A-ZÄÖÜ][a-zäöüß]{2,})*\b/,
   },
   // 4. Temporal references with personal planning context (EN)
   //    Matches: "next March", "this summer"
@@ -82,15 +86,23 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
       /\b(next|this)\s+(january|february|march|april|may|june|july|august|september|october|november|december|spring|summer|fall|autumn|winter)\b/i,
   },
   // 5. Temporal references with personal planning context (DE)
-  //    Matches: "nächsten März", "diesen Sommer"
+  //    Matches: "nächsten März", "diesen Sommer", "dieses Sommers"
   //    NOTE: "im" is excluded for the same reason "in" is excluded in EN —
   //    "im Winter" / "im Sommer" are common factual seasonal qualifiers
   //    ("Bester Schlafsack im Winter"). "nächsten" and "diesen" strongly
   //    imply a personal timeline.
+  //    "diese[nrms]?" covers all declension forms of the demonstrative:
+  //      diese  (nominative feminine/plural)
+  //      diesen (accusative masculine/plural, dative plural)
+  //      dieser (genitive/dative feminine, nominative feminine)
+  //      diesem (dative masculine/neuter)
+  //      dieses (genitive masculine/neuter — e.g. "dieses Sommers")
+  //    The trailing "s?" on the season group handles genitive -s suffix
+  //    (e.g. "dieses Sommers", "dieses Winters", "nächsten Frühlings").
   {
     name: 'temporal_planning_de',
     pattern:
-      /\b(nächsten?|diesen?[mr]?)\s+(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|frühling|sommer|herbst|winter)\b/i,
+      /\b(nächsten?|diese[nrms]?)\s+(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|frühling|sommer|herbst|winter)s?\b/i,
   },
   // 6. First-person planning verbs (EN + DE)
   //    Matches: "I'm going", "I am going", "I plan to", "we need",

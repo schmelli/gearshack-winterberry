@@ -286,7 +286,16 @@ export async function storeInSemanticCache(
         queryLength: query.length,
       },
     });
-    recordCachePiiSkip(piiCheck.matchedPatterns[0] ?? 'unknown');
+    // Record a metric increment for every matched pattern so that
+    // `sum by (pattern_name)` Prometheus queries give accurate per-pattern
+    // counts even when multiple patterns co-occur in a single query.
+    if (piiCheck.matchedPatterns.length > 0) {
+      for (const pattern of piiCheck.matchedPatterns) {
+        recordCachePiiSkip(pattern);
+      }
+    } else {
+      recordCachePiiSkip('unknown');
+    }
     return;
   }
 

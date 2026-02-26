@@ -158,6 +158,38 @@ describe('checkQueryForPersonalContext', () => {
       expect(result.matchedPatterns).toContain('personal_destination');
     });
 
+    it('should detect "TO Patagonia" (uppercase preposition)', () => {
+      const result = checkQueryForPersonalContext(
+        'Best tent for a trip TO Patagonia'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('personal_destination');
+    });
+
+    it('should detect "To Patagonia" (title-case preposition)', () => {
+      const result = checkQueryForPersonalContext(
+        'Best tent for a trip To Patagonia'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('personal_destination');
+    });
+
+    it('should detect "NACH München" (uppercase preposition, DE)', () => {
+      const result = checkQueryForPersonalContext(
+        'Ausrüstung für Wandern NACH München'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('personal_destination');
+    });
+
+    it('should detect "Nach München" (title-case preposition, DE)', () => {
+      const result = checkQueryForPersonalContext(
+        'Ausrüstung für Wandern Nach München'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('personal_destination');
+    });
+
     it('should NOT match "for [BrandName]" (brand, not destination)', () => {
       // "for" is excluded from destination pattern to avoid brand false positives
       const result = checkQueryForPersonalContext(
@@ -236,6 +268,23 @@ describe('checkQueryForPersonalContext', () => {
     it('should detect "nächste Winter"', () => {
       const result = checkQueryForPersonalContext(
         'Zelt für nächste Winter Expedition'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('temporal_planning_de');
+    });
+
+    it('should detect "dieses Sommers" (genitive form)', () => {
+      // Genitive: "Ausrüstung dieses Sommers" — personal ownership phrasing
+      const result = checkQueryForPersonalContext(
+        'Die Ausrüstung dieses Sommers muss leicht sein'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('temporal_planning_de');
+    });
+
+    it('should detect "dieses Winters" (genitive form, winter)', () => {
+      const result = checkQueryForPersonalContext(
+        'Schlafsack dieses Winters sollte -15°C halten'
       );
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns).toContain('temporal_planning_de');
