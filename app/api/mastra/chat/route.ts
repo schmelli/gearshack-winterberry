@@ -61,7 +61,7 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory, getToolNamesForRequest } from '@/lib/mastra/mastra-agent';
 import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { VariantResolution } from '@/types/prompt-ab';
@@ -75,6 +75,8 @@ import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-as
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
 import { classifyIntent } from '@/lib/mastra/intent-router';
+import { classifyDomain, type Domain } from '@/lib/mastra/supervisor';
+import { SUPERVISOR_CONFIG } from '@/lib/mastra/config';
 import {
   getSemanticCacheHit,
   storeInSemanticCache,
@@ -416,17 +418,25 @@ export async function POST(request: Request): Promise<Response> {
           // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
 
-          // --- Phase 1b: Semantic Response Cache check ---
-          // Classify intent upfront so we can check the cache for factual questions
-          // (general_knowledge, gear_comparison) before running the full workflow.
-          // Note: classifyIntent is also called inside the gear-assistant workflow
-          // (Step 1); the redundant call on cache-miss is accepted as a minor cost
-          // to keep the cache check outside the workflow boundary.
-          const intentResult = await classifyIntent(
-            message,
-            context?.screen as string | undefined,
-            currentLoadoutId
-          );
+          // --- Phase 1b: Parallel Classification (Intent + Domain) ---
+          // Run intent classification AND domain classification in parallel:
+          // - Intent: Gemini Flash, determines query type + data requirements + cache eligibility
+          // - Domain: Haiku (Supervisor-Agent-Pattern, Kap. 22), determines tool subset
+          //
+          // Both are independent LLM calls (~50ms each). Running in parallel adds zero latency.
+          // Note: classifyIntent is also called inside the gear-assistant workflow (Step 1);
+          // the redundant call on cache-miss is accepted as a minor cost to keep the cache
+          // check outside the workflow boundary.
+          const currentScreen = context?.screen as string | undefined;
+          const [intentResult, domainResult] = await Promise.all([
+            classifyIntent(message, currentScreen, currentLoadoutId),
+            SUPERVISOR_CONFIG.ENABLED
+              ? classifyDomain(message, currentScreen)
+              : Promise.resolve({ domain: 'gear' as Domain, confidence: 0 }),
+          ]);
+
+          // Derive domain tool names for prompt building and agent tool selection
+          const classifiedDomain = domainResult.domain;
 
           if (isCacheableIntent(intentResult.intent)) {
             const cacheLocale = (context?.locale as string) || 'en';
@@ -476,6 +486,13 @@ export async function POST(request: Request): Promise<Response> {
           const workflow = mastra.getWorkflow('gear-assistant');
           const run = await workflow.createRun({ resourceId: user.id });
 
+          // Compute domain-specific tool names for prompt building
+          // This allows the workflow's buildContext step to only include tool descriptions
+          // relevant to the classified domain in the system prompt
+          const domainToolNames = SUPERVISOR_CONFIG.ENABLED
+            ? getToolNamesForRequest(subscriptionTier, classifiedDomain)
+            : undefined;
+
           const workflowResult = await run.start({
             inputData: {
               message,
@@ -487,6 +504,8 @@ export async function POST(request: Request): Promise<Response> {
               currentLoadoutId,
               enableTools,
               subscriptionTier,
+              domain: classifiedDomain,
+              domainToolNames,
             },
           });
 
@@ -568,6 +587,9 @@ export async function POST(request: Request): Promise<Response> {
               confidence: pipelineOutput.confidence,
               hasFastAnswer: !!pipelineOutput.fastAnswer,
               workflowSteps: Object.keys(workflowResult.steps),
+              domain: classifiedDomain,
+              domainConfidence: domainResult.confidence,
+              toolCount: domainToolNames?.length ?? 'full',
             },
           });
 
@@ -603,6 +625,7 @@ export async function POST(request: Request): Promise<Response> {
 
           // Build RuntimeContext for the Dynamic Agent Pattern:
           // - subscriptionTier → determines which tools available (standard vs trailblazer)
+          // - domain → Supervisor-Agent-Pattern: restricts tool set to classified domain
           // - lang → prompt language fallback
           // - enrichedPromptSuffix → the full system prompt built by the workflow + A/B variant
           // - currentLoadoutId → passed through for loadout-aware tools
@@ -612,6 +635,7 @@ export async function POST(request: Request): Promise<Response> {
             lang: (context?.locale as string) || 'en',
             enrichedPromptSuffix: effectiveSystemPrompt,
             currentLoadoutId,
+            domain: classifiedDomain,
           });
 
           // Create Dynamic Mastra Agent with complexity routing and stream response.
@@ -791,6 +815,8 @@ export async function POST(request: Request): Promise<Response> {
               toolCallCount: toolCalls?.length || 0,
               queryComplexity: pipelineOutput.queryComplexity,
               intent: pipelineOutput.intent,
+              domain: classifiedDomain,
+              toolCount: domainToolNames?.length ?? 'full',
               ...(variantResolution?.isInExperiment && {
                 promptVariant: variantResolution.variantId,
                 promptExperiment: variantResolution.experimentName,

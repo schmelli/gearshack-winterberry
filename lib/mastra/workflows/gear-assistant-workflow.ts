@@ -30,6 +30,7 @@ import {
   type DataRequirement,
   type QueryComplexity,
 } from '../intent-router';
+import { DOMAIN_VALUES } from '../supervisor';
 import { prefetchData, type PrefetchedContext } from '../parallel-prefetch';
 import { buildMastraSystemPrompt, LOCALIZED_CONTENT, type PromptContext } from '../config';
 import {
@@ -63,6 +64,10 @@ const WorkflowInputSchema = z.object({
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean().default(true),
   subscriptionTier: z.enum(SUBSCRIPTION_TIERS).default('standard'),
+  /** Domain classification from Supervisor Agent (Kapitel 22) */
+  domain: z.enum(DOMAIN_VALUES).optional(),
+  /** Tool names available for the classified domain + tier */
+  domainToolNames: z.array(z.string()).optional(),
 });
 
 /**
@@ -79,6 +84,8 @@ const PassThroughSchema = WorkflowInputSchema.pick({
   currentLoadoutId: true,
   enableTools: true,
   subscriptionTier: true,
+  domain: true,
+  domainToolNames: true,
 });
 
 /** Step 1 output: intent classification result */
@@ -117,6 +124,8 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
   enableTools: true,
   locale: true,
   subscriptionTier: true,
+  domain: true,
+  domainToolNames: true,
 }).extend({
   /** Enriched system prompt with prefetched data */
   enrichedSystemPrompt: z.string(),
@@ -165,6 +174,8 @@ const classifyIntentStep = createStep({
       inventoryCount,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     const intentResult = await classifyIntent(message, screen, currentLoadoutId);
@@ -176,6 +187,7 @@ const classifyIntentStep = createStep({
         confidence: intentResult.confidence,
         queryComplexity: intentResult.queryComplexity,
         dataRequirements: intentResult.dataRequirements.length,
+        domain,
       },
     });
 
@@ -199,6 +211,8 @@ const classifyIntentStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     };
   },
 });
@@ -234,6 +248,8 @@ const prefetchDataStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     // Convert back to typed requirements — no cast needed because the schema
@@ -281,6 +297,8 @@ const prefetchDataStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     };
   },
 });
@@ -316,6 +334,8 @@ const buildContextStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     // Narrow locale once — used in multiple places below to avoid repeated casts
@@ -336,6 +356,8 @@ const buildContextStep = createStep({
 
     const promptContext: PromptContext = {
       userContext: promptUserContext,
+      // Pass domain tool names so prompt builder only includes relevant tool descriptions
+      domainToolNames,
     };
 
     // Add parsed query constraints to prompt
@@ -404,6 +426,8 @@ const buildContextStep = createStep({
       conversationId,
       currentLoadoutId,
       enableTools,
+      domain,
+      domainToolNames,
       locale,
       subscriptionTier,
     };

@@ -333,6 +333,74 @@ export const LOCALIZED_CONTENT: Record<'en' | 'de', LocalizedContent> = {
 };
 
 // =============================================================================
+// Per-Tool Descriptions for Domain-Aware Prompts (Supervisor-Agent-Pattern)
+// =============================================================================
+
+/**
+ * Individual tool descriptions by tool name and locale.
+ *
+ * When the Supervisor Agent classifies a domain, only the tool descriptions
+ * for tools available in that domain are injected into the system prompt.
+ * This reduces prompt size by ~40% for non-gear queries.
+ *
+ * Keys match the tool names used in DOMAIN_TOOLS_TRAILBLAZER / STANDARD_TOOLS
+ * in mastra-agent.ts.
+ */
+const TOOL_DESCRIPTIONS_EN: Record<string, string> = {
+  analyzeLoadout: '- **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)',
+  inventoryInsights: '- **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)',
+  searchGearKnowledge: '- **searchGearKnowledge**: Unified search across user inventory, product catalog, AND community knowledge (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include `gearGraphInsights` — expert tips from the GearGraph knowledge base, AND `communityInsights` — real experiences from community members (bulletin board posts/replies) found via semantic vector search. ALWAYS read and incorporate both types of insights. When community insights are present, cite them as "According to the community..." or "X users report that...".',
+  addToLoadout: '- **addToLoadout**: Add a gear item to the user\'s loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.',
+  searchGear: '- **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing: "What tents are under 1kg?" Returns ranked results with relevance scores. Powered by GearGraph MCP.',
+  findAlternatives: '- **findAlternatives**: Find lighter/cheaper/similar/higher-rated alternatives for a specific gear item using GearGraph graph relationships (LIGHTER_THAN, SIMILAR_TO edges). Use when user asks "What\'s a lighter alternative to my tent?" Requires a gear_items UUID from searchGearKnowledge results.',
+  queryUserData: '- **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)',
+  queryGearGraph: '- **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
+  searchWeb: '- **searchWeb**: Real-time web search for trail conditions, gear reviews, current info',
+};
+
+const TOOL_DESCRIPTIONS_DE: Record<string, string> = {
+  analyzeLoadout: '- **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)',
+  inventoryInsights: '- **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)',
+  searchGearKnowledge: '- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten `gearGraphInsights` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND `communityInsights` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".',
+  addToLoadout: '- **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.',
+  searchGear: '- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.',
+  findAlternatives: '- **findAlternatives**: Findet leichtere/guenstigere/aehnliche/besser-bewertete Alternativen fuer ein bestimmtes Gear-Item ueber GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benoetigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.',
+  queryUserData: '- **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)',
+  queryGearGraph: '- **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
+  searchWeb: '- **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos',
+};
+
+const TOOL_DESCRIPTIONS: Record<'en' | 'de', Record<string, string>> = {
+  en: TOOL_DESCRIPTIONS_EN,
+  de: TOOL_DESCRIPTIONS_DE,
+};
+
+/**
+ * Build a tool description section from a list of tool names.
+ *
+ * Used by the Supervisor-Agent-Pattern to inject only the tool descriptions
+ * that match the classified domain, instead of the full 9-tool list.
+ *
+ * @param locale - User locale (en/de)
+ * @param toolNames - Names of tools available for this domain + tier
+ * @returns Formatted tool section string for the system prompt
+ */
+export function buildToolSection(locale: 'en' | 'de', toolNames: string[]): string {
+  const descriptions = TOOL_DESCRIPTIONS[locale];
+  const lines = toolNames
+    .filter((name) => descriptions[name])
+    .map((name) => descriptions[name]);
+
+  if (lines.length === 0) return '';
+
+  const header = locale === 'en'
+    ? `**Available Tools (${lines.length}):**`
+    : `**Verfuegbare Tools (${lines.length}):**`;
+
+  return `${header}\n${lines.join('\n')}`;
+}
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 
@@ -378,6 +446,12 @@ export interface PromptContext {
   semanticRecallContext?: string;
   /** A/B test prompt variant suffix (appended to system prompt) */
   abTestSuffix?: string;
+  /**
+   * Tool names available for the current domain + tier (Supervisor-Agent-Pattern).
+   * When provided, only these tool descriptions are included in the prompt.
+   * When undefined, falls back to the full tier-based tool list.
+   */
+  domainToolNames?: string[];
 }
 
 // =============================================================================
@@ -484,9 +558,20 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     );
   }
 
-  // 3. Available Tools (tier-aware: standard users see 4 tools, trailblazer sees all 9)
-  const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
-  sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
+  // 3. Available Tools
+  // When domainToolNames is provided (Supervisor-Agent-Pattern), compose tool descriptions
+  // from individual per-tool entries — only includes tools relevant to the classified domain.
+  // Falls back to the full tier-based tool strings for backward compatibility.
+  const safeLocaleForTools = (isGerman ? 'de' : 'en') as 'en' | 'de';
+  if (context.domainToolNames && context.domainToolNames.length > 0) {
+    const domainToolSection = buildToolSection(safeLocaleForTools, context.domainToolNames);
+    if (domainToolSection) {
+      sections.push(`\n${domainToolSection}`);
+    }
+  } else {
+    const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
+    sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
+  }
 
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
@@ -521,9 +606,11 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 11. GearGraph trip-planning guidance (always shown)
+  // 11. GearGraph trip-planning guidance (only for gear domain or when no domain filter)
   // Teaches the agent how to use GearGraph for destination/condition queries
-  if (content.gearGraphGuidance) {
+  // Skipped for community/marketplace/profile domains to save tokens
+  const isGearDomain = !context.domainToolNames || context.domainToolNames.includes('queryGearGraph') || context.domainToolNames.includes('analyzeLoadout');
+  if (content.gearGraphGuidance && isGearDomain) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }
 

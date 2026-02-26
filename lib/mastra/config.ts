@@ -328,6 +328,23 @@ export const FAST_ANSWER_CONFIG = {
 } as const;
 
 /**
+ * Supervisor Agent Configuration (Kapitel 22: Supervisor-Agent-Pattern)
+ *
+ * Domain routing classifier that reduces tool set from 9 to 3–4 per request.
+ * Uses Haiku for trivial classification: ~50ms latency, ~$0.00001 per call.
+ *
+ * @see Chapter 22: "Agent supervisors coordinate and manage other agents."
+ */
+export const SUPERVISOR_CONFIG = {
+  /** Model for domain classification (Haiku — routing is trivial) */
+  MODEL: process.env.SUPERVISOR_MODEL || 'anthropic/claude-haiku-4-5',
+  /** Timeout for domain classification (milliseconds) */
+  TIMEOUT_MS: 2000,
+  /** Enable/disable supervisor routing (set to 'false' to skip domain classification) */
+  ENABLED: process.env.SUPERVISOR_ROUTING_ENABLED !== 'false',
+} as const;
+
+/**
  * Complexity-Based Model Routing Configuration
  *
  * Routes simple queries (inventory lookups, factual questions) to a cheaper/faster
