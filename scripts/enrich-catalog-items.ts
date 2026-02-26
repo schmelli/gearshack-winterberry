@@ -313,6 +313,8 @@ async function main(): Promise<void> {
   if (dryRun) {
     // Estimated cost: ~$0.0003 per product (Claude Haiku: ~300 input + ~200 output tokens,
     // at $0.25/M input + $1.25/M output = ~$0.000075 + ~$0.00025 ≈ $0.00033 per item).
+    // Note: estimate assumes default Haiku pricing. If ENRICHMENT_MODEL is overridden
+    // via env var, actual cost may differ — check current model pricing before large runs.
     const estimatedCostUsd = (products.length * 0.00033).toFixed(4);
     console.log(`\n--- Dry Run: ${products.length} product(s) would be enriched (est. ~$${estimatedCostUsd} using ${ENRICHMENT_MODEL}) ---`);
     for (const product of products) {
@@ -357,10 +359,14 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // Validate enrichment has meaningful content across all searchable fields.
-    // Previously only checked useCases + alternativeSearchTerms (2 of 5 fields).
-    // Now checks the total across all array fields so enrichment with content only
-    // in conditions/compatibleWith (e.g., highly specialized equipment) is accepted.
+    // Belt-and-suspenders guard: validate enrichment has meaningful content.
+    // With the current EnrichmentSchema (useCases and alternativeSearchTerms have .min(1)),
+    // a Zod-parsed enrichment object can never have totalEnrichmentTerms === 0 — generateObject
+    // would throw a ZodError before reaching this check. This guard is kept as defense-in-depth
+    // against future schema changes that might relax the .min(1) constraints, and to make the
+    // "skip empty enrichment" intent self-documenting for maintainers.
+    // Checks the total across all array fields so enrichment with content only in
+    // conditions/compatibleWith (e.g., highly specialized equipment) is accepted.
     // avoidFor is a scalar string (optional), counted as 1 if present and non-empty.
     const totalEnrichmentTerms =
       enrichment.useCases.length +

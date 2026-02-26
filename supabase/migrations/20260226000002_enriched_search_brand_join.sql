@@ -7,4 +7,7 @@
 --
 -- See: 20260226000001_catalog_search_enrichment.sql for the full final schema.
 --
--- This file is intentionally empty (no-op) to preserve migration sequence numbering.
+-- This file is a no-op to preserve migration sequence numbering.
+-- A valid SQL statement is required so migration tools (Supabase CLI, Flyway, etc.)
+-- do not fail or emit warnings on an empty file.
+SELECT 1;

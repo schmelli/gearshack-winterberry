@@ -33,6 +33,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
 import { escapeIlikeWildcards, normalizeSearchQuery } from '@/lib/catalog-scoring';
+import type { SearchEnrichment } from '@/lib/enrichment-schema';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
@@ -668,7 +669,7 @@ interface EnrichedRpcRow {
   weight_grams: number | null;
   brand_id: string | null;
   brand_name: string | null;
-  search_enrichment: unknown;
+  search_enrichment: SearchEnrichment | null;
   match_source: string;
 }
 
@@ -762,9 +763,12 @@ async function searchCatalog(
     // Pass safeSortBy (not raw sortBy) so the already-validated sort key propagates
     // to the fallback — the fallback has its own switch/default but passing the
     // validated value ensures consistent sort semantics regardless of which path runs.
+    // Pass brandIds so the fallback skips the redundant brand lookup DB round-trip
+    // (the IDs were already resolved above). If brandIds is null (no brand filter),
+    // the fallback will skip brand filtering entirely.
     // Note: searchCatalogFallback can throw (e.g. on brand lookup failure); callers
     // should let that exception propagate rather than silently swallowing it.
-    return searchCatalogFallback(supabase, normalizedQuery, filters, safeSortBy, limit, offset);
+    return searchCatalogFallback(supabase, normalizedQuery, filters, safeSortBy, limit, offset, brandIds);
   }
 
   const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
@@ -778,8 +782,11 @@ async function searchCatalog(
       acc[row.match_source] = (acc[row.match_source] ?? 0) + 1;
       return acc;
     }, {});
+    // Log normalizedQuery (not escapedQuery) for human-readable dashboard output.
+    // escapedQuery contains backslash escapes (e.g., "trail\_shoe", "50\% off")
+    // which make logs harder to scan. normalizedQuery is what the user intended.
     logInfo('catalog_search_match_sources', {
-      metadata: { query: escapedQuery, offset, matchSources: matchSourceCounts },
+      metadata: { query: normalizedQuery, offset, matchSources: matchSourceCounts },
     });
   }
 
@@ -793,9 +800,17 @@ async function searchCatalog(
   return { type: 'catalog', data: flattened };
 }
 
+/** Valid sort values for catalog search (shared between primary and fallback paths). */
+type CatalogSortBy = 'weight_asc' | 'weight_desc' | 'price_asc' | 'price_desc' | 'name' | 'relevance';
+
 /**
  * Fallback search when search_catalog_enriched RPC is unavailable.
  * Uses standard ILIKE on name, description, and product_type.
+ *
+ * @param resolvedBrandIds - Pre-resolved brand IDs from searchCatalog(). When provided,
+ *   the fallback skips the redundant brand lookup DB round-trip (the IDs were already
+ *   resolved in the primary path). Pass `null` when no brand filter is active, or
+ *   `undefined` to let the fallback resolve brand IDs itself (e.g., when called directly).
  *
  * **Throwing contract**: This function can throw on database errors (e.g., brand lookup
  * failure, catalog query failure). Callers — including the RPC fallback path in
@@ -808,14 +823,15 @@ async function searchCatalogFallback(
   supabase: any,
   query: string,
   filters: z.infer<typeof searchGearKnowledgeInputSchema>['filters'],
-  sortBy: string,
+  sortBy: CatalogSortBy | string,
   limit: number,
-  offset: number
+  offset: number,
+  resolvedBrandIds?: string[] | null,
 ): Promise<{ type: string; data: unknown }> {
   // Normalize: mirrors searchCatalog() so both paths produce consistent results.
-  // After normalization, escapeIlikeWildcards is sufficient — no PostgREST-unsafe
-  // chars remain to corrupt the .or() filter string (commas are OR separators in
-  // PostgREST; they were the key reason escapeLikePattern was used here previously).
+  // When called from searchCatalog(), the query is already normalized (defensive
+  // idempotency — normalizeSearchQuery is idempotent, so double-normalizing is safe).
+  // When called directly, this ensures the same normalization is applied.
   const normalizedQuery = normalizeSearchQuery(query);
   if (!normalizedQuery) {
     return { type: 'catalog', data: [] };
@@ -841,19 +857,25 @@ async function searchCatalogFallback(
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
   if (filters?.brand) {
-    // Use escapeIlikeWildcards (not escapeLikePattern) since .ilike() passes
-    // the value as a bound parameter, not in a .or() filter string.
-    const escapedBrand = escapeIlikeWildcards(filters.brand);
-    const { data: matchingBrands, error: brandError } = await supabase
-      .from('catalog_brands')
-      .select('id')
-      .ilike('name', `%${escapedBrand}%`);
-    // Propagate DB errors — silently swallowing them would return empty results
-    // even when matching brands exist, making brand-filtered searches unreliable.
-    if (brandError) {
-      throw new Error(`Brand lookup failed: ${brandError.message}`);
+    // Use pre-resolved brand IDs if available (passed from searchCatalog to avoid
+    // a redundant DB round-trip — the IDs were already resolved in the primary path).
+    // Falls back to resolving brand IDs here when called directly without pre-resolved IDs.
+    let brandIds: string[];
+    if (resolvedBrandIds !== undefined && resolvedBrandIds !== null) {
+      brandIds = resolvedBrandIds;
+    } else {
+      const escapedBrand = escapeIlikeWildcards(filters.brand);
+      const { data: matchingBrands, error: brandError } = await supabase
+        .from('catalog_brands')
+        .select('id')
+        .ilike('name', `%${escapedBrand}%`);
+      // Propagate DB errors — silently swallowing them would return empty results
+      // even when matching brands exist, making brand-filtered searches unreliable.
+      if (brandError) {
+        throw new Error(`Brand lookup failed: ${brandError.message}`);
+      }
+      brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
     }
-    const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
     if (brandIds.length > 0) {
       dbQuery = dbQuery.in('brand_id', brandIds);
     } else {
