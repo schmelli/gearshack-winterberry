@@ -4,7 +4,7 @@
  * Classifies user intent into exactly ONE domain for multi-domain tool routing.
  * Uses Haiku for minimal latency (~50ms) and cost (~$0.00001 per classification).
  *
- * By routing to a specific domain, the agent's tool set is reduced from 9 to 3–4,
+ * By routing to a specific domain, the agent's tool set is reduced from 10 to 3–4,
  * cutting prompt size by ~40% for non-gear queries and reducing LLM confusion
  * from irrelevant tool descriptions.
  *
@@ -165,7 +165,7 @@ function tryScreenShortcut(screen?: string): Domain | null {
  */
 const DOMAIN_KEYWORDS: Partial<Record<Domain, RegExp>> = {
   community: /\b(bulletin\s*board|shakedowns?|trip\s*reports?|friend\s*requests?|community\s*(?:posts?|board|forum|discussions?))\b/i,
-  marketplace: /\b(sell(?:ing)?\s+(?:my|this|the)|trade\s+(?:my|this)|marketplace|used\s*gear|second\s*hand|gebraucht(?:e|er|es)?(?:\s+ausruestung)?)\b/i,
+  marketplace: /\b(sell(?:ing)?\s+(?:my|this|the)|trade\s+(?:my|this)|marketplace|used\s*gear|second\s*hand|gebraucht(?:e|er|es)?(?:\s+(?:ausruestung|ausrüstung))?)\b/i,
   profile: /\b(my\s*(?:profile|account|settings|subscription)|change\s*(?:password|email|language)|einstellungen|mein\s*(?:profil|konto))\b/i,
 };
 
@@ -222,13 +222,13 @@ export async function classifyDomain(
 ): Promise<DomainClassification> {
   const getElapsed = createTimer();
 
-  // Tier 1: Screen-based bypass (DISABLED — pending A/B validation)
+  // Tier 1: Screen-based bypass — DISABLED, pending A/B validation.
   // Full screen-based early-return is disabled because it misroutes cross-domain
-  // questions (e.g., a gear question asked while on the community page).
-  // tryScreenShortcut() is still called below (Tier 3) to inject a context HINT
-  // into the LLM prompt for improved accuracy — it is NOT used to skip the LLM call.
-  // Re-enable full bypass here only after A/B testing confirms it reduces errors.
-  // const screenDomain = tryScreenShortcut(screen); // <-- Tier 1 bypass (disabled)
+  // questions (e.g. a gear question asked while on the community page). The dead
+  // bypass code has been removed to keep this path clean; re-add an early-return
+  // here only after A/B testing confirms it reduces classification errors.
+  // NOTE: tryScreenShortcut() is still called below (Tier 3) to inject a context
+  // HINT into the LLM prompt for improved accuracy — it does NOT skip the LLM call.
 
   // Tier 2: Keyword-based fast classification
   const keywordDomain = tryKeywordClassification(message);

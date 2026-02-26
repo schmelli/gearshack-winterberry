@@ -146,6 +146,14 @@ describe('classifyDomain — keyword classification (Tier 2)', () => {
     expect(mockGenerateObject).not.toHaveBeenCalled();
   });
 
+  it('classifies German "gebrauchte Ausrüstung" (UTF-8 umlaut) as marketplace', async () => {
+    // Real German text uses ü, not the ASCII romanisation "ue".
+    // The regex must match both 'ausruestung' (romanised) and 'ausrüstung' (native).
+    const result = await classifyDomain('Ich möchte meine gebrauchte Ausrüstung verkaufen');
+    expect(result.domain).toBe('marketplace');
+    expect(mockGenerateObject).not.toHaveBeenCalled();
+  });
+
   it('classifies "my profile" as profile', async () => {
     const result = await classifyDomain('I want to update my profile');
     expect(result.domain).toBe('profile');

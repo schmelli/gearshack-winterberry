@@ -344,8 +344,21 @@ export const SUPERVISOR_CONFIG = {
    * for a full 2 seconds on a cold-start or degraded response.
    */
   TIMEOUT_MS: 400,
-  /** Enable/disable supervisor routing (set to 'false' to skip domain classification) */
+  /** Enable/disable supervisor routing (set SUPERVISOR_ROUTING_ENABLED=false to skip domain classification) */
   ENABLED: process.env.SUPERVISOR_ROUTING_ENABLED !== 'false',
+  /**
+   * Minimum LLM confidence score to trust a non-gear domain classification.
+   *
+   * Rationale:
+   * - Keyword matches are fixed at 0.85 (always above this threshold, always trusted).
+   * - The LLM returns scores in [0.5, 1.0] for confident results and near-zero for
+   *   uncertain ones. A 0.5 cut-off rejects "coin toss" classifications while passing
+   *   any result the model is meaningfully confident about.
+   * - A sentinel value of 0 means "classification failed/skipped" (gateway error,
+   *   timeout fallback, or supervisor disabled) — deliberately below this threshold
+   *   so the DEFAULT_DOMAIN fallback is always taken without additional checks.
+   */
+  CONFIDENCE_THRESHOLD: 0.5,
 } as const;
 
 /**

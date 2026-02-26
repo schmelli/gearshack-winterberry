@@ -76,7 +76,7 @@ export type GearshackRequestContext = {
   currentLoadoutId: string | undefined;
   /**
    * Domain classification from the Supervisor Agent (Kapitel 22).
-   * Used to reduce tool set from 9 to 3–4 per request.
+   * Used to reduce tool set from 10 to 3–4 per request.
    * When undefined or supervisor routing is disabled, falls back to full tier-based toolset.
    */
   domain: Domain | undefined;
@@ -321,7 +321,7 @@ const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
  * Priority: tier → domain
  * - Standard tier: always STANDARD_TOOLS (4 tools) — already minimal
  * - Trailblazer tier + domain: DOMAIN_TOOLS_TRAILBLAZER[domain]
- * - Trailblazer tier + no domain: full TRAILBLAZER_TOOLS (9 tools, legacy path)
+ * - Trailblazer tier + no domain: full TRAILBLAZER_TOOLS (10 tools, legacy path)
  */
 function selectToolsForRequest(
   tier: 'standard' | 'trailblazer',
