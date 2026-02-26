@@ -322,11 +322,17 @@ const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
  * - Standard tier: always STANDARD_TOOLS (4 tools) — already minimal
  * - Trailblazer tier + domain: DOMAIN_TOOLS_TRAILBLAZER[domain]
  * - Trailblazer tier + no domain: full TRAILBLAZER_TOOLS (10 tools, legacy path)
+ *
+ * Return type is `typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS>` rather
+ * than the broad `Record<string, unknown>` so that compile-time type checking still
+ * applies at call sites. `typeof TRAILBLAZER_TOOLS` satisfies `Partial<typeof TRAILBLAZER_TOOLS>`,
+ * so all three branches are covered by this union without losing the `DomainToolSubset`
+ * safety guarantee established by the type alias above.
  */
 function selectToolsForRequest(
   tier: 'standard' | 'trailblazer',
   domain?: Domain,
-): Record<string, unknown> {
+): typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS> {
   // Standard tier is already minimal (4 tools) — domain filtering adds no benefit
   if (tier !== 'trailblazer') {
     return { ...STANDARD_TOOLS };

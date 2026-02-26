@@ -80,16 +80,28 @@ let supervisorGatewayInitFailed = false;
 function getSupervisorGateway() {
   // Fast-fail on repeated requests after a known init failure.
   // The first failure sets supervisorGatewayInitFailed so subsequent calls
-  // skip the environment-variable lookup entirely.
+  // skip the environment-variable lookup entirely, preventing one error-log
+  // entry per request in long-running server processes.
   if (supervisorGatewayInitFailed) {
-    throw new Error('Supervisor gateway init previously failed — skipping retry');
+    throw new Error(
+      'Supervisor gateway previously failed to initialise — set AI_GATEWAY_API_KEY to re-enable domain routing'
+    );
   }
   if (!supervisorGateway) {
     const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
     if (!apiKey) {
       supervisorGatewayInitFailed = true;
-      throw new Error('AI_GATEWAY_API_KEY is required for Supervisor Agent');
+      throw new Error(
+        'AI_GATEWAY_API_KEY is required for Supervisor Agent. ' +
+        'Set it in your environment (or .env.local) to enable domain-based tool routing. ' +
+        'Without it, all queries fall back to the full gear tool set (DEFAULT_DOMAIN).'
+      );
     }
+    // NOTE: createGateway() is synchronous. Two concurrent requests can both
+    // enter this block before either sets supervisorGateway — the worst-case
+    // outcome is two identical gateway objects being created and one discarded.
+    // This is harmless. If async init logic is added here in the future,
+    // a proper mutex (e.g. a promise sentinel) will be required.
     supervisorGateway = createGateway({ apiKey });
   }
   return supervisorGateway;
@@ -99,7 +111,7 @@ function getSupervisorGateway() {
 // Classification Prompt
 // =============================================================================
 
-const SUPERVISOR_PROMPT = `You are the routing supervisor for GearShack, a backpacking gear management platform.
+const SUPERVISOR_PROMPT = `You are the routing supervisor for Gearshack, a backpacking gear management platform.
 
 Classify the user's message into exactly ONE domain:
 
