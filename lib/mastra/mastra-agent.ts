@@ -47,6 +47,11 @@ import type { Domain } from './supervisor';
 import { logWarn, logInfo } from './logging';
 // Agent Middleware — defense-in-depth guardrails
 import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
+// AsyncLocalStorage bridge for tool execution context
+// @mastra/core v1.0.4 creates a new empty RequestContext inside its agentic loop,
+// discarding the one passed to agent.stream(). This store bridges that gap.
+import { runWithRequestStore, wrapAsyncIterableWithContext } from './request-store';
+import type { RequestStoreContext } from './request-store';
 
 // =============================================================================
 // Request Context Type Definition
@@ -56,24 +61,21 @@ import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agen
  * Type-safe request context for the Gearshack agent.
  * Passed via requestContext to dynamic instructions and tools callbacks.
  *
+ * Extends RequestStoreContext (the tool-visible subset) with agent-level
+ * fields that only the dynamic instructions/tools callbacks need.
+ * RequestStoreContext is the single source of truth for userId,
+ * subscriptionTier, lang, and currentLoadoutId — see request-store.ts.
+ *
  * In Mastra v1.0+, DynamicArgument callbacks receive { requestContext }
  * which is the RequestContext instance passed to agent.stream()/generate().
  *
  * @see https://mastra.ai/docs/agents/runtime-context
  */
-export type GearshackRequestContext = {
-  /** Authenticated user ID */
-  userId: string;
-  /** User's subscription tier — determines available tools */
-  subscriptionTier: 'standard' | 'trailblazer';
-  /** User's locale (e.g., 'en', 'de') */
-  lang: string;
+export type GearshackRequestContext = RequestStoreContext & {
   /** Pre-built prompt context for system prompt generation (optional when enrichedPromptSuffix is the full prompt) */
   promptContext?: PromptContext;
   /** Optional pre-fetched data to append to the system prompt */
   enrichedPromptSuffix: string | undefined;
-  /** Current loadout ID for loadout-aware tools */
-  currentLoadoutId: string | undefined;
   /**
    * Domain classification from the Supervisor Agent (Kapitel 22).
    * Used to reduce tool set from 10 to 3–4 per request.
@@ -748,20 +750,48 @@ export async function streamMastraResponse(
   // Only the current message — Mastra retrieves history via threadId
   const messages = [{ role: 'user' as const, content: safeMessage }];
 
-  // Stream with requestContext so dynamic instructions/tools resolve per-request,
-  // and threadId so Mastra's PostgresStore injects conversation history
-  const stream = await agent.stream(messages, {
-    resourceId: userId,
-    threadId: conversationId,
-    requestContext,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  // Build AsyncLocalStorage context so tools can access userId even though
+  // @mastra/core v1.0.4 does not propagate requestContext to tool execute().
+  // Runtime validation instead of unsafe `as` casts — values from requestContext.get()
+  // are typed as `unknown`, so we validate before assigning.
+  const tier = requestContext.get('subscriptionTier');
+  const lang = requestContext.get('lang');
+  const loadoutId = requestContext.get('currentLoadoutId');
+
+  const storeContext: RequestStoreContext = {
+    userId,
+    subscriptionTier: tier === 'trailblazer' ? 'trailblazer' : 'standard',
+    lang: typeof lang === 'string' && lang ? lang : 'en',
+    currentLoadoutId: typeof loadoutId === 'string' ? loadoutId : undefined,
+  };
+
+  // Wrap the entire streaming lifecycle in AsyncLocalStorage so that ALL
+  // async operations — including deferred tool execute() callbacks triggered
+  // by the LLM's agentic loop — inherit the request-scoped context.
+  const stream = await runWithRequestStore(storeContext, () =>
+    agent.stream(messages, {
+      resourceId: userId,
+      threadId: conversationId,
+      requestContext,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+  );
+
+  // ── Ensure ALS context propagates during stream consumption ──
+  // CRITICAL FIX (Sentry + Claude review): When textStream is a lazy async
+  // iterable, tool execute() callbacks are triggered during iteration (each
+  // next() call), NOT during agent.stream() creation. Without this wrapper,
+  // getRequestStore() returns undefined inside tool callbacks because the
+  // runWithRequestStore scope ended after agent.stream() resolved.
+  // wrapAsyncIterableWithContext re-enters the ALS context for each iteration
+  // step, ensuring tools always have access to userId, subscriptionTier, etc.
+  const originalTextStream = stream.textStream;
+  const contextAwareTextStream = wrapAsyncIterableWithContext(originalTextStream, storeContext);
 
   // ── afterGenerate: Wrap textStream with PII sanitization ──
   // Transform the async iterable to apply output guardrails on each chunk.
   // Uses a small buffer to catch PII patterns that straddle chunk boundaries.
-  const originalTextStream = stream.textStream;
-  const sanitizedTextStream = createSanitizedTextStream(originalTextStream, userId, conversationId);
+  const sanitizedTextStream = createSanitizedTextStream(contextAwareTextStream, userId, conversationId);
 
   // Also sanitize the resolved full-text value so callers using fullText
   // (e.g. for persistence or logging) do not receive unredacted PII.
