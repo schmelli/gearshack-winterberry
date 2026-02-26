@@ -750,14 +750,33 @@ async function searchCatalog(
 
   if (rpcError) {
     // Fallback: if RPC not available (e.g., migration not yet applied),
-    // use the standard ILIKE approach
+    // use the standard ILIKE approach.
+    // Pass normalizedQuery (not raw query) so the fallback receives the same
+    // semantic input as the RPC path. The fallback also normalizes internally
+    // (defensive idempotency), but passing the already-normalized value avoids
+    // double work and removes the risk of divergence if the fallback's internal
+    // normalization is ever removed.
     logWarn('search_catalog_enriched RPC failed, falling back to standard search', {
       metadata: { error: rpcError.message },
     });
-    return searchCatalogFallback(supabase, query, filters, sortBy, limit, offset);
+    return searchCatalogFallback(supabase, normalizedQuery, filters, sortBy, limit, offset);
   }
 
   const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
+
+  // Aggregate match_source across results for observability.
+  // Logging the breakdown (name vs description vs enrichment hits) makes it possible
+  // to measure enrichment effectiveness in production without a schema change.
+  // Keeps logging at a single logInfo call per query (not per row) to avoid verbosity.
+  if (results.length > 0) {
+    const matchSourceCounts = results.reduce<Record<string, number>>((acc, row) => {
+      acc[row.match_source] = (acc[row.match_source] ?? 0) + 1;
+      return acc;
+    }, {});
+    logInfo('catalog_search_match_sources', {
+      metadata: { query: escapedQuery, offset, matchSources: matchSourceCounts },
+    });
+  }
 
   // Destructure to omit internal fields (brand_id, search_enrichment, match_source).
   // Using destructuring instead of `property: undefined` actually removes the keys from

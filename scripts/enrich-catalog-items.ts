@@ -350,9 +350,19 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // Validate enrichment has meaningful content
-    if (enrichment.useCases.length === 0 && enrichment.alternativeSearchTerms.length === 0) {
-      console.warn(`  [SKIP] Empty enrichment for "${product.name}"`);
+    // Validate enrichment has meaningful content across all searchable fields.
+    // Previously only checked useCases + alternativeSearchTerms (2 of 5 fields).
+    // Now checks the total across all array fields so enrichment with content only
+    // in conditions/compatibleWith (e.g., highly specialized equipment) is accepted.
+    // avoidFor is a scalar string (optional), counted as 1 if present and non-empty.
+    const totalEnrichmentTerms =
+      enrichment.useCases.length +
+      enrichment.alternativeSearchTerms.length +
+      enrichment.conditions.length +
+      enrichment.compatibleWith.length +
+      (enrichment.avoidFor && enrichment.avoidFor.trim().length > 0 ? 1 : 0);
+    if (totalEnrichmentTerms === 0) {
+      console.warn(`  [SKIP] Empty enrichment for "${product.name}" (all 5 fields are empty)`);
       skipCount++;
       continue;
     }

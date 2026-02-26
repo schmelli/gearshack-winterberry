@@ -188,13 +188,17 @@ AS $$
     CASE WHEN p_sort_by = 'price_desc' THEN cp.price_usd END DESC NULLS LAST,
     -- Name as final tiebreaker for all sort modes
     cp.name ASC
-  -- Cap p_limit as a SQL-level safety guard for direct DB callers.
+  -- Cap p_limit and p_offset as SQL-level safety guards for direct DB callers.
   -- The TypeScript/Zod layer limits p_limit to 30 at the tool boundary, but
-  -- the anon role has EXECUTE on this function so it can be called directly
-  -- (e.g., from Supabase dashboard or a future PostgREST route) with any value.
-  -- LEAST(p_limit, 100) prevents accidental large result sets from such callers.
+  -- the anon role has EXECUTE so this function is callable directly (Supabase
+  -- dashboard, future PostgREST routes) with arbitrary values.
+  -- • LEAST(p_limit, 100): prevents accidental large result sets.
+  -- • LEAST(p_offset, 10000): prevents runaway OFFSET scans on ILIKE full-table
+  --   scans which must skip N rows even when they are not returned. An offset
+  --   of 10,000 is effectively unreachable via normal pagination (at limit=30
+  --   that's page 333+), so legitimate callers are unaffected.
   LIMIT LEAST(p_limit, 100)
-  OFFSET p_offset
+  OFFSET LEAST(p_offset, 10000)
 $$;
 
 -- Grant PostgREST roles access to the helper and RPC functions.
@@ -230,8 +234,10 @@ COMMENT ON FUNCTION search_catalog_enriched IS
   'p_query must be pre-escaped by the caller (TypeScript: escapeIlikeWildcards). '
   'Uses two LATERAL subqueries to compute enrichment text and relevance score once '
   'per row, avoiding ILIKE re-evaluation across WHERE, SELECT, and ORDER BY clauses. '
-  'p_limit is capped at LEAST(p_limit, 100) as a SQL-level safety guard for direct '
-  'DB callers; the TypeScript layer further limits to 30 via Zod. '
+  'Safety caps for direct DB callers (anon role has EXECUTE): '
+  'p_limit capped at LEAST(p_limit, 100); TypeScript layer further limits to 30 via Zod. '
+  'p_offset capped at LEAST(p_offset, 10000) to prevent runaway ILIKE full-table scans; '
+  'at limit=30 this is page 333+, well beyond normal pagination needs. '
   'p_sort_by accepted values: ''relevance'' | ''weight_asc'' | ''weight_desc'' | '
   '''price_asc'' | ''price_desc''. Unknown values silently fall back to cp.name ASC '
   '(the final tiebreaker ORDER BY clause).';
