@@ -63,6 +63,9 @@ interface LocalizedContent {
    * the persistent user profile during conversations.
    * Mastra's WorkingMemory processor handles the read/write mechanics;
    * these instructions tell the agent WHEN and WHAT to update.
+   *
+   * Field paths must match GearshackUserProfile defined in
+   * lib/mastra/schemas/working-memory.ts (GearshackUserProfileSchema).
    */
   workingMemoryInstructions: string;
 }
@@ -208,26 +211,26 @@ You maintain a persistent profile about this user across all conversations. **Ac
 
 | You learn this | Write to field |
 |---|---|
-| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips[]\` — destination + activity + approximate date + \`addedAt\` (ISO timestamp) |
+| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips\` (array) — destination + activity + approximate date + \`addedAt\` (ISO date) |
 | Weight philosophy expressed ("I'm ultralight", "comfort over grams") | \`preferences.weightPhilosophy\` |
 | Budget context ("can't spend more than €200", "money is no object") | \`preferences.budgetRange\` |
 | Quality vs weight preference ("durability matters more") | \`preferences.qualityVsWeight\` |
 | Preferred name ("Call me Alex") | \`name\` |
 | Location mentioned ("I'm based in Bavaria", "hiking from Portland") | \`location\` |
-| Primary activities ("I mostly do thru-hikes", "weekend backpacking") | \`activities.primary[]\` and \`activities.typicalTripLength\` |
+| Primary activities ("I mostly do thru-hikes", "weekend backpacking") | \`activities.primary\` (array) and \`activities.typicalTripLength\` |
 | Experience level ("I've been hiking for 20 years", "first time backpacking") | \`activities.experience\` |
-| Brand love or dislike ("I swear by Hilleberg", "had bad luck with X") | \`brands.favorites[]\` or \`brands.avoid[]\` |
-| Brand curiosity ("What about Durston?", "Is Nemo any good?") | \`brands.curious[]\` |
-| Gear goal ("I want base weight under 5kg") | \`goals.gearGoals[]\` |
-| Wishlist priority ("the Xmid 2P is top of my list") | \`goals.wishlistPriorities[]\` |
-| Factual personal info ("I weigh 85kg", "I run hot at night") | \`facts[]\` — category 'constraint', confidence 'high' |
-| Preference or opinion ("I prefer down over synthetic") | \`facts[]\` — category 'preference', confidence 'high' |
-| Past experience ("Last year I hiked the HRP") | \`facts[]\` — category 'history', confidence 'high' |
+| Brand love or dislike ("I swear by Hilleberg", "had bad luck with X") | \`brands.favorites\` (array) or \`brands.avoid\` (array) |
+| Brand curiosity ("What about Durston?", "Is Nemo any good?") | \`brands.curious\` (array) |
+| Gear goal ("I want base weight under 5kg") | \`goals.gearGoals\` (array) |
+| Wishlist priority ("the Xmid 2P is top of my list") | \`goals.wishlistPriorities\` (array) |
+| Factual personal info ("I weigh 85kg", "I run hot at night") | \`facts\` (array) — category 'constraint', confidence 'high' |
+| Preference or opinion ("I prefer down over synthetic") | \`facts\` (array) — category 'preference', confidence 'high' |
+| Past experience ("Last year I hiked the HRP") | \`facts\` (array) — category 'history', confidence 'high' |
 
 **Rules:**
 - Update silently — do NOT tell the user you are updating their profile.
 - Only update when you are reasonably confident about the information.
-- For \`facts[]\`, always include a \`learnedAt\` ISO timestamp and appropriate \`category\` and \`confidence\`.
+- For \`facts\` entries, include an approximate \`learnedAt\` date in ISO format (e.g., \`YYYY-MM-DD\`); the processor normalizes the exact time. Also include appropriate \`category\` and \`confidence\`.
 - Do not duplicate existing entries — update or skip if the fact is already stored.
 - Keep arrays concise: prioritize recent and high-confidence entries.`,
 };
@@ -363,34 +366,34 @@ WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den s
 
   workingMemoryInstructions: `## Working Memory — Nutzerprofil-Aktualisierungen
 
-Du pflegst ein dauerhaftes Profil ueber diesen Nutzer ueber alle Gespraeche hinweg. **Aktualisiere es aktiv**, wenn du etwas Neues erfaehrst. Der Nutzer erwartet, dass du persoenliche Details beim naechsten Mal kennst.
+Du pflegst ein dauerhaftes Profil über diesen Nutzer über alle Gespräche hinweg. **Aktualisiere es aktiv**, wenn du etwas Neues erfährst. Der Nutzer erwartet, dass du persönliche Details beim nächsten Mal kennst.
 
 **Wann aktualisieren:**
 
-| Du erfaehrst dies | Schreibe in Feld |
+| Du erfährst dies | Schreibe in Feld |
 |---|---|
-| Nutzer erwaehnt einen Trip ("PCT im Juli", "Laugavegur naechsten Sommer") | \`goals.upcomingTrips[]\` — Ziel + Aktivitaet + ungefaehres Datum + \`addedAt\` (ISO-Zeitstempel) |
-| Gewichtsphilosophie geaeussert ("Ich bin ultraleicht unterwegs", "Komfort geht vor") | \`preferences.weightPhilosophy\` |
+| Nutzer erwähnt einen Trip ("PCT im Juli", "Laugavegur nächsten Sommer") | \`goals.upcomingTrips\` (Array) — Ziel + Aktivität + ungefähres Datum + \`addedAt\` (ISO-Datum) |
+| Gewichtsphilosophie geäußert ("Ich bin ultraleicht unterwegs", "Komfort geht vor") | \`preferences.weightPhilosophy\` |
 | Budget-Kontext ("kann nicht mehr als 200€ ausgeben", "Geld spielt keine Rolle") | \`preferences.budgetRange\` |
-| Qualitaet vs Gewicht Praeferenz ("Haltbarkeit ist mir wichtiger") | \`preferences.qualityVsWeight\` |
+| Qualität vs Gewicht Präferenz ("Haltbarkeit ist mir wichtiger") | \`preferences.qualityVsWeight\` |
 | Bevorzugter Name ("Nenn mich Alex") | \`name\` |
-| Standort erwaehnt ("Ich bin aus Bayern", "wohne in Wien") | \`location\` |
-| Hauptaktivitaeten ("Ich mache hauptsaechlich Thru-Hikes", "Wochenend-Touren") | \`activities.primary[]\` und \`activities.typicalTripLength\` |
+| Standort erwähnt ("Ich bin aus Bayern", "wohne in Wien") | \`location\` |
+| Hauptaktivitäten ("Ich mache hauptsächlich Thru-Hikes", "Wochenend-Touren") | \`activities.primary\` (Array) und \`activities.typicalTripLength\` |
 | Erfahrungslevel ("Ich wandere seit 20 Jahren", "erstes Mal Backpacking") | \`activities.experience\` |
-| Markenvorliebe oder -abneigung ("Ich schwoere auf Hilleberg", "hatte Pech mit X") | \`brands.favorites[]\` oder \`brands.avoid[]\` |
-| Marken-Neugier ("Was ist mit Durston?", "Taugt Nemo was?") | \`brands.curious[]\` |
-| Ausruestungsziel ("Ich will unter 5kg Basisgewicht") | \`goals.gearGoals[]\` |
-| Wunschlisten-Prioritaet ("Das Xmid 2P steht ganz oben") | \`goals.wishlistPriorities[]\` |
-| Persoenliche Fakten ("Ich wiege 85kg", "Ich schlafe warm") | \`facts[]\` — Kategorie 'constraint', Konfidenz 'high' |
-| Praeferenz oder Meinung ("Ich bevorzuge Daune gegenueber Synthetik") | \`facts[]\` — Kategorie 'preference', Konfidenz 'high' |
-| Vergangene Erfahrung ("Letztes Jahr bin ich die HRP gelaufen") | \`facts[]\` — Kategorie 'history', Konfidenz 'high' |
+| Markenvorliebe oder -abneigung ("Ich schwöre auf Hilleberg", "hatte Pech mit X") | \`brands.favorites\` (Array) oder \`brands.avoid\` (Array) |
+| Marken-Neugier ("Was ist mit Durston?", "Taugt Nemo was?") | \`brands.curious\` (Array) |
+| Ausrüstungsziel ("Ich will unter 5kg Basisgewicht") | \`goals.gearGoals\` (Array) |
+| Wunschlisten-Priorität ("Das Xmid 2P steht ganz oben") | \`goals.wishlistPriorities\` (Array) |
+| Persönliche Fakten ("Ich wiege 85kg", "Ich schlafe warm") | \`facts\` (Array) — Kategorie 'constraint', Konfidenz 'high' |
+| Präferenz oder Meinung ("Ich bevorzuge Daune gegenüber Synthetik") | \`facts\` (Array) — Kategorie 'preference', Konfidenz 'high' |
+| Vergangene Erfahrung ("Letztes Jahr bin ich die HRP gelaufen") | \`facts\` (Array) — Kategorie 'history', Konfidenz 'high' |
 
 **Regeln:**
 - Aktualisiere stillschweigend — sage dem Nutzer NICHT, dass du sein Profil aktualisierst.
 - Aktualisiere nur, wenn du dir bei der Information hinreichend sicher bist.
-- Fuer \`facts[]\` immer einen \`learnedAt\` ISO-Zeitstempel und passende \`category\` und \`confidence\` angeben.
-- Keine Duplikate erstellen — vorhandene Eintraege aktualisieren oder ueberspringen.
-- Arrays kompakt halten: aktuelle und hochkonfidente Eintraege bevorzugen.`,
+- Für \`facts\`-Einträge immer ein ungefähres \`learnedAt\`-Datum im ISO-Format angeben (z.B. \`JJJJ-MM-TT\`); der Prozessor normalisiert die genaue Uhrzeit. Außerdem passende \`category\` und \`confidence\` angeben.
+- Keine Duplikate erstellen — vorhandene Einträge aktualisieren oder überspringen.
+- Arrays kompakt halten: aktuelle und hochkonfidente Einträge bevorzugen.`,
 };
 
 /**
@@ -447,6 +450,12 @@ export interface PromptContext {
   semanticRecallContext?: string;
   /** A/B test prompt variant suffix (appended to system prompt) */
   abTestSuffix?: string;
+  /**
+   * When explicitly set to false, working memory profile update instructions
+   * are omitted from the system prompt (e.g. for anonymous users or sessions
+   * where Mastra's WorkingMemory processor is disabled). Defaults to true.
+   */
+  workingMemoryEnabled?: boolean;
 }
 
 // =============================================================================
@@ -481,9 +490,12 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   // 1. Core Identity and Role
   sections.push(content.identity);
 
-  // 1b. Working Memory Instructions (always included — teaches the agent to
-  // actively update the persistent user profile during conversations)
-  sections.push(`\n${content.workingMemoryInstructions}`);
+  // 1b. Working Memory Instructions (teaches the agent to actively update the
+  // persistent user profile; omitted when working memory is disabled, e.g. for
+  // anonymous users or sessions where the processor is not configured)
+  if (context.workingMemoryEnabled !== false) {
+    sections.push(`\n${content.workingMemoryInstructions}`);
+  }
 
   // 1c. Semantic Recall context from past conversations
   if (context.semanticRecallContext) {
