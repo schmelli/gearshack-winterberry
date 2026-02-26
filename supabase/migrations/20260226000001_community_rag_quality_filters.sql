@@ -22,11 +22,20 @@ ALTER TABLE community_knowledge_chunks
   ADD COLUMN IF NOT EXISTS reply_count INT NOT NULL DEFAULT 0;
 
 -- Index for efficient quality filtering
+-- NOTE: pgvector ANN searches (embedding <=> query) apply scalar filters as
+-- post-filters after the vector scan. The query planner generally cannot use
+-- B-tree indexes as pre-filters alongside HNSW/IVFFlat, so these indexes do
+-- NOT speed up RAG searches. They are retained for scalar-only admin/dashboard
+-- queries (e.g., "find posts with low reply_count"). If the table grows large
+-- and write overhead becomes measurable, consider dropping these indexes after
+-- profiling with EXPLAIN ANALYZE. See also migration _002 for more context.
+-- TODO: Revisit once community_knowledge_chunks row count exceeds ~100k rows.
 CREATE INDEX IF NOT EXISTS idx_community_knowledge_reply_count
   ON community_knowledge_chunks (reply_count)
   WHERE reply_count > 0;
 
 -- Composite index for age + quality filtering (most common filter combination)
+-- Same write-overhead caveat as above applies.
 CREATE INDEX IF NOT EXISTS idx_community_knowledge_quality
   ON community_knowledge_chunks (source_created_at DESC, reply_count DESC)
   WHERE reply_count > 0;
@@ -117,8 +126,18 @@ BEGIN
 END;
 $$;
 
+-- Grant to `authenticated` for direct client calls (e.g., user-facing searches).
 GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
   TO authenticated;
+
+-- Grant to `service_role` for server-side calls via the service-role Supabase client.
+-- In Supabase, PostgREST uses the `service_role` PostgreSQL role when the service-role
+-- JWT is used (e.g., createServiceRoleClient in lib/supabase/server.ts). The service
+-- role bypasses RLS but still requires an explicit EXECUTE grant on functions.
+-- Without this grant, server-side RAG searches from the Mastra agent would fail with
+-- "permission denied for function search_community_knowledge".
+GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
+  TO service_role;
 
 -- ============================================================================
 -- Comments
