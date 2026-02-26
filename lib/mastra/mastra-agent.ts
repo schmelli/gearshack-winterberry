@@ -283,13 +283,17 @@ type DomainToolSubset = Partial<typeof TRAILBLAZER_TOOLS>;
 const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
   gear: {
     // Full toolset — system prompt's GearGraph guidance and loadout analysis
-    // sections reference queryGearGraph and searchWeb explicitly
+    // sections reference queryGearGraph and searchWeb explicitly.
+    // reviewExpensiveRecommendation is included because the system prompt instructs
+    // the model to call it for any gear recommendation over €300 — omitting it would
+    // create a silent mismatch between instructions and available tools.
     analyzeLoadout: analyzeLoadoutTool,
     inventoryInsights: inventoryInsightsTool,
     searchGearKnowledge: searchGearKnowledgeTool,
     addToLoadout: addToLoadoutTool,
     searchGear: searchGearTool,
     findAlternatives: findAlternativesTool,
+    reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
     queryUserData: queryUserDataSqlTool,
     queryGearGraph: queryGearGraphTool,
     searchWeb: searchWebTool,

@@ -65,10 +65,29 @@ const DomainSchema = z.object({
 // Lazy-loaded gateway instance (shared with other modules via AI_GATEWAY_API_KEY)
 let supervisorGateway: ReturnType<typeof createGateway> | null = null;
 
+/**
+ * Sentinel flag for one-time init failure.
+ *
+ * When `AI_GATEWAY_API_KEY` is missing, `getSupervisorGateway()` throws and
+ * `supervisorGateway` stays `null`. Without this flag, every subsequent request
+ * would retry the failing init, generating one error log entry per request.
+ * Once `initFailed` is set to `true`, `getSupervisorGateway()` throws immediately
+ * on subsequent calls (before the env-var check), so the `classifyDomain` catch
+ * block can fall through to the DEFAULT_DOMAIN fallback without log spam.
+ */
+let supervisorGatewayInitFailed = false;
+
 function getSupervisorGateway() {
+  // Fast-fail on repeated requests after a known init failure.
+  // The first failure sets supervisorGatewayInitFailed so subsequent calls
+  // skip the environment-variable lookup entirely.
+  if (supervisorGatewayInitFailed) {
+    throw new Error('Supervisor gateway init previously failed — skipping retry');
+  }
   if (!supervisorGateway) {
     const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
     if (!apiKey) {
+      supervisorGatewayInitFailed = true;
       throw new Error('AI_GATEWAY_API_KEY is required for Supervisor Agent');
     }
     supervisorGateway = createGateway({ apiKey });
