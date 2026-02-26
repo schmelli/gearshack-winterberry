@@ -4,7 +4,15 @@
  *
  * Supports both runtimeContext (Dynamic Agent Pattern) and
  * legacy requestContext for backward compatibility.
+ *
+ * IMPORTANT: @mastra/core v1.0.4 does NOT propagate the agent's
+ * RequestContext to tool execute() callbacks. The agentic loop creates
+ * a brand-new empty RequestContext internally. As a workaround, all
+ * extract* functions fall back to AsyncLocalStorage (request-store.ts)
+ * which IS propagated across the full async call chain.
  */
+
+import { getRequestStore } from '../request-store';
 
 /**
  * Resolve the context Map from Mastra execution context.
@@ -30,24 +38,33 @@ function resolveContextMap(executionContext: unknown): Map<string, unknown> | un
 /**
  * Extract userId from Mastra execution context
  *
- * In production, userId is injected by `streamMastraResponse` via `requestContext`.
- * In Mastra Studio (local dev), no requestContext is set — fall back to the
- * MASTRA_STUDIO_USER_ID environment variable so tools function during Studio sessions.
- *
- * The fallback is guarded by NODE_ENV to ensure it is never active in production,
- * preventing accidental identity adoption if the env var is misconfigured.
+ * Resolution order:
+ * 1. Mastra execution context (runtimeContext or requestContext)
+ * 2. AsyncLocalStorage request store (workaround for @mastra/core v1.0.4 bug)
+ * 3. MASTRA_STUDIO_USER_ID env var (dev-only fallback for Mastra Studio)
  *
  * @param executionContext - Mastra tool execution context
  * @returns userId string or null if not authenticated
  */
 export function extractUserId(executionContext: unknown): string | null {
+  // 1. Try Mastra execution context (works if Mastra propagates requestContext)
   const ctxMap = resolveContextMap(executionContext);
   const userId = (ctxMap?.get('userId') as string | undefined) || null;
-  // Studio fallback: only active outside production to prevent accidental identity
-  // adoption if MASTRA_STUDIO_USER_ID is ever set in a production environment.
-  const studioFallback =
-    process.env.NODE_ENV !== 'production' ? (process.env.MASTRA_STUDIO_USER_ID ?? null) : null;
-  return userId || studioFallback || null;
+  if (userId) return userId;
+
+  // 2. AsyncLocalStorage fallback — bridges the @mastra/core v1.0.4 gap where
+  //    the agentic loop creates a new empty RequestContext, discarding the one
+  //    passed to agent.stream().
+  const store = getRequestStore();
+  if (store?.userId) return store.userId;
+
+  // 3. Studio fallback: only active outside production to prevent accidental identity
+  //    adoption if MASTRA_STUDIO_USER_ID is ever set in a production environment.
+  if (process.env.NODE_ENV !== 'production') {
+    return process.env.MASTRA_STUDIO_USER_ID ?? null;
+  }
+
+  return null;
 }
 
 /**
@@ -58,7 +75,12 @@ export function extractUserId(executionContext: unknown): string | null {
  */
 export function extractCurrentLoadoutId(executionContext: unknown): string | null {
   const ctxMap = resolveContextMap(executionContext);
-  return (ctxMap?.get('currentLoadoutId') as string | undefined) || null;
+  const loadoutId = (ctxMap?.get('currentLoadoutId') as string | undefined) || null;
+  if (loadoutId) return loadoutId;
+
+  // AsyncLocalStorage fallback
+  const store = getRequestStore();
+  return store?.currentLoadoutId ?? null;
 }
 
 /**
@@ -70,7 +92,13 @@ export function extractCurrentLoadoutId(executionContext: unknown): string | nul
 export function extractSubscriptionTier(executionContext: unknown): 'standard' | 'trailblazer' {
   const ctxMap = resolveContextMap(executionContext);
   const tier = ctxMap?.get('subscriptionTier') as string | undefined;
-  return tier === 'trailblazer' ? 'trailblazer' : 'standard';
+  if (tier === 'trailblazer') return 'trailblazer';
+
+  // AsyncLocalStorage fallback
+  const store = getRequestStore();
+  if (store?.subscriptionTier === 'trailblazer') return 'trailblazer';
+
+  return 'standard';
 }
 
 /**

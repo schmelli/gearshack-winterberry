@@ -47,6 +47,11 @@ import type { Domain } from './supervisor';
 import { logWarn, logInfo } from './logging';
 // Agent Middleware — defense-in-depth guardrails
 import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
+// AsyncLocalStorage bridge for tool execution context
+// @mastra/core v1.0.4 creates a new empty RequestContext inside its agentic loop,
+// discarding the one passed to agent.stream(). This store bridges that gap.
+import { runWithRequestStore } from './request-store';
+import type { RequestStoreContext } from './request-store';
 
 // =============================================================================
 // Request Context Type Definition
@@ -748,14 +753,26 @@ export async function streamMastraResponse(
   // Only the current message — Mastra retrieves history via threadId
   const messages = [{ role: 'user' as const, content: safeMessage }];
 
-  // Stream with requestContext so dynamic instructions/tools resolve per-request,
-  // and threadId so Mastra's PostgresStore injects conversation history
-  const stream = await agent.stream(messages, {
-    resourceId: userId,
-    threadId: conversationId,
-    requestContext,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  // Build AsyncLocalStorage context so tools can access userId even though
+  // @mastra/core v1.0.4 does not propagate requestContext to tool execute().
+  const storeContext: RequestStoreContext = {
+    userId,
+    subscriptionTier: (requestContext.get('subscriptionTier') as 'standard' | 'trailblazer') || 'standard',
+    lang: (requestContext.get('lang') as string) || 'en',
+    currentLoadoutId: requestContext.get('currentLoadoutId') as string | undefined,
+  };
+
+  // Wrap the entire streaming lifecycle in AsyncLocalStorage so that ALL
+  // async operations — including deferred tool execute() callbacks triggered
+  // by the LLM's agentic loop — inherit the request-scoped context.
+  const stream = await runWithRequestStore(storeContext, () =>
+    agent.stream(messages, {
+      resourceId: userId,
+      threadId: conversationId,
+      requestContext,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+  );
 
   // ── afterGenerate: Wrap textStream with PII sanitization ──
   // Transform the async iterable to apply output guardrails on each chunk.
