@@ -72,6 +72,7 @@ import {
 } from '@/lib/mastra/proactive-suggestions';
 import { mastra } from '@/lib/mastra/instance';
 import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
+import { buildMastraSystemPrompt } from '@/lib/mastra/prompt-builder';
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
 import { classifyIntent } from '@/lib/mastra/intent-router';
@@ -473,38 +474,94 @@ export async function POST(request: Request): Promise<Response> {
           // the only opportunity to show an intermediate progress state.
           emitProgress('context', progressMessages[locale].context);
 
-          const workflow = mastra.getWorkflow('gear-assistant');
-          const run = await workflow.createRun({ resourceId: user.id });
+          // GRACEFUL DEGRADATION: Workflow execution is wrapped in its own
+          // try/catch so that a failure in any step (e.g. Gemini API timeout
+          // in classifyIntent) does not kill the entire chat request.  On
+          // failure we fall back to a minimal pipelineOutput that lets the
+          // agent answer without pre-classified intent or prefetched data.
+          let pipelineOutput: GearAssistantWorkflowOutput;
+          let workflowFallback = false;
+          let workflowStepNames: string[] = [];
 
-          const workflowResult = await run.start({
-            inputData: {
+          try {
+            const workflow = mastra.getWorkflow('gear-assistant');
+            const run = await workflow.createRun({ resourceId: user.id });
+
+            const workflowResult = await run.start({
+              inputData: {
+                message,
+                userId: user.id,
+                conversationId,
+                locale: (context?.locale as string) || 'en',
+                screen: (context?.screen as string) || 'inventory',
+                inventoryCount: (context?.inventoryCount as number) || 0,
+                currentLoadoutId,
+                enableTools,
+                subscriptionTier,
+              },
+            });
+
+            // Extract workflow output
+            if (workflowResult.status !== 'success' || !workflowResult.result) {
+              const stepErrors = Object.entries(workflowResult.steps)
+                .filter(([, step]) => step?.status === 'failed')
+                .map(([name]) => name);
+
+              throw new Error(
+                `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
+              );
+            }
+
+            // Cast required because Mastra's generic types do not propagate the workflow
+            // output type through workflowResult.result — the schema is validated at
+            // runtime by Zod inside the workflow engine before this point.
+            pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
+            workflowStepNames = Object.keys(workflowResult.steps);
+          } catch (workflowError) {
+            // Workflow failed → fall back to direct agent call with minimal context.
+            // The agent can still answer without pre-classified intent or prefetched data;
+            // it just won't benefit from pre-loaded inventory/catalog context.
+            workflowFallback = true;
+            const errorMsg = workflowError instanceof Error ? workflowError.message : 'unknown';
+
+            logWarn('Workflow pipeline failed, falling back to direct agent call', {
+              userId: user.id,
+              conversationId,
+              metadata: { error: errorMsg },
+            });
+            recordChatError('agent_failure');
+
+            emitProgress(
+              'context',
+              locale === 'de' ? 'Direkte Verarbeitung…' : 'Processing directly…',
+            );
+
+            const userLocale = (context?.locale as string) || 'en';
+            pipelineOutput = {
+              enrichedSystemPrompt: buildMastraSystemPrompt({
+                userContext: {
+                  screen: (context?.screen as string) || 'inventory',
+                  locale: userLocale,
+                  inventoryCount: (context?.inventoryCount as number) || 0,
+                  currentLoadoutId,
+                  userId: user.id,
+                  subscriptionTier,
+                },
+              }),
+              queryComplexity: 'complex',  // Safe default: use full-capability model
+              fastAnswer: null,
+              intent: 'complex',
+              confidence: 0,
+              loadoutContext: null,
               message,
               userId: user.id,
               conversationId,
-              locale: (context?.locale as string) || 'en',
-              screen: (context?.screen as string) || 'inventory',
-              inventoryCount: (context?.inventoryCount as number) || 0,
               currentLoadoutId,
               enableTools,
+              locale: userLocale,
               subscriptionTier,
-            },
-          });
-
-          // Extract workflow output
-          if (workflowResult.status !== 'success' || !workflowResult.result) {
-            const stepErrors = Object.entries(workflowResult.steps)
-              .filter(([, step]) => step?.status === 'failed')
-              .map(([name]) => name);
-
-            throw new Error(
-              `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
-            );
+            };
           }
-
-          // Cast required because Mastra's generic types do not propagate the workflow
-          // output type through workflowResult.result — the schema is validated at
-          // runtime by Zod inside the workflow engine before this point.
-          const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
 
           // --- A/B Test: Resolve prompt variant for this user ---
           // The workflow builds enrichedSystemPrompt; we append the variant suffix
@@ -560,16 +617,23 @@ export async function POST(request: Request): Promise<Response> {
               ? `${pipelineOutput.enrichedSystemPrompt}\n\n${variantResolution.promptSuffix}`
               : pipelineOutput.enrichedSystemPrompt;
 
-          logInfo('Gear-assistant workflow completed', {
-            userId: user.id,
-            conversationId,
-            metadata: {
-              intent: pipelineOutput.intent,
-              confidence: pipelineOutput.confidence,
-              hasFastAnswer: !!pipelineOutput.fastAnswer,
-              workflowSteps: Object.keys(workflowResult.steps),
+          logInfo(
+            workflowFallback
+              ? 'Workflow fallback — proceeding with direct agent call'
+              : 'Gear-assistant workflow completed',
+            {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                intent: pipelineOutput.intent,
+                confidence: pipelineOutput.confidence,
+                hasFastAnswer: !!pipelineOutput.fastAnswer,
+                ...(workflowFallback
+                  ? { fallback: true }
+                  : { workflowSteps: workflowStepNames }),
+              },
             },
-          });
+          );
 
           // =============================================================
           // Fast-path: If the workflow produced a fast answer, return it
