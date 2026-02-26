@@ -126,6 +126,9 @@ $$;
 -- Both anon (unauthenticated) and authenticated roles need EXECUTE so the functions are
 -- callable via the Supabase client / PostgREST HTTP layer. Without this, calling
 -- supabase.rpc('search_catalog_enriched', ...) silently fails and falls back to ILIKE.
+--
+-- DESIGN DECISION: anon (unauthenticated) access is intentional — the product catalog is a
+-- public, read-only resource. See migration 20260226000001 for the full rationale.
 GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION catalog_enrichment_text(catalog_products) TO anon, authenticated;
 

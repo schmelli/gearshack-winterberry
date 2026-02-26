@@ -280,15 +280,24 @@ async function main(): Promise<void> {
   console.log(`Dry run: ${dryRun}`);
   console.log('');
 
-  // Fetch products to enrich
+  // Fetch products to enrich.
+  // - Normal mode: only unenriched products, oldest-created first (most likely to be canonical products)
+  // - Force mode:  all products, ordered by enriched_at ASC NULLS FIRST so items with no enrichment
+  //               come first, then the most stale enrichments are refreshed next. This is more useful
+  //               than ordering by created_at when re-enriching, because the goal is to keep enrichment
+  //               fresh across the catalog rather than re-process the same oldest items repeatedly.
   let query = supabase
     .from('catalog_products')
     .select('id, name, description, product_type, weight_grams, price_usd, catalog_brands(name)')
-    .order('created_at', { ascending: true })
     .limit(limit);
 
   if (!force) {
-    query = query.is('search_enrichment', null);
+    query = query
+      .is('search_enrichment', null)
+      .order('created_at', { ascending: true });
+  } else {
+    // enriched_at ASC NULLS FIRST: unenriched products first, then oldest-enriched products
+    query = query.order('enriched_at', { ascending: true, nullsFirst: true });
   }
 
   const { data: products, error: fetchError } = await query;

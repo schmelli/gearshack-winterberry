@@ -170,8 +170,25 @@ $$;
 -- Grant PostgREST roles access to the helper and RPC functions.
 -- Both anon (unauthenticated) and authenticated roles need EXECUTE so the
 -- functions are callable via the Supabase client / PostgREST HTTP layer.
+--
+-- DESIGN DECISION: anon (unauthenticated) access is intentional.
+-- The product catalog is a public, read-only resource — browsable without login,
+-- similar to a public storefront. Restricting to authenticated only would prevent
+-- the gear assistant from searching the catalog on behalf of unauthenticated users.
+-- If catalog access ever needs to be restricted, remove the anon grant here and
+-- in migration 20260226000002.
 GRANT EXECUTE ON FUNCTION catalog_enrichment_text(catalog_products) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, text) TO anon, authenticated;
 
 COMMENT ON COLUMN catalog_products.search_enrichment IS 'LLM-generated semantic metadata for search discoverability (ReAG pattern). Contains useCases, alternativeSearchTerms, conditions, compatibleWith, avoidFor fields.';
 COMMENT ON COLUMN catalog_products.enriched_at IS 'Timestamp of last LLM enrichment run for this product.';
+
+-- Document the helper function for SQL-level callers.
+-- This function is called internally by search_catalog_enriched() via LATERAL subquery —
+-- not intended to be called directly. It has no p_query parameter; escaping concerns
+-- apply only to search_catalog_enriched() which passes p_query into ILIKE patterns.
+COMMENT ON FUNCTION catalog_enrichment_text(catalog_products) IS
+  'Converts search_enrichment JSONB arrays (useCases, alternativeSearchTerms, conditions, '
+  'compatibleWith, avoidFor) into a single space-separated text string for ILIKE matching. '
+  'Called internally by search_catalog_enriched() via CROSS JOIN LATERAL — not for direct use. '
+  'Returns empty string when search_enrichment IS NULL.';
