@@ -42,8 +42,8 @@ import {
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
 import { logWarn, logInfo } from './logging';
-// Agent Middleware — defense-in-depth guardrails (Vorschlag 9)
-import { beforeGenerate, afterGenerate } from './agent-middleware';
+// Agent Middleware — defense-in-depth guardrails
+import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
 
 // =============================================================================
 // Request Context Type Definition
@@ -569,9 +569,9 @@ export async function persistCacheHitToMemory(
  * - tools callback reads tier → selects appropriate toolset
  * - Tool execution receives userId, currentLoadoutId for data access
  *
- * Agent Middleware (Vorschlag 9):
+ * Agent Middleware:
  * - beforeGenerate: Prompt injection detection + message length enforcement
- * - afterGenerate: PII redaction from agent output text
+ * - afterGenerate: PII redaction from agent output text (stream + fullText)
  *
  * @param agent - Mastra Agent instance (created via createGearAgent)
  * @param message - Current user message
@@ -625,63 +625,20 @@ export async function streamMastraResponse(
   const originalTextStream = stream.textStream;
   const sanitizedTextStream = createSanitizedTextStream(originalTextStream, userId, conversationId);
 
+  // Also sanitize the resolved full-text value so callers using fullText
+  // (e.g. for persistence or logging) do not receive unredacted PII.
+  const sanitizedFullText: Promise<string> = stream.text
+    ? stream.text.then((text: string) => afterGenerate(text, userId, conversationId).sanitizedText)
+    : Promise.resolve('');
+
   return {
     textStream: sanitizedTextStream,
     toolCalls: stream.toolCalls || Promise.resolve([]),
-    fullText: stream.text || Promise.resolve(''),
+    fullText: sanitizedFullText,
     finishReason: stream.finishReason || Promise.resolve('stop'),
   };
 }
 
-// =============================================================================
-// Output Stream Sanitization
-// =============================================================================
-
-/**
- * Buffer size for cross-chunk PII pattern detection.
- * Large enough to catch most PII patterns (emails, phone numbers)
- * but small enough to avoid noticeable streaming latency.
- */
-const OUTPUT_BUFFER_SIZE = 128;
-
-/**
- * Wraps an async iterable text stream with PII sanitization.
- *
- * Maintains a small trailing buffer to detect PII patterns that span
- * chunk boundaries. The buffer is flushed when the stream ends.
- *
- * @param textStream - Original text stream from agent
- * @param userId - User ID for logging context
- * @param conversationId - Conversation ID for logging context
- */
-async function* createSanitizedTextStream(
-  textStream: AsyncIterable<string>,
-  userId: string,
-  conversationId: string,
-): AsyncIterable<string> {
-  let buffer = '';
-
-  for await (const chunk of textStream) {
-    const combined = buffer + chunk;
-
-    if (combined.length <= OUTPUT_BUFFER_SIZE) {
-      // Not enough data to flush — keep buffering
-      buffer = combined;
-      continue;
-    }
-
-    // Flush everything except the trailing buffer
-    const flushEnd = combined.length - OUTPUT_BUFFER_SIZE;
-    const toFlush = combined.slice(0, flushEnd);
-    buffer = combined.slice(flushEnd);
-
-    const result = afterGenerate(toFlush, userId, conversationId);
-    yield result.sanitizedText;
-  }
-
-  // Flush remaining buffer at stream end
-  if (buffer.length > 0) {
-    const result = afterGenerate(buffer, userId, conversationId);
-    yield result.sanitizedText;
-  }
-}
+// NOTE: createSanitizedTextStream and OUTPUT_BUFFER_SIZE are defined in
+// agent-middleware.ts and imported above. They live there so they can be
+// unit-tested independently of the heavy Mastra/DB dependencies in this file.

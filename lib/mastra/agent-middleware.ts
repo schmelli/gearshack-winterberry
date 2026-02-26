@@ -12,6 +12,10 @@
  * afterGenerate:
  *   - PII redaction from agent responses (reuses log-sanitizer patterns)
  *
+ * createSanitizedTextStream:
+ *   - Wraps a streaming text response with per-chunk PII sanitization
+ *   - Maintains a trailing buffer to catch PII patterns spanning chunk boundaries
+ *
  * Integration: Called by streamMastraResponse() in mastra-agent.ts.
  * This keeps the guardrails at the agent boundary rather than at the HTTP
  * layer alone, protecting against injection in any calling context.
@@ -40,11 +44,18 @@ import { logWarn, logInfo } from './logging';
 const MAX_MESSAGE_LENGTH = 5000;
 
 /**
+ * Buffer size for cross-chunk PII pattern detection in the output stream.
+ * Large enough to catch most PII patterns (emails, phone numbers, SSNs)
+ * but small enough to avoid noticeable streaming latency for long responses.
+ */
+const OUTPUT_BUFFER_SIZE = 128;
+
+/**
  * Patterns that indicate prompt injection attempts.
  *
  * These cover common techniques:
  * - Direct instruction override ("ignore previous instructions")
- * - System prompt impersonation ("[SYSTEM]", "<|system|>")
+ * - System prompt impersonation ("[SYSTEM]:", "<|system|>")
  * - Jailbreak keywords
  * - Role-play escape ("you are now an unrestricted...")
  * - Delimiter injection ("### SYSTEM" used to break context)
@@ -58,6 +69,18 @@ const MAX_MESSAGE_LENGTH = 5000;
  *   "developer mode" alone is too broad; we match the phrase in injection
  *   context ("enable developer mode", "switch to developer mode").
  * - The error message is generic to avoid leaking detection logic.
+ *
+ * SECURITY NOTE: These patterns are heuristic defenses, not cryptographic
+ * guarantees. Known limitations:
+ * - Non-standard Unicode whitespace variants (\u00A0, \u2009, zero-width
+ *   joiners) and homoglyph substitutions (e.g. Cyrillic А vs Latin A) can
+ *   bypass \s+ matches in some patterns.
+ * - Obfuscation via encoding, character splitting, or multi-step prompts
+ *   may evade individual pattern matches.
+ * Defense-in-depth strategy: this layer filters obvious/common attacks.
+ * The agent's system prompt is the primary trust boundary for sophisticated
+ * evasion attempts. Future maintainers should treat these patterns as a
+ * best-effort heuristic layer, not an impenetrable filter.
  */
 const INJECTION_PATTERNS: readonly RegExp[] = [
   // Direct instruction override
@@ -66,9 +89,11 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /FORGET\s+(ALL\s+)?(YOUR\s+)?(PREVIOUS\s+)?INSTRUCTIONS/i,
   /OVERRIDE\s+(SYSTEM|SAFETY|YOUR)\s+(PROMPT|INSTRUCTIONS|RULES)/i,
 
-  // System prompt impersonation (LLM-specific delimiters)
-  /\[SYSTEM\]/i,
-  /\[INST\]/i,
+  // System prompt impersonation (LLM-specific delimiters).
+  // Anchored to line-start + separator (:, |) to avoid matching everyday
+  // uses like "my [system] is crashing" or quoted Llama 2 documentation.
+  /^\[SYSTEM\]\s*[:|]/im,
+  /^\[INST\]\s/im,
   /<\|system\|>/i,
   /<\|im_start\|>system/i,
   /SYSTEM:\s*you\s+are/i,
@@ -110,14 +135,16 @@ export interface BeforeGenerateResult {
   detectedPatterns: string[];
 }
 
-/** Result of afterGenerate sanitization */
+/**
+ * Result of afterGenerate sanitization.
+ * Note: `hadPII` is intentionally omitted — callers can derive it as
+ * `redactionCount > 0` when they need a boolean check.
+ */
 export interface AfterGenerateResult {
   /** Sanitized output text */
   sanitizedText: string;
   /** Number of PII redactions applied */
   redactionCount: number;
-  /** Whether any PII was detected and redacted */
-  hadPII: boolean;
 }
 
 // =============================================================================
@@ -214,7 +241,7 @@ export function beforeGenerate(
  * @param text - Raw agent output text
  * @param userId - User ID for logging context
  * @param conversationId - Conversation ID for logging context
- * @returns Sanitized text with PII redacted
+ * @returns Sanitized text with PII redacted and a count of redactions made
  */
 export function afterGenerate(
   text: string,
@@ -222,7 +249,7 @@ export function afterGenerate(
   conversationId?: string,
 ): AfterGenerateResult {
   if (!text || text.length === 0) {
-    return { sanitizedText: text, redactionCount: 0, hadPII: false };
+    return { sanitizedText: text, redactionCount: 0 };
   }
 
   const result = sanitizeString(text);
@@ -243,12 +270,62 @@ export function afterGenerate(
   return {
     sanitizedText: result.sanitized,
     redactionCount: result.redactionCount,
-    hadPII: result.redactionCount > 0,
   };
+}
+
+// =============================================================================
+// createSanitizedTextStream — Streaming Output Sanitization
+// =============================================================================
+
+/**
+ * Wraps an async iterable text stream with PII sanitization.
+ *
+ * Strategy: maintain a trailing buffer of OUTPUT_BUFFER_SIZE chars to catch
+ * PII patterns that span chunk boundaries (e.g. an email split across two
+ * chunks). On each incoming chunk:
+ *   1. Append to buffer.
+ *   2. If buffer exceeds OUTPUT_BUFFER_SIZE: flush everything except the
+ *      trailing OUTPUT_BUFFER_SIZE chars (which act as the overlap window).
+ *   3. At stream end: flush the remaining buffer.
+ *
+ * For responses shorter than OUTPUT_BUFFER_SIZE the entire response is
+ * buffered and flushed at stream end — this is intentional and avoids
+ * yielding partial PII patterns. For typical short responses (< 128 chars)
+ * the end-of-stream flush arrives quickly so UX impact is negligible.
+ *
+ * @param textStream - Original text stream from agent
+ * @param userId - User ID for logging context
+ * @param conversationId - Conversation ID for logging context
+ */
+export async function* createSanitizedTextStream(
+  textStream: AsyncIterable<string>,
+  userId: string,
+  conversationId: string,
+): AsyncIterable<string> {
+  let buffer = '';
+
+  for await (const chunk of textStream) {
+    buffer += chunk;
+
+    if (buffer.length > OUTPUT_BUFFER_SIZE) {
+      // Keep trailing OUTPUT_BUFFER_SIZE chars as the cross-chunk overlap window
+      const toFlush = buffer.slice(0, -OUTPUT_BUFFER_SIZE);
+      buffer = buffer.slice(-OUTPUT_BUFFER_SIZE);
+
+      const result = afterGenerate(toFlush, userId, conversationId);
+      yield result.sanitizedText;
+    }
+  }
+
+  // Flush remaining buffer at stream end
+  if (buffer.length > 0) {
+    const result = afterGenerate(buffer, userId, conversationId);
+    yield result.sanitizedText;
+  }
 }
 
 // =============================================================================
 // Exported Constants (for testing)
 // =============================================================================
 
-export { MAX_MESSAGE_LENGTH, INJECTION_PATTERNS };
+export { MAX_MESSAGE_LENGTH, INJECTION_PATTERNS, OUTPUT_BUFFER_SIZE };
