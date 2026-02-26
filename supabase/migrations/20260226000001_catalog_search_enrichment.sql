@@ -19,22 +19,26 @@ ALTER TABLE catalog_products
 ALTER TABLE catalog_products
   ADD COLUMN IF NOT EXISTS enriched_at timestamptz DEFAULT NULL;
 
--- 3. GIN index on search_enrichment for efficient JSONB containment queries
--- This enables fast @> (contains) and ? (key exists) operators
-CREATE INDEX IF NOT EXISTS idx_catalog_products_search_enrichment
-  ON catalog_products USING gin (search_enrichment jsonb_path_ops);
+-- 3. GIN index REMOVED: jsonb_path_ops only supports the @> containment operator,
+-- but search_catalog_enriched() searches via ILIKE on text extracted by
+-- catalog_enrichment_text(), so this index would never be used by the search function.
+-- It consumed storage with no query benefit.
+-- The partial index below (idx_catalog_products_unenriched) is the only index needed.
 
 -- 4. Partial index to quickly find unenriched products
+-- Used by scripts/enrich-catalog-items.ts to select rows WHERE search_enrichment IS NULL
 CREATE INDEX IF NOT EXISTS idx_catalog_products_unenriched
   ON catalog_products (created_at)
   WHERE search_enrichment IS NULL;
 
 -- 5. Create a SQL function for full-text search across enrichment fields
--- This converts the JSONB arrays into a searchable text representation
+-- This converts the JSONB arrays into a searchable text representation.
+-- Marked STABLE (not IMMUTABLE): the function reads a row-type argument whose
+-- underlying column values can change between transactions.
 CREATE OR REPLACE FUNCTION catalog_enrichment_text(p catalog_products)
 RETURNS text
 LANGUAGE sql
-IMMUTABLE
+STABLE
 AS $$
   SELECT COALESCE(
     array_to_string(
@@ -82,6 +86,14 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 AS $$
+  WITH
+    -- Escape ILIKE special characters at the DB level for defense-in-depth.
+    -- TypeScript callers also escape via escapeIlikeWildcards(), but this protects
+    -- any future caller that bypasses the TypeScript layer (direct SQL, scripts, etc.).
+    -- Order: backslash first to prevent double-escaping.
+    escaped AS (
+      SELECT replace(replace(replace(p_query, '\', '\\'), '%', '\%'), '_', '\_') AS q
+    )
   SELECT
     cp.id,
     cp.name,
@@ -92,35 +104,43 @@ AS $$
     cp.brand_id,
     cp.search_enrichment,
     CASE
-      WHEN cp.name ILIKE '%' || p_query || '%' THEN 'name'
-      WHEN cp.description ILIKE '%' || p_query || '%' THEN 'description'
-      WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 'product_type'
-      WHEN cp.search_enrichment IS NOT NULL
-        AND catalog_enrichment_text(cp) ILIKE '%' || p_query || '%' THEN 'enrichment'
+      WHEN cp.name ILIKE '%' || e.q || '%' THEN 'name'
+      WHEN cp.description ILIKE '%' || e.q || '%' THEN 'description'
+      WHEN cp.product_type ILIKE '%' || e.q || '%' THEN 'product_type'
+      WHEN enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || e.q || '%' THEN 'enrichment'
       ELSE 'unknown'
     END AS match_source
   FROM catalog_products cp
+  CROSS JOIN escaped e
+  -- LATERAL subquery computes catalog_enrichment_text(cp) exactly ONCE per row.
+  -- Without LATERAL, the function would be called once in WHERE and once in SELECT,
+  -- doubling per-row work. LATERAL binds the result to `enr.enr_text` so both
+  -- clauses reuse the single computed value.
+  CROSS JOIN LATERAL (
+    SELECT
+      CASE
+        WHEN cp.search_enrichment IS NOT NULL THEN catalog_enrichment_text(cp)
+        ELSE NULL
+      END AS enr_text
+  ) enr
   WHERE
     (
-      cp.name ILIKE '%' || p_query || '%'
-      OR cp.description ILIKE '%' || p_query || '%'
-      OR cp.product_type ILIKE '%' || p_query || '%'
-      OR (
-        cp.search_enrichment IS NOT NULL
-        AND catalog_enrichment_text(cp) ILIKE '%' || p_query || '%'
-      )
+      cp.name ILIKE '%' || e.q || '%'
+      OR cp.description ILIKE '%' || e.q || '%'
+      OR cp.product_type ILIKE '%' || e.q || '%'
+      OR (enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || e.q || '%')
     )
     AND (p_brand_ids IS NULL OR cp.brand_id = ANY(p_brand_ids))
     AND (p_max_weight IS NULL OR cp.weight_grams <= p_max_weight)
     AND (p_min_weight IS NULL OR cp.weight_grams >= p_min_weight)
     AND (p_max_price IS NULL OR cp.price_usd <= p_max_price)
   ORDER BY
-    -- Relevance score: only active when p_sort_by = 'relevance'
+    -- Relevance score: only active when p_sort_by = 'relevance' (ORDER BY ASC, lower = better)
     CASE WHEN p_sort_by = 'relevance' THEN
       CASE
-        WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
-        WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
-        WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
+        WHEN cp.name ILIKE '%' || e.q || '%' THEN 1
+        WHEN cp.description ILIKE '%' || e.q || '%' THEN 2
+        WHEN cp.product_type ILIKE '%' || e.q || '%' THEN 3
         ELSE 4
       END
     ELSE 0

@@ -28,6 +28,7 @@ import { createClient } from '@supabase/supabase-js';
 import { generateObject } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
+import type { Json } from '@/types/supabase';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
@@ -87,7 +88,11 @@ function parseArgs(): CliArgs {
   let dryRun = false;
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--limit' && args[i + 1]) {
+    if (args[i] === '--limit') {
+      if (i + 1 >= args.length || !args[i + 1]) {
+        console.error('Error: --limit requires a value (e.g. --limit 50)');
+        process.exit(1);
+      }
       limit = parseInt(args[i + 1], 10);
       if (isNaN(limit) || limit < 1) {
         console.error('Error: --limit must be a positive integer');
@@ -159,7 +164,7 @@ async function enrichItem(
     item.weight_grams ? `Weight: ${item.weight_grams}g` : null,
     item.price_usd ? `Price: $${item.price_usd}` : null,
     item.product_type ? `Category: ${item.product_type}` : null,
-  ].filter(Boolean).join('\n');
+  ].filter((x): x is string => x !== null).join('\n');
 
   const { object } = await generateObject({
     model: gateway(ENRICHMENT_MODEL),
@@ -293,7 +298,9 @@ async function main(): Promise<void> {
   if (dryRun) {
     console.log('\n--- Dry Run: Products that would be enriched ---');
     for (const product of products) {
-      const brandName = (product.catalog_brands as { name: string } | null)?.name ?? 'Unknown';
+      // catalog_brands is typed as { name: any }[] by the Supabase client (join result).
+      // Cast through unknown to access the .name property safely.
+      const brandName = (product.catalog_brands as unknown as { name: string } | null)?.name ?? 'Unknown';
       console.log(`  - ${product.name} (${brandName}) [${product.product_type ?? 'uncategorized'}]`);
     }
     console.log('\nNo changes written. Remove --dry-run to execute.');
@@ -308,7 +315,7 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
-    const brandName = (product.catalog_brands as { name: string } | null)?.name ?? null;
+    const brandName = (product.catalog_brands as unknown as { name: string } | null)?.name ?? null;
     const progress = `[${i + 1}/${products.length}]`;
 
     console.log(`${progress} Enriching: ${product.name} (${brandName ?? 'no brand'})...`);
@@ -341,7 +348,10 @@ async function main(): Promise<void> {
     const { error: updateError } = await supabase
       .from('catalog_products')
       .update({
-        search_enrichment: enrichment as unknown as Record<string, unknown>,
+        // EnrichmentResult is a plain object with string/string[] fields — structurally
+        // compatible with Json. Cast via `as unknown as Json` avoids the intermediate
+        // `Record<string, unknown>` which loses type information.
+        search_enrichment: enrichment as unknown as Json,
         enriched_at: new Date().toISOString(),
       })
       .eq('id', product.id);

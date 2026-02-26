@@ -696,7 +696,10 @@ async function searchCatalog(
       .from('catalog_brands')
       .select('id')
       .ilike('name', `%${escapedBrand}%`);
-    brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    // Cast through typed array so TS narrows brandIds to string[] after the assignment.
+    // Without this, supabase: any causes matchingBrands to be any, and .map() on any
+    // returns any, which prevents control-flow narrowing from string[] | null to string[].
+    brandIds = ((matchingBrands ?? []) as Array<{ id: string }>).map((b) => b.id);
     if (brandIds.length === 0) {
       return { type: 'catalog', data: [] };
     }
@@ -727,14 +730,26 @@ async function searchCatalog(
     return searchCatalogFallback(supabase, query, filters, sortBy, limit, offset);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[] = rpcResults || [];
+  /** Shape returned by the search_catalog_enriched RPC function */
+  interface EnrichedRpcRow {
+    id: string;
+    name: string;
+    product_type: string | null;
+    description: string | null;
+    price_usd: number | null;
+    weight_grams: number | null;
+    brand_id: string | null;
+    search_enrichment: unknown;
+    match_source: string;
+  }
+
+  const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
 
   // Resolve brand names for the returned results
   const uniqueBrandIds = [...new Set(
     results
-      .map((item: { brand_id: string | null }) => item.brand_id)
-      .filter((id: string | null): id is string => id !== null)
+      .map((item) => item.brand_id)
+      .filter((id): id is string => id !== null)
   )];
 
   const brandNameMap = new Map<string, string>();
@@ -743,18 +758,19 @@ async function searchCatalog(
       .from('catalog_brands')
       .select('id, name')
       .in('id', uniqueBrandIds);
-    for (const brand of brands || []) {
+    for (const brand of (brands ?? []) as Array<{ id: string; name: string }>) {
       brandNameMap.set(brand.id, brand.name);
     }
   }
 
-  // Flatten results with brand name; strip internal fields from output
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const flattened = results.map((item: any) => ({
+  // Flatten results with brand name; strip internal fields (brand_id, search_enrichment,
+  // match_source) that are implementation details and must not leak into agent output.
+  const flattened = results.map((item) => ({
     ...item,
-    brand_name: brandNameMap.get(item.brand_id) || null,
+    brand_name: brandNameMap.get(item.brand_id ?? '') || null,
     brand_id: undefined,
     search_enrichment: undefined,
+    match_source: undefined,
   }));
 
   return { type: 'catalog', data: flattened };
