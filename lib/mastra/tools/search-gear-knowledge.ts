@@ -37,6 +37,25 @@ import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
 // =============================================================================
+// ILIKE Escape Helpers
+// =============================================================================
+
+/**
+ * Escape only ILIKE wildcards (%, _, \) for use with bound parameters.
+ * Unlike escapeLikePattern, this does NOT strip commas/dots/parens since
+ * bound parameters are not parsed as PostgREST filter strings.
+ *
+ * Use this for:  .rpc() parameters, .ilike() method values
+ * Use escapeLikePattern for:  .or() filter strings where PostgREST syntax matters
+ */
+function escapeIlikeWildcards(input: string): string {
+  return input
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+}
+
+// =============================================================================
 // GearGraph Insights Integration
 // =============================================================================
 
@@ -663,13 +682,15 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
-  // Escape ILIKE wildcards to prevent pattern injection (%, _, \)
-  const escapedQuery = escapeLikePattern(query);
+  // Escape ILIKE wildcards for bound parameters (RPC args, .ilike() values).
+  // Only escapes %, _, \ — preserves dots/commas since bound params aren't
+  // parsed as PostgREST filter strings.
+  const escapedQuery = escapeIlikeWildcards(query);
 
   // Pre-filter by brand if specified (needed before RPC call)
   let brandIds: string[] | null = null;
   if (filters?.brand) {
-    const escapedBrand = escapeLikePattern(filters.brand);
+    const escapedBrand = escapeIlikeWildcards(filters.brand);
     const { data: matchingBrands } = await supabase
       .from('catalog_brands')
       .select('id')
@@ -808,7 +829,9 @@ async function searchCatalogFallback(
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
   if (filters?.brand) {
-    const escapedBrand = escapeLikePattern(filters.brand);
+    // Use escapeIlikeWildcards (not escapeLikePattern) since .ilike() passes
+    // the value as a bound parameter, not in a .or() filter string.
+    const escapedBrand = escapeIlikeWildcards(filters.brand);
     const { data: matchingBrands } = await supabase
       .from('catalog_brands')
       .select('id')
