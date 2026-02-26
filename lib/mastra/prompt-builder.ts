@@ -32,7 +32,7 @@ interface LocalizedContent {
       heaviestCategory?: string
     ) => string;
   };
-  /** Full tool list for trailblazer tier (9 tools) */
+  /** Full tool list for trailblazer tier (10 tools) */
   tools: string;
   /** Reduced tool list for standard tier (4 tools) */
   toolsStandard: string;

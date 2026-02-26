@@ -80,6 +80,9 @@ vi.mock('@/lib/mastra/tools/query-geargraph-v2', () => ({
 vi.mock('@/lib/mastra/tools/search-web', () => ({
   searchWebTool: {},
 }));
+vi.mock('@/lib/mastra/tools/review-recommendation', () => ({
+  reviewExpensiveRecommendationTool: {},
+}));
 // NOTE: update-working-memory mock REMOVED — persistUserProfile tool was removed from agent
 // Mastra provides its own updateWorkingMemory tool natively
 vi.mock('@/lib/mastra/schemas/working-memory', () => ({

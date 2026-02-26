@@ -32,10 +32,10 @@ import { COMPLEXITY_ROUTING_CONFIG } from '../config';
  * Price threshold in EUR above which a recommendation triggers the critic review.
  * Configurable via environment variable for different markets/currencies.
  */
-const REVIEW_PRICE_THRESHOLD_EUR = parseInt(
-  process.env.CRITIC_PRICE_THRESHOLD_EUR || '300',
-  10
-);
+const parsedThreshold = parseInt(process.env.CRITIC_PRICE_THRESHOLD_EUR || '300', 10);
+const REVIEW_PRICE_THRESHOLD_EUR = Number.isFinite(parsedThreshold) && parsedThreshold > 0
+  ? parsedThreshold
+  : 300;
 
 /**
  * Timeout for the critic review LLM call (milliseconds).
@@ -70,6 +70,7 @@ const reviewRecommendationInputSchema = z.object({
   recommendedItem: z
     .string()
     .min(1)
+    .max(500)
     .describe('Name/description of the recommended gear item (e.g., "Hilleberg Nallo 2 GT tent")'),
   priceEur: z
     .number()
@@ -78,6 +79,7 @@ const reviewRecommendationInputSchema = z.object({
   userNeed: z
     .string()
     .min(1)
+    .max(1000)
     .describe('What the user needs the item for (e.g., "3-season solo hiking in the Alps")'),
   userInventory: z
     .array(z.string())
