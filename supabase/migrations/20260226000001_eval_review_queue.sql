@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS eval_review_queue (
   -- Trace metadata for provenance
   source_trace_id TEXT,
   source_span_id TEXT,
-  trace_source eval_trace_source NOT NULL DEFAULT 'otel_span',
+  trace_source eval_trace_source NOT NULL DEFAULT 'mastra_scorer',
   trace_duration_ms INTEGER,
   trace_tool_calls JSONB,
   trace_eval_scores JSONB,

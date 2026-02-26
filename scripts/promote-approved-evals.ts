@@ -81,30 +81,46 @@ async function main(): Promise<void> {
   console.log(`  Output:  ${OUTPUT_PATH}`);
   console.log('');
 
-  // Step 1: Fetch approved candidates
+  // Step 1: Fetch newly approved candidates (to be promoted)
   console.log('Step 1: Fetching approved candidates...');
-  const { data: candidates, error } = await supabase
+  const { data: newlyApproved, error: approvedErr } = await supabase
     .from('eval_review_queue')
     .select('id, input, expected_tools, ground_truth, rationale, target_dataset, reviewer_notes, generation_batch_id, generated_at')
     .eq('status', 'approved')
     .order('generated_at', { ascending: true });
 
-  if (error) {
-    console.error('  Error fetching candidates:', error.message);
+  if (approvedErr) {
+    console.error('  Error fetching approved candidates:', approvedErr.message);
     process.exit(1);
   }
 
-  if (!candidates || candidates.length === 0) {
-    console.log('  No approved candidates found.');
+  if (!newlyApproved || newlyApproved.length === 0) {
+    console.log('  No newly approved candidates found.');
     console.log('  Approve candidates first: UPDATE eval_review_queue SET status = \'approved\' WHERE id = \'...\';');
     return;
   }
 
-  console.log(`  Found ${candidates.length} approved candidates.`);
+  console.log(`  Found ${newlyApproved.length} newly approved candidates.`);
 
-  // Step 2: Group by target dataset
+  // Step 2: Also fetch previously promoted candidates (accumulate into file)
+  console.log('\nStep 2: Fetching previously promoted candidates...');
+  const { data: previouslyPromoted, error: promotedErr } = await supabase
+    .from('eval_review_queue')
+    .select('id, input, expected_tools, ground_truth, rationale, target_dataset, reviewer_notes, generation_batch_id, generated_at')
+    .eq('status', 'promoted')
+    .order('generated_at', { ascending: true });
+
+  if (promotedErr) {
+    console.error('  Error fetching promoted candidates:', promotedErr.message);
+    process.exit(1);
+  }
+
+  const allCandidates = [...(previouslyPromoted ?? []), ...newlyApproved];
+  console.log(`  Total candidates for file generation: ${allCandidates.length} (${previouslyPromoted?.length ?? 0} previously promoted + ${newlyApproved.length} newly approved)`);
+
+  // Step 3: Group by target dataset
   const grouped = new Map<string, ApprovedCandidate[]>();
-  for (const c of candidates) {
+  for (const c of allCandidates) {
     const dataset = c.target_dataset || 'edge-cases';
     const existing = grouped.get(dataset) ?? [];
     existing.push(c);
@@ -117,7 +133,7 @@ async function main(): Promise<void> {
   }
 
   // Step 3: Generate TypeScript file
-  console.log('\nStep 2: Generating synthetic-datasets.ts...');
+  console.log('\nStep 3: Generating synthetic-datasets.ts...');
   const tsContent = generateTypeScript(grouped);
 
   if (isDryRun) {
@@ -126,27 +142,27 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Step 4: Write to file
+  // Write to file
   fs.writeFileSync(OUTPUT_PATH, tsContent, 'utf-8');
   console.log(`  Written to: ${OUTPUT_PATH}`);
 
-  // Step 5: Mark as promoted
-  console.log('\nStep 3: Marking candidates as promoted...');
-  const ids = candidates.map((c) => c.id);
+  // Step 4: Mark newly approved as promoted
+  console.log('\nStep 4: Marking newly approved candidates as promoted...');
+  const newIds = newlyApproved.map((c) => c.id);
   const { error: updateErr } = await supabase
     .from('eval_review_queue')
     .update({ status: 'promoted', reviewed_at: new Date().toISOString() })
-    .in('id', ids);
+    .in('id', newIds);
 
   if (updateErr) {
     console.error('  Error marking as promoted:', updateErr.message);
   } else {
-    console.log(`  Marked ${ids.length} candidates as promoted.`);
+    console.log(`  Marked ${newIds.length} candidates as promoted.`);
   }
 
   console.log('\nDone! The synthetic test cases are now in:');
   console.log(`  ${OUTPUT_PATH}`);
-  console.log('\nTo use them in evals, import from \'./synthetic-datasets\' in run-evals.ts');
+  console.log(`  Total test cases: ${allCandidates.length}`);
 }
 
 // =============================================================================

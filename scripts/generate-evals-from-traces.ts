@@ -217,10 +217,15 @@ async function selectCandidates(traces: ProductionTrace[]): Promise<EvalCandidat
 
   console.log(`  Sending ${traceSummaries.length} trace summaries to ${GENERATOR_MODEL}`);
 
+  // 90s timeout — generous but prevents indefinite hangs against slow gateways
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
+
   const { object } = await generateObject({
     model: gateway(GENERATOR_MODEL),
     schema: EvalCandidateSchema,
     temperature: 0.3,
+    abortSignal: controller.signal,
     system: `You are an expert QA engineer for a gear management AI assistant (GearShack).
 The assistant helps users manage hiking/camping gear inventory, analyze loadouts,
 and search for gear using these tools:
@@ -260,6 +265,7 @@ Existing test case topics to AVOID duplicating:
 Select ${candidateCount} NEW test cases that cover gaps not addressed above.`,
   });
 
+  clearTimeout(timeout);
   return object.evalCandidates;
 }
 
@@ -269,8 +275,7 @@ Select ${candidateCount} NEW test cases that cover gaps not addressed above.`,
 
 async function insertCandidates(
   candidates: EvalCandidate[],
-  batchId: string,
-  traceSummary: { count: number }
+  batchId: string
 ): Promise<number> {
   const rows = candidates.map((c) => ({
     input: c.input,
@@ -382,9 +387,7 @@ async function main(): Promise<void> {
   }
 
   console.log('Step 4: Inserting into eval_review_queue...');
-  const insertedCount = await insertCandidates(candidates, batchId, {
-    count: traces.length,
-  });
+  const insertedCount = await insertCandidates(candidates, batchId);
 
   // Step 5: Record the generation run
   await recordGenerationRun(batchId, traces.length, insertedCount);
