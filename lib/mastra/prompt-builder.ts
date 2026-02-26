@@ -359,15 +359,15 @@ const TOOL_DESCRIPTIONS_EN: Record<string, string> = {
 };
 
 const TOOL_DESCRIPTIONS_DE: Record<string, string> = {
-  analyzeLoadout: '- **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)',
-  inventoryInsights: '- **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)',
-  searchGearKnowledge: '- **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten `gearGraphInsights` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND `communityInsights` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".',
-  addToLoadout: '- **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.',
-  searchGear: '- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.',
-  findAlternatives: '- **findAlternatives**: Findet leichtere/guenstigere/aehnliche/besser-bewertete Alternativen fuer ein bestimmtes Gear-Item ueber GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benoetigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.',
-  queryUserData: '- **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)',
-  queryGearGraph: '- **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
-  searchWeb: '- **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos',
+  analyzeLoadout: '- **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschlüsselung, fehlende Essentials, Optimierungsvorschläge)',
+  inventoryInsights: '- **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstände, Marken-Aufschlüsselung, Kategorie-Zusammenfassungen)',
+  searchGearKnowledge: '- **searchGearKnowledge**: Einheitliche Suche über Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstützt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack für 15kg Traglast"). Ergebnisse enthalten `gearGraphInsights` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND `communityInsights` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".',
+  addToLoadout: '- **addToLoadout**: Fügt einen Ausrüstungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "füg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benötigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstützt Anzahl, getragen und Verbrauchsmaterial Optionen.',
+  searchGear: '- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Für gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.',
+  findAlternatives: '- **findAlternatives**: Findet leichtere/günstigere/ähnliche/besser-bewertete Alternativen für ein bestimmtes Gear-Item über GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benötigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.',
+  queryUserData: '- **queryUserData**: Direkte SQL-Abfragen für Nutzerdaten (Fallback für komplexe Abfragen die oben nicht abgedeckt sind)',
+  queryGearGraph: '- **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausrüstung für bestimmte Aktivitäten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
+  searchWeb: '- **searchWeb**: Echtzeit-Websuche für Trailbedingungen, Gear-Bewertungen, aktuelle Infos',
 };
 
 const TOOL_DESCRIPTIONS: Record<'en' | 'de', Record<string, string>> = {
@@ -395,7 +395,7 @@ export function buildToolSection(locale: 'en' | 'de', toolNames: string[]): stri
 
   const header = locale === 'en'
     ? `**Available Tools (${lines.length}):**`
-    : `**Verfuegbare Tools (${lines.length}):**`;
+    : `**Verfügbare Tools (${lines.length}):**`;
 
   return `${header}\n${lines.join('\n')}`;
 }
@@ -446,6 +446,16 @@ export interface PromptContext {
   semanticRecallContext?: string;
   /** A/B test prompt variant suffix (appended to system prompt) */
   abTestSuffix?: string;
+  /**
+   * Classified domain from the Supervisor Agent (Kapitel 22).
+   *
+   * When provided, used directly to determine whether to include gear-specific
+   * prompt sections (e.g. GearGraph guidance). This is more robust than inferring
+   * the domain from tool names, which would silently break on tool renames.
+   *
+   * When undefined, assumes 'gear' domain (full guidance included for backward compat).
+   */
+  domain?: 'gear' | 'community' | 'marketplace' | 'profile';
   /**
    * Tool names available for the current domain + tier (Supervisor-Agent-Pattern).
    * When provided, only these tool descriptions are included in the prompt.
@@ -607,9 +617,13 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
   }
 
   // 11. GearGraph trip-planning guidance (only for gear domain or when no domain filter)
-  // Teaches the agent how to use GearGraph for destination/condition queries
-  // Skipped for community/marketplace/profile domains to save tokens
-  const isGearDomain = !context.domainToolNames || context.domainToolNames.includes('queryGearGraph') || context.domainToolNames.includes('analyzeLoadout');
+  // Teaches the agent how to use GearGraph for destination/condition queries.
+  // Skipped for community/marketplace/profile domains to save tokens.
+  //
+  // Uses context.domain directly (set by the Supervisor Agent) rather than
+  // checking for specific tool names in domainToolNames, which would silently
+  // break if either tool were ever renamed.
+  const isGearDomain = !context.domain || context.domain === 'gear';
   if (content.gearGraphGuidance && isGearDomain) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }

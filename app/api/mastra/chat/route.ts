@@ -75,7 +75,7 @@ import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-as
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
 import { classifyIntent } from '@/lib/mastra/intent-router';
-import { classifyDomain, type Domain } from '@/lib/mastra/supervisor';
+import { classifyDomain, DEFAULT_DOMAIN } from '@/lib/mastra/supervisor';
 import { SUPERVISOR_CONFIG } from '@/lib/mastra/config';
 import {
   getSemanticCacheHit,
@@ -423,7 +423,11 @@ export async function POST(request: Request): Promise<Response> {
           // - Intent: Gemini Flash, determines query type + data requirements + cache eligibility
           // - Domain: Haiku (Supervisor-Agent-Pattern, Kap. 22), determines tool subset
           //
-          // Both are independent LLM calls (~50ms each). Running in parallel adds zero latency.
+          // Both are independent LLM calls (~50ms each). Running in parallel adds minimal
+          // latency — the domain call overlaps with intent classification rather than being
+          // sequential. On a cold Haiku start the domain call could still add latency, but
+          // the 400ms timeout and 'gear' fallback cap the worst-case impact.
+          //
           // Note: classifyIntent is also called inside the gear-assistant workflow (Step 1);
           // the redundant call on cache-miss is accepted as a minor cost to keep the cache
           // check outside the workflow boundary.
@@ -432,7 +436,7 @@ export async function POST(request: Request): Promise<Response> {
             classifyIntent(message, currentScreen, currentLoadoutId),
             SUPERVISOR_CONFIG.ENABLED
               ? classifyDomain(message, currentScreen)
-              : Promise.resolve({ domain: 'gear' as Domain, confidence: 0 }),
+              : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
           ]);
 
           // Derive domain tool names for prompt building and agent tool selection

@@ -246,6 +246,14 @@ const TRAILBLAZER_TOOLS = {
 // =============================================================================
 
 /**
+ * A subset of the Trailblazer tool collection.
+ * Using Partial<typeof TRAILBLAZER_TOOLS> constrains each domain entry to only
+ * reference tools that actually exist in TRAILBLAZER_TOOLS, surfacing accidental
+ * tool name mismatches at compile time rather than silently at runtime.
+ */
+type DomainToolSubset = Partial<typeof TRAILBLAZER_TOOLS>;
+
+/**
  * Domain-specific tool subsets for the Trailblazer tier.
  * The Supervisor Agent classifies each message into a domain, then only the
  * relevant tools are passed to the LLM — reducing prompt size by ~40% for
@@ -265,7 +273,7 @@ const TRAILBLAZER_TOOLS = {
  * Standard tier users always get STANDARD_TOOLS (4) regardless of domain,
  * since their toolset is already minimal.
  */
-const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, Record<string, unknown>> = {
+const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
   gear: {
     // Full toolset — system prompt's GearGraph guidance and loadout analysis
     // sections reference queryGearGraph and searchWeb explicitly

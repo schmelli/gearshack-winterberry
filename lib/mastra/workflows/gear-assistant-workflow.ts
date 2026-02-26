@@ -356,7 +356,10 @@ const buildContextStep = createStep({
 
     const promptContext: PromptContext = {
       userContext: promptUserContext,
-      // Pass domain tool names so prompt builder only includes relevant tool descriptions
+      // Pass domain directly so prompt builder can use it for gating gear-specific
+      // sections (e.g. GearGraph guidance) without coupling to specific tool names.
+      domain,
+      // Pass domain tool names so prompt builder builds the correct tool description section.
       domainToolNames,
     };
 

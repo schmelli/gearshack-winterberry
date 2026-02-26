@@ -35,6 +35,16 @@ export const DOMAIN_VALUES = ['gear', 'community', 'marketplace', 'profile'] as 
 export type Domain = (typeof DOMAIN_VALUES)[number];
 
 /**
+ * Safe default domain used when the supervisor is disabled or classification fails.
+ * 'gear' is correct for >70% of queries and is the safest fallback — the gear domain
+ * always receives the full tool set, so no capability is lost on a miss.
+ *
+ * Exporting this constant avoids encoding the string literal 'gear' in multiple
+ * call sites (e.g. chat route fallback, classification catch block).
+ */
+export const DEFAULT_DOMAIN: Domain = 'gear';
+
+/**
  * Result of domain classification.
  */
 export interface DomainClassification {
@@ -129,12 +139,15 @@ function tryScreenShortcut(screen?: string): Domain | null {
  * - "price" → common in "what's the price of the Nemo Hornet?" (gear question)
  *
  * When in doubt, let the LLM classify instead of keyword matching.
+ *
+ * NOTE: 'gear' is intentionally omitted — it is the default fallback domain.
+ * Keyword shortcuts only apply to the three minority domains so we don't need
+ * a dead-regex entry. Use Partial<Record<Domain, RegExp>> to make this explicit.
  */
-const DOMAIN_KEYWORDS: Record<Domain, RegExp> = {
+const DOMAIN_KEYWORDS: Partial<Record<Domain, RegExp>> = {
   community: /\b(bulletin\s*board|shakedowns?|trip\s*reports?|friend\s*requests?|community\s*(?:posts?|board|forum|discussions?))\b/i,
   marketplace: /\b(sell(?:ing)?\s+(?:my|this|the)|trade\s+(?:my|this)|marketplace|used\s*gear|second\s*hand|gebraucht(?:e|er|es)?(?:\s+ausruestung)?)\b/i,
   profile: /\b(my\s*(?:profile|account|settings|subscription)|change\s*(?:password|email|language)|einstellungen|mein\s*(?:profil|konto))\b/i,
-  gear: /(?!)/, // Never shortcut to gear via keywords — it's the default fallback
 };
 
 /**
@@ -143,8 +156,7 @@ const DOMAIN_KEYWORDS: Record<Domain, RegExp> = {
  */
 function tryKeywordClassification(message: string): Domain | null {
   for (const [domain, pattern] of Object.entries(DOMAIN_KEYWORDS)) {
-    if (domain === 'gear') continue; // gear is the default, never shortcut
-    if (pattern.test(message)) return domain as Domain;
+    if (pattern && pattern.test(message)) return domain as Domain;
   }
   return null;
 }
@@ -173,10 +185,13 @@ export async function classifyDomain(
 ): Promise<DomainClassification> {
   const getElapsed = createTimer();
 
-  // Tier 1: Screen-based shortcut (only for non-gear domain screens)
-  // Disabled for now — screen shortcuts can misroute when users ask cross-domain
-  // questions (e.g., gear question on community page). Re-enable after A/B testing.
-  // const screenDomain = tryScreenShortcut(screen);
+  // Tier 1: Screen-based bypass (DISABLED — pending A/B validation)
+  // Full screen-based early-return is disabled because it misroutes cross-domain
+  // questions (e.g., a gear question asked while on the community page).
+  // tryScreenShortcut() is still called below (Tier 3) to inject a context HINT
+  // into the LLM prompt for improved accuracy — it is NOT used to skip the LLM call.
+  // Re-enable full bypass here only after A/B testing confirms it reduces errors.
+  // const screenDomain = tryScreenShortcut(screen); // <-- Tier 1 bypass (disabled)
 
   // Tier 2: Keyword-based fast classification
   const keywordDomain = tryKeywordClassification(message);
@@ -193,15 +208,32 @@ export async function classifyDomain(
   }
 
   // Tier 3: LLM classification via Haiku
+  // timeoutId is declared outside the try block so it can be cleared in both
+  // the success path and the catch block, preventing the timer from firing
+  // after Promise.race has already resolved (memory/timer leak fix).
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const gateway = getSupervisorGateway();
 
-    // Add screen context hint for better accuracy
+    // Add screen context hint for better LLM accuracy.
+    // NOTE: tryScreenShortcut() is used here only to build a context HINT —
+    // it does NOT short-circuit the classification (Tier 1 bypass is disabled above).
     let contextHint = '';
     const screenDomain = tryScreenShortcut(screen);
     if (screenDomain) {
       contextHint = `\n[Context: User is on a ${screenDomain}-related page]`;
     }
+
+    // Build a named timeout promise so we can cancel the timer after resolution.
+    // Without clearTimeout(), the timer fires after Promise.race settles on the
+    // success path — harmless but wastes a timer slot per request.
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Domain classification timeout')),
+        SUPERVISOR_CONFIG.TIMEOUT_MS,
+      );
+    });
 
     const result = await Promise.race([
       generateObject({
@@ -211,13 +243,11 @@ export async function classifyDomain(
         prompt: `Classify this message:${contextHint}\n\n"${message}"`,
         temperature: 0,
       }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Domain classification timeout')),
-          SUPERVISOR_CONFIG.TIMEOUT_MS,
-        ),
-      ),
+      timeoutPromise,
     ]);
+
+    // Cancel the timeout so it doesn't fire after the race has already resolved
+    clearTimeout(timeoutId);
 
     logInfo('Domain classified via LLM', {
       metadata: {
@@ -231,6 +261,9 @@ export async function classifyDomain(
 
     return result.object;
   } catch (error) {
+    // Ensure the timer is always cancelled even when an error is thrown
+    clearTimeout(timeoutId);
+
     logWarn('Domain classification failed, falling back to gear', {
       metadata: {
         error: error instanceof Error ? error.message : 'Unknown',
@@ -238,7 +271,7 @@ export async function classifyDomain(
       },
     });
 
-    // Safe fallback — "gear" is the most common domain (>70% of queries)
-    return { domain: 'gear', confidence: 0 };
+    // Safe fallback — DEFAULT_DOMAIN ('gear') is the most common domain (>70% of queries)
+    return { domain: DEFAULT_DOMAIN, confidence: 0 };
   }
 }

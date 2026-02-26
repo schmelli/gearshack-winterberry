@@ -338,8 +338,12 @@ export const FAST_ANSWER_CONFIG = {
 export const SUPERVISOR_CONFIG = {
   /** Model for domain classification (Haiku — routing is trivial) */
   MODEL: process.env.SUPERVISOR_MODEL || 'anthropic/claude-haiku-4-5',
-  /** Timeout for domain classification (milliseconds) */
-  TIMEOUT_MS: 2000,
+  /** Timeout for domain classification (milliseconds).
+   * Haiku is ~50ms under normal load; 400ms gives 8× headroom before we
+   * fall back to the safe 'gear' default, without blocking the critical path
+   * for a full 2 seconds on a cold-start or degraded response.
+   */
+  TIMEOUT_MS: 400,
   /** Enable/disable supervisor routing (set to 'false' to skip domain classification) */
   ENABLED: process.env.SUPERVISOR_ROUTING_ENABLED !== 'false',
 } as const;
