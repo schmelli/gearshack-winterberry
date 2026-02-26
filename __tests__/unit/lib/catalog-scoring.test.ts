@@ -1,18 +1,132 @@
 /**
  * catalog-scoring utility tests
  *
- * Tests for the ILIKE escaping helpers that protect against wildcard injection
- * in PostgreSQL ILIKE patterns and PostgREST filter strings.
+ * Tests for the query normalization and ILIKE escaping helpers that protect
+ * against wildcard injection and ensure consistent behavior across search paths.
  *
- * escapeIlikeWildcards — for bound parameters (.rpc(), .ilike())
- * escapeLikePattern    — for PostgREST filter strings (.or())
+ * normalizeSearchQuery  — strips PostgREST-unsafe chars for cross-path consistency
+ * escapeIlikeWildcards  — for bound parameters (.rpc(), .ilike())
+ * escapeLikePattern     — for PostgREST filter strings (.or())
  *
- * These functions are security-critical: incorrect escaping can cause
- * unintended broad matches or, in the PostgREST case, filter injection.
+ * escapeIlikeWildcards and escapeLikePattern are security-critical: incorrect
+ * escaping can cause unintended broad matches or, in the PostgREST case, filter injection.
  */
 
 import { describe, it, expect } from 'vitest';
-import { escapeIlikeWildcards, escapeLikePattern } from '@/lib/catalog-scoring';
+import { normalizeSearchQuery, escapeIlikeWildcards, escapeLikePattern } from '@/lib/catalog-scoring';
+
+// =============================================================================
+// normalizeSearchQuery — cross-path query normalization
+// =============================================================================
+
+describe('normalizeSearchQuery', () => {
+  describe('PostgREST-unsafe character removal', () => {
+    it('should replace commas with spaces (commas are PostgREST OR separators)', () => {
+      expect(normalizeSearchQuery('tent, poles')).toBe('tent poles');
+    });
+
+    it('should strip opening parentheses', () => {
+      expect(normalizeSearchQuery('(lightweight) tent')).toBe('lightweight tent');
+    });
+
+    it('should strip closing parentheses', () => {
+      expect(normalizeSearchQuery('tent (ultralight)')).toBe('tent ultralight');
+    });
+
+    it('should strip both parens in a group expression', () => {
+      expect(normalizeSearchQuery('(MSR) PocketRocket')).toBe('MSR PocketRocket');
+    });
+
+    it('should replace dots with spaces (dots can affect PostgREST filter parsing)', () => {
+      expect(normalizeSearchQuery('MSR.PocketRocket')).toBe('MSR PocketRocket');
+    });
+  });
+
+  describe('Whitespace normalization', () => {
+    it('should collapse multiple spaces after char removal', () => {
+      // "tent,,poles" → "tent  poles" (comma→space) → "tent poles" (collapse)
+      expect(normalizeSearchQuery('tent,,poles')).toBe('tent poles');
+    });
+
+    it('should trim leading and trailing whitespace', () => {
+      expect(normalizeSearchQuery('  rain jacket  ')).toBe('rain jacket');
+    });
+
+    it('should collapse spaces from dot and comma replacements', () => {
+      // "MSR. PocketRocket" → "MSR  PocketRocket" (dot→space) → "MSR PocketRocket"
+      expect(normalizeSearchQuery('MSR. PocketRocket')).toBe('MSR PocketRocket');
+    });
+  });
+
+  describe('Consistent cross-path behavior', () => {
+    it('should produce the same output as escapeLikePattern input normalization step', () => {
+      // The critical invariant: after normalizeSearchQuery, applying escapeIlikeWildcards
+      // should give the same result as escapeLikePattern for the normalization phase.
+      // Both "tent, poles" in RPC and fallback paths should search for "tent poles".
+      const input = 'tent, poles';
+      const normalized = normalizeSearchQuery(input);
+      expect(normalized).toBe('tent poles');
+      // Same as what escapeLikePattern would produce for the PostgREST-specific chars:
+      expect(normalized).not.toContain(',');
+      expect(normalized).not.toContain('(');
+      expect(normalized).not.toContain(')');
+      expect(normalized).not.toContain('.');
+    });
+
+    it('should not modify ILIKE wildcards (those are handled by escapeIlikeWildcards)', () => {
+      // Normalization does NOT escape %, _, \ — that's escapeIlikeWildcards' job
+      expect(normalizeSearchQuery('50% off tent')).toBe('50% off tent');
+      expect(normalizeSearchQuery('trail_shoe')).toBe('trail_shoe');
+      expect(normalizeSearchQuery('path\\gear')).toBe('path\\gear');
+    });
+  });
+
+  describe('Safe characters preserved', () => {
+    it('should not modify normal query strings', () => {
+      expect(normalizeSearchQuery('rain jacket')).toBe('rain jacket');
+    });
+
+    it('should not modify hyphens', () => {
+      expect(normalizeSearchQuery('all-weather jacket')).toBe('all-weather jacket');
+    });
+
+    it('should not modify numbers', () => {
+      expect(normalizeSearchQuery('MSR PocketRocket 2')).toBe('MSR PocketRocket 2');
+    });
+
+    it('should not modify Unicode characters', () => {
+      expect(normalizeSearchQuery('Regenjacke Größe M')).toBe('Regenjacke Größe M');
+    });
+
+    it('should not modify slashes (forward slash is safe)', () => {
+      expect(normalizeSearchQuery('jacket/pants combo')).toBe('jacket/pants combo');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should return empty string for empty input', () => {
+      expect(normalizeSearchQuery('')).toBe('');
+    });
+
+    it('should return empty string for whitespace-only input', () => {
+      expect(normalizeSearchQuery('   ')).toBe('');
+    });
+
+    it('should return empty string for input that is only PostgREST-unsafe chars', () => {
+      // ",,()" → "  " (commas→spaces, parens stripped) → "" (trim)
+      expect(normalizeSearchQuery(',,().')).toBe('');
+    });
+
+    it('should handle multiple consecutive dots', () => {
+      expect(normalizeSearchQuery('MSR...PocketRocket')).toBe('MSR PocketRocket');
+    });
+
+    it('should handle mixed unsafe characters', () => {
+      // "tent,(ultralight),poles" → "tent  ultralight  poles" → "tent ultralight poles"
+      expect(normalizeSearchQuery('tent,(ultralight),poles')).toBe('tent ultralight poles');
+    });
+  });
+});
 
 // =============================================================================
 // escapeIlikeWildcards — bound parameter escaping (%, _, \)

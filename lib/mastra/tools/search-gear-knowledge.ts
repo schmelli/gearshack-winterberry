@@ -32,7 +32,7 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
-import { escapeLikePattern, escapeIlikeWildcards } from '@/lib/catalog-scoring';
+import { escapeIlikeWildcards, normalizeSearchQuery } from '@/lib/catalog-scoring';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
@@ -681,16 +681,32 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
-  // Guard: empty or whitespace-only queries would match every row via ILIKE '%%'.
-  // The Zod schema enforces min(1) but can't catch whitespace-only strings.
-  if (!query.trim()) {
+  // Normalize raw query: strip PostgREST-unsafe chars (commas→space, parens→removed,
+  // dots→space) and collapse whitespace. Applied BEFORE escaping so both the RPC and
+  // fallback paths receive the same semantic input — prevents divergent results for
+  // queries like "tent, poles" (RPC would preserve comma; fallback would strip it).
+  const normalizedQuery = normalizeSearchQuery(query);
+
+  // Guard: empty/whitespace or normalization-emptied queries would match every row.
+  // Catches whitespace-only strings (e.g., "   ") AND queries that are purely
+  // PostgREST-unsafe chars (e.g., ",,," → "" after normalization).
+  if (!normalizedQuery) {
     return { type: 'catalog', data: [] };
   }
 
   // Escape ILIKE wildcards for bound parameters (RPC args, .ilike() values).
-  // Only escapes %, _, \ — preserves dots/commas since bound params aren't
-  // parsed as PostgREST filter strings.
-  const escapedQuery = escapeIlikeWildcards(query);
+  // Only escapes %, _, \ — after normalization no PostgREST-unsafe chars remain.
+  const escapedQuery = escapeIlikeWildcards(normalizedQuery);
+
+  // Validate sortBy against the accepted set.
+  // Although the Zod schema enforces this at the tool boundary, this guard
+  // ensures correct DB behaviour if searchCatalog is called directly with an
+  // unexpected value (unknown values would silently fall back to name-order in SQL).
+  const VALID_SORT_BY = new Set(['weight_asc', 'weight_desc', 'price_asc', 'price_desc', 'name', 'relevance']);
+  const safeSortBy = VALID_SORT_BY.has(sortBy) ? sortBy : (() => {
+    logWarn('searchCatalog: unknown sortBy value, defaulting to relevance', { metadata: { sortBy } });
+    return 'relevance';
+  })();
 
   // Pre-resolve brand IDs if a brand filter is specified.
   // The resolved IDs are passed directly to the RPC so the DB handles filtering.
@@ -728,7 +744,7 @@ async function searchCatalog(
     p_max_weight: filters?.maxWeight ?? null,
     p_min_weight: filters?.minWeight ?? null,
     p_max_price: filters?.maxPrice ?? null,
-    p_sort_by: sortBy,
+    p_sort_by: safeSortBy,
   });
 
   if (rpcError) {
@@ -765,14 +781,18 @@ async function searchCatalogFallback(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
-  // Guard: empty or whitespace-only queries would match every row via ILIKE '%%'.
-  // Mirrors the guard in searchCatalog() — keeps both paths consistent for defensive safety.
-  if (!query.trim()) {
+  // Normalize: mirrors searchCatalog() so both paths produce consistent results.
+  // After normalization, escapeIlikeWildcards is sufficient — no PostgREST-unsafe
+  // chars remain to corrupt the .or() filter string (commas are OR separators in
+  // PostgREST; they were the key reason escapeLikePattern was used here previously).
+  const normalizedQuery = normalizeSearchQuery(query);
+  if (!normalizedQuery) {
     return { type: 'catalog', data: [] };
   }
 
-  // Escape ILIKE wildcards to prevent pattern injection
-  const escapedQuery = escapeLikePattern(query);
+  // Use escapeIlikeWildcards (not escapeLikePattern) since normalization already
+  // handled PostgREST-unsafe chars — only ILIKE wildcards (%, _, \) remain to escape.
+  const escapedQuery = escapeIlikeWildcards(normalizedQuery);
 
   let dbQuery = supabase
     .from('catalog_products')

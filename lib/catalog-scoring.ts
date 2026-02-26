@@ -6,6 +6,33 @@
  */
 
 /**
+ * Normalizes a raw search query for consistent behavior across search paths.
+ *
+ * Strips characters that are PostgREST-unsafe (commas, parens) or ambiguous
+ * in product name searches (dots → spaces), then collapses whitespace.
+ *
+ * Applied BEFORE path-specific escaping to ensure the RPC path (bound params)
+ * and the fallback path (.or() filter strings) receive the same semantic input.
+ * Without normalization, "tent, poles" would preserve the comma in the RPC path
+ * but strip it in the fallback path, producing divergent result sets.
+ *
+ * After normalization, `escapeIlikeWildcards` is sufficient for both paths —
+ * no PostgREST-unsafe characters remain to corrupt `.or()` filter strings.
+ *
+ * @param query - Raw user input
+ * @returns Normalized query with PostgREST-unsafe chars removed, safe for both contexts
+ */
+export function normalizeSearchQuery(query: string): string {
+  return query
+    .replace(/,/g, ' ')    // commas have no semantic role in gear product names
+    .replace(/\(/g, '')    // parens are PostgREST-unsafe and not meaningful in gear searches
+    .replace(/\)/g, '')    // parens are PostgREST-unsafe and not meaningful in gear searches
+    .replace(/\./g, ' ')   // dots are rarely meaningful and can affect PostgREST parsing
+    .replace(/\s+/g, ' ')  // collapse multiple spaces produced by above replacements
+    .trim();
+}
+
+/**
  * Escapes special characters in LIKE/ILIKE patterns AND PostgREST .or() syntax.
  * Prevents user input containing %, _, or \ from being interpreted as wildcards.
  * Also prevents PostgREST filter injection via commas, parens, and dots.

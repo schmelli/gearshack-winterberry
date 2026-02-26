@@ -262,11 +262,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (!process.env.AI_GATEWAY_API_KEY) {
-    console.error('Error: AI_GATEWAY_API_KEY environment variable is required');
-    process.exit(1);
-  }
-
+  // AI_GATEWAY_API_KEY is validated inside getGateway(), which throws with an
+  // informative error if absent. No need to duplicate the check here — the
+  // main().catch() handler below will surface the error and exit(1) cleanly.
   const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -316,7 +314,10 @@ async function main(): Promise<void> {
   console.log(`Found ${products.length} products to enrich.`);
 
   if (dryRun) {
-    console.log('\n--- Dry Run: Products that would be enriched ---');
+    // Estimated cost: ~$0.0003 per product (Claude Haiku: ~300 input + ~200 output tokens,
+    // at $0.25/M input + $1.25/M output = ~$0.000075 + ~$0.00025 ≈ $0.00033 per item).
+    const estimatedCostUsd = (products.length * 0.00033).toFixed(4);
+    console.log(`\n--- Dry Run: ${products.length} product(s) would be enriched (est. ~$${estimatedCostUsd} using ${ENRICHMENT_MODEL}) ---`);
     for (const product of products) {
       // catalog_brands is a many-to-one FK; Supabase typed client returns a single
       // object (not an array) for this join direction. Access as `.name` directly.
