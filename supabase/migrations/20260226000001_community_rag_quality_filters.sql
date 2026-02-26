@@ -105,8 +105,12 @@ BEGIN
     -- content without a creation date cannot be verified as recent.
     AND (filter_max_age_months IS NULL
          OR ck.source_created_at > NOW() - (filter_max_age_months * interval '1 month'))
-    -- Quality filter: Engagement — require minimum reply count
+    -- Quality filter: Engagement — require minimum reply count.
+    -- Only applied to bulletin_post source type, since reply_count is only
+    -- meaningful for posts. Replies, shakedowns, and shakedown_feedback have
+    -- reply_count=0 by definition and should not be penalized.
     AND (filter_min_replies IS NULL
+         OR ck.source_type != 'bulletin_post'
          OR ck.reply_count >= filter_min_replies)
   ORDER BY ck.embedding <=> query_embedding
   LIMIT max_results;
