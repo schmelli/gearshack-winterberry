@@ -49,8 +49,8 @@ function resolveContextMap(executionContext: unknown): Map<string, unknown> | un
 export function extractUserId(executionContext: unknown): string | null {
   // 1. Try Mastra execution context (works if Mastra propagates requestContext)
   const ctxMap = resolveContextMap(executionContext);
-  const userId = (ctxMap?.get('userId') as string | undefined) || null;
-  if (userId) return userId;
+  const userId = ctxMap?.get('userId');
+  if (typeof userId === 'string' && userId) return userId;
 
   // 2. AsyncLocalStorage fallback — bridges the @mastra/core v1.0.4 gap where
   //    the agentic loop creates a new empty RequestContext, discarding the one
@@ -70,13 +70,17 @@ export function extractUserId(executionContext: unknown): string | null {
 /**
  * Extract currentLoadoutId from Mastra execution context
  *
+ * Resolution order:
+ * 1. Mastra execution context (runtimeContext or requestContext)
+ * 2. AsyncLocalStorage request store
+ *
  * @param executionContext - Mastra tool execution context
  * @returns currentLoadoutId string or null if not in loadout context
  */
 export function extractCurrentLoadoutId(executionContext: unknown): string | null {
   const ctxMap = resolveContextMap(executionContext);
-  const loadoutId = (ctxMap?.get('currentLoadoutId') as string | undefined) || null;
-  if (loadoutId) return loadoutId;
+  const loadoutId = ctxMap?.get('currentLoadoutId');
+  if (typeof loadoutId === 'string') return loadoutId;
 
   // AsyncLocalStorage fallback
   const store = getRequestStore();
@@ -86,19 +90,54 @@ export function extractCurrentLoadoutId(executionContext: unknown): string | nul
 /**
  * Extract subscriptionTier from Mastra execution context
  *
+ * Resolution order:
+ * 1. Mastra execution context (runtimeContext or requestContext) — accepts both 'standard' and 'trailblazer'
+ * 2. AsyncLocalStorage request store
+ * 3. Default: 'standard'
+ *
  * @param executionContext - Mastra tool execution context
  * @returns subscriptionTier or 'standard' as default
  */
 export function extractSubscriptionTier(executionContext: unknown): 'standard' | 'trailblazer' {
   const ctxMap = resolveContextMap(executionContext);
-  const tier = ctxMap?.get('subscriptionTier') as string | undefined;
-  if (tier === 'trailblazer') return 'trailblazer';
+  const tier = ctxMap?.get('subscriptionTier');
+  // Accept BOTH valid tiers from execution context — previously only checked
+  // for 'trailblazer', causing 'standard' to fall through to ALS which could
+  // incorrectly return 'trailblazer' if a different request had set it.
+  if (tier === 'standard' || tier === 'trailblazer') {
+    return tier;
+  }
 
   // AsyncLocalStorage fallback
   const store = getRequestStore();
-  if (store?.subscriptionTier === 'trailblazer') return 'trailblazer';
+  if (store?.subscriptionTier) {
+    return store.subscriptionTier;
+  }
 
   return 'standard';
+}
+
+/**
+ * Extract lang (locale) from Mastra execution context
+ *
+ * Resolution order:
+ * 1. Mastra execution context (runtimeContext or requestContext)
+ * 2. AsyncLocalStorage request store
+ * 3. Default: 'en'
+ *
+ * @param executionContext - Mastra tool execution context
+ * @returns Language code string (e.g., 'en', 'de')
+ */
+export function extractLang(executionContext: unknown): string {
+  const ctxMap = resolveContextMap(executionContext);
+  const lang = ctxMap?.get('lang');
+  if (typeof lang === 'string' && lang) return lang;
+
+  // AsyncLocalStorage fallback
+  const store = getRequestStore();
+  if (store?.lang) return store.lang;
+
+  return 'en';
 }
 
 /**

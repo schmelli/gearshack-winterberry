@@ -61,24 +61,21 @@ import type { RequestStoreContext } from './request-store';
  * Type-safe request context for the Gearshack agent.
  * Passed via requestContext to dynamic instructions and tools callbacks.
  *
+ * Extends RequestStoreContext (the tool-visible subset) with agent-level
+ * fields that only the dynamic instructions/tools callbacks need.
+ * RequestStoreContext is the single source of truth for userId,
+ * subscriptionTier, lang, and currentLoadoutId — see request-store.ts.
+ *
  * In Mastra v1.0+, DynamicArgument callbacks receive { requestContext }
  * which is the RequestContext instance passed to agent.stream()/generate().
  *
  * @see https://mastra.ai/docs/agents/runtime-context
  */
-export type GearshackRequestContext = {
-  /** Authenticated user ID */
-  userId: string;
-  /** User's subscription tier — determines available tools */
-  subscriptionTier: 'standard' | 'trailblazer';
-  /** User's locale (e.g., 'en', 'de') */
-  lang: string;
+export type GearshackRequestContext = RequestStoreContext & {
   /** Pre-built prompt context for system prompt generation (optional when enrichedPromptSuffix is the full prompt) */
   promptContext?: PromptContext;
   /** Optional pre-fetched data to append to the system prompt */
   enrichedPromptSuffix: string | undefined;
-  /** Current loadout ID for loadout-aware tools */
-  currentLoadoutId: string | undefined;
   /**
    * Domain classification from the Supervisor Agent (Kapitel 22).
    * Used to reduce tool set from 10 to 3–4 per request.
@@ -755,11 +752,17 @@ export async function streamMastraResponse(
 
   // Build AsyncLocalStorage context so tools can access userId even though
   // @mastra/core v1.0.4 does not propagate requestContext to tool execute().
+  // Runtime validation instead of unsafe `as` casts — values from requestContext.get()
+  // are typed as `unknown`, so we validate before assigning.
+  const tier = requestContext.get('subscriptionTier');
+  const lang = requestContext.get('lang');
+  const loadoutId = requestContext.get('currentLoadoutId');
+
   const storeContext: RequestStoreContext = {
     userId,
-    subscriptionTier: (requestContext.get('subscriptionTier') as 'standard' | 'trailblazer') || 'standard',
-    lang: (requestContext.get('lang') as string) || 'en',
-    currentLoadoutId: requestContext.get('currentLoadoutId') as string | undefined,
+    subscriptionTier: tier === 'trailblazer' ? 'trailblazer' : 'standard',
+    lang: typeof lang === 'string' && lang ? lang : 'en',
+    currentLoadoutId: typeof loadoutId === 'string' ? loadoutId : undefined,
   };
 
   // Wrap the entire streaming lifecycle in AsyncLocalStorage so that ALL

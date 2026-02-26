@@ -22,8 +22,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
- * Request-scoped context values.
- * Mirrors GearshackRequestContext from mastra-agent.ts.
+ * Request-scoped context values propagated via AsyncLocalStorage.
+ *
+ * This is the **single source of truth** for the subset of request context
+ * fields that tools need at execution time. GearshackRequestContext in
+ * mastra-agent.ts extends this interface with agent-level fields
+ * (promptContext, enrichedPromptSuffix, domain) that tools don't need.
+ *
+ * When adding new tool-visible context fields, add them here first —
+ * GearshackRequestContext will inherit them automatically.
  */
 export interface RequestStoreContext {
   userId: string;
@@ -39,9 +46,20 @@ const requestStore = new AsyncLocalStorage<RequestStoreContext>();
  * All async operations inside the callback (including Mastra tool
  * executions) can retrieve the context via `getRequestStore()`.
  *
+ * Supports both sync and async callbacks. When `fn` returns a Promise,
+ * callers should `await runWithRequestStore(ctx, fn)` to ensure the
+ * async chain completes within the storage scope.
+ *
  * @param context - Request-scoped values to make available
- * @param fn - Async callback to execute within the context
- * @returns The callback's return value
+ * @param fn - Callback to execute within the context (may be sync or async)
+ * @returns The callback's return value (or Promise if fn is async)
+ *
+ * @example
+ * // Async usage (typical):
+ * const stream = await runWithRequestStore(ctx, () => agent.stream(messages));
+ *
+ * // Sync usage:
+ * const result = runWithRequestStore(ctx, () => computeSync());
  */
 export function runWithRequestStore<T>(
   context: RequestStoreContext,
