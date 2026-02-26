@@ -662,14 +662,134 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Pre-filter by brand if specified (needed before RPC call)
+  let brandIds: string[] | null = null;
+  if (filters?.brand) {
+    const { data: matchingBrands } = await supabase
+      .from('catalog_brands')
+      .select('id')
+      .ilike('name', `%${filters.brand}%`);
+    brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    if (brandIds.length === 0) {
+      return { type: 'catalog', data: [] };
+    }
+  }
+
+  // Use enrichment-aware RPC function for search
+  // Falls back to standard ILIKE on name/description/product_type when
+  // search_enrichment is NULL (unenriched products still found).
+  const { data: rpcResults, error: rpcError } = await supabase.rpc('search_catalog_enriched', {
+    p_query: query,
+    p_limit: limit * 3, // Overfetch to allow for post-filtering
+    p_offset: 0,        // We handle offset after filtering
+  });
+
+  if (rpcError) {
+    // Fallback: if RPC not available (e.g., migration not yet applied),
+    // use the standard ILIKE approach
+    logWarn('search_catalog_enriched RPC failed, falling back to standard search', {
+      metadata: { error: rpcError.message },
+    });
+    return searchCatalogFallback(supabase, query, filters, sortBy, limit, offset);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let results: any[] = rpcResults || [];
+
+  // Apply post-RPC filters (brand, weight, price)
+  if (brandIds) {
+    const matchedBrandIds = brandIds;
+    results = results.filter((item: { brand_id: string | null }) =>
+      item.brand_id && matchedBrandIds.includes(item.brand_id)
+    );
+  }
+  if (filters?.maxWeight) {
+    results = results.filter((item: { weight_grams: number | null }) =>
+      item.weight_grams !== null && item.weight_grams <= (filters.maxWeight as number)
+    );
+  }
+  if (filters?.minWeight) {
+    results = results.filter((item: { weight_grams: number | null }) =>
+      item.weight_grams !== null && item.weight_grams >= (filters.minWeight as number)
+    );
+  }
+  if (filters?.maxPrice) {
+    results = results.filter((item: { price_usd: number | null }) =>
+      item.price_usd !== null && item.price_usd <= (filters.maxPrice as number)
+    );
+  }
+
+  // Apply sorting
+  switch (sortBy) {
+    case 'weight_asc':
+      results.sort((a, b) => (a.weight_grams ?? Infinity) - (b.weight_grams ?? Infinity));
+      break;
+    case 'weight_desc':
+      results.sort((a, b) => (b.weight_grams ?? 0) - (a.weight_grams ?? 0));
+      break;
+    case 'price_asc':
+      results.sort((a, b) => (a.price_usd ?? Infinity) - (b.price_usd ?? Infinity));
+      break;
+    case 'price_desc':
+      results.sort((a, b) => (b.price_usd ?? 0) - (a.price_usd ?? 0));
+      break;
+    default:
+      // RPC already sorts by relevance then name
+      break;
+  }
+
+  // Apply pagination
+  const paginated = results.slice(offset, offset + limit);
+
+  // Resolve brand names for results
+  const uniqueBrandIds = [...new Set(
+    paginated
+      .map((item: { brand_id: string | null }) => item.brand_id)
+      .filter((id: string | null): id is string => id !== null)
+  )];
+
+  const brandNameMap = new Map<string, string>();
+  if (uniqueBrandIds.length > 0) {
+    const { data: brands } = await supabase
+      .from('catalog_brands')
+      .select('id, name')
+      .in('id', uniqueBrandIds);
+    for (const brand of brands || []) {
+      brandNameMap.set(brand.id, brand.name);
+    }
+  }
+
+  // Flatten results with brand name and match source
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flattened = paginated.map((item: any) => ({
+    ...item,
+    brand_name: brandNameMap.get(item.brand_id) || null,
+    brand_id: undefined,
+    search_enrichment: undefined,
+  }));
+
+  return { type: 'catalog', data: flattened };
+}
+
+/**
+ * Fallback search when search_catalog_enriched RPC is unavailable.
+ * Uses standard ILIKE on name, description, and product_type.
+ */
+async function searchCatalogFallback(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  query: string,
+  filters: z.infer<typeof searchGearKnowledgeInputSchema>['filters'],
+  sortBy: string,
+  limit: number,
+  offset: number
+): Promise<{ type: string; data: unknown }> {
   let dbQuery = supabase
     .from('catalog_products')
     .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)');
 
-  // Text search
   dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
 
-  // Apply filters
   if (filters?.maxWeight) {
     dbQuery = dbQuery.lte('weight_grams', filters.maxWeight);
   }
@@ -688,12 +808,10 @@ async function searchCatalog(
     if (brandIds.length > 0) {
       dbQuery = dbQuery.in('brand_id', brandIds);
     } else {
-      // Keine Marken gefunden - leeres Ergebnis zurückgeben
       return { type: 'catalog', data: [] };
     }
   }
 
-  // Sort
   switch (sortBy) {
     case 'weight_asc':
       dbQuery = dbQuery.order('weight_grams', { ascending: true, nullsFirst: false });
@@ -714,7 +832,6 @@ async function searchCatalog(
   const { data, error } = await dbQuery.range(offset, offset + limit - 1);
   if (error) throw new Error(`Catalog search: ${error.message}`);
 
-  // Flatten brand name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flattened = (data || []).map((item: any) => ({
     ...item,

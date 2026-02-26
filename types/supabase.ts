@@ -638,6 +638,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           embedding: string | null
+          enriched_at: string | null
           external_id: string
           id: string
           name: string
@@ -645,6 +646,7 @@ export type Database = {
           product_type: string | null
           product_type_id: string | null
           product_url: string | null
+          search_enrichment: Json | null
           updated_at: string | null
           weight_grams: number | null
         }
@@ -654,6 +656,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           embedding?: string | null
+          enriched_at?: string | null
           external_id: string
           id?: string
           name: string
@@ -661,6 +664,7 @@ export type Database = {
           product_type?: string | null
           product_type_id?: string | null
           product_url?: string | null
+          search_enrichment?: Json | null
           updated_at?: string | null
           weight_grams?: number | null
         }
@@ -670,6 +674,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           embedding?: string | null
+          enriched_at?: string | null
           external_id?: string
           id?: string
           name?: string
@@ -677,6 +682,7 @@ export type Database = {
           product_type?: string | null
           product_type_id?: string | null
           product_url?: string | null
+          search_enrichment?: Json | null
           updated_at?: string | null
           weight_grams?: number | null
         }

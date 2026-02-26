@@ -6,6 +6,30 @@
  */
 
 // ============================================================================
+// SEARCH ENRICHMENT TYPES (ReAG Pattern)
+// ============================================================================
+
+/**
+ * LLM-generated semantic metadata for improved search discoverability.
+ * Stored as JSONB in catalog_products.search_enrichment column.
+ * Generated asynchronously via scripts/enrich-catalog-items.ts.
+ *
+ * @see supabase/migrations/20260226000001_catalog_search_enrichment.sql
+ */
+export interface SearchEnrichment {
+  /** When/where this item excels (e.g., "multi-day alpine expedition in wet conditions") */
+  useCases: string[];
+  /** How users might search for this (e.g., "rain jacket", "Regenjacke", "waterproof shell") */
+  alternativeSearchTerms: string[];
+  /** Weather/terrain conditions this suits (e.g., "cold rain", "snow", "Scottish Highlands") */
+  conditions: string[];
+  /** What this works well with (e.g., "base layer", "hardshell pants", "gaiters") */
+  compatibleWith: string[];
+  /** When NOT to use this item (e.g., "not suitable for summer hiking due to weight") */
+  avoidFor?: string;
+}
+
+// ============================================================================
 // DATABASE ENTITY TYPES
 // ============================================================================
 
@@ -38,6 +62,8 @@ export interface CatalogProduct {
   description: string | null;
   priceUsd: number | null;
   weightGrams: number | null;
+  searchEnrichment: SearchEnrichment | null;
+  enrichedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
