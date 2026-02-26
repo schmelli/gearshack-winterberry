@@ -12,10 +12,11 @@
  * - Workflow Visualizer in Mastra Studio
  * - Suspend/Resume capability for future Human-in-the-Loop flows
  *
- * Note: Per-step retries (retryConfig) are not yet configured. The current
- * error handling surfaces which step failed but does not automatically retry.
- * Network-bound steps (classifyIntent → Gemini) could benefit from retries: 1
- * in a follow-up. See TODO below.
+ * Retry policy: Network-bound steps (classifyIntent, prefetchData) use
+ * `retries: 1` for one automatic retry on failure. The workflow-level
+ * `retryConfig` sets a uniform 1s delay between retry attempts.
+ * buildContextStep has no retries — its network calls (preloadLoadoutContext,
+ * generateFastAnswer) are conditional and already guarded by timeouts.
  *
  * @see https://mastra.ai/docs/workflows/overview
  */
@@ -152,6 +153,7 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
 const classifyIntentStep = createStep({
   id: 'classifyIntent',
   description: 'Classify user intent using Gemini Flash for fast routing',
+  retries: 1,
   inputSchema: WorkflowInputSchema,
   outputSchema: ClassifyIntentOutputSchema,
   execute: async ({ inputData }) => {
@@ -215,6 +217,7 @@ const classifyIntentStep = createStep({
 const prefetchDataStep = createStep({
   id: 'prefetchData',
   description: 'Parallel pre-fetch data based on intent classification',
+  retries: 1,
   inputSchema: ClassifyIntentOutputSchema,
   outputSchema: PrefetchDataOutputSchema,
   execute: async ({ inputData }) => {
@@ -432,6 +435,10 @@ export const gearAssistantWorkflow = createWorkflow({
     'Orchestrates intent classification, parallel data prefetching, and context assembly for the gear assistant chat pipeline',
   inputSchema: WorkflowInputSchema,
   outputSchema: BuildContextOutputSchema,
+  retryConfig: {
+    attempts: 2,
+    delay: 1000,
+  },
 });
 
 gearAssistantWorkflow.then(classifyIntentStep).then(prefetchDataStep).then(buildContextStep);
