@@ -32,8 +32,27 @@ CREATE INDEX IF NOT EXISTS idx_community_knowledge_quality
   WHERE reply_count > 0;
 
 -- ============================================================================
+-- Backfill: Populate reply_count for existing bulletin_post chunks
+-- ============================================================================
+-- Without this, all existing chunks have reply_count = 0 and would be
+-- invisible to the default quality filter (minReplies: 2).
+
+UPDATE community_knowledge_chunks ck
+SET reply_count = bp.reply_count
+FROM bulletin_posts bp
+WHERE ck.source_type = 'bulletin_post'
+  AND ck.source_id = bp.id
+  AND bp.reply_count > 0;
+
+-- ============================================================================
 -- Updated Semantic Search Function
 -- ============================================================================
+
+-- Drop the old 5-parameter signature first to prevent overload ambiguity.
+-- PostgreSQL identifies functions by name + arg types, so adding params with
+-- defaults creates a NEW overload. Calling with only the original 5 named
+-- params would match BOTH signatures and cause "function is not unique".
+DROP FUNCTION IF EXISTS search_community_knowledge(vector, float, int, text, text[]);
 
 CREATE OR REPLACE FUNCTION search_community_knowledge(
   query_embedding vector(1536),
@@ -41,7 +60,7 @@ CREATE OR REPLACE FUNCTION search_community_knowledge(
   max_results int DEFAULT 5,
   filter_source_type text DEFAULT NULL,
   filter_tags text[] DEFAULT NULL,
-  -- NEW: Quality filters (Vorschlag 6)
+  -- Quality filters (Vorschlag 6)
   filter_max_age_months int DEFAULT NULL,
   filter_min_replies int DEFAULT NULL
 )
@@ -81,6 +100,9 @@ BEGIN
     AND (filter_source_type IS NULL OR ck.source_type = filter_source_type)
     AND (filter_tags IS NULL OR ck.tags && filter_tags)
     -- Quality filter: Recency — exclude chunks older than N months
+    -- NOTE: Chunks with NULL source_created_at are excluded when this filter
+    -- is active (NULL > timestamp = NULL = excluded). This is intentional:
+    -- content without a creation date cannot be verified as recent.
     AND (filter_max_age_months IS NULL
          OR ck.source_created_at > NOW() - (filter_max_age_months * interval '1 month'))
     -- Quality filter: Engagement — require minimum reply count
@@ -91,10 +113,6 @@ BEGIN
 END;
 $$;
 
--- Update GRANT to match new function signature
--- (PostgreSQL treats each signature as a distinct function; we need to grant
--- execute on the new overload. The old 5-param overload was replaced above
--- via CREATE OR REPLACE since only DEFAULT values were added.)
 GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
   TO authenticated;
 

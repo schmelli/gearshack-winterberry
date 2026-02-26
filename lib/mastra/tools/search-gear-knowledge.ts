@@ -407,9 +407,8 @@ LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic
         // Quality filters (Vorschlag 6): prioritize recent, engaged-with content
         searchCommunityKnowledge(query, {
           topK: 3,
-          maxAgeMonths: 24,          // Only posts from the last 2 years
-          minReplies: 2,             // At least 2 replies (engagement signal)
-          excludeNoEngagement: true, // Skip zero-engagement posts
+          maxAgeMonths: 24, // Only posts from the last 2 years
+          minReplies: 2,    // At least 2 replies (engagement/quality signal)
         }).catch(() => []),
       ]);
 

@@ -89,9 +89,12 @@ export async function POST(request: Request): Promise<Response> {
     // support soft deletion via the is_deleted flag.
     const ownershipTable =
       source_type === 'bulletin_post' ? 'bulletin_posts' : 'bulletin_replies';
+    // For posts, also fetch reply_count as engagement signal for quality filtering
+    const selectFields =
+      source_type === 'bulletin_post' ? 'id, author_id, reply_count' : 'id, author_id';
     const { data: sourceRecord, error: ownerError } = await supabase
       .from(ownershipTable)
-      .select('id, author_id')
+      .select(selectFields)
       .eq('id', source_id)
       .eq('author_id', user.id)
       .eq('is_deleted', false)
@@ -133,6 +136,7 @@ export async function POST(request: Request): Promise<Response> {
         author_id: user.id,
         created_at: created_at || new Date().toISOString(),
         author_name: author_name || undefined,
+        reply_count: (sourceRecord as { reply_count?: number }).reply_count ?? 0,
       };
       chunks = buildPostChunks(post);
     } else {
