@@ -80,11 +80,12 @@ export function extractUserId(executionContext: unknown): string | null {
 export function extractCurrentLoadoutId(executionContext: unknown): string | null {
   const ctxMap = resolveContextMap(executionContext);
   const loadoutId = ctxMap?.get('currentLoadoutId');
-  if (typeof loadoutId === 'string') return loadoutId;
+  if (typeof loadoutId === 'string' && loadoutId) return loadoutId;
 
   // AsyncLocalStorage fallback
+  // Use || instead of ?? to treat empty string as null (semantically meaningless)
   const store = getRequestStore();
-  return store?.currentLoadoutId ?? null;
+  return store?.currentLoadoutId || null;
 }
 
 /**

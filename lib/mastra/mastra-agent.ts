@@ -50,7 +50,7 @@ import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agen
 // AsyncLocalStorage bridge for tool execution context
 // @mastra/core v1.0.4 creates a new empty RequestContext inside its agentic loop,
 // discarding the one passed to agent.stream(). This store bridges that gap.
-import { runWithRequestStore } from './request-store';
+import { runWithRequestStore, wrapAsyncIterableWithContext } from './request-store';
 import type { RequestStoreContext } from './request-store';
 
 // =============================================================================
@@ -777,11 +777,21 @@ export async function streamMastraResponse(
     } as any)
   );
 
+  // ── Ensure ALS context propagates during stream consumption ──
+  // CRITICAL FIX (Sentry + Claude review): When textStream is a lazy async
+  // iterable, tool execute() callbacks are triggered during iteration (each
+  // next() call), NOT during agent.stream() creation. Without this wrapper,
+  // getRequestStore() returns undefined inside tool callbacks because the
+  // runWithRequestStore scope ended after agent.stream() resolved.
+  // wrapAsyncIterableWithContext re-enters the ALS context for each iteration
+  // step, ensuring tools always have access to userId, subscriptionTier, etc.
+  const originalTextStream = stream.textStream;
+  const contextAwareTextStream = wrapAsyncIterableWithContext(originalTextStream, storeContext);
+
   // ── afterGenerate: Wrap textStream with PII sanitization ──
   // Transform the async iterable to apply output guardrails on each chunk.
   // Uses a small buffer to catch PII patterns that straddle chunk boundaries.
-  const originalTextStream = stream.textStream;
-  const sanitizedTextStream = createSanitizedTextStream(originalTextStream, userId, conversationId);
+  const sanitizedTextStream = createSanitizedTextStream(contextAwareTextStream, userId, conversationId);
 
   // Also sanitize the resolved full-text value so callers using fullText
   // (e.g. for persistence or logging) do not receive unredacted PII.

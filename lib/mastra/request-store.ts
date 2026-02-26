@@ -75,3 +75,56 @@ export function runWithRequestStore<T>(
 export function getRequestStore(): RequestStoreContext | undefined {
   return requestStore.getStore();
 }
+
+/**
+ * Wrap an AsyncIterable so that each iteration step re-enters the ALS context.
+ *
+ * This is critical for stream-based tool execution: when Mastra's agent.stream()
+ * returns a lazy async iterable (textStream), tool execute() callbacks are
+ * triggered during stream consumption — i.e., when the consumer calls `next()`
+ * on the iterator — not during stream creation. Without this wrapper, those
+ * callbacks would run outside the ALS scope and `getRequestStore()` would
+ * return `undefined`, causing tools to lose access to userId, subscriptionTier,
+ * and other request-scoped data.
+ *
+ * Each call to the iterator's next(), return(), or throw() runs within the
+ * provided ALS context, ensuring all async operations initiated during that
+ * iteration step (including tool execution) inherit the context.
+ *
+ * @param iterable - The source async iterable to wrap (e.g., stream.textStream)
+ * @param context - Request-scoped context to propagate during iteration
+ * @returns A new AsyncIterable that maintains ALS context during consumption
+ *
+ * @example
+ * const contextAwareStream = wrapAsyncIterableWithContext(stream.textStream, storeContext);
+ * for await (const chunk of contextAwareStream) {
+ *   // Tools executed during this iteration have access to getRequestStore()
+ * }
+ */
+export function wrapAsyncIterableWithContext<T>(
+  iterable: AsyncIterable<T>,
+  context: RequestStoreContext,
+): AsyncIterable<T> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<T> {
+      const iterator = iterable[Symbol.asyncIterator]();
+      return {
+        next(): Promise<IteratorResult<T>> {
+          return requestStore.run(context, () => iterator.next());
+        },
+        return(value?: unknown): Promise<IteratorResult<T>> {
+          if (iterator.return) {
+            return requestStore.run(context, () => iterator.return!(value));
+          }
+          return Promise.resolve({ done: true as const, value: undefined as unknown as T });
+        },
+        throw(error?: unknown): Promise<IteratorResult<T>> {
+          if (iterator.throw) {
+            return requestStore.run(context, () => iterator.throw!(error));
+          }
+          return Promise.reject(error);
+        },
+      };
+    },
+  };
+}

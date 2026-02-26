@@ -7,8 +7,9 @@
  *
  * Coverage:
  * - runWithRequestStore / getRequestStore lifecycle
+ * - wrapAsyncIterableWithContext: ALS context propagation during stream iteration
  * - extractUserId: Mastra ctx → ALS → env var → null
- * - extractCurrentLoadoutId: Mastra ctx → ALS → null
+ * - extractCurrentLoadoutId: Mastra ctx → ALS → null (including empty string rejection)
  * - extractSubscriptionTier: Mastra ctx → ALS → 'standard' (including logic bug fix)
  * - extractLang: Mastra ctx → ALS → 'en'
  */
@@ -17,6 +18,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import {
   runWithRequestStore,
   getRequestStore,
+  wrapAsyncIterableWithContext,
 } from '@/lib/mastra/request-store';
 import {
   extractUserId,
@@ -115,6 +117,226 @@ describe('request-store', () => {
     );
     // Outside: context gone
     expect(getRequestStore()).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// wrapAsyncIterableWithContext — stream context propagation
+// =============================================================================
+
+describe('wrapAsyncIterableWithContext', () => {
+  /**
+   * Helper: create a simple async iterable from an array of values.
+   */
+  async function* asyncFrom<T>(values: T[]): AsyncIterable<T> {
+    for (const v of values) {
+      yield v;
+    }
+  }
+
+  /**
+   * Helper: create an async iterable that captures ALS context during each
+   * next() call — simulating what tool execute() callbacks do inside Mastra's
+   * stream pipeline. This is the correct way to test ALS propagation: the
+   * context is available DURING the iterator's internal processing (where
+   * tools run), not in the for-await loop body (which is the consumer).
+   */
+  function createContextCapturingIterable(values: string[]): {
+    iterable: AsyncIterable<string>;
+    capturedUserIds: (string | undefined)[];
+  } {
+    const capturedUserIds: (string | undefined)[] = [];
+
+    const iterable: AsyncIterable<string> = {
+      [Symbol.asyncIterator]() {
+        let index = 0;
+        return {
+          next(): Promise<IteratorResult<string>> {
+            // This runs INSIDE requestStore.run() when wrapped —
+            // simulates a tool's execute() checking getRequestStore()
+            const store = getRequestStore();
+            capturedUserIds.push(store?.userId);
+
+            if (index < values.length) {
+              return Promise.resolve({ done: false, value: values[index++] });
+            }
+            return Promise.resolve({ done: true, value: undefined as unknown as string });
+          },
+        };
+      },
+    };
+
+    return { iterable, capturedUserIds };
+  }
+
+  it('propagates ALS context to iterator next() calls (where tools execute)', async () => {
+    const ctx = {
+      userId: 'stream-user',
+      subscriptionTier: 'trailblazer' as const,
+      lang: 'de',
+    };
+
+    const { iterable, capturedUserIds } = createContextCapturingIterable(['a', 'b', 'c']);
+    const wrapped = wrapAsyncIterableWithContext(iterable, ctx);
+
+    const collected: string[] = [];
+    for await (const chunk of wrapped) {
+      collected.push(chunk);
+    }
+
+    // Values pass through correctly
+    expect(collected).toEqual(['a', 'b', 'c']);
+    // ALS context was available during each next() call (3 data + 1 terminal done:true)
+    expect(capturedUserIds).toEqual([
+      'stream-user', // next() for 'a'
+      'stream-user', // next() for 'b'
+      'stream-user', // next() for 'c'
+      'stream-user', // next() for done:true
+    ]);
+  });
+
+  it('does NOT propagate context without wrapper', async () => {
+    // Baseline test: without wrapAsyncIterableWithContext, the iterator
+    // does NOT have ALS context. This proves the wrapper is necessary.
+    const { iterable, capturedUserIds } = createContextCapturingIterable(['x']);
+
+    const collected: string[] = [];
+    for await (const chunk of iterable) {
+      collected.push(chunk);
+    }
+
+    expect(collected).toEqual(['x']);
+    // Without wrapper, all captures should be undefined
+    expect(capturedUserIds).toEqual([undefined, undefined]);
+  });
+
+  it('ALS context is NOT available in the for-await loop body (consumer side)', async () => {
+    const ctx = {
+      userId: 'scoped-user',
+      subscriptionTier: 'standard' as const,
+      lang: 'en',
+    };
+
+    const source = asyncFrom([1]);
+    const wrapped = wrapAsyncIterableWithContext(source, ctx);
+
+    // Before iteration
+    expect(getRequestStore()).toBeUndefined();
+
+    for await (const _chunk of wrapped) {
+      // The loop body runs in the CALLER's async context, not inside run().
+      // This is expected — tools don't execute here, they execute inside next().
+      expect(getRequestStore()).toBeUndefined();
+    }
+
+    // After iteration
+    expect(getRequestStore()).toBeUndefined();
+  });
+
+  it('passes through all values from the source iterable', async () => {
+    const ctx = {
+      userId: 'user-1',
+      subscriptionTier: 'standard' as const,
+      lang: 'en',
+    };
+
+    const values = [10, 20, 30, 40];
+    const source = asyncFrom(values);
+    const wrapped = wrapAsyncIterableWithContext(source, ctx);
+
+    const collected: number[] = [];
+    for await (const v of wrapped) {
+      collected.push(v);
+    }
+
+    expect(collected).toEqual(values);
+  });
+
+  it('simulates tool execution with ALS context during stream processing', async () => {
+    const ctx = {
+      userId: 'tool-user-123',
+      subscriptionTier: 'trailblazer' as const,
+      lang: 'de',
+      currentLoadoutId: 'loadout-abc',
+    };
+
+    // Simulate Mastra's stream pipeline: tool execute() is called during
+    // the iterator's next() method (inside the stream processing), NOT
+    // in the consumer's for-await loop body.
+    const toolExecutionResults: (string | null)[] = [];
+
+    const streamWithToolCalls: AsyncIterable<string> = {
+      [Symbol.asyncIterator]() {
+        let step = 0;
+        return {
+          async next(): Promise<IteratorResult<string>> {
+            step++;
+            if (step === 1) return { done: false, value: 'text-chunk-1' };
+            if (step === 2) {
+              // Simulate tool execute() — this is where getRequestStore() matters
+              const store = getRequestStore();
+              toolExecutionResults.push(store?.userId ?? null);
+              return { done: false, value: 'tool-result' };
+            }
+            if (step === 3) return { done: false, value: 'text-chunk-2' };
+            return { done: true, value: undefined as unknown as string };
+          },
+        };
+      },
+    };
+
+    const wrapped = wrapAsyncIterableWithContext(streamWithToolCalls, ctx);
+
+    const collected: string[] = [];
+    for await (const chunk of wrapped) {
+      collected.push(chunk);
+    }
+
+    expect(collected).toEqual(['text-chunk-1', 'tool-result', 'text-chunk-2']);
+    // Tool execution during step 2 had access to ALS context
+    expect(toolExecutionResults).toEqual(['tool-user-123']);
+  });
+
+  it('handles empty async iterables gracefully', async () => {
+    const ctx = {
+      userId: 'empty-user',
+      subscriptionTier: 'standard' as const,
+      lang: 'en',
+    };
+
+    const source = asyncFrom<string>([]);
+    const wrapped = wrapAsyncIterableWithContext(source, ctx);
+
+    const collected: string[] = [];
+    for await (const v of wrapped) {
+      collected.push(v);
+    }
+
+    expect(collected).toEqual([]);
+  });
+
+  it('propagates errors from the source iterable', async () => {
+    const ctx = {
+      userId: 'error-user',
+      subscriptionTier: 'standard' as const,
+      lang: 'en',
+    };
+
+    async function* failingStream(): AsyncIterable<string> {
+      yield 'ok';
+      throw new Error('stream-error');
+    }
+
+    const wrapped = wrapAsyncIterableWithContext(failingStream(), ctx);
+
+    const collected: string[] = [];
+    await expect(async () => {
+      for await (const v of wrapped) {
+        collected.push(v);
+      }
+    }).rejects.toThrow('stream-error');
+
+    expect(collected).toEqual(['ok']);
   });
 });
 
@@ -220,6 +442,25 @@ describe('extractCurrentLoadoutId', () => {
   it('returns null when ALS has no currentLoadoutId', () => {
     runWithRequestStore(
       { userId: 'user-1', subscriptionTier: 'standard', lang: 'en' },
+      () => {
+        expect(extractCurrentLoadoutId(EMPTY_CONTEXT)).toBeNull();
+      },
+    );
+  });
+
+  it('rejects empty string loadoutId from Mastra context', () => {
+    const ctx = createMockExecutionContext({ currentLoadoutId: '' });
+    expect(extractCurrentLoadoutId(ctx)).toBeNull();
+  });
+
+  it('rejects empty string loadoutId from ALS', () => {
+    runWithRequestStore(
+      {
+        userId: 'user-1',
+        subscriptionTier: 'standard',
+        lang: 'en',
+        currentLoadoutId: '',
+      },
       () => {
         expect(extractCurrentLoadoutId(EMPTY_CONTEXT)).toBeNull();
       },
