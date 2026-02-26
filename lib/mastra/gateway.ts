@@ -45,11 +45,14 @@ let instance: AIGateway | null = null;
  */
 export function getSharedGateway(): AIGateway {
   if (!instance) {
+    // AI_GATEWAY_KEY is a legacy alias — prefer AI_GATEWAY_API_KEY in new deployments.
+    // Both are supported for backward compatibility with older .env configurations.
     const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
     if (!apiKey) {
       throw new Error(
-        'AI_GATEWAY_API_KEY or AI_GATEWAY_KEY is required for AI operations. ' +
-        'Set one of these in your .env.local file.'
+        'AI_GATEWAY_API_KEY is required for AI operations. ' +
+        'Set it in your .env.local file. ' +
+        '(AI_GATEWAY_KEY is a deprecated alias that is also accepted.)'
       );
     }
     instance = createGateway({ apiKey });
@@ -69,4 +72,16 @@ export function getSharedGatewayOrNull(): AIGateway | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Resets the shared gateway instance to null.
+ *
+ * @internal For testing purposes only — do NOT call in production code.
+ * This allows test suites to verify gateway initialization behaviour without
+ * carrying stale instances between test cases (e.g., integration tests that
+ * import the real gateway rather than mocking it).
+ */
+export function __resetForTesting(): void {
+  instance = null;
 }

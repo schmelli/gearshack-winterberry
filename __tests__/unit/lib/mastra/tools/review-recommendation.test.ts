@@ -9,6 +9,8 @@
  * - General error handling
  * - Input schema validation (Zod)
  * - Tool definition structure
+ * - Configurable threshold via CRITIC_PRICE_THRESHOLD_EUR env var
+ * - Locale-aware used-market platform names
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -54,6 +56,7 @@ vi.mock('@/lib/mastra/config', () => ({
 
 import {
   reviewExpensiveRecommendationTool,
+  getEffectiveThreshold,
   type ReviewRecommendationInput,
   type ReviewRecommendationOutput,
 } from '@/lib/mastra/tools/review-recommendation';
@@ -125,6 +128,11 @@ describe('reviewExpensiveRecommendation', () => {
       expect(tool.description).toContain('proceed');
       expect(tool.description).toContain('reconsider');
       expect(tool.description).toContain('check_used_market');
+    });
+
+    it('description uses >= (inclusive) threshold wording', () => {
+      // Ensure description matches code behaviour: items AT €300 are reviewed
+      expect(tool.description).toMatch(/>=.*€300|€300.*or more/);
     });
   });
 
@@ -332,16 +340,18 @@ describe('reviewExpensiveRecommendation', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('logs the error to console.error', async () => {
+    it('logs the full error object to console.error (not just the message)', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockGenerateObject.mockRejectedValueOnce(new Error('Network failure'));
+      const networkError = new Error('Network failure');
+      mockGenerateObject.mockRejectedValueOnce(networkError);
 
       const input = createInput({ priceEur: 500 });
       await tool.execute(input);
 
+      // Full error object (with stack trace) should be logged, not just the message string
       expect(consoleSpy).toHaveBeenCalledWith(
         '[reviewExpensiveRecommendation] Review failed:',
-        'Network failure'
+        networkError
       );
       consoleSpy.mockRestore();
     });
@@ -357,6 +367,188 @@ describe('reviewExpensiveRecommendation', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Configurable threshold via CRITIC_PRICE_THRESHOLD_EUR env var
+  // ---------------------------------------------------------------------------
+
+  describe('getEffectiveThreshold — env var configuration', () => {
+    let originalEnv: string | undefined;
+
+    beforeEach(() => {
+      originalEnv = process.env.CRITIC_PRICE_THRESHOLD_EUR;
+    });
+
+    afterEach(() => {
+      if (originalEnv === undefined) {
+        delete process.env.CRITIC_PRICE_THRESHOLD_EUR;
+      } else {
+        process.env.CRITIC_PRICE_THRESHOLD_EUR = originalEnv;
+      }
+    });
+
+    it('returns 300 when env var is not set', () => {
+      delete process.env.CRITIC_PRICE_THRESHOLD_EUR;
+      expect(getEffectiveThreshold()).toBe(300);
+    });
+
+    it('returns a custom integer threshold from env var', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '500';
+      expect(getEffectiveThreshold()).toBe(500);
+    });
+
+    it('supports fractional thresholds (parseFloat not parseInt)', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '249.99';
+      expect(getEffectiveThreshold()).toBe(249.99);
+    });
+
+    it('falls back to 300 for non-numeric env var values', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = 'not-a-number';
+      expect(getEffectiveThreshold()).toBe(300);
+    });
+
+    it('falls back to 300 for zero', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '0';
+      expect(getEffectiveThreshold()).toBe(300);
+    });
+
+    it('falls back to 300 for negative values', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '-100';
+      expect(getEffectiveThreshold()).toBe(300);
+    });
+
+    it('falls back to 300 for empty string', () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '';
+      expect(getEffectiveThreshold()).toBe(300);
+    });
+  });
+
+  describe('threshold integration — env var affects tool behaviour', () => {
+    let originalEnv: string | undefined;
+
+    beforeEach(() => {
+      originalEnv = process.env.CRITIC_PRICE_THRESHOLD_EUR;
+    });
+
+    afterEach(() => {
+      if (originalEnv === undefined) {
+        delete process.env.CRITIC_PRICE_THRESHOLD_EUR;
+      } else {
+        process.env.CRITIC_PRICE_THRESHOLD_EUR = originalEnv;
+      }
+    });
+
+    it('skips a €400 item when threshold is set to €500 via env var', async () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '500';
+
+      const input = createInput({ priceEur: 400 });
+      const result = await tool.execute(input);
+
+      expect(result.reviewed).toBe(false);
+      expect(result.thresholdEur).toBe(500);
+      expect(mockGenerateObject).not.toHaveBeenCalled();
+    });
+
+    it('reviews a €400 item with the default threshold of €300', async () => {
+      delete process.env.CRITIC_PRICE_THRESHOLD_EUR;
+      const reviewOutput = createReviewOutput({ recommendation: 'proceed' });
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 400 });
+      const result = await tool.execute(input);
+
+      expect(result.reviewed).toBe(true);
+      expect(result.thresholdEur).toBe(300);
+      expect(mockGenerateObject).toHaveBeenCalledOnce();
+    });
+
+    it('reviews a €500 item when threshold is exactly €500 (inclusive)', async () => {
+      process.env.CRITIC_PRICE_THRESHOLD_EUR = '500';
+      const reviewOutput = createReviewOutput({ recommendation: 'proceed' });
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500 });
+      const result = await tool.execute(input);
+
+      expect(result.reviewed).toBe(true);
+      expect(mockGenerateObject).toHaveBeenCalledOnce();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Locale-aware market names
+  // ---------------------------------------------------------------------------
+
+  describe('locale-aware used-market platform names', () => {
+    it('includes German marketplace names for "de" locale', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500, locale: 'de' });
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('eBay Kleinanzeigen');
+      expect(callArgs.prompt).toContain('Bergfreunde B-Ware');
+    });
+
+    it('includes English marketplace names for "en" locale', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500, locale: 'en' });
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Gear Trade');
+      expect(callArgs.prompt).toContain('Facebook Marketplace');
+    });
+
+    it('includes French marketplace names for "fr" locale', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500, locale: 'fr' });
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Leboncoin');
+    });
+
+    it('handles BCP-47 locale tags (e.g., "de-AT") by extracting the region prefix', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500, locale: 'de-AT' });
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('eBay Kleinanzeigen');
+    });
+
+    it('defaults to English markets when no locale is provided', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500 }); // no locale field
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Gear Trade');
+      expect(callArgs.prompt).not.toContain('Kleinanzeigen');
+    });
+
+    it('defaults to English markets for unsupported locale', async () => {
+      const reviewOutput = createReviewOutput();
+      mockGenerateObject.mockResolvedValueOnce({ object: reviewOutput });
+
+      const input = createInput({ priceEur: 500, locale: 'ja' });
+      await tool.execute(input);
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.prompt).toContain('Gear Trade');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Input schema validation
   // ---------------------------------------------------------------------------
 
@@ -365,6 +557,17 @@ describe('reviewExpensiveRecommendation', () => {
 
     it('accepts valid input', () => {
       const result = schema.safeParse(createInput());
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts valid input with locale', () => {
+      const result = schema.safeParse(createInput({ locale: 'de' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts valid input without locale (optional)', () => {
+      const { locale: _locale, ...inputWithoutLocale } = createInput({ locale: undefined });
+      const result = schema.safeParse(inputWithoutLocale);
       expect(result.success).toBe(true);
     });
 
