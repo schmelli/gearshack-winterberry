@@ -703,10 +703,11 @@ async function searchCatalog(
   // ensures correct DB behaviour if searchCatalog is called directly with an
   // unexpected value (unknown values would silently fall back to name-order in SQL).
   const VALID_SORT_BY = new Set(['weight_asc', 'weight_desc', 'price_asc', 'price_desc', 'name', 'relevance']);
-  const safeSortBy = VALID_SORT_BY.has(sortBy) ? sortBy : (() => {
+  let safeSortBy = sortBy;
+  if (!VALID_SORT_BY.has(sortBy)) {
     logWarn('searchCatalog: unknown sortBy value, defaulting to relevance', { metadata: { sortBy } });
-    return 'relevance';
-  })();
+    safeSortBy = 'relevance';
+  }
 
   // Pre-resolve brand IDs if a brand filter is specified.
   // The resolved IDs are passed directly to the RPC so the DB handles filtering.

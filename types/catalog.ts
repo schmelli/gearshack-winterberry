@@ -14,20 +14,15 @@
  * Stored as JSONB in catalog_products.search_enrichment column.
  * Generated asynchronously via scripts/enrich-catalog-items.ts.
  *
+ * The type is derived from the Zod `EnrichmentSchema` in `lib/enrichment-schema.ts`
+ * so the runtime validation schema and this compile-time type always stay in sync.
+ * To add or rename enrichment fields, edit `lib/enrichment-schema.ts` — this file
+ * will reflect the change automatically via `z.infer`.
+ *
+ * @see lib/enrichment-schema.ts — canonical schema definition (Zod + derived type)
  * @see supabase/migrations/20260226000001_catalog_search_enrichment.sql
  */
-export interface SearchEnrichment {
-  /** When/where this item excels (e.g., "multi-day alpine expedition in wet conditions") */
-  useCases: string[];
-  /** How users might search for this (e.g., "rain jacket", "Regenjacke", "waterproof shell") */
-  alternativeSearchTerms: string[];
-  /** Weather/terrain conditions this suits (e.g., "cold rain", "snow", "Scottish Highlands") */
-  conditions: string[];
-  /** What this works well with (e.g., "base layer", "hardshell pants", "gaiters") */
-  compatibleWith: string[];
-  /** When NOT to use this item (e.g., "not suitable for summer hiking due to weight") */
-  avoidFor?: string;
-}
+export type { SearchEnrichment } from '@/lib/enrichment-schema';
 
 // ============================================================================
 // DATABASE ENTITY TYPES

@@ -19,6 +19,18 @@
  * After normalization, `escapeIlikeWildcards` is sufficient for both paths —
  * no PostgREST-unsafe characters remain to corrupt `.or()` filter strings.
  *
+ * **Precision trade-off — dot removal:**
+ * Dots are replaced with spaces so version-qualified product names like `PocketRocket 2.0`
+ * become `PocketRocket 2 0` (two separate tokens) rather than a single precise substring.
+ * This slightly broadens matching (e.g., `"2 0"` could match unrelated items with those
+ * tokens), but is acceptable because:
+ * 1. Dots in PostgREST `.or()` filter strings are interpreted as column accessors (e.g.,
+ *    `column.field`), which would corrupt the fallback search path.
+ * 2. The search_enrichment `alternativeSearchTerms` field is enriched with version-specific
+ *    synonyms (e.g., `"PocketRocket 2"`) that compensate for the lost precision.
+ * If version-exact matching becomes important, consider allowing dots in the RPC path
+ * only (before the path branches) and applying the dot-removal only for the fallback path.
+ *
  * @param query - Raw user input
  * @returns Normalized query with PostgREST-unsafe chars removed, safe for both contexts
  */

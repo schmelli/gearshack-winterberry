@@ -27,8 +27,8 @@ import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { generateObject } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
-import { z } from 'zod';
 import type { Json, Database } from '@/types/supabase';
+import { EnrichmentSchema, type SearchEnrichment } from '@/lib/enrichment-schema';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
@@ -63,20 +63,10 @@ const ENRICHMENT_TIMEOUT_MS = 15000;
 // Enrichment Schema (Zod)
 // =============================================================================
 
-const EnrichmentSchema = z.object({
-  useCases: z.array(z.string())
-    .describe('When/where would this item excel? Include specific scenarios like "multi-day alpine expedition", "wet weather hiking in Scotland", "ultralight thru-hiking"'),
-  alternativeSearchTerms: z.array(z.string())
-    .describe('How might users search for this? Include synonyms, German translations, abbreviations, and colloquial terms. E.g., "rain jacket", "Regenjacke", "waterproof shell", "hardshell"'),
-  conditions: z.array(z.string())
-    .describe('Weather/terrain conditions this item suits. E.g., "cold rain", "sub-zero temperatures", "wet Scottish Highlands", "alpine snow", "desert heat"'),
-  compatibleWith: z.array(z.string())
-    .describe('What gear categories or items does this work well with? E.g., "hardshell pants", "base layer", "trekking poles", "bear canister"'),
-  avoidFor: z.string().optional()
-    .describe('When should this item NOT be used? E.g., "not suitable for extended sub-zero conditions", "too heavy for ultralight setups"'),
-});
-
-type EnrichmentResult = z.infer<typeof EnrichmentSchema>;
+// EnrichmentSchema and SearchEnrichment type are imported from @/lib/enrichment-schema
+// — the single source of truth shared by this script and types/catalog.ts.
+// Editing lib/enrichment-schema.ts propagates to both the runtime Zod validation
+// (here) and the TypeScript type (CatalogProduct.searchEnrichment) automatically.
 
 // =============================================================================
 // CLI Argument Parsing
@@ -167,7 +157,7 @@ async function enrichItem(
   gateway: ReturnType<typeof createGateway>,
   item: CatalogProductRow,
   abortSignal?: AbortSignal
-): Promise<EnrichmentResult> {
+): Promise<SearchEnrichment> {
   const promptParts = [
     `Gear item: ${item.name}`,
     item.brand_name ? `Brand: ${item.brand_name}` : null,
@@ -203,7 +193,7 @@ async function enrichItemWithRetry(
   gateway: ReturnType<typeof createGateway>,
   item: CatalogProductRow,
   maxRetries: number = MAX_RETRIES
-): Promise<EnrichmentResult | null> {
+): Promise<SearchEnrichment | null> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
@@ -371,7 +361,7 @@ async function main(): Promise<void> {
     const { error: updateError } = await supabase
       .from('catalog_products')
       .update({
-        // EnrichmentResult is a plain object with string/string[] fields — structurally
+        // SearchEnrichment is a plain object with string/string[] fields — structurally
         // compatible with Json. Cast via `as unknown as Json` avoids the intermediate
         // `Record<string, unknown>` which loses type information.
         search_enrichment: enrichment as unknown as Json,
