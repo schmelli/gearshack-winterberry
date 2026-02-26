@@ -47,6 +47,14 @@ const aiEnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((val) => val === 'true'),
+
+  // Community RAG Quality Filter Thresholds (Hybrid RAG — Proposal 6)
+  // Validated here so startup catches typos (COMMUNITY_RAG_MIN_REPLY vs COMMUNITY_RAG_MIN_REPLIES)
+  // and non-numeric values — consistent with how WEB_SEARCH_DAILY_LIMIT is handled.
+  // The actual runtime values are read from process.env via parseEnvInt in search-gear-knowledge.ts
+  // (module-level constants), which provides graceful fallback at module load time.
+  COMMUNITY_RAG_MIN_REPLIES: z.coerce.number().int().min(0).default(1),
+  COMMUNITY_RAG_MAX_AGE_MONTHS: z.coerce.number().int().min(0).default(24),
 });
 
 /**
@@ -212,3 +220,4 @@ export function isGearGraphAvailable(): boolean {
     return false;
   }
 }
+

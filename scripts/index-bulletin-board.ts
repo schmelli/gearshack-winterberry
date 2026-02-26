@@ -96,6 +96,7 @@ interface ChunkRecord {
   gear_names: string[];
   brand_names: string[];
   source_created_at: string | null;
+  reply_count: number;
 }
 
 async function getExistingSourceIds(sourceType: string): Promise<Set<string>> {
@@ -129,6 +130,38 @@ async function indexPosts(): Promise<{ indexed: number; skipped: number; failed:
   const allPosts = posts || [];
   console.log(`   Found ${allPosts.length} active posts`);
 
+  // Fetch live reply counts from bulletin_replies (source of truth).
+  // We intentionally do NOT use bulletin_posts.reply_count (the denormalized
+  // increment/decrement cache) because it can diverge from the actual count
+  // in edge cases. Using live COUNT(*) here matches the approach of the sync
+  // trigger in migration 20260226000002, so bulk re-index runs cannot
+  // overwrite accurate trigger-maintained values with stale cached values.
+  const postIds = allPosts.map((p) => p.id as string);
+  const liveReplyCounts = new Map<string, number>();
+  if (postIds.length > 0) {
+    const { data: replyRows, error: replyError } = await supabase
+      .from('bulletin_replies')
+      .select('post_id')
+      .in('post_id', postIds)
+      .eq('is_deleted', false);
+    if (replyError) {
+      console.warn(
+        '⚠️  Failed to fetch live reply counts — falling back to post.reply_count:',
+        replyError.message
+      );
+      // Fallback: populate from denormalized cache so indexing still proceeds
+      for (const p of allPosts) {
+        const cnt = (p as { reply_count?: number }).reply_count ?? 0;
+        if (cnt > 0) liveReplyCounts.set(p.id as string, cnt);
+      }
+    } else {
+      for (const row of replyRows ?? []) {
+        const pid = row.post_id as string;
+        liveReplyCounts.set(pid, (liveReplyCounts.get(pid) ?? 0) + 1);
+      }
+    }
+  }
+
   // Build chunks
   const chunks: ChunkRecord[] = [];
   let skipped = 0;
@@ -158,6 +191,7 @@ async function indexPosts(): Promise<{ indexed: number; skipped: number; failed:
       gear_names: extractGearNames(post.content as string),
       brand_names: extractBrandNames(post.content as string),
       source_created_at: post.created_at,
+      reply_count: liveReplyCounts.get(post.id as string) ?? 0,
     });
   }
 
@@ -281,6 +315,7 @@ async function indexReplies(): Promise<{ indexed: number; skipped: number; faile
       gear_names: extractGearNames(reply.content as string),
       brand_names: extractBrandNames(reply.content as string),
       source_created_at: reply.created_at,
+      reply_count: 0,
     });
   }
 
