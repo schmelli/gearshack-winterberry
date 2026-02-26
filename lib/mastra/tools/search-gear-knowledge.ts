@@ -697,10 +697,15 @@ async function searchCatalog(
   let brandIds: string[] | null = null;
   if (filters?.brand) {
     const escapedBrand = escapeIlikeWildcards(filters.brand);
-    const { data: matchingBrands } = await supabase
+    const { data: matchingBrands, error: brandError } = await supabase
       .from('catalog_brands')
       .select('id')
       .ilike('name', `%${escapedBrand}%`);
+    // Propagate DB errors — silently swallowing them would return empty results
+    // even when matching brands exist, making brand-filtered searches unreliable.
+    if (brandError) {
+      throw new Error(`Brand lookup failed: ${brandError.message}`);
+    }
     // Cast through typed array so TS narrows brandIds to string[] after the assignment.
     // Without this, supabase: any causes matchingBrands to be any, and .map() on any
     // returns any, which prevents control-flow narrowing from string[] | null to string[].
@@ -788,10 +793,15 @@ async function searchCatalogFallback(
     // Use escapeIlikeWildcards (not escapeLikePattern) since .ilike() passes
     // the value as a bound parameter, not in a .or() filter string.
     const escapedBrand = escapeIlikeWildcards(filters.brand);
-    const { data: matchingBrands } = await supabase
+    const { data: matchingBrands, error: brandError } = await supabase
       .from('catalog_brands')
       .select('id')
       .ilike('name', `%${escapedBrand}%`);
+    // Propagate DB errors — silently swallowing them would return empty results
+    // even when matching brands exist, making brand-filtered searches unreliable.
+    if (brandError) {
+      throw new Error(`Brand lookup failed: ${brandError.message}`);
+    }
     const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
     if (brandIds.length > 0) {
       dbQuery = dbQuery.in('brand_id', brandIds);

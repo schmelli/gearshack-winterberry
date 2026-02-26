@@ -51,7 +51,15 @@ AS $$
       || ARRAY(SELECT jsonb_array_elements_text(p.search_enrichment->'alternativeSearchTerms'))
       || ARRAY(SELECT jsonb_array_elements_text(p.search_enrichment->'conditions'))
       || ARRAY(SELECT jsonb_array_elements_text(p.search_enrichment->'compatibleWith'))
-      || ARRAY(SELECT coalesce(p.search_enrichment->>'avoidFor', '')),
+      -- avoidFor is a scalar string (not an array) in the enrichment schema.
+      -- Use CASE instead of coalesce('', '') to avoid appending a spurious empty-string
+      -- element when the field is absent — coalesce would add '' to the array, inserting
+      -- an extra space separator and potentially matching whitespace-only ILIKE patterns.
+      || CASE
+           WHEN p.search_enrichment->>'avoidFor' IS NOT NULL
+             THEN ARRAY[p.search_enrichment->>'avoidFor']
+           ELSE ARRAY[]::text[]
+         END,
       ' '
     ),
     ''
@@ -216,4 +224,7 @@ COMMENT ON FUNCTION search_catalog_enriched IS
   'All filtering, sorting, and pagination are handled at the DB level. '
   'p_query must be pre-escaped by the caller (TypeScript: escapeIlikeWildcards). '
   'Uses two LATERAL subqueries to compute enrichment text and relevance score once '
-  'per row, avoiding ILIKE re-evaluation across WHERE, SELECT, and ORDER BY clauses.';
+  'per row, avoiding ILIKE re-evaluation across WHERE, SELECT, and ORDER BY clauses. '
+  'p_sort_by accepted values: ''relevance'' | ''weight_asc'' | ''weight_desc'' | '
+  '''price_asc'' | ''price_desc''. Unknown values silently fall back to cp.name ASC '
+  '(the final tiebreaker ORDER BY clause).';

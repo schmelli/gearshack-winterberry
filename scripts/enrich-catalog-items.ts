@@ -318,6 +318,8 @@ async function main(): Promise<void> {
   if (dryRun) {
     console.log('\n--- Dry Run: Products that would be enriched ---');
     for (const product of products) {
+      // catalog_brands is a many-to-one FK; Supabase typed client returns a single
+      // object (not an array) for this join direction. Access as `.name` directly.
       const brandName = product.catalog_brands?.name ?? 'Unknown';
       console.log(`  - ${product.name} (${brandName}) [${product.product_type ?? 'uncategorized'}]`);
     }
@@ -333,6 +335,8 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
+    // catalog_brands is a many-to-one FK; Supabase typed client returns a single
+    // object (not an array) for this join direction. Access as `.name` directly.
     const brandName = product.catalog_brands?.name ?? null;
     const progress = `[${i + 1}/${products.length}]`;
 
