@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { streamMastraResponse, createGearshackRequestContext } from '@/lib/mastra/mastra-agent';
+import { streamMastraResponse, createGearshackRequestContext, getToolNamesForRequest } from '@/lib/mastra/mastra-agent';
 
 // =============================================================================
 // Mock Heavy Dependencies (avoid DB / gateway connections at test time)
@@ -639,5 +639,114 @@ describe('createGearshackRequestContext', () => {
       currentLoadoutId: 'loadout-abc',
     });
     expect(ctx.size).toBe(6);
+  });
+});
+
+// =============================================================================
+// getToolNamesForRequest — two-axis tool selection (tier + domain)
+//
+// Verifies the function returns the correct tool names for each tier/domain
+// combination. Tool objects are mocked as {} so only the keys matter.
+// SUPERVISOR_CONFIG.ENABLED defaults to true (env var not set → !false → true).
+// =============================================================================
+
+describe('getToolNamesForRequest', () => {
+  // ---------------------------------------------------------------------------
+  // Standard tier — always 4 tools regardless of domain
+  // ---------------------------------------------------------------------------
+
+  it('returns 4 tools for standard tier with no domain', () => {
+    const names = getToolNamesForRequest('standard');
+    expect(names).toHaveLength(4);
+  });
+
+  it('returns 4 tools for standard tier with gear domain (domain ignored for standard)', () => {
+    const names = getToolNamesForRequest('standard', 'gear');
+    expect(names).toHaveLength(4);
+  });
+
+  it('returns 4 tools for standard tier with community domain (domain ignored for standard)', () => {
+    const names = getToolNamesForRequest('standard', 'community');
+    expect(names).toHaveLength(4);
+  });
+
+  it('includes the correct standard-tier tool names', () => {
+    const names = getToolNamesForRequest('standard');
+    expect(names).toContain('inventoryInsights');
+    expect(names).toContain('searchGearKnowledge');
+    expect(names).toContain('searchGear');
+    expect(names).toContain('queryUserData');
+    // trailblazer-only tools must NOT appear
+    expect(names).not.toContain('analyzeLoadout');
+    expect(names).not.toContain('findAlternatives');
+    expect(names).not.toContain('queryGearGraph');
+    expect(names).not.toContain('searchWeb');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Trailblazer tier — domain-specific subsets
+  // ---------------------------------------------------------------------------
+
+  it('returns 10 tools for trailblazer + gear domain (full set)', () => {
+    const names = getToolNamesForRequest('trailblazer', 'gear');
+    expect(names).toHaveLength(10);
+  });
+
+  it('returns all 10 expected tool names for trailblazer + gear', () => {
+    const names = getToolNamesForRequest('trailblazer', 'gear');
+    expect(names).toContain('analyzeLoadout');
+    expect(names).toContain('inventoryInsights');
+    expect(names).toContain('searchGearKnowledge');
+    expect(names).toContain('addToLoadout');
+    expect(names).toContain('searchGear');
+    expect(names).toContain('findAlternatives');
+    expect(names).toContain('reviewExpensiveRecommendation');
+    expect(names).toContain('queryUserData');
+    expect(names).toContain('queryGearGraph');
+    expect(names).toContain('searchWeb');
+  });
+
+  it('returns 2 tools for trailblazer + profile domain', () => {
+    const names = getToolNamesForRequest('trailblazer', 'profile');
+    expect(names).toHaveLength(2);
+    expect(names).toContain('queryUserData');
+    expect(names).toContain('inventoryInsights');
+  });
+
+  it('returns 3 tools for trailblazer + community domain', () => {
+    const names = getToolNamesForRequest('trailblazer', 'community');
+    expect(names).toHaveLength(3);
+    expect(names).toContain('searchGearKnowledge');
+    expect(names).toContain('searchWeb');
+    expect(names).toContain('queryUserData');
+  });
+
+  it('returns 4 tools for trailblazer + marketplace domain', () => {
+    const names = getToolNamesForRequest('trailblazer', 'marketplace');
+    expect(names).toHaveLength(4);
+    expect(names).toContain('searchGear');
+    expect(names).toContain('findAlternatives');
+    expect(names).toContain('searchWeb');
+    expect(names).toContain('queryUserData');
+  });
+
+  it('returns 10 tools for trailblazer with no domain (legacy fallback)', () => {
+    // When no domain is provided and supervisor is enabled, falls through to
+    // full TRAILBLAZER_TOOLS (same 10-tool set as the gear domain).
+    const names = getToolNamesForRequest('trailblazer');
+    expect(names).toHaveLength(10);
+  });
+
+  it('returns an array of strings (not objects)', () => {
+    const names = getToolNamesForRequest('trailblazer', 'profile');
+    for (const name of names) {
+      expect(typeof name).toBe('string');
+    }
+  });
+
+  it('returns no duplicate tool names', () => {
+    const names = getToolNamesForRequest('trailblazer', 'gear');
+    const uniqueNames = new Set(names);
+    expect(uniqueNames.size).toBe(names.length);
   });
 });

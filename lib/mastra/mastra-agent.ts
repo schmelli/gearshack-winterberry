@@ -41,8 +41,9 @@ import { createEmbedder, getEmbeddingModelId, getEmbeddingDimensions } from './e
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
-import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import { COMPLEXITY_ROUTING_CONFIG, SUPERVISOR_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
+import type { Domain } from './supervisor';
 import { logWarn, logInfo } from './logging';
 // Agent Middleware — defense-in-depth guardrails
 import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
@@ -73,6 +74,12 @@ export type GearshackRequestContext = {
   enrichedPromptSuffix: string | undefined;
   /** Current loadout ID for loadout-aware tools */
   currentLoadoutId: string | undefined;
+  /**
+   * Domain classification from the Supervisor Agent (Kapitel 22).
+   * Used to reduce tool set from 10 to 3–4 per request.
+   * When undefined or supervisor routing is disabled, falls back to full tier-based toolset.
+   */
+  domain: Domain | undefined;
 };
 
 // =============================================================================
@@ -240,6 +247,121 @@ const TRAILBLAZER_TOOLS = {
   queryGearGraph: queryGearGraphTool,
   searchWeb: searchWebTool,
 };
+
+// =============================================================================
+// Domain-Based Tool Subsets (Supervisor-Agent-Pattern, Kapitel 22)
+// =============================================================================
+
+/**
+ * A subset of the Trailblazer tool collection.
+ * Using Partial<typeof TRAILBLAZER_TOOLS> constrains each domain entry to only
+ * reference tools that actually exist in TRAILBLAZER_TOOLS, surfacing accidental
+ * tool name mismatches at compile time rather than silently at runtime.
+ */
+type DomainToolSubset = Partial<typeof TRAILBLAZER_TOOLS>;
+
+/**
+ * Domain-specific tool subsets for the Trailblazer tier.
+ * The Supervisor Agent classifies each message into a domain, then only the
+ * relevant tools are passed to the LLM — reducing prompt size by ~40% for
+ * non-gear queries.
+ *
+ * Tool counts per domain:
+ * - gear:        10 tools (full set — >70% of queries, prompt references queryGearGraph + searchWeb)
+ * - community:   3 tools (search + web + SQL fallback)
+ * - marketplace: 4 tools (catalog search + alternatives + web + SQL)
+ * - profile:     2 tools (SQL + inventory stats)
+ *
+ * Gear keeps the full 10-tool set because the system prompt's GearGraph guidance
+ * and loadout analysis sections reference queryGearGraph and searchWeb. Excluding
+ * them would create a prompt-tool mismatch. The token savings come from the ~30%
+ * of non-gear queries that drop from 10 to 2–4 tools.
+ *
+ * Standard tier users always get STANDARD_TOOLS (4) regardless of domain,
+ * since their toolset is already minimal.
+ */
+const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
+  gear: {
+    // Full toolset — system prompt's GearGraph guidance and loadout analysis
+    // sections reference queryGearGraph and searchWeb explicitly.
+    // reviewExpensiveRecommendation is included because the system prompt instructs
+    // the model to call it for any gear recommendation over €300 — omitting it would
+    // create a silent mismatch between instructions and available tools.
+    analyzeLoadout: analyzeLoadoutTool,
+    inventoryInsights: inventoryInsightsTool,
+    searchGearKnowledge: searchGearKnowledgeTool,
+    addToLoadout: addToLoadoutTool,
+    searchGear: searchGearTool,
+    findAlternatives: findAlternativesTool,
+    reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
+    queryUserData: queryUserDataSqlTool,
+    queryGearGraph: queryGearGraphTool,
+    searchWeb: searchWebTool,
+  },
+  community: {
+    searchGearKnowledge: searchGearKnowledgeTool, // includes communityInsights via RAG
+    searchWeb: searchWebTool,
+    queryUserData: queryUserDataSqlTool,
+  },
+  marketplace: {
+    searchGear: searchGearTool,
+    findAlternatives: findAlternativesTool,
+    searchWeb: searchWebTool,
+    queryUserData: queryUserDataSqlTool,
+  },
+  profile: {
+    queryUserData: queryUserDataSqlTool,
+    inventoryInsights: inventoryInsightsTool,
+  },
+};
+
+/**
+ * Select tools based on subscription tier and domain classification.
+ *
+ * Priority: tier → domain
+ * - Standard tier: always STANDARD_TOOLS (4 tools) — already minimal
+ * - Trailblazer tier + domain: DOMAIN_TOOLS_TRAILBLAZER[domain]
+ * - Trailblazer tier + no domain: full TRAILBLAZER_TOOLS (10 tools, legacy path)
+ *
+ * Return type is `typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS>` rather
+ * than the broad `Record<string, unknown>` so that compile-time type checking still
+ * applies at call sites. `typeof TRAILBLAZER_TOOLS` satisfies `Partial<typeof TRAILBLAZER_TOOLS>`,
+ * so all three branches are covered by this union without losing the `DomainToolSubset`
+ * safety guarantee established by the type alias above.
+ */
+function selectToolsForRequest(
+  tier: 'standard' | 'trailblazer',
+  domain?: Domain,
+): typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS> {
+  // Standard tier is already minimal (4 tools) — domain filtering adds no benefit
+  if (tier !== 'trailblazer') {
+    return { ...STANDARD_TOOLS };
+  }
+
+  // Trailblazer: apply domain-based filtering if supervisor routing is enabled
+  if (SUPERVISOR_CONFIG.ENABLED && domain) {
+    return { ...DOMAIN_TOOLS_TRAILBLAZER[domain] };
+  }
+
+  // Fallback: full trailblazer toolset (supervisor disabled or domain not classified)
+  return { ...TRAILBLAZER_TOOLS };
+}
+
+/**
+ * Get the tool names that will be used for a given tier + domain combination.
+ * Used by the chat route to pass domainToolNames to the workflow for prompt building.
+ *
+ * @param tier - Subscription tier
+ * @param domain - Classified domain (optional)
+ * @returns Array of tool name strings
+ */
+export function getToolNamesForRequest(
+  tier: 'standard' | 'trailblazer',
+  domain?: Domain,
+): string[] {
+  const tools = selectToolsForRequest(tier, domain);
+  return Object.keys(tools);
+}
 
 // =============================================================================
 // Three-Tier Memory Configuration
@@ -413,20 +535,26 @@ export function createGearAgent(queryComplexity?: QueryComplexity) {
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
 
-    // Dynamic tools: selected at runtime based on subscription tier.
+    // Dynamic tools: selected at runtime based on subscription tier AND domain.
     // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
-    // Standard tier gets basic browse/search tools (4)
-    // Trailblazer tier gets full toolset (10) including analysis, actions, critic, and graph
+    //
+    // Two-axis selection (Supervisor-Agent-Pattern, Kapitel 22):
+    // 1. Tier: standard (4 tools) vs trailblazer (up to 10)
+    // 2. Domain: gear/community/marketplace/profile — reduces trailblazer from 10 to 2–9
+    //
+    // Standard tier gets basic browse/search tools (4).
+    // Trailblazer tier gets full toolset (10) including analysis, actions, critic, and graph.
+    // Net effect: non-gear queries on trailblazer get 2–4 tools instead of 10,
+    // reducing prompt size by ~40% and improving tool selection accuracy.
     tools: async ({ requestContext }) => {
       const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
-      return tier === 'trailblazer'
-        ? { ...TRAILBLAZER_TOOLS }
-        : { ...STANDARD_TOOLS };
+      const domain = requestContext.get('domain') as Domain | undefined;
+      return selectToolsForRequest(tier, domain);
     },
   });
 
   console.log(
-    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier-based), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
+    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier + domain routing), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
@@ -458,6 +586,8 @@ export function createGearshackRequestContext(params: {
   promptContext?: PromptContext;
   enrichedPromptSuffix?: string;
   currentLoadoutId?: string;
+  /** Domain from Supervisor Agent classification (Kapitel 22) */
+  domain?: Domain;
 }): RequestContext<GearshackRequestContext> {
   const requestContext = new RequestContext<GearshackRequestContext>();
   requestContext.set('userId', params.userId);
@@ -471,6 +601,9 @@ export function createGearshackRequestContext(params: {
   }
   if (params.currentLoadoutId !== undefined) {
     requestContext.set('currentLoadoutId', params.currentLoadoutId);
+  }
+  if (params.domain !== undefined) {
+    requestContext.set('domain', params.domain);
   }
   return requestContext;
 }

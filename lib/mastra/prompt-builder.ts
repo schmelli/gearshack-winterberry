@@ -10,6 +10,8 @@
  */
 
 import type { UserContext } from '@/types/ai-assistant';
+import type { Domain } from './supervisor';
+import { logWarn } from './logging';
 
 // =============================================================================
 // Localized Content Types
@@ -404,6 +406,88 @@ export const LOCALIZED_CONTENT: Record<'en' | 'de', LocalizedContent> = {
 };
 
 // =============================================================================
+// Per-Tool Descriptions for Domain-Aware Prompts (Supervisor-Agent-Pattern)
+// =============================================================================
+
+/**
+ * Individual tool descriptions by tool name and locale.
+ *
+ * When the Supervisor Agent classifies a domain, only the tool descriptions
+ * for tools available in that domain are injected into the system prompt.
+ * This reduces prompt size by ~40% for non-gear queries.
+ *
+ * Keys match the tool names used in DOMAIN_TOOLS_TRAILBLAZER / STANDARD_TOOLS
+ * in mastra-agent.ts.
+ */
+const TOOL_DESCRIPTIONS_EN: Record<string, string> = {
+  analyzeLoadout: '- **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)',
+  inventoryInsights: '- **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)',
+  searchGearKnowledge: '- **searchGearKnowledge**: Unified search across user inventory, product catalog, AND community knowledge (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include `gearGraphInsights` — expert tips from the GearGraph knowledge base, AND `communityInsights` — real experiences from community members (bulletin board posts/replies) found via semantic vector search. ALWAYS read and incorporate both types of insights. When community insights are present, cite them as "According to the community..." or "X users report that...".',
+  addToLoadout: '- **addToLoadout**: Add a gear item to the user\'s loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.',
+  searchGear: '- **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing: "What tents are under 1kg?" Returns ranked results with relevance scores. Powered by GearGraph MCP.',
+  findAlternatives: '- **findAlternatives**: Find lighter/cheaper/similar/higher-rated alternatives for a specific gear item using GearGraph graph relationships (LIGHTER_THAN, SIMILAR_TO edges). Use when user asks "What\'s a lighter alternative to my tent?" Requires a gear_items UUID from searchGearKnowledge results.',
+  reviewExpensiveRecommendation: '- **reviewExpensiveRecommendation**: Budget-conscious "second opinion" for gear recommendations over €300. Call AFTER identifying a recommendation but BEFORE presenting it to the user. Returns a verdict (proceed / reconsider / check_used_market) with reasoning and cheaper alternatives. ALWAYS call this when about to recommend gear costing >€300.',
+  queryUserData: '- **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)',
+  queryGearGraph: '- **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
+  searchWeb: '- **searchWeb**: Real-time web search for trail conditions, gear reviews, current info',
+};
+
+const TOOL_DESCRIPTIONS_DE: Record<string, string> = {
+  analyzeLoadout: '- **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschlüsselung, fehlende Essentials, Optimierungsvorschläge)',
+  inventoryInsights: '- **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstände, Marken-Aufschlüsselung, Kategorie-Zusammenfassungen)',
+  searchGearKnowledge: '- **searchGearKnowledge**: Einheitliche Suche über Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstützt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack für 15kg Traglast"). Ergebnisse enthalten `gearGraphInsights` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND `communityInsights` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".',
+  addToLoadout: '- **addToLoadout**: Fügt einen Ausrüstungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "füg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benötigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstützt Anzahl, getragen und Verbrauchsmaterial Optionen.',
+  searchGear: '- **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Für gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.',
+  findAlternatives: '- **findAlternatives**: Findet leichtere/günstigere/ähnliche/besser-bewertete Alternativen für ein bestimmtes Gear-Item über GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benötigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.',
+  reviewExpensiveRecommendation: '- **reviewExpensiveRecommendation**: Budget-bewusste "zweite Meinung" für Gear-Empfehlungen über 300€. Aufrufen NACH der Identifikation einer Empfehlung, aber VOR der Präsentation an den Nutzer. Liefert ein Urteil (proceed / reconsider / check_used_market) mit Begründung und günstigeren Alternativen. IMMER aufrufen wenn Gear über 300€ empfohlen werden soll.',
+  queryUserData: '- **queryUserData**: Direkte SQL-Abfragen für Nutzerdaten (Fallback für komplexe Abfragen die oben nicht abgedeckt sind)',
+  queryGearGraph: '- **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausrüstung für bestimmte Aktivitäten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: \'4-season\'}) WHERE p.category = \'stoves\' RETURN p',
+  searchWeb: '- **searchWeb**: Echtzeit-Websuche für Trailbedingungen, Gear-Bewertungen, aktuelle Infos',
+};
+
+const TOOL_DESCRIPTIONS: Record<'en' | 'de', Record<string, string>> = {
+  en: TOOL_DESCRIPTIONS_EN,
+  de: TOOL_DESCRIPTIONS_DE,
+};
+
+/**
+ * Build a tool description section from a list of tool names.
+ *
+ * Used by the Supervisor-Agent-Pattern to inject only the tool descriptions
+ * that match the classified domain, instead of the full 9-tool list.
+ *
+ * @param locale - User locale (en/de)
+ * @param toolNames - Names of tools available for this domain + tier
+ * @returns Formatted tool section string for the system prompt
+ */
+export function buildToolSection(locale: 'en' | 'de', toolNames: string[]): string {
+  const descriptions = TOOL_DESCRIPTIONS[locale];
+
+  // Warn about tools that have no description entry — they will be silently omitted
+  // from the prompt. This prevents a silent mismatch between the tool set passed to
+  // the agent and the descriptions shown in the system prompt. Fix by adding an entry
+  // to TOOL_DESCRIPTIONS_EN / TOOL_DESCRIPTIONS_DE above.
+  const missing = toolNames.filter((name) => !descriptions[name]);
+  if (missing.length > 0) {
+    logWarn('[buildToolSection] No description found for tools — omitted from prompt', {
+      metadata: { locale, missingTools: missing },
+    });
+  }
+
+  const lines = toolNames
+    .filter((name) => descriptions[name])
+    .map((name) => descriptions[name]);
+
+  if (lines.length === 0) return '';
+
+  const header = locale === 'en'
+    ? `**Available Tools (${lines.length}):**`
+    : `**Verfügbare Tools (${lines.length}):**`;
+
+  return `${header}\n${lines.join('\n')}`;
+}
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 
@@ -449,6 +533,26 @@ export interface PromptContext {
   semanticRecallContext?: string;
   /** A/B test prompt variant suffix (appended to system prompt) */
   abTestSuffix?: string;
+  /**
+   * Classified domain from the Supervisor Agent (Kapitel 22).
+   *
+   * Typed as the canonical `Domain` union from supervisor.ts — adding a new domain
+   * to `DOMAIN_VALUES` will automatically propagate here via the imported type,
+   * preventing silent drift between the supervisor's domain set and PromptContext.
+   *
+   * When provided, used directly to determine whether to include gear-specific
+   * prompt sections (e.g. GearGraph guidance). This is more robust than inferring
+   * the domain from tool names, which would silently break on tool renames.
+   *
+   * When undefined, assumes 'gear' domain (full guidance included for backward compat).
+   */
+  domain?: Domain;
+  /**
+   * Tool names available for the current domain + tier (Supervisor-Agent-Pattern).
+   * When provided, only these tool descriptions are included in the prompt.
+   * When undefined, falls back to the full tier-based tool list.
+   */
+  domainToolNames?: string[];
 }
 
 // =============================================================================
@@ -559,9 +663,21 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     );
   }
 
-  // 3. Available Tools (tier-aware: standard users see 4 tools, trailblazer sees all 10)
-  const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
-  sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
+  // 3. Available Tools
+  // When domainToolNames is provided (Supervisor-Agent-Pattern), compose tool descriptions
+  // from individual per-tool entries — only includes tools relevant to the classified domain.
+  // Falls back to the full tier-based tool strings for backward compatibility.
+  // Standard users see 4 tools, trailblazer sees up to 10 (filtered by domain when available).
+  const safeLocaleForTools = (isGerman ? 'de' : 'en') as 'en' | 'de';
+  if (context.domainToolNames && context.domainToolNames.length > 0) {
+    const domainToolSection = buildToolSection(safeLocaleForTools, context.domainToolNames);
+    if (domainToolSection) {
+      sections.push(`\n${domainToolSection}`);
+    }
+  } else {
+    const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
+    sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
+  }
 
   // 4. Capabilities and Guidelines
   sections.push(`\n${content.capabilities}`);
@@ -596,9 +712,15 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.categoryReference}`);
   }
 
-  // 11. GearGraph trip-planning guidance (always shown)
-  // Teaches the agent how to use GearGraph for destination/condition queries
-  if (content.gearGraphGuidance) {
+  // 11. GearGraph trip-planning guidance (only for gear domain or when no domain filter)
+  // Teaches the agent how to use GearGraph for destination/condition queries.
+  // Skipped for community/marketplace/profile domains to save tokens.
+  //
+  // Uses context.domain directly (set by the Supervisor Agent) rather than
+  // checking for specific tool names in domainToolNames, which would silently
+  // break if either tool were ever renamed.
+  const isGearDomain = !context.domain || context.domain === 'gear';
+  if (content.gearGraphGuidance && isGearDomain) {
     sections.push(`\n${content.gearGraphGuidance}`);
   }
 
@@ -609,7 +731,7 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.safetyGuidance}`);
   }
 
-  // 11. A/B Test Variant Suffix (appended when experiment is active)
+  // 13. A/B Test Variant Suffix (appended when experiment is active)
   if (context.abTestSuffix) {
     sections.push(`\n${context.abTestSuffix}`);
   }

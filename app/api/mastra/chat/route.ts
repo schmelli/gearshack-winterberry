@@ -62,7 +62,7 @@ import {
 } from '@/lib/mastra/metrics';
 import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory } from '@/lib/mastra/mastra-agent';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory, getToolNamesForRequest } from '@/lib/mastra/mastra-agent';
 import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { VariantResolution } from '@/types/prompt-ab';
@@ -77,6 +77,8 @@ import { buildMastraSystemPrompt } from '@/lib/mastra/config';
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
 import { classifyIntent, QUERY_COMPLEXITY_VALUES } from '@/lib/mastra/intent-router';
+import { classifyDomain, DEFAULT_DOMAIN } from '@/lib/mastra/supervisor';
+import { SUPERVISOR_CONFIG } from '@/lib/mastra/config';
 import {
   getSemanticCacheHit,
   storeInSemanticCache,
@@ -418,24 +420,59 @@ export async function POST(request: Request): Promise<Response> {
           // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
 
-          // --- Phase 1b: Semantic Response Cache check ---
-          // Classify intent upfront so we can check the cache for factual questions
+          // --- Phase 1b: Parallel Classification (Intent + Domain) + Semantic Cache check ---
+          // Run intent classification AND domain classification in parallel:
+          // - Intent: Gemini Flash, determines query type + data requirements + cache eligibility
+          // - Domain: Haiku (Supervisor-Agent-Pattern, Kap. 22), determines tool subset
+          //
+          // Both are independent LLM calls (~50ms each). Running in parallel adds minimal
+          // latency — the domain call overlaps with intent classification rather than being
+          // sequential. On a cold Haiku start the domain call could still add latency, but
+          // the 400ms timeout and 'gear' fallback cap the worst-case impact.
+          //
+          // After classification, we check the semantic cache for factual questions
           // (general_knowledge, gear_comparison) before running the full workflow.
           // Note: classifyIntent is also called inside the gear-assistant workflow
           // (Step 1); the redundant call on cache-miss is accepted as a minor cost
           // to keep the cache check outside the workflow boundary.
           //
-          // GRACEFUL DEGRADATION: The entire cache check is wrapped so that a
-          // failure in classifyIntent or getSemanticCacheHit does not prevent the
-          // workflow from running.  intentResult defaults to 'complex' (not
-          // cacheable) so the downstream cache-store at end-of-stream is skipped.
+          // GRACEFUL DEGRADATION: The entire block is wrapped so that a failure in
+          // classifyIntent, classifyDomain, or getSemanticCacheHit does not prevent the
+          // workflow from running.  intentResult defaults to 'complex' (not cacheable)
+          // so the downstream cache-store at end-of-stream is skipped.
+          // classifiedDomain defaults to DEFAULT_DOMAIN ('gear') on any error.
+          // Minimum LLM confidence threshold is centralised in SUPERVISOR_CONFIG.
+          // See config.ts for rationale (keyword vs LLM score ranges, sentinel value).
           let intentResult: { intent: string } = { intent: 'complex' };
+          let classifiedDomain = DEFAULT_DOMAIN;
+          let domainConfidence = 0;
+          const currentScreen = context?.screen as string | undefined;
           try {
-            intentResult = await classifyIntent(
-              message,
-              context?.screen as string | undefined,
-              currentLoadoutId
-            );
+            const [intentClassification, domainResult] = await Promise.all([
+              classifyIntent(message, currentScreen, currentLoadoutId),
+              SUPERVISOR_CONFIG.ENABLED
+                ? classifyDomain(message, currentScreen)
+                : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
+            ]);
+            intentResult = intentClassification;
+
+            // Apply confidence threshold: only trust a non-gear classification if
+            // the model is sufficiently confident. This prevents LLM uncertainty from
+            // causing incorrect tool routing; the safe fallback (gear) is used instead.
+            if (domainResult.confidence >= SUPERVISOR_CONFIG.CONFIDENCE_THRESHOLD) {
+              classifiedDomain = domainResult.domain;
+            } else {
+              classifiedDomain = DEFAULT_DOMAIN;
+              logInfo('Domain classification below confidence threshold, using default', {
+                metadata: {
+                  rawDomain: domainResult.domain,
+                  confidence: domainResult.confidence,
+                  threshold: SUPERVISOR_CONFIG.CONFIDENCE_THRESHOLD,
+                  fallback: DEFAULT_DOMAIN,
+                },
+              });
+            }
+            domainConfidence = domainResult.confidence;
 
             if (isCacheableIntent(intentResult.intent)) {
               const cacheLocale = (context?.locale as string) || 'en';
@@ -475,11 +512,12 @@ export async function POST(request: Request): Promise<Response> {
               }
             }
           } catch (cacheCheckError) {
-            // Semantic cache check failed — log and proceed to the workflow.
-            // classifyIntent has its own internal fallback, so this catch
-            // primarily guards against getSemanticCacheHit failures.
+            // Classification or semantic cache check failed — log and proceed to the workflow.
+            // classifyIntent and classifyDomain have their own internal fallbacks, so this
+            // catch primarily guards against getSemanticCacheHit failures or unexpected errors.
+            // classifiedDomain remains DEFAULT_DOMAIN ('gear') ensuring safe fallback behavior.
             const cacheErrMsg = cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown';
-            logWarn('Semantic cache check failed, proceeding to workflow', {
+            logWarn('Classification or semantic cache check failed, proceeding to workflow', {
               userId: user.id,
               conversationId,
               metadata: {
@@ -508,6 +546,16 @@ export async function POST(request: Request): Promise<Response> {
           // metadata below, where workflowFallback guards the conditional spread.
           let workflowStepNames: string[] = [];
 
+          // Compute domain-specific tool names for prompt building.
+          // Only for trailblazer tier — standard tier uses its own tool descriptions
+          // (content.toolsStandard) which are different from the per-tool trailblazer
+          // descriptions in TOOL_DESCRIPTIONS_EN/DE. Passing domainToolNames for standard
+          // would incorrectly use trailblazer-level descriptions (e.g., mentioning
+          // communityInsights which standard searchGearKnowledge doesn't support).
+          const domainToolNames = SUPERVISOR_CONFIG.ENABLED && subscriptionTier === 'trailblazer'
+            ? getToolNamesForRequest(subscriptionTier, classifiedDomain)
+            : undefined;
+
           try {
             const workflow = mastra.getWorkflow('gear-assistant');
             const run = await workflow.createRun({ resourceId: user.id });
@@ -523,6 +571,8 @@ export async function POST(request: Request): Promise<Response> {
                 currentLoadoutId,
                 enableTools,
                 subscriptionTier,
+                domain: classifiedDomain,
+                domainToolNames,
               },
             });
 
@@ -663,6 +713,9 @@ export async function POST(request: Request): Promise<Response> {
                 ...(workflowFallback
                   ? { fallback: true }
                   : { workflowSteps: workflowStepNames }),
+                domain: classifiedDomain,
+                domainConfidence,
+                toolCount: domainToolNames?.length ?? 'full',
               },
             },
           );
@@ -699,6 +752,7 @@ export async function POST(request: Request): Promise<Response> {
 
           // Build RuntimeContext for the Dynamic Agent Pattern:
           // - subscriptionTier → determines which tools available (standard vs trailblazer)
+          // - domain → Supervisor-Agent-Pattern: restricts tool set to classified domain
           // - lang → prompt language fallback
           // - enrichedPromptSuffix → the full system prompt built by the workflow + A/B variant
           // - currentLoadoutId → passed through for loadout-aware tools
@@ -708,6 +762,7 @@ export async function POST(request: Request): Promise<Response> {
             lang: (context?.locale as string) || 'en',
             enrichedPromptSuffix: effectiveSystemPrompt,
             currentLoadoutId,
+            domain: classifiedDomain,
           });
 
           // Create Dynamic Mastra Agent with complexity routing and stream response.
@@ -887,6 +942,8 @@ export async function POST(request: Request): Promise<Response> {
               toolCallCount: toolCalls?.length || 0,
               queryComplexity: pipelineOutput.queryComplexity,
               intent: pipelineOutput.intent,
+              domain: classifiedDomain,
+              toolCount: domainToolNames?.length ?? 'full',
               ...(variantResolution?.isInExperiment && {
                 promptVariant: variantResolution.variantId,
                 promptExperiment: variantResolution.experimentName,
