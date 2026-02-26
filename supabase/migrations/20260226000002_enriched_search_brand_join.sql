@@ -7,6 +7,15 @@
 --
 -- This is a DROP + CREATE because PostgreSQL requires matching signatures when
 -- using CREATE OR REPLACE on functions that change their RETURNS TABLE columns.
+--
+-- NOTE: p_query arrives pre-escaped from TypeScript (escapeIlikeWildcards). PostgreSQL
+-- ILIKE uses '\' as the default escape character, so \%, \_, \\ in the bound value are
+-- interpreted correctly as literal %, _, \. Do NOT add SQL-level re-escaping here —
+-- double-escaping corrupts queries with %, _, or \ (e.g. 'trail_shoe' → 'trail\\_shoe').
+--
+-- PERFORMANCE NOTE: ILIKE on catalog_enrichment_text() is an O(n) full-table scan.
+-- For large catalogs, replace with a generated tsvector column + GIN index for O(log n)
+-- full-text search. See migration 20260226000001 for the enrichment schema details.
 
 DROP FUNCTION IF EXISTS search_catalog_enriched(
   text, int, int, uuid[], numeric, numeric, numeric, text

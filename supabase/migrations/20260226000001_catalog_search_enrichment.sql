@@ -62,6 +62,17 @@ $$;
 --   4 = enrichment-only match (lowest relevance)
 -- All filtering, sorting, and pagination are handled at the DB level to ensure
 -- correct pagination and sorting across the full result set (not a client-side subset).
+--
+-- NOTE: p_query arrives pre-escaped from TypeScript (escapeIlikeWildcards). PostgreSQL
+-- ILIKE uses '\' as the default escape character, so \%, \_, \\ in the bound value are
+-- interpreted correctly as literal %, _, \. Do NOT add SQL-level re-escaping here —
+-- double-escaping corrupts queries with %, _, or \ (e.g. 'trail_shoe' → 'trail\\_shoe').
+--
+-- PERFORMANCE NOTE: ILIKE on catalog_enrichment_text() is an O(n) full-table scan on
+-- the enrichment text. At pilot scale this is acceptable, but for large catalogs consider
+-- adding a generated tsvector column (tsvector type, GENERATED ALWAYS AS ... STORED) with
+-- a GIN index. This would provide O(log n) full-text search while eliminating the need
+-- for catalog_enrichment_text() at query time.
 CREATE OR REPLACE FUNCTION search_catalog_enriched(
   p_query text,
   p_limit int DEFAULT 10,
