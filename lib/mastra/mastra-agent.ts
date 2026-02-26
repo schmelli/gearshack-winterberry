@@ -41,7 +41,9 @@ import {
 } from './schemas/working-memory';
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
-import { logWarn } from './logging';
+import { logWarn, logInfo } from './logging';
+// Agent Middleware — defense-in-depth guardrails (Vorschlag 9)
+import { beforeGenerate, afterGenerate } from './agent-middleware';
 
 // =============================================================================
 // Request Context Type Definition
@@ -560,18 +562,23 @@ export async function persistCacheHitToMemory(
 // =============================================================================
 
 /**
- * Stream response from Mastra Agent with RequestContext
+ * Stream response from Mastra Agent with RequestContext and Guardrails
  *
  * The requestContext drives the Dynamic Agent's behavior:
  * - instructions callback reads tier, locale, promptContext → builds system prompt
  * - tools callback reads tier → selects appropriate toolset
  * - Tool execution receives userId, currentLoadoutId for data access
  *
+ * Agent Middleware (Vorschlag 9):
+ * - beforeGenerate: Prompt injection detection + message length enforcement
+ * - afterGenerate: PII redaction from agent output text
+ *
  * @param agent - Mastra Agent instance (created via createGearAgent)
  * @param message - Current user message
  * @param userId - User ID for memory scoping (resourceId)
  * @param conversationId - Conversation/thread ID for Mastra memory persistence
  * @param requestContext - Populated RequestContext with tier, locale, and prompt data
+ * @throws Error if beforeGenerate rejects the message (prompt injection detected)
  */
 export async function streamMastraResponse(
   agent: Agent,
@@ -580,8 +587,28 @@ export async function streamMastraResponse(
   conversationId: string,
   requestContext: RequestContext<GearshackRequestContext>
 ) {
+  // ── beforeGenerate: Input validation & sanitization ──
+  const guardResult = beforeGenerate(message, userId, conversationId);
+
+  if (!guardResult.allowed) {
+    // Throw so the caller (chat route) can emit an error SSE event.
+    // The generic message avoids leaking detection logic to the client.
+    throw new Error(guardResult.rejectionReason ?? 'Message blocked by safety filter');
+  }
+
+  // Use the sanitized (possibly truncated) message
+  const safeMessage = guardResult.sanitizedMessage ?? message;
+
+  if (guardResult.wasTruncated) {
+    logInfo('[Agent Middleware] Streaming with truncated message', {
+      userId,
+      conversationId,
+      metadata: { originalLength: message.length, safeLength: safeMessage.length },
+    });
+  }
+
   // Only the current message — Mastra retrieves history via threadId
-  const messages = [{ role: 'user' as const, content: message }];
+  const messages = [{ role: 'user' as const, content: safeMessage }];
 
   // Stream with requestContext so dynamic instructions/tools resolve per-request,
   // and threadId so Mastra's PostgresStore injects conversation history
@@ -592,10 +619,69 @@ export async function streamMastraResponse(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
+  // ── afterGenerate: Wrap textStream with PII sanitization ──
+  // Transform the async iterable to apply output guardrails on each chunk.
+  // Uses a small buffer to catch PII patterns that straddle chunk boundaries.
+  const originalTextStream = stream.textStream;
+  const sanitizedTextStream = createSanitizedTextStream(originalTextStream, userId, conversationId);
+
   return {
-    textStream: stream.textStream,
+    textStream: sanitizedTextStream,
     toolCalls: stream.toolCalls || Promise.resolve([]),
     fullText: stream.text || Promise.resolve(''),
     finishReason: stream.finishReason || Promise.resolve('stop'),
   };
+}
+
+// =============================================================================
+// Output Stream Sanitization
+// =============================================================================
+
+/**
+ * Buffer size for cross-chunk PII pattern detection.
+ * Large enough to catch most PII patterns (emails, phone numbers)
+ * but small enough to avoid noticeable streaming latency.
+ */
+const OUTPUT_BUFFER_SIZE = 128;
+
+/**
+ * Wraps an async iterable text stream with PII sanitization.
+ *
+ * Maintains a small trailing buffer to detect PII patterns that span
+ * chunk boundaries. The buffer is flushed when the stream ends.
+ *
+ * @param textStream - Original text stream from agent
+ * @param userId - User ID for logging context
+ * @param conversationId - Conversation ID for logging context
+ */
+async function* createSanitizedTextStream(
+  textStream: AsyncIterable<string>,
+  userId: string,
+  conversationId: string,
+): AsyncIterable<string> {
+  let buffer = '';
+
+  for await (const chunk of textStream) {
+    const combined = buffer + chunk;
+
+    if (combined.length <= OUTPUT_BUFFER_SIZE) {
+      // Not enough data to flush — keep buffering
+      buffer = combined;
+      continue;
+    }
+
+    // Flush everything except the trailing buffer
+    const flushEnd = combined.length - OUTPUT_BUFFER_SIZE;
+    const toFlush = combined.slice(0, flushEnd);
+    buffer = combined.slice(flushEnd);
+
+    const result = afterGenerate(toFlush, userId, conversationId);
+    yield result.sanitizedText;
+  }
+
+  // Flush remaining buffer at stream end
+  if (buffer.length > 0) {
+    const result = afterGenerate(buffer, userId, conversationId);
+    yield result.sanitizedText;
+  }
 }
