@@ -32,7 +32,7 @@ interface LocalizedContent {
       heaviestCategory?: string
     ) => string;
   };
-  /** Full tool list for trailblazer tier (9 tools) */
+  /** Full tool list for trailblazer tier (10 tools) */
   tools: string;
   /** Reduced tool list for standard tier (4 tools) */
   toolsStandard: string;
@@ -58,6 +58,13 @@ interface LocalizedContent {
    * since all examples are only meaningful when the user has gear data.
    */
   fewShotExamples?: string;
+  /**
+   * Working memory instructions that teach the agent to actively update
+   * the persistent user profile during conversations.
+   * Mastra's WorkingMemory processor handles the read/write mechanics;
+   * these instructions tell the agent WHEN and WHAT to update.
+   */
+  workingMemoryInstructions: string;
 }
 
 // =============================================================================
@@ -85,13 +92,14 @@ const ENGLISH_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Available Tools (9 total — Trailblazer):**
+  tools: `**Available Tools (10 total — Trailblazer):**
 - **analyzeLoadout**: Complete loadout analysis (weight breakdown, missing essentials, optimization suggestions)
 - **inventoryInsights**: Inventory stats and questions (counts, heaviest items, brand breakdown, category summaries)
 - **searchGearKnowledge**: Unified search across user inventory, product catalog, AND community knowledge (finds gear by name, brand, category — supports German/English category names like "Kocher" → stoves, or queries like "backpack under 15kg load capacity"). Results include \`gearGraphInsights\` — expert tips from the GearGraph knowledge base, AND \`communityInsights\` — real experiences from community members (bulletin board posts/replies) found via semantic vector search. ALWAYS read and incorporate both types of insights. When community insights are present, cite them as "According to the community..." or "X users report that...".
 - **addToLoadout**: Add a gear item to the user's loadout. Use when the user says "add X to my loadout" or "put X in this loadout". Requires gearItemId (look it up first with searchGearKnowledge or queryUserData). If no loadoutId is given, uses the current loadout from context. Supports quantity, worn, and consumable flags.
 - **searchGear**: Search the GearGraph catalog with filters (category, brand, maxWeight, maxPrice, minRating). Use for filtered catalog browsing: "What tents are under 1kg?" Returns ranked results with relevance scores. Powered by GearGraph MCP.
 - **findAlternatives**: Find lighter/cheaper/similar/higher-rated alternatives for a specific gear item using GearGraph graph relationships (LIGHTER_THAN, SIMILAR_TO edges). Use when user asks "What's a lighter alternative to my tent?" Requires a gear_items UUID from searchGearKnowledge results.
+- **reviewExpensiveRecommendation**: Budget-conscious "second opinion" for gear recommendations over €300. Call this AFTER identifying gear to recommend but BEFORE presenting it to the user. Returns a verdict (proceed / reconsider / check_used_market) with reasoning and cheaper alternatives. IMPORTANT: Always call this when you are about to recommend gear costing >€300 — present the critic's feedback alongside your recommendation so the user gets a balanced view.
 - **queryUserData**: Direct SQL queries for user data (fallback for complex queries not covered above)
 - **queryGearGraph**: Cypher queries to explore product relationships in the GearGraph knowledge graph. Use this to find which gear is suited for specific activities/seasons/conditions. Example: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchWeb**: Real-time web search for trail conditions, gear reviews, current info`,
@@ -192,6 +200,37 @@ User: "Analyze my winter camping loadout"
 GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. Worth noting: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
 BAD: "Your loadout looks good for winter camping. Make sure you stay warm and have the right gear."
 WHY: The good response provides specific weight analysis, identifies the heaviest item with a lighter alternative, and catches a critical safety issue (sleeping pad R-value) that could make or break the trip.`,
+
+  workingMemoryInstructions: `## Working Memory — User Profile Updates
+
+You maintain a persistent profile about this user across all conversations. **Actively update it** whenever you learn something new. The user expects you to remember personal details next time.
+
+**When to update:**
+
+| You learn this | Write to field |
+|---|---|
+| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips[]\` — destination + activity + approximate date + \`addedAt\` (ISO timestamp) |
+| Weight philosophy expressed ("I'm ultralight", "comfort over grams") | \`preferences.weightPhilosophy\` |
+| Budget context ("can't spend more than €200", "money is no object") | \`preferences.budgetRange\` |
+| Quality vs weight preference ("durability matters more") | \`preferences.qualityVsWeight\` |
+| Preferred name ("Call me Alex") | \`name\` |
+| Location mentioned ("I'm based in Bavaria", "hiking from Portland") | \`location\` |
+| Primary activities ("I mostly do thru-hikes", "weekend backpacking") | \`activities.primary[]\` and \`activities.typicalTripLength\` |
+| Experience level ("I've been hiking for 20 years", "first time backpacking") | \`activities.experience\` |
+| Brand love or dislike ("I swear by Hilleberg", "had bad luck with X") | \`brands.favorites[]\` or \`brands.avoid[]\` |
+| Brand curiosity ("What about Durston?", "Is Nemo any good?") | \`brands.curious[]\` |
+| Gear goal ("I want base weight under 5kg") | \`goals.gearGoals[]\` |
+| Wishlist priority ("the Xmid 2P is top of my list") | \`goals.wishlistPriorities[]\` |
+| Factual personal info ("I weigh 85kg", "I run hot at night") | \`facts[]\` — category 'constraint', confidence 'high' |
+| Preference or opinion ("I prefer down over synthetic") | \`facts[]\` — category 'preference', confidence 'high' |
+| Past experience ("Last year I hiked the HRP") | \`facts[]\` — category 'history', confidence 'high' |
+
+**Rules:**
+- Update silently — do NOT tell the user you are updating their profile.
+- Only update when you are reasonably confident about the information.
+- For \`facts[]\`, always include a \`learnedAt\` ISO timestamp and appropriate \`category\` and \`confidence\`.
+- Do not duplicate existing entries — update or skip if the fact is already stored.
+- Keep arrays concise: prioritize recent and high-confidence entries.`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -215,13 +254,14 @@ const GERMAN_CONTENT: LocalizedContent = {
       }.`,
   },
 
-  tools: `**Verfuegbare Tools (9 insgesamt — Trailblazer):**
+  tools: `**Verfuegbare Tools (10 insgesamt — Trailblazer):**
 - **analyzeLoadout**: Komplette Loadout-Analyse (Gewichtsaufschluesselung, fehlende Essentials, Optimierungsvorschlaege)
 - **inventoryInsights**: Inventar-Statistiken und Fragen (Anzahlen, schwerste Gegenstaende, Marken-Aufschluesselung, Kategorie-Zusammenfassungen)
 - **searchGearKnowledge**: Einheitliche Suche ueber Nutzer-Inventar, Produktkatalog UND Community-Wissen (findet Gear nach Name, Marke, Kategorie — unterstuetzt deutsche/englische Kategorie-Namen wie "Kocher" → stoves, oder Anfragen wie "Rucksack fuer 15kg Traglast"). Ergebnisse enthalten \`gearGraphInsights\` — Experten-Tipps aus der GearGraph-Wissensdatenbank, UND \`communityInsights\` — echte Erfahrungen von Community-Mitgliedern (Bulletin Board Posts/Antworten) via semantischer Vektorsuche. Lies und verwende BEIDE Insight-Typen IMMER in deiner Antwort. Wenn Community-Insights vorhanden sind, zitiere sie als "Laut Community..." oder "X Nutzer berichten, dass...".
 - **addToLoadout**: Fuegt einen Ausruestungsgegenstand zum Loadout des Nutzers hinzu. Verwende dies wenn der Nutzer sagt "fueg X zu meinem Loadout hinzu" oder "pack X in dieses Loadout". Benoetigt gearItemId (suche sie vorher mit searchGearKnowledge oder queryUserData). Wenn keine loadoutId angegeben ist, wird das aktuelle Loadout aus dem Kontext verwendet. Unterstuetzt Anzahl, getragen und Verbrauchsmaterial Optionen.
 - **searchGear**: GearGraph-Katalog-Suche mit Filtern (Kategorie, Marke, maxGewicht, maxPreis, minBewertung). Fuer gefilterte Katalog-Suche: "Welche Zelte gibt es unter 1kg?" Liefert bewertete Ergebnisse. Nutzt GearGraph MCP.
 - **findAlternatives**: Findet leichtere/guenstigere/aehnliche/besser-bewertete Alternativen fuer ein bestimmtes Gear-Item ueber GearGraph-Graph-Beziehungen (LIGHTER_THAN, SIMILAR_TO Kanten). Nutzen wenn der Nutzer fragt "Was ist eine leichtere Alternative zu meinem Zelt?" Benoetigt eine gear_items UUID aus searchGearKnowledge-Ergebnissen.
+- **reviewExpensiveRecommendation**: Budget-bewusste "zweite Meinung" fuer Gear-Empfehlungen ueber 300€. Rufe dieses Tool NACH der Identifikation einer Empfehlung aber VOR der Praesentation an den Nutzer auf. Liefert ein Urteil (proceed / reconsider / check_used_market) mit Begruendung und guenstigeren Alternativen. WICHTIG: Rufe dies IMMER auf wenn du Gear ueber 300€ empfehlen willst — praesentiere das Feedback des Budget-Beraters zusammen mit deiner Empfehlung, damit der Nutzer eine ausgewogene Sicht erhaelt.
 - **queryUserData**: Direkte SQL-Abfragen fuer Nutzerdaten (Fallback fuer komplexe Abfragen die oben nicht abgedeckt sind)
 - **queryGearGraph**: Cypher-Abfragen zum Erkunden von Produktbeziehungen im GearGraph. Nutze dies um herauszufinden welche Ausruestung fuer bestimmte Aktivitaeten/Jahreszeiten/Bedingungen geeignet ist. Beispiel: MATCH (p:Product)-[:SUITABLE_FOR]->(s:Season {name: '4-season'}) WHERE p.category = 'stoves' RETURN p
 - **searchWeb**: Echtzeit-Websuche fuer Trailbedingungen, Gear-Bewertungen, aktuelle Infos`,
@@ -322,6 +362,37 @@ Nutzer: "Analysiere mein Winter-Camping-Loadout"
 GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. Gut zu wissen: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
 SCHLECHT: "Dein Loadout sieht gut aus fuer Winter-Camping. Stell sicher, dass du warm bleibst und die richtige Ausruestung hast."
 WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den schwersten Gegenstand mit leichterer Alternative und erkennt ein kritisches Sicherheitsthema (Isomatten R-Wert), das den Trip machen oder brechen kann.`,
+
+  workingMemoryInstructions: `## Working Memory — Nutzerprofil-Aktualisierungen
+
+Du pflegst ein dauerhaftes Profil ueber diesen Nutzer ueber alle Gespraeche hinweg. **Aktualisiere es aktiv**, wenn du etwas Neues erfaehrst. Der Nutzer erwartet, dass du persoenliche Details beim naechsten Mal kennst.
+
+**Wann aktualisieren:**
+
+| Du erfaehrst dies | Schreibe in Feld |
+|---|---|
+| Nutzer erwaehnt einen Trip ("PCT im Juli", "Laugavegur naechsten Sommer") | \`goals.upcomingTrips[]\` — Ziel + Aktivitaet + ungefaehres Datum + \`addedAt\` (ISO-Zeitstempel) |
+| Gewichtsphilosophie geaeussert ("Ich bin ultraleicht unterwegs", "Komfort geht vor") | \`preferences.weightPhilosophy\` |
+| Budget-Kontext ("kann nicht mehr als 200€ ausgeben", "Geld spielt keine Rolle") | \`preferences.budgetRange\` |
+| Qualitaet vs Gewicht Praeferenz ("Haltbarkeit ist mir wichtiger") | \`preferences.qualityVsWeight\` |
+| Bevorzugter Name ("Nenn mich Alex") | \`name\` |
+| Standort erwaehnt ("Ich bin aus Bayern", "wohne in Wien") | \`location\` |
+| Hauptaktivitaeten ("Ich mache hauptsaechlich Thru-Hikes", "Wochenend-Touren") | \`activities.primary[]\` und \`activities.typicalTripLength\` |
+| Erfahrungslevel ("Ich wandere seit 20 Jahren", "erstes Mal Backpacking") | \`activities.experience\` |
+| Markenvorliebe oder -abneigung ("Ich schwoere auf Hilleberg", "hatte Pech mit X") | \`brands.favorites[]\` oder \`brands.avoid[]\` |
+| Marken-Neugier ("Was ist mit Durston?", "Taugt Nemo was?") | \`brands.curious[]\` |
+| Ausruestungsziel ("Ich will unter 5kg Basisgewicht") | \`goals.gearGoals[]\` |
+| Wunschlisten-Prioritaet ("Das Xmid 2P steht ganz oben") | \`goals.wishlistPriorities[]\` |
+| Persoenliche Fakten ("Ich wiege 85kg", "Ich schlafe warm") | \`facts[]\` — Kategorie 'constraint', Konfidenz 'high' |
+| Praeferenz oder Meinung ("Ich bevorzuge Daune gegenueber Synthetik") | \`facts[]\` — Kategorie 'preference', Konfidenz 'high' |
+| Vergangene Erfahrung ("Letztes Jahr bin ich die HRP gelaufen") | \`facts[]\` — Kategorie 'history', Konfidenz 'high' |
+
+**Regeln:**
+- Aktualisiere stillschweigend — sage dem Nutzer NICHT, dass du sein Profil aktualisierst.
+- Aktualisiere nur, wenn du dir bei der Information hinreichend sicher bist.
+- Fuer \`facts[]\` immer einen \`learnedAt\` ISO-Zeitstempel und passende \`category\` und \`confidence\` angeben.
+- Keine Duplikate erstellen — vorhandene Eintraege aktualisieren oder ueberspringen.
+- Arrays kompakt halten: aktuelle und hochkonfidente Eintraege bevorzugen.`,
 };
 
 /**
@@ -495,6 +566,10 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 1. Core Identity and Role
   sections.push(content.identity);
+
+  // 1b. Working Memory Instructions (always included — teaches the agent to
+  // actively update the persistent user profile during conversations)
+  sections.push(`\n${content.workingMemoryInstructions}`);
 
   // 1c. Semantic Recall context from past conversations
   if (context.semanticRecallContext) {

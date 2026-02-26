@@ -54,6 +54,7 @@ import {
   recordChatRequest,
   recordAgentLatency,
   recordChatError,
+  recordWorkflowFallback,
   recordToolCall,
   classifyQuery,
   recordPromptVariantAssignment,
@@ -72,9 +73,10 @@ import {
 } from '@/lib/mastra/proactive-suggestions';
 import { mastra } from '@/lib/mastra/instance';
 import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
+import { buildMastraSystemPrompt } from '@/lib/mastra/config';
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
-import { classifyIntent } from '@/lib/mastra/intent-router';
+import { classifyIntent, QUERY_COMPLEXITY_VALUES } from '@/lib/mastra/intent-router';
 import { classifyDomain, DEFAULT_DOMAIN } from '@/lib/mastra/supervisor';
 import { SUPERVISOR_CONFIG } from '@/lib/mastra/config';
 import {
@@ -418,7 +420,7 @@ export async function POST(request: Request): Promise<Response> {
           // =============================================================
           emitProgress('memory', progressMessages[locale].memory);
 
-          // --- Phase 1b: Parallel Classification (Intent + Domain) ---
+          // --- Phase 1b: Parallel Classification (Intent + Domain) + Semantic Cache check ---
           // Run intent classification AND domain classification in parallel:
           // - Intent: Gemini Flash, determines query type + data requirements + cache eligibility
           // - Domain: Haiku (Supervisor-Agent-Pattern, Kap. 22), determines tool subset
@@ -428,56 +430,76 @@ export async function POST(request: Request): Promise<Response> {
           // sequential. On a cold Haiku start the domain call could still add latency, but
           // the 400ms timeout and 'gear' fallback cap the worst-case impact.
           //
-          // Note: classifyIntent is also called inside the gear-assistant workflow (Step 1);
-          // the redundant call on cache-miss is accepted as a minor cost to keep the cache
-          // check outside the workflow boundary.
+          // GRACEFUL DEGRADATION: The entire block is wrapped so that a failure in either
+          // classifyIntent, classifyDomain, or getSemanticCacheHit does not prevent the
+          // workflow from running.  intentResult defaults to 'complex' (not cacheable) and
+          // classifiedDomain defaults to DEFAULT_DOMAIN ('gear') on any error.
+          let intentResult: { intent: string } = { intent: 'complex' };
+          let classifiedDomain = DEFAULT_DOMAIN;
+          let domainConfidence = 0;
           const currentScreen = context?.screen as string | undefined;
-          const [intentResult, domainResult] = await Promise.all([
-            classifyIntent(message, currentScreen, currentLoadoutId),
-            SUPERVISOR_CONFIG.ENABLED
-              ? classifyDomain(message, currentScreen)
-              : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
-          ]);
+          try {
+            const [intentClassification, domainResult] = await Promise.all([
+              classifyIntent(message, currentScreen, currentLoadoutId),
+              SUPERVISOR_CONFIG.ENABLED
+                ? classifyDomain(message, currentScreen)
+                : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
+            ]);
+            intentResult = intentClassification;
+            classifiedDomain = domainResult.domain;
+            domainConfidence = domainResult.confidence;
 
-          // Derive domain tool names for prompt building and agent tool selection
-          const classifiedDomain = domainResult.domain;
+            if (isCacheableIntent(intentResult.intent)) {
+              const cacheLocale = (context?.locale as string) || 'en';
+              const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
 
-          if (isCacheableIntent(intentResult.intent)) {
-            const cacheLocale = (context?.locale as string) || 'en';
-            const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
+              if (cacheHit) {
+                // Snapshot latency once — used for both the log and the done event
+                const totalLatencyMs = requestTimer();
 
-            if (cacheHit) {
-              // Snapshot latency once — used for both the log and the done event
-              const totalLatencyMs = requestTimer();
+                logInfo('Serving response from semantic cache', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    intent: intentResult.intent,
+                    cacheId: cacheHit.cacheId,
+                    similarity: cacheHit.similarity,
+                    latencyMs: totalLatencyMs,
+                  },
+                });
 
-              logInfo('Serving response from semantic cache', {
-                userId: user.id,
-                conversationId,
-                metadata: {
-                  intent: intentResult.intent,
-                  cacheId: cacheHit.cacheId,
-                  similarity: cacheHit.similarity,
-                  latencyMs: totalLatencyMs,
-                },
-              });
+                fullResponse = cacheHit.response;
+                controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
+                controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+                recordAgentLatency(totalLatencyMs / 1000, 'simple');
 
-              fullResponse = cacheHit.response;
-              controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
-              controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
-              recordAgentLatency(totalLatencyMs / 1000, 'simple');
+                // Persist the user message + cached response to Mastra memory so
+                // the agent retains conversational context for follow-up questions.
+                // Fire-and-forget: failures here must never affect the served response.
+                persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                  (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  })
+                );
 
-              // Persist the user message + cached response to Mastra memory so
-              // the agent retains conversational context for follow-up questions.
-              // Fire-and-forget: failures here must never affect the served response.
-              persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
-                (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
-                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                })
-              );
-
-              controller.close();
-              return;
+                controller.close();
+                return;
+              }
             }
+          } catch (cacheCheckError) {
+            // Classification or semantic cache check failed — log and proceed to the workflow.
+            // classifyIntent and classifyDomain have their own internal fallbacks, so this
+            // catch primarily guards against getSemanticCacheHit failures or unexpected errors.
+            // classifiedDomain remains DEFAULT_DOMAIN ('gear') ensuring safe fallback behavior.
+            const cacheErrMsg = cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown';
+            logWarn('Classification or semantic cache check failed, proceeding to workflow', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                error: cacheErrMsg,
+              },
+            });
+            addSpanAttributes({ 'cache.check.failed': true, 'cache.check.error': cacheErrMsg });
           }
 
           // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
@@ -487,8 +509,17 @@ export async function POST(request: Request): Promise<Response> {
           // the only opportunity to show an intermediate progress state.
           emitProgress('context', progressMessages[locale].context);
 
-          const workflow = mastra.getWorkflow('gear-assistant');
-          const run = await workflow.createRun({ resourceId: user.id });
+          // GRACEFUL DEGRADATION: Workflow execution is wrapped in its own
+          // try/catch so that a failure in any step (e.g. Gemini API timeout
+          // in classifyIntent) does not kill the entire chat request.  On
+          // failure we fall back to a minimal pipelineOutput that lets the
+          // agent answer without pre-classified intent or prefetched data.
+          let pipelineOutput: GearAssistantWorkflowOutput;
+          let workflowFallback = false;
+          // Starts empty; only populated on the success path (workflowResult.steps).
+          // On the fallback path this remains [] — referenced only in the logInfo
+          // metadata below, where workflowFallback guards the conditional spread.
+          let workflowStepNames: string[] = [];
 
           // Compute domain-specific tool names for prompt building.
           // Only for trailblazer tier — standard tier uses its own tool descriptions
@@ -500,37 +531,94 @@ export async function POST(request: Request): Promise<Response> {
             ? getToolNamesForRequest(subscriptionTier, classifiedDomain)
             : undefined;
 
-          const workflowResult = await run.start({
-            inputData: {
+          try {
+            const workflow = mastra.getWorkflow('gear-assistant');
+            const run = await workflow.createRun({ resourceId: user.id });
+
+            const workflowResult = await run.start({
+              inputData: {
+                message,
+                userId: user.id,
+                conversationId,
+                locale: (context?.locale as string) || 'en',
+                screen: (context?.screen as string) || 'inventory',
+                inventoryCount: (context?.inventoryCount as number) || 0,
+                currentLoadoutId,
+                enableTools,
+                subscriptionTier,
+                domain: classifiedDomain,
+                domainToolNames,
+              },
+            });
+
+            // Extract workflow output
+            if (workflowResult.status !== 'success' || !workflowResult.result) {
+              const stepErrors = Object.entries(workflowResult.steps)
+                .filter(([, step]) => step?.status === 'failed')
+                .map(([name]) => name);
+
+              throw new Error(
+                `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
+              );
+            }
+
+            // Cast required because Mastra's generic types do not propagate the workflow
+            // output type through workflowResult.result — the schema is validated at
+            // runtime by Zod inside the workflow engine before this point.
+            pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
+            workflowStepNames = Object.keys(workflowResult.steps);
+          } catch (workflowError) {
+            // Workflow failed → fall back to direct agent call with minimal context.
+            // The agent can still answer without pre-classified intent or prefetched data;
+            // it just won't benefit from pre-loaded inventory/catalog context.
+            workflowFallback = true;
+            const errorMsg = workflowError instanceof Error ? workflowError.message : 'unknown';
+
+            logWarn('Workflow pipeline failed, falling back to direct agent call', {
+              userId: user.id,
+              conversationId,
+              metadata: { error: errorMsg },
+            });
+
+            // Use dedicated fallback counter — NOT recordChatError — because the
+            // user still receives a valid response; this is a degraded-mode success,
+            // not an error.  Routing it through error counters would inflate SLOs
+            // and trigger false-positive alerts.
+            recordWorkflowFallback();
+            addSpanAttributes({ 'workflow.fallback': true, 'workflow.error': errorMsg });
+
+            // Do NOT emit a second 'context' progress event here — line 494 already
+            // fired one unconditionally.  Emitting again would send two events for
+            // the same step to the client, causing visible flicker or duplicate state.
+
+            pipelineOutput = {
+              enrichedSystemPrompt: buildMastraSystemPrompt({
+                userContext: {
+                  screen: (context?.screen as string) || 'inventory',
+                  locale,  // Reuse the `locale` constant already derived above (line 386)
+                  inventoryCount: (context?.inventoryCount as number) || 0,
+                  currentLoadoutId,
+                  userId: user.id,
+                  subscriptionTier,
+                },
+              }),
+              // 'complex' is the highest QueryComplexity value (QUERY_COMPLEXITY_VALUES in
+              // intent-router.ts).  Safe default: ensures the full-capability model is used
+              // when pre-classified intent/context is unavailable.
+              queryComplexity: QUERY_COMPLEXITY_VALUES[1],
+              fastAnswer: null,
+              intent: 'complex',
+              confidence: 0,
+              loadoutContext: null,
               message,
               userId: user.id,
               conversationId,
-              locale: (context?.locale as string) || 'en',
-              screen: (context?.screen as string) || 'inventory',
-              inventoryCount: (context?.inventoryCount as number) || 0,
               currentLoadoutId,
               enableTools,
+              locale,  // Reuse the `locale` constant already derived above (line 386)
               subscriptionTier,
-              domain: classifiedDomain,
-              domainToolNames,
-            },
-          });
-
-          // Extract workflow output
-          if (workflowResult.status !== 'success' || !workflowResult.result) {
-            const stepErrors = Object.entries(workflowResult.steps)
-              .filter(([, step]) => step?.status === 'failed')
-              .map(([name]) => name);
-
-            throw new Error(
-              `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
-            );
+            };
           }
-
-          // Cast required because Mastra's generic types do not propagate the workflow
-          // output type through workflowResult.result — the schema is validated at
-          // runtime by Zod inside the workflow engine before this point.
-          const pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
 
           // --- A/B Test: Resolve prompt variant for this user ---
           // The workflow builds enrichedSystemPrompt; we append the variant suffix
@@ -586,19 +674,26 @@ export async function POST(request: Request): Promise<Response> {
               ? `${pipelineOutput.enrichedSystemPrompt}\n\n${variantResolution.promptSuffix}`
               : pipelineOutput.enrichedSystemPrompt;
 
-          logInfo('Gear-assistant workflow completed', {
-            userId: user.id,
-            conversationId,
-            metadata: {
-              intent: pipelineOutput.intent,
-              confidence: pipelineOutput.confidence,
-              hasFastAnswer: !!pipelineOutput.fastAnswer,
-              workflowSteps: Object.keys(workflowResult.steps),
-              domain: classifiedDomain,
-              domainConfidence: domainResult.confidence,
-              toolCount: domainToolNames?.length ?? 'full',
+          logInfo(
+            workflowFallback
+              ? 'Workflow fallback — proceeding with direct agent call'
+              : 'Gear-assistant workflow completed',
+            {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                intent: pipelineOutput.intent,
+                confidence: pipelineOutput.confidence,
+                hasFastAnswer: !!pipelineOutput.fastAnswer,
+                ...(workflowFallback
+                  ? { fallback: true }
+                  : { workflowSteps: workflowStepNames }),
+                domain: classifiedDomain,
+                domainConfidence,
+                toolCount: domainToolNames?.length ?? 'full',
+              },
             },
-          });
+          );
 
           // =============================================================
           // Fast-path: If the workflow produced a fast answer, return it
