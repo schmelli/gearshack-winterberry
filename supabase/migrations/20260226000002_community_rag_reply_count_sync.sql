@@ -101,3 +101,14 @@ CREATE TRIGGER trg_sync_rag_reply_count
 
 COMMENT ON TRIGGER trg_sync_rag_reply_count ON bulletin_replies IS
   'Auto-syncs community_knowledge_chunks.reply_count whenever a reply is added, soft-deleted, or hard-deleted. Ensures RAG quality filters reflect current engagement levels without manual re-indexing.';
+
+-- ============================================================================
+-- Permissions: Ensure service_role can call search_community_knowledge
+-- ============================================================================
+-- Migration 20260226000001 granted EXECUTE to `authenticated`, but the AI agent
+-- calls search_community_knowledge via createServiceRoleClient() (the service_role
+-- PostgREST key). While the postgres owner implicitly has EXECUTE and service_role
+-- is a superuser in Supabase's privilege model, an explicit grant makes the intent
+-- unambiguous and safe across Supabase project configurations.
+GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
+  TO service_role;

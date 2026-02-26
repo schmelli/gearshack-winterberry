@@ -432,11 +432,13 @@ LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic
         // COMMUNITY_RAG_MAX_AGE_MONTHS) so they can be tuned without redeploying.
         searchCommunityKnowledge(query, {
           topK: 3,
-          // Use explicit > 0 comparison rather than `|| undefined` (which is falsy
-          // for 0). parseEnvInt correctly returns 0 to disable a filter; using `||`
-          // here would silently re-enable it. See lib/utils/parse-env-int.ts.
-          maxAgeMonths: COMMUNITY_RAG_MAX_AGE_MONTHS > 0 ? COMMUNITY_RAG_MAX_AGE_MONTHS : undefined,
-          minReplies: COMMUNITY_RAG_MIN_REPLIES > 0 ? COMMUNITY_RAG_MIN_REPLIES : undefined,
+          // Explicit comparison avoids the `|| undefined` falsy anti-pattern that
+          // parseEnvInt was introduced to fix. 0 means "disabled" — pass null to
+          // signal "no filter" to the RPC rather than relying on 0 being falsy.
+          // Uses null (not undefined) to align with CommunitySearchOptions type:
+          //   maxAgeMonths?: number | null  /  minReplies?: number | null
+          maxAgeMonths: COMMUNITY_RAG_MAX_AGE_MONTHS === 0 ? null : COMMUNITY_RAG_MAX_AGE_MONTHS,
+          minReplies: COMMUNITY_RAG_MIN_REPLIES === 0 ? null : COMMUNITY_RAG_MIN_REPLIES,
         }).catch(() => []),
       ]);
 

@@ -1,6 +1,6 @@
 /**
  * Unit Tests: parseEnvInt — pure utility function
- * Module: lib/env.ts
+ * Module: lib/utils/parse-env-int.ts
  *
  * Tests that `parseEnvInt` correctly handles all edge cases when parsing
  * integer environment variables, in particular that explicit `0` is preserved
@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseEnvInt } from '@/lib/env';
+import { parseEnvInt } from '@/lib/utils/parse-env-int';
 
 describe('parseEnvInt', () => {
   // =========================================================================

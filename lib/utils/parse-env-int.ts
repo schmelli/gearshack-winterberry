@@ -19,6 +19,8 @@
  *   parseEnvInt('-5', 24)              // → 0   (clamped to 0)
  */
 export function parseEnvInt(raw: string | undefined, defaultVal: number): number {
-  const parsed = parseInt(raw ?? String(defaultVal), 10);
+  // Early-return for absent or blank input — avoids parseInt(String(defaultVal)) round-trip
+  if (!raw?.trim()) return defaultVal;
+  const parsed = parseInt(raw, 10);
   return Number.isNaN(parsed) ? defaultVal : Math.max(0, parsed);
 }
