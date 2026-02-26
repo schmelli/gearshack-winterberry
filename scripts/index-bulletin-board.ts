@@ -159,7 +159,7 @@ async function indexPosts(): Promise<{ indexed: number; skipped: number; failed:
       gear_names: extractGearNames(post.content as string),
       brand_names: extractBrandNames(post.content as string),
       source_created_at: post.created_at,
-      reply_count: (post.reply_count as number) ?? 0,
+      reply_count: post.reply_count ?? 0,
     });
   }
 

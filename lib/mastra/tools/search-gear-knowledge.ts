@@ -117,6 +117,34 @@ const REFORMULATION_MODEL = process.env.REFORMULATION_MODEL ?? 'anthropic/claude
 /** Timeout for the reformulation LLM call (ms) */
 const REFORMULATION_TIMEOUT_MS = 3000;
 
+// =============================================================================
+// Community RAG Quality Filter Defaults
+// =============================================================================
+// Both thresholds can be tuned via environment variables without a code change.
+// This is intentional: the right thresholds depend on community size and activity
+// at the time of deployment and should be tunable without requiring a redeploy.
+//
+//   COMMUNITY_RAG_MIN_REPLIES   (default: 1)
+//     Minimum reply count for bulletin_post chunks to appear in RAG results.
+//     Set to 1 to exclude zero-reply posts (posts with at least one reply are
+//     more likely to contain validated, community-endorsed information).
+//     Set higher (e.g., 2 or 3) once the community is active enough that stricter
+//     thresholds won't starve the agent of results.
+//     Set to 0 to disable engagement filtering entirely.
+//
+//   COMMUNITY_RAG_MAX_AGE_MONTHS  (default: 24)
+//     Exclude community chunks older than this many months. 24 months (2 years)
+//     ensures gear advice stays relevant without discarding too much history.
+//     Set to 0 or omit to disable recency filtering.
+const COMMUNITY_RAG_MIN_REPLIES = Math.max(
+  0,
+  parseInt(process.env.COMMUNITY_RAG_MIN_REPLIES ?? '1', 10) || 1
+);
+const COMMUNITY_RAG_MAX_AGE_MONTHS = Math.max(
+  0,
+  parseInt(process.env.COMMUNITY_RAG_MAX_AGE_MONTHS ?? '24', 10) || 24
+);
+
 /**
  * Lazy-loaded gateway instance for reformulation calls.
  * NOTE: AI_GATEWAY_API_KEY / AI_GATEWAY_KEY must be present at module load time.
@@ -404,11 +432,13 @@ LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic
         // 4a. GearGraph INSIGHTS (HAS_TIP relationships)
         fetchInsightsFromGearGraph(insightSearchTerms),
         // 4b. Community Knowledge (bulletin board posts via pgvector RAG)
-        // Quality filters (Vorschlag 6): prioritize recent, engaged-with content
+        // Quality filters (Vorschlag 6): prioritize recent, engaged-with content.
+        // Thresholds are read from env vars (COMMUNITY_RAG_MIN_REPLIES,
+        // COMMUNITY_RAG_MAX_AGE_MONTHS) so they can be tuned without redeploying.
         searchCommunityKnowledge(query, {
           topK: 3,
-          maxAgeMonths: 24, // Only posts from the last 2 years
-          minReplies: 2,    // At least 2 replies (engagement/quality signal)
+          maxAgeMonths: COMMUNITY_RAG_MAX_AGE_MONTHS || undefined, // 0 = disabled
+          minReplies: COMMUNITY_RAG_MIN_REPLIES || undefined,       // 0 = disabled
         }).catch(() => []),
       ]);
 

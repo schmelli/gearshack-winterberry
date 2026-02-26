@@ -129,6 +129,10 @@ export async function POST(request: Request): Promise<Response> {
     let chunks;
 
     if (source_type === 'bulletin_post') {
+      // sourceRecord was fetched with `select('id, author_id, reply_count')` for posts
+      // (see selectFields above). We use a narrow typed interface here instead of a
+      // catch-all cast to preserve type safety without splitting into two query branches.
+      const postRecord = sourceRecord as { id: string; author_id: string; reply_count: number };
       const post: BulletinPostForIndexing = {
         id: source_id,
         content,
@@ -136,7 +140,7 @@ export async function POST(request: Request): Promise<Response> {
         author_id: user.id,
         created_at: created_at || new Date().toISOString(),
         author_name: author_name || undefined,
-        reply_count: (sourceRecord as { reply_count?: number }).reply_count ?? 0,
+        reply_count: postRecord.reply_count ?? 0,
       };
       chunks = buildPostChunks(post);
     } else {

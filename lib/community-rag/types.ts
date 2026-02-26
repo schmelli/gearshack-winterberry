@@ -98,7 +98,12 @@ export interface BulletinPostForIndexing {
   author_id: string;
   created_at: string;
   author_name?: string;
-  reply_count?: number;
+  /**
+   * Engagement count from the source post. Required — callers must provide
+   * the current reply_count to ensure the quality filter reflects actual engagement.
+   * Use `0` when the value is unknown rather than omitting the field.
+   */
+  reply_count: number;
 }
 
 export interface BulletinReplyForIndexing {
