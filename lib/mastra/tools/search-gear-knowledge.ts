@@ -654,6 +654,24 @@ async function logCatalogGap(
   }
 }
 
+/**
+ * Shape returned by the search_catalog_enriched RPC function.
+ * brand_name is returned directly via LEFT JOIN catalog_brands — no secondary round-trip needed.
+ * brand_id and search_enrichment are implementation details stripped before returning to the agent.
+ */
+interface EnrichedRpcRow {
+  id: string;
+  name: string;
+  product_type: string | null;
+  description: string | null;
+  price_usd: number | null;
+  weight_grams: number | null;
+  brand_id: string | null;
+  brand_name: string | null;
+  search_enrichment: unknown;
+  match_source: string;
+}
+
 async function searchCatalog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -663,6 +681,12 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Guard: empty or whitespace-only queries would match every row via ILIKE '%%'.
+  // The Zod schema enforces min(1) but can't catch whitespace-only strings.
+  if (!query.trim()) {
+    return { type: 'catalog', data: [] };
+  }
+
   // Escape ILIKE wildcards for bound parameters (RPC args, .ilike() values).
   // Only escapes %, _, \ — preserves dots/commas since bound params aren't
   // parsed as PostgREST filter strings.
@@ -711,34 +735,14 @@ async function searchCatalog(
     return searchCatalogFallback(supabase, query, filters, sortBy, limit, offset);
   }
 
-  /**
-   * Shape returned by the search_catalog_enriched RPC function.
-   * brand_name is returned directly via LEFT JOIN — no secondary round-trip needed.
-   */
-  interface EnrichedRpcRow {
-    id: string;
-    name: string;
-    product_type: string | null;
-    description: string | null;
-    price_usd: number | null;
-    weight_grams: number | null;
-    brand_id: string | null;
-    brand_name: string | null;
-    search_enrichment: unknown;
-    match_source: string;
-  }
-
   const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
 
-  // Strip internal fields (brand_id, search_enrichment, match_source) that are
-  // implementation details and must not leak into agent output.
-  // brand_name is already included via the RPC JOIN — no secondary lookup needed.
-  const flattened = results.map((item) => ({
-    ...item,
-    brand_id: undefined,
-    search_enrichment: undefined,
-    match_source: undefined,
-  }));
+  // Destructure to omit internal fields (brand_id, search_enrichment, match_source).
+  // Using destructuring instead of `property: undefined` actually removes the keys from
+  // the object, making the intent self-documenting and preventing accidental leakage
+  // into agent output or JSON serialization.
+  // brand_name is already in `rest` via the RPC JOIN — no secondary lookup needed.
+  const flattened = results.map(({ brand_id: _bid, search_enrichment: _se, match_source: _ms, ...rest }) => rest);
 
   return { type: 'catalog', data: flattened };
 }

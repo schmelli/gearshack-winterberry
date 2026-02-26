@@ -37,14 +37,12 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 AS $$
-  WITH
-    -- Escape ILIKE special characters at the DB level for defense-in-depth.
-    -- TypeScript callers also escape via escapeIlikeWildcards(), but this protects
-    -- any future caller that bypasses the TypeScript layer (direct SQL, scripts, etc.).
-    -- Order: backslash first to prevent double-escaping.
-    escaped AS (
-      SELECT replace(replace(replace(p_query, '\', '\\'), '%', '\%'), '_', '\_') AS q
-    )
+  -- NOTE: p_query is expected to already be ILIKE-escaped by the caller
+  -- (TypeScript: escapeIlikeWildcards escapes \, %, _). Do NOT re-escape here —
+  -- double-escaping corrupts queries containing underscores or backslashes.
+  -- Example: "trail_shoe" → TS escapes to "trail\_shoe" → SQL re-escape would
+  -- produce "trail\\_shoe" which matches the literal string "trail\_shoe", not "trail_shoe".
+  -- PostgreSQL bound parameters prevent SQL injection; single-layer escaping is sufficient.
   SELECT
     cp.id,
     cp.name,
@@ -56,17 +54,19 @@ AS $$
     cb.name AS brand_name,
     cp.search_enrichment,
     CASE
-      WHEN cp.name ILIKE '%' || e.q || '%' THEN 'name'
-      WHEN cp.description ILIKE '%' || e.q || '%' THEN 'description'
-      WHEN cp.product_type ILIKE '%' || e.q || '%' THEN 'product_type'
-      WHEN enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || e.q || '%' THEN 'enrichment'
+      WHEN cp.name ILIKE '%' || p_query || '%' THEN 'name'
+      WHEN cp.description ILIKE '%' || p_query || '%' THEN 'description'
+      WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 'product_type'
+      WHEN enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || p_query || '%' THEN 'enrichment'
       ELSE 'unknown'
     END AS match_source
   FROM catalog_products cp
-  CROSS JOIN escaped e
   -- LEFT JOIN so products with no brand (brand_id IS NULL) are still returned.
   LEFT JOIN catalog_brands cb ON cp.brand_id = cb.id
   -- LATERAL subquery computes catalog_enrichment_text(cp) exactly ONCE per row.
+  -- Without LATERAL, the function would be called once in WHERE and once in SELECT,
+  -- doubling per-row work. LATERAL binds the result to `enr.enr_text` so both
+  -- clauses reuse the single computed value.
   CROSS JOIN LATERAL (
     SELECT
       CASE
@@ -76,10 +76,10 @@ AS $$
   ) enr
   WHERE
     (
-      cp.name ILIKE '%' || e.q || '%'
-      OR cp.description ILIKE '%' || e.q || '%'
-      OR cp.product_type ILIKE '%' || e.q || '%'
-      OR (enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || e.q || '%')
+      cp.name ILIKE '%' || p_query || '%'
+      OR cp.description ILIKE '%' || p_query || '%'
+      OR cp.product_type ILIKE '%' || p_query || '%'
+      OR (enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || p_query || '%')
     )
     AND (p_brand_ids IS NULL OR cp.brand_id = ANY(p_brand_ids))
     AND (p_max_weight IS NULL OR cp.weight_grams <= p_max_weight)
@@ -93,9 +93,9 @@ AS $$
     --   4 = enrichment-only match (lowest relevance)
     CASE WHEN p_sort_by = 'relevance' THEN
       CASE
-        WHEN cp.name ILIKE '%' || e.q || '%' THEN 1
-        WHEN cp.description ILIKE '%' || e.q || '%' THEN 2
-        WHEN cp.product_type ILIKE '%' || e.q || '%' THEN 3
+        WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
+        WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
+        WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
         ELSE 4
       END
     ELSE 0
@@ -112,8 +112,17 @@ AS $$
   OFFSET p_offset
 $$;
 
+-- Grant PostgREST roles access to the RPC functions.
+-- DROP + CREATE removes any previously granted permissions, so GRANTs must be re-issued here.
+-- Both anon (unauthenticated) and authenticated roles need EXECUTE so the functions are
+-- callable via the Supabase client / PostgREST HTTP layer. Without this, calling
+-- supabase.rpc('search_catalog_enriched', ...) silently fails and falls back to ILIKE.
+GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION catalog_enrichment_text(catalog_products) TO anon, authenticated;
+
 COMMENT ON FUNCTION search_catalog_enriched IS
   'Enrichment-aware catalog search RPC. Searches name, description, product_type '
   'and search_enrichment JSONB via ILIKE. LEFT JOINs catalog_brands to return '
   'brand_name directly, eliminating a secondary round-trip from the caller. '
-  'All filtering, sorting, and pagination are handled at the DB level.';
+  'All filtering, sorting, and pagination are handled at the DB level. '
+  'p_query must be pre-escaped by the caller (TypeScript: escapeIlikeWildcards).';

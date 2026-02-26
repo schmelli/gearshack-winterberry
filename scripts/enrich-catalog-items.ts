@@ -43,6 +43,13 @@ const ENRICHMENT_MODEL = process.env.ENRICHMENT_MODEL ?? 'anthropic/claude-haiku
 /** Maximum items to process per run (prevents runaway costs) */
 const DEFAULT_BATCH_LIMIT = 100;
 
+/**
+ * Absolute upper bound on --limit to prevent runaway API costs from typos.
+ * Prevents accidental `--limit 10000` from generating thousands of LLM calls.
+ * Use multiple sequential runs for larger batches.
+ */
+const MAX_SAFE_LIMIT = 1000;
+
 /** Delay between API calls to avoid rate limiting (ms) */
 const THROTTLE_DELAY_MS = 500;
 
@@ -98,6 +105,10 @@ function parseArgs(): CliArgs {
         console.error('Error: --limit must be a positive integer');
         process.exit(1);
       }
+      if (limit > MAX_SAFE_LIMIT) {
+        console.error(`Error: --limit cannot exceed ${MAX_SAFE_LIMIT}. Use multiple sequential runs for larger batches.`);
+        process.exit(1);
+      }
       i++; // skip next arg
     } else if (args[i] === '--force') {
       force = true;
@@ -108,7 +119,7 @@ function parseArgs(): CliArgs {
 Usage: npx tsx scripts/enrich-catalog-items.ts [options]
 
 Options:
-  --limit <n>   Maximum products to enrich (default: ${DEFAULT_BATCH_LIMIT})
+  --limit <n>   Maximum products to enrich (default: ${DEFAULT_BATCH_LIMIT}, max: ${MAX_SAFE_LIMIT})
   --force       Re-enrich products that already have enrichment data
   --dry-run     Preview which products would be enriched without writing to DB
   --help        Show this help message
