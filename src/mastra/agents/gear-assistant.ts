@@ -28,6 +28,7 @@ import { inventoryInsightsTool } from '@/lib/mastra/tools/inventory-insights';
 import { searchGearKnowledgeTool } from '@/lib/mastra/tools/search-gear-knowledge';
 import { addToLoadoutTool } from '@/lib/mastra/tools/add-to-loadout';
 import { searchGearTool, findAlternativesTool } from '@/lib/mastra/tools/mcp-graph';
+import { reviewExpensiveRecommendationTool } from '@/lib/mastra/tools/review-recommendation';
 import { queryUserDataSqlTool } from '@/lib/mastra/tools/query-user-data-sql';
 import { queryGearGraphTool } from '@/lib/mastra/tools/query-geargraph-v2';
 import { searchWebTool } from '@/lib/mastra/tools/search-web';
@@ -208,6 +209,9 @@ This is a Mastra Studio development session. You have access to the full toolset
 - searchGear — Search catalog with filters (category, brand, maxWeight, maxPrice, minRating)
 - findAlternatives — Find lighter/cheaper/similar alternatives via graph relationships
 
+**Critic Agent:**
+- reviewExpensiveRecommendation — Budget-conscious review for gear >€300. Call AFTER identifying a recommendation, BEFORE presenting it. Returns verdict: proceed / reconsider / check_used_market.
+
 **Legacy / Fallback:**
 - queryUserData — Direct SQL queries for complex user data queries
 - queryGearGraph — Cypher queries to explore GearGraph product relationships
@@ -269,6 +273,8 @@ export function getGearAssistant(): Agent {
         // GearGraph MCP Tools — catalog-only, no userId required
         searchGear: searchGearTool,
         findAlternatives: findAlternativesTool,
+        // Critic Agent — budget review for expensive recommendations (>€300)
+        reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
         // Legacy tools (fallback)
         // ⚠️ Dev only: queryUserData and queryGearGraph have direct DB access.
         //    Never point DATABASE_URL at a production database while using Studio.
