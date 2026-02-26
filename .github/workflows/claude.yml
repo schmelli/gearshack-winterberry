@@ -65,7 +65,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           claude_args: |
-            --model claude-sonnet-4-6
+            --model claude-opus-4-6
             --system-prompt "Read CLAUDE.md for core project rules and information regarding the tech stack. CI/CD Context: Assess the specific issues, requests or recommendations described in the comment/issue/review. Think hard to identify the root problem(s). Generate a thorough and detailed plan for implementation of a suitable fix. Only then implement that fix following your plan. If necessary update or generate tests and documentation. Always run relevant tests before committing. If tests fail, fix the code and retry (max 3 times). Output concise summaries of your changes."
             --mcp-config /tmp/mcp-config.json
 
