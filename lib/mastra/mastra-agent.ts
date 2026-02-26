@@ -43,7 +43,9 @@ import {
 } from './schemas/working-memory';
 import { COMPLEXITY_ROUTING_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
-import { logWarn } from './logging';
+import { logWarn, logInfo } from './logging';
+// Agent Middleware — defense-in-depth guardrails
+import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
 
 // =============================================================================
 // Request Context Type Definition
@@ -565,18 +567,23 @@ export async function persistCacheHitToMemory(
 // =============================================================================
 
 /**
- * Stream response from Mastra Agent with RequestContext
+ * Stream response from Mastra Agent with RequestContext and Guardrails
  *
  * The requestContext drives the Dynamic Agent's behavior:
  * - instructions callback reads tier, locale, promptContext → builds system prompt
  * - tools callback reads tier → selects appropriate toolset
  * - Tool execution receives userId, currentLoadoutId for data access
  *
+ * Agent Middleware:
+ * - beforeGenerate: Prompt injection detection + message length enforcement
+ * - afterGenerate: PII redaction from agent output text (stream + fullText)
+ *
  * @param agent - Mastra Agent instance (created via createGearAgent)
  * @param message - Current user message
  * @param userId - User ID for memory scoping (resourceId)
  * @param conversationId - Conversation/thread ID for Mastra memory persistence
  * @param requestContext - Populated RequestContext with tier, locale, and prompt data
+ * @throws Error if beforeGenerate rejects the message (prompt injection detected)
  */
 export async function streamMastraResponse(
   agent: Agent,
@@ -585,8 +592,28 @@ export async function streamMastraResponse(
   conversationId: string,
   requestContext: RequestContext<GearshackRequestContext>
 ) {
+  // ── beforeGenerate: Input validation & sanitization ──
+  const guardResult = beforeGenerate(message, userId, conversationId);
+
+  if (!guardResult.allowed) {
+    // Throw so the caller (chat route) can emit an error SSE event.
+    // The generic message avoids leaking detection logic to the client.
+    throw new Error(guardResult.rejectionReason ?? 'Message blocked by safety filter');
+  }
+
+  // Use the sanitized (possibly truncated) message
+  const safeMessage = guardResult.sanitizedMessage ?? message;
+
+  if (guardResult.wasTruncated) {
+    logInfo('[Agent Middleware] Streaming with truncated message', {
+      userId,
+      conversationId,
+      metadata: { originalLength: message.length, safeLength: safeMessage.length },
+    });
+  }
+
   // Only the current message — Mastra retrieves history via threadId
-  const messages = [{ role: 'user' as const, content: message }];
+  const messages = [{ role: 'user' as const, content: safeMessage }];
 
   // Stream with requestContext so dynamic instructions/tools resolve per-request,
   // and threadId so Mastra's PostgresStore injects conversation history
@@ -597,10 +624,26 @@ export async function streamMastraResponse(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
+  // ── afterGenerate: Wrap textStream with PII sanitization ──
+  // Transform the async iterable to apply output guardrails on each chunk.
+  // Uses a small buffer to catch PII patterns that straddle chunk boundaries.
+  const originalTextStream = stream.textStream;
+  const sanitizedTextStream = createSanitizedTextStream(originalTextStream, userId, conversationId);
+
+  // Also sanitize the resolved full-text value so callers using fullText
+  // (e.g. for persistence or logging) do not receive unredacted PII.
+  // The `Promise.resolve('')` fallback when stream.text is falsy is intentional —
+  // it mirrors the original `stream.text || Promise.resolve('')` behaviour and
+  // ensures callers always receive a settled Promise rather than undefined.
+  const sanitizedFullText: Promise<string> = stream.text
+    ? stream.text.then((text: string) => afterGenerate(text, userId, conversationId).sanitizedText)
+    : Promise.resolve('');
+
   return {
-    textStream: stream.textStream,
+    textStream: sanitizedTextStream,
     toolCalls: stream.toolCalls || Promise.resolve([]),
-    fullText: stream.text || Promise.resolve(''),
+    fullText: sanitizedFullText,
     finishReason: stream.finishReason || Promise.resolve('stop'),
   };
 }
+
