@@ -265,3 +265,11 @@ You `MUST` always use this tool when:
 + Before making architectural decisions to understand existing patterns
 + When debugging issues to check for previous solutions
 + Working with unfamiliar parts of the codebase
+
+<!-- MEMORY:START -->
+# gearshack-winterberry
+
+_Last updated: 2026-02-26 | 0 active memories, 0 total_
+
+_For deeper context, use memory_search, memory_related, or memory_ask tools._
+<!-- MEMORY:END -->

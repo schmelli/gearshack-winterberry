@@ -2,6 +2,13 @@
   "mcpServers": {
     "Sentry": {
       "url": "https://mcp.sentry.dev/mcp/gearshack/gearshack-winterberry"
+    },
+    "memory": {
+      "command": "node",
+      "args": [
+        "/opt/homebrew/lib/node_modules/claude-code-memory/dist/index.js",
+        "/Users/schmelli/Coding/gearshack-winterberry"
+      ]
     }
   }
 }
