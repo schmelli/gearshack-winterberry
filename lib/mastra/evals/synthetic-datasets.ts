@@ -10,7 +10,7 @@
  *   2. Approve candidates in eval_review_queue
  *   3. npx tsx scripts/promote-approved-evals.ts       (promote to this file)
  *
- * Generated at: 2026-02-26T00:00:00.000Z
+ * Generated at: 2026-02-26T00:00:00.000Z  (placeholder — overwritten on first promotion run)
  * Total candidates: 0
  */
 

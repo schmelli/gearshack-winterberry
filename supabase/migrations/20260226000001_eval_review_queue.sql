@@ -53,6 +53,10 @@ CREATE TABLE IF NOT EXISTS eval_review_queue (
 
   -- Review lifecycle
   status eval_review_status NOT NULL DEFAULT 'pending_review',
+  -- NOTE: reviewed_by is intentionally NULL for promotions performed by the service-role
+  -- scripts (promote-approved-evals.ts), which run without a user context. This column
+  -- is reserved for future UI-based review workflows where a human reviewer's auth.users
+  -- UUID can be captured. Track the gap in: https://github.com/schmelli/gearshack-winterberry/issues
   reviewed_by UUID REFERENCES auth.users(id),
   reviewed_at TIMESTAMPTZ,
   reviewer_notes TEXT,
@@ -83,6 +87,13 @@ CREATE INDEX idx_eval_review_queue_dataset ON eval_review_queue(target_dataset, 
 -- Sort by generation time for chronological review
 CREATE INDEX idx_eval_review_queue_generated_at ON eval_review_queue(generated_at DESC);
 
+-- Prevent duplicate (input, target_dataset) pairs across non-rejected rows.
+-- The LLM prompt discourages duplication, but this DB-level guard is the safety net.
+-- Rejected rows are excluded so the same input can be reconsidered in a future batch.
+CREATE UNIQUE INDEX idx_eval_review_queue_unique_input
+  ON eval_review_queue (input, target_dataset)
+  WHERE status != 'rejected';
+
 -- =============================================================================
 -- RLS Policies
 -- =============================================================================
@@ -96,11 +107,15 @@ CREATE POLICY "service_role_full_access" ON eval_review_queue
   USING (true)
   WITH CHECK (true);
 
--- Authenticated users can view pending and approved items
+-- Authenticated users can only view promoted items.
+-- Pending and approved rows contain raw production trace inputs that may include
+-- sensitive user data (PII, proprietary gear configurations). Restricting read
+-- access to 'promoted' rows ensures only vetted, scrubbed test cases are visible
+-- to regular app users.
 CREATE POLICY "authenticated_read" ON eval_review_queue
   FOR SELECT
   TO authenticated
-  USING (true);
+  USING (status = 'promoted');
 
 -- Only admins can update review status (via service role in scripts)
 -- Regular authenticated users are read-only
@@ -158,8 +173,8 @@ CREATE POLICY "authenticated_read_runs" ON eval_generation_runs
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION get_eval_review_stats()
-RETURNS JSON AS $$
-  SELECT json_build_object(
+RETURNS JSONB AS $$
+  SELECT jsonb_build_object(
     'pending', COUNT(*) FILTER (WHERE status = 'pending_review'),
     'approved', COUNT(*) FILTER (WHERE status = 'approved'),
     'rejected', COUNT(*) FILTER (WHERE status = 'rejected'),

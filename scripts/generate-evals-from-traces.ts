@@ -35,7 +35,7 @@ import { randomUUID } from 'crypto';
 const DEFAULT_LOOKBACK_DAYS = 7;
 const DEFAULT_TRACE_LIMIT = 100;
 const DEFAULT_CANDIDATE_COUNT = 5;
-const GENERATOR_MODEL = process.env.EVAL_GENERATOR_MODEL || 'anthropic/claude-sonnet-4-5';
+const GENERATOR_MODEL = process.env.EVAL_GENERATOR_MODEL || 'anthropic/claude-sonnet-4-6';
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -202,8 +202,9 @@ function deduplicateByRun(traces: ProductionTrace[]): ProductionTrace[] {
  * 4. Avoid duplicates of existing test cases
  */
 async function selectCandidates(traces: ProductionTrace[]): Promise<EvalCandidate[]> {
-  // Prepare trace summaries for the LLM (truncate to avoid context overflow)
-  const traceSummaries = traces.slice(0, 30).map((t) => ({
+  // Prepare trace summaries for the LLM (truncate to avoid context overflow).
+  // Use traceLimit so --limit CLI arg controls both DB fetch count and LLM context size.
+  const traceSummaries = traces.slice(0, traceLimit).map((t) => ({
     input: typeof t.input === 'string' ? t.input : JSON.stringify(t.input).substring(0, 300),
     output: typeof t.output === 'string'
       ? t.output.substring(0, 200)
@@ -221,12 +222,13 @@ async function selectCandidates(traces: ProductionTrace[]): Promise<EvalCandidat
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90_000);
 
-  const { object } = await generateObject({
-    model: gateway(GENERATOR_MODEL),
-    schema: EvalCandidateSchema,
-    temperature: 0.3,
-    abortSignal: controller.signal,
-    system: `You are an expert QA engineer for a gear management AI assistant (GearShack).
+  try {
+    const { object } = await generateObject({
+      model: gateway(GENERATOR_MODEL),
+      schema: EvalCandidateSchema,
+      temperature: 0.3,
+      abortSignal: controller.signal,
+      system: `You are an expert QA engineer for a gear management AI assistant (GearShack).
 The assistant helps users manage hiking/camping gear inventory, analyze loadouts,
 and search for gear using these tools:
 - searchGearKnowledge: RAG search across user inventory and product catalog
@@ -244,7 +246,7 @@ that would strengthen the eval suite. Focus on:
 IMPORTANT: Generate the "input" field as a realistic user query that would trigger
 the expected behavior. Do NOT copy the raw trace input JSON — transform it into a
 natural language query. Each candidate must be meaningfully different.`,
-    prompt: `Here are ${traceSummaries.length} recent production traces with their eval scores.
+      prompt: `Here are ${traceSummaries.length} recent production traces with their eval scores.
 Select ${candidateCount} diverse, representative test cases.
 
 Production traces:
@@ -263,10 +265,12 @@ Existing test case topics to AVOID duplicating:
 - "How many items do I have?" (inventory count)
 
 Select ${candidateCount} NEW test cases that cover gaps not addressed above.`,
-  });
-
-  clearTimeout(timeout);
-  return object.evalCandidates;
+    });
+    return object.evalCandidates;
+  } finally {
+    // Always clear the timeout regardless of success or failure to avoid timer leaks
+    clearTimeout(timeout);
+  }
 }
 
 // =============================================================================
@@ -304,6 +308,7 @@ async function recordGenerationRun(
   batchId: string,
   tracesScanned: number,
   candidatesGenerated: number,
+  startedAt: string,
   error?: string
 ): Promise<void> {
   await supabase.from('eval_generation_runs').insert({
@@ -313,7 +318,7 @@ async function recordGenerationRun(
     generator_model: GENERATOR_MODEL,
     lookback_days: lookbackDays,
     filters: { traceLimit, candidateCount },
-    started_at: new Date().toISOString(),
+    started_at: startedAt,
     completed_at: new Date().toISOString(),
     error: error ?? null,
   });
@@ -324,6 +329,8 @@ async function recordGenerationRun(
 // =============================================================================
 
 async function main(): Promise<void> {
+  // Capture run start time immediately so audit log reflects true duration
+  const runStartedAt = new Date().toISOString();
   const batchId = `eval-gen-${Date.now()}-${randomUUID().substring(0, 8)}`;
 
   console.log('Synthetic Eval Generation from Production Traces');
@@ -344,7 +351,7 @@ async function main(): Promise<void> {
     console.log('  No scored traces found in the lookback window.');
     console.log('  The eval suite needs production traffic with eval sampling enabled.');
     console.log('  Set EVAL_SAMPLING_RATE=0.1 in production to start collecting traces.');
-    await recordGenerationRun(batchId, 0, 0, 'No traces found');
+    await recordGenerationRun(batchId, 0, 0, runStartedAt, 'No traces found');
     return;
   }
 
@@ -355,7 +362,7 @@ async function main(): Promise<void> {
   if (traces.length < 3) {
     console.log('  Too few unique traces for meaningful candidate selection.');
     console.log('  Need at least 3 unique agent runs. Try increasing --lookback.');
-    await recordGenerationRun(batchId, traces.length, 0, 'Too few unique traces');
+    await recordGenerationRun(batchId, traces.length, 0, runStartedAt, 'Too few unique traces');
     return;
   }
 
@@ -367,7 +374,7 @@ async function main(): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`  LLM candidate selection failed: ${msg}`);
-    await recordGenerationRun(batchId, traces.length, 0, msg);
+    await recordGenerationRun(batchId, traces.length, 0, runStartedAt, msg);
     process.exit(1);
   }
 
@@ -390,7 +397,7 @@ async function main(): Promise<void> {
   const insertedCount = await insertCandidates(candidates, batchId);
 
   // Step 5: Record the generation run
-  await recordGenerationRun(batchId, traces.length, insertedCount);
+  await recordGenerationRun(batchId, traces.length, insertedCount, runStartedAt);
 
   console.log(`\n  Inserted ${insertedCount} candidates into eval_review_queue.`);
   console.log(`  Batch ID: ${batchId}`);

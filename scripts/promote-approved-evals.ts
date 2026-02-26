@@ -19,6 +19,7 @@
  */
 
 import 'dotenv/config';
+import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -45,8 +46,12 @@ const isDryRun = process.argv.includes('--dry-run');
 // Output Path
 // =============================================================================
 
+// ESM-compatible directory resolution: `__dirname` is not defined in ES modules.
+// `import.meta.url` works in both ESM and tsx's CJS-transpiled output.
+const _scriptDir = path.dirname(fileURLToPath(import.meta.url));
+
 const OUTPUT_PATH = path.resolve(
-  __dirname,
+  _scriptDir,
   '..',
   'lib',
   'mastra',
@@ -68,6 +73,7 @@ interface ApprovedCandidate {
   reviewer_notes: string | null;
   generation_batch_id: string | null;
   generated_at: string;
+  status: string;
 }
 
 // =============================================================================
@@ -81,20 +87,25 @@ async function main(): Promise<void> {
   console.log(`  Output:  ${OUTPUT_PATH}`);
   console.log('');
 
-  // Step 1: Fetch newly approved candidates (to be promoted)
-  console.log('Step 1: Fetching approved candidates...');
-  const { data: newlyApproved, error: approvedErr } = await supabase
+  // Step 1: Fetch both approved (to promote) and already-promoted (to accumulate) in one atomic query.
+  // A single query provides a consistent snapshot and halves the number of round-trips.
+  console.log('Step 1: Fetching approved and previously promoted candidates...');
+  const { data: allQueued, error: fetchErr } = await supabase
     .from('eval_review_queue')
-    .select('id, input, expected_tools, ground_truth, rationale, target_dataset, reviewer_notes, generation_batch_id, generated_at')
-    .eq('status', 'approved')
+    .select('id, input, expected_tools, ground_truth, rationale, target_dataset, reviewer_notes, generation_batch_id, generated_at, status')
+    .in('status', ['approved', 'promoted'])
     .order('generated_at', { ascending: true });
 
-  if (approvedErr) {
-    console.error('  Error fetching approved candidates:', approvedErr.message);
+  if (fetchErr) {
+    console.error('  Error fetching candidates:', fetchErr.message);
     process.exit(1);
   }
 
-  if (!newlyApproved || newlyApproved.length === 0) {
+  // Split client-side by status
+  const newlyApproved = (allQueued ?? []).filter((c) => c.status === 'approved');
+  const previouslyPromoted = (allQueued ?? []).filter((c) => c.status === 'promoted');
+
+  if (newlyApproved.length === 0) {
     console.log('  No newly approved candidates found.');
     console.log('  Approve candidates first: UPDATE eval_review_queue SET status = \'approved\' WHERE id = \'...\';');
     return;
@@ -102,21 +113,10 @@ async function main(): Promise<void> {
 
   console.log(`  Found ${newlyApproved.length} newly approved candidates.`);
 
-  // Step 2: Also fetch previously promoted candidates (accumulate into file)
-  console.log('\nStep 2: Fetching previously promoted candidates...');
-  const { data: previouslyPromoted, error: promotedErr } = await supabase
-    .from('eval_review_queue')
-    .select('id, input, expected_tools, ground_truth, rationale, target_dataset, reviewer_notes, generation_batch_id, generated_at')
-    .eq('status', 'promoted')
-    .order('generated_at', { ascending: true });
-
-  if (promotedErr) {
-    console.error('  Error fetching promoted candidates:', promotedErr.message);
-    process.exit(1);
-  }
-
-  const allCandidates = [...(previouslyPromoted ?? []), ...newlyApproved];
-  console.log(`  Total candidates for file generation: ${allCandidates.length} (${previouslyPromoted?.length ?? 0} previously promoted + ${newlyApproved.length} newly approved)`);
+  // Step 2: Combine all candidates for file generation
+  console.log('\nStep 2: Combining with previously promoted candidates...');
+  const allCandidates = [...previouslyPromoted, ...newlyApproved];
+  console.log(`  Total candidates for file generation: ${allCandidates.length} (${previouslyPromoted.length} previously promoted + ${newlyApproved.length} newly approved)`);
 
   // Group all candidates by target dataset
   const grouped = new Map<string, ApprovedCandidate[]>();
