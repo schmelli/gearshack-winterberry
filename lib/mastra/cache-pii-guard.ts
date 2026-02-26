@@ -30,10 +30,10 @@
  * Heuristic patterns that indicate a query contains personal context.
  *
  * Each pattern targets a specific class of contextual PII:
- * 1. Possessive pronouns with gear/activity context (EN + DE)
- * 2. Personal destination references
- * 3. Temporal references tied to personal planning
- * 4. Possessive gear references (standalone)
+ * 1. Possessive pronouns + gear/activity nouns (EN + DE)
+ * 2. Personal destination references (directional prepositions)
+ * 3. Temporal planning references (EN + DE)
+ * 4. First-person planning verbs (EN + DE)
  *
  * Design principles:
  * - Bilingual (EN + DE) to match the app's i18n scope
@@ -55,25 +55,28 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
   {
     name: 'possessive_gear_de',
     pattern:
-      /\b(mein|meine[rnsm]?|unser[eemn]?)\s+(trip|wanderung|tour|loadout|ausrüstung|zelt|rucksack|schlafsack|jacke|stiefel|schuhe|setup|packliste|trekking|expedition)\b/i,
+      /\b(mein|meine[rnsm]?|unser(?:e[mrns]?|e)?)\s+(trip|wanderung|tour|loadout|ausrüstung|zelt|rucksack|schlafsack|jacke|stiefel|schuhe|setup|packliste|trekking|expedition)\b/i,
   },
   // 3. Personal destination references — preposition + capitalized place name
-  //    Matches: "to Patagonia", "nach München", "in the Dolomites"
-  //    Requires preposition to avoid matching gear brand names (e.g., "Arc'teryx")
-  //    NOTE: "für" is excluded because German capitalizes ALL nouns, causing
-  //    false positives on factual queries like "für Regenjacken?". German
-  //    destinations typically use "nach" (nach München, nach Patagonien).
+  //    Matches: "to Patagonia", "nach München"
+  //    Requires directional preposition to avoid matching gear brand names.
+  //    NOTE: "for" and "für" are excluded because they match brand names
+  //    ("for Osprey", "for Thermarest") and German capitalized nouns
+  //    ("für Regenjacken"). "to" and "nach" are strong destination indicators.
   {
     name: 'personal_destination',
     pattern:
-      /\b(to|nach|for)\s+[A-ZÄÖÜ][a-zäöüß]{2,}(?:\s+[A-ZÄÖÜ][a-zäöüß]{2,})*\b/,
+      /\b(to|nach)\s+[A-ZÄÖÜ][a-zäöüß]{2,}(?:\s+[A-ZÄÖÜ][a-zäöüß]{2,})*\b/,
   },
   // 4. Temporal references with personal planning context (EN)
-  //    Matches: "in February", "next March", "this summer"
+  //    Matches: "next March", "this summer"
+  //    NOTE: "in" is excluded because "in winter" / "in summer" are commonly
+  //    used in factual seasonal queries ("Best boots in winter conditions").
+  //    "next" and "this" strongly imply a personal timeline.
   {
     name: 'temporal_planning_en',
     pattern:
-      /\b(in|next|this)\s+(january|february|march|april|may|june|july|august|september|october|november|december|spring|summer|fall|autumn|winter)\b/i,
+      /\b(next|this)\s+(january|february|march|april|may|june|july|august|september|october|november|december|spring|summer|fall|autumn|winter)\b/i,
   },
   // 5. Temporal references with personal planning context (DE)
   //    Matches: "im Februar", "nächsten März", "diesen Sommer"
@@ -83,13 +86,14 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
       /\b(im|nächsten?|diesen?[mr]?)\s+(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|frühling|sommer|herbst|winter)\b/i,
   },
   // 6. First-person planning verbs (EN + DE)
-  //    Matches: "I'm going", "I plan to", "ich gehe", "ich plane"
+  //    Matches: "I'm going", "I am going", "I plan to", "we need",
+  //    "ich gehe", "ich plane", "wir brauchen"
   {
     name: 'first_person_planning',
     pattern:
-      /\b(i'?m\s+going|i\s+plan\s+to|i\s+want\s+to|i\s+need|ich\s+gehe|ich\s+plane|ich\s+brauche|ich\s+möchte|ich\s+will)\b/i,
+      /\b(i'?m\s+going|i\s+am\s+going|i\s+am\s+planning|i\s+plan\s+to|i\s+want\s+to|i\s+need|we\s+need|we\s+want|we\s+plan|we\s+are\s+going|ich\s+gehe|ich\s+plane|ich\s+brauche|ich\s+möchte|ich\s+will|wir\s+brauchen|wir\s+gehen|wir\s+planen)\b/i,
   },
-] as const;
+];
 
 // =============================================================================
 // Public API

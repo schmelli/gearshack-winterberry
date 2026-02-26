@@ -276,11 +276,14 @@ export async function storeInSemanticCache(
   // as general_knowledge. See: Kap. 9, Agent Middleware — PII Guard.
   const piiCheck = checkQueryForPersonalContext(query);
   if (piiCheck.containsPersonalContext) {
-    logDebug('Semantic cache write skipped: PII guard matched', {
+    // Log without the query text — the guard detected personal context,
+    // so including the query (even truncated) would leak PII into logs.
+    logInfo('Semantic cache write skipped: PII guard matched', {
       metadata: {
-        queryPreview: query.slice(0, 50) + '...',
         matchedPatterns: piiCheck.matchedPatterns,
+        patternCount: piiCheck.matchedPatterns.length,
         intentType,
+        queryLength: query.length,
       },
     });
     recordCachePiiSkip(piiCheck.matchedPatterns[0] ?? 'unknown');

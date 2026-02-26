@@ -107,6 +107,22 @@ describe('checkQueryForPersonalContext', () => {
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns).toContain('possessive_gear_de');
     });
+
+    it('should detect "unserem Zelt" (dative declension)', () => {
+      const result = checkQueryForPersonalContext(
+        'Was stimmt mit unserem Zelt nicht?'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('possessive_gear_de');
+    });
+
+    it('should detect "unseren Rucksack" (accusative declension)', () => {
+      const result = checkQueryForPersonalContext(
+        'Können wir unseren Rucksack leichter machen?'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('possessive_gear_de');
+    });
   });
 
   describe('Personal destination references', () => {
@@ -142,24 +158,24 @@ describe('checkQueryForPersonalContext', () => {
       expect(result.matchedPatterns).toContain('personal_destination');
     });
 
-    it('should detect "for Patagonia"', () => {
+    it('should NOT match "for [BrandName]" (brand, not destination)', () => {
+      // "for" is excluded from destination pattern to avoid brand false positives
+      const result = checkQueryForPersonalContext(
+        'Best alternatives for Osprey backpacks'
+      );
+      expect(result.matchedPatterns).not.toContain('personal_destination');
+    });
+
+    it('should NOT match "for Patagonia" (ambiguous — brand or place)', () => {
+      // Patagonia is both a brand and a destination; "for" is too ambiguous
       const result = checkQueryForPersonalContext(
         'Gear for Patagonia expedition'
       );
-      expect(result.containsPersonalContext).toBe(true);
-      expect(result.matchedPatterns).toContain('personal_destination');
+      expect(result.matchedPatterns).not.toContain('personal_destination');
     });
   });
 
   describe('Temporal planning references (EN)', () => {
-    it('should detect "in February"', () => {
-      const result = checkQueryForPersonalContext(
-        'Best gear for hiking in February'
-      );
-      expect(result.containsPersonalContext).toBe(true);
-      expect(result.matchedPatterns).toContain('temporal_planning_en');
-    });
-
     it('should detect "next March"', () => {
       const result = checkQueryForPersonalContext(
         'I need a tent for next March'
@@ -176,12 +192,27 @@ describe('checkQueryForPersonalContext', () => {
       expect(result.matchedPatterns).toContain('temporal_planning_en');
     });
 
-    it('should detect "in winter" (season)', () => {
+    it('should detect "next winter"', () => {
       const result = checkQueryForPersonalContext(
-        'Best boots in winter conditions'
+        'Tent for next winter expedition'
       );
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns).toContain('temporal_planning_en');
+    });
+
+    it('should NOT match "in winter" (factual seasonal reference)', () => {
+      const result = checkQueryForPersonalContext(
+        'Best boots in winter conditions'
+      );
+      // "in winter" is a factual seasonal qualifier, not personal planning
+      expect(result.matchedPatterns).not.toContain('temporal_planning_en');
+    });
+
+    it('should NOT match "in February" (factual seasonal reference)', () => {
+      const result = checkQueryForPersonalContext(
+        'Average temperatures in February for alpine hiking'
+      );
+      expect(result.matchedPatterns).not.toContain('temporal_planning_en');
     });
   });
 
@@ -251,12 +282,44 @@ describe('checkQueryForPersonalContext', () => {
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns).toContain('first_person_planning');
     });
+
+    it('should detect "I am going" (uncontracted form)', () => {
+      const result = checkQueryForPersonalContext(
+        'I am going camping in the mountains'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('first_person_planning');
+    });
+
+    it('should detect "we need"', () => {
+      const result = checkQueryForPersonalContext(
+        'We need a bigger tent for the group'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('first_person_planning');
+    });
+
+    it('should detect "we plan"', () => {
+      const result = checkQueryForPersonalContext(
+        'We plan to hike the Appalachian Trail'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('first_person_planning');
+    });
+
+    it('should detect "wir brauchen" (DE plural)', () => {
+      const result = checkQueryForPersonalContext(
+        'Wir brauchen ein neues Zelt'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('first_person_planning');
+    });
   });
 
   describe('Multiple pattern matches', () => {
     it('should detect multiple patterns in a single query', () => {
       const result = checkQueryForPersonalContext(
-        'Best tent for my trip to Patagonia in February'
+        'Best tent for my trip to Patagonia next February'
       );
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns.length).toBeGreaterThanOrEqual(2);
@@ -321,6 +384,34 @@ describe('checkQueryForPersonalContext', () => {
       );
       expect(result.containsPersonalContext).toBe(false);
       expect(result.matchedPatterns).toHaveLength(0);
+    });
+
+    it('should allow "Best sleeping bag in winter" (factual seasonal)', () => {
+      const result = checkQueryForPersonalContext(
+        'Best sleeping bag in winter'
+      );
+      expect(result.containsPersonalContext).toBe(false);
+    });
+
+    it('should allow "Gore-Tex performance in summer heat"', () => {
+      const result = checkQueryForPersonalContext(
+        'Gore-Tex performance in summer heat'
+      );
+      expect(result.containsPersonalContext).toBe(false);
+    });
+
+    it('should allow "Best alternatives for Osprey backpacks" (brand name)', () => {
+      const result = checkQueryForPersonalContext(
+        'Best alternatives for Osprey backpacks'
+      );
+      expect(result.containsPersonalContext).toBe(false);
+    });
+
+    it('should allow "Similar products for Thermarest pads" (brand name)', () => {
+      const result = checkQueryForPersonalContext(
+        'Similar products for Thermarest pads'
+      );
+      expect(result.containsPersonalContext).toBe(false);
     });
   });
 
