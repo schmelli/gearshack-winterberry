@@ -103,12 +103,31 @@ COMMENT ON TRIGGER trg_sync_rag_reply_count ON bulletin_replies IS
   'Auto-syncs community_knowledge_chunks.reply_count whenever a reply is added, soft-deleted, or hard-deleted. Ensures RAG quality filters reflect current engagement levels without manual re-indexing.';
 
 -- ============================================================================
--- Permissions: Ensure service_role can call search_community_knowledge
+-- Performance: Index to support the trigger's COUNT(*) query
 -- ============================================================================
--- Migration 20260226000001 granted EXECUTE to `authenticated`, but the AI agent
--- calls search_community_knowledge via createServiceRoleClient() (the service_role
--- PostgREST key). While the postgres owner implicitly has EXECUTE and service_role
--- is a superuser in Supabase's privilege model, an explicit grant makes the intent
--- unambiguous and safe across Supabase project configurations.
+-- The sync_rag_chunk_reply_count() trigger runs on every INSERT, UPDATE OF
+-- is_deleted, or DELETE on bulletin_replies. Its COUNT(*) query filters by
+-- (post_id, is_deleted = false). Without a covering index on bulletin_replies,
+-- this becomes a sequential scan that blocks the writing transaction —
+-- increasingly expensive as posts accumulate many replies.
+--
+-- This partial index covers the exact predicate used in the trigger's query:
+--   COUNT(*) FROM bulletin_replies WHERE post_id = v_post_id AND is_deleted = false
+CREATE INDEX IF NOT EXISTS idx_bulletin_replies_post_id_active
+  ON bulletin_replies (post_id)
+  WHERE is_deleted = false;
+
+-- ============================================================================
+-- Permissions: Ensure both service_role and authenticated can call search_community_knowledge
+-- ============================================================================
+-- Migration 20260226000001 granted EXECUTE to both `authenticated` and
+-- `service_role`. We re-grant both here for symmetry and future-proofing:
+-- if the function is ever dropped and recreated in a subsequent migration,
+-- only reading this file would leave `authenticated` without access.
+-- PostgreSQL GRANTs are additive, so re-granting is a safe no-op when
+-- the grants already exist.
+GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
+  TO authenticated;
+
 GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
   TO service_role;
