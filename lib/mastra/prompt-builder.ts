@@ -58,6 +58,13 @@ interface LocalizedContent {
    * since all examples are only meaningful when the user has gear data.
    */
   fewShotExamples?: string;
+  /**
+   * Working memory instructions that teach the agent to actively update
+   * the persistent user profile during conversations.
+   * Mastra's WorkingMemory processor handles the read/write mechanics;
+   * these instructions tell the agent WHEN and WHAT to update.
+   */
+  workingMemoryInstructions: string;
 }
 
 // =============================================================================
@@ -192,6 +199,37 @@ User: "Analyze my winter camping loadout"
 GOOD: "Nice winter setup! Total base weight: 11.8kg — solid for cold-weather camping. Your Hilleberg Keron 4 GT (4.2kg) is bombproof but heavy for 2 people. Consider the Hilleberg Nammatj 3 — similar weather resistance, 1.1kg lighter. Worth noting: your sleeping bag is rated to -10°C but you've listed no sleeping pad with an R-value. Even a Therm-a-Rest NeoAir XTherm (R=6.9) won't help if you're on a foam pad with R=2. What pad are you using?"
 BAD: "Your loadout looks good for winter camping. Make sure you stay warm and have the right gear."
 WHY: The good response provides specific weight analysis, identifies the heaviest item with a lighter alternative, and catches a critical safety issue (sleeping pad R-value) that could make or break the trip.`,
+
+  workingMemoryInstructions: `## Working Memory — User Profile Updates
+
+You maintain a persistent profile about this user across all conversations. **Actively update it** whenever you learn something new. The user expects you to remember personal details next time.
+
+**When to update:**
+
+| You learn this | Write to field |
+|---|---|
+| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips[]\` — destination + activity + approximate date + \`addedAt\` (ISO timestamp) |
+| Weight philosophy expressed ("I'm ultralight", "comfort over grams") | \`preferences.weightPhilosophy\` |
+| Budget context ("can't spend more than €200", "money is no object") | \`preferences.budgetRange\` |
+| Quality vs weight preference ("durability matters more") | \`preferences.qualityVsWeight\` |
+| Preferred name ("Call me Alex") | \`name\` |
+| Location mentioned ("I'm based in Bavaria", "hiking from Portland") | \`location\` |
+| Primary activities ("I mostly do thru-hikes", "weekend backpacking") | \`activities.primary[]\` and \`activities.typicalTripLength\` |
+| Experience level ("I've been hiking for 20 years", "first time backpacking") | \`activities.experience\` |
+| Brand love or dislike ("I swear by Hilleberg", "had bad luck with X") | \`brands.favorites[]\` or \`brands.avoid[]\` |
+| Brand curiosity ("What about Durston?", "Is Nemo any good?") | \`brands.curious[]\` |
+| Gear goal ("I want base weight under 5kg") | \`goals.gearGoals[]\` |
+| Wishlist priority ("the Xmid 2P is top of my list") | \`goals.wishlistPriorities[]\` |
+| Factual personal info ("I weigh 85kg", "I run hot at night") | \`facts[]\` — category 'constraint', confidence 'high' |
+| Preference or opinion ("I prefer down over synthetic") | \`facts[]\` — category 'preference', confidence 'high' |
+| Past experience ("Last year I hiked the HRP") | \`facts[]\` — category 'history', confidence 'high' |
+
+**Rules:**
+- Update silently — do NOT tell the user you are updating their profile.
+- Only update when you are reasonably confident about the information.
+- For \`facts[]\`, always include a \`learnedAt\` ISO timestamp and appropriate \`category\` and \`confidence\`.
+- Do not duplicate existing entries — update or skip if the fact is already stored.
+- Keep arrays concise: prioritize recent and high-confidence entries.`,
 };
 
 const GERMAN_CONTENT: LocalizedContent = {
@@ -322,6 +360,37 @@ Nutzer: "Analysiere mein Winter-Camping-Loadout"
 GUT: "Schoenes Winter-Setup! Basisgewicht: 11,8kg — solide fuer Kalt-Wetter-Camping. Dein Hilleberg Keron 4 GT (4,2kg) ist bombenfest aber schwer fuer 2 Personen. Ueberleg mal den Hilleberg Nammatj 3 — aehnliche Wetterfestigkeit, 1,1kg leichter. Gut zu wissen: Dein Schlafsack ist bis -10°C rated, aber du hast keine Isomatte mit R-Wert gelistet. Selbst eine Therm-a-Rest NeoAir XTherm (R=6,9) hilft nicht wenn du auf einer Schaummatte mit R=2 liegst. Welche Matte nutzt du?"
 SCHLECHT: "Dein Loadout sieht gut aus fuer Winter-Camping. Stell sicher, dass du warm bleibst und die richtige Ausruestung hast."
 WARUM: Die gute Antwort liefert spezifische Gewichtsanalyse, identifiziert den schwersten Gegenstand mit leichterer Alternative und erkennt ein kritisches Sicherheitsthema (Isomatten R-Wert), das den Trip machen oder brechen kann.`,
+
+  workingMemoryInstructions: `## Working Memory — Nutzerprofil-Aktualisierungen
+
+Du pflegst ein dauerhaftes Profil ueber diesen Nutzer ueber alle Gespraeche hinweg. **Aktualisiere es aktiv**, wenn du etwas Neues erfaehrst. Der Nutzer erwartet, dass du persoenliche Details beim naechsten Mal kennst.
+
+**Wann aktualisieren:**
+
+| Du erfaehrst dies | Schreibe in Feld |
+|---|---|
+| Nutzer erwaehnt einen Trip ("PCT im Juli", "Laugavegur naechsten Sommer") | \`goals.upcomingTrips[]\` — Ziel + Aktivitaet + ungefaehres Datum + \`addedAt\` (ISO-Zeitstempel) |
+| Gewichtsphilosophie geaeussert ("Ich bin ultraleicht unterwegs", "Komfort geht vor") | \`preferences.weightPhilosophy\` |
+| Budget-Kontext ("kann nicht mehr als 200€ ausgeben", "Geld spielt keine Rolle") | \`preferences.budgetRange\` |
+| Qualitaet vs Gewicht Praeferenz ("Haltbarkeit ist mir wichtiger") | \`preferences.qualityVsWeight\` |
+| Bevorzugter Name ("Nenn mich Alex") | \`name\` |
+| Standort erwaehnt ("Ich bin aus Bayern", "wohne in Wien") | \`location\` |
+| Hauptaktivitaeten ("Ich mache hauptsaechlich Thru-Hikes", "Wochenend-Touren") | \`activities.primary[]\` und \`activities.typicalTripLength\` |
+| Erfahrungslevel ("Ich wandere seit 20 Jahren", "erstes Mal Backpacking") | \`activities.experience\` |
+| Markenvorliebe oder -abneigung ("Ich schwoere auf Hilleberg", "hatte Pech mit X") | \`brands.favorites[]\` oder \`brands.avoid[]\` |
+| Marken-Neugier ("Was ist mit Durston?", "Taugt Nemo was?") | \`brands.curious[]\` |
+| Ausruestungsziel ("Ich will unter 5kg Basisgewicht") | \`goals.gearGoals[]\` |
+| Wunschlisten-Prioritaet ("Das Xmid 2P steht ganz oben") | \`goals.wishlistPriorities[]\` |
+| Persoenliche Fakten ("Ich wiege 85kg", "Ich schlafe warm") | \`facts[]\` — Kategorie 'constraint', Konfidenz 'high' |
+| Praeferenz oder Meinung ("Ich bevorzuge Daune gegenueber Synthetik") | \`facts[]\` — Kategorie 'preference', Konfidenz 'high' |
+| Vergangene Erfahrung ("Letztes Jahr bin ich die HRP gelaufen") | \`facts[]\` — Kategorie 'history', Konfidenz 'high' |
+
+**Regeln:**
+- Aktualisiere stillschweigend — sage dem Nutzer NICHT, dass du sein Profil aktualisierst.
+- Aktualisiere nur, wenn du dir bei der Information hinreichend sicher bist.
+- Fuer \`facts[]\` immer einen \`learnedAt\` ISO-Zeitstempel und passende \`category\` und \`confidence\` angeben.
+- Keine Duplikate erstellen — vorhandene Eintraege aktualisieren oder ueberspringen.
+- Arrays kompakt halten: aktuelle und hochkonfidente Eintraege bevorzugen.`,
 };
 
 /**
@@ -411,6 +480,10 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
 
   // 1. Core Identity and Role
   sections.push(content.identity);
+
+  // 1b. Working Memory Instructions (always included — teaches the agent to
+  // actively update the persistent user profile during conversations)
+  sections.push(`\n${content.workingMemoryInstructions}`);
 
   // 1c. Semantic Recall context from past conversations
   if (context.semanticRecallContext) {
