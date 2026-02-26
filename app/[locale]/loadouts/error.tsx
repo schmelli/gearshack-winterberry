@@ -15,6 +15,7 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function LoadoutError({
   error,
@@ -23,6 +24,8 @@ export default function LoadoutError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('Loadouts');
+
   useEffect(() => {
     // Log error to monitoring service (e.g., Sentry)
     console.error('[Loadout Error Boundary]', error);
@@ -35,15 +38,15 @@ export default function LoadoutError({
           <AlertCircle className="h-6 w-6 text-destructive" />
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold">Something went wrong</h2>
+        <h2 className="mb-2 text-lg font-semibold">{t('error.title')}</h2>
 
         <p className="mb-4 text-sm text-muted-foreground">
-          {error.message || 'An unexpected error occurred while loading the loadout.'}
+          {error.message || t('error.defaultMessage')}
         </p>
 
         {error.digest && (
           <p className="mb-4 text-xs text-muted-foreground">
-            Error ID: {error.digest}
+            {t('error.errorId', { id: error.digest })}
           </p>
         )}
 
@@ -53,7 +56,7 @@ export default function LoadoutError({
             variant="default"
             size="sm"
           >
-            Try Again
+            {t('error.tryAgain')}
           </Button>
 
           <Button
@@ -61,7 +64,7 @@ export default function LoadoutError({
             variant="outline"
             size="sm"
           >
-            Back to Loadouts
+            {t('backToLoadouts')}
           </Button>
         </div>
       </div>

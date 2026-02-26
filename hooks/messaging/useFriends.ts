@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-export interface FriendInfo {
+export interface MessagingFriend {
   id: string;
   display_name: string;
   avatar_url: string | null;
@@ -24,7 +24,7 @@ export interface FriendInfo {
 
 interface UseFriendsReturn {
   /** List of current user's friends */
-  friends: FriendInfo[];
+  friends: MessagingFriend[];
   /** Loading state */
   isLoading: boolean;
   /** Error message if any */
@@ -47,10 +47,12 @@ type QueryResult = any;
  */
 export function useFriends(): UseFriendsReturn {
   const { user } = useSupabaseAuth();
-  const [friends, setFriends] = useState<FriendInfo[]>([]);
+  const [friends, setFriends] = useState<MessagingFriend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Store fetchFriends in ref to prevent subscription churn
+  const fetchFriendsRef = useRef<() => Promise<void>>(async () => {});
 
   // Fetch friends list
   const fetchFriends = useCallback(async () => {
@@ -83,7 +85,7 @@ export function useFriends(): UseFriendsReturn {
         throw fetchError;
       }
 
-      const friendsList: FriendInfo[] = (data ?? []).map((row: QueryResult) => {
+      const friendsList: MessagingFriend[] = (data ?? []).map((row: QueryResult) => {
         const profile = row.profiles;
         return {
           id: profile.id,
@@ -102,7 +104,13 @@ export function useFriends(): UseFriendsReturn {
     }
   }, [user?.id]);
 
+  // Keep ref updated with latest fetchFriends function
+  useEffect(() => {
+    fetchFriendsRef.current = fetchFriends;
+  }, [fetchFriends]);
+
   // Subscribe to friend changes
+  // Uses fetchFriendsRef to avoid subscription churn when fetchFriends changes
   useEffect(() => {
     if (!user?.id) return;
 
@@ -120,8 +128,8 @@ export function useFriends(): UseFriendsReturn {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          // Refresh on any change
-          fetchFriends();
+          // Refresh on any change - use ref to avoid stale closure
+          fetchFriendsRef.current();
         }
       )
       .subscribe();

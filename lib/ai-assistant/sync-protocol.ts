@@ -35,8 +35,21 @@ export type SyncEventHandler = (event: SyncEvent) => void;
  * @param payload - Realtime payload from Supabase
  * @param handler - Callback to handle the event
  */
+// Define the expected shape of ai_messages table row
+interface AIMessageRow {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+  inline_cards: unknown[] | null;
+  actions: unknown[] | null;
+  context: Record<string, unknown> | null;
+  tokens_used: number | null;
+}
+
 export function handleMessageInsert(
-  payload: RealtimePostgresChangesPayload<{ [key: string]: any }>,
+  payload: RealtimePostgresChangesPayload<AIMessageRow>,
   handler: SyncEventHandler
 ): void {
   if (payload.eventType === 'INSERT' && payload.new) {
@@ -46,9 +59,9 @@ export function handleMessageInsert(
       role: payload.new.role,
       content: payload.new.content,
       createdAt: new Date(payload.new.created_at),
-      inlineCards: payload.new.inline_cards || null,
-      actions: payload.new.actions || null,
-      context: payload.new.context || null,
+      inlineCards: (payload.new.inline_cards || null) as Message['inlineCards'],
+      actions: (payload.new.actions || null) as Message['actions'],
+      context: (payload.new.context || null) as Message['context'],
       tokensUsed: payload.new.tokens_used || null,
     };
 
@@ -121,7 +134,7 @@ export function subscribeToConversationMessages(
       table: 'ai_messages',
       filter: `conversation_id=eq.${conversationId}`,
     },
-    (payload) => handleMessageInsert(payload, handler)
+    (payload) => handleMessageInsert(payload as RealtimePostgresChangesPayload<AIMessageRow>, handler)
   );
 }
 

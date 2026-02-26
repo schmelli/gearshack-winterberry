@@ -44,7 +44,8 @@ interface ProductSearchResponse {
 export interface UseProductAutocompleteOptions {
   debounceMs?: number;
   minChars?: number;
-  brandId?: string; // Filter by brand when provided
+  brandId?: string; // Filter by brand ID when provided (catalog UUID or inventory format)
+  brandName?: string; // Filter by brand name (preferred, more reliable)
 }
 
 export interface UseProductAutocompleteReturn {
@@ -70,6 +71,7 @@ export function useProductAutocomplete(
     debounceMs = DEFAULT_DEBOUNCE_MS,
     minChars = DEFAULT_MIN_CHARS,
     brandId,
+    brandName,
   } = options;
 
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -103,6 +105,11 @@ export function useProductAutocomplete(
           limit: '8',
         });
 
+        // Pass brand_name for reliable ILIKE filtering
+        if (brandName) {
+          params.set('brand_name', brandName);
+        }
+        // Also pass brand_id for catalog UUID exact matching
         if (brandId) {
           params.set('brand_id', brandId);
         }
@@ -143,7 +150,7 @@ export function useProductAutocomplete(
         setIsLoading(false);
       }
     },
-    [brandId]
+    [brandId, brandName]
   );
 
   /**
@@ -191,10 +198,10 @@ export function useProductAutocomplete(
     setIsLoading(false);
   }, []);
 
-  // Clear suggestions when brandId changes
+  // Clear suggestions when brand filter changes
   useEffect(() => {
     setSuggestions([]);
-  }, [brandId]);
+  }, [brandId, brandName]);
 
   // Cleanup on unmount
   useEffect(() => {

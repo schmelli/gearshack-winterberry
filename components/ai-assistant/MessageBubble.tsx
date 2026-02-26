@@ -11,6 +11,7 @@
 
 import { cn } from '@/lib/utils';
 import { User, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { InlineGearCard } from './InlineGearCard';
 import { ActionButtons } from './ActionButtons';
 import { InlinePlayButton } from './AudioPlaybackControls';
@@ -18,12 +19,16 @@ import { useChatActions } from '@/hooks/ai-assistant/useChatActions';
 import { formatDistanceToNow } from 'date-fns';
 import type { Action } from '@/types/ai-assistant';
 
+interface InlineCard {
+  id: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
-  inline_cards?: any[];
+  inline_cards?: InlineCard[];
   actions?: Action[];
 }
 
@@ -84,12 +89,30 @@ export function MessageBubble({
           )}
         >
           <div className="flex items-start gap-2">
-            <p className="flex-1 whitespace-pre-wrap text-sm">
-              {message.content}
+            <div className="flex-1 text-sm">
+              {isUser ? (
+                <p className="whitespace-pre-wrap">{message.content}</p>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>,
+                      li: ({ children }) => <li className="my-0">{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      code: ({ children }) => <code className="rounded bg-muted-foreground/10 px-1 py-0.5 font-mono text-xs">{children}</code>,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              )}
               {!isUser && isStreaming && (
                 <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
               )}
-            </p>
+            </div>
             {/* TTS Play Button for assistant messages */}
             {!isUser && onSpeak && message.content && !isStreaming && (
               <InlinePlayButton
@@ -104,7 +127,7 @@ export function MessageBubble({
         {/* Inline Cards (Gear References) */}
         {!isUser && message.inline_cards && message.inline_cards.length > 0 && (
           <div className="space-y-2">
-            {message.inline_cards.map((card: any, index: number) => (
+            {message.inline_cards.map((card, index) => (
               <InlineGearCard key={card.id || index} gearId={card.id} />
             ))}
           </div>

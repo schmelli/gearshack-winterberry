@@ -8,8 +8,11 @@
  * Uses @supabase/ssr for proper cookie handling in Next.js.
  */
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
+
+// Re-export for compatibility with merchant integration code
+export { createSupabaseBrowserClient as createBrowserClient };
 
 /**
  * Creates a Supabase client for use in Client Components.
@@ -31,8 +34,15 @@ import type { Database } from '@/types/supabase';
  * ```
  */
 export function createClient() {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set');
+  }
+  if (!supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is not set');
+  }
+
+  return createSupabaseBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }

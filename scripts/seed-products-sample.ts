@@ -226,7 +226,7 @@ async function seedProducts(): Promise<void> {
           external_id: externalId,
           brand_id: brandId,
           name: product.name,
-          category_main: product.category,
+          product_type: product.category, // Note: category maps to product_type column
           description: product.description || null,
         },
         { onConflict: 'external_id' }

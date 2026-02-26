@@ -37,11 +37,11 @@ export interface CommunitySearchResult {
 // =====================================================
 
 /**
- * Sanitize search query to prevent SQL injection
- * Escapes special characters used in PostgreSQL pattern matching
+ * Sanitize search query to prevent SQL injection and PostgREST filter injection
+ * Escapes special characters used in PostgreSQL pattern matching AND PostgREST .or() syntax
  *
  * @param query - Raw search query from user
- * @returns Sanitized query safe for ILIKE operations
+ * @returns Sanitized query safe for ILIKE operations and .or() filter strings
  */
 function sanitizeSearchQuery(query: string): string {
   if (!query || typeof query !== 'string') {
@@ -49,12 +49,18 @@ function sanitizeSearchQuery(query: string): string {
   }
 
   // Escape PostgreSQL LIKE special characters: % _ \
+  // Also escape comma which is PostgREST .or() delimiter (prevents filter injection)
+  // Also escape parentheses which are PostgREST grouping operators
   // Also limit length to prevent DoS
   return query
     .slice(0, 100) // Max 100 chars
     .replace(/\\/g, '\\\\') // Escape backslash first
     .replace(/%/g, '\\%')   // Escape percent
     .replace(/_/g, '\\_')   // Escape underscore
+    .replace(/,/g, '')      // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')     // Remove opening parens (PostgREST grouping)
+    .replace(/\)/g, '')     // Remove closing parens (PostgREST grouping)
+    .replace(/\./g, ' ')    // Replace dots with space (prevents .eq., .neq. injection)
     .trim();
 }
 
@@ -93,7 +99,7 @@ export async function searchCommunityOffers(
   // Build query for gear_items with marketplace flags
   let query = supabase
     .from('gear_items')
-    .select('id, name, brand, price_paid, weight_grams, category_id, primary_image_url, user_id, is_for_sale, can_be_borrowed, can_be_traded')
+    .select('id, name, brand, price_paid, weight_grams, product_type_id, primary_image_url, user_id, is_for_sale, can_be_borrowed, can_be_traded')
     .eq('status', 'own')
     .neq('user_id', userId); // Exclude own items
 
@@ -121,7 +127,7 @@ export async function searchCommunityOffers(
     query = query.lte('weight_grams', filters.maxWeight);
   }
   if (filters?.categoryId) {
-    query = query.eq('category_id', filters.categoryId);
+    query = query.eq('product_type_id', filters.categoryId);
   }
 
   // Text search using ilike (case-insensitive) with sanitized input
@@ -213,18 +219,36 @@ export async function searchCommunityForWishlistItem(
     return [];
   }
 
+  // Define the expected shape of the RPC response
+  interface CommunityAvailabilityRow {
+    matched_item_id: string;
+    owner_id: string;
+    owner_display_name: string;
+    owner_avatar_url: string | null;
+    item_name: string;
+    item_brand: string | null;
+    is_for_sale: boolean;
+    can_be_borrowed: boolean;
+    can_be_traded: boolean;
+    similarity_score: string | number;
+    primary_image_url: string | null;
+  }
+
   // Transform database response to CommunityMatch
-  return (data as any[]).map((match: any) => ({
+  return (data as unknown as CommunityAvailabilityRow[]).map((match) => ({
     matchedItemId: match.matched_item_id,
     ownerId: match.owner_id,
     ownerDisplayName: match.owner_display_name,
     ownerAvatarUrl: match.owner_avatar_url,
     itemName: match.item_name,
     itemBrand: match.item_brand,
-    forSale: match.for_sale,
-    lendable: match.lendable,
-    tradeable: match.tradeable,
-    similarityScore: parseFloat(match.similarity_score),
+    forSale: match.is_for_sale,
+    lendable: match.can_be_borrowed,
+    tradeable: match.can_be_traded,
+    similarityScore: (() => {
+      const score = parseFloat(String(match.similarity_score));
+      return Number.isFinite(score) ? score : 0;
+    })(),
     primaryImageUrl: match.primary_image_url,
   }));
 }

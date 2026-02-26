@@ -68,8 +68,6 @@ async function executeCypher(
   apiKey: string
 ): Promise<CypherInsightResult[]> {
   try {
-    console.log('[GearGraph] Executing Cypher:', query, parameters);
-
     const response = await fetch(GEARGRAPH_QUERY_URL, {
       method: 'POST',
       headers: {
@@ -189,13 +187,11 @@ async function fetchGearGraphInsights(params: {
   if (searchTerms.length > 0) {
     // Try full search first (brand + name)
     const fullSearch = searchTerms.join(' ');
-    console.log('[GearGraph] Searching for product:', fullSearch);
     const productInsights = await getInsightsForProduct(fullSearch, apiKey, 5);
     allInsights.push(...productInsights);
 
     // If no results, try just the name
     if (productInsights.length === 0 && params.name) {
-      console.log('[GearGraph] Trying product name only:', params.name);
       const nameInsights = await getInsightsForProduct(params.name, apiKey, 5);
       allInsights.push(...nameInsights);
     }
@@ -203,7 +199,6 @@ async function fetchGearGraphInsights(params: {
 
   // 2. Try brand-specific insights if we don't have enough
   if (allInsights.length < 3 && params.brand) {
-    console.log('[GearGraph] Fetching brand insights:', params.brand);
     const brandInsights = await getInsightsForBrand(params.brand, apiKey, 5);
     allInsights.push(...brandInsights);
   }
@@ -223,7 +218,6 @@ async function fetchGearGraphInsights(params: {
     };
 
     const gearGraphCategory = categoryMap[params.categoryId] || params.categoryId;
-    console.log('[GearGraph] Fetching category insights:', gearGraphCategory);
 
     const categoryInsights = await getInsightsForCategory(gearGraphCategory, apiKey, 5);
     allInsights.push(...categoryInsights);
@@ -238,7 +232,6 @@ async function fetchGearGraphInsights(params: {
     return true;
   });
 
-  console.log(`[GearGraph] Returning ${uniqueInsights.length} unique insights`);
   return uniqueInsights.slice(0, 6);
 }
 

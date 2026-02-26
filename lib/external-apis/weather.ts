@@ -86,6 +86,9 @@ export type WeatherQueryParams = z.infer<typeof weatherQuerySchema>;
 /** Cache TTL in milliseconds (1 hour) */
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
+/** Maximum cache size to prevent unbounded memory growth */
+const MAX_CACHE_SIZE = 100;
+
 /** In-memory cache for weather data */
 const weatherCache = new Map<string, { data: WeatherData; expiresAt: number }>();
 
@@ -268,7 +271,14 @@ async function geocodeLocation(location: string): Promise<{ lat: number; lon: nu
       return null;
     }
 
-    const data = await response.json();
+    // Parse JSON with error handling
+    let data: { results?: GeocodingResult[] };
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[Weather] Invalid JSON response from geocoding API');
+      return null;
+    }
     const results: GeocodingResult[] = data.results ?? [];
 
     if (results.length === 0) {
@@ -330,7 +340,14 @@ async function fetchClimateData(
       return null;
     }
 
-    const data: ClimateApiResponse = await response.json();
+    // Parse JSON with error handling
+    let data: ClimateApiResponse;
+    try {
+      data = await response.json();
+    } catch {
+      console.error('[Weather] Invalid JSON response from climate API');
+      return null;
+    }
 
     if (!data.daily || data.daily.temperature_2m_max.length === 0) {
       console.warn('[Weather] No climate data available');
@@ -434,7 +451,12 @@ export async function getWeatherData(
     expiresAt,
   };
 
-  // Store in cache
+  // Store in cache with size limit enforcement
+  if (weatherCache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entry (first key in Map maintains insertion order)
+    const oldestKey = weatherCache.keys().next().value;
+    if (oldestKey) weatherCache.delete(oldestKey);
+  }
   weatherCache.set(cacheKey, {
     data: weatherData,
     expiresAt: Date.now() + CACHE_TTL_MS,

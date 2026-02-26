@@ -17,7 +17,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { MastraChatEvent } from '@/types/mastra';
+import type { MastraChatEvent, ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -31,6 +31,7 @@ export type SSEEventType =
   | 'tool_call'
   | 'tool_result'
   | 'workflow_progress'
+  | 'confirm_action'
   | 'done'
   | 'error';
 
@@ -53,12 +54,17 @@ export interface SSEToolResultData {
 }
 
 /**
- * Workflow progress data for SSE transmission
+ * Workflow progress data for SSE transmission.
+ *
+ * `message` is optional to align with the client-side `WorkflowProgressData`
+ * interface in `lib/ai-assistant/stream-parser.ts` and the Zod schema in the
+ * `useMastraChat` hook.  The `encodeWorkflowProgressEvent` helper still
+ * requires a `message` argument so the server always populates it in practice.
  */
 export interface SSEWorkflowProgressData {
   step: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  message: string;
+  message?: string;
 }
 
 /**
@@ -69,6 +75,10 @@ export interface SSEDoneData {
   finishReason?: string;
   tokensUsed?: number;
   latencyMs?: number;
+  /** A/B test variant ID so the client can attach it to feedback submissions */
+  promptVariant?: string;
+  /** A/B test experiment name for feedback correlation */
+  experimentName?: string;
 }
 
 /**
@@ -189,15 +199,19 @@ export function encodeWorkflowProgressEvent(
  * @param finishReason - Optional reason for completion
  * @param tokensUsed - Optional token count
  * @param latencyMs - Optional latency in milliseconds
+ * @param promptVariant - Optional A/B test variant ID for client feedback correlation
+ * @param experimentName - Optional A/B test experiment name for client feedback correlation
  * @returns Encoded SSE done event
  */
 export function encodeDoneEvent(
   messageId: string,
   finishReason?: string,
   tokensUsed?: number,
-  latencyMs?: number
+  latencyMs?: number,
+  promptVariant?: string,
+  experimentName?: string
 ): string {
-  const data: SSEDoneData = { messageId, finishReason, tokensUsed, latencyMs };
+  const data: SSEDoneData = { messageId, finishReason, tokensUsed, latencyMs, promptVariant, experimentName };
   return encodeSSEEvent('done', data);
 }
 
@@ -211,6 +225,17 @@ export function encodeDoneEvent(
 export function encodeErrorEvent(message: string, code?: string): string {
   const data: SSEErrorData = { message, code };
   return encodeSSEEvent('error', data);
+}
+
+/**
+ * Encode a confirm_action event for SSE transmission.
+ * Sent when a workflow suspends and needs user confirmation.
+ *
+ * @param confirmation - Confirmation data with runId, message, and details
+ * @returns Encoded SSE confirm_action event
+ */
+export function encodeConfirmActionEvent(confirmation: ConfirmActionData): string {
+  return encodeSSEEvent('confirm_action', confirmation);
 }
 
 // =====================================================
@@ -290,9 +315,15 @@ export async function wrapMastraStreamForVercelAI(
       }
     },
 
-    cancel() {
+    async cancel() {
       // Cleanup when client disconnects
       console.log('[Mastra Streaming] Client disconnected, stream cancelled');
+      // Properly close the generator to release resources
+      try {
+        await mastraStream.return(undefined);
+      } catch {
+        // Ignore errors during cleanup - generator may already be closed
+      }
     },
   });
 }
@@ -323,6 +354,9 @@ function encodeMastraChatEvent(
     case 'workflow_progress':
       options.onWorkflowProgress?.(event.step, event.message);
       return encodeWorkflowProgressEvent(event.step, 'running', event.message);
+
+    case 'confirm_action':
+      return encodeConfirmActionEvent(event.confirmation);
 
     case 'done':
       // Skip done event here - we emit our own at stream end

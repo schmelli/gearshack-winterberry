@@ -58,6 +58,8 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const offsetRef = useRef(0);
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Load initial messages
   const loadMessages = useCallback(async () => {
@@ -86,6 +88,14 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
     loadMessages();
   }, [loadMessages]);
 
+  // Track mounted state for cleanup
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Subscribe to real-time message updates
   useEffect(() => {
     if (!conversationId || !user?.id) return;
@@ -103,10 +113,15 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
+          // Capture current conversationId to check after async operation
+          const currentConversationId = conversationId;
+
           // Fetch the full message with sender info
           const newMessage = payload.new as Message;
           if (!newMessage.sender_id) {
-            setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            if (isMountedRef.current) {
+              setMessages((prev) => [...prev, { ...newMessage, sender: null, reactions: [] }]);
+            }
             return;
           }
 
@@ -116,7 +131,16 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
             .select('id, display_name, avatar_url')
             .eq('id', newMessage.sender_id)
             .single()
-            .then(({ data: profile }) => {
+            .then(({ data: profile, error }) => {
+              // Guard against state updates after unmount or conversation change
+              if (!isMountedRef.current) return;
+              // Verify this profile fetch is still for the active conversation
+              if (newMessage.conversation_id !== currentConversationId) return;
+
+              if (error) {
+                console.error('Failed to fetch sender profile:', error);
+              }
+
               const sender = profile ? {
                 id: profile.id,
                 display_name: profile.display_name ?? 'Unknown',
@@ -155,13 +179,65 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'message_reactions',
         },
-        () => {
-          // Refresh messages to get updated reactions
-          loadMessages();
+        (payload) => {
+          // Surgical update: add the new reaction to the specific message
+          const newReaction = payload.new as {
+            id: string;
+            message_id: string;
+            user_id: string;
+            emoji: string;
+            created_at: string;
+          };
+
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== newReaction.message_id) return m;
+              // Check if reaction already exists (avoid duplicates)
+              if (m.reactions.some((r) => r.id === newReaction.id)) return m;
+              return {
+                ...m,
+                reactions: [
+                  ...m.reactions,
+                  {
+                    id: newReaction.id,
+                    message_id: newReaction.message_id,
+                    user_id: newReaction.user_id,
+                    emoji: newReaction.emoji as '👍' | '❤️' | '😂' | '😮' | '😢',
+                    created_at: newReaction.created_at,
+                  },
+                ],
+              };
+            })
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'message_reactions',
+        },
+        (payload) => {
+          // Surgical update: remove the reaction from the specific message
+          const deletedReaction = payload.old as {
+            id: string;
+            message_id: string;
+          };
+
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== deletedReaction.message_id) return m;
+              return {
+                ...m,
+                reactions: m.reactions.filter((r) => r.id !== deletedReaction.id),
+              };
+            })
+          );
         }
       )
       .subscribe();
@@ -169,7 +245,7 @@ export function useMessages(conversationId: string | null): UseMessagesReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, user?.id, loadMessages]);
+  }, [conversationId, user?.id]);
 
   // Send text message
   const send = useCallback(

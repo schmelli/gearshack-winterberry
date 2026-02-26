@@ -14,6 +14,11 @@
  * Feature: 038-cloudinary-hybrid-upload
  * Tasks: T015 - Integrated ImageUploadZone for primary image
  *
+ * Issue #93: Gallery images search function
+ * - Added search button to gallery image inputs
+ * - Opens ProductSearchModal for image search, same as primary image
+ * - Search query built from brand + product name
+ *
  * Functional Fixes Sprint:
  * - Added image upload UI with local file selection
  * - Dual approach: Paste URL or Upload Image
@@ -22,7 +27,7 @@
  *
  * Displays form fields for media management:
  * - Primary image URL with preview (URL or file upload)
- * - Gallery image URLs (multiple) with previews
+ * - Gallery image URLs (multiple) with previews and search
  * - Auto-remove background toggle (default: ON)
  */
 
@@ -30,7 +35,8 @@
 
 import { useCallback, useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import {
   FormField,
@@ -44,6 +50,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ImagePreview } from '@/components/gear-editor/ImagePreview';
 import { ImageUploadZone } from '@/components/gear-editor/ImageUploadZone';
+import { ProductSearchModal } from '@/components/gear-editor/ProductSearchModal';
 import type { GearItemFormData } from '@/types/gear';
 import type { GearItem } from '@/types/gear';
 
@@ -59,6 +66,7 @@ export interface MediaSectionProps {
 export function MediaSection({ initialItem }: MediaSectionProps) {
   const form = useFormContext<GearItemFormData>();
   const { user } = useAuthContext();
+  const t = useTranslations('GearEditor.media');
 
   // Watch brand and name fields to pass to ImageUploadZone for auto-search
   const brand = form.watch('brand');
@@ -85,13 +93,32 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
     name: 'galleryImageUrls' as never,
   });
 
+  // State for gallery image search modal
+  const [gallerySearchIndex, setGallerySearchIndex] = useState<number | null>(null);
+  const [isGallerySearchOpen, setIsGallerySearchOpen] = useState(false);
+
   const handleAddGalleryImage = useCallback(() => {
     append('' as never);
   }, [append]);
 
+  // Open search modal for a specific gallery image
+  const handleOpenGallerySearch = useCallback((index: number) => {
+    setGallerySearchIndex(index);
+    setIsGallerySearchOpen(true);
+  }, [setGallerySearchIndex, setIsGallerySearchOpen]);
+
+  // Handle image selected from gallery search modal
+  const handleGallerySearchImageSelected = useCallback((cloudinaryUrl: string) => {
+    if (gallerySearchIndex !== null) {
+      form.setValue(`galleryImageUrls.${gallerySearchIndex}`, cloudinaryUrl);
+    }
+    setIsGallerySearchOpen(false);
+    setGallerySearchIndex(null);
+  }, [gallerySearchIndex, form, setIsGallerySearchOpen, setGallerySearchIndex]);
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Media</h3>
+      <h3 className="text-lg font-medium">{t('title')}</h3>
 
       {/* Primary Image - Feature 038: Cloudinary Upload */}
       <div className="space-y-4">
@@ -106,13 +133,13 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                   onChange={field.onChange}
                   userId={userId}
                   itemId={itemId}
-                  label="Primary Image"
+                  label={t('primaryImageLabel')}
                   brand={brand}
                   productName={productName}
                 />
               </FormControl>
               <FormDescription>
-                Main product image displayed in inventory lists. Uploaded to Cloudinary with automatic background removal.
+                {t('primaryImageDescription')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -123,7 +150,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
       {/* Gallery Images */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <FormLabel className="text-base">Gallery Images</FormLabel>
+          <FormLabel className="text-base">{t('galleryImagesLabel')}</FormLabel>
           <Button
             type="button"
             variant="outline"
@@ -131,17 +158,17 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
             onClick={handleAddGalleryImage}
           >
             <Plus className="w-4 h-4 mr-1" />
-            Add Image
+            {t('addImage')}
           </Button>
         </div>
 
         <FormDescription>
-          Additional product images for detailed views
+          {t('galleryDescription')}
         </FormDescription>
 
         {fields.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-md">
-            No gallery images added yet. Click &quot;Add Image&quot; to add one.
+            {t('noGalleryImages')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -158,7 +185,7 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                         alt={`Gallery image ${index + 1} preview`}
                         size="sm"
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 flex gap-2">
                         <FormControl>
                           <Input
                             type="url"
@@ -166,7 +193,17 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                             {...inputField}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleOpenGallerySearch(index)}
+                          disabled={!brand && !productName}
+                          title={brand || productName ? t('searchTooltip', { query: [brand, productName].filter(Boolean).join(' ') }) : t('searchDisabledTooltip')}
+                          aria-label={t('searchAriaLabel')}
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
                       </div>
                       <Button
                         type="button"
@@ -174,11 +211,12 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
                         size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => remove(index)}
-                        aria-label={`Remove gallery image ${index + 1}`}
+                        aria-label={t('removeGalleryImage', { index: index + 1 })}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -186,6 +224,16 @@ export function MediaSection({ initialItem }: MediaSectionProps) {
           </div>
         )}
       </div>
+
+      {/* Gallery Image Search Modal */}
+      <ProductSearchModal
+        open={isGallerySearchOpen}
+        onOpenChange={setIsGallerySearchOpen}
+        onImageSelected={handleGallerySearchImageSelected}
+        initialQuery={[brand, productName].filter(Boolean).join(' ').trim()}
+        userId={userId}
+        itemId={itemId}
+      />
     </div>
   );
 }

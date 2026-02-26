@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getPriceHistory } from '@/lib/supabase/price-tracking-queries';
 import { HISTORY_CONFIG } from '@/lib/constants/price-tracking';
 import type { PriceHistoryEntry } from '@/types/price-tracking';
@@ -23,7 +23,8 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchHistory = async (days: number = HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS) => {
+  // Manual fetch function for re-fetching with different days
+  const fetchHistory = useCallback(async (days: number = HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -34,12 +35,41 @@ export function usePriceHistory(trackingId: string): UsePriceHistoryResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [trackingId]);
 
+  // Initial fetch with race condition protection
   useEffect(() => {
-    if (trackingId) {
-      fetchHistory();
+    if (!trackingId) {
+      setIsLoading(false);
+      return;
     }
+
+    let isCancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getPriceHistory(trackingId, HISTORY_CONFIG.DEFAULT_DISPLAY_DAYS);
+        if (!isCancelled) {
+          setHistory(data);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err as Error);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadHistory();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [trackingId]);
 
   return {

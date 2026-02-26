@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- gear_enrichment_suggestions/notifications tables not in generated types */
 /**
  * POST /api/gear-items/apply-enrichment
  * Apply GearGraph enrichment suggestions to gear items
@@ -10,11 +11,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const applyEnrichmentSchema = z.object({
   suggestion_id: z.string().uuid(),
   action: z.enum(['accept', 'dismiss']),
+  notification_id: z.string().uuid().optional(), // Optional: delete notification after processing
 });
+
+/** User-friendly labels for technical field names */
+const FIELD_LABELS: Record<string, string> = {
+  weight_grams: 'Weight',
+  description: 'Description',
+  price_paid: 'Price',
+  currency: 'Currency',
+};
+
+/**
+ * Helper to delete notification after processing enrichment action.
+ * Non-blocking - logs errors but doesn't fail the request.
+ */
+async function deleteNotificationIfProvided(
+  supabase: SupabaseClient,
+  notificationId: string | undefined,
+  userId: string
+): Promise<void> {
+  if (!notificationId) return;
+
+  const { error } = await (supabase as any)
+    .from('notifications')
+    .delete()
+    .eq('id', notificationId)
+    .eq('user_id', userId); // Security: ensure user owns notification
+
+  if (error) {
+    console.error('[apply-enrichment] Failed to delete notification:', error);
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,16 +67,18 @@ export async function POST(request: NextRequest) {
     const validation = applyEnrichmentSchema.safeParse(body);
 
     if (!validation.success) {
+      // Log details server-side but return generic message to client
+      console.warn('[apply-enrichment] Validation failed:', validation.error.issues);
       return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.issues },
+        { error: 'Invalid request format' },
         { status: 400 }
       );
     }
 
-    const { suggestion_id, action } = validation.data;
+    const { suggestion_id, action, notification_id } = validation.data;
 
     // Fetch the enrichment suggestion
-    const { data: suggestion, error: fetchError } = await supabase
+    const { data: suggestion, error: fetchError } = await (supabase as any)
       .from('gear_enrichment_suggestions')
       .select('*')
       .eq('id', suggestion_id)
@@ -60,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'dismiss') {
       // Simply mark as dismissed
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('gear_enrichment_suggestions')
         .update({ status: 'dismissed' })
         .eq('id', suggestion_id);
@@ -71,6 +106,9 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+
+      // Delete notification so it's removed from the list
+      await deleteNotificationIfProvided(supabase, notification_id, user.id);
 
       return NextResponse.json({
         success: true,
@@ -100,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the gear item
-    const { error: updateGearError } = await supabase
+    const { error: updateGearError } = await (supabase as any)
       .from('gear_items')
       .update(updateData)
       .eq('id', suggestion.gear_item_id)
@@ -114,20 +152,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark suggestion as accepted
-    const { error: updateSuggestionError } = await supabase
+    const { error: updateSuggestionError } = await (supabase as any)
       .from('gear_enrichment_suggestions')
       .update({ status: 'accepted' })
       .eq('id', suggestion_id);
 
     if (updateSuggestionError) {
       // Item was updated but suggestion status wasn't - log but don't fail
-      console.error('Failed to update suggestion status:', updateSuggestionError);
+      console.error('[apply-enrichment] Failed to update suggestion status:', updateSuggestionError);
     }
+
+    // Delete notification so it's removed from the list
+    await deleteNotificationIfProvided(supabase, notification_id, user.id);
+
+    // Map technical field names to user-friendly labels
+    const updatedFieldLabels = Object.keys(updateData).map(
+      (field) => FIELD_LABELS[field] || field
+    );
 
     return NextResponse.json({
       success: true,
       action: 'accepted',
-      updated_fields: Object.keys(updateData),
+      updated_fields: updatedFieldLabels,
     });
   } catch (error) {
     console.error('Apply enrichment error:', error);

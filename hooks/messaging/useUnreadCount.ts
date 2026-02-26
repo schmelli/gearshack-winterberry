@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTotalUnreadCount } from '@/lib/supabase/messaging-queries';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -30,6 +30,9 @@ export function useUnreadCount(): UseUnreadCountReturn {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Store refresh function in ref to prevent subscription churn
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -59,12 +62,19 @@ export function useUnreadCount(): UseUnreadCountReturn {
     }
   }, [user?.id]);
 
+  // Keep ref updated with latest refresh function
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+
+  // Initial fetch
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   // Subscribe to real-time updates on conversation_participants unread_count changes
   // Note: This subscription will silently fail if messaging tables don't exist yet
+  // Uses refreshRef to avoid subscription churn when refresh function changes
   useEffect(() => {
     if (!user?.id) return;
 
@@ -82,7 +92,7 @@ export function useUnreadCount(): UseUnreadCountReturn {
         },
         () => {
           // Refresh count when participant record changes (unread_count updated)
-          refresh();
+          refreshRef.current();
         }
       )
       .on(
@@ -96,7 +106,7 @@ export function useUnreadCount(): UseUnreadCountReturn {
           // When a new message is inserted, check if it's for us
           // The trigger will update unread_count, so we just refresh
           if (payload.new && payload.new.sender_id !== user.id) {
-            refresh();
+            refreshRef.current();
           }
         }
       )
@@ -110,7 +120,7 @@ export function useUnreadCount(): UseUnreadCountReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refresh]);
+  }, [user?.id]); // Remove refresh from deps - use ref instead
 
   return {
     unreadCount,

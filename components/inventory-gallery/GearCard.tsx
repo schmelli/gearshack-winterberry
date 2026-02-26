@@ -2,152 +2,45 @@
 
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
-import React, { useState } from 'react';
-import { Pencil, ExternalLink, StickyNote, FileText, Heart, Recycle, Tag, DollarSign, HandHeart, ArrowLeftRight, ChevronRight } from 'lucide-react';
+import React, { memo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Pencil, ExternalLink, StickyNote, FileText, ChevronRight } from 'lucide-react';
+
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity } from '@/types/inventory';
+import type { WishlistItemAvailability } from '@/types/wishlist';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { CategoryPlaceholder } from './CategoryPlaceholder';
 import { formatWeightForDisplay, getOptimizedImageUrl } from '@/lib/gear-utils';
 import { SpecIcon } from '@/components/gear/SpecIcon';
-import { PriceStubIndicator } from '@/components/wishlist/PriceStubIndicator';
-import { PriceHistoryStub } from '@/components/wishlist/PriceHistoryStub';
+import { WishlistCardPricingSummary } from '@/components/wishlist/WishlistCardPricingSummary';
 import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
 import { CommunityAvailabilityPanel } from '@/components/wishlist/CommunityAvailabilityPanel';
-import type { WishlistItemAvailability } from '@/types/wishlist';
 import { useCategoryBreadcrumb } from '@/hooks/useCategoryBreadcrumb';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { useWishlistMarketplaceMatches } from '@/hooks/wishlist/useWishlistMarketplaceMatches';
 
-// =============================================================================
-// Status Icons Component - Feature 041
-// =============================================================================
-
-interface StatusIconsProps {
-  item: GearItem;
-  className?: string;
-}
-
-function StatusIcons({ item, className }: StatusIconsProps) {
-  const icons: React.ReactNode[] = [];
-
-  // Heart icon for favourites
-  if (item.isFavourite) {
-    icons.push(
-      <div
-        key="favourite"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm"
-        title="Favourite"
-      >
-        <Heart className="h-3.5 w-3.5 text-white fill-white" />
-      </div>
-    );
-  }
-
-  // Dollar sign for items for sale
-  if (item.isForSale) {
-    icons.push(
-      <div
-        key="for-sale"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm"
-        title="For Sale"
-      >
-        <DollarSign className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  // Hand heart icon for items that can be borrowed
-  if (item.canBeBorrowed) {
-    icons.push(
-      <div
-        key="borrowable"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm"
-        title="Can be Borrowed"
-      >
-        <HandHeart className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  // Arrow swap icon for items that can be traded
-  if (item.canBeTraded) {
-    icons.push(
-      <div
-        key="tradeable"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm"
-        title="Up for Trade"
-      >
-        <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  // Recycle icon for lent items
-  if (item.status === 'lent') {
-    icons.push(
-      <div
-        key="lent"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm"
-        title="Currently Lent"
-      >
-        <Recycle className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  // Tag icon for sold items
-  if (item.status === 'sold') {
-    icons.push(
-      <div
-        key="sold"
-        className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm"
-        title="Sold"
-      >
-        <Tag className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  if (icons.length === 0) return null;
-
-  return (
-    <div className={cn("flex gap-1 flex-wrap", className)}>
-      {icons}
-    </div>
-  );
-}
+import { CategoryPlaceholder } from './CategoryPlaceholder';
+import { StatusIcons } from './StatusIcons';
+import { QuantityBadge } from './QuantityBadge';
 
 // =============================================================================
 // Types
 // =============================================================================
 
 interface GearCardProps {
-  /** The gear item to display */
   item: GearItem;
-  /** Current view density mode */
   viewDensity: ViewDensity;
-  /** Optional click handler for card body */
   onClick?: () => void;
-  /** Context determines which features are shown (Feature 049: wishlist hides availability markers) */
   context?: 'inventory' | 'wishlist';
-  /** Feature 049 US3: Callback to move wishlist item to inventory */
   onMoveToInventory?: (itemId: string) => Promise<void>;
-  /** Feature 049 US3: Callback after successful move (for navigation) */
   onMoveComplete?: () => void;
-  /** Feature 049 US2: Community availability data for wishlist items (T045) */
   communityAvailability?: WishlistItemAvailability | null;
-  /** Feature 049 US2: Whether community availability is loading (T045) */
   communityAvailabilityLoading?: boolean;
-  /** Feature 049 US2: Callback to view a community item in detail modal (T041) */
   onViewCommunityItem?: (itemId: string, ownerId: string) => void;
 }
 
@@ -155,7 +48,7 @@ interface GearCardProps {
 // Component
 // =============================================================================
 
-export function GearCard({
+function GearCardComponent({
   item,
   viewDensity,
   onClick,
@@ -165,11 +58,19 @@ export function GearCard({
   communityAvailability,
   communityAvailabilityLoading = false,
   onViewCommunityItem,
-}: GearCardProps) {
+}: GearCardProps): React.ReactElement {
+  const t = useTranslations('GearDetail');
   const [imageError, setImageError] = useState(false);
 
-  // Feature 019: Use optimized image with Cloudinary transformations
-  // Different widths for different view densities
+  const statusTranslations = {
+    favourite: t('badges.favouriteTooltip'),
+    forSale: t('badges.forSaleTooltip'),
+    borrowable: t('badges.borrowableTooltip'),
+    tradeable: t('badges.tradeableTooltip'),
+    lent: t('badges.lentTooltip'),
+    sold: t('badges.soldTooltip'),
+  };
+
   const imageWidth = viewDensity === 'compact' ? 160 : viewDensity === 'detailed' ? 1200 : 800;
   const optimizedImageUrl = getOptimizedImageUrl(item, imageWidth);
   const showImage = optimizedImageUrl && !imageError;
@@ -177,20 +78,19 @@ export function GearCard({
   const isDetailed = viewDensity === 'detailed';
   const isStandard = viewDensity === 'standard';
 
-  // Feature 049: Hide availability markers in wishlist context
   const showAvailabilityMarkers = context === 'inventory';
-  // Feature 049: Show price stubs in wishlist context
   const isWishlistContext = context === 'wishlist';
-  // Feature 049 US2 T045: Show community availability panel in wishlist context (medium/detailed views only)
   const showCommunityAvailability = isWishlistContext && (isStandard || isDetailed);
 
-  // Cascading Category Refactor (Phase 4): Use breadcrumb hook instead of prop
-  const { breadcrumb, productTypeLabel } = useCategoryBreadcrumb(item.productTypeId);
+  // Load marketplace matches for wishlist items
+  const { matches: marketplaceMatches, isLoading: marketplaceMatchesLoading } = useWishlistMarketplaceMatches(
+    isWishlistContext ? item.name : '',
+    isWishlistContext ? item.brand : null
+  );
 
-  // Derive categoryId (level 1) from productTypeId (level 3) for CategoryPlaceholder
+  const { breadcrumb, productTypeLabel } = useCategoryBreadcrumb(item.productTypeId);
   const categories = useCategoriesStore((state) => state.categories);
   const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
-
   const weightDisplay = formatWeightForDisplay(item.weightGrams);
 
   // =========================================================================
@@ -201,13 +101,12 @@ export function GearCard({
       <Card
         className={cn(
           'group relative overflow-hidden cursor-pointer',
-          'flex flex-row items-center h-20', // Reduced height slightly
+          'flex flex-row items-center h-20',
           'border-stone-200 dark:border-stone-700 shadow-sm',
           'transition-all hover:shadow-md hover:border-stone-300 dark:hover:border-stone-600'
         )}
         onClick={onClick}
       >
-        {/* Image Section */}
         <div className="h-20 w-20 flex-shrink-0 bg-white dark:bg-gradient-to-b dark:from-stone-800 dark:to-stone-950 relative flex items-center justify-center border-r border-stone-100 dark:border-stone-800">
           {showImage ? (
             <Image
@@ -217,25 +116,25 @@ export function GearCard({
               loading="lazy"
               className="object-contain p-1.5"
               sizes="80px"
+              placeholder="empty"
               onError={() => setImageError(true)}
             />
           ) : (
-            <CategoryPlaceholder
-              categoryId={categoryId}
-              size="sm"
-              className="h-10 w-10"
+            <CategoryPlaceholder categoryId={categoryId} size="sm" className="h-10 w-10" />
+          )}
+          {showAvailabilityMarkers && (
+            <StatusIcons
+              item={item}
+              translations={statusTranslations}
+              className="absolute top-1 left-1 scale-75 origin-top-left"
             />
           )}
-          {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
-          {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-1 left-1 scale-75 origin-top-left" />}
+          <QuantityBadge quantity={item.quantity} className="absolute top-1 right-1 scale-75 origin-top-right" />
         </div>
 
-        {/* Content Section */}
         <div className="flex flex-1 flex-col justify-center px-4 py-1.5 min-w-0">
           <div className="flex justify-between items-baseline gap-2">
-            <h3 className="text-sm font-medium leading-tight line-clamp-1 text-foreground">
-              {item.name}
-            </h3>
+            <h3 className="text-sm font-medium leading-tight line-clamp-1 text-foreground">{item.name}</h3>
             {item.weightGrams && (
               <span className="text-xs text-muted-foreground flex-shrink-0 font-mono flex items-center gap-1">
                 <SpecIcon type="weight" size={12} className="opacity-60" />
@@ -243,25 +142,18 @@ export function GearCard({
               </span>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2 mt-0.5">
-            {item.brand && (
-              <p className="text-xs text-muted-foreground truncate max-w-[120px]">
-                {item.brand}
-              </p>
-            )}
+            {item.brand && <p className="text-xs text-muted-foreground truncate max-w-[120px]">{item.brand}</p>}
             {productTypeLabel && (
               <>
-                <span className="text-[10px] text-stone-300 dark:text-stone-700">•</span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {productTypeLabel}
-                </span>
+                <span className="text-[10px] text-stone-300 dark:text-stone-700">*</span>
+                <span className="text-xs text-muted-foreground truncate">{productTypeLabel}</span>
               </>
             )}
           </div>
         </div>
 
-        {/* Action Button Overlay - Feature 049 US3: Show Move button in wishlist context */}
         <div className="absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {isWishlistContext && onMoveToInventory ? (
             <MoveToInventoryButton
@@ -283,7 +175,7 @@ export function GearCard({
             >
               <Link href={`/inventory/${item.id}/edit`}>
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit</span>
+                <span className="sr-only">{t('actions.edit')}</span>
               </Link>
             </Button>
           )}
@@ -298,20 +190,16 @@ export function GearCard({
   return (
     <Card
       className={cn(
-        'group relative overflow-hidden cursor-pointer',
-        'flex flex-col',
+        'group relative overflow-hidden cursor-pointer flex flex-col',
         'border-stone-200 dark:border-stone-700 shadow-sm',
         'transition-all hover:shadow-md hover:border-stone-300 dark:hover:border-stone-600',
-        // Standard ist jetzt kompakter, Detailed wächst mit
         isDetailed ? 'min-h-[450px]' : 'min-h-[260px]'
       )}
       onClick={onClick}
     >
-      {/* Image Section */}
       <div
         className={cn(
           'relative bg-white dark:bg-gradient-to-b dark:from-stone-800 dark:to-stone-950 flex items-center justify-center border-b border-stone-100 dark:border-stone-800',
-          // Standard: 3/2 (flacher/breiter) | Detailed: 1/1 (großes Quadrat)
           isDetailed ? 'aspect-square' : 'aspect-[3/2]'
         )}
       >
@@ -323,6 +211,7 @@ export function GearCard({
             loading="lazy"
             className="object-contain p-4 transition-transform group-hover:scale-105 duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            placeholder="empty"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -333,11 +222,10 @@ export function GearCard({
           />
         )}
 
-        {/* Status Icons (Overlay top-left) - Feature 041, Hidden in wishlist context (Feature 049) */}
-        {showAvailabilityMarkers && <StatusIcons item={item} className="absolute top-2 left-2" />}
+        {showAvailabilityMarkers && <StatusIcons item={item} translations={statusTranslations} className="absolute top-2 left-2" />}
+        <QuantityBadge quantity={item.quantity} className="absolute top-2 right-2" />
 
-        {/* Action Button (Overlay top-right) - Feature 049 US3: Show Move button in wishlist context */}
-        <div className="absolute right-2 top-2 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
+        <div className="absolute right-2 top-10 opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
           {isWishlistContext && onMoveToInventory ? (
             <MoveToInventoryButton
               itemId={item.id}
@@ -358,59 +246,52 @@ export function GearCard({
             >
               <Link href={`/inventory/${item.id}/edit`}>
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit</span>
+                <span className="sr-only">{t('actions.edit')}</span>
               </Link>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Content Section */}
-      <CardContent className={cn("flex flex-col flex-1", isDetailed ? "p-5" : "p-3")}>
-        
-        {/* Header: Brand & Weight */}
+      <CardContent className={cn('flex flex-col flex-1', isDetailed ? 'p-5' : 'p-3')}>
         <div className="flex justify-between items-start mb-1">
           {item.brand ? (
-             <HoverCard>
-             <HoverCardTrigger asChild>
-               <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 cursor-pointer hover:text-primary transition-colors">
-                 {item.brand}
-               </p>
-             </HoverCardTrigger>
-             <HoverCardContent className="w-64" align="start">
-               <div className="space-y-2">
-                 <h4 className="text-sm font-semibold">{item.brand}</h4>
-                 {item.brandUrl && (
-                   <a
-                     href={item.brandUrl}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                     onClick={(e) => e.stopPropagation()}
-                   >
-                     Visit website
-                     <ExternalLink className="h-3 w-3" />
-                   </a>
-                 )}
-               </div>
-             </HoverCardContent>
-           </HoverCard>
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 cursor-pointer hover:text-primary transition-colors">
+                  {item.brand}
+                </p>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-64" align="start">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">{item.brand}</h4>
+                  {item.brandUrl && (
+                    <a
+                      href={item.brandUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {t('labels.visitWebsite')}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           ) : (
-            <span /> // Spacer
+            <span />
           )}
-          
+
           {item.weightGrams && (
-            <span className={cn(
-              "text-muted-foreground font-mono flex items-center gap-1",
-              isDetailed ? "text-sm" : "text-xs"
-            )}>
+            <span className={cn('text-muted-foreground font-mono flex items-center gap-1', isDetailed ? 'text-sm' : 'text-xs')}>
               <SpecIcon type="weight" size={isDetailed ? 14 : 12} className="opacity-60" />
               {weightDisplay}
             </span>
           )}
         </div>
 
-        {/* Title */}
         <h3
           className={cn(
             'font-bold text-foreground mb-2',
@@ -420,7 +301,6 @@ export function GearCard({
           {item.name}
         </h3>
 
-        {/* Category & Details Line - Cascading Category Refactor (Phase 4): Breadcrumb on hover */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {productTypeLabel && (
             <HoverCard openDelay={200}>
@@ -434,9 +314,7 @@ export function GearCard({
                   {breadcrumb.map((label, idx) => (
                     <React.Fragment key={idx}>
                       {idx > 0 && <ChevronRight className="h-3 w-3 opacity-50" aria-hidden="true" />}
-                      <span className={idx === breadcrumb.length - 1 ? "font-semibold text-foreground" : ""}>
-                        {label}
-                      </span>
+                      <span className={idx === breadcrumb.length - 1 ? 'font-semibold text-foreground' : ''}>{label}</span>
                     </React.Fragment>
                   ))}
                 </div>
@@ -445,35 +323,40 @@ export function GearCard({
           )}
         </div>
 
-        {/* Feature 049 T065: Price Stub Indicator for standard (medium) wishlist view */}
         {isStandard && isWishlistContext && (
-          <PriceStubIndicator className="mt-auto" />
+          <WishlistCardPricingSummary
+            itemId={item.id}
+            itemName={item.name}
+            brandName={item.brand}
+            manufacturerPrice={item.manufacturerPrice}
+            manufacturerCurrency={item.manufacturerCurrency}
+            productUrl={item.productUrl}
+            brandUrl={item.brandUrl}
+            productTypeId={item.productTypeId}
+            variant="compact"
+            className="mt-auto"
+          />
         )}
 
-        {/* DETAILED VIEW: Description & Notes */}
         {isDetailed && (
           <div className="mt-4 pt-4 border-t border-border space-y-4 flex-1">
-            
-            {/* Description Section */}
             {item.description && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-3.5 w-3.5" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Description</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">{t('labels.description')}</span>
                 </div>
-                {/* Fallback div if ScrollArea is missing, but prefer ScrollArea */}
                 <div className="h-24 overflow-y-auto pr-2 text-sm text-muted-foreground leading-relaxed custom-scrollbar">
-                   {item.description}
+                  {item.description}
                 </div>
               </div>
             )}
 
-            {/* Notes Section */}
             {item.notes && (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
                   <StickyNote className="h-3.5 w-3.5" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">My Notes</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">{t('labels.myNotes')}</span>
                 </div>
                 <div className="max-h-20 overflow-y-auto pr-2 text-sm italic text-emerald-800 dark:text-emerald-300/80 bg-emerald-50/50 dark:bg-emerald-900/10 p-2 rounded-md border border-emerald-100 dark:border-emerald-900/20">
                   {item.notes}
@@ -481,18 +364,29 @@ export function GearCard({
               </div>
             )}
 
-            {/* Feature 049 T067: Price History Stub for detailed (large) wishlist view */}
             {isWishlistContext && (
-              <PriceHistoryStub className="mt-auto" />
+              <WishlistCardPricingSummary
+                itemId={item.id}
+                itemName={item.name}
+                brandName={item.brand}
+                manufacturerPrice={item.manufacturerPrice}
+                manufacturerCurrency={item.manufacturerCurrency}
+                productUrl={item.productUrl}
+                brandUrl={item.brandUrl}
+                productTypeId={item.productTypeId}
+                variant="full"
+                className="mt-auto"
+              />
             )}
           </div>
         )}
       </CardContent>
 
-      {/* Feature 049 US2 T045: Community Availability Panel for wishlist items (standard/detailed views) */}
       {showCommunityAvailability && (
         <CommunityAvailabilityPanel
           availability={communityAvailability ?? null}
+          marketplaceMatches={marketplaceMatches}
+          marketplaceLoading={marketplaceMatchesLoading}
           isLoading={communityAvailabilityLoading}
           onViewItem={onViewCommunityItem}
           variant={isDetailed ? 'full' : 'compact'}
@@ -501,3 +395,23 @@ export function GearCard({
     </Card>
   );
 }
+
+/**
+ * Custom comparison function for GearCard memoization.
+ * Compares item by id and updatedAt to detect meaningful changes.
+ */
+function areGearCardPropsEqual(
+  prevProps: GearCardProps,
+  nextProps: GearCardProps
+): boolean {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.updatedAt === nextProps.item.updatedAt &&
+    prevProps.viewDensity === nextProps.viewDensity &&
+    prevProps.context === nextProps.context &&
+    prevProps.communityAvailabilityLoading === nextProps.communityAvailabilityLoading &&
+    prevProps.communityAvailability?.matchCount === nextProps.communityAvailability?.matchCount
+  );
+}
+
+export const GearCard = memo(GearCardComponent, areGearCardPropsEqual);

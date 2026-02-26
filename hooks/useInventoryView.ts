@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { InventoryViewMode } from '@/types/wishlist';
 

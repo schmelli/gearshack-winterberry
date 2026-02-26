@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- insight_feedback table not in generated types */
 /**
  * Insight Feedback API Route
  *
@@ -24,6 +25,13 @@ const feedbackSchema = z.object({
   gearBrand: z.string().max(100).optional(),
   gearName: z.string().max(200).optional(),
   categoryId: z.string().max(100).optional(),
+  // Note: promptVariant and experimentName are accepted in the schema to avoid
+  // client-side errors when the client includes them (they are sent in the SSE
+  // done event), but are deliberately IGNORED server-side.  The server always
+  // looks up the canonical assignment from prompt_ab_assignments to prevent
+  // users from forging variant IDs and skewing A/B analytics.
+  promptVariant: z.string().max(10).optional(),
+  experimentName: z.string().max(100).optional(),
 });
 
 // =============================================================================
@@ -61,13 +69,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId } =
-      parseResult.data;
+    const {
+      insightContent, isPositive, gearItemId, gearBrand, gearName, categoryId,
+    } = parseResult.data;
 
     const contentHash = hashContent(insightContent);
 
+    // Look up the user's most recent A/B assignment server-side.
+    // We intentionally ignore client-submitted promptVariant/experimentName to
+    // prevent users from forging variant IDs and skewing analytics.
+    let serverVariant: string | null = null;
+    let serverExperiment: string | null = null;
+    try {
+      const { data: assignment } = await (supabase as any)
+        .from('prompt_ab_assignments')
+        .select('variant_id, experiment_name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (assignment) {
+        serverVariant = assignment.variant_id as string;
+        serverExperiment = assignment.experiment_name as string;
+      }
+    } catch {
+      // Non-critical: proceed without A/B correlation if lookup fails
+    }
+
     // Upsert the feedback (update if exists, insert if not)
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('insight_feedback')
       .upsert(
         {
@@ -79,6 +109,8 @@ export async function POST(request: NextRequest) {
           gear_brand: gearBrand || null,
           gear_name: gearName || null,
           category_id: categoryId || null,
+          prompt_variant: serverVariant,
+          experiment_name: serverExperiment,
         },
         {
           onConflict: 'user_id,insight_content_hash',
@@ -90,7 +122,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[InsightFeedback] Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to save feedback', details: error.message },
+        { error: 'Failed to save feedback' },
         { status: 500 }
       );
     }
@@ -196,7 +228,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('insight_feedback')
       .delete()
       .eq('user_id', user.id)

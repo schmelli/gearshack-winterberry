@@ -120,10 +120,20 @@ export function buildPrompt(params: {
   prompt: string;
   negativePrompt: string;
 } {
-  const { season, activityTypes, stylePreferences } = params;
+  const { title, description, season, activityTypes, stylePreferences } = params;
 
   // Base prefix
   const base = 'Professional outdoor photography';
+
+  // Extract meaningful context from title and description
+  // SECURITY: Sanitize user input to prevent prompt injection
+  const titleContext = title && title.toLowerCase() !== 'loadout'
+    ? `themed around "${sanitizeUserInput(title)}"`
+    : '';
+
+  const descriptionContext = description
+    ? `capturing the essence of: ${sanitizeUserInput(description).slice(0, 100)}`
+    : '';
 
   // Landscape/activity context
   const primaryActivity = activityTypes?.[0] || 'generic';
@@ -158,6 +168,8 @@ export function buildPrompt(params: {
   // Construct final prompt
   const promptParts = [
     base,
+    titleContext,       // Loadout title for thematic relevance
+    descriptionContext, // Loadout description for context
     landscape,
     seasonalTerms,
     styleModifiers,

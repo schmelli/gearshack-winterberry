@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   enablePriceTracking as enableTrackingQuery,
   disablePriceTracking as disableTrackingQuery,
@@ -30,7 +30,38 @@ export function usePriceTracking(gearItemId: string): UsePriceTrackingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadTrackingStatus = async () => {
+  // Load tracking status with race condition protection
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadTrackingStatus = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const status = await getPriceTrackingStatus(gearItemId);
+        if (!isCancelled) {
+          setTracking(status);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err as Error);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadTrackingStatus();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [gearItemId]);
+
+  // Refresh function for manual re-fetch
+  const refresh = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -41,10 +72,6 @@ export function usePriceTracking(gearItemId: string): UsePriceTrackingResult {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadTrackingStatus();
   }, [gearItemId]);
 
   const enableTracking = async (alertsEnabled: boolean = true) => {
@@ -98,6 +125,6 @@ export function usePriceTracking(gearItemId: string): UsePriceTrackingResult {
     enableTracking,
     disableTracking,
     toggleAlerts,
-    refresh: loadTrackingStatus,
+    refresh,
   };
 }

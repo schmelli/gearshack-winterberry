@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Confirm fuzzy match selection
  * Feature: 050-price-tracking
@@ -6,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { ConfirmMatchRequest, PriceTracking } from '@/types/price-tracking';
+import type { ConfirmMatchRequest } from '@/types/price-tracking';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,8 +22,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body: ConfirmMatchRequest = await request.json();
+    // Parse request body with error handling
+    let body: ConfirmMatchRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     if (!body.tracking_id || !body.selected_product_id) {
       return NextResponse.json(
@@ -32,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify tracking belongs to user
-    const { data: tracking, error: trackingError } = await supabase
+    const { data: tracking, error: trackingError } = await (supabase as any)
       .from('price_tracking')
       .select('*')
       .eq('id', body.tracking_id)
@@ -47,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update tracking with confirmed match
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('price_tracking')
       .update({
         confirmed_product_id: body.selected_product_id,

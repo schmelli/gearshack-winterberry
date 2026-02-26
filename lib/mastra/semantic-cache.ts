@@ -1,0 +1,400 @@
+/**
+ * Semantic Response Cache
+ * Feature: Intelligent Response Caching (Vorschlag 19, Kap. 31)
+ *
+ * Uses pgvector cosine similarity to match incoming queries against
+ * previously cached AI responses. Factual questions like
+ * "What's the difference between Gore-Tex and eVent?" are served
+ * from cache instead of making a full LLM call.
+ *
+ * Architecture:
+ *   - Embedding model: text-embedding-3-small (1536 dims) via AI Gateway
+ *   - Storage: Supabase PostgreSQL with pgvector HNSW index
+ *   - Similarity threshold: 0.95 (very strict — near-identical questions)
+ *   - TTL: 48 hours for general_knowledge intents
+ *   - Global cache (not per-user) — factual answers are user-independent
+ *
+ * Latency Profile:
+ *   - Cache HIT:  ~50–200ms embedding + ~10–50ms DB = 60–250ms total
+ *                 (vs 500ms–3s for a full LLM call — significant saving)
+ *   - Cache MISS: same 60–250ms embedding + DB overhead is ADDED to the
+ *                 downstream LLM latency. During cold-start (empty cache),
+ *                 100% of requests pay this cost. Monitor `embeddingLatencyMs`
+ *                 and `dbLatencyMs` in the DEBUG logs to evaluate whether an
+ *                 exact-match pre-filter would reduce the miss-path overhead.
+ *
+ * PII / Data-Governance Boundary:
+ *   Raw query text is stored in the global `response_cache.query_text` column.
+ *   This is acceptable ONLY because the cache is gated to intent types in
+ *   CACHEABLE_INTENTS (default: general_knowledge, gear_comparison). These
+ *   intents are defined to be factual and user-independent.
+ *
+ *   Defence Layer 1: Intent gating via CACHEABLE_INTENTS
+ *   Defence Layer 2: PII Guard heuristic (cache-pii-guard.ts) — scans raw
+ *     query text for personal context markers (possessive pronouns, geographic
+ *     destinations, temporal planning references) independent of intent classification.
+ *   Defence Layer 3: Database CHECK constraint on intent_type column.
+ *
+ *   Before adding any new intent to CACHEABLE_INTENTS (via the
+ *   RESPONSE_CACHE_INTENTS env var), confirm it cannot carry PII.
+ *
+ * @see supabase/migrations/20260225000001_response_cache.sql
+ */
+
+import { embed } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
+import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { logInfo, logDebug, logWarn, logError, createTimer } from './logging';
+import {
+  recordCacheHit,
+  recordCacheMiss,
+  recordCacheStore,
+  recordCacheLatency,
+  recordCachePiiSkip,
+} from './metrics';
+import { checkQueryForPersonalContext } from './cache-pii-guard';
+
+// =============================================================================
+// Configuration
+// =============================================================================
+
+/** Cosine similarity threshold — only serve cache for near-identical questions */
+const SIMILARITY_THRESHOLD = parseFloat(
+  process.env.RESPONSE_CACHE_SIMILARITY_THRESHOLD || '0.95'
+);
+
+/** Cache TTL in hours — with NaN guard for invalid env var values */
+const _parsedTtl = parseInt(process.env.RESPONSE_CACHE_TTL_HOURS || '48', 10);
+const CACHE_TTL_HOURS = Number.isNaN(_parsedTtl) || _parsedTtl <= 0 ? 48 : _parsedTtl;
+
+/** Minimum response length to cache (skip very short answers) */
+const MIN_RESPONSE_LENGTH = 50;
+
+/** Maximum cached response length to prevent storing huge responses */
+const MAX_RESPONSE_LENGTH = 10000;
+
+/**
+ * Feature flag to enable/disable response caching.
+ *
+ * Opt-in (must be explicitly set to 'true') so that existing deployments
+ * are not silently charged for embedding API calls after a deploy.
+ * Set RESPONSE_CACHE_ENABLED=true in .env.local / production env vars to enable.
+ */
+const CACHE_ENABLED = process.env.RESPONSE_CACHE_ENABLED === 'true';
+
+/**
+ * Intent types eligible for caching (factual, user-independent).
+ *
+ * Configurable at runtime via RESPONSE_CACHE_INTENTS env var
+ * (comma-separated, e.g. "general_knowledge,gear_comparison").
+ * Only add intents here that are guaranteed to produce user-independent,
+ * non-PII answers — this list directly controls what ends up in query_text.
+ */
+const CACHEABLE_INTENTS = new Set(
+  (process.env.RESPONSE_CACHE_INTENTS || 'general_knowledge,gear_comparison')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+
+// Eagerly-initialized gateway for embedding generation.
+// Warn at module load time if the key is missing — this surfaces a clear startup message
+// instead of a confusing auth error on the first cache lookup.
+const _embeddingApiKey = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
+if (CACHE_ENABLED && !_embeddingApiKey) {
+  logWarn('[SemanticCache] AI_GATEWAY_API_KEY not set — response cache disabled at startup. ' +
+    'Set AI_GATEWAY_API_KEY or AI_GATEWAY_KEY to enable caching.', {});
+}
+const embeddingGateway = createGateway({
+  apiKey: _embeddingApiKey || '',
+});
+
+// =============================================================================
+// Public API
+// =============================================================================
+
+/**
+ * Check if a query intent is eligible for caching.
+ *
+ * Only factual, user-independent questions should be cached.
+ * Personal questions like "How many tents do I have?" must never be cached.
+ */
+export function isCacheableIntent(intentType: string): boolean {
+  return CACHE_ENABLED && CACHEABLE_INTENTS.has(intentType);
+}
+
+/**
+ * Search for a semantically similar cached response.
+ *
+ * Generates an embedding for the query, then uses pgvector cosine similarity
+ * to find the best matching cached response above the threshold.
+ *
+ * @param query - The user's question
+ * @param locale - User locale (en/de)
+ * @param threshold - Similarity threshold (default: 0.95)
+ * @param intentType - Intent type, passed through to Prometheus labels (default: 'unknown')
+ * @returns Cached response string or null if no match
+ */
+export async function getSemanticCacheHit(
+  query: string,
+  locale: string = 'en',
+  threshold: number = SIMILARITY_THRESHOLD,
+  intentType: string = 'unknown'
+): Promise<{ response: string; cacheId: string; similarity: number } | null> {
+  if (!CACHE_ENABLED) return null;
+
+  const getTotalElapsed = createTimer();
+
+  try {
+    // Generate embedding for the incoming query — timed separately so we can
+    // distinguish embedding API latency from Supabase RPC latency in logs.
+    // This is especially useful during cold-start when the cache is empty:
+    // 100% of requests pay embedding latency, so understanding the split helps
+    // evaluate whether a pre-filter exact-match optimisation is worthwhile.
+    const embedTimer = createTimer();
+    const queryEmbedding = await generateQueryEmbedding(query);
+    const embeddingLatencyMs = embedTimer();
+    if (!queryEmbedding) return null;
+
+    // Search cache via Supabase RPC.
+    // Cast to SupabaseClient<unknown> to bypass strict generated-type checks for
+    // `response_cache` and its RPC functions — these are created by the migration
+    // in 20260225000001_response_cache.sql but not yet reflected in the generated
+    // types/supabase.ts until the migration is applied and types are regenerated.
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untypedClient = supabase as unknown as SupabaseClient<any>;
+    const dbTimer = createTimer();
+    const { data, error } = await untypedClient.rpc('search_response_cache', {
+      query_embedding: queryEmbedding,
+      similarity_threshold: threshold,
+      query_locale: locale,
+      // Pass intent type so the SQL function filters to matching-intent entries only.
+      // Without this, a gear_comparison response could be served for a general_knowledge
+      // query on the same topic (intent-specific framing may differ).
+      query_intent_type: intentType,
+    }) as { data: Array<{ id: string; cached_response: string; similarity: number; hit_count: number; query_text: string }> | null; error: { message: string } | null };
+    const dbLatencyMs = dbTimer();
+
+    const latencyMs = getTotalElapsed();
+    recordCacheLatency(latencyMs);
+
+    if (error) {
+      logError('Cache search RPC failed', new Error(error.message));
+      recordCacheMiss(intentType);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      const hit = data[0];
+
+      // Increment hit count asynchronously (fire-and-forget)
+      untypedClient.rpc('increment_cache_hit_count', { cache_id: hit.id }).then(
+        () => {},
+        (err: Error) => logWarn('Failed to increment cache hit count', {
+          metadata: { cacheId: hit.id, error: err.message },
+        })
+      );
+
+      logInfo('Semantic cache hit', {
+        metadata: {
+          cacheId: hit.id,
+          similarity: hit.similarity,
+          hitCount: hit.hit_count + 1,
+          originalQuery: hit.query_text?.substring(0, 80),
+          intentType,
+          latencyMs,
+          embeddingLatencyMs,
+          dbLatencyMs,
+        },
+      });
+
+      recordCacheHit(intentType);
+      return {
+        response: hit.cached_response,
+        cacheId: hit.id,
+        similarity: hit.similarity,
+      };
+    }
+
+    logDebug('Semantic cache miss', {
+      metadata: {
+        queryPreview: query.substring(0, 80),
+        locale,
+        threshold,
+        intentType,
+        latencyMs,
+        embeddingLatencyMs,
+        dbLatencyMs,
+      },
+    });
+
+    recordCacheMiss(intentType);
+    return null;
+  } catch (error) {
+    logWarn('Semantic cache lookup failed', {
+      metadata: {
+        error: error instanceof Error ? error.message : 'Unknown',
+        intentType,
+        latencyMs: getTotalElapsed(),
+      },
+    });
+    recordCacheMiss(intentType);
+    return null;
+  }
+}
+
+/**
+ * Store a response in the semantic cache.
+ *
+ * Called after a successful LLM response for a cacheable intent.
+ * Generates an embedding and stores the query-response pair.
+ *
+ * @param query - The original user question
+ * @param response - The AI-generated response
+ * @param intentType - The classified intent type
+ * @param locale - User locale (en/de)
+ */
+export async function storeInSemanticCache(
+  query: string,
+  response: string,
+  intentType: string,
+  locale: string = 'en'
+): Promise<void> {
+  if (!CACHE_ENABLED) return;
+  // Defensive guard: all call sites should already gate on isCacheableIntent(),
+  // but re-checking here prevents accidental storage if the function is called
+  // directly in tests or future code paths that bypass the caller-side check.
+  if (!isCacheableIntent(intentType)) return;
+
+  // PII Guard: Heuristic check independent of the intent router.
+  // Even if the intent classifier labels a query as cacheable, block storage
+  // when the raw query text contains personal context markers (possessive
+  // pronouns, destinations, temporal planning references). This prevents
+  // GDPR/DSGVO exposure if the intent router misclassifies a personal query
+  // as general_knowledge. See: Kap. 9, Agent Middleware — PII Guard.
+  const piiCheck = checkQueryForPersonalContext(query);
+  if (piiCheck.containsPersonalContext) {
+    // Log without the query text — the guard detected personal context,
+    // so including the query (even truncated) would leak PII into logs.
+    logInfo('Semantic cache write skipped: PII guard matched', {
+      metadata: {
+        matchedPatterns: piiCheck.matchedPatterns,
+        patternCount: piiCheck.matchedPatterns.length,
+        intentType,
+        queryLength: query.length,
+      },
+    });
+    // Record a metric increment for every matched pattern so that
+    // `sum by (pattern_name)` Prometheus queries give accurate per-pattern
+    // counts even when multiple patterns co-occur in a single query.
+    if (piiCheck.matchedPatterns.length > 0) {
+      for (const pattern of piiCheck.matchedPatterns) {
+        recordCachePiiSkip(pattern);
+      }
+    } else {
+      recordCachePiiSkip('unknown');
+    }
+    return;
+  }
+
+  // Skip caching very short or very long responses
+  if (response.length < MIN_RESPONSE_LENGTH || response.length > MAX_RESPONSE_LENGTH) {
+    logDebug('Skipping cache store — response length out of range', {
+      metadata: { responseLength: response.length, intentType },
+    });
+    return;
+  }
+
+  // Enforce query_text length bound before hitting the DB CHECK constraint.
+  // The database enforces char_length(query_text) <= 2000 to prevent B-tree
+  // index row size overflow; we truncate here rather than surface a DB error.
+  const boundedQuery = query.slice(0, 2000);
+
+  try {
+    const queryEmbedding = await generateQueryEmbedding(boundedQuery);
+    if (!queryEmbedding) return;
+
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untypedClient = supabase as unknown as SupabaseClient<any>;
+
+    // Calculate expiry based on TTL
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + CACHE_TTL_HOURS);
+
+    // Use ignoreDuplicates: false so that on conflict the existing row is UPDATED
+    // with the new cached_response, query_embedding, and expires_at. This implements
+    // a sliding TTL: popular queries re-stamp their expiry on every successful LLM
+    // response and always serve the most recent answer rather than a stale first-write.
+    // updated_at is set explicitly here (the trigger also sets it, but explicit is clearer).
+    const { error } = await untypedClient.from('response_cache').upsert({
+      query_text: boundedQuery,
+      query_embedding: queryEmbedding,
+      cached_response: response,
+      intent_type: intentType,
+      locale,
+      updated_at: new Date().toISOString(),
+      expires_at: expiresAt.toISOString(),
+    }, { onConflict: 'query_text,locale,intent_type', ignoreDuplicates: false });
+
+    if (error) {
+      logError('Failed to store response in cache', new Error(error.message));
+      return;
+    }
+
+    logInfo('Response stored in semantic cache', {
+      metadata: {
+        queryPreview: boundedQuery.substring(0, 80),
+        responseLength: response.length,
+        intentType,
+        locale,
+        expiresAt: expiresAt.toISOString(),
+      },
+    });
+
+    recordCacheStore(intentType);
+  } catch (error) {
+    // Cache storage failures should never break the user experience
+    logWarn('Failed to store in semantic cache', {
+      metadata: {
+        error: error instanceof Error ? error.message : 'Unknown',
+      },
+    });
+  }
+}
+
+// =============================================================================
+// Internal Helpers
+// =============================================================================
+
+/**
+ * Generate an embedding vector for a query using AI Gateway.
+ *
+ * Uses the same model (text-embedding-3-small) as the Mastra memory system
+ * for consistency.
+ */
+async function generateQueryEmbedding(query: string): Promise<number[] | null> {
+  // Short-circuit when the API key is absent: the gateway was initialized with an
+  // empty string and the first embed() call would fail with an auth error rather than
+  // a clear message. Returning null here falls through to the LLM path gracefully.
+  if (!_embeddingApiKey) return null;
+
+  try {
+    const result = await embed({
+      model: embeddingGateway.textEmbeddingModel('openai/text-embedding-3-small'),
+      value: query,
+    });
+
+    return result.embedding;
+  } catch (error) {
+    logWarn('Failed to generate query embedding for cache', {
+      metadata: {
+        error: error instanceof Error ? error.message : 'Unknown',
+        queryLength: query.length,
+      },
+    });
+    return null;
+  }
+}

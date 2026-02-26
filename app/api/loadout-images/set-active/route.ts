@@ -27,13 +27,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Parse request body with proper error handling for malformed JSON
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validatedData = SetActiveRequestSchema.parse(body);
 
     const { imageId, loadoutId } = validatedData;
 
     // Verify loadout ownership
-    const { data: loadout, error: loadoutError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loadouts table not in generated types
+    const { data: loadout, error: loadoutError } = await (supabase as any)
       .from('loadouts')
       .select('user_id')
       .eq('id', loadoutId)
@@ -52,8 +62,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-
-    console.log('[API] Setting active image:', imageId, 'for loadout:', loadoutId);
 
     await setActiveImage(imageId, loadoutId, user.id);
 
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to set active image' },
+      { error: 'Failed to set active image' },
       { status: 500 }
     );
   }

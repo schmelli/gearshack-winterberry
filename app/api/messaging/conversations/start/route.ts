@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- messaging tables not in generated types */
 /**
  * POST /api/messaging/conversations/start
  *
@@ -30,7 +31,15 @@ export async function POST(request: Request) {
     }
 
     // Parse and validate request body
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
     const validation = startConversationSchema.safeParse(body);
 
     if (!validation.success) {
@@ -47,7 +56,7 @@ export async function POST(request: Request) {
     const { recipientId, initialMessage } = validation.data;
 
     // Check if recipient exists
-    const { data: recipient, error: recipientError } = await supabase
+    const { data: recipient, error: recipientError } = await (supabase as any)
       .from('profiles')
       .select('id, messaging_privacy')
       .eq('id', recipientId)
@@ -61,14 +70,22 @@ export async function POST(request: Request) {
     }
 
     // Check if blocked (in either direction)
-    const { count: blockCount } = await supabase
+    // Use separate queries to avoid SQL injection via string interpolation in .or()
+    const { count: blockCount1 } = await (supabase as any)
       .from('user_blocks')
       .select('*', { count: 'exact', head: true })
-      .or(
-        `and(user_id.eq.${recipientId},blocked_id.eq.${user.id}),and(user_id.eq.${user.id},blocked_id.eq.${recipientId})`
-      );
+      .eq('user_id', recipientId)
+      .eq('blocked_id', user.id);
 
-    if (blockCount && blockCount > 0) {
+    const { count: blockCount2 } = await (supabase as any)
+      .from('user_blocks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('blocked_id', recipientId);
+
+    const totalBlockCount = (blockCount1 ?? 0) + (blockCount2 ?? 0);
+
+    if (totalBlockCount > 0) {
       return NextResponse.json(
         { success: false, error: 'blocked' },
         { status: 403 }
@@ -86,7 +103,7 @@ export async function POST(request: Request) {
 
     if (messagingPrivacy === 'friends_only') {
       // Check if we're in recipient's friends list
-      const { count: friendCount } = await supabase
+      const { count: friendCount } = await (supabase as any)
         .from('user_friends')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', recipientId)

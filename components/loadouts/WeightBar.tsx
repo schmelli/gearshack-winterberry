@@ -11,9 +11,10 @@
 'use client';
 
 import { Scale, Package } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { WeightDisplay } from '@/components/ui/weight-display';
 import {
-  formatWeight,
   getWeightCategory,
   getWeightCategoryBgColor,
 } from '@/lib/loadout-utils';
@@ -32,16 +33,12 @@ interface WeightBarProps {
 // =============================================================================
 
 export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
+  const t = useTranslations('Loadouts');
   const weightCategory = getWeightCategory(totalWeight);
   const bgColorClass = getWeightCategoryBgColor(weightCategory);
 
   // Get category label for accessibility
-  const categoryLabel =
-    weightCategory === 'ultralight'
-      ? 'Ultralight'
-      : weightCategory === 'moderate'
-        ? 'Moderate'
-        : 'Heavy';
+  const categoryLabel = t(`weightBar.${weightCategory}`);
 
   return (
     <div
@@ -50,12 +47,12 @@ export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
         bgColorClass
       )}
     >
-      <div className="container flex items-center justify-between py-3">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Left: Item Count */}
         <div className="flex items-center gap-2 text-sm font-medium text-primary-foreground">
           <Package className="h-4 w-4" />
           <span>
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            {t('itemCount', { count: itemCount })}
           </span>
         </div>
 
@@ -63,7 +60,7 @@ export function WeightBar({ totalWeight, itemCount }: WeightBarProps) {
         <div className="flex items-center gap-2">
           <Scale className="h-5 w-5 text-primary-foreground" />
           <span className="text-xl font-bold text-primary-foreground">
-            {formatWeight(totalWeight)}
+            <WeightDisplay value={totalWeight} showToggle />
           </span>
           <span className="rounded bg-primary-foreground/20 px-2 py-0.5 text-xs font-medium text-primary-foreground">
             {categoryLabel}

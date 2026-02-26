@@ -12,12 +12,18 @@
  *
  * Feature: 046-inventory-sorting
  * Supports category grouping with visual separators when sorting by category
+ *
+ * Feature: 054-gallery-virtualization
+ * Uses react-virtuoso for virtualized rendering to improve performance with large collections (100+ items)
  */
 
+import React from 'react';
+import { useTranslations } from 'next-intl';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
 import { GearCard } from './GearCard';
 import { cn } from '@/lib/utils';
+import { VirtuosoGrid, GroupedVirtuoso } from 'react-virtuoso';
 
 // =============================================================================
 // Types
@@ -66,26 +72,16 @@ interface GalleryGridProps {
 
 const GRID_CLASSES = {
   // Compact: horizontal cards need more width - 1 col mobile, 2 cols tablet+
-  compact: 'grid grid-cols-1 gap-3 md:grid-cols-2',
+  compact: 'grid grid-cols-1 gap-3 lg:grid-cols-2',
   // Standard: medium cards - 1 col mobile, 2 tablet, 3 desktop, 4 wide
-  standard: 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+  standard: 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
   // Detailed: large cards - fewer columns
-  detailed: 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
+  detailed: 'grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3',
 } as const;
 
 // =============================================================================
 // Component
 // =============================================================================
-
-/**
- * Default empty state translations
- * T073: Separated to allow wishlist-specific overrides
- */
-const DEFAULT_EMPTY_STATE_TRANSLATIONS: EmptyStateTranslations = {
-  noResults: 'No gear matches your filters',
-  noResultsSubtext: 'Try adjusting your search or category filter',
-  clearFilters: 'Clear all filters',
-};
 
 export function GalleryGrid({
   items,
@@ -101,8 +97,14 @@ export function GalleryGrid({
   onMoveComplete,
   emptyStateTranslations,
 }: GalleryGridProps) {
-  // T073: Use provided translations or fall back to defaults
-  const emptyMessages = emptyStateTranslations ?? DEFAULT_EMPTY_STATE_TRANSLATIONS;
+  const t = useTranslations('Inventory');
+
+  // T073: Use provided translations or fall back to translated defaults
+  const emptyMessages = emptyStateTranslations ?? {
+    noResults: t('emptyState.noResults'),
+    noResultsSubtext: t('emptyState.noResultsSubtext'),
+    clearFilters: t('emptyState.clearFilters'),
+  };
 
   // Empty state when no items match filters
   if (items.length === 0 && hasActiveFilters) {
@@ -129,13 +131,32 @@ export function GalleryGrid({
   const gridClass = GRID_CLASSES[viewDensity] || GRID_CLASSES.standard;
 
   // Feature 046: Render with category separators when sorting by category
+  // Feature 054: Virtualize both groups AND items within groups for better performance
+  // FIXED: GroupedVirtuoso's itemContent receives ITEM index, not group index.
+  // We use groupContent for group headers and itemContent for individual items.
   if (sortOption === 'category' && groupedItems.length > 0) {
+    // Build group counts array for GroupedVirtuoso
+    const groupCounts: number[] = groupedItems.map((group) => group.items.length);
+
+    // Build flat items array with group index tracking
+    const flattenedItems: Array<{ item: GearItem; groupIndex: number }> = [];
+    groupedItems.forEach((group, groupIndex) => {
+      group.items.forEach((item) => {
+        flattenedItems.push({ item, groupIndex });
+      });
+    });
+
     return (
-      <div className="space-y-8">
-        {groupedItems.map((group) => (
-          <section key={group.categoryId ?? 'uncategorized'}>
-            {/* Category Separator Header */}
-            <div className="mb-4 flex items-center gap-4">
+      <GroupedVirtuoso
+        useWindowScroll
+        groupCounts={groupCounts}
+        overscan={50}
+        groupContent={(groupIndex: number) => {
+          const group = groupedItems[groupIndex];
+          if (!group) return null;
+
+          return (
+            <div className="mb-4 mt-8 first:mt-0 flex items-center gap-4 bg-background py-2">
               <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
                 {group.categoryLabel}
               </h2>
@@ -144,40 +165,56 @@ export function GalleryGrid({
                 {getItemCountLabel ? getItemCountLabel(group.items.length) : `${group.items.length} items`}
               </span>
             </div>
-            {/* Items Grid */}
-            <div className={cn(gridClass)}>
-              {group.items.map((item) => (
-                <GearCard
-                  key={item.id}
-                  item={item}
-                  viewDensity={viewDensity}
-                  onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                  context={context}
-                  onMoveToInventory={onMoveToInventory}
-                  onMoveComplete={onMoveComplete}
-                />
-              ))}
+          );
+        }}
+        itemContent={(index: number) => {
+          // FIXED: index is the flat item index, not group index
+          const flatItem = flattenedItems[index];
+          if (!flatItem) return null;
+
+          const { item } = flatItem;
+          return (
+            <div className={cn(gridClass, 'mb-2')}>
+              <GearCard
+                key={item.id}
+                item={item}
+                viewDensity={viewDensity}
+                onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                context={context}
+                onMoveToInventory={onMoveToInventory}
+                onMoveComplete={onMoveComplete}
+              />
             </div>
-          </section>
-        ))}
-      </div>
+          );
+        }}
+      />
     );
   }
 
-  // Default: flat grid without separators
+  // Default: flat grid without separators - virtualized for performance
+  // Feature 054: Only render visible items to improve performance with 100+ items
   return (
-    <div className={cn(gridClass)}>
-      {items.map((item) => (
-        <GearCard
-          key={item.id}
-          item={item}
-          viewDensity={viewDensity}
-          onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-          context={context}
-          onMoveToInventory={onMoveToInventory}
-          onMoveComplete={onMoveComplete}
-        />
-      ))}
-    </div>
+    <VirtuosoGrid
+      useWindowScroll
+      totalCount={items.length}
+      overscan={50}
+      listClassName={cn(gridClass)}
+      itemContent={(index) => {
+        const item = items[index];
+        if (!item) return null;
+
+        return (
+          <GearCard
+            key={item.id}
+            item={item}
+            viewDensity={viewDensity}
+            onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+            context={context}
+            onMoveToInventory={onMoveToInventory}
+            onMoveComplete={onMoveComplete}
+          />
+        );
+      }}
+    />
   );
 }

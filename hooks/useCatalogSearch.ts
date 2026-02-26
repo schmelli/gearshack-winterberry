@@ -44,17 +44,10 @@ export function useCatalogSearch(
   }, [mode]);
 
   /**
-   * Encodes embedding array to base64 for URL transmission
-   */
-  const encodeEmbedding = (embedding: number[]): string => {
-    return Buffer.from(JSON.stringify(embedding)).toString('base64');
-  };
-
-  /**
    * Performs the actual search request
    */
   const performSearch = useCallback(
-    async (query: string, embedding?: number[]) => {
+    async (query: string, _embedding?: number[]) => {
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();

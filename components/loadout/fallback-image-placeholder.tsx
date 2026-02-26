@@ -7,6 +7,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ImageOff } from 'lucide-react';
@@ -38,10 +39,14 @@ export interface FallbackImagePlaceholderProps {
 export function FallbackImagePlaceholder({
   state,
   fallbackUrl,
-  altText = 'Fallback loadout image',
-  errorMessage = 'Failed to generate image',
+  altText,
+  errorMessage,
   className,
 }: FallbackImagePlaceholderProps) {
+  const t = useTranslations('Loadouts.fallbackImage');
+  const resolvedAltText = altText ?? t('altText');
+  const resolvedErrorMessage = errorMessage ?? t('errorMessage');
+
   return (
     <div className={cn('w-full', className)}>
       <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg">
@@ -51,7 +56,7 @@ export function FallbackImagePlaceholder({
             <Skeleton className="h-full w-full" />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <p className="text-sm text-muted-foreground">Generating image...</p>
+              <p className="text-sm text-muted-foreground">{t('generatingImage')}</p>
             </div>
           </div>
         )}
@@ -62,9 +67,9 @@ export function FallbackImagePlaceholder({
             <AlertCircle className="h-12 w-12 text-destructive" aria-hidden="true" />
             <div className="text-center">
               <p className="text-sm font-medium text-destructive">
-                Generation Failed
+                {t('generationFailed')}
               </p>
-              <p className="text-xs text-muted-foreground">{errorMessage}</p>
+              <p className="text-xs text-muted-foreground">{resolvedErrorMessage}</p>
             </div>
           </div>
         )}
@@ -74,14 +79,14 @@ export function FallbackImagePlaceholder({
           <div className="relative h-full w-full">
             <Image
               src={fallbackUrl}
-              alt={altText}
+              alt={resolvedAltText}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
             {/* Subtle badge indicating this is a fallback */}
             <div className="absolute right-2 top-2 rounded-md bg-black/50 px-2 py-1 text-xs text-white">
-              Default Image
+              {t('defaultImage')}
             </div>
           </div>
         )}
@@ -90,7 +95,7 @@ export function FallbackImagePlaceholder({
           // Empty state (no image and not loading)
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
             <ImageOff className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground">No image</p>
+            <p className="text-sm text-muted-foreground">{t('noImage')}</p>
           </div>
         )}
       </AspectRatio>

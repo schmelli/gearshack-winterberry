@@ -12,14 +12,21 @@
 
 import { useEffect, useRef } from 'react';
 import { MessageBubble } from './MessageBubble';
-import { Loader2 } from 'lucide-react';
+import { WorkflowProgress } from './WorkflowProgress';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import type { WorkflowStep } from '@/types/ai-assistant';
+
+interface InlineCard {
+  id: string;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
-  inline_cards?: any[];
+  inline_cards?: InlineCard[];
 }
 
 interface MessageListProps {
@@ -31,6 +38,10 @@ interface MessageListProps {
   onSpeakMessage?: (text: string) => void;
   /** Whether audio is currently playing */
   isPlayingAudio?: boolean;
+  /** Current workflow progress message from the AI pipeline */
+  progressMessage?: string | null;
+  /** Granular workflow steps with per-step status */
+  workflowSteps?: WorkflowStep[];
 }
 
 export function MessageList({
@@ -39,40 +50,50 @@ export function MessageList({
   isStreaming = false,
   onSpeakMessage,
   isPlayingAudio = false,
+  progressMessage = null,
+  workflowSteps = [],
 }: MessageListProps) {
+  const t = useTranslations('AIAssistant');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages or workflow step updates.
+  // Only scrolls if the user is already near the bottom (within 150px) to avoid
+  // interrupting users who have scrolled up to read previous messages.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom <= 150) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, workflowSteps]);
 
   // Empty state
   if (messages.length === 0) {
+    const suggestions = [
+      t('welcome.suggestion1'),
+      t('welcome.suggestion2'),
+      t('welcome.suggestion3'),
+    ];
+
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">
           <span className="text-3xl">👋</span>
         </div>
-        <h3 className="mb-2 text-lg font-semibold">Welcome to AI Gear Assistant!</h3>
+        <h3 className="mb-2 text-lg font-semibold">{t('welcome.title')}</h3>
         <p className="max-w-md text-sm text-muted-foreground">
-          I can help you optimize your loadouts, find lighter gear alternatives, and answer questions about your inventory.
+          {t('welcome.description')}
         </p>
         <div className="mt-6 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground">Try asking:</p>
+          <p className="text-xs font-semibold text-muted-foreground">{t('welcome.tryAsking')}</p>
           <div className="flex flex-wrap justify-center gap-2">
-            {[
-              "What's my base weight?",
-              'Recommend a lighter tent',
-              'Show me my sleeping bags',
-            ].map((suggestion, i) => (
+            {suggestions.map((suggestion, i) => (
               <div
                 key={i}
                 className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs"
               >
-                "{suggestion}"
+                &ldquo;{suggestion}&rdquo;
               </div>
             ))}
           </div>
@@ -84,7 +105,7 @@ export function MessageList({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto scroll-smooth px-6 py-4"
+      className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-6 py-4"
     >
       <div className="mx-auto max-w-3xl space-y-4">
         {messages.map((message, index) => {
@@ -103,12 +124,44 @@ export function MessageList({
             />
           );
         })}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>AI is thinking...</span>
-          </div>
-        )}
+        {/* Show progress indicator when last assistant message is empty (waiting for content) */}
+        {(() => {
+          const lastMsg = messages[messages.length - 1];
+          const showProgressIndicator = isStreaming && lastMsg?.role === 'assistant' && !lastMsg.content;
+
+          if (showProgressIndicator) {
+            return (
+              <div className="flex gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="flex max-w-[75%] flex-col items-start gap-2">
+                  <div className="rounded-2xl bg-muted px-4 py-3 text-foreground">
+                    {workflowSteps.length > 0 ? (
+                      <WorkflowProgress steps={workflowSteps} />
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>{progressMessage || t('thinking')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (isLoading) {
+            return (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{t('thinking')}</span>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
       </div>
     </div>
   );

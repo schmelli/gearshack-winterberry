@@ -1,28 +1,13 @@
 /**
  * GeneralInfoSection Component
- *
  * Feature: 001-gear-item-editor, 044-intelligence-integration, 045-gear-editor-tabs
- * Task: T015, T027
- * Constitution: UI components MUST be stateless (logic in hooks)
- *
- * Displays form fields for general gear information:
- * - Name (required, with product autocomplete)
- * - Brand (with autocomplete)
- * - Brand URL
- * - Model Number
- * - Product URL
- * - Description
- * - Dependencies (linked accessories)
- *
- * Brand-Product linking:
- * - When brand selected: product autocomplete filters by that brand
- * - When product selected: auto-fills brand if not already set
+ * Task: T015, T027 | Constitution: UI components MUST be stateless
  */
 
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { Search, X, Link2, AlertTriangle } from 'lucide-react';
 import {
   FormField,
@@ -47,16 +32,19 @@ import {
   type BrandSelection,
 } from '@/components/gear-editor/BrandAutocompleteInput';
 import { ProductAutocompleteInput } from '@/components/gear-editor/ProductAutocompleteInput';
+import { SmartProductSearchButton } from '@/components/gear-editor/SmartProductSearchButton';
+import { SmartProductSearchModal } from '@/components/gear-editor/SmartProductSearchModal';
+import { useSmartProductSearch } from '@/hooks/useSmartProductSearch';
 import type { ProductSuggestion } from '@/hooks/useProductAutocomplete';
 import type { GearItem, GearItemFormData } from '@/types/gear';
+import type {
+  CatalogProductResult,
+  ExtractedProductData,
+} from '@/types/smart-search';
 import {
   createItemsMap,
   validateDependencyLink,
 } from '@/lib/dependency-utils';
-
-// =============================================================================
-// Types
-// =============================================================================
 
 export interface GeneralInfoSectionProps {
   /** All available gear items for the dependency picker */
@@ -64,10 +52,6 @@ export interface GeneralInfoSectionProps {
   /** The ID of the current item being edited (to exclude from picker) */
   currentItemId?: string;
 }
-
-// =============================================================================
-// Component
-// =============================================================================
 
 export function GeneralInfoSection({
   availableItems = [],
@@ -82,6 +66,14 @@ export function GeneralInfoSection({
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Smart product search state
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const smartSearch = useSmartProductSearch();
+
+  // Watch brand and name for smart search query
+  const watchedBrand = useWatch({ control: form.control, name: 'brand' });
+  const watchedName = useWatch({ control: form.control, name: 'name' });
 
   // Handle brand selection
   const handleBrandSelect = useCallback((brand: BrandSelection | null) => {
@@ -172,14 +164,116 @@ export function GeneralInfoSection({
   const hasNoAvailableItems = availableItems.length === 0 ||
     (availableItems.length === 1 && availableItems[0]?.id === currentItemId);
 
+  // Build smart search query from brand + name
+  const smartSearchQuery = [watchedBrand, watchedName].filter(Boolean).join(' ').trim();
+
+  // Handler: Catalog result selected - populate form fields directly
+  const handleCatalogSelect = useCallback(
+    (result: CatalogProductResult) => {
+      // Set core fields
+      form.setValue('name', result.name, { shouldDirty: true });
+      if (result.brand) {
+        form.setValue('brand', result.brand.name, { shouldDirty: true });
+        setSelectedBrandId(result.brand.id);
+      }
+      if (result.description) {
+        form.setValue('description', result.description, { shouldDirty: true });
+      }
+      if (result.productTypeId) {
+        form.setValue('productTypeId', result.productTypeId, { shouldDirty: true });
+      }
+
+      // Set weight if available (convert to string for form)
+      if (result.weightGrams) {
+        form.setValue('weightValue', String(result.weightGrams), { shouldDirty: true });
+        form.setValue('weightDisplayUnit', 'g', { shouldDirty: true });
+      }
+
+      // Set price if available (convert to string for form)
+      if (result.priceUsd) {
+        form.setValue('pricePaid', String(result.priceUsd), { shouldDirty: true });
+        form.setValue('currency', 'USD', { shouldDirty: true });
+      }
+    },
+    [form]
+  );
+
+  // Handler: Internet extraction confirmed - populate form fields
+  const handleInternetExtracted = useCallback(
+    (data: ExtractedProductData) => {
+      // Set name (always)
+      if (data.name) {
+        form.setValue('name', data.name, { shouldDirty: true });
+      }
+
+      // Set brand if extracted
+      if (data.brand) {
+        form.setValue('brand', data.brand, { shouldDirty: true });
+      }
+
+      // Set description if extracted and form field is empty
+      if (data.description && !form.getValues('description')) {
+        form.setValue('description', data.description, { shouldDirty: true });
+      }
+
+      // Set weight if extracted (convert to string, always use grams as unit)
+      // Note: data.weightGrams is already converted to grams by the extractor
+      if (data.weightGrams) {
+        form.setValue('weightValue', String(data.weightGrams), { shouldDirty: true });
+        // Map extracted unit to form's WeightUnit (form doesn't support 'kg')
+        const displayUnit = data.weightUnit === 'kg' ? 'g' : (data.weightUnit ?? 'g');
+        form.setValue('weightDisplayUnit', displayUnit, { shouldDirty: true });
+      }
+
+      // Set price if extracted (convert to string for form)
+      if (data.priceValue) {
+        form.setValue('pricePaid', String(data.priceValue), { shouldDirty: true });
+        form.setValue('currency', data.currency ?? 'USD', { shouldDirty: true });
+      }
+
+      // Set product URL
+      if (data.productUrl) {
+        form.setValue('productUrl', data.productUrl, { shouldDirty: true });
+      }
+
+      // Set image URL (user can later process it through the image section)
+      if (data.imageUrl) {
+        form.setValue('primaryImageUrl', data.imageUrl, { shouldDirty: true });
+      }
+    },
+    [form]
+  );
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">General Information</h3>
 
-      {/* Name - Required, with product autocomplete */}
-      <ProductAutocompleteInput
-        brandId={selectedBrandId}
-        onProductSelect={handleProductSelect}
+      {/* Name - Required, with product autocomplete and smart search */}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <ProductAutocompleteInput
+            brandId={selectedBrandId}
+            brandName={watchedBrand || undefined}
+            onProductSelect={handleProductSelect}
+          />
+        </div>
+        <SmartProductSearchButton
+          onClick={() => setSearchModalOpen(true)}
+          isSearching={smartSearch.status === 'searching'}
+          isRateLimited={smartSearch.isRateLimited}
+          rateLimit={smartSearch.rateLimit}
+          disabled={smartSearchQuery.length < 2}
+          searchQuery={smartSearchQuery}
+        />
+      </div>
+
+      {/* Smart Product Search Modal */}
+      <SmartProductSearchModal
+        open={searchModalOpen}
+        onOpenChange={setSearchModalOpen}
+        initialQuery={smartSearchQuery}
+        onCatalogSelect={handleCatalogSelect}
+        onInternetExtracted={handleInternetExtracted}
       />
 
       {/* Brand - with autocomplete */}

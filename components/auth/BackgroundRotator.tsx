@@ -40,9 +40,9 @@ function FadeImage({ src }: FadeImageProps) {
         alt="Background"
         fill
         priority
-        unoptimized
         className="object-cover"
         sizes="100vw"
+        quality={85}
         onLoad={() => {
           console.log('[BackgroundRotator] Image loaded:', src.slice(0, 50));
           setLoaded(true);

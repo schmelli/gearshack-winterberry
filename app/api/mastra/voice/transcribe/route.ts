@@ -8,16 +8,14 @@
  *   - Accepts audio file via FormData
  *   - Returns transcription with confidence score
  *   - Suggests retry if confidence below threshold (70%)
+ *
+ * Uses Mastra Voice adapter for provider-independent STT pipeline.
+ * @see lib/mastra/voice/mastra-voice-adapter.ts
  */
 
 import { createClient } from '@/lib/supabase/server';
-import {
-  transcribeAudio,
-  isConfidenceAcceptable,
-  getLowConfidenceMessage,
-  CONFIDENCE_THRESHOLD,
-  type TranscriptionLanguage,
-} from '@/lib/mastra/voice/whisper';
+import { CONFIDENCE_THRESHOLD, type TranscriptionLanguage } from '@/lib/mastra/voice/whisper';
+import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 import { fileTypeFromBuffer } from 'file-type';
@@ -45,17 +43,18 @@ interface TranscriptionResponse {
 /**
  * POST /api/mastra/voice/transcribe
  *
- * Transcribe audio to text using OpenAI Whisper.
+ * Transcribe audio to text using ElevenLabs STT via the Mastra Voice adapter.
  *
  * Request:
  *   - Content-Type: multipart/form-data
- *   - audio: Audio file (webm, mp3, wav, etc.)
+ *   - audio: Audio file (webm, mp3, wav, m4a, ogg, flac — max 25MB)
  *   - language (optional): Language hint ('en', 'de', 'auto')
  *
  * Response:
- *   - 200: Transcription result with confidence
- *   - 400: Invalid request (missing audio)
+ *   - 200: Transcription result with confidence score and retry suggestion
+ *   - 400: Invalid request (missing audio or unsupported format)
  *   - 401: Unauthorized
+ *   - 413: File too large (> 25MB)
  *   - 429: Rate limit exceeded
  *   - 500: Transcription failed
  */
@@ -108,10 +107,11 @@ export async function POST(request: Request): Promise<Response> {
     // Early file size check via Content-Length header (before reading body into memory)
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE) {
+    const parsedContentLength = contentLength ? parseInt(contentLength, 10) : 0;
+    if (Number.isFinite(parsedContentLength) && parsedContentLength > MAX_FILE_SIZE) {
       logWarn('Audio file too large (Content-Length check)', {
         userId: user.id,
-        metadata: { contentLength: parseInt(contentLength, 10), maxSize: MAX_FILE_SIZE },
+        metadata: { contentLength: parsedContentLength, maxSize: MAX_FILE_SIZE },
       });
       return new Response(
         JSON.stringify({
@@ -218,20 +218,18 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Use the buffer we already created for magic byte validation
-    const buffer = fileBuffer;
-
     // Determine language
     let language: TranscriptionLanguage = 'auto';
     if (languageHint === 'en' || languageHint === 'de') {
       language = languageHint;
     }
 
-    // Transcribe audio
-    const result = await transcribeAudio(buffer, audioFile.name, { language });
-
-    // Check confidence threshold (T070)
-    const needsRetry = !isConfidenceAcceptable(result.confidence);
+    // Transcribe audio via Mastra Voice pipeline (provider-independent)
+    const voice = getVoiceInstance();
+    const result = await voice.listenWithMetadata(fileBuffer, {
+      language,
+      filename: audioFile.name,
+    });
 
     const response: TranscriptionResponse = {
       success: true,
@@ -239,12 +237,12 @@ export async function POST(request: Request): Promise<Response> {
       language: result.language,
       confidence: result.confidence,
       durationMs: result.durationMs,
-      needsRetry,
+      needsRetry: result.needsRetry,
     };
 
     // Add retry message if confidence is low
-    if (needsRetry) {
-      response.retryMessage = getLowConfidenceMessage();
+    if (result.needsRetry) {
+      response.retryMessage = result.retryMessage;
 
       logWarn('Low confidence transcription', {
         userId: user.id,
@@ -262,7 +260,7 @@ export async function POST(request: Request): Promise<Response> {
         textLength: result.text.length,
         confidence: result.confidence,
         durationMs: result.durationMs,
-        needsRetry,
+        needsRetry: result.needsRetry,
       },
     });
 
@@ -271,14 +269,14 @@ export async function POST(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+    // Log the full error internally but never expose raw provider error messages
+    // to the client (could leak auth status, rate limit details, model names, etc.)
     logError('Transcription endpoint error', error instanceof Error ? error : undefined);
 
     return new Response(
       JSON.stringify({
         error: 'Transcription failed',
-        message: errorMessage,
+        message: 'Unable to transcribe audio. Please try again later.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

@@ -13,6 +13,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,8 @@ function MockChartBars() {
 // =============================================================================
 
 export function PriceHistoryStub({ className }: PriceHistoryStubProps) {
+  const t = useTranslations('Wishlist.priceHistory');
+
   return (
     <div
       className={cn(
@@ -69,7 +72,7 @@ export function PriceHistoryStub({ className }: PriceHistoryStubProps) {
           <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
         <span className="text-xs font-medium text-muted-foreground">
-          Price History
+          {t('stubTitle')}
         </span>
       </div>
 
@@ -79,7 +82,7 @@ export function PriceHistoryStub({ className }: PriceHistoryStubProps) {
       {/* Coming soon message */}
       <div className="mt-3 pt-3 border-t border-dashed border-muted">
         <p className="text-[10px] text-muted-foreground/70 text-center">
-          Price history tracking coming soon
+          {t('comingSoon')}
         </p>
       </div>
     </div>

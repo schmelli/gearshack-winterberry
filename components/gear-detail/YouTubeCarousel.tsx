@@ -11,6 +11,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Play, RotateCcw, Youtube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +29,8 @@ interface YouTubeCarouselProps {
   isLoading: boolean;
   /** Error message if fetch failed */
   error: string | null;
+  /** Whether quota is exhausted (retry won't help) */
+  isQuotaExhausted?: boolean;
   /** Callback to retry fetch */
   onRetry?: () => void;
   /** Optional class name */
@@ -42,11 +45,35 @@ export function YouTubeCarousel({
   videos,
   isLoading,
   error,
+  isQuotaExhausted = false,
   onRetry,
   className,
 }: YouTubeCarouselProps) {
-  // T039: Loading skeleton state
-  if (isLoading) {
+  const t = useTranslations('YouTubeReviews');
+
+  // T041: Error state with retry button (check first to handle error + null videos case)
+  if (error) {
+    return (
+      <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
+        <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          {isQuotaExhausted
+            ? t('quotaExhausted')
+            : error}
+        </p>
+        {/* Hide retry button when quota exhausted - retrying won't help */}
+        {onRetry && !isQuotaExhausted && (
+          <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
+            <RotateCcw className="mr-2 h-3 w-3" />
+            {t('tryAgain')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // T039: Loading skeleton state - also show when videos is null (not yet loaded)
+  if (isLoading || videos === null) {
     return (
       <div className={cn('space-y-3', className)}>
         <div className="flex gap-3 overflow-hidden">
@@ -62,29 +89,13 @@ export function YouTubeCarousel({
     );
   }
 
-  // T041: Error state with retry button
-  if (error) {
-    return (
-      <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
-        <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{error}</p>
-        {onRetry && (
-          <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
-            <RotateCcw className="mr-2 h-3 w-3" />
-            Try again
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  // T040: Empty state when no videos found
-  if (!videos || videos.length === 0) {
+  // T040: Empty state when no videos found (only when videos is an empty array, not null)
+  if (videos.length === 0) {
     return (
       <div className={cn('rounded-lg border border-dashed p-4 text-center', className)}>
         <Youtube className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          No reviews found for this product
+          {t('noReviews')}
         </p>
       </div>
     );
@@ -118,9 +129,17 @@ interface VideoCardProps {
   video: YouTubeVideo;
 }
 
+// SECURITY: YouTube video IDs are exactly 11 characters, alphanumeric plus - and _
+const YOUTUBE_VIDEO_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
+
 function VideoCard({ video }: VideoCardProps) {
   // T038: Click-to-YouTube (opens video in new tab)
   const handleClick = () => {
+    // SECURITY: Validate videoId format to prevent XSS via malicious URLs
+    if (!YOUTUBE_VIDEO_ID_REGEX.test(video.videoId)) {
+      console.error('[YouTubeCarousel] Invalid videoId format:', video.videoId);
+      return;
+    }
     window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank');
   };
 
@@ -139,7 +158,6 @@ function VideoCard({ video }: VideoCardProps) {
           src={video.thumbnailUrl}
           alt={video.title}
           fill
-          unoptimized
           className="object-cover transition-transform group-hover:scale-105"
           sizes="192px"
         />

@@ -6,10 +6,12 @@
 
 'use client';
 
+import { memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, MapPin } from 'lucide-react';
+import Image from 'next/image';
+import { ExternalLink } from 'lucide-react';
 import type { PriceResult } from '@/types/price-tracking';
 
 interface PriceResultItemProps {
@@ -17,7 +19,20 @@ interface PriceResultItemProps {
   isLowest?: boolean;
 }
 
-export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
+/**
+ * SECURITY: Validate URL is safe to use (prevents javascript: XSS, data: URI attacks)
+ * Only allows http/https protocols
+ */
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function PriceResultItemComponent({ result, isLowest }: PriceResultItemProps) {
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -29,12 +44,15 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
     <Card className={isLowest ? 'border-green-500 border-2' : ''}>
       <div className="p-4">
         <div className="flex items-start justify-between gap-4">
-          {/* Product Image */}
-          {result.product_image_url && (
-            <img
+          {/* Product Image - SECURITY: Only render if URL is valid HTTP(S) */}
+          {result.product_image_url && isValidHttpUrl(result.product_image_url) && (
+            <Image
               src={result.product_image_url}
               alt={result.product_name}
+              width={64}
+              height={64}
               className="w-16 h-16 object-cover rounded"
+              unoptimized
             />
           )}
 
@@ -90,15 +108,36 @@ export function PriceResultItem({ result, isLowest }: PriceResultItemProps) {
           </div>
 
           {/* Action Button */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(result.source_url, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
+          {/* SECURITY: Only render button if URL is a valid HTTP(S) URL */}
+          {isValidHttpUrl(result.source_url) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(result.source_url, '_blank', 'noopener,noreferrer')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </Card>
   );
 }
+
+/**
+ * Custom comparison function for PriceResultItem memoization.
+ * Compares result by id and price to detect meaningful changes.
+ */
+function arePriceResultItemPropsEqual(
+  prevProps: PriceResultItemProps,
+  nextProps: PriceResultItemProps
+): boolean {
+  return (
+    prevProps.result.id === nextProps.result.id &&
+    prevProps.result.price_amount === nextProps.result.price_amount &&
+    prevProps.result.total_price === nextProps.result.total_price &&
+    prevProps.isLowest === nextProps.isLowest
+  );
+}
+
+export const PriceResultItem = memo(PriceResultItemComponent, arePriceResultItemPropsEqual);

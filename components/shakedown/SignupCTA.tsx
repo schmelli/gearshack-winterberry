@@ -48,7 +48,7 @@ export function SignupCTA({ shareToken }: SignupCTAProps) {
             {t('signupCta')}
           </h3>
           <p className="text-sm text-slate-200">
-            Sign up for free to save this loadout and all its items to your wishlist. Start building your perfect gear collection today.
+            {t('signupDescription')}
           </p>
         </div>
 

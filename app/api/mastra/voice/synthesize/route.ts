@@ -9,20 +9,15 @@
  *   - Accepts text and voice options
  *   - Returns streaming audio (mp3)
  *   - Caches common phrases for faster responses
+ *
+ * Uses Mastra Voice adapter for provider-independent TTS pipeline.
+ * @see lib/mastra/voice/mastra-voice-adapter.ts
  */
 
+import { Readable } from 'node:stream';
 import { createClient } from '@/lib/supabase/server';
-import {
-  synthesizeSpeechStream,
-  synthesizeSpeech,
-  getContentType,
-  isCacheablePhrase,
-  getCachedAudio,
-  cacheAudio,
-  type TTSVoice,
-  type TTSModel,
-  type TTSFormat,
-} from '@/lib/mastra/voice/tts';
+import { getContentType, isCacheablePhrase, getCachedAudio, VOICE_IDS, type TTSVoice, type TTSModel, type TTSFormat } from '@/lib/mastra/voice/tts';
+import { getVoiceInstance } from '@/lib/mastra/voice/mastra-voice-adapter';
 import { logInfo, logError, logWarn } from '@/lib/mastra/logging';
 import { checkAndIncrementRateLimit } from '@/lib/mastra/rate-limiter';
 
@@ -65,8 +60,8 @@ function validateRequest(body: unknown): {
     return { valid: false, error: 'text must not exceed 5000 characters' };
   }
 
-  // Validate voice if provided (ElevenLabs voices)
-  const validVoices: TTSVoice[] = ['rachel', 'domi', 'bella', 'antoni', 'josh', 'adam'];
+  // Validate voice if provided — derived from VOICE_IDS to stay in sync with tts.ts
+  const validVoices = Object.keys(VOICE_IDS) as TTSVoice[];
   if (request.voice !== undefined && !validVoices.includes(request.voice as TTSVoice)) {
     return { valid: false, error: `voice must be one of: ${validVoices.join(', ')}` };
   }
@@ -86,7 +81,7 @@ function validateRequest(body: unknown): {
   // Validate stability if provided (0.0 - 1.0)
   if (request.stability !== undefined) {
     const stability = Number(request.stability);
-    if (isNaN(stability) || stability < 0 || stability > 1) {
+    if (!Number.isFinite(stability) || stability < 0 || stability > 1) {
       return { valid: false, error: 'stability must be a number between 0.0 and 1.0' };
     }
   }
@@ -94,7 +89,7 @@ function validateRequest(body: unknown): {
   // Validate similarityBoost if provided (0.0 - 1.0)
   if (request.similarityBoost !== undefined) {
     const similarityBoost = Number(request.similarityBoost);
-    if (isNaN(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
+    if (!Number.isFinite(similarityBoost) || similarityBoost < 0 || similarityBoost > 1) {
       return { valid: false, error: 'similarityBoost must be a number between 0.0 and 1.0' };
     }
   }
@@ -120,14 +115,15 @@ function validateRequest(body: unknown): {
 /**
  * POST /api/mastra/voice/synthesize
  *
- * Synthesize speech from text using OpenAI TTS.
+ * Synthesize speech from text using ElevenLabs TTS via the Mastra Voice adapter.
  *
  * Request:
- *   - text: Text to synthesize (required, max 4096 chars)
- *   - voice: Voice to use (optional, default: 'nova')
- *   - model: Model to use (optional, default: 'tts-1')
- *   - format: Output format (optional, default: 'mp3')
- *   - speed: Playback speed 0.25-4.0 (optional, default: 1.0)
+ *   - text: Text to synthesize (required, max 5000 chars)
+ *   - voice: ElevenLabs voice name (optional, default: 'rachel')
+ *   - model: ElevenLabs model (optional, default: 'eleven_turbo_v2_5')
+ *   - format: Audio format (optional, default: 'mp3_44100_128')
+ *   - stability: Voice stability 0.0–1.0 (optional, default: 0.5)
+ *   - similarityBoost: Similarity boost 0.0–1.0 (optional, default: 0.75)
  *   - stream: Enable streaming (optional, default: true)
  *
  * Response:
@@ -223,61 +219,47 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Check cache for common phrases (T081)
-    if (isCacheablePhrase(text)) {
-      const cachedAudio = getCachedAudio(text, voice);
-      if (cachedAudio) {
-        logInfo('Returning cached TTS audio', {
-          userId: user.id,
-          metadata: { textLength: text.length, voice },
-        });
+    // Use Mastra Voice pipeline (provider-independent TTS)
+    const voiceAdapter = getVoiceInstance();
 
-        // Cast Buffer to BodyInit for Response compatibility (Buffer extends Uint8Array in Node.js)
-        return new Response(cachedAudio as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            'Content-Type': getContentType(format),
-            'X-Cache': 'HIT',
-            'Cache-Control': 'private, max-age=86400',
-          },
-        });
-      }
-    }
-
-    // Synthesize audio
     if (stream) {
-      // Streaming response (T075)
-      const audioStream = await synthesizeSpeechStream(text, {
-        voice,
+      // Determine cache status BEFORE calling speak() so we can set X-Cache accurately.
+      // speak() itself also checks the cache; this in-memory double-check is negligible.
+      const isCached = isCacheablePhrase(text) && getCachedAudio(text, voice, format) !== null;
+
+      // Streaming response via Mastra Voice speak() — cache reads handled internally
+      const audioStream = await voiceAdapter.speak(text, {
+        speaker: voice,
         model,
         format,
         stability,
         similarityBoost,
       });
 
-      return new Response(audioStream, {
+      // Convert Node.js Readable to Web ReadableStream for Response
+      const webStream = Readable.toWeb(audioStream as Readable);
+
+      return new Response(webStream as ReadableStream, {
         status: 200,
         headers: {
           'Content-Type': getContentType(format),
           'Transfer-Encoding': 'chunked',
           'Cache-Control': 'no-cache',
-          'X-Cache': 'MISS',
+          'X-Cache': isCached ? 'HIT' : 'MISS',
         },
       });
     } else {
-      // Buffered response (for caching)
-      const result = await synthesizeSpeech(text, {
-        voice,
+      // Buffered response via Mastra Voice speakBuffered() — caches common phrases
+      const result = await voiceAdapter.speakBuffered(text, {
+        speaker: voice,
         model,
         format,
         stability,
         similarityBoost,
       });
 
-      // Cache if this is a common phrase (T081)
-      if (isCacheablePhrase(text)) {
-        cacheAudio(text, result.audio, voice, format);
-      }
+      // durationMs === 0 signals a cache hit (see speakBuffered JSDoc)
+      const isCached = result.durationMs === 0;
 
       logInfo('Voice synthesis completed', {
         userId: user.id,
@@ -285,6 +267,7 @@ export async function POST(request: Request): Promise<Response> {
           textLength: text.length,
           audioSize: result.audio.length,
           durationMs: result.durationMs,
+          cacheHit: isCached,
         },
       });
 
@@ -294,20 +277,20 @@ export async function POST(request: Request): Promise<Response> {
         headers: {
           'Content-Type': result.contentType,
           'Content-Length': String(result.audio.length),
-          'X-Cache': 'MISS',
+          'X-Cache': isCached ? 'HIT' : 'MISS',
           'Cache-Control': 'private, max-age=3600',
         },
       });
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+    // Log detailed error internally but don't expose to client
     logError('Synthesis endpoint error', error instanceof Error ? error : undefined);
 
     return new Response(
       JSON.stringify({
         error: 'Synthesis failed',
-        message: errorMessage,
+        // Don't expose internal error details to clients
+        message: 'Unable to synthesize speech. Please try again later.',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

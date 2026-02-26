@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface UseSubscriptionCheckResult {
@@ -26,7 +26,8 @@ interface UseSubscriptionCheckResult {
 export function useSubscriptionCheck(userId: string | null): UseSubscriptionCheckResult {
   const [subscriptionTier, setSubscriptionTier] = useState<'standard' | 'trailblazer' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (!userId) {

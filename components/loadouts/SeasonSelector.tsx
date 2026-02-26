@@ -10,16 +10,17 @@
 
 import { Sun, Snowflake, Leaf, Flower2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 // =============================================================================
 // Constants
 // =============================================================================
 
 const SEASONS = [
-  { value: 'spring', label: 'Spring', icon: Flower2 },
-  { value: 'summer', label: 'Summer', icon: Sun },
-  { value: 'fall', label: 'Fall', icon: Leaf },
-  { value: 'winter', label: 'Winter', icon: Snowflake },
+  { value: 'spring', labelKey: 'spring', icon: Flower2 },
+  { value: 'summer', labelKey: 'summer', icon: Sun },
+  { value: 'fall', labelKey: 'fall', icon: Leaf },
+  { value: 'winter', labelKey: 'winter', icon: Snowflake },
 ] as const;
 
 type Season = typeof SEASONS[number]['value'];
@@ -40,16 +41,21 @@ interface SeasonSelectorProps {
 // =============================================================================
 
 export function SeasonSelector({ value, onChange }: SeasonSelectorProps) {
+  const t = useTranslations('Loadouts');
+
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-4 gap-2" role="group" aria-label={t('seasons.selectSeason')}>
       {SEASONS.map((season) => {
         const Icon = season.icon;
         const isSelected = value === season.value;
+        const label = t(`seasons.${season.labelKey}`);
         return (
           <button
             key={season.value}
             type="button"
             onClick={() => onChange(isSelected ? null : season.value)}
+            aria-pressed={isSelected}
+            aria-label={label}
             className={cn(
               'flex flex-col items-center gap-1 rounded-lg border p-3 transition-colors',
               isSelected
@@ -58,7 +64,7 @@ export function SeasonSelector({ value, onChange }: SeasonSelectorProps) {
             )}
           >
             <Icon className="h-6 w-6" />
-            <span className="text-xs font-medium">{season.label}</span>
+            <span className="text-xs font-medium">{label}</span>
           </button>
         );
       })}

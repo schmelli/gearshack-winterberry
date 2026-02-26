@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Search prices for a wishlist item
  * Feature: 050-price-tracking
@@ -8,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { searchAllSources, sortPriceResults } from '@/lib/external-apis/price-search';
 import { findFuzzyMatches } from '@/lib/external-apis/fuzzy-matcher';
+import { getProductCategoryInfo } from '@/lib/external-apis/search-query-builder';
 import type { SearchPricesRequest, PriceSearchResults, FuzzyMatch } from '@/types/price-tracking';
 
 export async function POST(request: NextRequest) {
@@ -24,7 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body: SearchPricesRequest = await request.json();
+    let body: SearchPricesRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
     if (!body.gear_item_id) {
       return NextResponse.json(
@@ -33,11 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get gear item details including brand info (Issue #79)
-    const { data: gearItem, error: gearError } = await supabase
+    // Get gear item details including brand and category info (Issue #79, Feature 055)
+    // FIXED: Add user_id check to verify ownership - prevents information disclosure
+    const { data: gearItem, error: gearError } = await (supabase as any)
       .from('gear_items')
-      .select('name, brand, brand_url')
+      .select('name, brand, brand_url, product_type_id')
       .eq('id', body.gear_item_id)
+      .eq('user_id', user.id)
       .single();
 
     if (gearError || !gearItem) {
@@ -50,9 +62,10 @@ export async function POST(request: NextRequest) {
     const itemName = body.item_name || gearItem.name;
     const brandName = gearItem.brand;
     const brandUrl = gearItem.brand_url;
+    const productTypeId = gearItem.product_type_id;
 
     // Get or create tracking record
-    let { data: tracking } = await supabase
+    let { data: tracking } = await (supabase as any)
       .from('price_tracking')
       .select('id')
       .eq('user_id', user.id)
@@ -60,7 +73,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!tracking) {
-      const { data: newTracking, error: trackingError } = await supabase
+      const { data: newTracking, error: trackingError } = await (supabase as any)
         .from('price_tracking')
         .insert({
           user_id: user.id,
@@ -81,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache for recent results (6-hour TTL) - T077
-    const { data: cachedResults } = await supabase
+    const { data: cachedResults } = await (supabase as any)
       .from('price_results')
       .select('*')
       .eq('tracking_id', tracking.id)
@@ -106,7 +119,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Search all sources with brand info for validation (Issue #79)
+    // Get category information for intelligent query building (Feature 055)
+    const categoryInfo = await getProductCategoryInfo(supabase, productTypeId);
+
+    // Search all sources with brand and category info for validation (Issue #79, Feature 055)
     const searchResults = await searchAllSources(
       supabase,
       itemName,
@@ -115,6 +131,7 @@ export async function POST(request: NextRequest) {
         userLocation: body.user_location,
         brandName,
         brandUrl,
+        categoryInfo,
       }
     );
 

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'crypto';
 import {
   productSyncRequestSchema,
   type ProductPayload,
@@ -19,13 +20,38 @@ import {
 import type { Database } from '@/types/database';
 import type { SyncResponse } from '@/types/catalog';
 
+/**
+ * Timing-safe comparison of authorization headers to prevent timing attacks.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedToken: string): boolean {
+  if (!authHeader) return false;
+  // Ensure both strings have the same length for timing-safe comparison
+  if (authHeader.length !== expectedToken.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedToken));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Validate authorization
-    const authHeader = request.headers.get('Authorization');
-    const expectedToken = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
+    // Validate service role key is configured
+    const authServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!authServiceRoleKey || authServiceRoleKey.length < 10) {
+      console.error('[sync-catalog/items] SUPABASE_SERVICE_ROLE_KEY not configured');
+      const response: SyncResponse = {
+        success: false,
+        error: 'Server configuration error',
+      };
+      return NextResponse.json(response, { status: 500 });
+    }
 
-    if (!authHeader || authHeader !== expectedToken) {
+    // Validate authorization using timing-safe comparison
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = `Bearer ${authServiceRoleKey}`;
+
+    if (!verifyAuthHeader(authHeader, expectedToken)) {
       const response: SyncResponse = {
         success: false,
         error: 'Unauthorized',
@@ -93,7 +119,8 @@ export async function POST(request: NextRequest) {
 
     if (brandExternalIds.length > 0) {
       const uniqueBrandIds = [...new Set(brandExternalIds)];
-      const { data: brands, error: brandError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_brands not in generated types
+      const { data: brands, error: brandError } = await (supabase as any)
         .from('catalog_brands')
         .select('id, external_id')
         .in('external_id', uniqueBrandIds);
@@ -122,7 +149,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const { data: upserted, error } = await supabase
+      // Note: category_main and subcategory are no longer stored - use product_type_id FK instead
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_products not in generated types
+      const { data: upserted, error } = await (supabase as any)
         .from('catalog_products')
         .upsert(
           {
@@ -130,9 +159,8 @@ export async function POST(request: NextRequest) {
             name: product.name,
             brand_id: brandId,
             brand_external_id: product.brand_external_id ?? null,
-            category_main: product.category_main ?? null,
-            subcategory: product.subcategory ?? null,
             product_type: product.product_type ?? null,
+            product_type_id: product.product_type_id ?? null,
             description: product.description ?? null,
             price_usd: product.price_usd ?? null,
             weight_grams: product.weight_grams ?? null,

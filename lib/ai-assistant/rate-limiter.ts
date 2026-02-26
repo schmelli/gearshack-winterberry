@@ -7,8 +7,13 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { validateWebSearchConfig } from '@/lib/env';
+import {
+  getTodayStart,
+  getTodayEnd,
+  getMonthStart,
+  getMonthEnd,
+} from '@/lib/utils/date';
 
 // =============================================================================
 // Type Definitions
@@ -22,7 +27,7 @@ import { validateWebSearchConfig } from '@/lib/env';
  * haven't been applied or types haven't been regenerated. We use type
  * assertions through 'unknown' to safely access this table.
  */
-interface WebSearchUsageRow {
+interface _WebSearchUsageRow {
   id: string;
   user_id: string;
   conversation_id: string | null;
@@ -100,49 +105,6 @@ function getRateLimitsFromEnv() {
 }
 
 // =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Get the start of today in ISO format
- */
-function getTodayStart(): string {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now.toISOString();
-}
-
-/**
- * Get the end of today in ISO format
- */
-function getTodayEnd(): string {
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  return now.toISOString();
-}
-
-/**
- * Get the start of this month in ISO format
- */
-function getMonthStart(): string {
-  const now = new Date();
-  now.setDate(1);
-  now.setHours(0, 0, 0, 0);
-  return now.toISOString();
-}
-
-/**
- * Get the end of this month in ISO format
- */
-function getMonthEnd(): string {
-  const now = new Date();
-  now.setMonth(now.getMonth() + 1);
-  now.setDate(0); // Last day of current month
-  now.setHours(23, 59, 59, 999);
-  return now.toISOString();
-}
-
-// =============================================================================
 // Public API
 // =============================================================================
 
@@ -174,7 +136,7 @@ export async function checkWebSearchLimit(
   conversationId?: string | null
 ): Promise<RateLimitResult> {
   // Check if rate limiting is disabled (for testing)
-  const rateLimitingDisabled = process.env.AI_RATE_LIMITING_DISABLED === 'true';
+  const rateLimitingDisabled = process.env.NODE_ENV !== 'production' && process.env.AI_RATE_LIMITING_DISABLED === 'true';
 
   if (rateLimitingDisabled) {
     const limits = getRateLimitsFromEnv();

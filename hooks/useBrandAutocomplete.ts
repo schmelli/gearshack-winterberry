@@ -70,6 +70,7 @@ export function useBrandAutocomplete(
           logoUrl: result.logoUrl,
           websiteUrl: result.websiteUrl,
           similarity: result.similarity,
+          source: result.source,
         }))
       );
     } catch (err) {

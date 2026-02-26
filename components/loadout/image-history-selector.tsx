@@ -7,6 +7,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GeneratedLoadoutImage } from '@/types/loadout-image';
@@ -35,6 +36,8 @@ export function ImageHistorySelector({
   onSelectImage,
   className,
 }: ImageHistorySelectorProps) {
+  const t = useTranslations('Loadouts.imageHistory');
+
   if (images.length === 0) {
     return null; // Don't show if no history
   }
@@ -42,7 +45,7 @@ export function ImageHistorySelector({
   return (
     <div className={cn('space-y-2', className)}>
       <h3 className="text-sm font-medium text-muted-foreground">
-        Image History ({images.length}/3)
+        {t('title', { count: images.length, max: 3 })}
       </h3>
 
       <div className="grid grid-cols-3 gap-2">
@@ -59,13 +62,13 @@ export function ImageHistorySelector({
                   ? 'border-primary ring-2 ring-primary ring-offset-2'
                   : 'border-transparent hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary'
               )}
-              aria-label={`Select image ${index + 1}`}
+              aria-label={t('selectImage', { number: index + 1 })}
               aria-pressed={isActive}
             >
               {/* Image thumbnail */}
               <Image
                 src={image.cloudinaryUrl}
-                alt={image.altText || 'Generated image variation'}
+                alt={image.altText || t('imageVariationAlt')}
                 fill
                 className="object-cover transition-transform group-hover:scale-105"
                 sizes="(max-width: 768px) 33vw, 200px"
@@ -109,9 +112,7 @@ export function ImageHistorySelector({
 
       {/* Helper text */}
       <p className="text-xs text-muted-foreground">
-        {images.length === 3
-          ? 'Maximum history reached. Generating new images will replace the oldest.'
-          : 'Click an image to set it as active.'}
+        {images.length === 3 ? t('maxHistoryReached') : t('clickToSelect')}
       </p>
     </div>
   );

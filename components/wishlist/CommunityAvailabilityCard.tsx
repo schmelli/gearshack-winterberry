@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations, useLocale } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,17 +28,23 @@ export function CommunityAvailabilityCard({
   onViewInventory,
   onSeePriceComparison,
 }: CommunityAvailabilityCardProps) {
+  const t = useTranslations('Wishlist.communityAvailability');
+  const locale = useLocale();
+
   if (isLoading) {
     return null;
   }
 
-  if (!availability || availability.user_count === 0) {
+  if (!availability || !availability.user_count || availability.user_count === 0) {
     return null;
   }
 
+  // After the check above, user_count is guaranteed to be a positive number
+  const userCount = availability.user_count;
+
   const formatPrice = (amount: number | null) => {
     if (!amount) return 'N/A';
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : 'en-US', {
       style: 'currency',
       currency: 'EUR',
     }).format(amount);
@@ -46,28 +53,28 @@ export function CommunityAvailabilityCard({
   const priceRange =
     availability.min_price && availability.max_price
       ? `${formatPrice(availability.min_price)} - ${formatPrice(availability.max_price)}`
-      : 'Price data unavailable';
+      : t('priceDataUnavailable');
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Community Availability
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">
-              {availability.user_count} {availability.user_count === 1 ? 'user has' : 'users have'} this item
+              {t('usersHaveItem', { count: userCount })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Peer price range: {priceRange}
+              {t('peerPriceRange', { range: priceRange })}
             </p>
           </div>
           <Badge variant="secondary" className="text-sm">
-            {availability.user_count}
+            {userCount}
           </Badge>
         </div>
 
@@ -80,7 +87,7 @@ export function CommunityAvailabilityCard({
             className="flex-1"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
-            Message user
+            {t('messageUser')}
           </Button>
           <Button
             variant="outline"
@@ -89,7 +96,7 @@ export function CommunityAvailabilityCard({
             className="flex-1"
           >
             <Eye className="h-4 w-4 mr-2" />
-            View inventory
+            {t('viewInventory')}
           </Button>
         </div>
 
@@ -100,7 +107,7 @@ export function CommunityAvailabilityCard({
           className="w-full"
         >
           <TrendingDown className="h-4 w-4 mr-2" />
-          See price comparison
+          {t('seePriceComparison')}
         </Button>
       </CardContent>
     </Card>

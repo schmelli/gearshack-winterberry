@@ -15,4 +15,4 @@
  * normalizeForMatch('  REI  ', '  Flash 22  ') // => 'rei|flash 22'
  */
 export const normalizeForMatch = (brand: string | null, name: string): string =>
-  `${(brand || '').toLowerCase().trim()}|${name.toLowerCase().trim()}`;
+  `${(brand || '').toLowerCase().trim()}|${(name || '').toLowerCase().trim()}`;

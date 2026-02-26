@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { CommunityAvailability } from '@/types/price-tracking';
 
@@ -24,7 +24,7 @@ export function useCommunityAvailability(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadAvailability = async () => {
+  const loadAvailability = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -45,13 +45,13 @@ export function useCommunityAvailability(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gearItemId]);
 
   useEffect(() => {
     if (gearItemId) {
       loadAvailability();
     }
-  }, [gearItemId]);
+  }, [gearItemId, loadAvailability]);
 
   return {
     availability,

@@ -4,6 +4,8 @@
  * Feature: 042-catalog-sync-api (US1, US2)
  *
  * Note: Uses catalog_products table (not catalog_items) per actual database schema
+ * Category hierarchy (categoryMain, subcategory, productType) is derived from
+ * the categories table via product_type_id FK.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,6 +13,15 @@ import { createClient } from '@supabase/supabase-js';
 import { productSearchParamsSchema } from '@/lib/validations/catalog-schema';
 import type { Database } from '@/types/database';
 import type { ProductSearchResponse, ProductSearchResult } from '@/types/catalog';
+
+// Type for category with parent chain
+interface CategoryWithParent {
+  id: string;
+  label: string;
+  slug: string;
+  level: number;
+  parent_id: string | null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +31,7 @@ export async function GET(request: NextRequest) {
       q: searchParams.get('q') || undefined,
       mode: searchParams.get('mode') || 'fuzzy',
       brand_id: searchParams.get('brand_id') || undefined,
-      category_main: searchParams.get('category_main') || undefined,
+      product_type_id: searchParams.get('product_type_id') || undefined,
       limit: searchParams.get('limit') || '5',
     };
 
@@ -34,7 +45,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { q, mode, brand_id, category_main, limit } = parseResult.data;
+    const { q, mode, brand_id, product_type_id, limit } = parseResult.data;
 
     // Validate required parameters based on mode
     if (mode === 'fuzzy' && !q) {
@@ -60,7 +71,7 @@ export async function GET(request: NextRequest) {
     let results: ProductSearchResult[] = [];
 
     if (mode === 'fuzzy' && q) {
-      results = await performFuzzySearch(supabase, q, { brand_id, category_main, limit });
+      results = await performFuzzySearch(supabase, q, { brand_id, product_type_id, limit });
     }
 
     const response: ProductSearchResponse = {
@@ -82,22 +93,29 @@ export async function GET(request: NextRequest) {
 
 /**
  * Perform fuzzy text search using ILIKE on catalog_products
+ * Derives category hierarchy from the categories table via product_type_id
  */
 async function performFuzzySearch(
   supabase: ReturnType<typeof createClient<Database>>,
   query: string,
-  options: { brand_id?: string; category_main?: string; limit: number }
+  options: { brand_id?: string; product_type_id?: string; limit: number }
 ): Promise<ProductSearchResult[]> {
   const normalizedQuery = query.toLowerCase().trim();
+
+  // Escape ILIKE special characters to prevent injection
+  // Order matters: escape backslash first, then wildcards
+  const escapedQuery = normalizedQuery
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
 
   let queryBuilder = supabase
     .from('catalog_products')
     .select(`
       id,
       name,
-      category_main,
-      subcategory,
       product_type,
+      product_type_id,
       description,
       price_usd,
       weight_grams,
@@ -107,15 +125,15 @@ async function performFuzzySearch(
         name
       )
     `)
-    .ilike('name', `%${normalizedQuery}%`)
+    .ilike('name', `%${escapedQuery}%`)
     .limit(options.limit);
 
   if (options.brand_id) {
     queryBuilder = queryBuilder.eq('brand_id', options.brand_id);
   }
 
-  if (options.category_main) {
-    queryBuilder = queryBuilder.eq('category_main', options.category_main);
+  if (options.product_type_id) {
+    queryBuilder = queryBuilder.eq('product_type_id', options.product_type_id);
   }
 
   const { data, error } = await queryBuilder;
@@ -123,6 +141,60 @@ async function performFuzzySearch(
   if (error) {
     console.error('Fuzzy search error:', error);
     return [];
+  }
+
+  // Collect all product_type_ids to fetch category hierarchy in batch
+  const productTypeIds = (data || [])
+    .map((p) => p.product_type_id)
+    .filter((id): id is string => id !== null);
+
+  // Fetch category hierarchy for all product types in one query
+  const categoryMap = new Map<
+    string,
+    { categoryMain: string | null; subcategory: string | null; productType: string | null }
+  >();
+
+  if (productTypeIds.length > 0) {
+    // Get all categories to build the hierarchy
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- categories table not in generated types
+    const { data: allCategories } = await (supabase as any)
+      .from('categories')
+      .select('id, label, slug, level, parent_id')
+      .order('level');
+
+    if (allCategories) {
+      // Build a lookup map by ID
+      const catById = new Map<string, CategoryWithParent>();
+      for (const cat of allCategories) {
+        catById.set(cat.id, cat);
+      }
+
+      // For each product_type_id, walk up the tree to find subcategory and main category
+      for (const ptId of productTypeIds) {
+        const productTypeCat = catById.get(ptId);
+        if (!productTypeCat) continue;
+
+        let categoryMain: string | null = null;
+        let subcategory: string | null = null;
+        const productType = productTypeCat.label;
+
+        // Walk up the parent chain
+        if (productTypeCat.parent_id) {
+          const subcategoryCat = catById.get(productTypeCat.parent_id);
+          if (subcategoryCat) {
+            subcategory = subcategoryCat.label;
+            if (subcategoryCat.parent_id) {
+              const mainCat = catById.get(subcategoryCat.parent_id);
+              if (mainCat) {
+                categoryMain = mainCat.label;
+              }
+            }
+          }
+        }
+
+        categoryMap.set(ptId, { categoryMain, subcategory, productType });
+      }
+    }
   }
 
   return (data || []).map((product) => {
@@ -134,15 +206,21 @@ async function performFuzzySearch(
         ? 0.5 + (0.3 * (normalizedQuery.length / normalized.length))
         : 0.3;
 
+    // Get category hierarchy from the map, or fallback to product_type TEXT field
+    const categoryInfo = product.product_type_id
+      ? categoryMap.get(product.product_type_id)
+      : null;
+
     return {
       id: product.id,
       name: product.name,
       brand: product.catalog_brands
         ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
         : null,
-      categoryMain: product.category_main,
-      subcategory: product.subcategory,
-      productType: product.product_type,
+      categoryMain: categoryInfo?.categoryMain ?? null,
+      subcategory: categoryInfo?.subcategory ?? null,
+      productType: categoryInfo?.productType ?? product.product_type,
+      productTypeId: product.product_type_id,
       description: product.description,
       priceUsd: product.price_usd,
       weightGrams: product.weight_grams,

@@ -21,25 +21,25 @@ export type GearStatus = 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
 // UI Labels for Enumerations
 // =============================================================================
 
-export const WEIGHT_UNIT_LABELS: Record<WeightUnit, string> = {
+export const WEIGHT_UNIT_LABELS = {
   g: 'Grams (g)',
   oz: 'Ounces (oz)',
   lb: 'Pounds (lb)',
-};
+} as const satisfies Record<WeightUnit, string>;
 
-export const GEAR_CONDITION_LABELS: Record<GearCondition, string> = {
+export const GEAR_CONDITION_LABELS = {
   new: 'New',
   used: 'Used',
   worn: 'Worn',
-};
+} as const satisfies Record<GearCondition, string>;
 
-export const GEAR_STATUS_LABELS: Record<GearStatus, string> = {
+export const GEAR_STATUS_LABELS = {
   own: 'Own',
   wishlist: 'Wishlist',
   sold: 'Sold',
   lent: 'Lent',
   retired: 'Retired',
-};
+} as const satisfies Record<GearStatus, string>;
 
 // =============================================================================
 // Cloud Function Processed Images (Feature: 019-image-perfection)
@@ -100,6 +100,10 @@ export interface GearItem {
   purchaseDate: Date | null;
   retailer: string | null;
   retailerUrl: string | null;
+  /** Manufacturer's suggested retail price (MSRP) - Feature 057 */
+  manufacturerPrice: number | null;
+  /** Currency for manufacturer price - Feature 057 */
+  manufacturerCurrency: string | null;
 
   // Section 5: Media
   primaryImageUrl: string | null;
@@ -122,7 +126,26 @@ export interface GearItem {
   /** Whether this item can be traded - Feature 045 */
   canBeTraded: boolean;
 
-  // Section 7: Dependencies (Feature: 037-gear-dependencies)
+  // Section 7: Merchant Source Attribution (Feature: 053-merchant-integration)
+  /** Merchant ID if item was added from a merchant loadout */
+  sourceMerchantId: string | null;
+  /** Offer ID if item was added via a merchant offer */
+  sourceOfferId: string | null;
+  /** Loadout ID if item was added from a merchant loadout */
+  sourceLoadoutId: string | null;
+
+  // Section 8: VIP Source Attribution (Feature: 052-vip-loadouts)
+  /** Attribution metadata for VIP curated items */
+  sourceAttribution?: {
+    /** Type of source (e.g., 'vip_curated', 'merchant') */
+    type: string;
+    /** Source URL (e.g., YouTube video link where VIP showed this gear) */
+    url?: string;
+    /** When the source was last checked/verified */
+    checkedAt?: string;
+  } | null;
+
+  // Section 9: Dependencies (Feature: 037-gear-dependencies)
   /** IDs of gear items that typically go with this item (e.g., paddle with packraft) */
   dependencyIds: string[];
 }
@@ -163,6 +186,10 @@ export interface GearItemFormData {
   purchaseDate: string;
   retailer: string;
   retailerUrl: string;
+  /** Manufacturer's suggested retail price (MSRP) - Feature 057 */
+  manufacturerPrice: string;
+  /** Currency for manufacturer price - Feature 057 */
+  manufacturerCurrency: string;
 
   // Section 5: Media
   primaryImageUrl: string;
@@ -215,6 +242,8 @@ export const DEFAULT_GEAR_ITEM_FORM: GearItemFormData = {
   purchaseDate: '',
   retailer: '',
   retailerUrl: '',
+  manufacturerPrice: '',
+  manufacturerCurrency: 'EUR',
   primaryImageUrl: '',
   galleryImageUrls: [],
   condition: 'new',

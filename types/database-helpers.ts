@@ -7,11 +7,12 @@
  * to replace unsafe `any` type assertions throughout the codebase.
  */
 
-import type { Database } from './supabase';
+import type { Database as _Database } from './supabase';
 
-// Base table types
-type GearItem = Database['public']['Tables']['gear_items']['Row'];
-type PartnerRetailer = Database['public']['Tables']['partner_retailers']['Row'];
+// Base table type references - these types were previously used for validation
+// and are now documented as available types for future use with joins
+// GearItem: Database['public']['Tables']['gear_items']['Row']
+// PartnerRetailer: Database['public']['Tables']['partner_retailers']['Row']
 
 /**
  * Price Tracking with Gear Item join

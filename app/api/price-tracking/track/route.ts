@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Enable price tracking for a gear item
  * Feature: 050-price-tracking
@@ -9,7 +10,6 @@ import { createClient } from '@/lib/supabase/server';
 import {
   enableTrackingSchema,
   validateRequestBody,
-  type EnableTrackingRequest,
 } from '@/lib/validation/price-tracking';
 
 export async function POST(request: NextRequest) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already tracking
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from('price_tracking')
       .select('*')
       .eq('user_id', user.id)
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create tracking record
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('price_tracking')
       .insert({
         user_id: user.id,

@@ -9,10 +9,18 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { HelpCircle } from 'lucide-react';
+import {
+  HelpCircle,
+  Ruler,
+  Palette,
+  Box,
+  Layers,
+  Tent,
+  Hash,
+} from 'lucide-react';
 
 // =============================================================================
 // Types
@@ -33,7 +41,14 @@ export type SpecIconType =
   | 'comfort'
   | 'wishlist'
   | 'ai'
-  | 'category';
+  | 'category'
+  // Additional spec types for gear details
+  | 'size'
+  | 'color'
+  | 'volume'
+  | 'materials'
+  | 'construction'
+  | 'quantity';
 
 interface SpecIconProps {
   /** Icon type to display */
@@ -94,6 +109,43 @@ function getIconPath(type: SpecIconType, categoryId?: string): string | null {
       // Try exact match first
       const categoryPath = `/icons/gear_categories/${categoryId.toLowerCase()}.svg`;
       return categoryPath;
+    // Additional spec types - use lucide icons (return null to trigger LucideIcon rendering)
+    case 'size':
+    case 'color':
+    case 'volume':
+    case 'materials':
+    case 'construction':
+    case 'quantity':
+      return null; // Handled by getLucideIcon
+    default:
+      return null;
+  }
+}
+
+/**
+ * Renders the appropriate Lucide icon for a spec type
+ * Returns null if no Lucide icon is available (falls back to SVG or HelpCircle)
+ */
+function renderLucideIcon(
+  type: SpecIconType,
+  className: string,
+  style: React.CSSProperties,
+  ariaLabel: string
+): React.ReactNode | null {
+  const iconProps = { className, style, 'aria-label': ariaLabel };
+  switch (type) {
+    case 'size':
+      return <Ruler {...iconProps} />;
+    case 'color':
+      return <Palette {...iconProps} />;
+    case 'volume':
+      return <Box {...iconProps} />;
+    case 'materials':
+      return <Layers {...iconProps} />;
+    case 'construction':
+      return <Tent {...iconProps} />;
+    case 'quantity':
+      return <Hash {...iconProps} />;
     default:
       return null;
   }
@@ -113,6 +165,20 @@ export function SpecIcon({
   const [hasError, setHasError] = useState(false);
   const iconPath = getIconPath(type, categoryId);
 
+  // Stable error handler to avoid creating new functions on every render
+  const handleError = useCallback(() => setHasError(true), []);
+
+  // If a Lucide icon is available, use it directly
+  const lucideIcon = renderLucideIcon(
+    type,
+    cn('text-muted-foreground', className),
+    { width: size, height: size },
+    alt || `${type} icon`
+  );
+  if (lucideIcon) {
+    return lucideIcon;
+  }
+
   // Fallback to placeholder if no icon found or if image fails to load
   if (!iconPath || hasError) {
     return (
@@ -131,7 +197,7 @@ export function SpecIcon({
       width={size}
       height={size}
       className={cn('inline-block', className)}
-      onError={() => setHasError(true)}
+      onError={handleError}
     />
   );
 }

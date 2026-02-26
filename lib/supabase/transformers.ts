@@ -10,6 +10,7 @@
 
 import type { GearItem, GearCondition, GearStatus, WeightUnit, NobgImages } from '@/types/gear';
 import type { Tables, TablesInsert, TablesUpdate, Json } from '@/types/database';
+import { cleanProductUrl } from '@/lib/utils';
 
 // =============================================================================
 // Type Aliases
@@ -73,6 +74,8 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     // Section 4: Purchase Details
     pricePaid: row.price_paid ? Number(row.price_paid) : null,
     currency: row.currency,
+    manufacturerPrice: row.manufacturer_price ? Number(row.manufacturer_price) : null,
+    manufacturerCurrency: row.manufacturer_currency ?? null,
     purchaseDate: row.purchase_date ? new Date(row.purchase_date) : null,
     retailer: row.retailer,
     retailerUrl: row.retailer_url,
@@ -92,7 +95,12 @@ export function gearItemFromDb(row: GearItemRow): GearItem {
     canBeBorrowed: row.can_be_borrowed ?? false,
     canBeTraded: row.can_be_traded ?? false,
 
-    // Section 7: Dependencies
+    // Section 7: Merchant Source Attribution (Feature 053)
+    sourceMerchantId: (row as unknown as { source_merchant_id?: string | null }).source_merchant_id ?? null,
+    sourceOfferId: (row as unknown as { source_offer_id?: string | null }).source_offer_id ?? null,
+    sourceLoadoutId: (row as unknown as { source_loadout_id?: string | null }).source_loadout_id ?? null,
+
+    // Section 8: Dependencies
     dependencyIds: row.dependency_ids || [],
   };
 }
@@ -108,7 +116,7 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
     description: item.description,
     brand_url: item.brandUrl,
     model_number: item.modelNumber,
-    product_url: item.productUrl,
+    product_url: cleanProductUrl(item.productUrl) ?? item.productUrl,
 
     product_type_id: item.productTypeId,
 
@@ -125,6 +133,8 @@ export function gearItemToDbInsert(item: Omit<GearItem, 'id' | 'createdAt' | 'up
 
     price_paid: item.pricePaid,
     currency: item.currency,
+    manufacturer_price: item.manufacturerPrice,
+    manufacturer_currency: item.manufacturerCurrency,
     purchase_date: item.purchaseDate?.toISOString().split('T')[0],
     retailer: item.retailer,
     retailer_url: item.retailerUrl,
@@ -158,7 +168,7 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
   if (item.description !== undefined) update.description = item.description;
   if (item.brandUrl !== undefined) update.brand_url = item.brandUrl;
   if (item.modelNumber !== undefined) update.model_number = item.modelNumber;
-  if (item.productUrl !== undefined) update.product_url = item.productUrl;
+  if (item.productUrl !== undefined) update.product_url = cleanProductUrl(item.productUrl) ?? item.productUrl;
 
   if (item.productTypeId !== undefined) update.product_type_id = item.productTypeId;
 
@@ -175,6 +185,8 @@ export function gearItemToDbUpdate(item: Partial<GearItem>): GearItemUpdateRow {
 
   if (item.pricePaid !== undefined) update.price_paid = item.pricePaid;
   if (item.currency !== undefined) update.currency = item.currency;
+  if (item.manufacturerPrice !== undefined) update.manufacturer_price = item.manufacturerPrice;
+  if (item.manufacturerCurrency !== undefined) update.manufacturer_currency = item.manufacturerCurrency;
   if (item.purchaseDate !== undefined) {
     update.purchase_date = item.purchaseDate?.toISOString().split('T')[0] ?? null;
   }
@@ -222,4 +234,65 @@ export function categoryFromDb(row: CategoryRow): Category {
     label: row.label,
     createdAt: new Date(row.created_at),
   };
+}
+
+// =============================================================================
+// PostGIS Transformer (Feature 057)
+// =============================================================================
+
+/**
+ * Transform PostGIS GEOGRAPHY/GEOMETRY data to { latitude, longitude } format
+ *
+ * Supabase returns PostGIS data in various formats depending on the query:
+ * - GeoJSON: { type: 'Point', coordinates: [lng, lat] }
+ * - WKT string: "POINT(lng lat)"
+ * - Object with x/y: { x: lng, y: lat }
+ *
+ * This function normalizes all formats to { latitude, longitude } | null
+ */
+export function parsePostGISLocation(
+  location: unknown
+): { latitude: number; longitude: number } | null {
+  if (!location) return null;
+
+  // Handle GeoJSON format: { type: 'Point', coordinates: [lng, lat] }
+  if (
+    typeof location === 'object' &&
+    'type' in location &&
+    location.type === 'Point' &&
+    'coordinates' in location &&
+    Array.isArray(location.coordinates) &&
+    location.coordinates.length === 2
+  ) {
+    const [lng, lat] = location.coordinates;
+    if (typeof lng === 'number' && typeof lat === 'number') {
+      return { latitude: lat, longitude: lng };
+    }
+  }
+
+  // Handle x/y object format: { x: lng, y: lat }
+  if (
+    typeof location === 'object' &&
+    'x' in location &&
+    'y' in location &&
+    typeof location.x === 'number' &&
+    typeof location.y === 'number'
+  ) {
+    return { latitude: location.y, longitude: location.x };
+  }
+
+  // Handle WKT string format: "POINT(lng lat)"
+  if (typeof location === 'string') {
+    const match = location.match(/POINT\s*\(\s*([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)\s*\)/i);
+    if (match) {
+      const lng = parseFloat(match[1]);
+      const lat = parseFloat(match[2]);
+      // Use Number.isFinite() to reject NaN and Infinity
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        return { latitude: lat, longitude: lng };
+      }
+    }
+  }
+
+  return null;
 }

@@ -20,6 +20,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { useTranslations } from 'next-intl';
 import type { InventoryViewMode } from '@/types/wishlist';
 
 // =============================================================================
@@ -50,19 +51,20 @@ export function WishlistToggle({
   wishlistCount,
   onViewChangeAnnouncement,
 }: WishlistToggleProps) {
+  const t = useTranslations('Wishlist');
   const previousModeRef = useRef<InventoryViewMode>(mode);
 
   // Track mode changes and trigger announcements
   useEffect(() => {
     if (previousModeRef.current !== mode && onViewChangeAnnouncement) {
-      const viewName = mode === 'wishlist' ? 'Wishlist' : 'Inventory';
+      const viewName = mode === 'wishlist' ? t('toggle.wishlist') : t('toggle.myGear');
       const itemCount = mode === 'wishlist' ? wishlistCount : inventoryCount;
       onViewChangeAnnouncement(
-        `Switched to ${viewName} view. ${itemCount} ${itemCount === 1 ? 'item' : 'items'}.`
+        t('toggle.switchedToView', { viewName, count: itemCount })
       );
     }
     previousModeRef.current = mode;
-  }, [mode, onViewChangeAnnouncement, wishlistCount, inventoryCount]);
+  }, [mode, onViewChangeAnnouncement, wishlistCount, inventoryCount, t]);
 
   // Handle mode change with announcement callback
   const handleModeChange = useCallback(
@@ -78,7 +80,7 @@ export function WishlistToggle({
       onValueChange={handleModeChange}
       className="w-auto"
       // T082: Add aria-label for the tab container
-      aria-label="View mode toggle"
+      aria-label={t('toggle.viewModeToggle')}
     >
       {/*
         T082/T083: TabsList from Radix already provides:
@@ -90,15 +92,15 @@ export function WishlistToggle({
       */}
       <TabsList
         className="grid grid-cols-2"
-        aria-label="Switch between inventory and wishlist views"
+        aria-label={t('toggle.switchViewsAriaLabel')}
       >
         <TabsTrigger
           value="inventory"
           className="gap-2"
           // T082: Descriptive aria-label including item count
-          aria-label={`My Gear tab, ${inventoryCount} ${inventoryCount === 1 ? 'item' : 'items'}`}
+          aria-label={t('toggle.myGearTabAriaLabel', { count: inventoryCount })}
         >
-          <span aria-hidden="true">My Gear</span>
+          <span aria-hidden="true">{t('toggle.myGear')}</span>
           <span
             className="rounded-full bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 text-xs font-medium"
             aria-hidden="true"
@@ -107,16 +109,16 @@ export function WishlistToggle({
           </span>
           {/* Screen reader only: full description */}
           <VisuallyHidden>
-            My Gear, {inventoryCount} {inventoryCount === 1 ? 'item' : 'items'}
+            {t('toggle.myGearCount', { count: inventoryCount })}
           </VisuallyHidden>
         </TabsTrigger>
         <TabsTrigger
           value="wishlist"
           className="gap-2"
           // T082: Descriptive aria-label including item count
-          aria-label={`Wishlist tab, ${wishlistCount} ${wishlistCount === 1 ? 'item' : 'items'}`}
+          aria-label={t('toggle.wishlistTabAriaLabel', { count: wishlistCount })}
         >
-          <span aria-hidden="true">Wishlist</span>
+          <span aria-hidden="true">{t('toggle.wishlist')}</span>
           <span
             className="rounded-full bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 text-xs font-medium"
             aria-hidden="true"
@@ -125,7 +127,7 @@ export function WishlistToggle({
           </span>
           {/* Screen reader only: full description */}
           <VisuallyHidden>
-            Wishlist, {wishlistCount} {wishlistCount === 1 ? 'item' : 'items'}
+            {t('toggle.wishlistCount', { count: wishlistCount })}
           </VisuallyHidden>
         </TabsTrigger>
       </TabsList>

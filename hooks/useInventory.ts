@@ -52,7 +52,7 @@ function getInitialViewDensity(): ViewDensity {
 function getInitialSortOption(): SortOption {
   if (typeof window === 'undefined') return DEFAULT_SORT_OPTION;
   const stored = sessionStorage.getItem(SORT_OPTION_STORAGE_KEY);
-  if (stored && ['name', 'category', 'dateAdded'].includes(stored)) {
+  if (stored && ['name', 'category', 'brand', 'productType', 'dateAdded'].includes(stored)) {
     return stored as SortOption;
   }
   return DEFAULT_SORT_OPTION;
@@ -108,19 +108,29 @@ export function useInventory(): UseInventoryReturn {
   const MAX_RETRIES = 3;
 
   useEffect(() => {
+    // Clear any existing timeout when deps change to prevent orphaned timers
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+
     if (categoriesError && retryCountRef.current < MAX_RETRIES) {
       // Calculate exponential backoff delay (1s, 2s, 4s)
       const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 10000);
 
-      retryTimerRef.current = setTimeout(() => {
+      // MEMORY LEAK FIX: Capture timer ID in local variable before assigning to ref
+      // This ensures cleanup has the correct ID even if component unmounts mid-assignment
+      const timerId = setTimeout(() => {
+        retryTimerRef.current = null;
         refreshCategories();
         retryCountRef.current += 1;
       }, delay);
 
+      retryTimerRef.current = timerId;
+
       return () => {
-        if (retryTimerRef.current) {
-          clearTimeout(retryTimerRef.current);
-        }
+        clearTimeout(timerId); // Use captured timer ID for reliable cleanup
+        retryTimerRef.current = null;
       };
     }
 
@@ -167,7 +177,7 @@ export function useInventory(): UseInventoryReturn {
           // Alphabetical sort (A-Z)
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
-        case 'category':
+        case 'category': {
           // Sort by category label, then by name within category (Cascading Category Refactor: uses productTypeId)
           const catIdA = a.productTypeId ? getParentCategoryIds(a.productTypeId, categories).categoryId : null;
           const catIdB = b.productTypeId ? getParentCategoryIds(b.productTypeId, categories).categoryId : null;
@@ -176,6 +186,30 @@ export function useInventory(): UseInventoryReturn {
           const catCompare = catLabelA.localeCompare(catLabelB, undefined, { sensitivity: 'base' });
           if (catCompare !== 0) return catCompare;
           return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        }
+
+        case 'brand': {
+          // Sort by brand name (A-Z), items without brand go last, then by name within brand
+          const brandA = a.brand?.toLowerCase() ?? '';
+          const brandB = b.brand?.toLowerCase() ?? '';
+          // Put items without brand at the end
+          if (!brandA && brandB) return 1;
+          if (brandA && !brandB) return -1;
+          const brandCompare = brandA.localeCompare(brandB, undefined, { sensitivity: 'base' });
+          if (brandCompare !== 0) return brandCompare;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        }
+
+        case 'productType': {
+          // Sort by product type label (level 3), then by name within type
+          const typeIdA = a.productTypeId;
+          const typeIdB = b.productTypeId;
+          const typeLabelA = typeIdA ? getLabelById(typeIdA) : 'Uncategorized';
+          const typeLabelB = typeIdB ? getLabelById(typeIdB) : 'Uncategorized';
+          const typeCompare = typeLabelA.localeCompare(typeLabelB, undefined, { sensitivity: 'base' });
+          if (typeCompare !== 0) return typeCompare;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        }
 
         case 'dateAdded':
         default:
@@ -188,35 +222,49 @@ export function useInventory(): UseInventoryReturn {
   }, [items, searchQuery, categoryFilter, sortOption, getLabelById, categoriesLoading, categoriesError, categories]);
 
   // ---------------------------------------------------------------------------
-  // Derived: Grouped Items by Category (Feature 046)
+  // Derived: Grouped Items by Category/Brand/ProductType (Feature 046)
   // ---------------------------------------------------------------------------
   const groupedItems = useMemo<CategoryGroup[]>(() => {
-    if (sortOption !== 'category') {
+    // Only create groups for certain sort options
+    if (!['category', 'brand', 'productType'].includes(sortOption)) {
       return [];
     }
 
-    // Group items by categoryId (Cascading Category Refactor: derived from productTypeId)
     const groups = new Map<string | null, CategoryGroup>();
 
     for (const item of filteredItems) {
-      // Derive category (level 1) from productTypeId (level 3)
-      const catId = item.productTypeId
-        ? getParentCategoryIds(item.productTypeId, categories).categoryId
-        : null;
+      let groupKey: string | null = null;
+      let groupLabel: string = 'Uncategorized';
 
-      if (!groups.has(catId)) {
-        groups.set(catId, {
-          categoryId: catId,
-          categoryLabel: getLabelById(catId),
+      if (sortOption === 'category') {
+        // Derive category (level 1) from productTypeId (level 3)
+        groupKey = item.productTypeId
+          ? getParentCategoryIds(item.productTypeId, categories).categoryId
+          : null;
+        groupLabel = getLabelById(groupKey);
+      } else if (sortOption === 'brand') {
+        // Group by brand name
+        groupKey = item.brand ?? null;
+        groupLabel = item.brand || 'No Brand';
+      } else if (sortOption === 'productType') {
+        // Group by product type (level 3)
+        groupKey = item.productTypeId ?? null;
+        groupLabel = item.productTypeId ? getLabelById(item.productTypeId) : 'Uncategorized';
+      }
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          categoryId: groupKey,
+          categoryLabel: groupLabel,
           items: [],
         });
       }
-      groups.get(catId)!.items.push(item);
+      groups.get(groupKey)!.items.push(item);
     }
 
-    // Convert to array and sort by category label
+    // Convert to array and sort by label
     return Array.from(groups.values()).sort((a, b) => {
-      // Put uncategorized at the end
+      // Put uncategorized/no brand at the end
       if (a.categoryId === null) return 1;
       if (b.categoryId === null) return -1;
       return a.categoryLabel.localeCompare(b.categoryLabel, undefined, { sensitivity: 'base' });

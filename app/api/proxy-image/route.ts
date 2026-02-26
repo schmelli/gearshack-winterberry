@@ -9,6 +9,12 @@ const TIMEOUT_MS = 30000; // 30 seconds
 
 /**
  * SSRF protection: block internal/private URLs
+ * Covers RFC 1918, RFC 4193, RFC 6598, and other reserved ranges
+ *
+ * NOTE: DNS rebinding attacks are a known limitation. A fully secure solution
+ * would require resolving DNS before fetch and validating the resolved IP.
+ * Current mitigations: comprehensive IP range blocking, timeout limits,
+ * and this route should only be used for image URLs from trusted search APIs.
  */
 function isBlockedUrl(url: string): boolean {
   try {
@@ -16,26 +22,60 @@ function isBlockedUrl(url: string): boolean {
     const hostname = parsed.hostname.toLowerCase();
 
     // Block localhost variations
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname === '0.0.0.0'
-    ) {
+    const localhostPatterns = [
+      'localhost',
+      '127.0.0.1',
+      '::1',
+      '0.0.0.0',
+      '[::1]',
+    ];
+    if (localhostPatterns.includes(hostname)) {
       return true;
     }
 
-    // Block private IP ranges
+    // Block .local and .internal domains
+    if (hostname.endsWith('.local') || hostname.endsWith('.internal') || hostname.endsWith('.localhost')) {
+      return true;
+    }
+
+    // Block private and reserved IP ranges (comprehensive list)
     const privatePatterns = [
-      /^10\./,
-      /^172\.(1[6-9]|2\d|3[01])\./,
-      /^192\.168\./,
-      /^169\.254\./,
-      /^fc00:/,
-      /^fe80:/,
+      // RFC 1918 - Private networks
+      /^10\./,                            // 10.0.0.0/8
+      /^172\.(1[6-9]|2\d|3[01])\./,       // 172.16.0.0/12
+      /^192\.168\./,                       // 192.168.0.0/16
+      // RFC 6598 - Shared Address Space (CGNAT)
+      /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,  // 100.64.0.0/10
+      // Link-local
+      /^169\.254\./,                       // 169.254.0.0/16
+      // Loopback
+      /^127\./,                            // 127.0.0.0/8
+      // RFC 5737 - Documentation
+      /^192\.0\.2\./,                      // 192.0.2.0/24 (TEST-NET-1)
+      /^198\.51\.100\./,                   // 198.51.100.0/24 (TEST-NET-2)
+      /^203\.0\.113\./,                    // 203.0.113.0/24 (TEST-NET-3)
+      // RFC 3927 - Link-local (zeroconf)
+      /^0\./,                              // 0.0.0.0/8
+      // Benchmarking
+      /^198\.18\./,                        // 198.18.0.0/15
+      /^198\.19\./,
+      // Reserved
+      /^224\./,                            // 224.0.0.0/4 (Multicast)
+      /^240\./,                            // 240.0.0.0/4 (Reserved)
+      // IPv6 private/reserved
+      /^fc00:/i,                           // ULA
+      /^fd[0-9a-f]{2}:/i,                  // ULA
+      /^fe80:/i,                           // Link-local
+      /^ff[0-9a-f]{2}:/i,                  // Multicast
+      /^::ffff:/i,                         // IPv4-mapped
     ];
 
     if (privatePatterns.some((pattern) => pattern.test(hostname))) {
+      return true;
+    }
+
+    // Block non-http(s) protocols that might be in the URL
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
       return true;
     }
 
@@ -47,38 +87,30 @@ function isBlockedUrl(url: string): boolean {
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
-  console.log('[Proxy] ====== IMAGE PROXY REQUEST ======');
-  console.log('[Proxy] Requested URL:', url);
 
   if (!url) {
-    console.log('[Proxy] ERROR: Missing URL parameter');
     return NextResponse.json({ error: 'MISSING_URL', message: 'No URL provided' }, { status: 400 });
   }
 
   // Validate URL presence and protocol
   try {
     const parsed = new URL(url);
-    console.log('[Proxy] Parsed URL:', { protocol: parsed.protocol, hostname: parsed.hostname });
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
   } catch {
-    console.log('[Proxy] ERROR: Invalid URL format');
     return NextResponse.json({ error: 'INVALID_URL', message: 'Invalid URL format' }, { status: 400 });
   }
 
   if (isBlockedUrl(url)) {
-    console.log('[Proxy] ERROR: Blocked URL (security)');
     return NextResponse.json({ error: 'BLOCKED_URL', message: 'URL is blocked for security' }, { status: 400 });
   }
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  try {
     // Extract origin for Referer header (bypasses hotlink protection)
     const parsedUrl = new URL(url);
     const referer = `${parsedUrl.protocol}//${parsedUrl.hostname}/`;
-
-    console.log('[Proxy] Fetching external URL with Referer:', referer);
 
     // FIX: Full browser disguise with Referer to bypass hotlink protection
     const response = await fetch(url, {
@@ -103,9 +135,6 @@ export async function GET(request: NextRequest) {
       redirect: 'follow',
     });
 
-    clearTimeout(timeout);
-    console.log('[Proxy] Fetch response:', { status: response.status, ok: response.ok });
-
     if (!response.ok) {
       console.error(`[Proxy] Upstream error: ${response.status} ${response.statusText} for ${url}`);
       return NextResponse.json(
@@ -115,13 +144,10 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = response.headers.get('content-type') || '';
-    console.log('[Proxy] Response content-type:', contentType);
 
     const imageBuffer = await response.arrayBuffer();
-    console.log('[Proxy] Downloaded bytes:', imageBuffer.byteLength);
 
     if (imageBuffer.byteLength > MAX_FILE_SIZE) {
-      console.log('[Proxy] ERROR: File too large:', imageBuffer.byteLength);
       return NextResponse.json({ error: 'TOO_LARGE', message: `File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` }, { status: 413 });
     }
 
@@ -138,10 +164,7 @@ export async function GET(request: NextRequest) {
         'webp': 'image/webp',
       };
       finalContentType = extMap[ext || ''] || 'image/jpeg';
-      console.log('[Proxy] Detected content-type from extension:', finalContentType);
     }
-
-    console.log('[Proxy] SUCCESS - Returning image with type:', finalContentType, 'size:', imageBuffer.byteLength);
 
     return new NextResponse(imageBuffer, {
       headers: {
@@ -157,5 +180,8 @@ export async function GET(request: NextRequest) {
       { error: 'INTERNAL_ERROR', message: `Proxy error: ${errorMessage}` },
       { status: 500 }
     );
+  } finally {
+    // Always clear the timeout to prevent memory leaks
+    clearTimeout(timeout);
   }
 }

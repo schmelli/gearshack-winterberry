@@ -8,6 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ import { useCategoryManagement } from '@/hooks/useCategoryManagement';
 import type { Category } from '@/types/category';
 
 export default function CategoriesPage() {
+  const t = useTranslations('Admin.categories');
   const { categories, isLoading: categoriesLoading } = useCategories();
   const {
     createCategory,
@@ -36,7 +38,7 @@ export default function CategoriesPage() {
     isCreating,
     isUpdating,
     isDeleting,
-    isMoving,
+    isMoving: _isMoving,
     isLoadingIssues,
   } = useCategoryManagement();
 
@@ -136,9 +138,9 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Category Management</h1>
+          <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
           <p className="text-muted-foreground">
-            Manage the gear classification taxonomy
+            {t('pageDescription')}
           </p>
         </div>
         <Button
@@ -148,7 +150,7 @@ export default function CategoriesPage() {
           disabled={isLoadingIssues}
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingIssues ? 'animate-spin' : ''}`} />
-          Refresh Issues
+          {t('refreshIssues')}
         </Button>
       </div>
 
@@ -159,10 +161,10 @@ export default function CategoriesPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
-                Category Issues
+                {t('categoryIssues')}
               </CardTitle>
               <CardDescription>
-                {issues.length} categories with issues detected
+                {t('issuesCount', { count: issues.length })}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -171,14 +173,14 @@ export default function CategoriesPage() {
                 checked={highlightIssues}
                 onCheckedChange={setHighlightIssues}
               />
-              <Label htmlFor="highlight-issues">Highlight issues</Label>
+              <Label htmlFor="highlight-issues">{t('highlightIssues')}</Label>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {issues.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No issues found. All categories have complete translations and structure.
+              {t('noIssuesFound')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -198,7 +200,7 @@ export default function CategoriesPage() {
               ))}
               {issues.length > 5 && (
                 <p className="text-xs text-muted-foreground">
-                  +{issues.length - 5} more issues. Enable highlighting to see them in the tree.
+                  {t('moreIssues', { count: issues.length - 5 })}
                 </p>
               )}
             </div>
@@ -210,7 +212,7 @@ export default function CategoriesPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalCategories')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{categories.length}</div>
@@ -218,7 +220,7 @@ export default function CategoriesPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">By Level</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('byLevel')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 text-sm">
@@ -230,7 +232,7 @@ export default function CategoriesPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Issues</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('issues')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{issues.length}</div>
@@ -243,9 +245,9 @@ export default function CategoriesPage() {
       {/* Category Tree */}
       <Card>
         <CardHeader>
-          <CardTitle>Category Hierarchy</CardTitle>
+          <CardTitle>{t('categoryHierarchy')}</CardTitle>
           <CardDescription>
-            Expand categories to view subcategories and product types. Use action buttons to edit, delete, or reorder.
+            {t('hierarchyDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Alert delivery service
  * Feature: 050-price-tracking (US2)
@@ -45,12 +44,18 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
       return;
     }
 
-    // Check quiet hours
+    // Check quiet hours (handles overnight ranges like 22:00 to 06:00)
     if (prefs.quiet_hours_start && prefs.quiet_hours_end) {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const start = prefs.quiet_hours_start;
+      const end = prefs.quiet_hours_end;
 
-      if (currentTime >= prefs.quiet_hours_start && currentTime <= prefs.quiet_hours_end) {
+      const isInQuietHours = start <= end
+        ? currentTime >= start && currentTime <= end
+        : currentTime >= start || currentTime <= end;
+
+      if (isInQuietHours) {
         console.log(`Quiet hours active for user ${params.user_id}, skipping alert`);
         return;
       }
@@ -58,7 +63,8 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
   }
 
   // Create alert record using transaction function (Review fix #9)
-  const { data: alertId, error: alertError } = await supabase.rpc('create_price_alert', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: alertId, error: alertError } = await (supabase as any).rpc('create_price_alert', {
     p_user_id: params.user_id,
     p_tracking_id: params.tracking_id || null,
     p_offer_id: params.offer_id || null,
@@ -72,13 +78,14 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
 
   if (alertError || !alertId) {
     console.error('Failed to create alert:', alertError);
-    throw alertError || new Error('No alert ID returned');
+    throw new Error('Failed to create price alert');
   }
 
   // Enqueue notifications for delivery (Review fix #10: Queue with retry)
   if (prefs?.push_enabled) {
     try {
-      await supabase.rpc('enqueue_alert_delivery', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('enqueue_alert_delivery', {
         p_alert_id: alertId as string,
         p_delivery_channel: 'push',
       });
@@ -89,7 +96,8 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
 
   if (prefs?.email_enabled) {
     try {
-      await supabase.rpc('enqueue_alert_delivery', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('enqueue_alert_delivery', {
         p_alert_id: alertId as string,
         p_delivery_channel: 'email',
       });
@@ -102,7 +110,7 @@ export async function sendPriceAlert(params: CreateAlertParams): Promise<void> {
 /**
  * Send push notification
  */
-async function sendPushNotification(alert: PriceAlert): Promise<void> {
+async function _sendPushNotification(alert: PriceAlert): Promise<void> {
   try {
     // TODO: Integrate with push notification service (e.g., Firebase Cloud Messaging, OneSignal)
     console.log('Push notification sent:', alert.title);
@@ -120,7 +128,7 @@ async function sendPushNotification(alert: PriceAlert): Promise<void> {
 /**
  * Send email alert
  */
-async function sendEmailAlert(alert: PriceAlert): Promise<void> {
+async function _sendEmailAlert(alert: PriceAlert): Promise<void> {
   try {
     // TODO: Integrate with email service (e.g., SendGrid, Resend)
     console.log('Email alert sent:', alert.title);
@@ -147,7 +155,7 @@ export async function sendPersonalOfferAlert(
   originalPrice: number | null,
   productUrl: string
 ): Promise<void> {
-  const discount = originalPrice
+  const discount = originalPrice && originalPrice > 0
     ? Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
     : null;
 

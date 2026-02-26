@@ -8,12 +8,13 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ExternalLink, MapPin, Truck } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 import type { PriceResult } from '@/types/price-tracking';
 
 interface PriceResultCardProps {
@@ -22,11 +23,11 @@ interface PriceResultCardProps {
   className?: string;
 }
 
-const CONDITION_LABELS: Record<string, string> = {
-  new: 'New',
-  used: 'Used',
-  refurbished: 'Refurbished',
-  open_box: 'Open Box',
+const CONDITION_KEYS: Record<string, string> = {
+  new: 'conditions.new',
+  used: 'conditions.used',
+  refurbished: 'conditions.refurbished',
+  open_box: 'conditions.openBox',
 };
 
 const SOURCE_TYPE_COLORS: Record<string, string> = {
@@ -41,6 +42,8 @@ export function PriceResultCard({
   isLowestPrice = false,
   className,
 }: PriceResultCardProps) {
+  const t = useTranslations('PriceResult');
+
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: result.price_currency,
@@ -70,7 +73,6 @@ export function PriceResultCard({
                 fill
                 className="rounded-md object-cover"
                 sizes="64px"
-                unoptimized // External URLs from various retailers
               />
             </div>
           )}
@@ -87,12 +89,12 @@ export function PriceResultCard({
               </Badge>
               {result.product_condition && (
                 <Badge variant="outline" className="text-xs">
-                  {CONDITION_LABELS[result.product_condition] || result.product_condition}
+                  {CONDITION_KEYS[result.product_condition] ? t(CONDITION_KEYS[result.product_condition]) : result.product_condition}
                 </Badge>
               )}
               {isLowestPrice && (
                 <Badge className="bg-green-500 text-white text-xs">
-                  Lowest Price
+                  {t('lowestPrice')}
                 </Badge>
               )}
             </div>
@@ -109,7 +111,7 @@ export function PriceResultCard({
               </span>
               {hasShipping && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Truck className="h-3 w-3" />+{result.shipping_currency}{result.shipping_cost?.toFixed(2)} shipping
+                  <Truck className="h-3 w-3" />+{result.shipping_currency}{result.shipping_cost?.toFixed(2)} {t('shipping')}
                 </span>
               )}
             </div>
@@ -117,7 +119,7 @@ export function PriceResultCard({
             {/* Total if different from price */}
             {hasShipping && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                Total: {formattedTotal}
+                {t('total')}: {formattedTotal}
               </p>
             )}
 
@@ -125,27 +127,29 @@ export function PriceResultCard({
             {result.is_local && result.distance_km !== null && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <MapPin className="h-3 w-3" />
-                {result.distance_km.toFixed(1)} km away
+                {t('kmAway', { distance: result.distance_km.toFixed(1) })}
               </p>
             )}
           </div>
 
-          {/* View button */}
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="shrink-0"
-          >
-            <a
-              href={result.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
+          {/* View button - SECURITY: Validate URL before rendering */}
+          {sanitizeExternalUrl(result.source_url) && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="shrink-0"
             >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              View
-            </a>
-          </Button>
+              <a
+                href={sanitizeExternalUrl(result.source_url)!}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                {t('view')}
+              </a>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -22,13 +22,6 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
 
-interface Category {
-  id: string;
-  label: string;
-  level: number;
-  parent_id: string | null;
-  i18n: Record<string, string> | null;
-}
 
 async function extractCategories() {
   console.log('🔍 Extracting categories from Supabase...\n');

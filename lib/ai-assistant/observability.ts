@@ -264,7 +264,7 @@ export function recordToolCall(
 export function logAIEvent(
   level: 'info' | 'warn' | 'error',
   message: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   const logEntry = {
     timestamp: new Date().toISOString(),

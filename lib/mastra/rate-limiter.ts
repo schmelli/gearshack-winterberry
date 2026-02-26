@@ -21,11 +21,16 @@ import type { Json } from '@/types/supabase';
 /**
  * Operation type definitions with their rate limits (per hour)
  * simple_query is unlimited (null limit)
+ *
+ * In development (NODE_ENV !== 'production'), all limits are disabled
+ * to enable unrestricted testing.
  */
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export const RATE_LIMITS = {
-  simple_query: null, // Unlimited
-  workflow: 20, // 20 per hour
-  voice: 40, // 40 per hour
+  simple_query: null, // Always unlimited
+  workflow: isDevelopment ? null : 20, // Unlimited in dev, 20/hour in prod
+  voice: isDevelopment ? null : 40, // Unlimited in dev, 40/hour in prod
 } as const;
 
 /**
@@ -326,7 +331,7 @@ export async function checkRateLimit(
  * @param operationType - The type of operation ('simple_query', 'workflow', 'voice')
  * @returns RateLimitIncrementResult indicating success or failure
  */
-async function incrementRateLimit(
+async function _incrementRateLimit(
   userId: string,
   operationType: string
 ): Promise<RateLimitIncrementResult> {
@@ -419,6 +424,22 @@ export async function checkAndIncrementRateLimit(
   userId: string,
   operationType: string
 ): Promise<RateLimitCheckResult> {
+  // TESTING: Bypass rate limiting if disabled via environment variable
+  // SECURITY: Only allow bypass in non-production environments
+  if (process.env.DISABLE_RATE_LIMITING === 'true') {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[RATE LIMITER] WARNING: Cannot disable rate limiting in production');
+    } else {
+      console.log('[RATE LIMITER] BYPASSED - DISABLE_RATE_LIMITING=true (development only)');
+      return {
+        allowed: true,
+        limit: null,
+        remaining: null,
+        resetAt: calculateResetTime(),
+      };
+    }
+  }
+
   const resetAt = calculateResetTime();
 
   // Validate operation type
@@ -560,8 +581,8 @@ export async function checkAndIncrementRateLimit(
  */
 export async function getRateLimitStatus(userId: string): Promise<{
   simple_query: { limit: null; remaining: null; unlimited: true };
-  workflow: { limit: number; remaining: number; resetAt: Date };
-  voice: { limit: number; remaining: number; resetAt: Date };
+  workflow: { limit: number | null; remaining: number | null; resetAt: Date };
+  voice: { limit: number | null; remaining: number | null; resetAt: Date };
 }> {
   const resetAt = calculateResetTime();
 
@@ -584,11 +605,11 @@ export async function getRateLimitStatus(userId: string): Promise<{
         .single(),
     ]);
 
-    // Calculate remaining for workflow
-    let workflowRemaining: number = RATE_LIMITS.workflow;
+    // Calculate remaining for workflow (null means unlimited)
+    let workflowRemaining: number | null = RATE_LIMITS.workflow;
     let workflowResetAt = resetAt;
 
-    if (!workflowResult.error && workflowResult.data) {
+    if (!workflowResult.error && workflowResult.data && RATE_LIMITS.workflow !== null) {
       const windowStart = new Date(workflowResult.data.window_start);
       const windowEnd = new Date(
         windowStart.getTime() + RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000
@@ -600,11 +621,11 @@ export async function getRateLimitStatus(userId: string): Promise<{
       }
     }
 
-    // Calculate remaining for voice
-    let voiceRemaining: number = RATE_LIMITS.voice;
+    // Calculate remaining for voice (null means unlimited)
+    let voiceRemaining: number | null = RATE_LIMITS.voice;
     let voiceResetAt = resetAt;
 
-    if (!voiceResult.error && voiceResult.data) {
+    if (!voiceResult.error && voiceResult.data && RATE_LIMITS.voice !== null) {
       const windowStart = new Date(voiceResult.data.window_start);
       const windowEnd = new Date(
         windowStart.getTime() + RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000

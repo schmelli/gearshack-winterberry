@@ -9,7 +9,8 @@
 
 'use client';
 
-import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { Send, Loader2, Paperclip, Image as ImageIcon, MapPin, Package, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { ImageAttachmentPreview } from './ImageAttachmentPreview';
 import { GearPicker } from './GearPicker';
 import { LocationPicker } from './LocationPicker';
@@ -47,9 +49,11 @@ export function MessageInput({
   onSendWithMedia,
   onTyping,
   disabled = false,
-  placeholder = 'Type a message...',
+  placeholder: placeholderProp,
   className,
 }: MessageInputProps) {
+  const t = useTranslations('Messaging.messageInput');
+  const placeholder = placeholderProp ?? t('defaultPlaceholder');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
@@ -64,6 +68,28 @@ export function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use ref for onTyping to avoid stale closures in timeout callbacks
+  const onTypingRef = useRef(onTyping);
+  onTypingRef.current = onTyping;
+
+  // Cleanup typing timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  // Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (imageAttachment?.url) {
+        URL.revokeObjectURL(imageAttachment.url);
+      }
+    };
+  }, [imageAttachment?.url]);
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
@@ -97,6 +123,11 @@ export function MessageInput({
           setImageAttachment(null);
         }
       } catch {
+        // Revoke blob URL on error to prevent memory leak
+        if (imageAttachment?.url) {
+          URL.revokeObjectURL(imageAttachment.url);
+        }
+        setImageAttachment(null);
         // Error handled by parent
       } finally {
         setIsSending(false);
@@ -151,8 +182,8 @@ export function MessageInput({
       textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
 
       // Trigger typing indicator
-      if (onTyping && e.target.value.length > 0) {
-        onTyping(true);
+      if (onTypingRef.current && e.target.value.length > 0) {
+        onTypingRef.current(true);
 
         // Clear existing timeout
         if (typingTimeoutRef.current) {
@@ -160,12 +191,13 @@ export function MessageInput({
         }
 
         // Stop typing after 2 seconds of inactivity
+        // Use ref to access current onTyping value, avoiding stale closure
         typingTimeoutRef.current = setTimeout(() => {
-          onTyping(false);
+          onTypingRef.current?.(false);
         }, 2000);
       }
     },
-    [onTyping]
+    [] // No dependencies needed - uses refs for stable access
   );
 
   // Handle image file selection
@@ -191,21 +223,31 @@ export function MessageInput({
   // Handle gear item selection
   const handleGearSelect = useCallback(
     async (metadata: GearReferenceMetadata) => {
-      if (onSendWithMedia) {
-        await onSendWithMedia(null, 'gear_reference', null, metadata);
+      try {
+        if (onSendWithMedia) {
+          await onSendWithMedia(null, 'gear_reference', null, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send gear reference:', error);
+        toast.error(t('shareGearFailed'));
       }
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   // Handle location selection
   const handleLocationSelect = useCallback(
     async (metadata: LocationMetadata) => {
-      if (onSendWithMedia) {
-        await onSendWithMedia(null, 'location', null, metadata);
+      try {
+        if (onSendWithMedia) {
+          await onSendWithMedia(null, 'location', null, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send location:', error);
+        toast.error(t('shareLocationFailed'));
       }
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   // Handle voice message send
@@ -213,28 +255,39 @@ export function MessageInput({
     async (audioBlob: Blob, durationSeconds: number) => {
       if (!onSendWithMedia) return;
 
-      // Upload audio to Cloudinary
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice-message.webm');
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
-      formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
+      try {
+        // Upload audio to Cloudinary
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'voice-message.webm');
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'gearshack');
+        formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio
 
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
-        { method: 'POST', body: formData }
-      );
-      const data = await response.json();
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+          { method: 'POST', body: formData }
+        );
 
-      if (data.secure_url) {
-        const metadata: VoiceMetadata = {
-          duration_seconds: durationSeconds,
-          waveform: [], // Could be populated with actual waveform data
-        };
-        await onSendWithMedia(null, 'voice', data.secure_url, metadata);
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.secure_url) {
+          const metadata: VoiceMetadata = {
+            duration_seconds: durationSeconds,
+            waveform: [], // Could be populated with actual waveform data
+          };
+          await onSendWithMedia(null, 'voice', data.secure_url, metadata);
+        }
+      } catch (error) {
+        console.error('Failed to send voice message:', error);
+        toast.error(t('sendVoiceFailed'));
+      } finally {
+        setIsRecordingVoice(false);
       }
-      setIsRecordingVoice(false);
     },
-    [onSendWithMedia]
+    [onSendWithMedia, t]
   );
 
   const canSend = (message.trim().length > 0 || imageAttachment) && !isSending && !disabled;
@@ -281,7 +334,7 @@ export function MessageInput({
                 disabled={disabled || isSending}
               >
                 <Paperclip className="h-4 w-4" />
-                <span className="sr-only">Attach</span>
+                <span className="sr-only">{t('attach')}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-1" align="start">
@@ -294,7 +347,7 @@ export function MessageInput({
                   }}
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
-                  Photo
+                  {t('photo')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -305,7 +358,7 @@ export function MessageInput({
                   }}
                 >
                   <MapPin className="mr-2 h-4 w-4" />
-                  Location
+                  {t('location')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -316,7 +369,7 @@ export function MessageInput({
                   }}
                 >
                   <Package className="mr-2 h-4 w-4" />
-                  Gear Item
+                  {t('gearItem')}
                 </Button>
               </div>
             </PopoverContent>
@@ -345,7 +398,7 @@ export function MessageInput({
             className="shrink-0"
           >
             <Mic className="h-4 w-4" />
-            <span className="sr-only">Record voice message</span>
+            <span className="sr-only">{t('recordVoice')}</span>
           </Button>
         )}
 
@@ -361,7 +414,7 @@ export function MessageInput({
           ) : (
             <Send className="h-4 w-4" />
           )}
-          <span className="sr-only">Send message</span>
+          <span className="sr-only">{t('sendMessage')}</span>
         </Button>
       </div>}
 

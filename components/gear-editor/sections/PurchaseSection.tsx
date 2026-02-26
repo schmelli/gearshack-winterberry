@@ -1,19 +1,22 @@
 /**
  * PurchaseSection Component
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, Issue #89, 057-wishlist-pricing-enhancements
  * Task: T017
  * Constitution: UI components MUST be stateless (logic in hooks)
  *
  * Displays form fields for purchase details:
- * - Price paid with currency
+ * - For wishlist items: Manufacturer price with currency (Feature 057)
+ * - For inventory items: Price paid with currency
  * - Purchase date
  * - Retailer name and URL
+ * - Wrapped in Accordion for collapsibility (Issue #89)
  */
 
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -29,7 +32,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import type { GearItemFormData } from '@/types/gear';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface PurchaseSectionProps {
+  /** Mode determines which price fields to show (Feature 057) */
+  mode?: 'inventory' | 'wishlist';
+}
 
 // =============================================================================
 // Constants
@@ -37,73 +55,132 @@ import type { GearItemFormData } from '@/types/gear';
 
 const CURRENCIES = [
   { code: 'USD', label: 'US Dollar ($)' },
-  { code: 'EUR', label: 'Euro (\u20AC)' },
-  { code: 'GBP', label: 'British Pound (\u00A3)' },
+  { code: 'EUR', label: 'Euro (€)' },
+  { code: 'GBP', label: 'British Pound (£)' },
   { code: 'CAD', label: 'Canadian Dollar (C$)' },
   { code: 'AUD', label: 'Australian Dollar (A$)' },
   { code: 'CHF', label: 'Swiss Franc (CHF)' },
-  { code: 'JPY', label: 'Japanese Yen (\u00A5)' },
+  { code: 'JPY', label: 'Japanese Yen (¥)' },
 ];
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function PurchaseSection() {
+export function PurchaseSection({ mode = 'inventory' }: PurchaseSectionProps) {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
 
+  const isWishlist = mode === 'wishlist';
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Purchase Details</h3>
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="purchase">
+        <AccordionTrigger className="text-lg font-medium">
+          {isWishlist ? t('purchase.wishlistTitle') : t('purchase.title')}
+        </AccordionTrigger>
+        <AccordionContent className="space-y-4 pt-2">
+          {/* Price and Currency - Conditional based on mode (Feature 057) */}
+          <div className="grid grid-cols-2 gap-4">
+        {isWishlist ? (
+          <>
+            {/* Manufacturer Price (Wishlist mode) */}
+            <FormField
+              control={form.control}
+              name="manufacturerPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('purchase.manufacturerPriceLabel')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={t('purchase.manufacturerPricePlaceholder')}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      {/* Price and Currency */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Price Paid */}
-        <FormField
-          control={form.control}
-          name="pricePaid"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price Paid</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {/* Manufacturer Currency */}
+            <FormField
+              control={form.control}
+              name="manufacturerCurrency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('purchase.currencyLabel')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('purchase.currencyPlaceholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CURRENCIES.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        ) : (
+          <>
+            {/* Price Paid (Inventory mode) */}
+            <FormField
+              control={form.control}
+              name="pricePaid"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('purchase.pricePaidLabel')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={t('purchase.pricePaidPlaceholder')}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Currency */}
-        <FormField
-          control={form.control}
-          name="currency"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Currency</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {CURRENCIES.map((currency) => (
-                    <SelectItem key={currency.code} value={currency.code}>
-                      {currency.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {/* Currency */}
+            <FormField
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('purchase.currencyLabel')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('purchase.currencyPlaceholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CURRENCIES.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
       </div>
 
       {/* Purchase Date */}
@@ -112,7 +189,7 @@ export function PurchaseSection() {
         name="purchaseDate"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Purchase Date</FormLabel>
+            <FormLabel>{t('purchase.purchaseDateLabel')}</FormLabel>
             <FormControl>
               <Input type="date" {...field} />
             </FormControl>
@@ -127,9 +204,9 @@ export function PurchaseSection() {
         name="retailer"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Retailer</FormLabel>
+            <FormLabel>{t('purchase.retailerLabel')}</FormLabel>
             <FormControl>
-              <Input placeholder="e.g., REI, Amazon" {...field} />
+              <Input placeholder={t('purchase.retailerPlaceholder')} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -142,11 +219,11 @@ export function PurchaseSection() {
         name="retailerUrl"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Retailer Website</FormLabel>
+            <FormLabel>{t('purchase.retailerWebsiteLabel')}</FormLabel>
             <FormControl>
               <Input
                 type="url"
-                placeholder="https://www.rei.com/product/..."
+                placeholder={t('purchase.retailerWebsitePlaceholder')}
                 {...field}
               />
             </FormControl>
@@ -154,6 +231,8 @@ export function PurchaseSection() {
           </FormItem>
         )}
       />
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

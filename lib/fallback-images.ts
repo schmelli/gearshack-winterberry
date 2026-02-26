@@ -2,65 +2,50 @@
  * Fallback Image Selection Logic
  * Feature: 048-ai-loadout-image-gen
  * Constitution: Pure utility functions for selecting curated default images
+ *
+ * Uses local images from /public/fallback-images/ for reliable fallback
+ * when AI generation fails or is rate-limited.
  */
 
 import type { FallbackImage } from '@/types/loadout-image';
-
-// =============================================================================
-// Environment Variable Validation
-// =============================================================================
-
-/**
- * Validate required Cloudinary environment variable
- * Without this, all 24 fallback image URLs will be broken
- */
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-
-if (!CLOUDINARY_CLOUD_NAME) {
-  throw new Error(
-    'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME environment variable is required for fallback images. ' +
-    'Add it to your .env.local file.'
-  );
-}
 
 // =============================================================================
 // Curated Fallback Image Definitions
 // =============================================================================
 
 /**
- * Curated set of high-quality outdoor images hosted on Cloudinary
+ * Curated set of high-quality outdoor images stored locally
  * These serve as fallbacks when AI generation fails or is rate-limited
  *
  * Source: Unsplash/Pexels (royalty-free, commercial use permitted)
- * Resolution: 1920×1080 minimum (16:9 aspect ratio)
- * Storage: Cloudinary folder gearshack/fallbacks/
+ * Storage: /public/fallback-images/ (local, always available)
  */
 export const FALLBACK_IMAGES: FallbackImage[] = [
   // === Hiking ===
   {
     id: 'hiking-spring',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/hiking-spring.jpg`,
+    url: '/fallback-images/hiking-spring.jpg',
     activityType: 'hiking',
     season: 'spring',
     altText: 'Mountain hiking trail with blooming wildflowers and fresh green spring foliage',
   },
   {
     id: 'hiking-summer',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/hiking-summer.jpg`,
+    url: '/fallback-images/hiking-summer.jpg',
     activityType: 'hiking',
     season: 'summer',
     altText: 'Forest hiking trail under clear blue skies with lush summer greenery',
   },
   {
     id: 'hiking-fall',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/hiking-fall.jpg`,
+    url: '/fallback-images/hiking_fall.png',
     activityType: 'hiking',
     season: 'fall',
     altText: 'Wilderness trail surrounded by golden autumn foliage and warm fall colors',
   },
   {
     id: 'hiking-winter',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/hiking-winter.jpg`,
+    url: '/fallback-images/hiking-winter.jpg',
     activityType: 'hiking',
     season: 'winter',
     altText: 'Snowy mountain hiking path with pristine winter landscape',
@@ -69,134 +54,83 @@ export const FALLBACK_IMAGES: FallbackImage[] = [
   // === Camping ===
   {
     id: 'camping-spring',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/camping-spring.jpg`,
+    url: '/fallback-images/camping-spring.jpg',
     activityType: 'camping',
     season: 'spring',
     altText: 'Forest camping clearing with fresh spring green surroundings',
   },
   {
     id: 'camping-summer',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/camping-summer.jpg`,
+    url: '/fallback-images/camping-summer.png',
     activityType: 'camping',
     season: 'summer',
     altText: 'Lakeside campsite with bright summer sun and vibrant nature',
   },
   {
     id: 'camping-fall',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/camping-fall.jpg`,
+    url: '/fallback-images/camping-fall.png',
     activityType: 'camping',
     season: 'fall',
     altText: 'Wilderness campsite surrounded by autumn colors and golden foliage',
   },
   {
     id: 'camping-winter',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/camping-winter.jpg`,
+    url: '/fallback-images/camping-winter.png',
     activityType: 'camping',
     season: 'winter',
     altText: 'Winter camping scene with snow-covered forest environment',
   },
 
-  // === Climbing ===
-  {
-    id: 'climbing-spring',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/climbing-spring.jpg`,
-    activityType: 'climbing',
-    season: 'spring',
-    altText: 'Alpine rock face with blooming mountain landscape in spring',
-  },
-  {
-    id: 'climbing-summer',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/climbing-summer.jpg`,
-    activityType: 'climbing',
-    season: 'summer',
-    altText: 'Dramatic rock climbing terrain under clear blue summer skies',
-  },
-  {
-    id: 'climbing-fall',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/climbing-fall.jpg`,
-    activityType: 'climbing',
-    season: 'fall',
-    altText: 'Mountain cliff with autumn colors and fall foliage visible below',
-  },
-  {
-    id: 'climbing-winter',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/climbing-winter.jpg`,
-    activityType: 'climbing',
-    season: 'winter',
-    altText: 'Icy alpine mountain face with pristine winter snow and frost',
-  },
-
-  // === Skiing ===
-  {
-    id: 'skiing-winter-1',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/skiing-winter-1.jpg`,
-    activityType: 'skiing',
-    season: 'winter',
-    altText: 'Pristine snow-covered ski slopes with alpine mountain terrain',
-  },
-  {
-    id: 'skiing-winter-2',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/skiing-winter-2.jpg`,
-    activityType: 'skiing',
-    season: 'winter',
-    altText: 'Snowy mountain ski terrain with powder snow and clear skies',
-  },
-
   // === Backpacking ===
   {
     id: 'backpacking-spring',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/backpacking-spring.jpg`,
+    url: '/fallback-images/backpacking-spring.png',
     activityType: 'backpacking',
     season: 'spring',
     altText: 'Remote wilderness backpacking trail with fresh spring scenery',
   },
   {
     id: 'backpacking-summer',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/backpacking-summer.jpg`,
+    url: '/fallback-images/backpacking-summer.png',
     activityType: 'backpacking',
     season: 'summer',
     altText: 'Backcountry trail through mountains with bright summer sunlight',
   },
   {
     id: 'backpacking-fall',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/backpacking-fall.jpg`,
+    url: '/fallback-images/backpacking-fall.png',
     activityType: 'backpacking',
     season: 'fall',
     altText: 'Mountain pass with golden autumn foliage along backpacking route',
   },
-  {
-    id: 'backpacking-winter',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/backpacking-winter.jpg`,
-    activityType: 'backpacking',
-    season: 'winter',
-    altText: 'Snowy backcountry trail with winter wilderness landscape',
-  },
+  // Note: No backpacking-winter.png exists locally - will use camping-winter as fallback
 
   // === Generic (fallback for unknown activities/seasons) ===
+  // Using camping images as generic fallbacks since they're available
   {
     id: 'generic-spring',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-spring.jpg`,
+    url: '/fallback-images/camping-spring.jpg',
     activityType: 'generic',
     season: 'spring',
     altText: 'Beautiful outdoor meadow with blooming spring wildflowers',
   },
   {
     id: 'generic-summer',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-summer.jpg`,
+    url: '/fallback-images/camping-summer.png',
     activityType: 'generic',
     season: 'summer',
     altText: 'Vibrant outdoor landscape with clear summer skies',
   },
   {
     id: 'generic-fall',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-fall.jpg`,
+    url: '/fallback-images/camping-fall.png',
     activityType: 'generic',
     season: 'fall',
     altText: 'Scenic forest with golden autumn foliage and warm fall colors',
   },
   {
     id: 'generic-winter',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-winter.jpg`,
+    url: '/fallback-images/camping-winter.png',
     activityType: 'generic',
     season: 'winter',
     altText: 'Serene snow-covered outdoor winter scene',
@@ -205,14 +139,14 @@ export const FALLBACK_IMAGES: FallbackImage[] = [
   // === Fully Generic (ultimate fallback) ===
   {
     id: 'generic-outdoor-1',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-outdoor-1.jpg`,
+    url: '/fallback-images/hiking-summer.jpg',
     activityType: 'generic',
     season: 'generic',
     altText: 'Beautiful outdoor wilderness vista with mountain landscape',
   },
   {
     id: 'generic-outdoor-2',
-    url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/gearshack/fallbacks/generic-outdoor-2.jpg`,
+    url: '/fallback-images/backpacking-summer.png',
     activityType: 'generic',
     season: 'generic',
     altText: 'Scenic outdoor nature landscape with natural beauty',
@@ -319,8 +253,14 @@ export function getFallbackImagesBySeason(season: string): FallbackImage[] {
  * @returns Random fallback image
  */
 export function getRandomFallbackImage(): FallbackImage {
+  // Guard against empty array (should never happen, but defensive)
+  if (FALLBACK_IMAGES.length === 0) {
+    throw new Error('CRITICAL: FALLBACK_IMAGES array is empty');
+  }
   const randomIndex = Math.floor(Math.random() * FALLBACK_IMAGES.length);
-  return FALLBACK_IMAGES[randomIndex];
+  // Clamp to valid range (Math.random() should never return 1.0, but be safe)
+  const safeIndex = Math.min(randomIndex, FALLBACK_IMAGES.length - 1);
+  return FALLBACK_IMAGES[safeIndex];
 }
 
 /**
@@ -339,7 +279,7 @@ export function validateFallbackImages(): {
     if (!img.id) {
       errors.push(`Image missing id: ${JSON.stringify(img)}`);
     }
-    if (!img.url || !img.url.startsWith('https://')) {
+    if (!img.url || !img.url.startsWith('/')) {
       errors.push(`Invalid URL for image ${img.id}: ${img.url}`);
     }
     if (!img.altText || img.altText.trim().length === 0) {

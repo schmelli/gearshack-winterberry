@@ -15,17 +15,25 @@
 
 'use client';
 
-import { X, Package, Shirt, Apple } from 'lucide-react';
+import { useMemo } from 'react';
+import { X, Package, Shirt, Apple, AlertTriangle, ArrowLeftRight } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Image from 'next/image';
 import type { GearItem } from '@/types/gear';
-import { getSortedCategoryGroups, formatWeight } from '@/lib/loadout-utils';
+import { getSortedCategoryGroups, formatWeight, type SortOption } from '@/lib/loadout-utils';
 import { useCategories } from '@/hooks/useCategories';
-import { getLocalizedLabel } from '@/lib/utils/category-helpers';
+import { getLocalizedLabel, getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
+import type { LighterAlternative } from '@/hooks/useLighterAlternatives';
 
 // =============================================================================
 // Types
@@ -34,8 +42,12 @@ import { getOptimizedImageUrl } from '@/lib/gear-utils';
 interface LoadoutListProps {
   items: GearItem[];
   onRemoveItem: (itemId: string) => void;
+  /** Swap an item with a lighter alternative */
+  onSwapItem?: (currentItemId: string, alternativeItemId: string) => void;
   /** Filter to show only items from this category (FR-012: chart segment filter) */
   filterCategoryId?: string | null;
+  /** Sort option to apply to items and categories */
+  sortBy?: SortOption;
   /** Check if item is worn (US4) */
   isWorn: (itemId: string) => boolean;
   /** Check if item is consumable (US4) */
@@ -46,6 +58,8 @@ interface LoadoutListProps {
   onToggleConsumable: (itemId: string) => void;
   /** Feature 045: Click to view gear details in modal */
   onItemClick?: (itemId: string) => void;
+  /** Get lighter alternative for an item */
+  getLighterAlternative?: (itemId: string) => LighterAlternative | null;
 }
 
 // =============================================================================
@@ -55,33 +69,60 @@ interface LoadoutListProps {
 export function LoadoutList({
   items,
   onRemoveItem,
+  onSwapItem,
   filterCategoryId,
+  sortBy = 'category',
   isWorn,
   isConsumable,
   onToggleWorn,
   onToggleConsumable,
   onItemClick,
+  getLighterAlternative,
 }: LoadoutListProps) {
-  const { categories } = useCategories();
-  const categoryGroups = getSortedCategoryGroups(items, categories);
+  const { categories, getLabelById } = useCategories();
+  const locale = useLocale();
+  const t = useTranslations('Loadouts');
   const isEmpty = items.length === 0;
 
+  // Create category lookup map for O(1) access (Performance optimization)
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category) => {
+      map.set(category.id, getLocalizedLabel(category, locale));
+    });
+    return map;
+  }, [categories, locale]);
+
+  // Separate worn items from bag items (Feature 150: Worn items on top)
+  const wornItems = items.filter((item) => isWorn(item.id));
+  const bagItems = items.filter((item) => !isWorn(item.id));
+
+  // Group bag items by category
+  const bagCategoryGroups = getSortedCategoryGroups(bagItems, categories, sortBy, locale);
+
   // Filter groups if a category is selected (FR-012: chart segment filter)
-  const filteredGroups = filterCategoryId
-    ? categoryGroups.filter(([categoryId]) => categoryId === filterCategoryId)
-    : categoryGroups;
+  const filteredBagGroups = filterCategoryId
+    ? bagCategoryGroups.filter(([categoryId]) => categoryId === filterCategoryId)
+    : bagCategoryGroups;
+
+  const filteredWornItems = filterCategoryId
+    ? wornItems.filter((item) => {
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+        return categoryId === filterCategoryId;
+      })
+    : wornItems;
 
   // FR-023: Empty state with helpful guidance (visible without scroll)
   if (isEmpty) {
     return (
       <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8">
         <Package className="mb-4 h-12 w-12 text-muted-foreground" />
-        <p className="text-lg font-medium">Your pack is empty</p>
+        <p className="text-lg font-medium">{t('emptyState.title')}</p>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Browse your gear inventory on the left and click &quot;Add&quot; to start building your loadout.
+          {t('emptyState.description')}
         </p>
         <p className="mt-4 hidden text-center text-xs text-muted-foreground md:block">
-          Tip: Click the donut chart segments to filter by category
+          {t('clickToDrillDown')}
         </p>
       </div>
     );
@@ -89,34 +130,87 @@ export function LoadoutList({
 
   return (
     <ScrollArea className="h-[calc(100vh-20rem)]">
-      <div className="space-y-6 pr-4">
-        {filteredGroups.map(([categoryId, categoryItems]) => (
-          <div key={categoryId}>
+      <div className="divide-y divide-border pr-4">
+        {/* Worn Items Section (Feature 150: Worn items on top) */}
+        {filteredWornItems.length > 0 && (
+          <div className="pb-4">
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+              {t('weightSummary.worn')}
+            </h3>
+            <div className="space-y-2">
+              {filteredWornItems.map((item) => {
+                const lighterAlt = getLighterAlternative?.(item.id) ?? null;
+                return (
+                  <LoadoutListItem
+                    key={item.id}
+                    item={item}
+                    onRemove={() => onRemoveItem(item.id)}
+                    onSwap={onSwapItem && lighterAlt ? () => onSwapItem(item.id, lighterAlt.alternativeItem.id) : undefined}
+                    isWorn={isWorn(item.id)}
+                    isConsumable={isConsumable(item.id)}
+                    onToggleWorn={() => onToggleWorn(item.id)}
+                    onToggleConsumable={() => onToggleConsumable(item.id)}
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    lighterAlternative={lighterAlt}
+                    productTypeLabel={item.productTypeId ? getLabelById(item.productTypeId) : undefined}
+                    t={t}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state for worn items when filtering */}
+        {filteredWornItems.length === 0 && filterCategoryId !== null && wornItems.length > 0 && (
+          <div className="pb-4">
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+              {t('weightSummary.worn')}
+            </h3>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {t('noWornItemsInCategory')}
+            </p>
+          </div>
+        )}
+
+        {/* Bag Items Grouped by Category */}
+        {filteredBagGroups.map(([categoryId, categoryItems], index) => {
+          const categoryLabel = categoryMap.get(categoryId) ?? categoryId;
+          // Only add top padding if there are worn items above OR this is not the first bag category
+          const shouldAddPadding = filteredWornItems.length > 0 || index > 0;
+
+          return (
+          <div key={categoryId} className={cn(shouldAddPadding && 'pt-4')}>
             {/* Category Header */}
-            <h3 className="sticky top-0 z-10 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
-              {(() => {
-                const category = categories.find(c => c.id === categoryId);
-                return category ? getLocalizedLabel(category, 'en') : categoryId;
-              })()}
+            <h3 className="sticky top-0 z-20 mb-3 bg-background py-2 text-sm font-medium text-muted-foreground">
+              {categoryLabel}
             </h3>
 
             {/* Items in Category */}
-            <div className="space-y-2">
-              {categoryItems.map((item) => (
-                <LoadoutListItem
-                  key={item.id}
-                  item={item}
-                  onRemove={() => onRemoveItem(item.id)}
-                  isWorn={isWorn(item.id)}
-                  isConsumable={isConsumable(item.id)}
-                  onToggleWorn={() => onToggleWorn(item.id)}
-                  onToggleConsumable={() => onToggleConsumable(item.id)}
-                  onClick={onItemClick ? () => onItemClick(item.id) : undefined}
-                />
-              ))}
+            <div className="space-y-2 pb-4">
+              {categoryItems.map((item) => {
+                const lighterAlt = getLighterAlternative?.(item.id) ?? null;
+                return (
+                  <LoadoutListItem
+                    key={item.id}
+                    item={item}
+                    onRemove={() => onRemoveItem(item.id)}
+                    onSwap={onSwapItem && lighterAlt ? () => onSwapItem(item.id, lighterAlt.alternativeItem.id) : undefined}
+                    isWorn={isWorn(item.id)}
+                    isConsumable={isConsumable(item.id)}
+                    onToggleWorn={() => onToggleWorn(item.id)}
+                    onToggleConsumable={() => onToggleConsumable(item.id)}
+                    onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                    lighterAlternative={lighterAlt}
+                    productTypeLabel={item.productTypeId ? getLabelById(item.productTypeId) : undefined}
+                    t={t}
+                  />
+                );
+              })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </ScrollArea>
   );
@@ -129,22 +223,34 @@ export function LoadoutList({
 interface LoadoutListItemProps {
   item: GearItem;
   onRemove: () => void;
+  /** Swap with lighter alternative */
+  onSwap?: () => void;
   isWorn: boolean;
   isConsumable: boolean;
   onToggleWorn: () => void;
   onToggleConsumable: () => void;
   /** Feature 045: Click to view gear details */
   onClick?: () => void;
+  /** Lighter alternative info */
+  lighterAlternative: LighterAlternative | null;
+  /** Product type label for tooltip */
+  productTypeLabel?: string;
+  /** Translation function */
+  t: ReturnType<typeof useTranslations<'Loadouts'>>;
 }
 
 function LoadoutListItem({
   item,
   onRemove,
+  onSwap,
   isWorn,
   isConsumable,
   onToggleWorn,
   onToggleConsumable,
   onClick,
+  lighterAlternative,
+  productTypeLabel,
+  t,
 }: LoadoutListItemProps) {
   // Handle click on item body to open detail modal (Feature 045)
   const handleClick = () => {
@@ -193,7 +299,49 @@ function LoadoutListItem({
 
       {/* Item Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{item.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate font-medium">{item.name}</p>
+          {lighterAlternative && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="shrink-0 text-amber-500"
+                  onClick={(e) => e.stopPropagation()}
+                  role="img"
+                  aria-label={t('itemActions.lighterAlternativeAvailable')}
+                >
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="text-sm">
+                  {t('lighterAlternativeTooltip', {
+                    productType: productTypeLabel ?? 'item',
+                    itemName: lighterAlternative.alternativeItem.name,
+                    weight: formatWeight(lighterAlternative.alternativeItem.weightGrams),
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('itemActions.saveWeight', { weight: formatWeight(lighterAlternative.weightSavings) })}
+                </p>
+                {onSwap && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSwap();
+                    }}
+                  >
+                    <ArrowLeftRight className="mr-2 h-3 w-3" />
+                    {t('itemActions.swapItem')}
+                  </Button>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           {item.brand && <span>{item.brand} · </span>}
           <span>{formatWeight(item.weightGrams)}</span>
@@ -228,12 +376,13 @@ interface WornToggleProps {
 }
 
 function WornToggle({ pressed, onPressedChange }: WornToggleProps) {
+  const t = useTranslations('Loadouts.itemActions');
   return (
     <Toggle
       pressed={pressed}
       onPressedChange={onPressedChange}
       size="sm"
-      aria-label="Mark as worn"
+      aria-label={t('markAsWorn')}
       className={cn(
         'h-8 w-8 data-[state=on]:bg-primary/20 data-[state=on]:text-primary',
         'hover:bg-muted'
@@ -254,12 +403,13 @@ interface ConsumableToggleProps {
 }
 
 function ConsumableToggle({ pressed, onPressedChange }: ConsumableToggleProps) {
+  const t = useTranslations('Loadouts.itemActions');
   return (
     <Toggle
       pressed={pressed}
       onPressedChange={onPressedChange}
       size="sm"
-      aria-label="Mark as consumable"
+      aria-label={t('markAsConsumable')}
       className={cn(
         'h-8 w-8 data-[state=on]:bg-accent/20 data-[state=on]:text-accent',
         'hover:bg-muted'

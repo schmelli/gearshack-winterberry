@@ -6,18 +6,21 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { AlertPreferencesForm } from '@/components/settings/AlertPreferencesForm';
 import { useAlertPreferences } from '@/hooks/price-tracking/useAlertPreferences';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function AlertSettingsPage() {
+  const t = useTranslations('Wishlist.priceTracking.alerts');
   const router = useRouter();
   const { preferences, isLoading, error, updatePreferences } = useAlertPreferences();
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
+    <PageContainer className="max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -26,14 +29,14 @@ export default function AlertSettingsPage() {
           onClick={() => router.back()}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('back')}
         </Button>
       </div>
 
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Alert Preferences</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage how and when you receive price tracking notifications
+          {t('description')}
         </p>
       </div>
 
@@ -44,6 +47,6 @@ export default function AlertSettingsPage() {
         error={error}
         onUpdate={updatePreferences}
       />
-    </div>
+    </PageContainer>
   );
 }

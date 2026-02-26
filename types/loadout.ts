@@ -32,21 +32,21 @@ export type ActivityType = 'hiking' | 'camping' | 'climbing' | 'skiing' | 'backp
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
 /** Activity type labels for UI display */
-export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+export const ACTIVITY_TYPE_LABELS = {
   hiking: 'Hiking',
   camping: 'Camping',
   climbing: 'Climbing',
   skiing: 'Skiing',
   backpacking: 'Backpacking',
-};
+} as const satisfies Record<ActivityType, string>;
 
 /** Season labels for UI display */
-export const SEASON_LABELS: Record<Season, string> = {
+export const SEASON_LABELS = {
   spring: 'Spring',
   summer: 'Summer',
   fall: 'Fall',
   winter: 'Winter',
-};
+} as const satisfies Record<Season, string>;
 
 // =============================================================================
 // Sort Options (Feature: 017-loadouts-search-filter)
@@ -56,12 +56,12 @@ export const SEASON_LABELS: Record<Season, string> = {
 export type LoadoutSortOption = 'date-newest' | 'date-oldest' | 'weight-lightest' | 'weight-heaviest';
 
 /** Sort option labels for UI display */
-export const SORT_OPTION_LABELS: Record<LoadoutSortOption, string> = {
+export const SORT_OPTION_LABELS = {
   'date-newest': 'Date (Newest)',
   'date-oldest': 'Date (Oldest)',
   'weight-lightest': 'Weight (Lightest)',
   'weight-heaviest': 'Weight (Heaviest)',
-};
+} as const satisfies Record<LoadoutSortOption, string>;
 
 // =============================================================================
 // LoadoutItemState (NEW - Feature: 007-grand-polish-sprint)
@@ -132,6 +132,22 @@ export interface Loadout {
 
   /** Per-item state for worn/consumable tracking (Feature: 007) */
   itemStates: LoadoutItemState[];
+
+  /** Hero image URL from AI generation (Feature 048) */
+  heroImageUrl?: string | null;
+
+  /** Whether this is a VIP curated loadout (visible to all users) - Feature: 052-vip-loadouts */
+  isVipLoadout?: boolean;
+
+  /** Source attribution for VIP loadouts - Feature: 052-vip-loadouts */
+  sourceAttribution?: {
+    /** Type of source (e.g., 'vip_curated') */
+    type: string;
+    /** Source URL (e.g., YouTube video link where VIP showed this loadout) */
+    url?: string;
+    /** When the source was last checked/verified */
+    checkedAt?: string;
+  } | null;
 
   /** Timestamp when loadout was created */
   createdAt: Date;

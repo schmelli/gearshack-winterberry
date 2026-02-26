@@ -59,7 +59,7 @@ export async function calculateBaseWeight(
   // Fetch gear items WITH category data in single query (join optimization)
   let query = supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, category_id, status, categories(id, label, i18n)')
+    .select('id, name, brand, weight_grams, product_type_id, status, categories!gear_items_product_type_id_fkey(id, label, i18n)')
     .eq('user_id', userId);
 
   // Apply status filter (default to 'own')
@@ -76,7 +76,7 @@ export async function calculateBaseWeight(
 
   // Apply category filter
   if (filters?.categoryId) {
-    query = query.eq('category_id', filters.categoryId);
+    query = query.eq('product_type_id', filters.categoryId);
   }
 
   const { data: gearItems, error } = await query;
@@ -100,15 +100,23 @@ export async function calculateBaseWeight(
     };
   }
 
+  // Define the category structure from the join
+  interface JoinedCategory {
+    id: string;
+    label: string;
+    i18n: Record<string, string> | null;
+  }
+
   // Build category map from joined data (no additional query needed)
   const categoryMap = new Map<string, string>();
 
   for (const item of gearItems) {
-    const category = (item as any).categories;
-    if (category && item.category_id && !categoryMap.has(item.category_id)) {
-      const i18n = category.i18n as Record<string, string> | null;
+    // Access the joined categories data
+    const category = (item as typeof item & { categories?: JoinedCategory }).categories;
+    if (category && item.product_type_id && !categoryMap.has(item.product_type_id)) {
+      const i18n = category.i18n;
       const name = i18n?.en ?? category.label;
-      categoryMap.set(item.category_id, name);
+      categoryMap.set(item.product_type_id, name);
     }
   }
 
@@ -116,7 +124,7 @@ export async function calculateBaseWeight(
   const categoryGroups = new Map<string, typeof gearItems>();
 
   for (const item of gearItems) {
-    const catId = item.category_id || 'uncategorized';
+    const catId = item.product_type_id || 'uncategorized';
     if (!categoryGroups.has(catId)) {
       categoryGroups.set(catId, []);
     }
@@ -136,7 +144,7 @@ export async function calculateBaseWeight(
       categoryName: categoryMap.get(categoryId) || 'Uncategorized',
       itemCount: items.length,
       totalWeight,
-      averageWeight: totalWeight / items.length,
+      averageWeight: items.length > 0 ? totalWeight / items.length : 0,
       heaviestItem: heaviest
         ? {
             id: heaviest.id,
@@ -180,16 +188,28 @@ export async function getCategoryBreakdowns(userId: string): Promise<CategoryBre
  * @param currency - Currency code (default: USD)
  * @returns Array of gear items within budget
  */
+// Type for gear items with budget-relevant fields
+interface GearItemBudgetView {
+  id: string;
+  name: string;
+  brand: string | null;
+  price_paid: number | null;
+  currency: string | null;
+  product_type_id: string | null;
+  weight_grams: number | null;
+  primary_image_url: string | null;
+}
+
 export async function findGearByBudget(
   userId: string,
   maxPrice: number,
   currency: string = 'USD'
-): Promise<any[]> {
+): Promise<GearItemBudgetView[]> {
   const supabase = await createClient();
 
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, brand, price_paid, currency, category_id, weight_grams, primary_image_url')
+    .select('id, name, brand, price_paid, currency, product_type_id, weight_grams, primary_image_url')
     .eq('user_id', userId)
     .lte('price_paid', maxPrice)
     .eq('currency', currency)
@@ -325,7 +345,7 @@ export async function getUserGearList(userId: string): Promise<string> {
 
   const { data: gearItems, error } = await supabase
     .from('gear_items')
-    .select('id, name, brand, weight_grams, status, product_type_id, categories!inner(label, i18n)')
+    .select('id, name, brand, weight_grams, status, product_type_id, categories!gear_items_product_type_id_fkey(label, i18n)')
     .eq('user_id', userId)
     .eq('status', 'own')
     .order('name', { ascending: true })
@@ -335,9 +355,15 @@ export async function getUserGearList(userId: string): Promise<string> {
     return '';
   }
 
+  // Define the category structure from the inner join
+  interface JoinedCategoryLabel {
+    label: string;
+    i18n: Record<string, string> | null;
+  }
+
   // Format items as a bulleted list
   const formattedItems = gearItems.map((item) => {
-    const category = (item as any).categories;
+    const category = (item as typeof item & { categories?: JoinedCategoryLabel }).categories;
     const categoryLabel = category?.label || 'Uncategorized';
     const brand = item.brand ? `${item.brand} ` : '';
     const weight = item.weight_grams ? ` - ${item.weight_grams}g` : '';
@@ -370,15 +396,23 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   if (words.length === 0) return '';
 
   // Search for products matching any of the extracted terms
-  const searchTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  // SECURITY: Sanitize for ILIKE wildcards AND PostgREST .or() injection
+  const rawTerm = words.slice(0, 3).join(' '); // Use first 3 words as search term
+  const searchTerm = rawTerm
+    .slice(0, 100)            // Limit length to prevent DoS
+    .replace(/\\/g, '\\\\')   // Escape backslash first
+    .replace(/%/g, '\\%')     // Escape percent (ILIKE wildcard)
+    .replace(/_/g, '\\_')     // Escape underscore (ILIKE single-char wildcard)
+    .replace(/,/g, '')        // Remove commas (PostgREST .or() delimiter)
+    .replace(/[()]/g, '')     // Remove parens (PostgREST grouping)
+    .replace(/\./g, ' ');     // Replace dots (prevents .eq. injection)
 
+  // Note: category_main/subcategory removed - use product_type for category display
   const { data: products, error } = await supabase
     .from('catalog_products')
     .select(`
       id,
       name,
-      category_main,
-      subcategory,
       product_type,
       description,
       price_usd,
@@ -396,11 +430,13 @@ export async function searchCatalogForQuery(query: string): Promise<string> {
   }
 
   // Format catalog results
+  // NOTE: Treat weight_grams = 0 as invalid/missing data (no outdoor gear weighs 0g)
   const formattedProducts = products.map((product) => {
     const brand = product.catalog_brands ? `${product.catalog_brands.name} ` : '';
-    const weight = product.weight_grams ? ` - ${product.weight_grams}g` : '';
+    // Only show weight if > 0 (0 is invalid data, same as null)
+    const weight = product.weight_grams && product.weight_grams > 0 ? ` - ${product.weight_grams}g` : '';
     const price = product.price_usd ? ` - $${product.price_usd}` : '';
-    const category = product.category_main || 'Uncategorized';
+    const category = product.product_type || 'Uncategorized';
     const description = product.description ? `\n    ${product.description.substring(0, 150)}${product.description.length > 150 ? '...' : ''}` : '';
 
     return `  * ${brand}${product.name}${weight}${price} (${category})${description}`;

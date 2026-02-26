@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking/personal_offers tables not in generated types */
 /**
  * Cron job: Daily price checks for all tracked items
  * Feature: 050-price-tracking (US2)
@@ -6,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { searchAllSources } from '@/lib/external-apis/price-search';
 import { compareWithHistory, recordPriceSnapshot } from '@/lib/services/price-comparison-service';
@@ -13,7 +15,7 @@ import { sendPersonalOfferAlert } from '@/lib/services/alert-service';
 import { batchCreatePriceAlerts, batchCheckConversions } from '@/lib/services/batch-operations';
 import { RATE_LIMITING } from '@/lib/constants/price-tracking';
 import { createModuleLogger } from '@/lib/utils/logger';
-import type { PriceTrackingWithGearItem, PersonalOfferWithPartner } from '@/types/database-helpers';
+import type { PriceTrackingWithGearItem } from '@/types/database-helpers';
 import PQueue from 'p-queue';
 
 const log = createModuleLogger('cron:check-prices');
@@ -21,18 +23,37 @@ const log = createModuleLogger('cron:check-prices');
 // Rate limit concurrent searches
 const queue = new PQueue({ concurrency: RATE_LIMITING.MAX_CONCURRENT_SEARCHES });
 
+/**
+ * Timing-safe comparison of authorization header to prevent timing attacks.
+ * Uses constant-time comparison to avoid leaking secret length or content.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  const expected = `Bearer ${expectedSecret}`;
+  if (authHeader.length !== expected.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret using timing-safe comparison
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!verifyAuthHeader(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = createServiceRoleClient();
 
     // Get all active tracking items
-    const { data: trackingItems, error: trackingError } = await supabase
+    const { data: trackingItems, error: trackingError } = await (supabase as any)
       .from('price_tracking')
       .select(`
         id,
@@ -88,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Batch check conversions (Review fix #12)
-    const conversionData = trackingItems.map((item) => ({
+    const conversionData = trackingItems.map((item: any) => ({
       tracking_id: item.id,
       gear_item_id: item.gear_item_id,
       user_id: item.user_id,
@@ -96,10 +117,15 @@ export async function GET(request: NextRequest) {
     await batchCheckConversions(conversionData);
 
     // Update last_checked_at for all items
-    await supabase
+    const { error: updateError } = await (supabase as any)
       .from('price_tracking')
       .update({ last_checked_at: new Date().toISOString() })
-      .in('id', trackingItems.map((item) => item.id));
+      .in('id', trackingItems.map((item: any) => item.id));
+
+    if (updateError) {
+      log.warn('Failed to update last_checked_at timestamps', {}, updateError);
+      // Non-fatal: continue but log for monitoring
+    }
 
     log.info('Price check job completed', {
       processed: trackingItems.length,
@@ -139,7 +165,7 @@ async function processTrackingItem(
   }>
 ): Promise<void> {
   try {
-    const itemName = item.gear_items.name;
+    const itemName = item.gear_items?.name;
     if (!itemName) {
       log.warn('No name found for gear item', {
         tracking_id: item.id,
@@ -159,11 +185,13 @@ async function processTrackingItem(
       return;
     }
 
-    // Compare with history
-    const comparison = await compareWithHistory(item.id, searchResults.results);
-
-    // Record new price snapshot
-    await recordPriceSnapshot(item.id, searchResults.results);
+    // Run comparison and snapshot recording in parallel for better performance
+    // These operations are independent - both use searchResults but don't depend on each other
+    // Note: Second result intentionally ignored - snapshot recording is fire-and-forget
+    const [comparison, _snapshotResult] = await Promise.all([
+      compareWithHistory(item.id, searchResults.results),
+      recordPriceSnapshot(item.id, searchResults.results), // Fire-and-forget operation
+    ]);
 
     // Collect alert if price dropped (will be batch created later)
     if (comparison.hasPriceDrop && item.alerts_enabled) {
@@ -209,7 +237,7 @@ async function checkPersonalOffers(
   const supabase = createServiceRoleClient();
 
   // Get active personal offers for this tracking item
-  const { data: offers } = await supabase
+  const { data: offers } = await (supabase as any)
     .from('personal_offers')
     .select(`
       *,
@@ -228,7 +256,11 @@ async function checkPersonalOffers(
   // Send notification for each offer (notification tracking handled in price_alerts table)
   for (const offer of offers as any[]) {
     try {
-      const partnerName = offer.partner_retailers.name;
+      const partnerName = offer.partner_retailers?.name;
+      if (!partnerName) {
+        log.warn('Partner retailer not found for offer', { offer_id: offer.id });
+        continue;
+      }
 
       await sendPersonalOfferAlert(
         userId,

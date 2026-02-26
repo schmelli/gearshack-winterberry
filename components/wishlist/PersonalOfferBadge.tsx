@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -21,6 +22,7 @@ export function PersonalOfferBadge({
   className = '',
   showCountdown = true,
 }: PersonalOfferBadgeProps) {
+  const t = useTranslations('Wishlist.personalOffer');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
@@ -28,11 +30,19 @@ export function PersonalOfferBadge({
 
     const calculateTimeRemaining = () => {
       const now = new Date().getTime();
-      const expiry = new Date(validUntil).getTime();
+      const expiryDate = new Date(validUntil);
+
+      // Validate date is valid
+      if (isNaN(expiryDate.getTime())) {
+        setTimeRemaining(t('invalidDate'));
+        return;
+      }
+
+      const expiry = expiryDate.getTime();
       const diff = expiry - now;
 
       if (diff <= 0) {
-        setTimeRemaining('Expired');
+        setTimeRemaining(t('expired'));
         return;
       }
 
@@ -41,11 +51,11 @@ export function PersonalOfferBadge({
 
       if (hours > 48) {
         const days = Math.floor(hours / 24);
-        setTimeRemaining(`${days}d remaining`);
+        setTimeRemaining(t('daysRemaining', { days }));
       } else if (hours > 0) {
-        setTimeRemaining(`${hours}h ${minutes}m remaining`);
+        setTimeRemaining(t('hoursMinutesRemaining', { hours, minutes }));
       } else {
-        setTimeRemaining(`${minutes}m remaining`);
+        setTimeRemaining(t('minutesRemaining', { minutes }));
       }
     };
 
@@ -53,7 +63,7 @@ export function PersonalOfferBadge({
     const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [validUntil, showCountdown]);
+  }, [validUntil, showCountdown, t]);
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
@@ -62,7 +72,7 @@ export function PersonalOfferBadge({
         className="bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
       >
         <Sparkles className="h-3 w-3 mr-1" />
-        Personal Offer
+        {t('badge')}
       </Badge>
       {showCountdown && timeRemaining && (
         <span className="text-xs text-muted-foreground">{timeRemaining}</span>

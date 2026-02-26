@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel } from '@/lib/utils/category-helpers';
+import { useTranslations, useLocale } from 'next-intl';
 
 // =============================================================================
 // Types
@@ -51,18 +52,6 @@ export interface LoadoutSortFilterProps {
 }
 
 // =============================================================================
-// Sort Labels
-// =============================================================================
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'name-asc', label: 'Name (A-Z)' },
-  { value: 'name-desc', label: 'Name (Z-A)' },
-  { value: 'weight-asc', label: 'Weight (Lightest)' },
-  { value: 'weight-desc', label: 'Weight (Heaviest)' },
-  { value: 'category', label: 'Category' },
-];
-
-// =============================================================================
 // Component
 // =============================================================================
 
@@ -73,14 +62,25 @@ export function LoadoutSortFilter({
   onFilterChange,
   className,
 }: LoadoutSortFilterProps) {
+  const t = useTranslations('Loadouts');
+  const locale = useLocale();
   const { categories } = useCategories();
+
+  // Sort options with localized labels
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'name-asc', label: t('sortFilter.nameAsc') },
+    { value: 'name-desc', label: t('sortFilter.nameDesc') },
+    { value: 'weight-asc', label: t('sortFilter.weightLightest') },
+    { value: 'weight-desc', label: t('sortFilter.weightHeaviest') },
+    { value: 'category', label: t('sortFilter.category') },
+  ];
 
   // Get level 1 categories for filter dropdown
   const level1Categories = categories.filter((c) => c.level === 1);
 
   // Get current sort label
   const currentSortLabel =
-    SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label ?? 'Sort';
+    sortOptions.find((opt) => opt.value === sortBy)?.label ?? t('sortFilter.sort');
 
   return (
     <div className={`flex items-center gap-2 ${className ?? ''}`}>
@@ -90,7 +90,7 @@ export function LoadoutSortFilter({
           <Button variant="outline" size="sm" className="h-8">
             <ArrowUpDown className="mr-1.5 h-3.5 w-3.5" />
             <span className="hidden sm:inline">{currentSortLabel}</span>
-            <span className="sm:hidden">Sort</span>
+            <span className="sm:hidden">{t('sortFilter.sort')}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
@@ -98,7 +98,7 @@ export function LoadoutSortFilter({
             value={sortBy}
             onValueChange={(value) => onSortChange(value as SortOption)}
           >
-            {SORT_OPTIONS.map((option) => (
+            {sortOptions.map((option) => (
               <DropdownMenuRadioItem key={option.value} value={option.value}>
                 {option.label}
               </DropdownMenuRadioItem>
@@ -114,13 +114,13 @@ export function LoadoutSortFilter({
       >
         <SelectTrigger className="h-8 w-[140px]">
           <Filter className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-          <SelectValue placeholder="All Categories" />
+          <SelectValue placeholder={t('sortFilter.allCategories')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="all">{t('sortFilter.allCategories')}</SelectItem>
           {level1Categories.map((category) => (
             <SelectItem key={category.id} value={category.id}>
-              {getLocalizedLabel(category, 'en')}
+              {getLocalizedLabel(category, locale)}
             </SelectItem>
           ))}
         </SelectContent>

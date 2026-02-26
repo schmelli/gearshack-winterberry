@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Price comparison and drop detection service
  * Feature: 050-price-tracking (US2)
@@ -6,7 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { PriceResult, PriceHistoryEntry } from '@/types/price-tracking';
+import type { PriceResult } from '@/types/price-tracking';
 
 /**
  * Compare current prices with historical data to detect drops
@@ -53,12 +52,19 @@ export async function recordPriceSnapshot(
 
   const supabase = await createClient();
 
-  const prices = results.map(r => r.total_price);
+  const prices = results.map(r => r.total_price).filter(p => Number.isFinite(p));
+
+  // Guard against empty prices array after filtering
+  if (prices.length === 0) {
+    console.warn('No valid prices found in results, skipping snapshot');
+    return;
+  }
 
   // Use database function for atomic insert of history + results
-  const { error } = await supabase.rpc('record_price_snapshot', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc('record_price_snapshot', {
     p_tracking_id: trackingId,
-    p_results: results as any,
+    p_results: results,
     p_lowest_price: Math.min(...prices),
     p_highest_price: Math.max(...prices),
     p_average_price: prices.reduce((a, b) => a + b, 0) / prices.length,
@@ -66,7 +72,7 @@ export async function recordPriceSnapshot(
 
   if (error) {
     console.error('Failed to record price snapshot:', error);
-    throw error;
+    throw new Error('Failed to record price snapshot');
   }
 }
 
@@ -93,8 +99,25 @@ export async function calculatePriceTrend(
     return 'stable';
   }
 
-  const first = history[0].lowest_price;
-  const last = history[history.length - 1].lowest_price;
+  // Validate array elements exist before accessing properties
+  const firstEntry = history[0];
+  const lastEntry = history[history.length - 1];
+
+  if (!firstEntry || !lastEntry) {
+    return 'stable';
+  }
+
+  const first = firstEntry.lowest_price;
+  const last = lastEntry.lowest_price;
+
+  // Guard against invalid values - both must be valid finite numbers > 0
+  if (!first || first <= 0 || !Number.isFinite(first)) {
+    return 'stable';
+  }
+  if (last === null || last === undefined || !Number.isFinite(last)) {
+    return 'stable';
+  }
+
   const change = ((last - first) / first) * 100;
 
   if (change > 5) return 'rising';

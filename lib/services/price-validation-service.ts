@@ -125,7 +125,10 @@ export function validatePriceResult(
   }
 
   // Check 3: Price range validation against catalog reference
-  if (reference?.expectedPriceUsd) {
+  // Guard against division by zero and invalid values
+  if (reference?.expectedPriceUsd &&
+      Number.isFinite(reference.expectedPriceUsd) &&
+      reference.expectedPriceUsd > 0) {
     const priceDiff = reference.expectedPriceUsd - result.total_price;
     const priceDiffPercent = (priceDiff / reference.expectedPriceUsd) * 100;
 

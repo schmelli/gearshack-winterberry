@@ -10,8 +10,9 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   fetchWishlistItems,
   addWishlistItem,
@@ -22,6 +23,8 @@ import {
   DuplicateError,
 } from '@/lib/supabase/wishlist-queries';
 import { gearItemFromDb } from '@/lib/supabase/transformers';
+import { createClient } from '@/lib/supabase/client';
+import { triggerPriceDiscovery } from '@/lib/geargraph/price-discovery-client';
 import type {
   WishlistItem,
   UseWishlistReturn,
@@ -64,6 +67,9 @@ function getInitialSortOption(): WishlistSortOption {
 // =============================================================================
 
 export function useWishlist(): UseWishlistReturn {
+  const t = useTranslations('Wishlist.actions');
+  const locale = useLocale();
+
   // ---------------------------------------------------------------------------
   // State: Wishlist Items
   // ---------------------------------------------------------------------------
@@ -86,7 +92,7 @@ export function useWishlist(): UseWishlistReturn {
   // ---------------------------------------------------------------------------
   // Zustand Store for Inventory Sync (Feature 049 US3)
   // ---------------------------------------------------------------------------
-  const inventoryItems = useSupabaseStore((state) => state.items);
+  const _inventoryItems = useSupabaseStore((state) => state.items);
   const setRemoteGearItems = useSupabaseStore((state) => state.setRemoteGearItems);
 
   // ---------------------------------------------------------------------------
@@ -98,7 +104,7 @@ export function useWishlist(): UseWishlistReturn {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Fetch Wishlist Items on Mount
+  // Manual Refresh Function
   // ---------------------------------------------------------------------------
   const refresh = useCallback(async () => {
     try {
@@ -115,9 +121,154 @@ export function useWishlist(): UseWishlistReturn {
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Fetch Wishlist Items on Mount (with race condition protection)
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let isCancelled = false;
+
+    const loadWishlist = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const items = await fetchWishlistItems();
+        if (!isCancelled) {
+          setWishlistItems(items);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load wishlist';
+          setError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadWishlist();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Auto-Trigger Price Discovery for Items Without Cached Prices (Feature 049)
+  // ---------------------------------------------------------------------------
+  const hasTriggeredPriceCheck = useRef(false);
+
+  useEffect(() => {
+    // Only run once after the initial load completes with items present
+    if (isLoading || wishlistItems.length === 0) return;
+    if (hasTriggeredPriceCheck.current) return;
+    hasTriggeredPriceCheck.current = true;
+
+    // Map locale to market settings (Gearshack targets European market)
+    const currency = locale === 'de' ? 'EUR' : 'USD';
+    const country = locale === 'de' ? 'DE' : 'US';
+
+    const triggerMissingPrices = async () => {
+      try {
+        const supabase = createClient();
+        const candidateIds = wishlistItems.map((item) => item.id);
+
+        // Find items that already have non-expired price data
+        const { data: existingPrices } = await supabase
+          .from('reseller_price_results')
+          .select('gear_item_id')
+          .in('gear_item_id', candidateIds)
+          .gt('expires_at', new Date().toISOString());
+
+        const idsWithPrices = new Set((existingPrices ?? []).map((r) => r.gear_item_id));
+        const itemsNeedingPrices = wishlistItems.filter((item) => !idsWithPrices.has(item.id));
+
+        // Trigger price discovery for up to 5 items, staggered 2 s apart
+        const toTrigger = itemsNeedingPrices.slice(0, 5);
+        for (let i = 0; i < toTrigger.length; i++) {
+          if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+          const item = toTrigger[i];
+          void triggerPriceDiscovery({
+            gearItemId: item.id,
+            brand: item.brand ?? null,
+            name: item.name,
+            productUrl: item.productUrl ?? null,
+            locale,
+            currency,
+            country,
+          });
+        }
+      } catch {
+        // Fire-and-forget — silently ignore all errors
+      }
+    };
+
+    void triggerMissingPrices();
+
+    // -------------------------------------------------------------------------
+    // Auto-Trigger MSRP Discovery for Items Without Manufacturer Price
+    // Updates local state immediately when a price is found — no page reload needed.
+    // -------------------------------------------------------------------------
+    const triggerMissingMsrp = async () => {
+      try {
+        // Priority 1: items without any price
+        const noPriceItems = wishlistItems.filter(
+          (item) => item.manufacturerPrice === null || item.manufacturerPrice === undefined
+        );
+        // Priority 2: items with price (server checks if stale >30 days)
+        const withPriceItems = wishlistItems.filter(
+          (item) => item.manufacturerPrice !== null && item.manufacturerPrice !== undefined
+        );
+        // Process up to 3 items per load (no-price first, then stale)
+        const toDiscover = [...noPriceItems, ...withPriceItems].slice(0, 3);
+        for (let i = 0; i < toDiscover.length; i++) {
+          if (i > 0) await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+          const item = toDiscover[i];
+          try {
+            const res = await fetch('/api/gear/discover-msrp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                gearItemId: item.id,
+                itemName: item.name,
+                brandName: item.brand ?? null,
+                productUrl: item.productUrl ?? null,
+                brandUrl: item.brandUrl ?? null,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.found && typeof data.amount === 'number') {
+                // Update local state so the price appears immediately without reload
+                setWishlistItems((prev) =>
+                  prev.map((wi) =>
+                    wi.id === item.id
+                      ? {
+                          ...wi,
+                          manufacturerPrice: data.amount,
+                          manufacturerCurrency: data.currency ?? 'USD',
+                          ...(data.productUrl && !wi.productUrl
+                            ? { productUrl: data.productUrl }
+                            : {}),
+                        }
+                      : wi
+                  )
+                );
+              }
+            }
+          } catch {
+            // Per-item errors are non-fatal — continue with next item
+          }
+        }
+      } catch {
+        // Outer errors are also non-fatal
+      }
+    };
+
+    void triggerMissingMsrp();
+  }, [isLoading, wishlistItems, locale]);
 
   // ---------------------------------------------------------------------------
   // CRUD Actions
@@ -131,10 +282,10 @@ export function useWishlist(): UseWishlistReturn {
       try {
         const newItem = await addWishlistItem(item as AddWishlistItemParams);
         setWishlistItems((prev) => [newItem, ...prev]);
-        toast.success('Added to wishlist!');
+        toast.success(t('addedToWishlist'));
       } catch (err) {
         if (err instanceof DuplicateError) {
-          toast.warning('This item is already in your wishlist');
+          toast.warning(t('alreadyInWishlist'));
         } else {
           const message = err instanceof Error ? err.message : 'Failed to add to wishlist';
           toast.error(message);
@@ -142,7 +293,7 @@ export function useWishlist(): UseWishlistReturn {
         throw err;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -152,13 +303,13 @@ export function useWishlist(): UseWishlistReturn {
     try {
       await deleteWishlistItem(itemId);
       setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
-      toast.success('Removed from wishlist');
+      toast.success(t('removedFromWishlist'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to remove item';
       toast.error(message);
       throw err;
     }
-  }, []);
+  }, [t]);
 
   /**
    * Update wishlist item
@@ -168,14 +319,14 @@ export function useWishlist(): UseWishlistReturn {
       try {
         const updatedItem = await updateWishlistItem(itemId, updates as UpdateWishlistItemParams);
         setWishlistItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)));
-        toast.success('Wishlist item updated');
+        toast.success(t('itemUpdated'));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update item';
         toast.error(message);
         throw err;
       }
     },
-    []
+    [t]
   );
 
   /**
@@ -197,16 +348,18 @@ export function useWishlist(): UseWishlistReturn {
       // Feature 049 US3: Add the moved item to the inventory zustand store
       // Transform the database row to GearItem and add to inventory
       const transformedItem = gearItemFromDb(updatedDbRow as Tables<'gear_items'>);
-      // setRemoteGearItems expects an array, not a function updater
-      setRemoteGearItems([transformedItem, ...inventoryItems]);
+      // STALE CLOSURE FIX: Read fresh inventory items from store at execution time
+      // instead of using potentially stale `inventoryItems` from hook closure
+      const currentInventory = useSupabaseStore.getState().items;
+      setRemoteGearItems([transformedItem, ...currentInventory]);
 
-      toast.success(`${itemName} moved to inventory!`);
+      toast.success(t('movedToInventory', { name: itemName }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to move item';
       toast.error(message);
       throw err;
     }
-  }, [wishlistItems, inventoryItems, setRemoteGearItems]);
+  }, [wishlistItems, setRemoteGearItems, t]);
 
   // ---------------------------------------------------------------------------
   // Duplicate Detection Helper

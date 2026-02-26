@@ -70,7 +70,7 @@ async function applyMigration() {
         // Alternative: use supabase.from().select() for queries
         // For DDL statements, we need to use the REST API directly
 
-        const { data, error } = await supabase.rpc('exec_sql', {
+        const { error } = await supabase.rpc('exec_sql', {
           sql: statement + ';'
         });
 

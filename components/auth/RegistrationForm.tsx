@@ -10,7 +10,8 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,6 +40,7 @@ export function RegistrationForm({
   onSuccess,
   onLoginClick,
 }: RegistrationFormProps) {
+  const t = useTranslations('Auth');
   const { registerWithEmail, error: authError, clearError } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -83,10 +85,9 @@ export function RegistrationForm({
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
           <Mail className="h-6 w-6 text-green-600 dark:text-green-400" />
         </div>
-        <h3 className="text-lg font-medium">Check your email</h3>
+        <h3 className="text-lg font-medium">{t('confirmation.checkEmail')}</h3>
         <p className="text-sm text-muted-foreground">
-          We&apos;ve sent a confirmation link to <strong>{registeredEmail}</strong>.
-          Please click the link to verify your email and complete your registration.
+          {t('confirmation.sentTo', { email: registeredEmail })}
         </p>
         <Button
           type="button"
@@ -94,7 +95,7 @@ export function RegistrationForm({
           className="w-full"
           onClick={onLoginClick}
         >
-          Back to Sign In
+          {t('backToSignIn')}
         </Button>
       </div>
     );
@@ -109,11 +110,11 @@ export function RegistrationForm({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('emailLabel')}</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('emailPlaceholder')}
                   autoComplete="email"
                   disabled={isLoading}
                   {...field}
@@ -130,12 +131,12 @@ export function RegistrationForm({
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>{t('passwordLabel')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a password"
+                    placeholder={t('createPasswordPlaceholder')}
                     autoComplete="new-password"
                     disabled={isLoading}
                     {...field}
@@ -154,7 +155,7 @@ export function RegistrationForm({
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                     <span className="sr-only">
-                      {showPassword ? 'Hide password' : 'Show password'}
+                      {showPassword ? t('hidePassword') : t('showPassword')}
                     </span>
                   </Button>
                 </div>
@@ -170,12 +171,12 @@ export function RegistrationForm({
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
+              <FormLabel>{t('confirmPasswordLabel')}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
+                    placeholder={t('confirmPasswordPlaceholder')}
                     autoComplete="new-password"
                     disabled={isLoading}
                     {...field}
@@ -194,7 +195,7 @@ export function RegistrationForm({
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                     <span className="sr-only">
-                      {showConfirmPassword ? 'Hide password' : 'Show password'}
+                      {showConfirmPassword ? t('hidePassword') : t('showPassword')}
                     </span>
                   </Button>
                 </div>
@@ -212,13 +213,13 @@ export function RegistrationForm({
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Account
+          {t('registerButton')}
         </Button>
 
         {/* Login Link */}
         {onLoginClick && (
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            {t('hasAccount')}{' '}
             <Button
               type="button"
               variant="link"
@@ -226,7 +227,7 @@ export function RegistrationForm({
               className="px-1"
               onClick={onLoginClick}
             >
-              Sign in
+              {t('signInLink')}
             </Button>
           </p>
         )}

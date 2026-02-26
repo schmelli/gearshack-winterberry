@@ -6,6 +6,9 @@
  * Styled consistently with GalleryToolbar
  */
 
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,8 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import {
-  ACTIVITY_TYPE_LABELS,
-  SORT_OPTION_LABELS,
   type ActivityType,
   type LoadoutSortOption,
 } from '@/types/loadout';
@@ -65,9 +66,21 @@ export function LoadoutToolbar({
   loadoutCount,
   filteredCount,
 }: LoadoutToolbarProps) {
+  const t = useTranslations('Loadouts.toolbar');
+  const tActivities = useTranslations('LoadoutCreation.activities');
+
   const showingFiltered = hasActiveFilters && filteredCount !== loadoutCount;
-  const activities = Object.entries(ACTIVITY_TYPE_LABELS) as [ActivityType, string][];
-  const sortOptions = Object.entries(SORT_OPTION_LABELS) as [LoadoutSortOption, string][];
+
+  // Activity types with translated labels
+  const activityTypes: ActivityType[] = ['hiking', 'camping', 'climbing', 'skiing', 'backpacking'];
+
+  // Sort option mappings
+  const sortOptionKeys: Record<LoadoutSortOption, string> = {
+    'date-newest': 'dateNewest',
+    'date-oldest': 'dateOldest',
+    'weight-lightest': 'weightLightest',
+    'weight-heaviest': 'weightHeaviest',
+  };
 
   return (
     <div className="mb-6 space-y-4">
@@ -80,11 +93,11 @@ export function LoadoutToolbar({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search loadouts..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-9"
-              aria-label="Search loadouts by name"
+              aria-label={t('searchAriaLabel')}
             />
           </div>
 
@@ -95,14 +108,14 @@ export function LoadoutToolbar({
               onActivityChange(value === 'all' ? null : (value as ActivityType))
             }
           >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by activity">
-              <SelectValue placeholder="All Activities" />
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t('activityFilterAriaLabel')}>
+              <SelectValue placeholder={t('allActivities')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Activities</SelectItem>
-              {activities.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
+              <SelectItem value="all">{t('allActivities')}</SelectItem>
+              {activityTypes.map((activity) => (
+                <SelectItem key={activity} value={activity}>
+                  {tActivities(activity)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -113,13 +126,13 @@ export function LoadoutToolbar({
             value={sortOption}
             onValueChange={(value) => onSortChange(value as LoadoutSortOption)}
           >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Sort loadouts">
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t('sortAriaLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
+              {(Object.keys(sortOptionKeys) as LoadoutSortOption[]).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(`sortOptions.${sortOptionKeys[option]}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -134,7 +147,7 @@ export function LoadoutToolbar({
               className="w-full sm:w-auto"
             >
               <X className="mr-1 h-4 w-4" />
-              Clear filters
+              {t('clearFilters')}
             </Button>
           )}
         </div>
@@ -144,10 +157,10 @@ export function LoadoutToolbar({
       <div className="text-sm text-muted-foreground">
         {showingFiltered ? (
           <span>
-            Showing {filteredCount} of {loadoutCount} loadouts
+            {t('showingFiltered', { filtered: filteredCount, total: loadoutCount })}
           </span>
         ) : (
-          <span>{loadoutCount} loadouts</span>
+          <span>{t('loadoutCount', { count: loadoutCount })}</span>
         )}
       </div>
     </div>

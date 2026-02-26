@@ -54,7 +54,9 @@ export async function removeBackground(imageFile: File): Promise<Blob> {
       } else if (error.message.includes('WebAssembly') || error.message.includes('WASM')) {
         throw new Error('Your browser does not support background removal. Please use a modern browser.');
       } else {
-        throw new Error(`Background removal failed: ${error.message}`);
+        // Sanitize error message to avoid exposing internal details
+        const safeMessage = error.message.replace(/https?:\/\/[^\s]+/g, '[URL]');
+        throw new Error(`Background removal failed: ${safeMessage}`);
       }
     }
 

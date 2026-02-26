@@ -18,7 +18,8 @@
 import { useState, Suspense } from 'react';
 // T027: Replace next/link and next/navigation with locale-aware versions
 import { Link, useRouter } from '@/i18n/navigation';
-import { User, Settings, LogOut, LogIn } from 'lucide-react';
+import { User, Settings, LogOut, LogIn, Shield, Bug } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
@@ -117,6 +118,33 @@ export function UserMenu() {
               <Settings className="mr-2 h-4 w-4" />
               {t('settings')}
             </Link>
+          </DropdownMenuItem>
+
+          {/* Admin - Only visible to admin users */}
+          {mergedUser?.isAdmin && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="cursor-pointer">
+                <Shield className="mr-2 h-4 w-4" />
+                {t('admin')}
+              </Link>
+            </DropdownMenuItem>
+          )}
+
+          {/* Report Bug - Sentry User Feedback */}
+          <DropdownMenuItem
+            onClick={() => {
+              try {
+                Sentry.showReportDialog();
+              } catch (error) {
+                // Fallback to GitHub if Sentry fails
+                console.error('Sentry feedback error:', error);
+                window.open('https://github.com/schmelli/gearshack-winterberry/issues/new', '_blank');
+              }
+            }}
+            className="cursor-pointer"
+          >
+            <Bug className="mr-2 h-4 w-4" />
+            {t('reportBug')}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

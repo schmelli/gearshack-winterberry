@@ -1,10 +1,11 @@
 /**
  * Privacy Settings Page
  *
- * Feature: 046-user-messaging-system
- * Task: T040
+ * Feature: 046-user-messaging-system, 001-social-graph
+ * Tasks: T040, T051
  *
- * Page for managing messaging privacy preferences.
+ * Page for managing messaging and social privacy preferences.
+ * Includes preset cards for quick privacy levels and granular controls.
  */
 
 'use client';
@@ -12,43 +13,59 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { PrivacySettingsForm } from '@/components/settings/PrivacySettingsForm';
+import { PrivacySettingsPanel } from '@/components/social/PrivacySettingsPanel';
 import { BlockedUsersList } from '@/components/messaging/BlockedUsersList';
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 function PrivacySettingsContent() {
+  const t = useTranslations('Social');
+
   return (
     <main className="container mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/settings" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Back to Settings
+            {t('common.backToSettings')}
           </Link>
         </Button>
       </div>
 
-      <h1 className="text-2xl font-bold">Privacy Settings</h1>
+      <h1 className="text-2xl font-bold">{t('privacy.title')}</h1>
       <p className="mt-1 text-muted-foreground">
-        Control who can contact you and see your activity.
+        {t('privacy.description')}
       </p>
 
-      <div className="mt-6">
-        <PrivacySettingsForm />
-      </div>
+      <Tabs defaultValue="social" className="mt-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="social">{t('privacy.tabs.social')}</TabsTrigger>
+          <TabsTrigger value="messaging">{t('privacy.tabs.messaging')}</TabsTrigger>
+        </TabsList>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Blocked Users</CardTitle>
-          <CardDescription>
-            Manage users you have blocked. Blocked users cannot message you or find you in search.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BlockedUsersList />
-        </CardContent>
-      </Card>
+        <TabsContent value="social" className="mt-4">
+          <PrivacySettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="messaging" className="mt-4 space-y-6">
+          <PrivacySettingsForm />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('privacy.blocked.title')}</CardTitle>
+              <CardDescription>
+                {t('privacy.blocked.description')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BlockedUsersList />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

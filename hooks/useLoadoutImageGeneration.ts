@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import type {
   ImageGenerationState,
   GeneratedLoadoutImage,
@@ -63,6 +64,7 @@ export interface UseLoadoutImageGenerationReturn {
 export function useLoadoutImageGeneration(
   params: UseLoadoutImageGenerationParams
 ): UseLoadoutImageGenerationReturn {
+  const t = useTranslations('Loadouts.imageGeneration');
   const {
     loadoutId,
     loadoutTitle,
@@ -92,26 +94,38 @@ export function useLoadoutImageGeneration(
   // Prevents memory leaks when component unmounts during image generation
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Timer ref for retry delay cleanup
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Refs for functions involved in circular dependencies to avoid stale closures
+  // generateImage -> handleGenerationError -> executeRetry/applyFallback
+  const handleGenerationErrorRef = useRef<
+    (error: unknown, stylePreferences: StylePreferences | undefined, startTime: number) => Promise<void>
+  >(async () => {});
+  const executeRetryRef = useRef<
+    (stylePreferences: StylePreferences | undefined, startTime: number) => Promise<void>
+  >(async () => {});
+  const applyFallbackRef = useRef<
+    (error: unknown, startTime: number) => Promise<void>
+  >(async () => {});
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, []);
 
   // Metrics tracking
   const logMetric = useCallback(
-    (event: string, data?: Record<string, unknown>) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[ImageGen Metric] ${event}`, {
-          loadoutId,
-          timestamp: new Date().toISOString(),
-          ...data,
-        });
-      }
+    (_event: string, _data?: Record<string, unknown>) => {
       // In production, this would send to analytics service
     },
-    [loadoutId]
+    []
   );
 
   // =============================================================================
@@ -147,14 +161,18 @@ export function useLoadoutImageGeneration(
       // Reset retry counter for new generation attempt
       retryAttemptRef.current = 0;
 
+      // Abort any previous in-flight request before creating new one
+      abortControllerRef.current?.abort();
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
 
       try {
-        // Update state to generating
+        // FIXED: Reset ALL state fields when starting new generation to avoid stale data
         setState({
           status: 'generating',
           progress: 0,
+          error: undefined,
+          generatedImageId: undefined,
         });
 
         logMetric('generation_started', {
@@ -212,17 +230,20 @@ export function useLoadoutImageGeneration(
           prompt: prompt.substring(0, 100), // Log first 100 chars
         });
 
-        toast.success('Image generated successfully!');
+        toast.success(t('generateSuccess'));
 
         // Refresh history
         await refreshHistory();
       } catch (error) {
+        // RACE CONDITION FIX: Check abort before error handling
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
         // Handle error with retry logic (T016)
-        await handleGenerationError(error, stylePreferences, startTime);
+        // Uses ref to break circular dependency: generateImage -> handleGenerationError -> executeRetry
+        await handleGenerationErrorRef.current(error, stylePreferences, startTime);
       }
     },
-    // handleGenerationError is intentionally excluded to avoid circular dependency
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       loadoutId,
       loadoutTitle,
@@ -232,6 +253,7 @@ export function useLoadoutImageGeneration(
       userId,
       logMetric,
       refreshHistory,
+      t,
     ]
   );
 
@@ -256,7 +278,6 @@ export function useLoadoutImageGeneration(
       // If this is the first failure, try retry (guard against race conditions)
       if (retryAttemptRef.current === 0) {
         retryAttemptRef.current = 1;
-        console.log('[ImageGen] First attempt failed, retrying once...');
 
         setState({
           status: 'retrying',
@@ -264,24 +285,50 @@ export function useLoadoutImageGeneration(
         });
 
         try {
-          // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, AI_GENERATION_RETRY_DELAY_MS));
+          // Wait before retry with cleanup support
+          await new Promise<void>((resolve, reject) => {
+            // RACE CONDITION FIX: Check abort before creating timer
+            if (abortControllerRef.current?.signal.aborted) {
+              reject(new Error('Aborted'));
+              return;
+            }
 
-          // Retry the generation
-          await executeRetry(stylePreferences, startTime);
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              // RACE CONDITION FIX: Check abort before resolving
+              if (abortControllerRef.current?.signal.aborted) {
+                reject(new Error('Aborted'));
+                return;
+              }
+              resolve();
+            }, AI_GENERATION_RETRY_DELAY_MS);
+          });
+
+          // RACE CONDITION FIX: Check abort before retry
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
+
+          // Retry the generation (uses ref to break circular dependency)
+          await executeRetryRef.current(stylePreferences, startTime);
         } catch (retryError) {
+          // RACE CONDITION FIX: Don't fallback if aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
           // Retry also failed - use fallback (T017)
-          await applyFallback(retryError, startTime);
+          await applyFallbackRef.current(retryError, startTime);
         }
       } else {
         // Already retried once - go straight to fallback
-        await applyFallback(error, startTime);
+        await applyFallbackRef.current(error, startTime);
       }
     },
-    // Removed state.status from deps to avoid stale closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [logMetric]
   );
+
+  // Keep refs in sync with latest callback versions
+  handleGenerationErrorRef.current = handleGenerationError;
 
   const executeRetry = useCallback(
     async (
@@ -296,11 +343,13 @@ export function useLoadoutImageGeneration(
         stylePreferences,
       });
 
+      // Use the same AbortController signal for retry to allow cancellation
       const response = await fetch('/api/loadout-images/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: abortControllerRef.current?.signal,
         body: JSON.stringify({
           loadoutId,
           prompt,
@@ -318,6 +367,11 @@ export function useLoadoutImageGeneration(
 
       const result = await response.json();
 
+      // Check if aborted before state updates
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
+
       setState({
         status: 'success',
         generatedImageId: result.imageId,
@@ -332,8 +386,12 @@ export function useLoadoutImageGeneration(
         imageId: result.imageId,
       });
 
-      toast.success('Image generated successfully!');
-      await refreshHistory();
+      toast.success(t('generateSuccess'));
+
+      // Check again before refresh
+      if (!abortControllerRef.current?.signal.aborted) {
+        await refreshHistory();
+      }
     },
     [
       loadoutId,
@@ -344,8 +402,10 @@ export function useLoadoutImageGeneration(
       userId,
       logMetric,
       refreshHistory,
+      t,
     ]
   );
+  executeRetryRef.current = executeRetry;
 
   // =============================================================================
   // Fallback Logic (T017)
@@ -355,8 +415,6 @@ export function useLoadoutImageGeneration(
     async (error: unknown, startTime: number): Promise<void> => {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-
-      console.log('[ImageGen] Both attempts failed, using fallback image');
 
       logMetric('generation_fallback', {
         error: errorMessage,
@@ -401,7 +459,7 @@ export function useLoadoutImageGeneration(
           setActiveImageState(result.image);
 
           // Silent fallback - don't show error toast
-          toast.info('Using default image');
+          toast.info(t('usingDefault'));
 
           await refreshHistory();
         } else {
@@ -414,11 +472,12 @@ export function useLoadoutImageGeneration(
           error: 'Failed to generate or load fallback image',
         });
 
-        toast.error('Failed to generate image. Please try again later.');
+        toast.error(t('generateFailed'));
       }
     },
-    [loadoutId, loadoutTitle, season, activityTypes, userId, logMetric, refreshHistory]
+    [loadoutId, loadoutTitle, season, activityTypes, userId, logMetric, refreshHistory, t]
   );
+  applyFallbackRef.current = applyFallback;
 
   const setActiveImageById = useCallback(
     async (imageId: string): Promise<void> => {
@@ -436,17 +495,17 @@ export function useLoadoutImageGeneration(
         });
 
         if (response.ok) {
-          toast.success('Image updated');
+          toast.success(t('imageUpdated'));
           await refreshHistory();
         } else {
           throw new Error('Failed to set active image');
         }
       } catch (error) {
         console.error('[ImageGen] Failed to set active image:', error);
-        toast.error('Failed to update image');
+        toast.error(t('updateFailed'));
       }
     },
-    [loadoutId, userId, refreshHistory]
+    [loadoutId, userId, refreshHistory, t]
   );
 
   const deleteImage = useCallback(
@@ -465,17 +524,17 @@ export function useLoadoutImageGeneration(
         });
 
         if (response.ok) {
-          toast.success('Image deleted');
+          toast.success(t('imageDeleted'));
           await refreshHistory();
         } else {
           throw new Error('Failed to delete image');
         }
       } catch (error) {
         console.error('[ImageGen] Failed to delete image:', error);
-        toast.error('Failed to delete image');
+        toast.error(t('deleteFailed'));
       }
     },
-    [loadoutId, userId, refreshHistory]
+    [loadoutId, userId, refreshHistory, t]
   );
 
   // =============================================================================

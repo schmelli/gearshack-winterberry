@@ -1,9 +1,23 @@
+/**
+ * LoadoutShareButton Component
+ *
+ * Feature: Share Management
+ *
+ * Provides simple URL sharing for loadouts:
+ * - Generate shareable links
+ * - Copy to clipboard
+ * - Social sharing buttons
+ *
+ * Note: Community Shakedown (with comments/collaboration) is a separate feature
+ * accessible via the Users icon in the loadout header.
+ */
+
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Share2, Clipboard, Check } from 'lucide-react';
+import { Share2, Clipboard, Check, Settings2, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { VariantProps } from 'class-variance-authority';
@@ -17,14 +31,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { createClient } from '@/lib/supabase/client';
+import { useShareManagement } from '@/hooks/useShareManagement';
+import { useStore } from '@/hooks/useSupabaseStore';
+import { SocialShareButtons } from '@/components/loadouts/SocialShareButtons';
+import { ShareManagementDialog } from '@/components/loadouts/ShareManagementDialog';
 import type { Loadout, LoadoutItemState, ActivityType, Season } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import type { SharedLoadoutPayload } from '@/types/sharing';
 import { useCategoriesStore } from '@/hooks/useCategoriesStore';
 import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface LoadoutShareButtonProps {
   loadout: Loadout;
@@ -35,7 +54,13 @@ interface LoadoutShareButtonProps {
   variant?: VariantProps<typeof buttonVariants>['variant'];
   size?: VariantProps<typeof buttonVariants>['size'];
   showLabel?: boolean;
+  /** Additional CSS classes for the button */
+  className?: string;
 }
+
+// =============================================================================
+// Component
+// =============================================================================
 
 export function LoadoutShareButton({
   loadout,
@@ -46,11 +71,28 @@ export function LoadoutShareButton({
   variant = 'outline',
   size = 'sm',
   showLabel = true,
+  className,
 }: LoadoutShareButtonProps) {
-  const supabase = useMemo(() => createClient(), []);
-  const locale = useLocale();
-  const [open, setOpen] = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
+  const t = useTranslations('Shakedown');
+  const userId = useStore((state) => state.userId);
+
+  // Share management hook
+  const {
+    shares,
+    isLoading,
+    createNewShare,
+    updateShareSettings,
+    removeShare,
+    setPassword,
+    removePassword,
+    getShareUrl,
+  } = useShareManagement(loadout.id, userId);
+
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [manageDialogOpen, setManageDialogOpen] = useState(false);
+
+  // Share creation state (simplified - no comments/expiry options)
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -58,6 +100,7 @@ export function LoadoutShareButton({
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
   const categories = useCategoriesStore((state) => state.categories);
 
+  // Build payload for sharing
   const payload: SharedLoadoutPayload = useMemo(() => {
     const stateById = new Map(itemStates.map((state) => [state.itemId, state]));
 
@@ -87,118 +130,171 @@ export function LoadoutShareButton({
         };
       }),
     };
-  }, [activityTypes, itemStates, items, loadout.description, loadout.id, loadout.name, loadout.tripDate, seasons, categories]);
+  }, [activityTypes, itemStates, items, loadout, seasons, categories]);
 
+  // Generate new share link (simplified - no comments, no expiry)
   const generateLink = async () => {
     setIsGenerating(true);
     setCopied(false);
+    setShareUrl(null);
+
     try {
-      const { data: userResult } = await supabase.auth.getUser();
-      const shareToken = crypto.randomUUID();
-      const { error } = await supabase
-        .from('loadout_shares')
-        .upsert({
-          share_token: shareToken,
-          loadout_id: loadout.id,
-          owner_id: userResult?.user?.id ?? null,
-          allow_comments: allowComments,
-          payload: payload as unknown as import('@/types/database').Json,
-        });
+      // Create share with comments disabled and no expiry (simple URL sharing)
+      const result = await createNewShare(payload, {
+        allowComments: false,
+        expiresAt: null,
+      });
 
-      if (error) {
-        throw error;
-      }
+      if (result) {
+        setShareUrl(result.url);
 
-      const url = `${window.location.origin}/${locale}/shakedown/${shareToken}`;
-      setShareUrl(url);
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(url);
-          setCopied(true);
-          toast.success('Share link ready', {
-            description: 'Copied to your clipboard',
-          });
-        } catch {
-          toast.success('Share link ready', { description: url });
+        // Auto-copy to clipboard
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(result.url);
+            setCopied(true);
+            toast.success(t('linkCopied'));
+          } catch {
+            // Clipboard failed, user can manually copy
+          }
         }
-      } else {
-        toast.success('Share link ready', { description: url });
       }
-    } catch (err) {
-      console.error('[LoadoutShareButton] Failed to generate share link', err);
-      toast.error('Failed to generate share link');
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Copy URL to clipboard
   const handleCopy = async () => {
     if (!shareUrl) return;
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        toast.success('Link copied');
-      } catch {
-        toast.error('Clipboard is unavailable');
-      }
-    } else {
-      toast.error('Clipboard is unavailable');
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success(t('linkCopied'));
+    } catch {
+      toast.error(t('clipboardUnavailable'));
     }
   };
 
+  // Reset form when dialog closes
+  const handleCreateDialogChange = (open: boolean) => {
+    setCreateDialogOpen(open);
+    if (!open) {
+      // Reset form state when closing
+      setShareUrl(null);
+      setCopied(false);
+    }
+  };
+
+  const hasShares = shares.length > 0;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={variant}
-          size={size}
-          className="flex items-center gap-2"
-          aria-label={showLabel ? undefined : "Share loadout"}
-        >
-          <Share2 className="h-4 w-4" />
-          {showLabel && 'Share'}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Virtual Gear Shakedown</DialogTitle>
-          <DialogDescription>
-            Create a shareable link so others can view your loadout. Enable live comments to let friends leave feedback
-            in real time.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {/* Main Share Button with Dropdown */}
+      <div className="flex items-center">
+        {/* Create Share Button */}
+        <Dialog open={createDialogOpen} onOpenChange={handleCreateDialogChange}>
+          <DialogTrigger asChild>
+            <Button
+              variant={variant}
+              size={size}
+              className={className ?? "flex items-center gap-2"}
+              aria-label={showLabel ? undefined : t('shareLoadout') || 'Share loadout'}
+            >
+              <Share2 className="h-4 w-4" />
+              {showLabel && (t('share') || 'Share')}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5" />
+                {t('shareLoadoutTitle')}
+              </DialogTitle>
+              <DialogDescription>
+                {t('shareLoadoutDescription')}
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="flex items-center justify-between rounded-lg border p-4">
-          <div className="space-y-1">
-            <Label htmlFor="allow-comments">Allow comments</Label>
-            <p className="text-sm text-muted-foreground">
-              Viewers with the link can collaborate via realtime comments.
-            </p>
-          </div>
-          <Switch
-            id="allow-comments"
-            checked={allowComments}
-            onCheckedChange={setAllowComments}
-            aria-label="Allow comments"
-          />
-        </div>
+            <DialogFooter className="flex-col gap-3 sm:flex-col">
+              {!shareUrl ? (
+                <Button onClick={generateLink} disabled={isGenerating} className="w-full">
+                  {isGenerating ? t('generating') : t('getShareLink')}
+                </Button>
+              ) : (
+                <>
+                  {/* Generated URL with copy button */}
+                  <div className="flex w-full items-center gap-2">
+                    <Input value={shareUrl} readOnly className="text-sm font-mono" />
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={handleCopy}
+                      aria-label={t('copyShareLink')}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Clipboard className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
 
-        <DialogFooter className="flex-col gap-3 sm:flex-col">
-          <Button onClick={generateLink} disabled={isGenerating} className="w-full">
-            {isGenerating ? 'Generating…' : 'Generate share link'}
+                  {/* Social Share Buttons */}
+                  <div className="w-full pt-3 border-t">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {t('shareOn')}
+                    </p>
+                    <SocialShareButtons
+                      url={shareUrl}
+                      title={loadout.name}
+                      description={loadout.description ?? undefined}
+                    />
+                  </div>
+
+                  {/* Generate new link option */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateLink}
+                    disabled={isGenerating}
+                    className="w-full"
+                  >
+                    {t('generateNewLink')}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Manage Shares Button (shown when shares exist) */}
+        {hasShares && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-1"
+            onClick={() => setManageDialogOpen(true)}
+            aria-label={t('manageShares') || 'Manage shares'}
+          >
+            <Settings2 className="h-4 w-4" />
           </Button>
+        )}
+      </div>
 
-          {shareUrl && (
-            <div className="flex w-full items-center gap-2">
-              <Input value={shareUrl} readOnly className="text-sm" />
-              <Button variant="secondary" size="icon" onClick={handleCopy} aria-label="Copy share link">
-                {copied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
-              </Button>
-            </div>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Share Management Dialog */}
+      <ShareManagementDialog
+        open={manageDialogOpen}
+        onOpenChange={setManageDialogOpen}
+        shares={shares}
+        loadoutName={loadout.name}
+        isLoading={isLoading}
+        onUpdateShare={updateShareSettings}
+        onDeleteShare={removeShare}
+        onSetPassword={setPassword}
+        onRemovePassword={removePassword}
+        getShareUrl={getShareUrl}
+      />
+    </>
   );
 }

@@ -1,29 +1,47 @@
 /**
  * LoadoutCard Component
  *
- * Feature: 005-loadout-management
+ * Feature: 005-loadout-management, 048-ai-loadout-image-gen
  * FR-006: Show loadout name, trip date, total weight, and item count
  * FR-009: Enable navigation to the loadout editor when clicking a card
  * FR-025: Delete loadouts with confirmation
+ * Feature 048: Display AI-generated hero image as card background
  */
 
 'use client';
 
+import { memo } from 'react';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Calendar, Package, Scale } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DeleteLoadoutDialog } from '@/components/loadouts/DeleteLoadoutDialog';
 import { useStore } from '@/hooks/useSupabaseStore';
+import { WeightDisplay } from '@/components/ui/weight-display';
 import type { Loadout } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import {
   calculateTotalWeight,
-  formatWeight,
   formatTripDate,
   getWeightCategory,
   getWeightCategoryColor,
 } from '@/lib/loadout-utils';
 import { cn } from '@/lib/utils';
+
+/**
+ * Optimize Cloudinary URLs with automatic format and quality
+ */
+function optimizeCloudinaryUrl(url: string, width = 600): string {
+  if (!url.includes('res.cloudinary.com') || url.includes('/f_auto')) {
+    return url;
+  }
+  const uploadIndex = url.indexOf('/upload/');
+  if (uploadIndex === -1) return url;
+  const before = url.slice(0, uploadIndex + 8);
+  const after = url.slice(uploadIndex + 8);
+  return `${before}f_auto,q_auto,w_${width}/${after}`;
+}
 
 // =============================================================================
 // Types
@@ -38,7 +56,8 @@ interface LoadoutCardProps {
 // Component
 // =============================================================================
 
-export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
+function LoadoutCardComponent({ loadout, items }: LoadoutCardProps) {
+  const t = useTranslations('Loadouts');
   const deleteLoadout = useStore((state) => state.deleteLoadout);
 
   // FR-004: Guard against invalid loadout IDs (e.g., hex colors, malformed data)
@@ -57,49 +76,112 @@ export function LoadoutCard({ loadout, items }: LoadoutCardProps) {
     await deleteLoadout(loadout.id);
   };
 
+  // Check if loadout has a hero image
+  const hasHeroImage = !!loadout.heroImageUrl;
+
+  // Structure note: The delete dialog is placed OUTSIDE the Link to prevent
+  // navigation events when the dialog closes during deletion (fixes 404 bug).
   return (
-    <Link href={`/loadouts/${loadout.id}`}>
-      <Card className="group transition-colors hover:border-primary/50 hover:bg-muted/50">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <CardTitle className="line-clamp-1 text-lg">{loadout.name}</CardTitle>
-            <div className="opacity-0 transition-opacity group-hover:opacity-100">
-              <DeleteLoadoutDialog
-                loadoutName={loadout.name}
-                onConfirm={handleDelete}
+    <div className="group relative">
+      <Link href={`/loadouts/${loadout.id}`}>
+        <Card className={cn(
+          'relative overflow-hidden transition-all hover:border-primary/50',
+          hasHeroImage ? 'min-h-[200px]' : 'hover:bg-muted/50'
+        )}>
+          {/* Hero Image Background (Feature 048) - optimized via Cloudinary */}
+          {hasHeroImage && (
+            <>
+              <Image
+                src={optimizeCloudinaryUrl(loadout.heroImageUrl!)}
+                alt={`${loadout.name} hero image`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3">
-            {/* Trip Date */}
-            {loadout.tripDate && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{formatTripDate(loadout.tripDate)}</span>
-              </div>
-            )}
+              {/* Gradient overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            </>
+          )}
 
-            {/* Stats Row */}
-            <div className="flex items-center gap-4">
-              {/* Item Count */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Package className="h-4 w-4" />
-                <span>
-                  {loadoutItems.length} {loadoutItems.length === 1 ? 'item' : 'items'}
-                </span>
-              </div>
+          <CardHeader className={cn('pb-3', hasHeroImage && 'relative z-10')}>
+            <div className="flex items-start justify-between">
+              <CardTitle className={cn(
+                'line-clamp-1 text-lg pr-8',
+                hasHeroImage && 'text-white drop-shadow-lg'
+              )}>
+                {loadout.name}
+              </CardTitle>
+              {/* Spacer for delete button positioning */}
+            </div>
+          </CardHeader>
+          <CardContent className={cn(hasHeroImage && 'relative z-10 mt-auto')}>
+            <div className="flex flex-col gap-3">
+              {/* Trip Date */}
+              {loadout.tripDate && (
+                <div className={cn(
+                  'flex items-center gap-2 text-sm',
+                  hasHeroImage ? 'text-white/90' : 'text-muted-foreground'
+                )}>
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatTripDate(loadout.tripDate)}</span>
+                </div>
+              )}
 
-              {/* Total Weight */}
-              <div className={cn('flex items-center gap-2 text-sm font-medium', weightColorClass)}>
-                <Scale className="h-4 w-4" />
-                <span>{formatWeight(totalWeight)}</span>
+              {/* Stats Row */}
+              <div className="flex items-center gap-4">
+                {/* Item Count */}
+                <div className={cn(
+                  'flex items-center gap-2 text-sm',
+                  hasHeroImage ? 'text-white/90' : 'text-muted-foreground'
+                )}>
+                  <Package className="h-4 w-4" />
+                  <span>
+                    {t('itemCount', { count: loadoutItems.length })}
+                  </span>
+                </div>
+
+                {/* Total Weight */}
+                <div className={cn(
+                  'flex items-center gap-2 text-sm font-medium',
+                  hasHeroImage ? 'text-white' : weightColorClass
+                )}>
+                  <Scale className="h-4 w-4" />
+                  <WeightDisplay value={totalWeight} showToggle />
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      {/* Delete button positioned absolutely OUTSIDE the Link to prevent navigation during deletion */}
+      <div className={cn(
+        'absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100',
+        hasHeroImage && 'z-20'
+      )}>
+        <DeleteLoadoutDialog
+          loadoutName={loadout.name}
+          onConfirm={handleDelete}
+        />
+      </div>
+    </div>
   );
 }
+
+/**
+ * Custom comparison function for LoadoutCard memoization.
+ * Compares loadout by id, updatedAt, and hero image to detect meaningful changes.
+ */
+function areLoadoutCardPropsEqual(
+  prevProps: LoadoutCardProps,
+  nextProps: LoadoutCardProps
+): boolean {
+  return (
+    prevProps.loadout.id === nextProps.loadout.id &&
+    prevProps.loadout.updatedAt === nextProps.loadout.updatedAt &&
+    prevProps.loadout.heroImageUrl === nextProps.loadout.heroImageUrl &&
+    prevProps.loadout.itemIds.length === nextProps.loadout.itemIds.length &&
+    prevProps.items.length === nextProps.items.length
+  );
+}
+
+export const LoadoutCard = memo(LoadoutCardComponent, areLoadoutCardPropsEqual);

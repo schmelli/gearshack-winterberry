@@ -19,9 +19,9 @@ const nextConfig: NextConfig = {
   ],
 
   images: {
-    // Feature 025: Allow all HTTPS domains for external product images
-    // Users need to paste image URLs from any retailer (fjellsport.no, REI, etc.)
-    // Feature 038: Explicit Cloudinary CDN support
+    // Feature 038: Cloudinary CDN for user uploads
+    // Feature 040: Supabase storage for app data
+    // Google auth: User avatars from Google accounts
     remotePatterns: [
       {
         protocol: 'https',
@@ -29,9 +29,30 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      // Feature 030/039: Serper API search thumbnails (Google encrypted CDN)
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn*.gstatic.com',
+      },
+      // YouTube video thumbnails (Feature 045: Data API & VIP Featured)
+      {
+        protocol: 'https',
+        hostname: '*.ytimg.com',
+        pathname: '/vi/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+        pathname: '/vi/**',
       },
     ],
+    minimumCacheTTL: 60,
   },
   // Feature 026: Enable WASM support for @imgly/background-removal
   webpack: (config, { isServer }) => {
@@ -97,12 +118,16 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // Disabled: Conflicts with [locale] routing and causes 405 errors
   // tunnelRoute: "/monitoring",
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  // Bundle size optimizations (replaces deprecated disableLogger)
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
+  // Webpack-specific options
+  webpack: {
+    // Cron monitoring (replaces deprecated top-level automaticVercelMonitors)
+    // Note: Does not yet work with App Router route handlers.
+    // See: https://docs.sentry.io/product/crons/
+    automaticVercelMonitors: true,
+  },
 });

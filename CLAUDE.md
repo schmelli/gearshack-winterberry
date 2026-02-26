@@ -2,9 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📚 Documentation Wiki
+
+**NEW**: Comprehensive documentation is now in `/docs/`
+
+- **[System Architecture](docs/architecture/overview.md)** - Start here for understanding the system
+- **[Feature Documentation](docs/features/)** - Implementation details for all features
+- **[Development Guides](docs/guides/)** - Setup, deployment, debugging
+- **[Architecture Decisions (ADRs)](docs/decisions/)** - Historical context for key decisions
+
+**Quick Links:**
+- [Observational Memory](docs/features/observational-memory.md)
+- [Mastra Studio Guide](docs/guides/mastra-studio.md)
+- [Database Schema](docs/architecture/database-schema.md)
+
 ## Project Overview
 
 Gearshack Winterberry is a Next.js 16 application using the App Router with React 19, TypeScript (strict mode), and Tailwind CSS 4.
+
+## Git Workflow
+
+- **Default branch**: `development` - ALL PRs must target this branch
+- **Never** target `main`, `master`, or feature branches like `003-app-shell-branding`
+- Feature branches: `{feature-number}-{feature-name}` (e.g., `051-community-bulletin-board`)
 
 ## Commands
 
@@ -32,6 +52,9 @@ lib/              # Utilities (cn() helper for Tailwind class merging)
 hooks/            # Custom hooks for business logic
 types/            # TypeScript interfaces and types
 specs/            # Feature specifications (check before implementing)
+src/mastra/       # Mastra Studio entry point (local dev only — NOT imported by Next.js)
+  agents/         # Static agent definitions for Studio (gear-assistant.ts)
+  index.ts        # Central Mastra instance; entry point for `npx mastra dev`
 ```
 
 ### Import Alias
@@ -51,6 +74,34 @@ Use `@/*` for absolute imports (configured in tsconfig.json).
 - Icons: lucide-react
 - CSS variables enabled
 
+## Internationalization (i18n) Rules
+
+This project uses `next-intl` for internationalization. **ALL user-visible text must be internationalized.**
+
+### Required Practices
+
+1. **Use `useTranslations` hook** in components:
+   ```tsx
+   const t = useTranslations('Namespace');
+   return <p>{t('key')}</p>;
+   ```
+
+2. **Never hardcode visible text** in TSX files:
+   - ❌ `<p>Hello World</p>`
+   - ✅ `<p>{t('greeting')}</p>`
+
+3. **Translation files location**: `messages/en.json` and `messages/de.json`
+
+4. **Namespace convention**: Use PascalCase for top-level namespaces (`Social`, `Settings`, `Messaging`)
+
+### Automated i18n Audit
+
+A Claude Code hook (`.claude/hooks/i18n-audit.sh`) automatically runs after editing TSX files and warns about potential hardcoded strings. The hook checks for:
+- Text content after `>` that starts with uppercase letters
+- Hardcoded `title=`, `description=`, `label=` attributes
+
+If the hook reports issues, add the missing translations to both `en.json` and `de.json`.
+
 ## Coding Workflow
 
 Before writing code:
@@ -67,6 +118,21 @@ Before writing code:
   - `Button` for actions
   - `Dialog` for modals
   - `Sheet` for mobile drawers
+
+### Z-Index Hierarchy
+
+When using z-index in Tailwind classes, follow this documented hierarchy to prevent conflicts:
+
+- `z-0` - Base level (default)
+- `z-10` - Dropdowns, popovers
+- `z-20` - Sticky elements (e.g., table headers)
+- `z-30` - Fixed navigation elements
+- `z-40` - Sticky tabs, community nav (e.g., Community Hub tabs)
+- `z-50` - Main header, navigation bar
+- `z-[60]` - Overlays (Sheet, Dialog backdrops)
+- `z-[70]` - Modals, Dialogs
+- `z-[80]` - Toasts, notifications (Sonner)
+- `z-[100]` - Critical overlays, fullscreen modals
 
 ## Key Patterns & Utilities
 
@@ -164,8 +230,17 @@ Before writing code:
 - PostgreSQL (Supabase) - `generated_images` table for AI image history, extended `loadouts` table with `hero_image_id`; Vercel AI SDK for image generation via AI Gateway, Cloudinary for CDN hosting (048-ai-loadout-image-gen)
 - TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, Supabase (PostgreSQL), Zustand, shadcn/ui, react-hook-form, Zod, Sonner, next-intl (049-wishlist-view)
 - Supabase (PostgreSQL) - existing gear_items table with status='wishlist', new fuzzy matching functions (049-wishlist-view)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, @supabase/supabase-js, @supabase/ssr, Zustand, react-hook-form, Zod, shadcn/ui, Sonner, next-intl (001-social-graph)
+- PostgreSQL (Supabase) - new `friend_requests`, `friendships`, `user_follows`, `friend_activities` tables; extends `profiles` and `notifications` (001-social-graph)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui, Tailwind CSS 4, Zustand, react-hook-form + Zod, Sonner, lucide-react, next-intl (051-community-bulletin-board)
+- Supabase (PostgreSQL) with RLS policies (051-community-bulletin-board)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, @supabase/supabase-js, @supabase/ssr, Zustand, react-hook-form, Zod, shadcn/ui, Sonner, next-intl, lucide-reac (001-community-shakedowns)
+- PostgreSQL (Supabase) with RLS policies (001-community-shakedowns)
+- TypeScript 5.x (strict mode) + Next.js 16+ (App Router), React 19+, shadcn/ui, react-hook-form + Zod, Zustand, next-intl, Sonner (052-vip-loadouts)
+- Supabase (PostgreSQL) with PostGIS extension for geospatial queries (053-merchant-integration)
 
 ## Recent Changes
+- 001-social-graph: COMPLETED dual-tier social connection system (Friends + Follow). Implemented 71 tasks across 10 phases. Core features: Following (one-click, no approval), Friend Requests (require prior message exchange, rate limited 20/day, 30-day expiry), Friends List with search/filter/sort, Activity Feed with Realtime subscriptions, Online Presence (5-min inactivity timeout, graceful degradation), Privacy Settings (presets + granular controls), Mutual Friends display. New patterns: canonical friendship ordering (user_id < friend_id), O(1) follow/friend checks with useMemo Sets, state machine for async operations, optimistic updates with rollback. Architecture: `hooks/social/` (useFollowing, useFollowers, useFriendRequests, useFriendships, useFriendActivity, useOnlineStatus, useSocialPrivacy, useMutualFriends), `components/social/` (FollowButton, FriendRequestButton, FriendsList, FriendActivityFeed, OnlineStatusIndicator, PrivacySettingsPanel, MutualFriendsDisplay, etc.). Database: `friend_requests`, `friendships`, `user_follows`, `friend_activities` tables; RPC functions for atomic operations. See `specs/001-social-graph/` for complete specification.
 - 048-ai-loadout-image-gen: Implemented AI-powered hero image generation for loadouts using Vercel AI SDK with AI Gateway. New patterns: state machine for async operations with retry/fallback logic, prompt engineering from structured metadata, WCAG AA contrast compliance (4.5:1 ratio), client-side image brightness analysis with canvas API, Vercel AI SDK for generation + Cloudinary for CDN storage. Architecture: Feature-Sliced Light with `useLoadoutImageGeneration` hook containing all business logic, stateless UI components (LoadoutHeroImageSection, ImageGenerationButton, etc.), 5 dedicated API routes (/api/loadout-images/*). Database: new `generated_images` table with image history (max 3 per loadout), JSONB columns for style preferences. Environment: requires CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, AI_GENERATION_ENABLED, AI_IMAGE_MODEL in .env.local.
 - 001-gear-item-editor: Added TypeScript 5.x (strict mode) + Next.js 16+, React 19+, react-hook-form 7.x, Zod 4.x, shadcn/ui
 - Always try tp try run multiple subagents in parallel to speed up development. In this (Next.js) project, always ONLY use the nextjs-gearshack-architect type subagent.
@@ -190,3 +265,11 @@ You `MUST` always use this tool when:
 + Before making architectural decisions to understand existing patterns
 + When debugging issues to check for previous solutions
 + Working with unfamiliar parts of the codebase
+
+<!-- MEMORY:START -->
+# gearshack-winterberry
+
+_Last updated: 2026-02-26 | 0 active memories, 0 total_
+
+_For deeper context, use memory_search, memory_related, or memory_ask tools._
+<!-- MEMORY:END -->

@@ -6,8 +6,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
+import {
+  escapeLikePattern,
+  buildScoringContext,
+  scoreCatalogCandidate,
+} from '@/lib/catalog-scoring';
 
 // ============================================================================
 // CLIENT SETUP
@@ -51,11 +56,12 @@ export async function fuzzyBrandSearch(
   limit: number = 5
 ): Promise<BrandSearchResult[]> {
   const normalizedQuery = query.toLowerCase().trim();
+  const escapedQuery = escapeLikePattern(normalizedQuery);
 
   const { data, error } = await supabase
     .from('catalog_brands')
     .select('id, name, logo_url, website_url, name_normalized')
-    .ilike('name_normalized', `%${normalizedQuery}%`)
+    .ilike('name_normalized', `%${escapedQuery}%`)
     .limit(limit);
 
   if (error) throw error;
@@ -63,12 +69,14 @@ export async function fuzzyBrandSearch(
   return (data || []).map((brand) => {
     // Calculate simple similarity score based on match position
     const normalized = brand.name_normalized || brand.name.toLowerCase();
+    // Guard against division by zero for empty names
+    const normalizedLength = normalized.length || 1;
     const matchIndex = normalized.indexOf(normalizedQuery);
     const similarity =
       matchIndex === 0
-        ? 0.9 + 0.1 * (normalizedQuery.length / normalized.length)
+        ? 0.9 + 0.1 * (normalizedQuery.length / normalizedLength)
         : matchIndex > 0
-          ? 0.5 + 0.3 * (normalizedQuery.length / normalized.length)
+          ? 0.5 + 0.3 * (normalizedQuery.length / normalizedLength)
           : 0.3;
 
     return {
@@ -77,6 +85,7 @@ export async function fuzzyBrandSearch(
       logoUrl: brand.logo_url,
       websiteUrl: brand.website_url,
       similarity: Math.round(similarity * 100) / 100,
+      source: 'catalog' as const,
     };
   }).sort((a, b) => b.similarity - a.similarity);
 }
@@ -86,30 +95,75 @@ export async function fuzzyBrandSearch(
 // ============================================================================
 
 /**
- * Performs fuzzy search on product names using ILIKE
+ * Maximum number of products to fetch from database before client-side scoring.
+ * Prevents excessive memory usage while ensuring sufficient candidates for ranking.
+ */
+const MAX_FETCH_LIMIT = 100;
+
+/**
+ * Multiplier for initial database fetch to ensure enough candidates after scoring.
+ * Higher values improve result quality but increase memory usage.
+ */
+const FETCH_LIMIT_MULTIPLIER = 5;
+
+/**
+ * Performs fuzzy search on product names AND brand names
+ * Searches both product.name and catalog_brands.name fields for better matches.
+ *
+ * Example: Query "MSR Hubba Hubba" will match products where:
+ * - Product name contains "Hubba Hubba" AND brand name is "MSR"
+ * - Product name contains "MSR Hubba Hubba"
+ * - Brand name contains "MSR"
+ *
+ * Note: Category hierarchy (categoryMain, subcategory) is derived from the
+ * categories table via product_type_id. This function returns null for those
+ * fields - use the /api/catalog/products/search endpoint for full hierarchy.
+ *
  * @param supabase - Supabase client instance
  * @param query - Search query string
- * @param options - Search options (brandId, categoryMain, limit)
+ * @param options - Search options (brandId, limit)
  * @returns Array of product search results with scores
  */
 export async function fuzzyProductSearch(
   supabase: ReturnType<typeof createClient<Database>>,
   query: string,
-  options: { brandId?: string; categoryMain?: string; limit?: number } = {}
+  options: { brandId?: string; limit?: number } = {}
 ): Promise<ProductSearchResult[]> {
-  const { brandId, categoryMain, limit = 5 } = options;
+  const { brandId, limit = 5 } = options;
   const normalizedQuery = query.toLowerCase().trim();
 
-  // Build query with optional filters
+  // Handle empty query edge case
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  // Split query into words for multi-word matching
+  const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  // Handle empty queryWords edge case (shouldn't happen after trim check, but be defensive)
+  if (queryWords.length === 0) {
+    return [];
+  }
+
+  // Fetch more results than needed (will filter and score in JS)
+  // Use multiplier to ensure we have enough matches after scoring
+  const fetchLimit = Math.min(limit * FETCH_LIMIT_MULTIPLIER, MAX_FETCH_LIMIT);
+
+  // Extract first word for initial filtering (to avoid fetching all products)
+  const firstWord = escapeLikePattern(queryWords[0]);
+
+  // Build query - fetch products where name or description contains at least the first search word
+  // This narrows down the dataset before JS filtering
+  // Note: We can't filter on joined table columns (catalog_brands.name) in the .or() clause,
+  // so brand matching is handled in the JS scoring phase
   let queryBuilder = supabase
     .from('catalog_products')
     .select(
       `
       id,
       name,
-      category_main,
-      subcategory,
       product_type,
+      product_type_id,
       description,
       price_usd,
       weight_grams,
@@ -120,47 +174,54 @@ export async function fuzzyProductSearch(
       )
     `
     )
-    .ilike('name', `%${normalizedQuery}%`)
-    .limit(limit);
+    .or(`name.ilike.%${firstWord}%,description.ilike.%${firstWord}%`)
+    .limit(fetchLimit);
 
   if (brandId) {
     queryBuilder = queryBuilder.eq('brand_id', brandId);
-  }
-
-  if (categoryMain) {
-    queryBuilder = queryBuilder.eq('category_main', categoryMain);
   }
 
   const { data, error } = await queryBuilder;
 
   if (error) throw error;
 
-  return (data || []).map((product) => {
-    // Calculate simple similarity score
-    const normalized = product.name.toLowerCase();
-    const matchIndex = normalized.indexOf(normalizedQuery);
-    const score =
-      matchIndex === 0
-        ? 0.9 + 0.1 * (normalizedQuery.length / normalized.length)
-        : matchIndex > 0
-          ? 0.5 + 0.3 * (normalizedQuery.length / normalized.length)
-          : 0.3;
+  // Filter and score products using shared scoring logic
+  const scoredProducts = (data || [])
+    .map((product) => {
+      const ctx = buildScoringContext(
+        normalizedQuery,
+        product.name,
+        product.catalog_brands?.name
+      );
 
-    return {
-      id: product.id,
-      name: product.name,
-      brand: product.catalog_brands
-        ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
-        : null,
-      categoryMain: product.category_main,
-      subcategory: product.subcategory,
-      productType: product.product_type,
-      description: product.description,
-      priceUsd: product.price_usd,
-      weightGrams: product.weight_grams,
-      score: Math.round(score * 100) / 100,
-    };
-  }).sort((a, b) => b.score - a.score);
+      const score = scoreCatalogCandidate(ctx, {
+        includeBrandMatches: true,
+        optimizeSkip: true,
+      });
+
+      return {
+        id: product.id,
+        name: product.name,
+        brand: product.catalog_brands
+          ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
+          : null,
+        categoryMain: null,
+        subcategory: null,
+        productType: product.product_type,
+        productTypeId: product.product_type_id,
+        description: product.description,
+        priceUsd: product.price_usd,
+        weightGrams: product.weight_grams,
+        score,
+        hasMatch: score > 0,
+      };
+    })
+    .filter(product => product.hasMatch)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ hasMatch: _hasMatch, ...product }) => product);
+
+  return scoredProducts;
 }
 
 // ============================================================================
@@ -221,6 +282,8 @@ export async function upsertBrand(
 
 /**
  * Upserts a product record
+ * Note: category_main and subcategory are no longer stored - use product_type_id instead
+ *
  * @param supabase - Supabase client instance (with service role)
  * @param product - Product data to upsert
  * @returns Upserted product ID
@@ -232,9 +295,8 @@ export async function upsertProduct(
     name: string;
     brand_id?: string | null;
     brand_external_id?: string | null;
-    category_main?: string | null;
-    subcategory?: string | null;
     product_type?: string | null;
+    product_type_id?: string | null;
     description?: string | null;
     price_usd?: number | null;
     weight_grams?: number | null;
@@ -248,9 +310,8 @@ export async function upsertProduct(
         name: product.name,
         brand_id: product.brand_id ?? null,
         brand_external_id: product.brand_external_id ?? null,
-        category_main: product.category_main ?? null,
-        subcategory: product.subcategory ?? null,
         product_type: product.product_type ?? null,
+        product_type_id: product.product_type_id ?? null,
         description: product.description ?? null,
         price_usd: product.price_usd ?? null,
         weight_grams: product.weight_grams ?? null,

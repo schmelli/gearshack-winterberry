@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, FileDown, FileSpreadsheet, ListChecks } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -33,6 +34,10 @@ interface LoadoutExportMenuProps {
   seasons: Season[];
   totalWeight: number;
   baseWeight: number;
+  /** Show as icon button (for header) instead of labeled button */
+  iconOnly?: boolean;
+  /** Additional CSS classes for the trigger button */
+  className?: string;
 }
 
 /** HTML escape helper to prevent injection in generated markup. */
@@ -52,14 +57,34 @@ function sanitizeFileName(name: string): string {
 }
 
 /** Resolve a human-readable category label with fallback. */
-function buildCategoryLabel(categoryId: string | null): string {
+function _buildCategoryLabel(categoryId: string | null): string {
   if (!categoryId) return 'Uncategorized';
   return CATEGORY_LABELS[categoryId] || categoryId;
 }
 
 /** Map boolean flags to human-readable strings. */
-function formatBoolean(value: boolean | undefined): string {
+function _formatBoolean(value: boolean | undefined): string {
   return value ? 'Yes' : 'No';
+}
+
+interface PdfTemplateLabels {
+  date: string;
+  activities: string;
+  seasons: string;
+  generated: string;
+  items: string;
+  totalWeight: string;
+  baseWeight: string;
+  wornItems: string;
+  consumables: string;
+  activitiesAndSeasons: string;
+  packList: string;
+  tableItem: string;
+  tableCategory: string;
+  tableWeight: string;
+  tableStatus: string;
+  noActivities: string;
+  pack: string;
 }
 
 interface PdfTemplateOptions {
@@ -77,6 +102,7 @@ interface PdfTemplateOptions {
   checklistHeader: string;
   includeChecklist: boolean;
   formattedDate: string;
+  labels: PdfTemplateLabels;
 }
 
 function buildPdfHtml({
@@ -93,6 +119,7 @@ function buildPdfHtml({
   rows,
   checklistHeader,
   formattedDate,
+  labels,
 }: PdfTemplateOptions): string {
   return `
     <!DOCTYPE html>
@@ -221,14 +248,14 @@ function buildPdfHtml({
             <div>
               <h1 class="title">${escape(loadout.name)}</h1>
               <div class="meta">
-                <div><strong>Date:</strong> ${escape(formattedDate)}</div>
-                <div><strong>Activities:</strong> ${activitiesLabel}</div>
-                <div><strong>Seasons:</strong> ${seasonsLabel}</div>
+                <div><strong>${escape(labels.date)}:</strong> ${escape(formattedDate)}</div>
+                <div><strong>${escape(labels.activities)}:</strong> ${activitiesLabel}</div>
+                <div><strong>${escape(labels.seasons)}:</strong> ${seasonsLabel}</div>
               </div>
             </div>
             <div class="meta" style="text-align: right;">
-              <div><strong>Generated:</strong> ${escape(generatedAt)}</div>
-              <div><strong>Items:</strong> ${escape(String(itemCount))}</div>
+              <div><strong>${escape(labels.generated)}:</strong> ${escape(generatedAt)}</div>
+              <div><strong>${escape(labels.items)}:</strong> ${escape(String(itemCount))}</div>
             </div>
           </header>
 
@@ -240,30 +267,30 @@ function buildPdfHtml({
 
           <div class="summary">
             <div class="pill">
-              <div class="label">Total Weight</div>
+              <div class="label">${escape(labels.totalWeight)}</div>
               <div class="value">${formatWeight(totalWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Base Weight</div>
+              <div class="label">${escape(labels.baseWeight)}</div>
               <div class="value">${formatWeight(baseWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Worn Items</div>
+              <div class="label">${escape(labels.wornItems)}</div>
               <div class="value">${formatWeight(wornWeight)}</div>
             </div>
             <div class="pill">
-              <div class="label">Consumables</div>
+              <div class="label">${escape(labels.consumables)}</div>
               <div class="value">${formatWeight(consumableWeight)}</div>
             </div>
           </div>
 
           <div>
-            <p class="label" style="margin: 0;">Activities & Seasons</p>
+            <p class="label" style="margin: 0;">${escape(labels.activitiesAndSeasons)}</p>
             <div class="badge-row">
               ${
                 loadout.activityTypes?.length
                   ? loadout.activityTypes.map((activity) => `<span class="badge">${escape(activity)}</span>`).join('')
-                  : '<span class="muted">No activities specified</span>'
+                  : `<span class="muted">${escape(labels.noActivities)}</span>`
               }
               ${
                 loadout.seasons?.length
@@ -274,15 +301,15 @@ function buildPdfHtml({
           </div>
 
           <div style="margin-top: 18px;">
-            <p class="section-title">Pack List</p>
+            <p class="section-title">${escape(labels.packList)}</p>
             <table>
               <thead>
                 <tr>
                   ${checklistHeader}
-                  <th>Item</th>
-                  <th>Category</th>
-                  <th class="right">Weight</th>
-                  <th>Status</th>
+                  <th>${escape(labels.tableItem)}</th>
+                  <th>${escape(labels.tableCategory)}</th>
+                  <th class="right">${escape(labels.tableWeight)}</th>
+                  <th>${escape(labels.tableStatus)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,9 +331,23 @@ export function LoadoutExportMenu({
   seasons,
   totalWeight,
   baseWeight,
+  iconOnly = false,
+  className,
 }: LoadoutExportMenuProps) {
+  const t = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   // Cascading Category Refactor: Get categories for deriving categoryId from productTypeId
   const categories = useCategoriesStore((state) => state.categories);
+
+  // Helper functions that use translations
+  const buildCategoryLabelLocal = (categoryId: string | null): string => {
+    if (!categoryId) return tCommon('uncategorized');
+    return CATEGORY_LABELS[categoryId] || categoryId;
+  };
+
+  const formatBooleanLocal = (value: boolean | undefined): string => {
+    return value ? t('yes') : t('no');
+  };
 
   const buildFileName = (suffix: string) => {
     const date = new Date().toISOString().slice(0, 10);
@@ -314,58 +355,66 @@ export function LoadoutExportMenu({
   };
 
   const exportCsv = () => {
-    const headers = ['Item', 'Brand', 'Category', 'Weight (g)', 'Worn', 'Consumable'];
-    const rows = items.map((item) => {
-      const state = itemStates.find((s) => s.itemId === item.id);
-      const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
-      return [
-        item.name,
-        item.brand ?? '',
-        buildCategoryLabel(categoryId),
-        item.weightGrams ?? '',
-        formatBoolean(state?.isWorn),
-        formatBoolean(state?.isConsumable),
-      ];
-    });
+    let url: string | null = null;
+    try {
+      const headers = ['Item', 'Brand', 'Category', 'Weight (g)', 'Worn', 'Consumable'];
+      const rows = items.map((item) => {
+        const state = itemStates.find((s) => s.itemId === item.id);
+        const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+        return [
+          item.name,
+          item.brand ?? '',
+          buildCategoryLabelLocal(categoryId),
+          item.weightGrams ?? '',
+          formatBooleanLocal(state?.isWorn),
+          formatBooleanLocal(state?.isConsumable),
+        ];
+      });
 
-    const csvContent = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((value) => {
-            const safe = String(value ?? '');
-            return `"${safe.replace(/"/g, '""')}"`;
-          })
-          .join(',')
-      )
-      .join('\n');
+      const csvContent = [headers, ...rows]
+        .map((row) =>
+          row
+            .map((value) => {
+              const safe = String(value ?? '');
+              return `"${safe.replace(/"/g, '""')}"`;
+            })
+            .join(',')
+        )
+        .join('\n');
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${buildFileName('loadout')}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${buildFileName('loadout')}.csv`;
+      link.click();
+    } finally {
+      // Always revoke blob URL to prevent memory leak, even on error
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    }
   };
 
   const renderPdf = (includeChecklist: boolean) => {
     const printWindow = window.open('', '_blank', 'width=900,height=1200');
     if (!printWindow) {
-      alert('Unable to open export window. Please allow popups for this site and try again.');
+      alert(t('popupBlockedAlert'));
       return;
     }
 
-    const formattedDate = formatTripDate(loadout.tripDate) ?? 'Not set';
+    const notSetLabel = t('pdfLabels.notSet') || 'Not set';
+    const formattedDate = formatTripDate(loadout.tripDate) ?? notSetLabel;
     const activitiesLabel =
       activityTypes.length > 0
         ? activityTypes
             .map((activity) => escape(activity.charAt(0).toUpperCase() + activity.slice(1)))
             .join(', ')
-        : 'Not set';
+        : notSetLabel;
     const seasonsLabel =
       seasons.length > 0
         ? seasons.map((season) => escape(season.charAt(0).toUpperCase() + season.slice(1))).join(', ')
-        : 'Not set';
+        : notSetLabel;
 
     const itemWeightMap = new Map(items.map((item) => [item.id, item.weightGrams ?? 0]));
     const wornWeight = itemStates
@@ -375,14 +424,17 @@ export function LoadoutExportMenu({
       .filter((state) => state.isConsumable)
       .reduce((sum, state) => sum + (itemWeightMap.get(state.itemId) ?? 0), 0);
 
+    const wornLabel = t('pdfLabels.worn');
+    const consumableLabel = t('pdfLabels.consumable');
+
     const rows = items
       .map((item) => {
         const state = itemStates.find((s) => s.itemId === item.id);
         const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
         const checklistCell = includeChecklist ? '<td class="checkbox-cell"><div class="checkbox"></div></td>' : '';
         const statusParts = [];
-        if (state?.isWorn) statusParts.push('Worn');
-        if (state?.isConsumable) statusParts.push('Consumable');
+        if (state?.isWorn) statusParts.push(wornLabel);
+        if (state?.isConsumable) statusParts.push(consumableLabel);
 
         return `
           <tr>
@@ -391,7 +443,7 @@ export function LoadoutExportMenu({
               <div class="item-name">${escape(item.name)}</div>
               ${item.brand ? `<div class="muted">${escape(item.brand)}</div>` : ''}
             </td>
-            <td>${escape(buildCategoryLabel(categoryId))}</td>
+            <td>${escape(buildCategoryLabelLocal(categoryId))}</td>
             <td class="right">${formatWeight(item.weightGrams)}</td>
             <td>${statusParts.length > 0 ? statusParts.map(escape).join(' • ') : '—'}</td>
           </tr>
@@ -399,7 +451,29 @@ export function LoadoutExportMenu({
       })
       .join('');
 
-    const checklistHeader = includeChecklist ? '<th class="checkbox-cell">Pack</th>' : '';
+    const checklistHeader = includeChecklist ? `<th class="checkbox-cell">${escape(t('pdfLabels.pack'))}</th>` : '';
+
+    // Build labels object for PDF template
+    const labels: PdfTemplateLabels = {
+      date: t('pdfLabels.date'),
+      activities: t('pdfLabels.activities'),
+      seasons: t('pdfLabels.seasons'),
+      generated: t('pdfLabels.generated'),
+      items: t('pdfLabels.items'),
+      totalWeight: t('weightStats.totalWeight'),
+      baseWeight: t('weightStats.baseWeight'),
+      wornItems: t('weightStats.wornItems'),
+      consumables: t('weightStats.consumables'),
+      activitiesAndSeasons: t('pdfLabels.activitiesAndSeasons'),
+      packList: t('packList'),
+      tableItem: t('tableHeaders.item'),
+      tableCategory: t('tableHeaders.category'),
+      tableWeight: t('tableHeaders.weight'),
+      tableStatus: t('tableHeaders.status'),
+      noActivities: t('noActivities'),
+      pack: t('pdfLabels.pack'),
+    };
+
     const html = buildPdfHtml({
       loadout: {
         ...loadout,
@@ -419,6 +493,7 @@ export function LoadoutExportMenu({
       checklistHeader,
       includeChecklist,
       formattedDate,
+      labels,
     });
 
     printWindow.document.write(html);
@@ -430,25 +505,31 @@ export function LoadoutExportMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
+        {iconOnly ? (
+          <Button variant="ghost" size="icon" className={className ?? "h-8 w-8 shrink-0"} aria-label={t('export')}>
+            <Download className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className={className}>
+            <Download className="mr-2 h-4 w-4" />
+            {t('export')}
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Export options</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('exportOptions')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => renderPdf(false)}>
           <FileDown className="mr-2 h-4 w-4" />
-          PDF (clean)
+          {t('pdfClean')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => renderPdf(true)}>
           <ListChecks className="mr-2 h-4 w-4" />
-          PDF with checklist
+          {t('pdfChecklist')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={exportCsv}>
           <FileSpreadsheet className="mr-2 h-4 w-4" />
-          CSV export
+          {t('csvExport')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

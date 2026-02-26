@@ -1,5 +1,5 @@
 /**
- * LoadoutHeader - Enhanced header with sans-serif title, badges, and weight progress
+ * LoadoutHeader - Editing section below the hero image
  *
  * Feature: 006-ui-makeover
  * FR-007: Interactive activity badges
@@ -11,27 +11,42 @@
  * US4: Display Total Weight and Base Weight
  *
  * Feature: 009-grand-visual-polish
- * FR-012: Loadout title in sans-serif font (not Rock Salt)
- * FR-013: Description positioned in header right-side
+ * FR-013: Description positioned in header
  * FR-014: Inline description editing (no modal)
+ *
+ * Note: Title, back link, and action buttons have moved to LoadoutHeroImage.
+ * This component now focuses on interactive editing (badges, description).
  */
 
 'use client';
 
-import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Calendar, Pencil, Check, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Calendar, Check, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { ToggleBadge } from '@/components/ui/toggle-badge';
-import { WeightDonut } from '@/components/loadouts/WeightDonut';
+import { WeightSummaryTable } from '@/components/loadouts/WeightSummaryTable';
 import { Textarea } from '@/components/ui/textarea';
-import { formatTripDate, formatWeight, DEFAULT_WEIGHT_GOAL_GRAMS } from '@/lib/loadout-utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatTripDate } from '@/lib/loadout-utils';
 import { useLoadoutInlineEdit } from '@/hooks/useLoadoutInlineEdit';
-import { ActivityMatrix } from '@/components/loadouts/ActivityMatrix';
-import { LoadoutShareButton } from '@/components/loadouts/LoadoutShareButton';
-import type { Loadout, CategoryWeight, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
+import type { Loadout, ActivityType, Season, LoadoutItemState } from '@/types/loadout';
 import type { GearItem } from '@/types/gear';
 import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
+
+// Performance: Lazy load the heavy recharts-based donut chart (~90KB)
+// Only loads when LoadoutHeader is rendered (specific loadout pages)
+const EnhancedWeightDonut = dynamic(
+  () => import('@/components/loadouts/EnhancedWeightDonut').then(mod => ({ default: mod.EnhancedWeightDonut })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center">
+        <Skeleton className="h-[220px] w-[220px] rounded-full md:h-[260px] md:w-[260px]" />
+      </div>
+    ),
+  }
+);
 
 // =============================================================================
 // Types
@@ -39,24 +54,20 @@ import { ACTIVITY_TYPE_LABELS, SEASON_LABELS } from '@/types/loadout';
 
 interface LoadoutHeaderProps {
   loadout: Loadout;
-  totalWeight: number;
-  baseWeight: number; // US4: Base Weight calculation
-  categoryWeights: CategoryWeight[];
+  /** Gear items in the loadout */
+  items: GearItem[];
+  /** Item states (worn/consumable flags) */
+  itemStates: LoadoutItemState[];
   activityTypes: ActivityType[];
   seasons: Season[];
   onToggleActivity: (activity: ActivityType) => void;
   onToggleSeason: (season: Season) => void;
-  /** Currently selected category for chart highlight (FR-012) */
+  /** Currently selected category for chart highlight */
   selectedCategoryId?: string | null;
-  /** Callback when chart segment is clicked (FR-012) */
-  onSegmentClick?: (categoryId: string) => void;
-  /** Callback when edit button is clicked (US5) */
-  onEdit?: () => void;
+  /** Callback when chart segment is clicked (includes level for drill-down) */
+  onSegmentClick?: (categoryId: string, level: 'category' | 'subcategory') => void;
   /** Callback when description is changed inline (FR-014) */
   onDescriptionChange?: (description: string | null) => void;
-  /** Props for share button */
-  items?: GearItem[];
-  itemStates?: LoadoutItemState[];
 }
 
 // =============================================================================
@@ -67,65 +78,23 @@ const ACTIVITY_OPTIONS: ActivityType[] = ['hiking', 'camping', 'backpacking', 'c
 const SEASON_OPTIONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
 
 // =============================================================================
-// Weight Progress Bar Component (US4: Enhanced with Total/Base display)
-// =============================================================================
-
-interface WeightProgressBarProps {
-  totalWeight: number;
-  baseWeight: number;
-}
-
-function WeightProgressBar({ totalWeight, baseWeight }: WeightProgressBarProps) {
-  const progress = Math.min((baseWeight / DEFAULT_WEIGHT_GOAL_GRAMS) * 100, 100);
-  const isOverGoal = baseWeight > DEFAULT_WEIGHT_GOAL_GRAMS;
-
-  return (
-    <div className="space-y-2">
-      {/* Total Weight and Base Weight Display (US4) */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Total Weight</span>
-        <span className="font-medium">{formatWeight(totalWeight)}</span>
-      </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Base Weight</span>
-        <span className={cn('font-medium', isOverGoal && 'text-destructive')}>
-          {formatWeight(baseWeight)} / {formatWeight(DEFAULT_WEIGHT_GOAL_GRAMS)}
-        </span>
-      </div>
-      {/* Progress Bar */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn(
-            'h-full transition-all duration-300',
-            isOverGoal ? 'bg-destructive' : 'bg-primary'
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
 // Component
 // =============================================================================
 
 export function LoadoutHeader({
   loadout,
-  totalWeight,
-  baseWeight,
-  categoryWeights,
+  items,
+  itemStates,
   activityTypes,
   seasons,
   onToggleActivity,
   onToggleSeason,
   selectedCategoryId,
   onSegmentClick,
-  onEdit,
   onDescriptionChange,
-  items = [],
-  itemStates = [],
 }: LoadoutHeaderProps) {
+  const tLoadouts = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   // Inline description editing state (FR-014, Constitution Principle I)
   const {
     isEditing,
@@ -146,49 +115,12 @@ export function LoadoutHeader({
 
   return (
     <div className="border-b bg-background">
-      <div className="container max-w-6xl py-6">
-        {/* Back Link */}
-        <Link
-          href="/loadouts"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Loadouts
-        </Link>
-
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          {/* Left: Title, Date, and Badges */}
-          <div className="flex-1 space-y-4">
-            {/* Title in sans-serif font with edit and share icons (Feature: 009-grand-visual-polish FR-012) */}
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold leading-relaxed">
-                {loadout.name}
-              </h1>
-              <div className="flex items-center gap-1">
-                {onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onEdit}
-                    className="h-8 w-8 shrink-0"
-                    aria-label="Edit loadout metadata"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                )}
-                <LoadoutShareButton
-                  loadout={loadout}
-                  items={items}
-                  itemStates={itemStates}
-                  activityTypes={activityTypes}
-                  seasons={seasons}
-                  variant="ghost"
-                  size="icon"
-                  showLabel={false}
-                />
-              </div>
-            </div>
-
+      <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-6">
+          {/* Main content row: stacks on mobile, side-by-side on md+ */}
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            {/* Left: Description, Date, and Badges */}
+            <div className="flex-1 space-y-4">
             {/* Trip Date */}
             {loadout.tripDate && (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -197,10 +129,57 @@ export function LoadoutHeader({
               </div>
             )}
 
+            {/* Description with Inline Editing */}
+            <div className="max-w-lg">
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editValue}
+                    onChange={(e) => updateValue(e.target.value)}
+                    placeholder={tLoadouts('addDescription')}
+                    className="min-h-[60px] resize-none"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveDescription}
+                      className="h-8"
+                    >
+                      <Check className="mr-1 h-3 w-3" />
+                      {tCommon('save')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={cancelEdit}
+                      className="h-8"
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      {tCommon('cancel')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => startEdit(loadout.description)}
+                  className="group w-full rounded-md text-left transition-colors hover:bg-muted/50"
+                >
+                  {loadout.description ? (
+                    <p className="text-sm text-muted-foreground">{loadout.description}</p>
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground/60">
+                      {tLoadouts('clickToAddDescription')}
+                    </p>
+                  )}
+                </button>
+              )}
+            </div>
+
             {/* Activity Badges - FR-007 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Activity
+                {tLoadouts('header.activity')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {ACTIVITY_OPTIONS.map((activity) => (
@@ -214,16 +193,10 @@ export function LoadoutHeader({
               </div>
             </div>
 
-            {/* Activity Matrix - FR-015, FR-016, FR-017, FR-018 */}
-            <ActivityMatrix
-              selectedActivities={activityTypes}
-              className="max-w-xs"
-            />
-
             {/* Season Badges - FR-008 */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Season
+                {tLoadouts('header.season')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {SEASON_OPTIONS.map((season) => (
@@ -237,76 +210,35 @@ export function LoadoutHeader({
               </div>
             </div>
 
-            {/* Weight Progress Bar - FR-009 (US4: Enhanced with Total/Base) */}
-            <div className="max-w-sm">
-              <WeightProgressBar totalWeight={totalWeight} baseWeight={baseWeight} />
+            {/* Weight Summary Table (LighterPack style) */}
+            <WeightSummaryTable
+              items={items}
+              itemStates={itemStates}
+              className="max-w-sm"
+            />
+          </div>
+
+            {/* Right: Enhanced Donut Chart - visible on md+ beside content */}
+            <div className="hidden shrink-0 md:flex md:items-start md:justify-end">
+              <EnhancedWeightDonut
+                items={items}
+                itemStates={itemStates}
+                selectedId={selectedCategoryId}
+                onSegmentClick={onSegmentClick}
+                size={260}
+              />
             </div>
           </div>
 
-          {/* Right: Description and Donut Chart */}
-          <div className="flex flex-col gap-4 lg:items-end">
-            {/* Description with Inline Editing (FR-013, FR-014) */}
-            <div className="w-full max-w-sm space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Description
-              </p>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={editValue}
-                    onChange={(e) => updateValue(e.target.value)}
-                    placeholder="Add a description for this loadout..."
-                    className="min-h-[80px] resize-none"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveDescription}
-                      className="h-8"
-                    >
-                      <Check className="mr-1 h-3 w-3" />
-                      Save
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={cancelEdit}
-                      className="h-8"
-                    >
-                      <X className="mr-1 h-3 w-3" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => startEdit(loadout.description)}
-                  className="group w-full rounded-md border border-dashed border-muted-foreground/30 p-3 text-left transition-colors hover:border-muted-foreground/50 hover:bg-muted/50"
-                >
-                  {loadout.description ? (
-                    <p className="text-sm text-foreground">{loadout.description}</p>
-                  ) : (
-                    <p className="text-sm italic text-muted-foreground">
-                      Click to add a description...
-                    </p>
-                  )}
-                  <span className="mt-1 block text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                    Click to edit
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* Donut Chart with interactive filtering (FR-012) */}
-            <div className="hidden lg:block">
-              <WeightDonut
-                categoryWeights={categoryWeights}
-                size="large"
-                selectedCategoryId={selectedCategoryId}
-                onSegmentClick={onSegmentClick}
-              />
-            </div>
+          {/* Mobile: Donut Chart below content, centered */}
+          <div className="flex justify-center md:hidden">
+            <EnhancedWeightDonut
+              items={items}
+              itemStates={itemStates}
+              selectedId={selectedCategoryId}
+              onSegmentClick={onSegmentClick}
+              size={220}
+            />
           </div>
         </div>
       </div>

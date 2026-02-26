@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Custom hook for price alerts
  * Feature: 050-price-tracking (US2)
@@ -26,7 +25,40 @@ export function usePriceAlerts(): UsePriceAlertsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadAlerts = async () => {
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAlerts = async () => {
+      try {
+        if (mounted) setIsLoading(true);
+        if (mounted) setError(null);
+
+        const supabase = createClient();
+        const { data, error: alertsError } = await supabase
+          .from('price_alerts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (alertsError) throw alertsError;
+        // Cast through unknown as DB schema may differ from client type
+        if (mounted) setAlerts((data || []) as unknown as PriceAlert[]);
+      } catch (err) {
+        if (mounted) setError(err as Error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    loadAlerts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Refresh function that can be called manually
+  const refresh = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -39,7 +71,7 @@ export function usePriceAlerts(): UsePriceAlertsResult {
         .limit(50);
 
       if (alertsError) throw alertsError;
-      setAlerts(data || []);
+      setAlerts((data || []) as unknown as PriceAlert[]);
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -47,21 +79,18 @@ export function usePriceAlerts(): UsePriceAlertsResult {
     }
   };
 
-  useEffect(() => {
-    loadAlerts();
-  }, []);
-
   const markAsRead = async (alertId: string) => {
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('price_alerts')
         .update({ opened_at: new Date().toISOString() })
         .eq('id', alertId)
         .is('opened_at', null);
 
       if (error) throw error;
-      await loadAlerts();
+      await refresh();
     } catch (err) {
       setError(err as Error);
     }
@@ -70,14 +99,15 @@ export function usePriceAlerts(): UsePriceAlertsResult {
   const markAsClicked = async (alertId: string) => {
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('price_alerts')
         .update({ clicked_at: new Date().toISOString() })
         .eq('id', alertId)
         .is('clicked_at', null);
 
       if (error) throw error;
-      await loadAlerts();
+      await refresh();
     } catch (err) {
       setError(err as Error);
     }
@@ -92,6 +122,6 @@ export function usePriceAlerts(): UsePriceAlertsResult {
     error,
     markAsRead,
     markAsClicked,
-    refresh: loadAlerts,
+    refresh,
   };
 }

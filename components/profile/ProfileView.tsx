@@ -1,11 +1,12 @@
 /**
  * ProfileView Component
  *
- * Feature: 008-auth-and-profile, 041-loadout-ux-profile
+ * Feature: 008-auth-and-profile, 041-loadout-ux-profile, 001-community-shakedowns
  * T027: Read-only profile display
  * T028: Social link icons (Instagram, Facebook, YouTube, website)
  * T030: VIP badge display when isVIP is true
  * T032: Merged profile data (Firestore avatarUrl > Auth photoURL)
+ * T071: Shakedown expertise stats and badges
  * Feature 041: Avatar fallback chain (custom > provider > initials)
  * Design: Hero header with gradient, elegant typography, soft shadows
  * Stats tiles, favorites carousel, edit icon top-left
@@ -13,6 +14,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import {
   Instagram,
   Facebook,
@@ -33,6 +35,10 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AvatarWithFallback } from '@/components/profile/AvatarWithFallback';
+import {
+  ShakedownExpertiseSection,
+  type ShakedownStats,
+} from '@/components/profile/ShakedownExpertiseSection';
 import { getDisplayAvatarUrl } from '@/lib/utils/avatar';
 import type { MergedUser } from '@/types/auth';
 
@@ -89,10 +95,11 @@ function MiniGearCard({ item, onClick }: MiniGearCardProps) {
     >
       <div className="relative w-14 h-14 rounded-lg bg-muted/50 overflow-hidden">
         {item.imageUrl ? (
-          <img
+          <Image
             src={item.imageUrl}
             alt={item.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -152,10 +159,13 @@ interface ProfileViewProps {
   forRent?: FavoriteItem[];
   /** Items for trade */
   forTrade?: FavoriteItem[];
+  /** Shakedown expertise stats (Feature 001-community-shakedowns, T071) */
+  shakedownStats?: ShakedownStats;
 }
 
-export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade }: ProfileViewProps) {
+export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, forSale, forRent, forTrade, shakedownStats }: ProfileViewProps) {
   const t = useTranslations('Profile');
+  const tStats = useTranslations('ProfileStats');
   // Feature 041: Use avatar fallback chain
   const displayAvatarUrl = getDisplayAvatarUrl(user.avatarUrl, user.providerAvatarUrl);
   // Feature 041: Show locationName if available, fallback to legacy location
@@ -168,29 +178,54 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
   const hasForRent = forRent && forRent.length > 0;
   const hasForTrade = forTrade && forTrade.length > 0;
 
+  // SECURITY: Sanitize URLs to prevent javascript: XSS injection
+  const sanitizeSocialUrl = (url: string, defaultDomain?: string): string | null => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    const lowerUrl = trimmed.toLowerCase();
+
+    // Block dangerous URL schemes
+    if (
+      lowerUrl.startsWith('javascript:') ||
+      lowerUrl.startsWith('data:') ||
+      lowerUrl.startsWith('vbscript:') ||
+      lowerUrl.startsWith('file:')
+    ) {
+      return null;
+    }
+
+    // Allow http/https URLs
+    if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
+      return trimmed;
+    }
+
+    // Otherwise, prefix with default domain or https://
+    return defaultDomain ? `${defaultDomain}${trimmed}` : `https://${trimmed}`;
+  };
+
   // Social links
   const socialLinks = [
     user.instagram && {
-      href: user.instagram.startsWith('http') ? user.instagram : `https://instagram.com/${user.instagram}`,
+      href: sanitizeSocialUrl(user.instagram, 'https://instagram.com/'),
       icon: <Instagram className="h-5 w-5" />,
       label: 'Instagram',
     },
     user.facebook && {
-      href: user.facebook.startsWith('http') ? user.facebook : `https://facebook.com/${user.facebook}`,
+      href: sanitizeSocialUrl(user.facebook, 'https://facebook.com/'),
       icon: <Facebook className="h-5 w-5" />,
       label: 'Facebook',
     },
     user.youtube && {
-      href: user.youtube.startsWith('http') ? user.youtube : `https://youtube.com/${user.youtube}`,
+      href: sanitizeSocialUrl(user.youtube, 'https://youtube.com/'),
       icon: <Youtube className="h-5 w-5" />,
       label: 'YouTube',
     },
     user.website && {
-      href: user.website.startsWith('http') ? user.website : `https://${user.website}`,
+      href: sanitizeSocialUrl(user.website),
       icon: <Globe className="h-5 w-5" />,
       label: 'Website',
     },
-  ].filter(Boolean) as SocialLinkProps[];
+  ].filter(link => link && link.href) as SocialLinkProps[];
 
   const hasSocialLinks = socialLinks.length > 0;
 
@@ -208,7 +243,7 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
             size="icon"
             onClick={onEditClick}
             className="absolute top-3 left-3 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-sm"
-            aria-label="Edit profile"
+            aria-label={t('ariaLabels.editProfile')}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -288,19 +323,28 @@ export function ProfileView({ user, onEditClick, onItemClick, stats, favorites, 
           <StatTile
             icon={<Package className="h-5 w-5" />}
             value={displayStats.itemCount}
-            label="Items"
+            label={tStats('items')}
           />
           <StatTile
             icon={<Backpack className="h-5 w-5" />}
             value={displayStats.loadoutCount}
-            label="Loadouts"
+            label={tStats('loadouts')}
           />
           <StatTile
             icon={<CheckCircle2 className="h-5 w-5" />}
             value={displayStats.shakedownCount}
-            label="Shakedowns"
+            label={tStats('shakedowns')}
           />
         </div>
+
+        {/* Shakedown Expertise Section (T071) */}
+        {shakedownStats && (
+          <ShakedownExpertiseSection
+            userId={user.uid}
+            stats={shakedownStats}
+            className="mb-6"
+          />
+        )}
 
         {/* Favorites Carousel */}
         {hasFavorites && (

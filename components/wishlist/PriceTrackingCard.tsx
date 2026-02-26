@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +31,10 @@ export function PriceTrackingCard({
   onToggleAlerts,
   onSearchPrices,
 }: PriceTrackingCardProps) {
+  const t = useTranslations('Wishlist.priceTracking.card');
+  const tMain = useTranslations('Wishlist.priceTracking');
+  const locale = useLocale();
+
   if (isLoading) {
     return (
       <Card>
@@ -46,15 +51,15 @@ export function PriceTrackingCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingDown className="h-5 w-5" />
-            Price Tracking
+            {t('titleDisabled')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Enable price tracking to discover prices from online retailers, eBay, and local outdoor shops.
+            {t('description')}
           </p>
           <Button onClick={onEnableTracking} className="w-full">
-            Track Prices
+            {t('trackPrices')}
           </Button>
         </CardContent>
       </Card>
@@ -66,13 +71,13 @@ export function PriceTrackingCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingDown className="h-5 w-5" />
-          Price Tracking Enabled
+          {t('titleEnabled')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="alerts-toggle" className="text-sm">
-            Price drop alerts
+            {t('priceDropAlerts')}
           </Label>
           <Switch
             id="alerts-toggle"
@@ -83,20 +88,24 @@ export function PriceTrackingCard({
 
         {tracking.last_checked_at && (
           <p className="text-xs text-muted-foreground">
-            Last checked:{' '}
-            {new Date(tracking.last_checked_at).toLocaleString('en-US', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
+            {tMain('lastChecked', {
+              time: new Date(tracking.last_checked_at).toLocaleString(
+                locale === 'de' ? 'de-DE' : 'en-US',
+                {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                }
+              ),
             })}
           </p>
         )}
 
         <div className="flex gap-2">
           <Button onClick={onSearchPrices} className="flex-1">
-            Search Prices Now
+            {t('searchPricesNow')}
           </Button>
           <Button onClick={onDisableTracking} variant="outline">
-            Disable
+            {t('disable')}
           </Button>
         </div>
       </CardContent>

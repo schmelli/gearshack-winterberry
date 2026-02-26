@@ -83,7 +83,7 @@ export interface MastraAgent {
     adapter: 'supabase';
     retentionDays: number; // 90 days
   };
-  workflows: WorkflowDefinition[];
+  workflows?: WorkflowDefinition[];
   observability: {
     logging: {
       enabled: boolean;
@@ -191,8 +191,30 @@ export type MastraChatEvent =
   | { type: 'text'; content: string }
   | { type: 'tool_call'; toolName: string; args: Record<string, unknown> }
   | { type: 'workflow_progress'; step: string; message: string }
+  | { type: 'confirm_action'; confirmation: ConfirmActionData }
   | { type: 'done'; messageId: string }
   | { type: 'error'; message: string; code?: string };
+
+/**
+ * Confirm action data sent when a workflow suspends for user confirmation.
+ * The frontend renders a confirmation card and the user can approve or cancel.
+ * On approval, the frontend calls POST /api/mastra/workflows/add-gear/resume.
+ */
+export interface ConfirmActionData {
+  /** Unique run ID for resuming the workflow */
+  runId: string;
+  /** Type of action requiring confirmation */
+  actionType: 'add_to_loadout';
+  /** Human-readable confirmation message */
+  message: string;
+  /** Details for UI rendering */
+  details: {
+    gearItemId: string;
+    gearItemName: string;
+    loadoutId: string;
+    loadoutName: string;
+  };
+}
 
 /**
  * Memory deletion request

@@ -2,28 +2,34 @@
  * Loadout Hero Image Section
  * Feature: 048-ai-loadout-image-gen
  * Constitution: Uses custom hook for logic, stateless UI components
+ *
+ * Premium layout with full-width hero, integrated navigation,
+ * action buttons, and badges overlay.
+ *
+ * Simplified UX: Auto-generates image when no image exists.
+ * Single regenerate button in corner for generating new images.
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { useLoadoutImageGeneration } from '@/hooks/useLoadoutImageGeneration';
-import { ImageGenerationButton } from '@/components/loadout/image-generation-button';
-import { GeneratedImagePreview } from '@/components/loadout/generated-image-preview';
-import { FallbackImagePlaceholder } from '@/components/loadout/fallback-image-placeholder';
-import { ImageHistorySelector } from '@/components/loadout/image-history-selector';
-import { StylePreferencesForm } from '@/components/loadout/style-preferences-form';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
+import { LoadoutHeroImage } from '@/components/loadout/LoadoutHeroImage';
 import type { Loadout } from '@/types/loadout';
-import type { StylePreferences } from '@/types/loadout-image';
 
 export interface LoadoutHeroImageSectionProps {
   loadout: Loadout;
   userId: string;
   totalWeight?: string;
   itemCount?: number;
+  /** Back link URL */
+  backHref?: string;
+  /** Back link label */
+  backLabel?: string;
+  /** Action buttons to display in top-right (edit, share, export, etc.) */
+  actionButtons?: ReactNode;
+  /** Badges to display (activity types, seasons) */
+  badges?: ReactNode;
 }
 
 export function LoadoutHeroImageSection({
@@ -31,13 +37,15 @@ export function LoadoutHeroImageSection({
   userId,
   totalWeight,
   itemCount,
+  backHref = '/loadouts',
+  backLabel,
+  actionButtons,
+  badges,
 }: LoadoutHeroImageSectionProps) {
   const {
     state,
     activeImage,
-    imageHistory,
     generateImage,
-    setActiveImage,
     refreshHistory,
   } = useLoadoutImageGeneration({
     loadoutId: loadout.id,
@@ -48,99 +56,69 @@ export function LoadoutHeroImageSection({
     userId,
   });
 
-  // Style preferences state (Phase 5 - US3)
-  const [stylePreferences, setStylePreferences] = useState<StylePreferences>({});
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Track initialization state
+  const hasAttemptedGeneration = useRef(false);
+  const hasLoadedHistory = useRef(false);
 
   // Load history on mount
   useEffect(() => {
-    refreshHistory();
+    let isMounted = true;
+    const initializeImage = async () => {
+      await refreshHistory();
+      if (isMounted) {
+        hasLoadedHistory.current = true;
+      }
+    };
+    initializeImage();
+    return () => {
+      isMounted = false;
+    };
   }, [refreshHistory]);
 
-  const handleGenerateClick = () => {
-    generateImage(stylePreferences);
-  };
+  // Auto-generate ONLY if:
+  // 1. History has been loaded (not just null because we haven't fetched yet)
+  // 2. No existing image in the loadout (from database)
+  // 3. No active image from history
+  // 4. Haven't already attempted generation this session
+  useEffect(() => {
+    // Wait until history has been loaded
+    if (!hasLoadedHistory.current) return;
 
-  const handleSelectImage = (imageId: string) => {
-    setActiveImage(imageId);
-  };
+    // Check if loadout already has an image (from database load)
+    const hasExistingImage = !!loadout.heroImageUrl;
 
-  // Determine text color based on image brightness
-  // TODO: Implement dynamic brightness analysis in Phase 7
-  const textColorClass = 'text-white';
+    if (
+      !hasExistingImage &&
+      !activeImage &&
+      !hasAttemptedGeneration.current &&
+      state.status === 'idle' &&
+      loadout.name
+    ) {
+      hasAttemptedGeneration.current = true;
+      generateImage();
+    }
+  }, [activeImage, state.status, loadout.name, loadout.heroImageUrl, generateImage]);
 
   const isGenerating = state.status === 'generating' || state.status === 'retrying';
 
+  const handleRegenerate = () => {
+    generateImage();
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Image Preview or Placeholder */}
-      {isGenerating ? (
-        <FallbackImagePlaceholder
-          state="loading"
-        />
-      ) : state.status === 'error' ? (
-        <FallbackImagePlaceholder
-          state="error"
-          errorMessage={state.error}
-        />
-      ) : state.status === 'fallback' && activeImage ? (
-        <FallbackImagePlaceholder
-          state="fallback"
-          fallbackUrl={activeImage.cloudinaryUrl}
-          altText={activeImage.altText || 'Fallback loadout image'}
-        />
-      ) : activeImage ? (
-        <GeneratedImagePreview
-          imageUrl={activeImage.cloudinaryUrl}
-          altText={activeImage.altText || 'Generated loadout image'}
-          isLoading={false}
-          loadoutTitle={loadout.name}
-          itemCount={itemCount}
-          totalWeight={totalWeight}
-          textColorClass={textColorClass}
-        />
-      ) : (
-        <FallbackImagePlaceholder state="empty" />
-      )}
-
-      {/* Image History Selector (Phase 4 - US2) */}
-      {imageHistory.length > 0 && (
-        <ImageHistorySelector
-          images={imageHistory}
-          activeImageId={activeImage?.id || null}
-          onSelectImage={handleSelectImage}
-        />
-      )}
-
-      {/* Advanced Style Preferences (Phase 5 - US3) */}
-      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-full">
-            <ChevronDown
-              className={`mr-2 h-4 w-4 transition-transform ${
-                showAdvanced ? 'rotate-180' : ''
-              }`}
-            />
-            Advanced Style Options
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-4">
-          <StylePreferencesForm
-            stylePreferences={stylePreferences}
-            onChange={setStylePreferences}
-          />
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Generation Buttons */}
-      <div className="flex justify-center gap-2">
-        <ImageGenerationButton
-          onClick={handleGenerateClick}
-          isGenerating={isGenerating}
-          disabled={!loadout.name || isGenerating}
-          label={activeImage ? 'Generate Another' : 'Generate Image'}
-        />
-      </div>
-    </div>
+    <LoadoutHeroImage
+      imageUrl={activeImage?.cloudinaryUrl || null}
+      altText={activeImage?.altText || 'Loadout hero image'}
+      loadoutTitle={loadout.name}
+      itemCount={itemCount}
+      totalWeight={totalWeight}
+      isGenerating={isGenerating}
+      errorMessage={state.status === 'error' ? state.error : undefined}
+      onRegenerate={handleRegenerate}
+      backHref={backHref}
+      backLabel={backLabel}
+      actionButtons={actionButtons}
+      badges={badges}
+    />
   );
 }

@@ -6,7 +6,7 @@
  * Displays countdown timer and prevents sending when limit exceeded.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface RateLimitState {
@@ -42,7 +42,8 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
     timeUntilReset: '',
   });
 
-  const supabase = createClient();
+  // Memoize Supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // Calculate human-readable time until reset
   const calculateTimeUntilReset = useCallback((resetsAt: Date): string => {
@@ -87,15 +88,16 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
 
       if (data) {
         // Type assertion for RPC JSON response
-        const rateLimitData = data as any;
-        const resetsAt = new Date(rateLimitData.resets_at);
-        const remaining = rateLimitData.limit - rateLimitData.count;
+         
+        const rateLimitData = data as Record<string, unknown>;
+        const resetsAt = new Date(rateLimitData.resets_at as string);
+        const remaining = (rateLimitData.limit as number) - (rateLimitData.count as number);
 
         setState({
           remaining: Math.max(0, remaining),
-          total: rateLimitData.limit,
+          total: rateLimitData.limit as number,
           resetsAt,
-          isLimited: rateLimitData.exceeded,
+          isLimited: rateLimitData.exceeded as boolean,
           timeUntilReset: calculateTimeUntilReset(resetsAt),
         });
       }
@@ -141,7 +143,8 @@ export function useRateLimiting(userId: string | null): UseRateLimitingResult {
 
   // Calculate seconds until reset
   const remainingTime = state.resetsAt
-    ? Math.max(0, Math.floor((state.resetsAt.getTime() - Date.now()) / 1000))
+    ? // eslint-disable-next-line react-hooks/purity -- Date.now() is safe for display calculation
+      Math.max(0, Math.floor((state.resetsAt.getTime() - Date.now()) / 1000))
     : 0;
 
   return {

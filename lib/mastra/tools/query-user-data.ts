@@ -18,7 +18,7 @@
 
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 // =============================================================================
 // Input Schema
@@ -49,9 +49,11 @@ const queryUserDataInputSchema = z.object({
       column: z.string(),
       value: z.string(),
       caseSensitive: z.boolean().optional().default(false),
+      fuzzy: z.boolean().optional().default(false),
+      fuzzyThreshold: z.number().min(0).max(1).optional().default(0.3),
     })
     .optional()
-    .describe('Text search filter (uses ILIKE for case-insensitive search)'),
+    .describe('Text search filter (uses ILIKE for exact match, or similarity() for fuzzy/typo-tolerant search when fuzzy=true)'),
 
   orderBy: z
     .object({
@@ -116,10 +118,10 @@ export type QueryUserDataOutput = z.infer<typeof queryUserDataOutputSchema>;
  */
 export const queryUserDataTool = createTool({
   id: 'queryUserData',
-  description: `Execute flexible read-only queries on user's database.
+  description: `Execute flexible read-only queries on user's database with optional fuzzy/typo-tolerant search.
 
 Available tables:
-- gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, category_id, status, etc.)
+- gear_items: User's gear inventory (id, name, brand, weight_grams, price_paid, product_type_id, status, etc.)
 - loadouts: User's loadouts (id, name, description, total_weight, activity_types, seasons, etc.)
 - loadout_items: Items in loadouts (loadout_id, gear_item_id, quantity, etc.)
 - categories: Gear categories (id, label, i18n, icon, etc.)
@@ -131,18 +133,28 @@ Examples:
 - Find all Osprey gear: {table: "gear_items", filters: {brand: "Osprey"}}
 - Count wishlist items: {table: "gear_items", operation: "count", filters: {status: "wishlist"}}
 - Search by name: {table: "gear_items", search: {column: "name", value: "tent"}}
+- Fuzzy search (typo-tolerant): {table: "gear_items", search: {column: "name", value: "qilt", fuzzy: true}}
 - Find items under 500g: {table: "gear_items", range: {column: "weight_grams", max: 500}}
-- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}`,
+- Sort by weight: {table: "gear_items", orderBy: {column: "weight_grams", ascending: true}}
+
+Fuzzy Search:
+- Set search.fuzzy = true to enable typo-tolerant search (e.g., "qilt" will match "quilt")
+- Uses PostgreSQL trigram similarity (pg_trgm) with default 30% match threshold
+- Results ordered by similarity score (best matches first)
+- Adjust threshold with search.fuzzyThreshold (0-1, default 0.3)`,
 
   inputSchema: queryUserDataInputSchema,
   outputSchema: queryUserDataOutputSchema,
 
-  execute: async ({ context, runtimeContext }): Promise<QueryUserDataOutput> => {
+  execute: async (input, executionContext): Promise<QueryUserDataOutput> => {
     const startTime = Date.now();
-    const { table, operation, select, filters, search, orderBy, limit, range } = context;
+    const { table, operation, select, filters, search, orderBy, limit, range } = input;
 
-    // Get userId from runtimeContext (set by chat route)
-    const userId = runtimeContext?.get('userId') as string | undefined;
+    // Get userId from execution context's requestContext (renamed from runtimeContext in Mastra v1.0+)
+    // Note: requestContext is passed at runtime but not exposed in ToolExecutionContext type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestContext = (executionContext as any)?.requestContext as Map<string, unknown> | undefined;
+    const userId = requestContext?.get('userId') as string | undefined;
 
     if (!userId) {
       return {
@@ -156,24 +168,9 @@ Examples:
     }
 
     try {
-      const supabase = await createClient();
-
-      // Verify user authentication
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user || user.id !== userId) {
-        return {
-          success: false,
-          operation: operation ?? 'select',
-          table,
-          rowCount: 0,
-          data: null,
-          error: 'Authentication failed or user mismatch',
-        };
-      }
+      // Use service role client since userId was already verified by the chat route
+      // Security: All queries are explicitly filtered by user_id below
+      const supabase = createServiceRoleClient();
 
       // Start building query
       const effectiveOperation = operation ?? 'select';
@@ -208,12 +205,114 @@ Examples:
         }
       }
 
-      // Apply search filter (case-insensitive ILIKE)
+      // Handle fuzzy search differently - uses RPC function
+      if (search?.fuzzy) {
+        const threshold = search.fuzzyThreshold ?? 0.3;
+        const effectiveLimit = limit ?? 50;
+
+        // Prepare filters for RPC (convert to JSONB format)
+        const rpcFilters = filters ? filters : null;
+
+        // Prepare range parameters
+        const rangeColumn = range?.column ?? null;
+        const rangeMin = range?.min ?? null;
+        const rangeMax = range?.max ?? null;
+
+        // Use fuzzy_search_column RPC for typo-tolerant search
+        // Type assertion: RPC function not in generated types, using 'never' to bypass strict checking
+        interface FuzzySearchResult {
+          row_data: Record<string, unknown>;
+          similarity_score: number;
+        }
+        const { data: fuzzyData, error: fuzzyError } = (await Promise.race([
+          supabase.rpc('fuzzy_search_column' as never, {
+            p_table_name: table,
+            p_column_name: search.column,
+            p_search_value: search.value,
+            p_user_id: userId,
+            p_similarity_threshold: threshold,
+            p_limit: effectiveLimit,
+            p_filters: rpcFilters,
+            p_range_column: rangeColumn,
+            p_range_min: rangeMin,
+            p_range_max: rangeMax,
+          } as never),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Query timeout (5s)')), 5000)
+          ),
+        ])) as { data: FuzzySearchResult[] | null; error: { message: string; details?: string; hint?: string; code?: string } | null };
+
+        if (fuzzyError) {
+          // Log detailed error for debugging (server-side only)
+          console.error('[queryUserData] Fuzzy search error:', {
+            message: fuzzyError.message,
+            details: fuzzyError.details,
+            hint: fuzzyError.hint,
+            code: fuzzyError.code,
+            params: { table, column: search.column, value: search.value, threshold },
+          });
+
+          // Return sanitized error message to user (no database internals)
+          let userMessage = 'Fuzzy search failed. Please try again with different search terms.';
+
+          // Provide helpful hints for common errors without exposing internals
+          if (fuzzyError.code === '42703') {
+            userMessage = 'Invalid search column. Please contact support if this persists.';
+          } else if (fuzzyError.code === '42P01') {
+            userMessage = 'Invalid table specified. Please contact support if this persists.';
+          }
+
+          return {
+            success: false,
+            operation: effectiveOperation,
+            table,
+            rowCount: 0,
+            data: null,
+            error: userMessage,
+          };
+        }
+
+        const executionTime = Date.now() - startTime;
+
+        // Extract row_data from fuzzy search results
+        const results = fuzzyData?.map((row) => row.row_data) ?? [];
+
+        // Build applied filters list for metadata
+        const fuzzyAppliedFilters = [`fuzzy_search:${search.column}:threshold=${threshold}`];
+        if (filters) {
+          fuzzyAppliedFilters.push(...Object.keys(filters).map(key => `filter:${key}`));
+        }
+        if (range) {
+          if (range.min !== undefined) fuzzyAppliedFilters.push(`${range.column}:min`);
+          if (range.max !== undefined) fuzzyAppliedFilters.push(`${range.column}:max`);
+        }
+
+        return {
+          success: true,
+          operation: effectiveOperation,
+          table,
+          rowCount: results.length,
+          data: results as Record<string, unknown>[],
+          metadata: {
+            executionTimeMs: executionTime,
+            limitApplied: effectiveLimit,
+            filtersApplied: fuzzyAppliedFilters,
+          },
+        };
+      }
+
+      // Apply standard search filter (case-insensitive ILIKE)
       if (search) {
+        // Sanitize search value to prevent ILIKE injection
+        const sanitizedValue = search.value
+          .replace(/\\/g, '\\\\')  // Escape backslash first
+          .replace(/%/g, '\\%')    // Escape %
+          .replace(/_/g, '\\_')    // Escape _
+          .replace(/[(),\.]/g, ''); // Remove PostgREST operators
         if (search.caseSensitive) {
-          query = query.like(search.column, `%${search.value}%`);
+          query = query.like(search.column, `%${sanitizedValue}%`);
         } else {
-          query = query.ilike(search.column, `%${search.value}%`);
+          query = query.ilike(search.column, `%${sanitizedValue}%`);
         }
         appliedFilters.push(`search:${search.column}`);
       }
@@ -250,6 +349,7 @@ Examples:
       ]);
 
       if (error) {
+        // Log detailed error for debugging (server-side only)
         console.error('[queryUserData] Database error:', {
           message: error.message,
           details: error.details,
@@ -258,13 +358,26 @@ Examples:
           table,
           operation: effectiveOperation,
         });
+
+        // Return sanitized error message to user (no database internals)
+        let userMessage = 'Database query failed. Please try again.';
+
+        // Provide helpful hints for common errors without exposing internals
+        if (error.code === '42703') {
+          userMessage = 'Invalid column specified in query. Please contact support if this persists.';
+        } else if (error.code === '42P01') {
+          userMessage = 'Invalid table specified. Please contact support if this persists.';
+        } else if (error.code === 'PGRST116') {
+          userMessage = 'No matching records found.';
+        }
+
         return {
           success: false,
           operation: effectiveOperation,
           table,
           rowCount: 0,
           data: null,
-          error: `Database query failed: ${error.message}${error.hint ? ` (${error.hint})` : ''}`,
+          error: userMessage,
         };
       }
 
@@ -284,6 +397,87 @@ Examples:
             filtersApplied: appliedFilters,
           },
         };
+      }
+
+      // AUTO-FUZZY FALLBACK: If search returned 0 results and fuzzy wasn't enabled,
+      // automatically retry with fuzzy search to handle typos transparently
+      if (
+        search &&
+        !search.fuzzy &&
+        effectiveOperation === 'select' &&
+        (!data || data.length === 0)
+      ) {
+        console.log('[queryUserData] Auto-fuzzy fallback triggered for zero results', {
+          table,
+          column: search.column,
+          value: search.value,
+        });
+
+        // Retry with fuzzy search enabled
+        const threshold = search.fuzzyThreshold ?? 0.3;
+        const rpcFilters = filters ? filters : null;
+        const rangeColumn = range?.column ?? null;
+        const rangeMin = range?.min ?? null;
+        const rangeMax = range?.max ?? null;
+
+        // Type for fuzzy search RPC result (defined above, reusing interface)
+        interface FallbackFuzzySearchResult {
+          row_data: Record<string, unknown>;
+          similarity_score: number;
+        }
+        const { data: fuzzyData, error: fuzzyError } = (await Promise.race([
+          supabase.rpc('fuzzy_search_column' as never, {
+            p_table_name: table,
+            p_column_name: search.column,
+            p_search_value: search.value,
+            p_user_id: userId,
+            p_similarity_threshold: threshold,
+            p_limit: effectiveLimit,
+            p_filters: rpcFilters,
+            p_range_column: rangeColumn,
+            p_range_min: rangeMin,
+            p_range_max: rangeMax,
+          } as never),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Fuzzy fallback timeout (5s)')), 5000)
+          ),
+        ])) as { data: FallbackFuzzySearchResult[] | null; error: unknown };
+
+        // If fuzzy search succeeds and finds results, return those instead
+        if (!fuzzyError && fuzzyData && fuzzyData.length > 0) {
+          const fuzzyExecutionTime = Date.now() - startTime;
+          const results = fuzzyData.map((row) => row.row_data);
+
+          console.log('[queryUserData] Auto-fuzzy fallback succeeded', {
+            table,
+            column: search.column,
+            value: search.value,
+            resultsFound: results.length,
+          });
+
+          return {
+            success: true,
+            operation: effectiveOperation,
+            table,
+            rowCount: results.length,
+            data: results as Record<string, unknown>[],
+            metadata: {
+              executionTimeMs: fuzzyExecutionTime,
+              limitApplied: effectiveLimit,
+              filtersApplied: [
+                ...appliedFilters,
+                `auto_fuzzy_fallback:${search.column}:threshold=${threshold}`,
+              ],
+            },
+          };
+        }
+
+        // If fuzzy fallback also fails, continue with original empty result
+        console.log('[queryUserData] Auto-fuzzy fallback found no results', {
+          table,
+          column: search.column,
+          value: search.value,
+        });
       }
 
       return {

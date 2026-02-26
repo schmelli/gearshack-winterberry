@@ -4,10 +4,16 @@
  * Feature: 044-intelligence-integration
  *
  * Uses the catalog_products table synced from GearGraph.
+ * Category hierarchy (categoryMain, subcategory, productType) is derived from
+ * the categories table via product_type_id FK.
+ *
+ * If catalog_products table is empty or unavailable, falls back to searching
+ * the user's own gear_items for product name suggestions.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/database';
 
 // Public endpoint - no authentication required
@@ -21,6 +27,7 @@ interface ProductSearchResult {
   categoryMain: string | null;
   subcategory: string | null;
   productType: string | null;
+  productTypeId: string | null;
   weightGrams: number | null;
   priceUsd: number | null;
   description: string | null;
@@ -33,14 +40,49 @@ interface ProductSearchResponse {
   count: number;
 }
 
+// Type for category with parent chain
+interface CategoryWithParent {
+  id: string;
+  label: string;
+  slug: string;
+  level: number;
+  parent_id: string | null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const q = searchParams.get('q') || '';
-    const brandId = searchParams.get('brand_id') || undefined;
+    const brandIdParam = searchParams.get('brand_id') || undefined;
+    const brandNameParam = searchParams.get('brand_name') || undefined;
     const limitParam = searchParams.get('limit') || '8';
-    const limit = Math.min(Math.max(parseInt(limitParam, 10) || 8, 1), 20);
+    const parsedLimit = parseInt(limitParam, 10);
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 20) : 8;
+
+    // Determine brand filtering strategy:
+    // 1. If brand_name is provided, use it for ILIKE filtering (most reliable)
+    // 2. If brand_id is a catalog UUID (not starting with 'inventory-'), use exact match
+    // 3. If brand_id is an inventory format, try to extract brand name as fallback
+    let catalogBrandId: string | undefined;
+    let brandNameFilter: string | undefined;
+
+    if (brandNameParam) {
+      // Preferred: use explicit brand name for ILIKE filtering
+      brandNameFilter = brandNameParam.toLowerCase().trim();
+    } else if (brandIdParam) {
+      if (brandIdParam.startsWith('inventory-')) {
+        // Extract brand name from inventory format: inventory-{userId}-{brandName}
+        const parts = brandIdParam.split('-');
+        if (parts.length >= 3) {
+          // Skip 'inventory' and userId, join remaining parts with spaces
+          brandNameFilter = parts.slice(2).join(' ');
+        }
+      } else {
+        // Catalog UUID - use for exact match on brand_id FK
+        catalogBrandId = brandIdParam;
+      }
+    }
 
     // Require minimum query length
     if (q.length < 2) {
@@ -64,38 +106,190 @@ export async function GET(request: NextRequest) {
     const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
     // Build query - use ILIKE for case-insensitive search
-    const normalizedQuery = q.toLowerCase().trim();
+    // Escape ILIKE special characters to prevent injection
+    // Order matters: escape backslash first, then wildcards
+    const normalizedQuery = q.toLowerCase().trim()
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
 
-    // Query only columns that exist in the actual database
-    // Note: category_main, subcategory don't exist - only product_type does
+    // Query catalog_products with FK joins to catalog_brands and categories
+    // The product_type_id references categories at level 3 (product type)
     let queryBuilder = supabase
       .from('catalog_products')
       .select(`
         id,
         name,
-        brand_id,
-        brand_external_id,
         product_type,
+        product_type_id,
         weight_grams,
         price_usd,
-        description
+        description,
+        brand_id,
+        catalog_brands!catalog_products_brand_id_fkey (
+          id,
+          name
+        )
       `)
       .ilike('name', `%${normalizedQuery}%`)
       .limit(limit);
 
-    // Filter by brand if provided
-    if (brandId) {
-      queryBuilder = queryBuilder.eq('brand_id', brandId);
+    // Filter by brand if a catalog brand ID was provided (UUID format)
+    if (catalogBrandId) {
+      queryBuilder = queryBuilder.eq('brand_id', catalogBrandId);
     }
 
     const { data, error } = await queryBuilder;
 
-    if (error) {
-      console.error('Product search error:', error);
-      return NextResponse.json(
-        { error: 'Search failed', details: error.message, code: error.code },
-        { status: 500 }
-      );
+    // If catalog search fails (table doesn't exist) or returns empty,
+    // fall back to searching user's own gear_items
+    if (error || !data || data.length === 0) {
+      // Catalog products unavailable, falling back to user inventory search
+
+      // Try to get authenticated user for inventory fallback
+      const authSupabase = await createServerClient();
+      const { data: { user } } = await authSupabase.auth.getUser();
+
+      if (user) {
+        // Build inventory query with optional brand filtering
+        let inventoryQuery = authSupabase
+          .from('gear_items')
+          .select(`
+            id,
+            name,
+            brand,
+            weight_grams,
+            product_type_id,
+            description
+          `)
+          .eq('user_id', user.id)
+          .not('name', 'is', null)
+          .ilike('name', `%${normalizedQuery}%`);
+
+        // Filter by brand name if we have a brand name filter
+        if (brandNameFilter) {
+          // Escape ILIKE special characters in brand filter
+          const escapedBrandFilter = brandNameFilter
+            .replace(/\\/g, '\\\\')
+            .replace(/%/g, '\\%')
+            .replace(/_/g, '\\_');
+          inventoryQuery = inventoryQuery.ilike('brand', `%${escapedBrandFilter}%`);
+        }
+
+        const { data: inventoryItems, error: invError } = await inventoryQuery.limit(limit);
+
+        if (!invError && inventoryItems && inventoryItems.length > 0) {
+          // Deduplicate by name (keep first occurrence)
+          const seenNames = new Set<string>();
+          const uniqueItems = inventoryItems.filter((item) => {
+            const nameLower = item.name?.toLowerCase() || '';
+            if (seenNames.has(nameLower)) return false;
+            seenNames.add(nameLower);
+            return true;
+          });
+
+          const inventoryResults: ProductSearchResult[] = uniqueItems.map((item) => {
+            const nameLower = (item.name || '').toLowerCase();
+            const matchIndex = nameLower.indexOf(normalizedQuery);
+            const score =
+              matchIndex === 0
+                ? 0.9 + 0.1 * (normalizedQuery.length / nameLower.length)
+                : matchIndex > 0
+                  ? 0.5 + 0.3 * (normalizedQuery.length / nameLower.length)
+                  : 0.3;
+
+            return {
+              id: `inventory-${item.id}`,
+              name: item.name || '',
+              brand: item.brand ? { id: `inv-brand-${item.brand}`, name: item.brand } : null,
+              categoryMain: null,
+              subcategory: null,
+              productType: null,
+              productTypeId: item.product_type_id || null,
+              weightGrams: item.weight_grams || null,
+              priceUsd: null,
+              description: item.description || null,
+              score: Math.round(score * 100) / 100,
+            };
+          });
+
+          inventoryResults.sort((a, b) => b.score - a.score);
+
+          return NextResponse.json({
+            results: inventoryResults,
+            query: q,
+            count: inventoryResults.length,
+            source: 'inventory',
+          });
+        }
+      }
+
+      // No catalog and no inventory results
+      if (error) {
+        console.error('Product search error:', error);
+      }
+
+      // Return empty results rather than error (graceful degradation)
+      return NextResponse.json({
+        results: [],
+        query: q,
+        count: 0,
+      });
+    }
+
+    // Collect all product_type_ids to fetch category hierarchy in batch
+    const productTypeIds = (data || [])
+      .map((p) => p.product_type_id)
+      .filter((id): id is string => id !== null);
+
+    // Fetch category hierarchy for all product types in one query
+    // We need to get the full parent chain for each category
+    const categoryMap = new Map<
+      string,
+      { categoryMain: string | null; subcategory: string | null; productType: string | null }
+    >();
+
+    if (productTypeIds.length > 0) {
+      // Get all categories to build the hierarchy
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- categories table not in generated types
+      const { data: allCategories } = await (supabase as any)
+        .from('categories')
+        .select('id, label, slug, level, parent_id')
+        .order('level');
+
+      if (allCategories) {
+        // Build a lookup map by ID
+        const catById = new Map<string, CategoryWithParent>();
+        for (const cat of allCategories) {
+          catById.set(cat.id, cat);
+        }
+
+        // For each product_type_id, walk up the tree to find subcategory and main category
+        for (const ptId of productTypeIds) {
+          const productTypeCat = catById.get(ptId);
+          if (!productTypeCat) continue;
+
+          let categoryMain: string | null = null;
+          let subcategory: string | null = null;
+          const productType = productTypeCat.label;
+
+          // Walk up the parent chain
+          if (productTypeCat.parent_id) {
+            const subcategoryCat = catById.get(productTypeCat.parent_id);
+            if (subcategoryCat) {
+              subcategory = subcategoryCat.label;
+              if (subcategoryCat.parent_id) {
+                const mainCat = catById.get(subcategoryCat.parent_id);
+                if (mainCat) {
+                  categoryMain = mainCat.label;
+                }
+              }
+            }
+          }
+
+          categoryMap.set(ptId, { categoryMain, subcategory, productType });
+        }
+      }
     }
 
     // Calculate simple similarity scores and format results
@@ -109,16 +303,21 @@ export async function GET(request: NextRequest) {
             ? 0.5 + 0.3 * (normalizedQuery.length / nameLower.length)
             : 0.3;
 
-      // Use brand_external_id as brand name (no FK join needed)
+      // Get category hierarchy from the map, or fallback to product_type TEXT field
+      const categoryInfo = product.product_type_id
+        ? categoryMap.get(product.product_type_id)
+        : null;
+
       return {
         id: product.id,
         name: product.name,
-        brand: product.brand_external_id
-          ? { id: product.brand_id || '', name: product.brand_external_id }
+        brand: product.catalog_brands
+          ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
           : null,
-        categoryMain: null, // Column doesn't exist in DB
-        subcategory: null, // Column doesn't exist in DB
-        productType: product.product_type,
+        categoryMain: categoryInfo?.categoryMain ?? null,
+        subcategory: categoryInfo?.subcategory ?? null,
+        productType: categoryInfo?.productType ?? product.product_type,
+        productTypeId: product.product_type_id,
         weightGrams: product.weight_grams,
         priceUsd: product.price_usd,
         description: product.description,
@@ -135,7 +334,12 @@ export async function GET(request: NextRequest) {
       count: results.length,
     };
 
-    return NextResponse.json(response);
+    // Cache catalog search results for 1 hour (public data)
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (err) {
     console.error('Product search error:', err);
     return NextResponse.json(

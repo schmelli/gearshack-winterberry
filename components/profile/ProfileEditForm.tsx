@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,7 @@ interface ProfileEditFormProps {
 }
 
 export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps) {
+  const t = useTranslations('Profile.edit');
   const [isLoading, setIsLoading] = useState(false);
   // Feature 041: Track avatar changes separately (outside form state)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl);
@@ -102,13 +104,13 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
     try {
       await onSave(data);
       // T038: Success toast
-      toast.success('Profile updated', {
-        description: 'Your profile has been saved successfully.',
+      toast.success(t('profileUpdated'), {
+        description: t('profileUpdatedDescription'),
       });
     } catch (error) {
       // T038: Error toast
-      const message = error instanceof Error ? error.message : 'Failed to save profile';
-      toast.error('Save failed', {
+      const message = error instanceof Error ? error.message : t('saveFailedDefault');
+      toast.error(t('saveFailed'), {
         description: message,
       });
     } finally {
@@ -145,15 +147,15 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
           name="displayName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Display Name</FormLabel>
+              <FormLabel>{t('displayNameLabel')}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Your name"
+                  placeholder={t('displayNamePlaceholder')}
                   disabled={isLoading}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>2-50 characters</FormDescription>
+              <FormDescription>{t('displayNameDescription')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -165,15 +167,15 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
           name="trailName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Trail Name</FormLabel>
+              <FormLabel>{t('trailNameLabel')}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Your trail name (optional)"
+                  placeholder={t('trailNamePlaceholder')}
                   disabled={isLoading}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>2-30 characters (optional)</FormDescription>
+              <FormDescription>{t('trailNameDescription')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -185,17 +187,17 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
           name="bio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Bio</FormLabel>
+              <FormLabel>{t('bioLabel')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Tell us about yourself..."
+                  placeholder={t('bioPlaceholder')}
                   className="min-h-[100px] resize-none"
                   disabled={isLoading}
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                {field.value?.length || 0}/500 characters
+                {t('bioCharCount', { count: field.value?.length || 0 })}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -204,23 +206,23 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
 
         {/* Feature 041: Location with autocomplete */}
         <FormItem>
-          <FormLabel>Location</FormLabel>
+          <FormLabel>{t('locationLabel')}</FormLabel>
           <FormControl>
             <LocationAutocomplete
               value={locationName}
               onSelect={handleLocationSelect}
-              placeholder="Search for a city..."
+              placeholder={t('locationPlaceholder')}
               disabled={isLoading}
             />
           </FormControl>
           <FormDescription>
-            Search and select your home location
+            {t('locationDescription')}
           </FormDescription>
         </FormItem>
 
         {/* Social Links Section */}
         <div className="space-y-3 rounded-lg border p-4">
-          <h4 className="text-sm font-medium">Social Links</h4>
+          <h4 className="text-sm font-medium">{t('socialLinksTitle')}</h4>
 
           {/* Instagram */}
           <FormField
@@ -228,10 +230,10 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             name="instagram"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Instagram</FormLabel>
+                <FormLabel className="text-xs">{t('instagramLabel')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="username or URL"
+                    placeholder={t('usernameOrUrlPlaceholder')}
                     disabled={isLoading}
                     {...field}
                   />
@@ -247,10 +249,10 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             name="facebook"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Facebook</FormLabel>
+                <FormLabel className="text-xs">{t('facebookLabel')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="username or URL"
+                    placeholder={t('usernameOrUrlPlaceholder')}
                     disabled={isLoading}
                     {...field}
                   />
@@ -266,10 +268,10 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             name="youtube"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">YouTube</FormLabel>
+                <FormLabel className="text-xs">{t('youtubeLabel')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="channel URL"
+                    placeholder={t('channelUrlPlaceholder')}
                     disabled={isLoading}
                     {...field}
                   />
@@ -285,10 +287,10 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             name="website"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs">Website</FormLabel>
+                <FormLabel className="text-xs">{t('websiteLabel')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="https://example.com"
+                    placeholder={t('websiteUrlPlaceholder')}
                     disabled={isLoading}
                     {...field}
                   />
@@ -308,11 +310,11 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             disabled={isLoading}
             className="flex-1"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" disabled={isLoading} className="flex-1">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
+            {t('saveChanges')}
           </Button>
         </div>
       </form>

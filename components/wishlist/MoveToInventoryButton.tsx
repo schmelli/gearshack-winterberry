@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 // =============================================================================
 // Types
@@ -77,6 +78,7 @@ export function MoveToInventoryButton({
   iconOnly = false,
   disabled = false,
 }: MoveToInventoryButtonProps) {
+  const t = useTranslations('Wishlist');
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -91,7 +93,7 @@ export function MoveToInventoryButton({
       setIsOpen(false);
 
       // T084: Announce success to screen readers
-      onMoveAnnouncement?.(`${itemName} moved to inventory successfully.`);
+      onMoveAnnouncement?.(t('move.successAnnouncement', { itemName }));
 
       // Call completion callback after dialog closes
       onMoveComplete?.();
@@ -119,7 +121,7 @@ export function MoveToInventoryButton({
             e.stopPropagation(); // Prevent card click
           }}
           // T082: Descriptive aria-label for screen readers
-          aria-label={`Move ${itemName} to inventory`}
+          aria-label={t('move.ariaLabelMove', { itemName })}
           // T082: Indicate loading state
           aria-busy={isLoading}
         >
@@ -136,10 +138,10 @@ export function MoveToInventoryButton({
           )}
           {!iconOnly && (
             <span aria-hidden={isLoading}>
-              {isLoading ? 'Moving...' : 'Move to Inventory'}
+              {isLoading ? t('move.moving') : t('move.buttonText')}
             </span>
           )}
-          {iconOnly && <span className="sr-only">Move {itemName} to Inventory</span>}
+          {iconOnly && <span className="sr-only">{t('move.ariaLabelMove', { itemName })}</span>}
         </Button>
       </AlertDialogTrigger>
       {/*
@@ -156,39 +158,40 @@ export function MoveToInventoryButton({
         aria-busy={isLoading}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>Move to Inventory</AlertDialogTitle>
+          <AlertDialogTitle>{t('move.dialogTitle')}</AlertDialogTitle>
           <AlertDialogDescription id={dialogDescriptionId}>
-            Are you sure you want to move{' '}
-            <span className="font-medium text-foreground">{itemName}</span>{' '}
-            from your wishlist to your inventory?
+            {t.rich('move.dialogDescription', {
+              itemName,
+              strong: (chunks) => <span className="font-medium text-foreground">{chunks}</span>,
+            })}
             <br />
             <br />
-            This will mark the item as owned gear. You can always edit its status later.
+            {t('move.dialogNote')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
             disabled={isLoading}
-            aria-label="Cancel and keep item in wishlist"
+            aria-label={t('move.ariaLabelCancel')}
           >
-            Cancel
+            {t('move.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleMove}
             disabled={isLoading}
             className="bg-primary hover:bg-primary/90"
-            aria-label={isLoading ? 'Moving item to inventory' : `Confirm move ${itemName} to inventory`}
+            aria-label={isLoading ? t('move.ariaLabelMoving') : t('move.ariaLabelConfirm', { itemName })}
             aria-busy={isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                <span>Moving...</span>
+                <span>{t('move.moving')}</span>
               </>
             ) : (
               <>
                 <Package className="mr-2 h-4 w-4" aria-hidden="true" />
-                <span>Move to Inventory</span>
+                <span>{t('move.buttonText')}</span>
               </>
             )}
           </AlertDialogAction>

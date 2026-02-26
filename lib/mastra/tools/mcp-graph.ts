@@ -12,6 +12,7 @@
  * - Direct Cypher graph queries for complex traversals
  */
 
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { mcpClient } from '@/lib/mastra/mcp-client';
 import type { MCPToolResult } from '@/types/mastra';
@@ -531,7 +532,7 @@ export function formatSearchResultsForAI(output: SearchGearOutput): string {
  * or the catalog. Uses the GearGraph to find similar, lighter, cheaper, or
  * higher-rated alternatives.
  */
-export const findAlternativesTool = {
+export const findAlternativesTool = createTool({
   id: 'findAlternatives',
   description: `Find gear alternatives for a specific item using the GearGraph.
 
@@ -543,14 +544,14 @@ Use this tool when:
 
 Returns alternatives with weight, price, rating, and reasoning for each suggestion.
 Falls back gracefully if the GearGraph is unavailable.`,
-  parameters: findAlternativesInputSchema,
+  inputSchema: findAlternativesInputSchema,
 
   execute: async (
-    params: FindAlternativesInput
+    input: FindAlternativesInput
   ): Promise<FindAlternativesOutput> => {
-    return executeFindAlternatives(params);
+    return executeFindAlternatives(input);
   },
-};
+});
 
 /**
  * Search Gear Tool for Mastra Agent
@@ -558,7 +559,7 @@ Falls back gracefully if the GearGraph is unavailable.`,
  * Searches the gear catalog using the GearGraph for enhanced results
  * with filtering and relevance scoring.
  */
-export const searchGearTool = {
+export const searchGearTool = createTool({
   id: 'searchGear',
   description: `Search the gear catalog using the GearGraph for enhanced results.
 
@@ -569,12 +570,12 @@ Use this tool when:
 
 Returns ranked results with relevance scores and full product details.
 Supports filtering by category, brand, maxWeight, maxPrice, and minRating.`,
-  parameters: searchGearInputSchema,
+  inputSchema: searchGearInputSchema,
 
-  execute: async (params: SearchGearInput): Promise<SearchGearOutput> => {
-    return executeSearchGear(params);
+  execute: async (input: SearchGearInput): Promise<SearchGearOutput> => {
+    return executeSearchGear(input);
   },
-};
+});
 
 /**
  * Query GearGraph Tool for Mastra Agent

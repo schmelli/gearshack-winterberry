@@ -10,12 +10,13 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Lightbulb, AlertCircle, ExternalLink, AlertTriangle, GitCompare, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import type { GearInsight, InsightType } from '@/types/geargraph';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeExternalUrl } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -50,35 +51,35 @@ const INSIGHT_TYPE_CONFIG: Record<InsightType, {
   text: string;
   border: string;
   icon: React.ComponentType<{ className?: string }>;
-  label: string;
+  labelKey: string;
 }> = {
   tip: {
     bg: 'bg-blue-50 dark:bg-blue-900/20',
     text: 'text-blue-800 dark:text-blue-200',
     border: 'border-blue-200 dark:border-blue-800',
     icon: Lightbulb,
-    label: 'Tip',
+    labelKey: 'types.tip',
   },
   comparison: {
     bg: 'bg-purple-50 dark:bg-purple-900/20',
     text: 'text-purple-800 dark:text-purple-200',
     border: 'border-purple-200 dark:border-purple-800',
     icon: GitCompare,
-    label: 'Comparison',
+    labelKey: 'types.comparison',
   },
   warning: {
     bg: 'bg-amber-50 dark:bg-amber-900/20',
     text: 'text-amber-800 dark:text-amber-200',
     border: 'border-amber-200 dark:border-amber-800',
     icon: AlertTriangle,
-    label: 'Warning',
+    labelKey: 'types.warning',
   },
   recommendation: {
     bg: 'bg-green-50 dark:bg-green-900/20',
     text: 'text-green-800 dark:text-green-200',
     border: 'border-green-200 dark:border-green-800',
     icon: Sparkles,
-    label: 'Recommendation',
+    labelKey: 'types.recommendation',
   },
 };
 
@@ -94,6 +95,8 @@ export function GearInsightsSection({
   gearContext,
   onInsightDismissed,
 }: GearInsightsSectionProps) {
+  const t = useTranslations('GearInsights');
+
   // T056: Loading skeleton state
   if (isLoading) {
     return (
@@ -112,7 +115,7 @@ export function GearInsightsSection({
     return (
       <div className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)}>
         <AlertCircle className="h-4 w-4" />
-        <span>Insights temporarily unavailable</span>
+        <span>{t('unavailable')}</span>
       </div>
     );
   }
@@ -122,7 +125,7 @@ export function GearInsightsSection({
     return (
       <div className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)}>
         <Lightbulb className="h-4 w-4" />
-        <span>Insights not yet available for this product</span>
+        <span>{t('notYetAvailable')}</span>
       </div>
     );
   }
@@ -158,8 +161,20 @@ interface InsightCardProps {
 }
 
 function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
+  const t = useTranslations('GearInsights');
   const [feedbackState, setFeedbackState] = useState<'none' | 'positive' | 'negative'>('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (dismissTimeoutRef.current) {
+        clearTimeout(dismissTimeoutRef.current);
+        dismissTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const config = INSIGHT_TYPE_CONFIG[insight.type] || INSIGHT_TYPE_CONFIG.tip;
   const Icon = config.icon;
@@ -186,11 +201,18 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
         setFeedbackState(isPositive ? 'positive' : 'negative');
         // If thumbs down, dismiss the insight after a short delay
         if (!isPositive && onDismiss) {
-          setTimeout(() => onDismiss(insight), 300);
+          // Clear any existing timeout before setting a new one
+          if (dismissTimeoutRef.current) {
+            clearTimeout(dismissTimeoutRef.current);
+          }
+          dismissTimeoutRef.current = setTimeout(() => {
+            onDismiss(insight);
+            dismissTimeoutRef.current = null;
+          }, 300);
         }
       }
-    } catch (error) {
-      console.error('Failed to submit feedback:', error);
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -210,7 +232,7 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2 mb-1">
             <p className={cn('text-xs font-medium uppercase tracking-wide', config.text)}>
-              {config.label}
+              {t(config.labelKey)}
             </p>
             {/* Feedback buttons */}
             <div className="flex items-center gap-1">
@@ -223,6 +245,7 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
                 )}
                 onClick={() => submitFeedback(true)}
                 disabled={isSubmitting || feedbackState !== 'none'}
+                aria-label={t('aria.thumbsUp')}
               >
                 <ThumbsUp className="h-3 w-3" />
               </Button>
@@ -235,15 +258,17 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
                 )}
                 onClick={() => submitFeedback(false)}
                 disabled={isSubmitting || feedbackState !== 'none'}
+                aria-label={t('aria.thumbsDown')}
               >
                 <ThumbsDown className="h-3 w-3" />
               </Button>
             </div>
           </div>
           <p className="text-sm text-foreground">{insight.content}</p>
-          {insight.sourceUrl && (
+          {/* SECURITY: Validate sourceUrl before rendering */}
+          {sanitizeExternalUrl(insight.sourceUrl) && (
             <a
-              href={insight.sourceUrl}
+              href={sanitizeExternalUrl(insight.sourceUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
@@ -252,7 +277,7 @@ function InsightCard({ insight, gearContext, onDismiss }: InsightCardProps) {
               )}
             >
               <ExternalLink className="h-3 w-3" />
-              Source
+              {t('source')}
             </a>
           )}
         </div>

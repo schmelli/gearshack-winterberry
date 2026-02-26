@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 import type { GearItem, GearItemFormData } from '@/types/gear';
 import { DEFAULT_GEAR_ITEM_FORM } from '@/types/gear';
@@ -29,6 +30,11 @@ import { useStore } from '@/hooks/useSupabaseStore';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { useWishlist } from '@/hooks/useWishlist';
+import {
+  useDuplicateDetection,
+  type UseDuplicateDetectionReturn,
+} from '@/hooks/useDuplicateDetection';
+import { processGearContribution } from '@/app/actions/gear-contributions';
 
 // =============================================================================
 // Image Import Helpers
@@ -53,6 +59,14 @@ function isExternalUrl(url: string | null | undefined): boolean {
 export interface UseGearEditorOptions {
   /** Existing gear item to edit (undefined for new item) */
   initialItem?: GearItem;
+  /** Partial form data to prefill (e.g., from URL import) */
+  prefillFormData?: Partial<GearItemFormData>;
+  /** Metadata about the prefill source (for contribution tracking) */
+  prefillMeta?: {
+    sourceUrl?: string;
+    catalogMatchId?: string | null;
+    catalogMatchConfidence?: number | null;
+  };
   /** Callback when save is successful */
   onSaveSuccess?: (item: GearItem) => void;
   /** Callback when save fails */
@@ -84,6 +98,16 @@ export interface UseGearEditorReturn {
   resetForm: () => void;
   /** Handle delete action (only available when editing) */
   handleDelete: () => Promise<void>;
+  /** Duplicate detection state and callbacks for DuplicateWarningDialog */
+  duplicateDetection: Pick<
+    UseDuplicateDetectionReturn,
+    | 'isOpen'
+    | 'bestMatch'
+    | 'isIncreasingQuantity'
+    | 'onConfirmSave'
+    | 'onCancel'
+    | 'onIncreaseQuantity'
+  >;
 }
 
 // =============================================================================
@@ -95,6 +119,8 @@ export function useGearEditor(
 ): UseGearEditorReturn {
   const {
     initialItem,
+    prefillFormData,
+    prefillMeta,
     onSaveSuccess,
     onSaveError,
     redirectPath = '/inventory',
@@ -104,6 +130,7 @@ export function useGearEditor(
   const router = useRouter();
   const { user } = useAuthContext();
   const { uploadUrl: uploadToCloudinary } = useCloudinaryUpload();
+  const t = useTranslations('GearEditor');
   const isEditing = Boolean(initialItem);
   const isWishlistMode = mode === 'wishlist';
 
@@ -115,6 +142,9 @@ export function useGearEditor(
   // Wishlist actions (Feature 049)
   const { addToWishlist } = useWishlist();
 
+  // Duplicate detection (Feature XXX-duplicate-detection)
+  const duplicateDetection = useDuplicateDetection({ redirectPath });
+
   // Local state for async operations
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -125,8 +155,15 @@ export function useGearEditor(
     if (initialItem) {
       return gearItemToFormData(initialItem);
     }
+    // Support prefill from URL import (Feature: URL-Import)
+    if (prefillFormData) {
+      return {
+        ...DEFAULT_GEAR_ITEM_FORM,
+        ...prefillFormData,
+      };
+    }
     return DEFAULT_GEAR_ITEM_FORM;
-  }, [initialItem]);
+  }, [initialItem, prefillFormData]);
 
   // Initialize form with Zod resolver (T012, T013)
   const form = useForm<GearItemFormData>({
@@ -156,18 +193,12 @@ export function useGearEditor(
         // FR-004, FR-005: Import external images before saving
         // Check if primaryImageUrl needs to be imported
         if (isExternalUrl(data.primaryImageUrl) && user?.uid) {
-          console.log('[GearEditor] ====== STARTING IMAGE IMPORT ======');
-          console.log('[GearEditor] External URL detected:', data.primaryImageUrl);
-          console.log('[GearEditor] User ID:', user.uid);
-
           // FR-006: Show loading feedback during import
           setIsUploading(true);
-          toast.info('Importing image...');
+          toast.info(t('toasts.importingImage'));
 
           try {
             // Upload external URL directly to Cloudinary (server-side fetch bypasses CORS)
-            console.log('[GearEditor] Uploading external URL to Cloudinary...');
-
             // Generate a temporary item ID for new items
             const itemId = initialItem?.id ?? `temp-${Date.now()}`;
 
@@ -180,11 +211,9 @@ export function useGearEditor(
               throw new Error('Failed to upload to Cloudinary');
             }
 
-            console.log('[GearEditor] Upload complete - Cloudinary URL:', cloudinaryUrl);
-
             // Update the form data with the Cloudinary URL
             data.primaryImageUrl = cloudinaryUrl;
-            toast.success('Image imported successfully!');
+            toast.success(t('toasts.imageImportSuccess'));
           } catch (importError) {
             // FR-007: Handle proxy failures gracefully - show detailed error
             console.error('[GearEditor] ====== IMAGE IMPORT FAILED ======');
@@ -201,17 +230,11 @@ export function useGearEditor(
               }
             }
 
-            toast.error(`Image import failed: ${errorMessage}`);
+            toast.error(t('toasts.imageImportFailed', { error: errorMessage }));
             return; // Don't proceed with save if import fails
           } finally {
             setIsUploading(false);
           }
-        } else {
-          console.log('[GearEditor] No external image to import:', {
-            url: data.primaryImageUrl,
-            isExternal: isExternalUrl(data.primaryImageUrl),
-            hasUser: Boolean(user?.uid),
-          });
         }
 
         const itemData = formDataToGearItem(data);
@@ -226,7 +249,27 @@ export function useGearEditor(
             updatedAt: new Date(),
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item updated successfully!');
+          toast.success(t('toasts.itemUpdated'));
+
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: 'update',
+            existingItemId: initialItem.id,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
+          });
         } else if (isWishlistMode) {
           // Feature 049: Add new item to wishlist instead of inventory
           await addToWishlist(itemData);
@@ -238,7 +281,27 @@ export function useGearEditor(
             ...itemData,
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item added to wishlist!');
+          toast.success(t('toasts.addedToWishlist'));
+
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: 'create',
+            existingItemId: undefined,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
+          });
         } else {
           // Add new item to store (now async with optimistic update)
           const newId = await addItem(itemData);
@@ -250,7 +313,27 @@ export function useGearEditor(
             ...itemData,
           };
           onSaveSuccess?.(savedItem);
-          toast.success('Item saved successfully!');
+          toast.success(t('toasts.itemSaved'));
+
+          // Fire-and-forget Contribution Tracking via Server Action
+          processGearContribution({
+            userData: {
+              name: data.name,
+              brand: data.brand,
+              weightGrams: data.weightValue ? parseFloat(data.weightValue) : undefined,
+              priceValue: data.pricePaid ? parseFloat(data.pricePaid) : undefined,
+              currency: data.currency,
+              imageUrl: data.primaryImageUrl,
+              description: data.description,
+              categoryId: data.productTypeId,
+            },
+            sourceUrl: prefillMeta?.sourceUrl,
+            operationType: prefillMeta?.sourceUrl ? 'url_import' : 'create',
+            existingItemId: undefined,
+          }).catch((err) => {
+            // Fire-and-forget - don't block the UI
+            console.warn('[GearEditor] Contribution tracking failed:', err);
+          });
         }
 
         // Navigate to inventory (item already visible via optimistic update)
@@ -281,10 +364,10 @@ export function useGearEditor(
         setIsUploading(false);
       }
     },
-    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist]
+    [isEditing, initialItem, addItem, updateItemInStore, onSaveSuccess, onSaveError, router, redirectPath, user, uploadToCloudinary, isWishlistMode, addToWishlist, t, prefillMeta]
   );
 
-  // Wrapped submit handler with validation
+  // Wrapped submit handler with validation and duplicate detection
   const handleSubmit = useCallback(
     async (e?: React.BaseSyntheticEvent) => {
       e?.preventDefault();
@@ -293,26 +376,47 @@ export function useGearEditor(
       const isValid = await form.trigger();
 
       if (!isValid) {
-        toast.error('Please fix errors before saving');
+        toast.error(t('toasts.fixErrors'));
         return;
       }
 
-      // Proceed with submission if validation passes
+      // Get form data for duplicate check
+      const formData = form.getValues();
+
+      // Check for duplicates (skip when editing existing item)
+      const hasDuplicates = duplicateDetection.checkForDuplicates(
+        formData,
+        initialItem?.id // Exclude current item when editing
+      );
+
+      if (hasDuplicates) {
+        // Dialog will open, wait for user decision
+        return;
+      }
+
+      // No duplicates, proceed with submission
       await rhfHandleSubmit(onSubmit)(e);
     },
-    [form, rhfHandleSubmit, onSubmit]
+    [form, rhfHandleSubmit, onSubmit, duplicateDetection, initialItem?.id, t]
   );
+
+  // Handle confirmed save after user dismisses duplicate warning
+  useEffect(() => {
+    if (duplicateDetection.shouldProceedWithSave) {
+      duplicateDetection.resetProceedFlag();
+      // Proceed with the actual save
+      rhfHandleSubmit(onSubmit)();
+    }
+  }, [duplicateDetection, rhfHandleSubmit, onSubmit]);
 
   // Cancel handler with dirty check
   const handleCancel = useCallback(() => {
     if (isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave?'
-      );
+      const confirmed = window.confirm(t('unsavedChangesConfirm'));
       if (!confirmed) return;
     }
     router.push(redirectPath);
-  }, [isDirty, router, redirectPath]);
+  }, [isDirty, router, redirectPath, t]);
 
   // Reset form to initial values
   const resetForm = useCallback(() => {
@@ -326,15 +430,15 @@ export function useGearEditor(
     setIsDeleting(true);
     try {
       await deleteItemFromStore(initialItem.id);
-      toast.success('Item deleted.');
+      toast.success(t('toasts.itemDeleted'));
       router.push('/inventory');
     } catch (error) {
-      toast.error('Failed to delete item');
+      toast.error(t('toasts.deleteFailed'));
       console.error('Delete failed:', error);
     } finally {
       setIsDeleting(false);
     }
-  }, [initialItem, deleteItemFromStore, router]);
+  }, [initialItem, deleteItemFromStore, router, t]);
 
   // Unsaved changes warning (T027 - implemented early for safety)
   useEffect(() => {
@@ -360,5 +464,13 @@ export function useGearEditor(
     handleCancel,
     resetForm,
     handleDelete,
+    duplicateDetection: {
+      isOpen: duplicateDetection.isOpen,
+      bestMatch: duplicateDetection.bestMatch,
+      isIncreasingQuantity: duplicateDetection.isIncreasingQuantity,
+      onConfirmSave: duplicateDetection.onConfirmSave,
+      onCancel: duplicateDetection.onCancel,
+      onIncreaseQuantity: duplicateDetection.onIncreaseQuantity,
+    },
   };
 }

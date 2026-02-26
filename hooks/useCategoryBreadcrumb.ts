@@ -12,11 +12,13 @@
 import { useMemo } from 'react';
 import { useLocale } from 'next-intl';
 import { useCategories } from './useCategories';
-import { getCategoryPath, getLocalizedLabel } from '@/lib/utils/category-helpers';
+import { getCategoryPath, getCategorySlugPath, getLocalizedLabel } from '@/lib/utils/category-helpers';
 
 interface UseCategoryBreadcrumbReturn {
   /** Array of localized labels from root to product type, e.g., ["Shelter", "Tents", "Dome Tents"] */
   breadcrumb: string[];
+  /** Array of stable slugs from root to product type, e.g., ["shelter", "tents", "dome-tents"] */
+  slugPath: string[];
   /** Localized label for the product type itself */
   productTypeLabel: string | null;
   /** Loading state */
@@ -41,13 +43,21 @@ export function useCategoryBreadcrumb(productTypeId: string | null): UseCategory
   const { categories, isLoading } = useCategories();
   const locale = useLocale();
 
-  // Compute breadcrumb path
+  // Compute breadcrumb path (localized labels)
   const breadcrumb = useMemo(() => {
     if (!productTypeId || isLoading || categories.length === 0) {
       return [];
     }
     return getCategoryPath(productTypeId, categories, locale);
   }, [productTypeId, categories, locale, isLoading]);
+
+  // Compute slug path (stable, non-localized)
+  const slugPath = useMemo(() => {
+    if (!productTypeId || isLoading || categories.length === 0) {
+      return [];
+    }
+    return getCategorySlugPath(productTypeId, categories);
+  }, [productTypeId, categories, isLoading]);
 
   // Compute product type label
   const productTypeLabel = useMemo(() => {
@@ -60,6 +70,7 @@ export function useCategoryBreadcrumb(productTypeId: string | null): UseCategory
 
   return {
     breadcrumb,
+    slugPath,
     productTypeLabel,
     isLoading,
   };

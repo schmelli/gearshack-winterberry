@@ -1,0 +1,92 @@
+{
+  "navigation": {
+    "ariaLabel": "Community-Bereiche"
+  },
+
+  "tabs": {
+    "board": "Forum",
+    "shakedowns": "Shakedowns",
+    "vipLoadouts": "VIP Loadouts",
+    "marketplace": "Marktplatz",
+    "comingSoon": "Bald"
+  },
+
+  "dashboard": {
+    "recentShakedowns": {
+      "title": "Aktuelle Shakedowns",
+      "description": "Neu in den letzten 7 Tagen"
+    },
+    "newListings": {
+      "title": "Neue Angebote",
+      "description": "Neu in den letzten 7 Tagen"
+    },
+    "wikiUpdates": {
+      "title": "Wiki-Updates",
+      "description": "Aktuelle Artikel"
+    }
+  },
+
+  "panels": {
+    "friends": {
+      "title": "Freunde",
+      "requests": "{count, plural, =1 {1 Anfrage} other {# Anfragen}}",
+      "online": "{count, plural, =0 {Keine Freunde online} =1 {1 Online} other {# Online}}",
+      "noOnline": "Keine Freunde sind gerade online",
+      "viewAll": "Alle Freunde anzeigen ({count})",
+      "viewAllRequests": "+{count} weitere"
+    },
+    "offers": {
+      "title": "Wunschlisten-Angebote",
+      "noOffers": "Keine Angebote für deine Wunschliste",
+      "addToWishlist": "Füge Artikel zu deiner Wunschliste hinzu, um Angebote zu erhalten",
+      "viewAll": "Alle Angebote anzeigen ({count})",
+      "manageOffers": "Angebote verwalten",
+      "expired": "Abgelaufen",
+      "hoursLeft": "{count, plural, =1 {1h übrig} other {#h übrig}}",
+      "daysLeft": "{count, plural, =1 {1T übrig} other {#T übrig}}",
+      "new": "Neu"
+    },
+    "activity": {
+      "title": "Freunde-Aktivität",
+      "viewAll": "Alle Aktivitäten anzeigen"
+    }
+  },
+
+  "friends": {
+    "accept": "Anfrage annehmen",
+    "decline": "Anfrage ablehnen",
+    "requestAccepted": "Freundschaftsanfrage angenommen!",
+    "requestDeclined": "Freundschaftsanfrage abgelehnt",
+    "acceptFailed": "Anfrage konnte nicht angenommen werden",
+    "declineFailed": "Anfrage konnte nicht abgelehnt werden"
+  },
+
+  "activity": {
+    "newLoadout": "{name} hat ein neues Loadout erstellt",
+    "sharedLoadout": "{name} hat ein Loadout geteilt",
+    "listedItem": "{name} hat einen Artikel zum Verkauf eingestellt",
+    "addedGear": "{name} hat neue Ausrüstung hinzugefügt",
+    "newFriend": "{name} hat einen neuen Freund gefunden",
+    "updatedProfile": "{name} hat das Profil aktualisiert",
+    "generic": "{name} war aktiv",
+    "noActivity": "Keine aktuelle Aktivität von Freunden",
+    "addFriends": "Füge Freunde hinzu, um ihre Aktivitäten zu sehen"
+  },
+
+  "announcements": {
+    "dismiss": "Schließen",
+    "learnMore": "Mehr erfahren",
+    "loadFailed": "Ankündigungen konnten nicht geladen werden",
+    "retry": "Erneut versuchen"
+  },
+
+  "time": {
+    "justNow": "gerade eben",
+    "minutesAgo": "{count, plural, =1 {vor 1m} other {vor #m}}",
+    "hoursAgo": "{count, plural, =1 {vor 1h} other {vor #h}}",
+    "daysAgo": "{count, plural, =1 {vor 1T} other {vor #T}}",
+    "weeksAgo": "{count, plural, =1 {vor 1W} other {vor #W}}",
+    "monthsAgo": "{count, plural, =1 {vor 1M} other {vor #M}}",
+    "yearsAgo": "{count, plural, =1 {vor 1J} other {vor #J}}"
+  }
+}

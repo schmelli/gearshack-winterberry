@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- price_tracking tables not in generated types */
 /**
  * API route: Disable price tracking for a gear item
  * Feature: 050-price-tracking
@@ -31,8 +32,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Validate UUID format to prevent injection
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(gearItemId)) {
+      return NextResponse.json(
+        { error: 'Invalid gearItemId format' },
+        { status: 400 }
+      );
+    }
+
     // Delete tracking record
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('price_tracking')
       .delete()
       .eq('user_id', user.id)

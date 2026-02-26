@@ -9,12 +9,14 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { useCategories } from '@/hooks/useCategories';
 import * as CategoryService from '@/lib/services/category-service';
 import type { CategoryIssue } from '@/lib/services/category-service';
 
 export function useCategoryManagement() {
   const { refresh } = useCategories();
+  const t = useTranslations('CategoryManagement');
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -35,15 +37,15 @@ export function useCategoryManagement() {
       setIsCreating(false);
 
       if (error) {
-        toast.error(`Failed to create category: ${error}`);
+        toast.error(t('createFailed', { error }));
         return null;
       }
 
-      toast.success('Category created successfully');
+      toast.success(t('createSuccess'));
       refresh();
       return newCategory;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const updateCategory = useCallback(
@@ -60,15 +62,15 @@ export function useCategoryManagement() {
       setIsUpdating(false);
 
       if (error) {
-        toast.error(`Failed to update category: ${error}`);
+        toast.error(t('updateFailed', { error }));
         return null;
       }
 
-      toast.success('Category updated successfully');
+      toast.success(t('updateSuccess'));
       refresh();
       return updated;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const deleteCategory = useCallback(
@@ -82,11 +84,11 @@ export function useCategoryManagement() {
         return false;
       }
 
-      toast.success('Category deleted successfully');
+      toast.success(t('deleteSuccess'));
       refresh();
       return true;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const moveCategory = useCallback(
@@ -100,11 +102,11 @@ export function useCategoryManagement() {
         return false;
       }
 
-      toast.success(`Category moved ${direction}`);
+      toast.success(t('moveSuccess', { direction }));
       refresh();
       return true;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const indentCategory = useCallback(
@@ -118,11 +120,11 @@ export function useCategoryManagement() {
         return false;
       }
 
-      toast.success('Category indented (moved down a level)');
+      toast.success(t('indentSuccess'));
       refresh();
       return true;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const outdentCategory = useCallback(
@@ -136,11 +138,11 @@ export function useCategoryManagement() {
         return false;
       }
 
-      toast.success('Category outdented (moved up a level)');
+      toast.success(t('outdentSuccess'));
       refresh();
       return true;
     },
-    [refresh]
+    [refresh, t]
   );
 
   const loadIssues = useCallback(async () => {

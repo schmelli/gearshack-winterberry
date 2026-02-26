@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { AlertPreferences } from '@/types/price-tracking';
 
 interface UseAlertPreferencesResult {
@@ -22,7 +22,8 @@ export function useAlertPreferences(): UseAlertPreferencesResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadPreferences = async () => {
+  // Wrap in useCallback to provide stable reference for useEffect dependency
+  const loadPreferences = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -40,9 +41,9 @@ export function useAlertPreferences(): UseAlertPreferencesResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const updatePreferences = async (updates: Partial<AlertPreferences>) => {
+  const updatePreferences = useCallback(async (updates: Partial<AlertPreferences>) => {
     try {
       setError(null);
 
@@ -64,11 +65,11 @@ export function useAlertPreferences(): UseAlertPreferencesResult {
       setError(err as Error);
       throw err;
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadPreferences();
-  }, []);
+  }, [loadPreferences]);
 
   return {
     preferences,

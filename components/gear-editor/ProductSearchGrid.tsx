@@ -16,7 +16,8 @@
 
 import Image from 'next/image';
 import { ImageSearchResult } from '@/app/actions/image-search';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ImageOff } from 'lucide-react';
+import { useState } from 'react';
 
 // =============================================================================
 // Types
@@ -43,11 +44,19 @@ export function ProductSearchGrid({
   isUploading = false,
   selectedUrl = null,
 }: ProductSearchGridProps) {
+  // Track which images failed to load
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  const handleImageError = (imageUrl: string) => {
+    setFailedImages((prev) => new Set(prev).add(imageUrl));
+  };
+
   return (
     <div className="grid grid-cols-3 gap-2">
       {results.map((result) => {
         const isSelected = selectedUrl === result.imageUrl;
         const isDisabled = isUploading;
+        const hasFailed = failedImages.has(result.imageUrl);
 
         return (
           <button
@@ -61,14 +70,22 @@ export function ProductSearchGrid({
             }}
             aria-label={`Select ${result.title}`}
           >
-            {/* Thumbnail Image */}
-            <Image
-              src={result.thumbnailUrl}
-              alt={result.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 33vw, 200px"
-            />
+            {/* Thumbnail Image or Fallback */}
+            {hasFailed ? (
+              <div className="absolute inset-0 bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <ImageOff className="h-8 w-8" />
+                <span className="text-xs text-center px-2">{result.title}</span>
+              </div>
+            ) : (
+              <Image
+                src={result.thumbnailUrl}
+                alt={result.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 33vw, 200px"
+                onError={() => handleImageError(result.imageUrl)}
+              />
+            )}
 
             {/* Upload Indicator Overlay */}
             {isSelected && isUploading && (

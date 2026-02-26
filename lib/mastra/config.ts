@@ -14,8 +14,6 @@ import { z } from 'zod';
 import type {
   MastraAgent,
   MCPTool,
-  WorkflowDefinition,
-  WorkflowStep,
 } from '@/types/mastra';
 
 // Re-export prompt builder utilities
@@ -242,73 +240,7 @@ export const DEFAULT_MCP_TOOLS: MCPTool[] = [
   },
 ];
 
-// =============================================================================
-// Workflow Definitions
-// =============================================================================
 
-/**
- * Trip planner workflow steps
- * Multi-step reasoning process for trip planning
- */
-const tripPlannerSteps: WorkflowStep[] = [
-  {
-    id: 'analyze_environment',
-    type: 'api_request',
-    dependencies: [],
-    config: {
-      description: 'Fetch weather and trail conditions for the destination',
-      endpoint: '/api/mastra/workflows/trip-planner/environment',
-    },
-  },
-  {
-    id: 'analyze_inventory',
-    type: 'tool_call',
-    dependencies: [],
-    config: {
-      toolName: 'queryUserData',
-      description: 'Analyze user inventory for trip requirements',
-    },
-  },
-  {
-    id: 'identify_gaps',
-    type: 'llm_reasoning',
-    dependencies: ['analyze_environment', 'analyze_inventory'],
-    config: {
-      description: 'Identify gear gaps based on environment and inventory',
-      prompt: 'Compare the environmental requirements with the user inventory',
-    },
-  },
-  {
-    id: 'search_recommendations',
-    type: 'tool_call',
-    dependencies: ['identify_gaps'],
-    config: {
-      toolName: 'searchCatalog',
-      description: 'Search catalog for gear recommendations to fill gaps',
-    },
-  },
-  {
-    id: 'generate_plan',
-    type: 'llm_reasoning',
-    dependencies: ['search_recommendations'],
-    config: {
-      description: 'Generate final trip plan with gear recommendations',
-    },
-  },
-];
-
-/**
- * Default workflow definitions for the Mastra agent
- */
-export const DEFAULT_WORKFLOWS: WorkflowDefinition[] = [
-  {
-    name: 'trip_planner',
-    description:
-      'Multi-step workflow for planning a trip with gear recommendations',
-    steps: tripPlannerSteps,
-    maxDurationMs: 60000, // 1 minute timeout
-  },
-];
 
 // =============================================================================
 // Agent Configuration Factory
@@ -332,7 +264,6 @@ export function createMastraAgentConfig(
       adapter: 'supabase',
       retentionDays: MEMORY_RETENTION_DAYS,
     },
-    workflows: DEFAULT_WORKFLOWS,
     observability: {
       logging: {
         enabled: true,
@@ -356,3 +287,100 @@ export function createMastraAgentConfig(
  * Exported for use by agent initialization
  */
 export const mastraAgentConfig = createMastraAgentConfig();
+
+// =============================================================================
+// AI Agent Evolution Configuration (Feature 060)
+// =============================================================================
+
+/**
+ * Intent Router Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const INTENT_ROUTER_CONFIG = {
+  /** Timeout for intent classification (milliseconds) */
+  TIMEOUT_MS: 3000,
+  /** Model to use for intent classification (Gemini Flash) */
+  MODEL: 'gemini-2.0-flash-exp',
+} as const;
+
+/**
+ * Parallel Pre-Fetch Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const PREFETCH_CONFIG = {
+  /** Timeout for individual pre-fetch operations (milliseconds) */
+  TIMEOUT_MS: 4000,
+  /** Maximum concurrent pre-fetch operations to prevent connection pool exhaustion */
+  MAX_CONCURRENT: 5,
+} as const;
+
+/**
+ * Fast Answer Generation Configuration
+ * Feature: 060-ai-agent-evolution
+ */
+export const FAST_ANSWER_CONFIG = {
+  /** Timeout for fast answer generation (milliseconds) */
+  TIMEOUT_MS: 5000,
+  /** Model to use for fast answers (Gemini Flash) */
+  MODEL: 'gemini-2.0-flash-exp',
+  /** Maximum tokens for fast answers */
+  MAX_TOKENS: 500,
+} as const;
+
+/**
+ * Supervisor Agent Configuration (Kapitel 22: Supervisor-Agent-Pattern)
+ *
+ * Domain routing classifier that reduces tool set from 9 to 3–4 per request.
+ * Uses Haiku for trivial classification: ~50ms latency, ~$0.00001 per call.
+ *
+ * @see Chapter 22: "Agent supervisors coordinate and manage other agents."
+ */
+export const SUPERVISOR_CONFIG = {
+  /** Model for domain classification (Haiku — routing is trivial) */
+  MODEL: process.env.SUPERVISOR_MODEL || 'anthropic/claude-haiku-4-5',
+  /** Timeout for domain classification (milliseconds).
+   * Haiku is ~50ms under normal load; 400ms gives 8× headroom before we
+   * fall back to the safe 'gear' default, without blocking the critical path
+   * for a full 2 seconds on a cold-start or degraded response.
+   */
+  TIMEOUT_MS: 400,
+  /** Enable/disable supervisor routing (set SUPERVISOR_ROUTING_ENABLED=false to skip domain classification) */
+  ENABLED: process.env.SUPERVISOR_ROUTING_ENABLED !== 'false',
+  /**
+   * Minimum LLM confidence score to trust a non-gear domain classification.
+   *
+   * Rationale:
+   * - Keyword matches are fixed at 0.85 (always above this threshold, always trusted).
+   * - The LLM returns scores in [0.5, 1.0] for confident results and near-zero for
+   *   uncertain ones. A 0.5 cut-off rejects "coin toss" classifications while passing
+   *   any result the model is meaningfully confident about.
+   * - A sentinel value of 0 means "classification failed/skipped" (gateway error,
+   *   timeout fallback, or supervisor disabled) — deliberately below this threshold
+   *   so the DEFAULT_DOMAIN fallback is always taken without additional checks.
+   */
+  CONFIDENCE_THRESHOLD: 0.5,
+} as const;
+
+/**
+ * Complexity-Based Model Routing Configuration
+ *
+ * Routes simple queries (inventory lookups, factual questions) to a cheaper/faster
+ * model (Haiku) while keeping complex analysis on the full model (Sonnet).
+ * Achieves 60-80% cost savings on simple queries that make up the majority of traffic.
+ *
+ * @see Chapter 2: "Start with more expensive models when prototyping — once you get
+ * something working, you can tweak cost."
+ */
+export const COMPLEXITY_ROUTING_CONFIG = {
+  /** Model for simple queries: inventory counts, item lookups, general knowledge (10x cheaper, 5x faster) */
+  SIMPLE_MODEL: process.env.AI_SIMPLE_MODEL || 'anthropic/claude-haiku-4-5',
+  /**
+   * Model for complex queries: shakedown analysis, trip planning, gear comparison.
+   * NOTE: Reads from the same AI_CHAT_MODEL env var as the AI_CHAT_MODEL constant in
+   * mastra-agent.ts. Changing that env var affects both the default model fallback and
+   * this complex routing model — update both usages if splitting them in the future.
+   */
+  COMPLEX_MODEL: process.env.AI_CHAT_MODEL || 'anthropic/claude-sonnet-4-5',
+  /** Enable/disable complexity routing (set to 'false' to always use the complex model) */
+  ENABLED: process.env.COMPLEXITY_ROUTING_ENABLED !== 'false',
+} as const;

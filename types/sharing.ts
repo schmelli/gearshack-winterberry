@@ -57,3 +57,70 @@ export interface SharedComment {
   message: string;
   created_at: string;
 }
+
+// =============================================================================
+// Share Management Types (Feature: Share Management CRUD)
+// =============================================================================
+
+/**
+ * Settings that can be configured for a share
+ */
+export interface ShareSettings {
+  allowComments: boolean;
+  expiresAt: string | null;
+  password: string | null; // Plain text for setting, never returned from server
+}
+
+/**
+ * Extended share data including stats (for owner view)
+ */
+export interface ShareWithStats extends SharedLoadoutWithOwner {
+  viewCount: number;
+  lastViewedAt: string | null;
+  expiresAt: string | null;
+  hasPassword: boolean;
+}
+
+/**
+ * Simplified share item for listing in management UI
+ */
+export interface ShareListItem {
+  shareToken: string;
+  loadoutId: string;
+  loadoutName: string;
+  allowComments: boolean;
+  viewCount: number;
+  expiresAt: string | null;
+  hasPassword: boolean;
+  createdAt: string;
+}
+
+/**
+ * Input for creating a new share
+ */
+export interface CreateShareInput {
+  loadoutId: string;
+  payload: SharedLoadoutPayload;
+  allowComments?: boolean;
+  expiresAt?: string | null;
+  password?: string | null;
+}
+
+/**
+ * Input for updating an existing share
+ */
+export interface UpdateShareInput {
+  allowComments?: boolean;
+  expiresAt?: string | null;
+  password?: string | null; // null to remove, undefined to keep unchanged
+}
+
+/**
+ * View analytics record
+ */
+export interface ShareViewRecord {
+  id: string;
+  shareToken: string;
+  viewerId: string | null;
+  viewedAt: string;
+}

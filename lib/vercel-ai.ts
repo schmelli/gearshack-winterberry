@@ -1,13 +1,18 @@
 /**
  * Vercel AI Client for Image Generation
  * Feature: 048-ai-loadout-image-gen
- * Constitution: Server-side only - uses Vercel AI SDK with AI Gateway
+ * Constitution: Server-side only - uses Vercel AI Gateway
+ *
+ * Uses generateText with Gemini 2.5 Flash Image via AI Gateway.
+ * Images are returned in result.files array.
+ *
+ * @see https://sdk.vercel.ai/providers/ai-sdk-providers/ai-gateway
  */
 
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateText } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import {
-  AI_GENERATION_TIMEOUT_MS,
   CLOUDINARY_GENERATED_IMAGES_FOLDER,
 } from '@/lib/config/image-generation';
 
@@ -18,19 +23,25 @@ import {
 /**
  * AI Model Configuration
  *
- * Supported models via Vercel AI Gateway:
- * - google/gemini-2.5-flash-image (recommended - fast, cost-effective)
- * - openai/dall-e-3
- * - stability-ai/stable-diffusion-xl
+ * Uses Google Gemini 2.5 Flash Image (Nano Banana) via Vercel AI Gateway.
+ * The gateway handles authentication and routing to Google's API.
  *
  * Requires:
- * - AI_IMAGE_MODEL environment variable
- * - AI_GATEWAY_API_KEY environment variable (for Vercel AI Gateway)
+ * - AI_GATEWAY_API_KEY environment variable (Vercel AI Gateway key)
  * - AI_GENERATION_ENABLED=true
  */
-const AI_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
-const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
-const AI_ENABLED = process.env.AI_GENERATION_ENABLED === 'true';
+const AI_IMAGE_MODEL = process.env.AI_IMAGE_MODEL || 'google/gemini-2.5-flash-image';
+
+/**
+ * Create AI Gateway instance for routing to various providers
+ */
+function getGateway() {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!apiKey) {
+    throw new Error('AI_GATEWAY_API_KEY is required for image generation');
+  }
+  return createGateway({ apiKey });
+}
 
 // =============================================================================
 // Validation Schemas
@@ -95,7 +106,10 @@ function isRateLimitError(statusCode: number): boolean {
 // =============================================================================
 
 /**
- * Generate AI image using Vercel AI SDK
+ * Generate AI image using Vercel AI SDK with Google Gemini 2.5 Flash Image
+ *
+ * Gemini 2.5 Flash Image (Nano Banana) generates images via generateText.
+ * Images are returned in result.files array with base64/uint8Array data.
  *
  * @param request - Generation parameters including prompt and style options
  * @returns Image response with URL and metadata
@@ -114,7 +128,6 @@ export async function generateAIImage(
     if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
     if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
     if (!process.env.AI_GATEWAY_API_KEY) missingVars.push('AI_GATEWAY_API_KEY');
-    if (!process.env.AI_IMAGE_MODEL) missingVars.push('AI_IMAGE_MODEL');
     if (process.env.AI_GENERATION_ENABLED !== 'true') missingVars.push('AI_GENERATION_ENABLED');
 
     throw new AIGenerationError(
@@ -125,30 +138,66 @@ export async function generateAIImage(
   }
 
   try {
-    console.log('[VercelAI] Generating image with prompt:', validatedRequest.prompt.substring(0, 100));
+    console.log('[VercelAI] Generating image with Gemini 2.5 Flash Image via AI Gateway');
+    console.log('[VercelAI] Prompt:', validatedRequest.prompt.substring(0, 100));
+    console.log('[VercelAI] Model:', AI_IMAGE_MODEL);
 
-    // Generate image using Vercel AI SDK
-    const { image } = await generateImage({
-      model: AI_MODEL,
-      prompt: validatedRequest.prompt,
-      // Add negative prompt if provided
-      ...(validatedRequest.negativePrompt && {
-        negativePrompt: validatedRequest.negativePrompt,
-      }),
-      // Quality and aspect ratio settings
-      size: validatedRequest.aspectRatio === '16:9' ? '1024x576' : '1024x1024',
-      // Add timeout
-      abortSignal: AbortSignal.timeout(AI_GENERATION_TIMEOUT_MS),
-    });
+    // Get gateway instance
+    const gateway = getGateway();
 
-    // Convert image blob to URL (upload to storage or use data URL)
-    const imageUrl = await uploadImageToStorage(image);
+    // TIMEOUT: Image generation can take significant time; set reasonable timeout
+    const IMAGE_GENERATION_TIMEOUT_MS = 60000; // 60 seconds
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), IMAGE_GENERATION_TIMEOUT_MS);
+
+    let result;
+    try {
+      // Generate image using Gemini 2.5 Flash Image via AI Gateway
+      // The model returns images in result.files array
+      result = await generateText({
+        model: gateway(AI_IMAGE_MODEL),
+        prompt: validatedRequest.prompt,
+        abortSignal: abortController.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    console.log('[VercelAI] Generation complete, checking for images...');
+    console.log('[VercelAI] Files returned:', result.files?.length || 0);
+
+    // Extract image from result.files
+    const imageFile = result.files?.find(file =>
+      file.mediaType?.startsWith('image/')
+    );
+
+    if (!imageFile) {
+      console.error('[VercelAI] No image found in response');
+      console.error('[VercelAI] Response text:', result.text?.substring(0, 200));
+      throw new AIGenerationError(
+        'Gemini did not return an image. The model may have returned text instead.',
+        500,
+        true
+      );
+    }
+
+    console.log('[VercelAI] Image found, mediaType:', imageFile.mediaType);
+    console.log('[VercelAI] Uploading to Cloudinary...');
+
+    // Convert to base64 for Cloudinary upload
+    const imageData = {
+      base64: imageFile.base64,
+      mediaType: imageFile.mediaType || 'image/png',
+    };
+
+    // Upload to Cloudinary CDN
+    const imageUrl = await uploadImageToStorage(imageData);
 
     const response: AIImageResponse = {
       url: imageUrl,
-      width: validatedRequest.aspectRatio === '16:9' ? 1024 : 1024,
-      height: validatedRequest.aspectRatio === '16:9' ? 576 : 1024,
-      contentType: 'image/png',
+      width: 1024,
+      height: 1024,
+      contentType: imageData.mediaType,
     };
 
     // Validate response structure
@@ -167,6 +216,11 @@ export async function generateAIImage(
         504,
         true // Retry timeout errors
       );
+    }
+
+    // Re-throw AIGenerationError as-is
+    if (error instanceof AIGenerationError) {
+      throw error;
     }
 
     // Handle API errors with status codes
@@ -220,13 +274,34 @@ export async function generateAIImage(
  *
  * @param imageFile - Generated image file from AI SDK
  * @returns Cloudinary URL
+ * @throws AIGenerationError if upload fails
  */
 async function uploadImageToStorage(imageFile: { base64: string; mediaType: string }): Promise<string> {
+  // SECURITY: Validate MIME type before upload to prevent XSS/injection attacks
+  const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+  if (!ALLOWED_IMAGE_TYPES.includes(imageFile.mediaType)) {
+    throw new AIGenerationError(
+      `Invalid image type: ${imageFile.mediaType}. Allowed: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+      400,
+      false
+    );
+  }
+
   // Create data URL from base64 and media type
   const dataUrl = `data:${imageFile.mediaType};base64,${imageFile.base64}`;
 
   // Upload to Cloudinary (keep using Cloudinary for storage/CDN)
-  const cloudinary = await import('cloudinary');
+  let cloudinary;
+  try {
+    cloudinary = await import('cloudinary');
+  } catch (importError) {
+    console.error('[VercelAI] Failed to import cloudinary module:', importError);
+    throw new AIGenerationError(
+      'Cloudinary module not available',
+      500,
+      false
+    );
+  }
 
   cloudinary.v2.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -234,13 +309,33 @@ async function uploadImageToStorage(imageFile: { base64: string; mediaType: stri
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const result = await cloudinary.v2.uploader.upload(dataUrl, {
-    folder: CLOUDINARY_GENERATED_IMAGES_FOLDER,
-    resource_type: 'image',
-    format: 'jpg',
-  });
+  try {
+    const result = await cloudinary.v2.uploader.upload(dataUrl, {
+      folder: CLOUDINARY_GENERATED_IMAGES_FOLDER,
+      resource_type: 'image',
+      format: 'jpg',
+    });
 
-  return result.secure_url;
+    if (!result.secure_url) {
+      throw new AIGenerationError(
+        'Cloudinary upload returned no URL',
+        500,
+        true
+      );
+    }
+
+    return result.secure_url;
+  } catch (uploadError) {
+    if (uploadError instanceof AIGenerationError) {
+      throw uploadError;
+    }
+    console.error('[VercelAI] Cloudinary upload failed:', uploadError);
+    throw new AIGenerationError(
+      uploadError instanceof Error ? uploadError.message : 'Cloudinary upload failed',
+      500,
+      true
+    );
+  }
 }
 
 /**
@@ -250,7 +345,13 @@ async function uploadImageToStorage(imageFile: { base64: string; mediaType: stri
  */
 export async function deleteAIImage(publicId: string): Promise<void> {
   try {
-    const cloudinary = await import('cloudinary');
+    let cloudinary;
+    try {
+      cloudinary = await import('cloudinary');
+    } catch (importError) {
+      console.error('[VercelAI] Failed to import cloudinary module for deletion:', importError);
+      return; // Don't throw - deletion failures should not block user actions
+    }
 
     cloudinary.v2.config({
       cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -268,6 +369,10 @@ export async function deleteAIImage(publicId: string): Promise<void> {
   }
 }
 
+// SECURITY: Regex to validate Cloudinary public_id format
+// Allows alphanumeric characters, underscores, hyphens, and forward slashes (for folders)
+const CLOUDINARY_PUBLIC_ID_REGEX = /^[a-zA-Z0-9_\-/]+$/;
+
 /**
  * Get Cloudinary URL for a public_id with optimizations
  *
@@ -282,7 +387,26 @@ export async function getOptimizedImageUrl(
     quality?: 'auto' | 'auto:best' | 'auto:good';
   }
 ): Promise<string> {
-  const cloudinary = await import('cloudinary');
+  // SECURITY: Validate publicId format to prevent injection attacks
+  if (!publicId || !CLOUDINARY_PUBLIC_ID_REGEX.test(publicId)) {
+    throw new AIGenerationError(
+      'Invalid publicId format - must contain only alphanumeric characters, underscores, hyphens, and forward slashes',
+      400,
+      false
+    );
+  }
+
+  let cloudinary;
+  try {
+    cloudinary = await import('cloudinary');
+  } catch (importError) {
+    console.error('[VercelAI] Failed to import cloudinary module:', importError);
+    throw new AIGenerationError(
+      'Cloudinary module not available',
+      500,
+      false
+    );
+  }
 
   cloudinary.v2.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -308,8 +432,10 @@ export async function getOptimizedImageUrl(
  * - CLOUDINARY_API_KEY: Cloudinary API key
  * - CLOUDINARY_API_SECRET: Cloudinary API secret
  * - AI_GATEWAY_API_KEY: Vercel AI Gateway API key
- * - AI_IMAGE_MODEL: Model identifier (e.g., google/gemini-2.5-flash-image)
  * - AI_GENERATION_ENABLED: Must be 'true'
+ *
+ * Optional:
+ * - AI_IMAGE_MODEL: Model identifier (defaults to google/gemini-2.5-flash-image)
  *
  * @returns true if AI generation is properly configured
  */
@@ -319,7 +445,6 @@ export function isAIConfigured(): boolean {
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET &&
     process.env.AI_GATEWAY_API_KEY &&
-    process.env.AI_IMAGE_MODEL &&
     process.env.AI_GENERATION_ENABLED === 'true'
   );
 }

@@ -9,6 +9,7 @@
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,8 @@ export function CategoryEditDialog({
   onSave,
   isLoading,
 }: CategoryEditDialogProps) {
+  const t = useTranslations('Admin.categories');
+  const tCommon = useTranslations('Common');
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>({
     defaultValues: {
       label: '',
@@ -65,6 +68,7 @@ export function CategoryEditDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() returns reactive values that work correctly despite compiler warning
   const labelValue = watch('label');
 
   // Auto-generate slug from label
@@ -114,12 +118,10 @@ export function CategoryEditDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {category ? 'Edit Category' : 'Create Category'}
+            {category ? t('editTitle') : t('createTitle')}
           </DialogTitle>
           <DialogDescription>
-            {category
-              ? 'Update category information and translations'
-              : 'Add a new category with English and German translations'}
+            {category ? t('editDescription') : t('createDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -127,15 +129,15 @@ export function CategoryEditDialog({
           {/* Legacy Label */}
           <div className="space-y-2">
             <Label htmlFor="label">
-              Label (Legacy)
+              {t('labelLegacy')}
               <span className="ml-1 text-xs text-muted-foreground">
-                Auto-generates slug
+                {t('autoGeneratesSlug')}
               </span>
             </Label>
             <Input
               id="label"
               {...register('label', { required: true })}
-              placeholder="e.g., Backpacks"
+              placeholder={t('placeholderLabel')}
               disabled={isLoading}
             />
           </div>
@@ -143,12 +145,12 @@ export function CategoryEditDialog({
           {/* Slug */}
           <div className="space-y-2">
             <Label htmlFor="slug">
-              Slug (Unique ID)
+              {t('slugLabel')}
             </Label>
             <Input
               id="slug"
               {...register('slug', { required: true })}
-              placeholder="e.g., backpacks"
+              placeholder={t('placeholderSlug')}
               disabled={isLoading}
             />
           </div>
@@ -156,12 +158,12 @@ export function CategoryEditDialog({
           {/* English Label */}
           <div className="space-y-2">
             <Label htmlFor="enLabel">
-              English Label <span className="text-destructive">*</span>
+              {t('englishLabel')} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="enLabel"
               {...register('enLabel', { required: true })}
-              placeholder="e.g., Backpacks"
+              placeholder={t('placeholderEnLabel')}
               disabled={isLoading}
             />
           </div>
@@ -169,12 +171,12 @@ export function CategoryEditDialog({
           {/* German Label */}
           <div className="space-y-2">
             <Label htmlFor="deLabel">
-              German Label
+              {t('germanLabel')}
             </Label>
             <Input
               id="deLabel"
               {...register('deLabel')}
-              placeholder="e.g., Rucksäcke"
+              placeholder={t('placeholderDeLabel')}
               disabled={isLoading}
             />
           </div>
@@ -186,10 +188,10 @@ export function CategoryEditDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : category ? 'Update' : 'Create'}
+              {isLoading ? tCommon('saving') : category ? tCommon('update') : tCommon('create')}
             </Button>
           </DialogFooter>
         </form>

@@ -17,7 +17,8 @@ import { ChatInput } from './ChatInput';
 import { useMastraChat } from '@/hooks/ai-assistant/useMastraChat';
 import { useVoiceOutput } from '@/hooks/ai-assistant/useVoiceOutput';
 import { useItems } from '@/hooks/useSupabaseStore';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { useScreenContext } from '@/components/context/ScreenContextProvider';
 import {
   Tooltip,
   TooltipContent,
@@ -29,9 +30,29 @@ interface ChatInterfaceProps {
   onClose: () => void;
 }
 
-export function ChatInterface({ onClose }: ChatInterfaceProps) {
+// LocalStorage key for voice preference
+const VOICE_ENABLED_KEY = 'gearshack:ai-voice-enabled';
+
+export function ChatInterface({ onClose: _onClose }: ChatInterfaceProps) {
   const t = useTranslations('aiAssistant.chat');
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const locale = useLocale();
+
+  // AI Agent Context-Awareness: Get current screen/loadout context
+  const screenContext = useScreenContext();
+
+  // Voice enabled by default for a more immersive experience
+  // Users can toggle it off via the speaker button - preference is saved to localStorage
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = localStorage.getItem(VOICE_ENABLED_KEY);
+      // Default to true if not set
+      return stored === null ? true : stored === 'true';
+    } catch {
+      // Fallback to default if localStorage is unavailable (incognito/private mode)
+      return true;
+    }
+  });
   const lastMessageIdRef = useRef<string | null>(null);
 
   // Get inventory items for context
@@ -44,6 +65,8 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     isStreaming,
     conversationId,
     resetConversation,
+    progressMessage,
+    workflowSteps,
   } = useMastraChat();
 
   // Voice output hook for TTS
@@ -52,7 +75,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     stop: stopSpeaking,
     isPlaying,
   } = useVoiceOutput({
-    voice: 'nova',
+    voice: 'rachel', // ElevenLabs default voice
     autoPlay: true,
   });
 
@@ -87,14 +110,20 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       stopSpeaking();
     }
 
-    // Pass inventory count in context
+    // AI Agent Context-Awareness: Pass full screen context to AI
+    // This enables the AI to know which page/loadout/item the user is viewing
     await sendMessage(content, {
       context: {
+        screen: screenContext.screen,
+        currentLoadoutId: screenContext.currentLoadoutId,
+        currentLoadoutName: screenContext.currentLoadoutName,
+        currentGearItemId: screenContext.currentGearItemId,
+        currentGearItemName: screenContext.currentGearItemName,
         inventoryCount: items.length,
-        screen: 'inventory',
+        locale,
       },
     });
-  }, [sendMessage, isPlaying, stopSpeaking, items.length]);
+  }, [sendMessage, isPlaying, stopSpeaking, items.length, screenContext, locale]);
 
   // T102: Start new conversation
   const handleNewConversation = useCallback(() => {
@@ -102,17 +131,24 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     resetConversation();
   }, [resetConversation, stopSpeaking]);
 
-  // Toggle voice output
+  // Toggle voice output and persist preference
   const toggleVoice = useCallback(() => {
     if (voiceEnabled) {
       stopSpeaking();
     }
-    setVoiceEnabled(!voiceEnabled);
+    const newValue = !voiceEnabled;
+    setVoiceEnabled(newValue);
+    // Persist preference to localStorage
+    try {
+      localStorage.setItem(VOICE_ENABLED_KEY, String(newValue));
+    } catch {
+      // Silently fail if localStorage is unavailable (incognito/private mode)
+    }
   }, [voiceEnabled, stopSpeaking]);
 
   return (
     <TooltipProvider>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 dark:from-amber-950/30 dark:to-orange-950/30">
           <div className="flex items-center gap-3">
@@ -120,9 +156,9 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">AI Gear Assistant</h2>
+              <h2 className="text-lg font-semibold">{t('title')}</h2>
               <p className="text-xs text-muted-foreground">
-                Ask me anything about your gear
+                {t('subtitle')}
               </p>
             </div>
           </div>
@@ -142,12 +178,12 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                     <VolumeX className="h-4 w-4" />
                   )}
                   <span className="sr-only">
-                    {voiceEnabled ? 'Disable voice' : 'Enable voice'}
+                    {voiceEnabled ? t('disableVoice') : t('enableVoice')}
                   </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{voiceEnabled ? 'Disable voice responses' : 'Enable voice responses'}</p>
+                <p>{voiceEnabled ? t('disableVoiceResponses') : t('enableVoiceResponses')}</p>
               </TooltipContent>
             </Tooltip>
 
@@ -174,6 +210,8 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
           isStreaming={isStreaming}
           onSpeakMessage={voiceEnabled ? speak : undefined}
           isPlayingAudio={isPlaying}
+          progressMessage={progressMessage}
+          workflowSteps={workflowSteps}
         />
 
         {/* Chat Input */}

@@ -1,7 +1,7 @@
 /**
  * Gear Item Utility Functions
  *
- * Feature: 001-gear-item-editor
+ * Feature: 001-gear-item-editor, 057-wishlist-pricing-enhancements
  * Provides conversion functions between form data and entity types
  */
 
@@ -75,6 +75,28 @@ export function formatWeightForDisplay(grams: number | null): string {
 }
 
 // =============================================================================
+// Safe Parsing Helpers
+// =============================================================================
+
+/**
+ * Safely parse a float, returning null for invalid input (NaN/Infinity)
+ */
+function safeParseFloat(value: string | undefined | null): number | null {
+  if (!value) return null;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Safely parse an integer, returning the default for invalid input (NaN/Infinity)
+ */
+function safeParseInt(value: string | undefined | null, defaultValue: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
+// =============================================================================
 // Form ↔ Entity Conversion Functions (T009)
 // =============================================================================
 
@@ -110,6 +132,8 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
     purchaseDate: item.purchaseDate?.toISOString().split('T')[0] ?? '',
     retailer: item.retailer ?? '',
     retailerUrl: item.retailerUrl ?? '',
+    manufacturerPrice: item.manufacturerPrice?.toString() ?? '',
+    manufacturerCurrency: item.manufacturerCurrency ?? 'EUR',
     primaryImageUrl: item.primaryImageUrl ?? '',
     galleryImageUrls: item.galleryImageUrls,
     condition: item.condition,
@@ -131,9 +155,7 @@ export function gearItemToFormData(item: GearItem): GearItemFormData {
 export function formDataToGearItem(
   formData: GearItemFormData
 ): Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'> {
-  const weightValue = formData.weightValue
-    ? parseFloat(formData.weightValue)
-    : null;
+  const weightValue = safeParseFloat(formData.weightValue);
   const weightGrams =
     weightValue !== null
       ? displayUnitToGrams(weightValue, formData.weightDisplayUnit)
@@ -149,30 +171,36 @@ export function formDataToGearItem(
     productTypeId: formData.productTypeId || null,
     weightGrams,
     weightDisplayUnit: formData.weightDisplayUnit,
-    lengthCm: formData.lengthCm ? parseFloat(formData.lengthCm) : null,
-    widthCm: formData.widthCm ? parseFloat(formData.widthCm) : null,
-    heightCm: formData.heightCm ? parseFloat(formData.heightCm) : null,
+    lengthCm: safeParseFloat(formData.lengthCm),
+    widthCm: safeParseFloat(formData.widthCm),
+    heightCm: safeParseFloat(formData.heightCm),
     size: formData.size || null,
     color: formData.color || null,
-    volumeLiters: formData.volumeLiters ? parseFloat(formData.volumeLiters) : null,
+    volumeLiters: safeParseFloat(formData.volumeLiters),
     materials: formData.materials || null,
     tentConstruction: formData.tentConstruction || null,
-    pricePaid: formData.pricePaid ? parseFloat(formData.pricePaid) : null,
+    pricePaid: safeParseFloat(formData.pricePaid),
     currency: formData.currency || null,
     purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate) : null,
     retailer: formData.retailer || null,
     retailerUrl: formData.retailerUrl || null,
+    manufacturerPrice: safeParseFloat(formData.manufacturerPrice),
+    manufacturerCurrency: formData.manufacturerCurrency || 'EUR',
     primaryImageUrl: formData.primaryImageUrl || null,
     galleryImageUrls: formData.galleryImageUrls.filter(Boolean),
     condition: formData.condition,
     status: formData.status,
     notes: formData.notes || null,
-    quantity: formData.quantity ? parseInt(formData.quantity, 10) : 1,
+    quantity: safeParseInt(formData.quantity, 1),
     isFavourite: formData.isFavourite ?? false,
     isForSale: formData.isForSale ?? false,
     canBeBorrowed: formData.canBeBorrowed ?? false,
     canBeTraded: formData.canBeTraded ?? false,
     dependencyIds: formData.dependencyIds ?? [],
+    // Merchant integration properties (053)
+    sourceMerchantId: null,
+    sourceOfferId: null,
+    sourceLoadoutId: null,
   };
 }
 

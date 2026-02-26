@@ -7,35 +7,46 @@
  * Shared content component for the gear detail modal.
  * Displays all stored gear item data with skeleton loaders for external sections.
  * Stateless - receives all data via props.
+ *
+ * Orchestrates extracted sub-components:
+ * - GearDetailHeader (name, brand, status icons, action buttons)
+ * - GearDetailSpecifications (specs grid)
+ * - GearDetailPurchaseInfo (price, retailer, date)
+ * - GearDetailExternalLinks (sanitized external URLs)
+ * - GearDetailWishlistPricing (manufacturer, eBay, reseller prices)
  */
 
 'use client';
 
-import { Pencil, ExternalLink, Heart, DollarSign, HandHeart, ArrowLeftRight, Recycle, Tag } from 'lucide-react';
-import { Link } from '@/i18n/navigation';
+import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { ImageGallery } from '@/components/gear-detail/ImageGallery';
+import { GearDetailHeader } from '@/components/gear-detail/GearDetailHeader';
+import { GearDetailSpecifications } from '@/components/gear-detail/GearDetailSpecifications';
+import { GearDetailPurchaseInfo } from '@/components/gear-detail/GearDetailPurchaseInfo';
+import { GearDetailExternalLinks } from '@/components/gear-detail/GearDetailExternalLinks';
+import { GearDetailWishlistPricing } from '@/components/gear-detail/GearDetailWishlistPricing';
+import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
+import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
+import { MerchantSourceBadge } from '@/components/wishlist/MerchantSourceBadge';
+import { CommunityWeightSection } from '@/components/community-weight/CommunityWeightSection';
+import { useCategoriesStore } from '@/hooks/useCategoriesStore';
+import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
+import { useCatalogProductMatch } from '@/hooks/useCatalogProductMatch';
+import { getParentCategoryIds } from '@/lib/utils/category-helpers';
+import { useMsrpPrice } from '@/hooks/price-tracking/useMsrpPrice';
+import { cn } from '@/lib/utils';
 import type { GearItem } from '@/types/gear';
 import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
-import { formatWeight } from '@/lib/loadout-utils';
 import { GEAR_CONDITION_LABELS, GEAR_STATUS_LABELS } from '@/types/gear';
-import { cn } from '@/lib/utils';
-import { YouTubeCarousel } from '@/components/gear-detail/YouTubeCarousel';
-import { GearInsightsSection } from '@/components/gear-detail/GearInsightsSection';
-import { PriceTrackingSection } from '@/components/price-tracking';
-import { SpecIcon } from '@/components/gear/SpecIcon';
-import type { SpecIconType } from '@/components/gear/SpecIcon';
-import { MoveToInventoryButton } from '@/components/wishlist/MoveToInventoryButton';
-import { useCategoriesStore } from '@/hooks/useCategoriesStore';
-import { getParentCategoryIds } from '@/lib/utils/category-helpers';
 
 // =============================================================================
 // Types
@@ -50,6 +61,8 @@ interface GearDetailContentProps {
   youtubeLoading: boolean;
   /** YouTube error message (if any) */
   youtubeError: string | null;
+  /** Whether YouTube quota is exhausted (retry won't help) */
+  youtubeQuotaExhausted?: boolean;
   /** Callback to retry YouTube fetch */
   onRetryYouTube?: () => void;
   /** GearGraph insights (null = loading, empty array = no results) */
@@ -75,100 +88,21 @@ interface GearDetailContentProps {
 }
 
 // =============================================================================
-// Helper Components
+// Scrollable Text Helper
 // =============================================================================
 
-function SpecRow({
-  label,
-  value,
-  icon,
-  className,
-}: {
-  label: string;
-  value: string | null | undefined;
-  icon?: SpecIconType;
-  className?: string;
-}) {
-  if (!value) return null;
-  return (
-    <div className={className}>
-      <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
-        {icon && <SpecIcon type={icon} size={14} className="opacity-70" />}
-        {label}
-      </p>
-      <p className="font-medium">{value}</p>
-    </div>
-  );
-}
-
-
-function TruncatedText({
+function ScrollableText({
   text,
-  maxLength = 200,
   className,
 }: {
   text: string;
-  maxLength?: number;
   className?: string;
 }) {
-  const isTruncated = text.length > maxLength;
-  const displayText = isTruncated ? `${text.slice(0, maxLength)}...` : text;
-
   return (
-    <p className={cn('text-sm text-muted-foreground', className)} title={isTruncated ? text : undefined}>
-      {displayText}
-    </p>
+    <div className={cn('max-h-32 overflow-y-auto text-sm text-muted-foreground leading-relaxed', className)}>
+      {text}
+    </div>
   );
-}
-
-function DetailStatusIcons({ item }: { item: GearItem }) {
-  const icons: React.ReactNode[] = [];
-
-  if (item.isFavourite) {
-    icons.push(
-      <div key="favourite" className="flex items-center justify-center h-6 w-6 rounded-full bg-red-500/90 shadow-sm" title="Favourite">
-        <Heart className="h-3.5 w-3.5 text-white fill-white" />
-      </div>
-    );
-  }
-  if (item.isForSale) {
-    icons.push(
-      <div key="for-sale" className="flex items-center justify-center h-6 w-6 rounded-full bg-green-600/90 shadow-sm" title="For Sale">
-        <DollarSign className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-  if (item.canBeBorrowed) {
-    icons.push(
-      <div key="borrowable" className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/90 shadow-sm" title="Can be Borrowed">
-        <HandHeart className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-  if (item.canBeTraded) {
-    icons.push(
-      <div key="tradeable" className="flex items-center justify-center h-6 w-6 rounded-full bg-purple-500/90 shadow-sm" title="Up for Trade">
-        <ArrowLeftRight className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-  if (item.status === 'lent') {
-    icons.push(
-      <div key="lent" className="flex items-center justify-center h-6 w-6 rounded-full bg-emerald-500/90 shadow-sm" title="Currently Lent">
-        <Recycle className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-  if (item.status === 'sold') {
-    icons.push(
-      <div key="sold" className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-500/90 shadow-sm" title="Sold">
-        <Tag className="h-3.5 w-3.5 text-white" />
-      </div>
-    );
-  }
-
-  if (icons.length === 0) return null;
-  return <div className="flex gap-1 flex-wrap">{icons}</div>;
 }
 
 // =============================================================================
@@ -180,6 +114,7 @@ export function GearDetailContent({
   youtubeVideos,
   youtubeLoading,
   youtubeError,
+  youtubeQuotaExhausted = false,
   onRetryYouTube,
   insights,
   insightsLoading,
@@ -192,84 +127,57 @@ export function GearDetailContent({
   onMoveToInventory,
   onMoveComplete,
 }: GearDetailContentProps) {
+  const t = useTranslations('GearDetail');
+  const { profile } = useAuthContext();
+
   // Cascading Category Refactor: Derive categoryId (level 1) from productTypeId (level 3)
   const categories = useCategoriesStore((state) => state.categories);
-  const { categoryId } = getParentCategoryIds(item.productTypeId, categories);
+  const categoryId = useMemo(
+    () => getParentCategoryIds(item.productTypeId, categories).categoryId,
+    [item.productTypeId, categories]
+  );
+
+  // Conditionally determine which accordion sections should be open by default
+  const defaultOpenSections = useMemo(() => {
+    const sections = ['specifications', 'reviews'];
+    if (item.description || item.notes) {
+      sections.push('description');
+    }
+    return sections;
+  }, [item.description, item.notes]);
+
+  // Fetch MSRP for wishlist items
+  const { msrp, isLoading: msrpLoading } = useMsrpPrice(
+    isWishlistItem ? item.name : null,
+    isWishlistItem ? item.brand : null,
+    isWishlistItem
+  );
+
+  // Community-verified Weights: Resolve catalog product for this gear item
+  const { match: catalogMatch } = useCatalogProductMatch(item.id);
+
+  // Feature 057: Derive product type keywords for eBay filtering
+  const productTypeKeywords = useMemo(() => {
+    if (!item.productTypeId || !categories.length) return [];
+    const category = categories.find(c => c.id === item.productTypeId);
+    if (category) {
+      const categoryName = category.i18n?.en || category.label || '';
+      return categoryName.split(/\s+/).filter((k: string) => k.length > 2);
+    }
+    return [];
+  }, [item.productTypeId, categories]);
 
   return (
     <div className={cn('max-h-[80vh] overflow-y-auto', className)}>
       <div className="space-y-6 p-6">
         {/* Header */}
-        <div className="space-y-2">
-          {/* Product name with edit button snug to the right */}
-          <div className="flex items-start gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <h2
-                    className="text-xl font-semibold leading-tight line-clamp-2 cursor-default"
-                    title={item.name.length > 60 ? item.name : undefined}
-                  >
-                    {item.name}
-                  </h2>
-                </TooltipTrigger>
-                {item.description && (
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="text-sm">{item.description}</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-            {/* Action buttons */}
-            <div className="flex items-center gap-1 shrink-0 -mt-0.5">
-              {/* Feature 049 US3: Move to Inventory button for wishlist items */}
-              {isWishlistItem && onMoveToInventory && (
-                <MoveToInventoryButton
-                  itemId={item.id}
-                  itemName={item.name}
-                  onMove={onMoveToInventory}
-                  onMoveComplete={onMoveComplete}
-                  variant="ghost"
-                  iconOnly
-                  className="h-7 w-7"
-                />
-              )}
-              {/* Edit button snug to name */}
-              <Button
-                asChild
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                onClick={onEditClick}
-              >
-                <Link href={`/inventory/${item.id}/edit`}>
-                  <Pencil className="h-4 w-4" />
-                  <span className="sr-only">Edit {item.name}</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
-          {/* Brand with optional link */}
-          {item.brand && (
-            <div>
-              {item.brandUrl ? (
-                <a
-                  href={item.brandUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  {item.brand}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              ) : (
-                <p className="text-sm text-muted-foreground">{item.brand}</p>
-              )}
-            </div>
-          )}
-          {/* Status icons row */}
-          <DetailStatusIcons item={item} />
-        </div>
+        <GearDetailHeader
+          item={item}
+          onEditClick={onEditClick}
+          isWishlistItem={isWishlistItem}
+          onMoveToInventory={onMoveToInventory}
+          onMoveComplete={onMoveComplete}
+        />
 
         {/* Image Gallery */}
         <ImageGallery
@@ -284,153 +192,161 @@ export function GearDetailContent({
             {GEAR_CONDITION_LABELS[item.condition]}
           </Badge>
           <Badge variant="outline">{GEAR_STATUS_LABELS[item.status]}</Badge>
-          {item.isFavourite && <Badge variant="default">Favourite</Badge>}
+          {item.isFavourite && <Badge variant="default">{t('badges.favourite')}</Badge>}
         </div>
 
-        {/* Specifications Grid */}
-        <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/50 p-4">
-          <SpecRow
-            label="Weight"
-            value={item.weightGrams ? formatWeight(item.weightGrams) : null}
-            icon="weight"
+        {/* Feature 053 T087: Merchant Source Attribution for wishlist items */}
+        {isWishlistItem && item.sourceMerchantId && (
+          <MerchantSourceBadge
+            sourceMerchantId={item.sourceMerchantId}
+            sourceLoadoutId={item.sourceLoadoutId}
           />
-          <SpecRow label="Model" value={item.modelNumber} icon="model" />
-          {(item.lengthCm || item.widthCm || item.heightCm) && (
-            <div className="col-span-2">
-              <p className="text-xs uppercase text-muted-foreground flex items-center gap-1.5">
-                <SpecIcon type="dimensions" size={14} className="opacity-70" />
-                Dimensions (L × W × H)
-              </p>
-              <p className="font-medium">
-                {item.lengthCm ?? '–'} × {item.widthCm ?? '–'} ×{' '}
-                {item.heightCm ?? '–'} cm
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Description (T017a: Truncate long descriptions) */}
-        {item.description && (
-          <div>
-            <p className="mb-1 text-xs uppercase text-muted-foreground">
-              Description
-            </p>
-            <TruncatedText text={item.description} maxLength={300} />
-          </div>
         )}
 
-        {/* Notes (T017a: Truncate long notes) */}
-        {item.notes && (
-          <div>
-            <p className="mb-1 text-xs uppercase text-muted-foreground">
-              Notes
-            </p>
-            <TruncatedText text={item.notes} maxLength={200} />
-          </div>
-        )}
-
-        {/* Purchase Info */}
-        {(item.pricePaid || item.retailer || item.purchaseDate) && (
-          <div className="border-t pt-4">
-            <p className="mb-2 text-xs uppercase text-muted-foreground">
-              Purchase Info
-            </p>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              {item.pricePaid && (
-                <span className="font-medium">
-                  {item.currency ?? '$'}
-                  {item.pricePaid.toFixed(2)}
-                </span>
-              )}
-              {item.retailer && (
-                <span className="text-muted-foreground">
-                  from {item.retailer}
-                </span>
-              )}
-              {item.purchaseDate && (
-                <span className="text-muted-foreground">
-                  {new Date(item.purchaseDate).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Price Tracking Section - Feature 050 (only for wishlist items) */}
+        {/* Feature 057: Price tracking sections for wishlist items */}
         {isWishlistItem && (
-          <div className="border-t pt-4">
-            <PriceTrackingSection item={item} />
-          </div>
-        )}
-
-        {/* External Links */}
-        {(item.productUrl || item.brandUrl || item.retailerUrl) && (
-          <div className="flex flex-wrap gap-2">
-            {item.productUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={item.productUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Product Page
-                </a>
-              </Button>
-            )}
-            {item.brandUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={item.brandUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Brand Site
-                </a>
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* T042: YouTube Reviews Section */}
-        <div className="border-t pt-4">
-          <p className="mb-3 text-xs uppercase text-muted-foreground">
-            Reviews
-          </p>
-          {/* T043: Show message when brand/name missing */}
-          {!item.brand && !item.name ? (
-            <p className="text-sm text-muted-foreground">
-              Add brand and name to find reviews
-            </p>
-          ) : (
-            <YouTubeCarousel
-              videos={youtubeVideos}
-              isLoading={youtubeLoading}
-              error={youtubeError}
-              onRetry={onRetryYouTube}
-            />
-          )}
-        </div>
-
-        {/* T059: Gear Insights Section */}
-        <div className="border-t pt-4">
-          <p className="mb-3 text-xs uppercase text-muted-foreground">
-            Gear Insights
-          </p>
-          <GearInsightsSection
-            insights={insights}
-            isLoading={insightsLoading}
-            error={insightsError}
-            gearContext={{
-              gearItemId: item.id,
-              brand: item.brand ?? undefined,
-              name: item.name,
-              categoryId: categoryId ?? undefined,
-            }}
-            onInsightDismissed={onInsightDismissed}
+          <GearDetailWishlistPricing
+            gearItemId={item.id}
+            itemName={item.name}
+            brandName={item.brand}
+            manufacturerPrice={item.manufacturerPrice}
+            manufacturerCurrency={item.manufacturerCurrency}
+            productUrl={item.productUrl}
+            brandUrl={item.brandUrl}
+            msrpAmount={msrp?.expectedPriceUsd ?? null}
+            msrpLoading={msrpLoading}
+            productTypeKeywords={productTypeKeywords}
+            countryCode={profile?.rawProfile?.preferred_locale?.split('-')[1]?.toUpperCase() || 'DE'}
+            userLocation={
+              profile?.rawProfile?.latitude && profile?.rawProfile?.longitude
+                ? { latitude: profile.rawProfile.latitude, longitude: profile.rawProfile.longitude }
+                : null
+            }
           />
-        </div>
+        )}
+
+        {/* Collapsible Sections */}
+        <Accordion type="multiple" defaultValue={defaultOpenSections} className="w-full">
+          {/* SPECIFICATIONS Section */}
+          <AccordionItem value="specifications">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              {t('sections.specifications')}
+            </AccordionTrigger>
+            <AccordionContent>
+              <GearDetailSpecifications item={item} />
+              {/* Community-verified Weight Reports */}
+              {catalogMatch && (
+                <CommunityWeightSection
+                  catalogProductId={catalogMatch.catalogProductId}
+                  manufacturerWeightGrams={catalogMatch.manufacturerWeightGrams}
+                  productName={catalogMatch.productName ?? item.name}
+                  className="mt-4 pt-4 border-t"
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* DESCRIPTION Section */}
+          {(item.description || item.notes) && (
+            <AccordionItem value="description">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                {t('sections.description')}
+              </AccordionTrigger>
+              <AccordionContent>
+                {item.description && (
+                  <div className="mb-4">
+                    <ScrollableText text={item.description} />
+                  </div>
+                )}
+                {item.notes && (
+                  <div>
+                    <p className="mb-1 text-xs uppercase text-muted-foreground">
+                      {t('specLabels.notes')}
+                    </p>
+                    <ScrollableText text={item.notes} />
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* PURCHASE INFO Section */}
+          {(item.pricePaid || item.retailer || item.purchaseDate) && (
+            <AccordionItem value="purchase">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                {t('sections.purchaseInfo')}
+              </AccordionTrigger>
+              <AccordionContent>
+                <GearDetailPurchaseInfo
+                  pricePaid={item.pricePaid}
+                  currency={item.currency}
+                  retailer={item.retailer}
+                  purchaseDate={item.purchaseDate}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* External Links */}
+          {(item.productUrl || item.brandUrl || item.retailerUrl) && (
+            <AccordionItem value="links">
+              <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+                {t('sections.externalLinks')}
+              </AccordionTrigger>
+              <AccordionContent>
+                <GearDetailExternalLinks
+                  productUrl={item.productUrl}
+                  brandUrl={item.brandUrl}
+                  retailerUrl={item.retailerUrl}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* REVIEWS Section */}
+          <AccordionItem value="reviews">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              {t('sections.reviews')}
+            </AccordionTrigger>
+            <AccordionContent>
+              {!item.brand || !item.name ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('reviews.emptyMessage')}
+                </p>
+              ) : (
+                <YouTubeCarousel
+                  videos={youtubeVideos}
+                  isLoading={youtubeLoading}
+                  error={youtubeError}
+                  isQuotaExhausted={youtubeQuotaExhausted}
+                  onRetry={onRetryYouTube}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* GEAR INSIGHTS Section */}
+          <AccordionItem value="insights">
+            <AccordionTrigger className="text-xs uppercase text-muted-foreground hover:no-underline">
+              {t('sections.gearInsights')}
+            </AccordionTrigger>
+            <AccordionContent>
+              <GearInsightsSection
+                insights={insights}
+                isLoading={insightsLoading}
+                error={insightsError}
+                gearContext={{
+                  gearItemId: item.id,
+                  brand: item.brand ?? undefined,
+                  name: item.name,
+                  categoryId: categoryId ?? undefined,
+                }}
+                onInsightDismissed={onInsightDismissed}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+        </Accordion>
       </div>
     </div>
   );

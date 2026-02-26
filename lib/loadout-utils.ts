@@ -205,14 +205,23 @@ export function getWeightCategoryBgColor(category: WeightCategory): string {
 /**
  * Calculate total weight of gear items in grams
  * Items with null weight contribute 0g
+ *
+ * Feature 013: Gear Quantity Tracking
+ * Now multiplies each item's weight by its quantity for accurate totals
  */
 export function calculateTotalWeight(items: GearItem[]): number {
-  return items.reduce((total, item) => total + (item.weightGrams ?? 0), 0);
+  return items.reduce((total, item) => {
+    const quantity = item.quantity ?? 1;
+    return total + (item.weightGrams ?? 0) * quantity;
+  }, 0);
 }
 
 /**
  * Calculate weight summary with worn/consumable breakdown (Feature: 007)
  * Base Weight = Total Weight - (Worn + Consumable), without double-subtracting
+ *
+ * Feature 013: Gear Quantity Tracking
+ * Now multiplies each item's weight by its quantity for accurate totals
  */
 export function calculateWeightSummary(
   items: GearItem[],
@@ -223,7 +232,9 @@ export function calculateWeightSummary(
   let consumableWeight = 0;
 
   for (const item of items) {
-    const weight = item.weightGrams ?? 0;
+    // Feature 013: Multiply weight by quantity (default to 1 for backward compatibility)
+    const quantity = item.quantity ?? 1;
+    const weight = (item.weightGrams ?? 0) * quantity;
     totalWeight += weight;
 
     const state = itemStates.find(s => s.itemId === item.id);
@@ -237,10 +248,12 @@ export function calculateWeightSummary(
 
   // Base Weight excludes worn and consumable, but don't double-subtract
   // An item that is both worn AND consumable is only excluded once
+  // Feature 013: Also apply quantity multiplier here
   const excludedWeight = items.reduce((sum, item) => {
     const state = itemStates.find(s => s.itemId === item.id);
     const isExcluded = state?.isWorn || state?.isConsumable;
-    return isExcluded ? sum + (item.weightGrams ?? 0) : sum;
+    const quantity = item.quantity ?? 1;
+    return isExcluded ? sum + (item.weightGrams ?? 0) * quantity : sum;
   }, 0);
 
   return {
@@ -255,10 +268,11 @@ export function calculateWeightSummary(
  * Calculate weight breakdown by category
  * Cascading Category Refactor: Requires categories parameter to derive categoryId from productTypeId
  */
-export function calculateCategoryWeights(items: GearItem[], categories: Category[]): CategoryWeight[] {
+export function calculateCategoryWeights(items: GearItem[], categories: Category[], locale: string = 'en'): CategoryWeight[] {
   const totalWeight = calculateTotalWeight(items);
 
   // Group items by category
+  // Feature 013: Include quantity in weight calculation
   const categoryMap = new Map<string, { items: GearItem[]; weight: number }>();
 
   for (const item of items) {
@@ -266,7 +280,8 @@ export function calculateCategoryWeights(items: GearItem[], categories: Category
     const catId = categoryId ?? 'miscellaneous';
     const existing = categoryMap.get(catId) ?? { items: [], weight: 0 };
     existing.items.push(item);
-    existing.weight += item.weightGrams ?? 0;
+    const quantity = item.quantity ?? 1;
+    existing.weight += (item.weightGrams ?? 0) * quantity;
     categoryMap.set(catId, existing);
   }
 
@@ -274,9 +289,15 @@ export function calculateCategoryWeights(items: GearItem[], categories: Category
   const categoryWeights: CategoryWeight[] = [];
 
   for (const [categoryId, data] of categoryMap) {
+    // Look up category label from categories array (new cascading system)
+    const category = categories.find(c => c.id === categoryId);
+    const categoryLabel = category
+      ? getLocalizedLabel(category, locale)
+      : (CATEGORY_LABELS[categoryId] ?? 'Miscellaneous');
+
     categoryWeights.push({
       categoryId,
-      categoryLabel: CATEGORY_LABELS[categoryId] ?? categoryId,
+      categoryLabel,
       totalWeightGrams: data.weight,
       itemCount: data.items.length,
       percentage: totalWeight > 0 ? (data.weight / totalWeight) * 100 : 0,
@@ -314,26 +335,70 @@ export function groupItemsByCategory(
 
 /**
  * Get sorted category entries for rendering
- * Returns array of [categoryId, items] sorted by category weight
+ * Returns array of [categoryId, items] sorted based on the provided sort option.
+ * Items within each category are also sorted according to the sort option.
  * Cascading Category Refactor: Requires categories parameter
  */
 export function getSortedCategoryGroups(
   items: GearItem[],
-  categories: Category[]
+  categories: Category[],
+  sortBy: SortOption = 'category',
+  locale: string = 'en'
 ): Array<[string, GearItem[]]> {
   const groups = groupItemsByCategory(items, categories);
 
+  // Sort items within each category based on sort option
+  for (const [, categoryItems] of groups) {
+    categoryItems.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'weight-asc':
+          return (a.weightGrams ?? 0) - (b.weightGrams ?? 0);
+        case 'weight-desc':
+          return (b.weightGrams ?? 0) - (a.weightGrams ?? 0);
+        case 'category':
+        default:
+          // For category sort, sort by name within each category
+          return a.name.localeCompare(b.name);
+      }
+    });
+  }
+
   // Calculate total weight per category for sorting
-  const withWeight = Array.from(groups.entries()).map(([categoryId, categoryItems]) => ({
-    categoryId,
-    items: categoryItems,
-    weight: calculateTotalWeight(categoryItems),
-  }));
+  const withMeta = Array.from(groups.entries()).map(([categoryId, categoryItems]) => {
+    const category = categories.find(c => c.id === categoryId);
+    const categoryLabel = category ? getLocalizedLabel(category, locale) : 'zzz';
+    return {
+      categoryId,
+      items: categoryItems,
+      weight: calculateTotalWeight(categoryItems),
+      label: categoryLabel,
+    };
+  });
 
-  // Sort by weight descending
-  withWeight.sort((a, b) => b.weight - a.weight);
+  // Sort categories based on sort option
+  switch (sortBy) {
+    case 'name-asc':
+    case 'name-desc':
+    case 'category':
+      // For name/category sorts, sort categories alphabetically
+      withMeta.sort((a, b) => a.label.localeCompare(b.label));
+      break;
+    case 'weight-asc':
+      // Lightest categories first
+      withMeta.sort((a, b) => a.weight - b.weight);
+      break;
+    case 'weight-desc':
+    default:
+      // Heaviest categories first
+      withMeta.sort((a, b) => b.weight - a.weight);
+      break;
+  }
 
-  return withWeight.map(({ categoryId, items: categoryItems }) => [categoryId, categoryItems]);
+  return withMeta.map(({ categoryId, items: categoryItems }) => [categoryId, categoryItems]);
 }
 
 // =============================================================================
@@ -345,7 +410,7 @@ export function getSortedCategoryGroups(
  * FR-020: Display weight in grams with thousands separator (e.g., "1,483 g")
  */
 export function formatWeight(grams: number | null): string {
-  if (grams === null || grams === undefined) return '-- g';
+  if (grams === null || grams === undefined || !Number.isFinite(grams)) return '-- g';
   return `${grams.toLocaleString()} g`;
 }
 

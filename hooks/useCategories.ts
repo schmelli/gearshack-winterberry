@@ -68,9 +68,12 @@ export function useCategories(): UseCategoriesReturn {
 
   // Fetch categories on mount if not already initialized
   // Also refetch when locale changes to ensure fresh data for new locale
+  // Note: fetchCategories is excluded from deps to prevent infinite loops
+  // (Zustand selectors return new refs on store updates)
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories, locale]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
 
   // Build hierarchy from flat categories
   const hierarchy = useMemo(() => {

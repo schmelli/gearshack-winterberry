@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   gearItemFromDb,
@@ -65,7 +65,8 @@ export function useGearItems(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Fetch all items (T029)
@@ -80,15 +81,62 @@ export function useGearItems(
     setError(null);
 
     try {
+      // Explicit column selection for better performance and documentation
+      // All columns used by gearItemFromDb transformer
+      const gearItemColumns = `
+        id,
+        created_at,
+        updated_at,
+        user_id,
+        name,
+        brand,
+        description,
+        brand_url,
+        model_number,
+        product_url,
+        product_type_id,
+        weight_grams,
+        weight_display_unit,
+        length_cm,
+        width_cm,
+        height_cm,
+        size,
+        color,
+        volume_liters,
+        materials,
+        tent_construction,
+        price_paid,
+        currency,
+        manufacturer_price,
+        manufacturer_currency,
+        purchase_date,
+        retailer,
+        retailer_url,
+        primary_image_url,
+        gallery_image_urls,
+        nobg_images,
+        condition,
+        status,
+        notes,
+        quantity,
+        is_favourite,
+        is_for_sale,
+        can_be_borrowed,
+        can_be_traded,
+        source_merchant_id,
+        source_offer_id,
+        source_loadout_id,
+        dependency_ids
+      `;
       let query = supabase
         .from('gear_items')
-        .select('*')
+        .select(gearItemColumns)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       // T037: Filter by category if provided
       if (categoryId) {
-        query = query.eq('category_id', categoryId);
+        query = query.eq('product_type_id', categoryId);
       }
 
       const { data, error: fetchError } = await query;

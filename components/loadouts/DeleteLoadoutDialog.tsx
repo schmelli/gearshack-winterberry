@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,8 @@ export function DeleteLoadoutDialog({
   loadoutName,
   onConfirm,
 }: DeleteLoadoutDialogProps) {
+  const t = useTranslations('Loadouts');
+  const tCommon = useTranslations('Common');
   const [open, setOpen] = useState(false);
 
   const handleConfirm = () => {
@@ -60,24 +63,23 @@ export function DeleteLoadoutDialog({
           }}
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Delete loadout</span>
+          <span className="sr-only">{t('deleteLoadout')}</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Loadout</AlertDialogTitle>
+          <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete &quot;{loadoutName}&quot;? This action
-            cannot be undone. Your gear items will not be affected.
+            {t('deleteDescription', { name: loadoutName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete
+            {tCommon('delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

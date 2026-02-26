@@ -22,8 +22,8 @@ interface PresenceState {
 interface UsePresenceStatusReturn {
   /** Current user's online status */
   isOnline: boolean;
-  /** Map of user IDs to their online status */
-  onlineUsers: Map<string, boolean>;
+  /** Set of online user IDs (more efficient than Map<string, boolean>) */
+  onlineUsers: Set<string>;
   /** Check if a specific user is online */
   isUserOnline: (userId: string) => boolean;
   /** Start tracking presence (auto-called on mount) */
@@ -39,15 +39,15 @@ interface UsePresenceStatusReturn {
 export function usePresenceStatus(): UsePresenceStatusReturn {
   const { user } = useSupabaseAuth();
   const [isOnline, setIsOnline] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<Map<string, boolean>>(new Map());
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const updateOnlineUsers = useCallback((presences: Record<string, PresenceState[]>) => {
-    const newOnlineUsers = new Map<string, boolean>();
+    const newOnlineUsers = new Set<string>();
 
     Object.values(presences).forEach((presence) => {
       presence.forEach((p) => {
-        newOnlineUsers.set(p.userId, true);
+        newOnlineUsers.add(p.userId);
       });
     });
 
@@ -75,16 +75,16 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
         setOnlineUsers((prev) => {
-          const next = new Map(prev);
+          const next = new Set(prev);
           (newPresences as unknown as PresenceState[]).forEach((p) => {
-            next.set(p.userId, true);
+            next.add(p.userId);
           });
           return next;
         });
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
         setOnlineUsers((prev) => {
-          const next = new Map(prev);
+          const next = new Set(prev);
           (leftPresences as unknown as PresenceState[]).forEach((p) => {
             next.delete(p.userId);
           });
@@ -115,24 +115,34 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
   }, []);
 
   // Auto-start tracking when user is authenticated
+  // Note: startTracking is intentionally excluded from deps
+  // to prevent circular dependency causing subscription churn
   useEffect(() => {
     if (user?.id) {
       startTracking();
     }
 
+    // Direct cleanup using channelRef to avoid stale closure
     return () => {
-      stopTracking();
+      if (channelRef.current) {
+        const supabase = createClient();
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        setIsOnline(false);
+      }
     };
-  }, [user?.id, startTracking, stopTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Store startTracking in ref to avoid stale closure
+  const startTrackingRef = useRef(startTracking);
+  startTrackingRef.current = startTracking;
 
   // Handle page visibility for presence accuracy
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        startTracking();
-      } else {
-        // Optionally stop tracking when tab is hidden
-        // stopTracking();
+        startTrackingRef.current();
       }
     };
 
@@ -140,7 +150,7 @@ export function usePresenceStatus(): UsePresenceStatusReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [startTracking]);
+  }, []);
 
   const isUserOnline = useCallback(
     (userId: string): boolean => {

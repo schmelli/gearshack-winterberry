@@ -7,16 +7,25 @@
 
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { AdminMobileNav } from '@/components/admin/AdminMobileNav';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminRoute>
-      <div className="container mx-auto max-w-7xl py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[250px_1fr]">
+      <PageContainer className="max-w-7xl">
+        {/* Mobile: Show only the main content + floating nav button */}
+        <div className="md:hidden">
+          <AdminMobileNav />
+          <main>{children}</main>
+        </div>
+
+        {/* Desktop: Show sidebar + content in grid */}
+        <div className="hidden md:grid md:grid-cols-[250px_1fr] md:gap-6">
           <AdminNav />
           <main>{children}</main>
         </div>
-      </div>
+      </PageContainer>
     </AdminRoute>
   );
 }

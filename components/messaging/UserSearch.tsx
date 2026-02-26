@@ -9,6 +9,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Search, Loader2, User, MessageCircle, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUserSearch, type SearchedUser } from '@/hooks/messaging/useUserSearch';
 import { useFriends } from '@/hooks/messaging/useFriends';
+import { toast } from 'sonner';
 
 interface UserSearchProps {
   /** Callback when user wants to message someone */
@@ -30,13 +32,22 @@ interface UserSearchProps {
 export function UserSearch({
   onMessageUser,
   onViewProfile,
-  placeholder = 'Search by name or trail name...',
+  placeholder,
 }: UserSearchProps) {
+  const t = useTranslations('Messaging.userSearch');
   const { query, setQuery, results, isSearching, error } = useUserSearch();
   const { isFriend, addFriend } = useFriends();
 
+  // Use provided placeholder or default from translations
+  const inputPlaceholder = placeholder ?? t('placeholder');
+
   const handleAddFriend = async (userId: string) => {
-    await addFriend(userId);
+    try {
+      await addFriend(userId);
+    } catch (error) {
+      console.error('Failed to add friend:', error);
+      toast.error('Failed to send friend request');
+    }
   };
 
   return (
@@ -46,7 +57,7 @@ export function UserSearch({
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
-          placeholder={placeholder}
+          placeholder={inputPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-10"
@@ -66,7 +77,7 @@ export function UserSearch({
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <User className="h-10 w-10 text-muted-foreground/50" />
           <p className="mt-2 text-sm text-muted-foreground">
-            No users found matching &ldquo;{query}&rdquo;
+            {t('noUsersFound', { query })}
           </p>
         </div>
       )}
@@ -81,10 +92,15 @@ export function UserSearch({
                 user={user}
                 isFriend={isFriend(user.id)}
                 onMessage={() =>
-                  onMessageUser?.(user.id, user.display_name ?? 'Unknown')
+                  onMessageUser?.(user.id, user.display_name ?? t('unknown'))
                 }
                 onViewProfile={() => onViewProfile?.(user.id)}
                 onAddFriend={() => handleAddFriend(user.id)}
+                translations={{
+                  sendMessage: t('sendMessage'),
+                  addFriend: t('addFriend'),
+                  unknown: t('unknown'),
+                }}
               />
             ))}
           </div>
@@ -96,10 +112,10 @@ export function UserSearch({
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Search className="h-10 w-10 text-muted-foreground/50" />
           <p className="mt-2 text-sm text-muted-foreground">
-            Search for GearShack members to connect
+            {t('searchHint')}
           </p>
           <p className="text-xs text-muted-foreground/70">
-            Enter at least 2 characters to search
+            {t('minimumCharacters')}
           </p>
         </div>
       )}
@@ -113,6 +129,11 @@ interface UserSearchResultProps {
   onMessage: () => void;
   onViewProfile: () => void;
   onAddFriend: () => void;
+  translations: {
+    sendMessage: string;
+    addFriend: string;
+    unknown: string;
+  };
 }
 
 function UserSearchResult({
@@ -121,8 +142,9 @@ function UserSearchResult({
   onMessage,
   onViewProfile,
   onAddFriend,
+  translations,
 }: UserSearchResultProps) {
-  const displayName = user.display_name ?? 'Unknown';
+  const displayName = user.display_name ?? translations.unknown;
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -163,7 +185,7 @@ function UserSearchResult({
               e.stopPropagation();
               onMessage();
             }}
-            title="Send message"
+            title={translations.sendMessage}
           >
             <MessageCircle className="h-4 w-4" />
           </Button>
@@ -175,7 +197,7 @@ function UserSearchResult({
                 e.stopPropagation();
                 onAddFriend();
               }}
-              title="Add friend"
+              title={translations.addFriend}
             >
               <UserPlus className="h-4 w-4" />
             </Button>

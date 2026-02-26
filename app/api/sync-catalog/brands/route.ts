@@ -9,17 +9,43 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'crypto';
 import { brandSyncRequestSchema, type BrandPayload } from '@/lib/validations/catalog-schema';
 import type { Database } from '@/types/database';
 import type { SyncResponse } from '@/types/catalog';
 
+/**
+ * Timing-safe comparison of authorization headers to prevent timing attacks.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedToken: string): boolean {
+  if (!authHeader) return false;
+  // Ensure both strings have the same length for timing-safe comparison
+  if (authHeader.length !== expectedToken.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedToken));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Validate authorization
-    const authHeader = request.headers.get('Authorization');
-    const expectedToken = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
+    // Validate service role key is configured
+    const authServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!authServiceRoleKey || authServiceRoleKey.length < 10) {
+      console.error('[sync-catalog/brands] SUPABASE_SERVICE_ROLE_KEY not configured');
+      const response: SyncResponse = {
+        success: false,
+        error: 'Server configuration error',
+      };
+      return NextResponse.json(response, { status: 500 });
+    }
 
-    if (!authHeader || authHeader !== expectedToken) {
+    // Validate authorization using timing-safe comparison
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = `Bearer ${authServiceRoleKey}`;
+
+    if (!verifyAuthHeader(authHeader, expectedToken)) {
       const response: SyncResponse = {
         success: false,
         error: 'Unauthorized',
@@ -81,7 +107,8 @@ export async function POST(request: NextRequest) {
     const upsertedIds: string[] = [];
 
     for (const brand of brands) {
-      const { data: upserted, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_brands not in generated types
+      const { data: upserted, error } = await (supabase as any)
         .from('catalog_brands')
         .upsert(
           {

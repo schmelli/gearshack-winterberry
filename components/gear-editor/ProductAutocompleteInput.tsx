@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import {
   FormField,
   FormItem,
@@ -40,6 +41,8 @@ interface ProductAutocompleteInputProps {
   onProductSelect?: (product: ProductSuggestion) => void;
   /** Optional brand ID to filter products */
   brandId?: string;
+  /** Optional brand name to filter products (more reliable than ID) */
+  brandName?: string;
 }
 
 // =============================================================================
@@ -49,10 +52,13 @@ interface ProductAutocompleteInputProps {
 export function ProductAutocompleteInput({
   onProductSelect,
   brandId,
+  brandName,
 }: ProductAutocompleteInputProps) {
+  const t = useTranslations('GearEditor');
   const form = useFormContext<GearItemFormData>();
   const { suggestions, isLoading, search, clear } = useProductAutocomplete({
     brandId,
+    brandName,
   });
 
   // Cascading Category Refactor (Phase 6): Get categories for auto-fill
@@ -62,9 +68,10 @@ export function ProductAutocompleteInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // Refs for click outside detection
+  // Refs for click outside detection and timeout cleanup
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Watch the current name value
   const nameValue = useWatch({ control: form.control, name: 'name' });
@@ -177,13 +184,17 @@ export function ProductAutocompleteInput({
 
   // Handle blur - delay to allow click on suggestions
   const handleBlur = useCallback(() => {
-    setTimeout(() => {
+    // Clear any existing blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    blurTimeoutRef.current = setTimeout(() => {
       setShowSuggestions(false);
       setHighlightedIndex(-1);
     }, 200);
   }, []);
 
-  // Click outside to close suggestions
+  // Click outside to close suggestions and cleanup blur timeout on unmount
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -196,7 +207,13 @@ export function ProductAutocompleteInput({
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      // Cleanup blur timeout to prevent memory leaks
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -207,11 +224,11 @@ export function ProductAutocompleteInput({
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Name <span className="text-destructive">*</span>
+              {t('nameLabel')} <span className="text-destructive">*</span>
             </FormLabel>
             <FormControl>
               <Input
-                placeholder="e.g., Nemo Hornet Elite 2P"
+                placeholder={t('namePlaceholder')}
                 {...field}
                 ref={(el) => {
                   field.ref(el);
@@ -284,7 +301,7 @@ export function ProductAutocompleteInput({
                       </>
                     )}
                     <span className="ml-auto">
-                      {Math.round(suggestion.score * 100)}% match
+                      {t('productAutocomplete.matchScore', { score: Math.round(suggestion.score * 100) })}
                     </span>
                   </div>
                   {suggestion.description && (
@@ -303,7 +320,7 @@ export function ProductAutocompleteInput({
       {isLoading && showSuggestions && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-lg">
           <p className="text-center text-sm text-muted-foreground">
-            Searching products...
+            {t('productAutocomplete.searching')}
           </p>
         </div>
       )}

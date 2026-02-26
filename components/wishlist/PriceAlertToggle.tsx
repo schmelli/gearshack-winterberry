@@ -6,6 +6,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Bell, BellOff } from 'lucide-react';
@@ -21,6 +22,8 @@ export function PriceAlertToggle({
   onToggle,
   disabled = false,
 }: PriceAlertToggleProps) {
+  const t = useTranslations('Wishlist.priceAlerts');
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
       <div className="flex items-center gap-3">
@@ -31,10 +34,10 @@ export function PriceAlertToggle({
         )}
         <div>
           <Label htmlFor="price-alerts" className="font-medium">
-            Price Drop Alerts
+            {t('title')}
           </Label>
           <p className="text-sm text-muted-foreground">
-            Get notified when prices drop below the lowest recorded price
+            {t('description')}
           </p>
         </div>
       </div>

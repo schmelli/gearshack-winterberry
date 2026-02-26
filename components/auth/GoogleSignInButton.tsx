@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 
@@ -60,6 +61,7 @@ export function GoogleSignInButton({
   variant = 'outline',
   fullWidth = true,
 }: GoogleSignInButtonProps) {
+  const t = useTranslations('Auth');
   const { signInWithGoogle } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,7 +71,7 @@ export function GoogleSignInButton({
       await signInWithGoogle();
       onSuccess?.();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sign in failed';
+      const message = error instanceof Error ? error.message : t('errors.signInFailed');
       onError?.(message);
     } finally {
       setIsLoading(false);
@@ -89,7 +91,7 @@ export function GoogleSignInButton({
       ) : (
         <GoogleIcon className="mr-2 h-4 w-4" />
       )}
-      Continue with Google
+      {t('googleButton')}
     </Button>
   );
 }

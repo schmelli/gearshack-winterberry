@@ -15,6 +15,7 @@
 import { use, useState, useMemo } from 'react';
 import { notFound } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { useLoadout, useStore, useItems } from '@/hooks/useSupabaseStore';
 import { formatWeightForDisplay } from '@/lib/gear-utils';
@@ -24,6 +25,7 @@ import { useLoadoutItemState } from '@/hooks/useLoadoutItemState';
 import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { useCategories } from '@/hooks/useCategories';
+import { useLighterAlternatives } from '@/hooks/useLighterAlternatives';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
@@ -32,8 +34,10 @@ import { DependencyPromptDialog } from '@/components/loadouts/DependencyPromptDi
 import { WeightBar } from '@/components/loadouts/WeightBar';
 import { LoadoutSortFilter, type SortOption } from '@/components/loadouts/LoadoutSortFilter';
 import { sortAndFilterItems } from '@/lib/loadout-utils';
-
-import { LoadoutExportMenu } from '@/components/loadouts/LoadoutExportMenu';
+import {
+  LoadoutHeroActionButtons,
+  LoadoutHeroBadges,
+} from '@/components/loadouts/LoadoutHeroActions';
 
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { useMediaQuery } from '@/hooks/useGearDetailModal';
@@ -48,6 +52,7 @@ import {
 } from '@/components/ui/sheet';
 import type { Season } from '@/types/loadout';
 import { LoadoutHeroImageSection } from '@/components/loadout/LoadoutHeroImageSection';
+import { useLoadoutScreenEffect } from '@/hooks/useScreenEffect';
 
 // =============================================================================
 // Types
@@ -63,6 +68,7 @@ interface LoadoutEditorPageProps {
 
 export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const { id } = use(params);
+  const t = useTranslations('Loadouts');
   const loadout = useLoadout(id);
   const allItems = useItems();
   const userId = useStore((state) => state.userId);
@@ -72,6 +78,9 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   const updateLoadoutMetadata = useStore((state) => state.updateLoadoutMetadata);
   const addItemToLoadout = useStore((state) => state.addItemToLoadout);
 
+  // AI Agent Context-Awareness: Set screen context
+  useLoadoutScreenEffect(id, loadout?.name);
+
   // Editor state and actions
   const {
     loadoutItems,
@@ -80,13 +89,13 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     filteredPickerItems,
     addItem,
     removeItem,
+    swapItem,
     totalWeight,
     baseWeight,
-    categoryWeights,
     itemStates,
   } = useLoadoutEditor(id);
 
-  // Dependency prompt (Feature: 037-gear-dependencies)
+  // Dependency prompt (Feature: 037)
   const dependencyPrompt = useDependencyPrompt({
     loadoutId: id,
     addItemToLoadout,
@@ -94,116 +103,127 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     allItems,
   });
 
-  // Metadata state (activity types, seasons)
+  // Metadata state
   const { activityTypes, seasons, toggleActivity, toggleSeason } =
     useLoadoutMetadata(id);
 
-  // Chart filter state (FR-012: filter list by chart segment click)
+  // Chart filter state
   const { selectedCategoryId, toggleCategory, clearFilter } = useChartFilter();
 
-  // Sort and filter state for both panels
+  // Sort and filter state
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const [sortFilterCategoryId, setSortFilterCategoryId] = useState<string | null>(null);
   const { categories } = useCategories();
 
-  // Apply sorting and filtering to picker items
   const sortedFilteredPickerItems = useMemo(
     () => sortAndFilterItems(filteredPickerItems, sortBy, sortFilterCategoryId, categories),
     [filteredPickerItems, sortBy, sortFilterCategoryId, categories]
   );
 
-  // Apply sorting and filtering to loadout items
   const sortedFilteredLoadoutItems = useMemo(
     () => sortAndFilterItems(loadoutItems, sortBy, sortFilterCategoryId, categories),
     [loadoutItems, sortBy, sortFilterCategoryId, categories]
   );
 
-  // Item state for worn/consumable tracking (US4)
-  const { isWorn, isConsumable, toggleWorn, toggleConsumable } = useLoadoutItemState(id);
+  // Item state tracking
+  const { isWorn, isConsumable, toggleWorn, toggleConsumable, canAddItem } =
+    useLoadoutItemState(id);
 
-  // Feature 045: Gear detail modal state
+  // Lighter alternatives
+  const { getLighterAlternative } = useLighterAlternatives(loadoutItems);
+
+  // Gear detail modal
   const [selectedGearId, setSelectedGearId] = useState<string | null>(null);
   const [gearModalOpen, setGearModalOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // Find selected gear item
   const selectedGearItem = selectedGearId
     ? loadoutItems.find((item) => item.id === selectedGearId) ?? null
     : null;
 
-  // Open gear detail modal
-  const handleGearClick = (itemId: string) => {
+  function handleGearClick(itemId: string): void {
     setSelectedGearId(itemId);
     setGearModalOpen(true);
-  };
+  }
 
-  // Handle not found
   if (!loadout) {
     notFound();
   }
 
-  // Wrapper for addItem with dependency check (Feature: 037-gear-dependencies)
-  const handleAddItem = (itemId: string) => {
-    // Check for dependencies - if modal is shown, it handles the add flow
+  function handleAddItem(itemId: string): void {
+    if (!canAddItem(itemId)) return;
     const hasPrompt = dependencyPrompt.triggerCheck(itemId);
     if (!hasPrompt) {
-      // No dependencies, add item directly
       addItem(itemId);
     }
-  };
+  }
 
-  // Handle metadata save (US5)
-  const handleMetadataSave = async (data: { name: string; description: string | null; season: Season | null; tripDate: Date | null }) => {
+  async function handleMetadataSave(data: {
+    name: string;
+    description: string | null;
+    season: Season | null;
+    tripDate: Date | null;
+  }): Promise<void> {
     await updateLoadout(id, {
       name: data.name,
       description: data.description,
       tripDate: data.tripDate,
     });
-    if (data.season) {
-      updateLoadoutMetadata(id, { seasons: [data.season] });
-    } else {
-      updateLoadoutMetadata(id, { seasons: [] });
-    }
-  };
+    updateLoadoutMetadata(id, { seasons: data.season ? [data.season] : [] });
+  }
 
-  // Handle inline description change (FR-014)
-  const handleDescriptionChange = async (description: string | null) => {
+  async function handleDescriptionChange(description: string | null): Promise<void> {
     await updateLoadout(id, { description });
-  };
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      {/* Hero Image Section (Feature 048) */}
+      {/* Hero Image Section */}
       {userId && (
-        <div className="container max-w-4xl px-4 pt-6 sm:px-6">
-          <LoadoutHeroImageSection
-            loadout={loadout}
-            userId={userId}
-            totalWeight={formatWeightForDisplay(totalWeight)}
-            itemCount={loadoutItems.length}
-          />
-        </div>
+        <LoadoutHeroImageSection
+          loadout={loadout}
+          userId={userId}
+          totalWeight={formatWeightForDisplay(totalWeight)}
+          itemCount={loadoutItems.length}
+          backHref="/loadouts"
+          backLabel={t('backToLoadouts')}
+          actionButtons={
+            <LoadoutHeroActionButtons
+              loadout={loadout}
+              items={loadoutItems}
+              itemStates={itemStates}
+              activityTypes={activityTypes}
+              seasons={seasons}
+              totalWeight={totalWeight}
+              baseWeight={baseWeight}
+              userId={userId}
+              onEditClick={() => setMetadataDialogOpen(true)}
+            />
+          }
+          badges={
+            <LoadoutHeroBadges
+              activityTypes={activityTypes}
+              seasons={seasons}
+            />
+          }
+        />
       )}
 
-      {/* Enhanced Header with sans-serif title, badges, weight progress (FR-012) */}
+      {/* Header with description and weight chart */}
       <LoadoutHeader
         loadout={loadout}
-        totalWeight={totalWeight}
-        baseWeight={baseWeight}
-        categoryWeights={categoryWeights}
+        items={loadoutItems}
+        itemStates={itemStates}
         activityTypes={activityTypes}
         seasons={seasons}
         onToggleActivity={toggleActivity}
         onToggleSeason={toggleSeason}
         selectedCategoryId={selectedCategoryId}
-        onSegmentClick={toggleCategory}
-        onEdit={() => setMetadataDialogOpen(true)}
+        onSegmentClick={(categoryId) => toggleCategory(categoryId)}
         onDescriptionChange={handleDescriptionChange}
-        items={loadoutItems}
-        itemStates={itemStates}
       />
 
-      {/* Metadata Edit Dialog (US5) */}
+      {/* Metadata Dialog */}
       <LoadoutMetadataDialog
         loadout={loadout}
         open={metadataDialogOpen}
@@ -211,9 +231,9 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onSave={handleMetadataSave}
       />
 
-      {/* Two-Column Layout - FR-001, FR-002, FR-003 */}
-      <div className="container max-w-6xl flex-1 px-4 py-6 sm:px-6">
-        {/* Sort/Filter Controls (shared across both panels) */}
+      {/* Two-Column Layout */}
+      <div className="container mx-auto max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        {/* Sort/Filter Controls (desktop) */}
         <div className="mb-4 hidden md:block">
           <LoadoutSortFilter
             sortBy={sortBy}
@@ -224,68 +244,61 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         </div>
 
         <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-          {/* Left: Item Picker (hidden on mobile, shown in sheet) - FR-002 */}
+          {/* Left: Item Picker (desktop) */}
           <div className="hidden space-y-4 md:block">
-            <h2 className="text-lg font-semibold">Add from Inventory</h2>
+            <h2 className="text-lg font-semibold">{t('editor.addFromInventory')}</h2>
             <LoadoutPicker
               items={sortedFilteredPickerItems}
               loadoutItemIds={loadout.itemIds}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onAddItem={handleAddItem}
+              sortBy={sortBy}
             />
           </div>
 
-          {/* Right: Loadout List with sticky positioning - FR-003, FR-009 (header buffer) */}
+          {/* Right: Loadout List */}
           <div className="space-y-4 md:sticky md:top-28 md:self-start">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">Loadout Items</h2>
-              <div className="flex items-center gap-2">
-                {selectedCategoryId && (
-                  <button
-                    onClick={clearFilter}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Clear filter
-                  </button>
-                )}
-                <LoadoutExportMenu
-                  loadout={loadout}
-                  items={loadoutItems}
-                  itemStates={itemStates}
-                  activityTypes={activityTypes}
-                  seasons={seasons}
-                  totalWeight={totalWeight}
-                  baseWeight={baseWeight}
-                />
-              </div>
+              <h2 className="text-lg font-semibold">{t('editor.loadoutItems')}</h2>
+              {selectedCategoryId && (
+                <button
+                  onClick={clearFilter}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  {t('editor.clearFilter')}
+                </button>
+              )}
             </div>
             <LoadoutList
               items={sortedFilteredLoadoutItems}
               onRemoveItem={removeItem}
+              onSwapItem={swapItem}
               filterCategoryId={selectedCategoryId}
+              sortBy={sortBy}
               isWorn={isWorn}
               isConsumable={isConsumable}
               onToggleWorn={toggleWorn}
               onToggleConsumable={toggleConsumable}
               onItemClick={handleGearClick}
+              getLighterAlternative={getLighterAlternative}
             />
           </div>
         </div>
       </div>
 
-      {/* Mobile: Add Items Button - FR-004, FR-005 */}
+      {/* Mobile: Add Items Sheet */}
       <div className="fixed bottom-20 left-0 right-0 p-4 md:hidden">
         <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
           <SheetTrigger asChild>
             <Button className="w-full" size="lg">
               <Plus className="mr-2 h-5 w-5" />
-              Add Items
+              {t('editor.addItems')}
             </Button>
           </SheetTrigger>
           <SheetContent side="bottom" className="h-[85vh]">
             <SheetHeader>
-              <SheetTitle>Add from Inventory</SheetTitle>
+              <SheetTitle>{t('editor.addFromInventory')}</SheetTitle>
             </SheetHeader>
             <div className="mt-4 space-y-4">
               <LoadoutSortFilter
@@ -301,6 +314,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   onAddItem={handleAddItem}
+                  sortBy={sortBy}
                 />
               </div>
             </div>
@@ -311,7 +325,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
       {/* Sticky Weight Bar */}
       <WeightBar totalWeight={totalWeight} itemCount={loadoutItems.length} />
 
-      {/* Dependency Prompt Dialog (Feature: 037-gear-dependencies) */}
+      {/* Dependency Prompt Dialog */}
       <DependencyPromptDialog
         isOpen={dependencyPrompt.isOpen}
         pendingDependencies={dependencyPrompt.pendingDependencies}
@@ -327,7 +341,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
         onCancel={dependencyPrompt.onCancel}
       />
 
-      {/* Feature 045: Gear Detail Modal */}
+      {/* Gear Detail Modal */}
       <GearDetailModal
         open={gearModalOpen}
         onOpenChange={setGearModalOpen}

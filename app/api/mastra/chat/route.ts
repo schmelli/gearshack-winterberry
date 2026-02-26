@@ -6,6 +6,10 @@
  * Provides streaming SSE responses for the Mastra agentic chat system
  * with persistent conversation memory, rate limiting, and observability.
  *
+ * Pipeline: Uses the Mastra Workflow `gear-assistant` for structured
+ * orchestration of Classify → Prefetch → Build Context, then streams
+ * the agent response via SSE.
+ *
  * SSE Event Types:
  * - text: Text content chunk
  * - tool_call: Tool invocation metadata
@@ -24,6 +28,7 @@
  * - Structured logging at each step
  * - Prometheus metrics (latency, counters, errors)
  * - Distributed tracing spans
+ * - Per-step OTel tracing via Mastra Workflow engine
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -33,6 +38,8 @@ import {
   encodeTextEvent,
   encodeDoneEvent,
   encodeErrorEvent,
+  encodeWorkflowProgressEvent,
+  encodeConfirmActionEvent,
 } from '@/lib/mastra/streaming';
 import {
   logInfo,
@@ -47,48 +54,72 @@ import {
   recordChatRequest,
   recordAgentLatency,
   recordChatError,
+  recordWorkflowFallback,
   recordToolCall,
   classifyQuery,
+  recordPromptVariantAssignment,
+  recordPromptVariantLatency,
 } from '@/lib/mastra/metrics';
-import { traceWorkflowStep, getTraceId } from '@/lib/mastra/tracing';
+import { traceWorkflowStep, getTraceId, addSpanAttributes } from '@/lib/mastra/tracing';
 import { checkAndIncrementRateLimit, type OperationType } from '@/lib/mastra/rate-limiter';
-import { createMemoryAdapter, type SupabaseMemoryAdapter } from '@/lib/mastra/memory-adapter';
-import { buildMastraSystemPrompt, type PromptContext } from '@/lib/mastra/config';
-import { generateStreamingAIResponse, isAIAvailable } from '@/lib/ai-assistant/ai-client';
-import type { MastraChatRequest } from '@/types/mastra';
-import type { UserContext } from '@/types/ai-assistant';
-import type { Database } from '@/types/supabase';
+import { createGearAgent, streamMastraResponse, createGearshackRequestContext, persistCacheHitToMemory, getToolNamesForRequest } from '@/lib/mastra/mastra-agent';
+import { resolveVariant, logAssignment } from '@/lib/mastra/prompt-ab';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { VariantResolution } from '@/types/prompt-ab';
+import {
+  generateProactiveSuggestions,
+  formatSuggestionsForStream,
+  shouldShowProactiveSuggestions,
+} from '@/lib/mastra/proactive-suggestions';
+import { mastra } from '@/lib/mastra/instance';
+import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
+import { buildMastraSystemPrompt } from '@/lib/mastra/config';
+import type { LoadoutContext } from '@/lib/mastra/context-preloader';
+import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
+import { classifyIntent, QUERY_COMPLEXITY_VALUES } from '@/lib/mastra/intent-router';
+import { classifyDomain, DEFAULT_DOMAIN } from '@/lib/mastra/supervisor';
+import { SUPERVISOR_CONFIG } from '@/lib/mastra/config';
+import {
+  getSemanticCacheHit,
+  storeInSemanticCache,
+  isCacheableIntent,
+} from '@/lib/mastra/semantic-cache';
 
 // Force Node.js runtime for Mastra compatibility
 export const runtime = 'nodejs';
 
 // =====================================================
-// Constants
+// Type Guards
 // =====================================================
 
-/** Maximum conversation history messages to retrieve */
-const MEMORY_HISTORY_LIMIT = 50;
+/** Shape of an addToLoadout tool result that requires user confirmation */
+interface ConfirmableToolResult {
+  requiresConfirmation: true;
+  runId: string;
+  message: string;
+  gearItemId: string;
+  gearItemName: string;
+  loadoutId: string;
+  loadoutName: string;
+}
 
-/** Patterns that indicate user is correcting previous information */
-const CORRECTION_PATTERNS = [
-  /actually,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /no,?\s+(that'?s?|it'?s?)\s+(wrong|incorrect|not\s+right)/i,
-  /i\s+(meant|mean)\s+/i,
-  /correction:\s*/i,
-  /let\s+me\s+correct\s+/i,
-  /to\s+clarify,?\s*/i,
-  /i\s+should\s+have\s+said/i,
-];
-
-// =====================================================
-// Types
-// =====================================================
-
-interface MemoryContext {
-  available: boolean;
-  adapter: SupabaseMemoryAdapter | null;
-  history: Array<{ role: string; content: string }>;
-  warning?: string;
+/**
+ * Type guard for addToLoadout tool results that require user confirmation.
+ * Validates all required string fields before constructing ConfirmActionData,
+ * preventing runtime errors from unexpected AI output structures.
+ */
+function isConfirmableResult(result: unknown): result is ConfirmableToolResult {
+  if (!result || typeof result !== 'object') return false;
+  const r = result as Record<string, unknown>;
+  return (
+    r.requiresConfirmation === true &&
+    typeof r.runId === 'string' && r.runId.length > 0 &&
+    typeof r.message === 'string' &&
+    typeof r.gearItemId === 'string' &&
+    typeof r.gearItemName === 'string' &&
+    typeof r.loadoutId === 'string' &&
+    typeof r.loadoutName === 'string'
+  );
 }
 
 // =====================================================
@@ -163,186 +194,42 @@ function validateRequest(body: unknown): {
 }
 
 // =====================================================
-// Memory Functions (T026-T029)
+// Subscription Tier Lookup
 // =====================================================
 
 /**
- * T027: Fetch conversation history from memory
- * T029: Gracefully handle memory unavailability
+ * Fetch user's subscription tier from the profiles table.
+ * Defaults to 'standard' on any error to ensure graceful degradation.
+ * Does NOT hard-gate access — tier is used for tool selection only.
  */
-async function fetchMemoryContext(
+async function fetchSubscriptionTier(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  conversationId: string
-): Promise<MemoryContext> {
-  const getElapsed = createTimer();
-
+  userId: string
+): Promise<'standard' | 'trailblazer'> {
   try {
-    const adapter = createMemoryAdapter(supabase as unknown as import('@supabase/supabase-js').SupabaseClient<Database>);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
 
-    logDebug('Fetching conversation history', {
-      userId,
-      conversationId,
-      metadata: { limit: MEMORY_HISTORY_LIMIT },
-    });
-
-    const messages = await adapter.getMessages({
-      userId,
-      conversationId,
-      limit: MEMORY_HISTORY_LIMIT,
-    });
-
-    // Reverse to get chronological order (oldest first)
-    const history = messages.reverse().map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    logInfo('Memory retrieval completed', {
-      userId,
-      conversationId,
-      metadata: {
-        messageCount: history.length,
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return {
-      available: true,
-      adapter,
-      history,
-    };
-  } catch (error) {
-    // T029: Graceful degradation - continue without memory
-    logWarn('Memory unavailable, continuing in stateless mode', {
-      userId,
-      conversationId,
-      metadata: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        latencyMs: getElapsed(),
-      },
-    });
-
-    return {
-      available: false,
-      adapter: null,
-      history: [],
-      warning: 'Conversation memory is temporarily unavailable. This chat will not be saved.',
-    };
-  }
-}
-
-/**
- * T028: Detect memory correction patterns in user message
- */
-function detectCorrectionIntent(message: string): boolean {
-  return CORRECTION_PATTERNS.some(pattern => pattern.test(message));
-}
-
-/**
- * T026: Save messages to memory after response
- */
-async function saveToMemory(
-  adapter: SupabaseMemoryAdapter | null,
-  userId: string,
-  conversationId: string,
-  userMessage: string,
-  assistantResponse: string,
-  isCorrection: boolean
-): Promise<void> {
-  if (!adapter) {
-    logDebug('Skipping memory save - adapter unavailable', { userId, conversationId });
-    return;
-  }
-
-  const getElapsed = createTimer();
-
-  try {
-    const now = new Date();
-    const metadata = isCorrection ? { isCorrection: true } : {};
-
-    await adapter.saveMessages([
-      {
-        id: `user-${Date.now()}`,
+    if (error || !data) {
+      logDebug('Could not fetch subscription tier, defaulting to standard', {
         userId,
-        conversationId,
-        role: 'user',
-        content: userMessage,
-        metadata,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: `assistant-${Date.now() + 1}`,
-        userId,
-        conversationId,
-        role: 'assistant',
-        content: assistantResponse,
-        metadata: {},
-        createdAt: new Date(now.getTime() + 1),
-        updatedAt: new Date(now.getTime() + 1),
-      },
-    ]);
+        metadata: { error: error?.message },
+      });
+      return 'standard';
+    }
 
-    logInfo('Messages saved to memory', {
+    const tier = data.subscription_tier;
+    return tier === 'trailblazer' ? 'trailblazer' : 'standard';
+  } catch (err) {
+    logDebug('Unexpected error fetching subscription tier, defaulting to standard', {
       userId,
-      conversationId,
-      metadata: {
-        isCorrection,
-        latencyMs: getElapsed(),
-      },
+      metadata: { error: err instanceof Error ? err.message : String(err) },
     });
-  } catch (error) {
-    // Log but don't fail the request
-    logError('Failed to save messages to memory', error, {
-      userId,
-      conversationId,
-      metadata: { latencyMs: getElapsed() },
-    });
+    return 'standard';
   }
-}
-
-// =====================================================
-// System Prompt Builder
-// =====================================================
-
-function buildPromptContext(
-  userContext: Record<string, unknown> | undefined,
-  history: Array<{ role: string; content: string }>,
-  memoryWarning?: string,
-  userId?: string,
-  subscriptionTier?: 'standard' | 'trailblazer'
-): PromptContext {
-  const locale = (userContext?.locale as string) || 'en';
-  const screen = (userContext?.screen as string) || 'inventory';
-  const inventoryCount = (userContext?.inventoryCount as number) || 0;
-  const currentLoadoutId = userContext?.currentLoadoutId as string | undefined;
-
-  // Build UserContext for prompt builder
-  const promptUserContext: UserContext = {
-    screen,
-    locale,
-    inventoryCount,
-    currentLoadoutId,
-    userId: userId || 'anonymous',
-    subscriptionTier: subscriptionTier || 'standard',
-  };
-
-  const promptContext: PromptContext = {
-    userContext: promptUserContext,
-  };
-
-  // Add memory context hint if there's history
-  if (history.length > 0) {
-    promptContext.gearList = `Previous conversation context: ${history.length} messages in history.`;
-  }
-
-  // Add memory warning if applicable
-  if (memoryWarning) {
-    promptContext.catalogResults = `SYSTEM NOTE: ${memoryWarning}`;
-  }
-
-  return promptContext;
 }
 
 // =====================================================
@@ -395,12 +282,16 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // 3b. Fetch subscription tier for dynamic tool selection (defaults to 'standard' on error).
+    // No hard gate — tier determines available tools, not access to the AI assistant.
+    const subscriptionTier = await fetchSubscriptionTier(supabase, user.id);
+
     // 4. Set logging context (T030)
     setLogContext({
       userId: user.id,
       conversationId,
       traceId,
-      metadata: { enableTools, enableVoice },
+      metadata: { enableTools, enableVoice, subscriptionTier },
     });
 
     logInfo('Mastra chat request started', {
@@ -409,6 +300,7 @@ export async function POST(request: Request): Promise<Response> {
         hasContext: !!context,
         enableTools,
         enableVoice,
+        subscriptionTier,
       },
     });
 
@@ -417,18 +309,9 @@ export async function POST(request: Request): Promise<Response> {
     const operationType = enableVoice ? 'voice' : (queryType === 'complex' ? 'workflow' : 'simple_query');
     recordChatRequest(operationType);
 
-    // 6. Check rate limits and fetch memory context in parallel (optimized)
-    // Running both in parallel saves ~50-200ms per request in the happy path
-    // Using checkAndIncrementRateLimit for atomic rate limit check and increment
-    const [rateLimitResult, memoryContextResult] = await Promise.all([
-      checkAndIncrementRateLimit(user.id, operationType as OperationType),
-      traceWorkflowStep(
-        `chat-${conversationId}`,
-        'memory_retrieval',
-        () => fetchMemoryContext(supabase, user.id, conversationId),
-        { userId: user.id }
-      ).then(r => r.result),
-    ]);
+    // 6. Check rate limits (must remain outside stream for proper HTTP status codes)
+    const currentLoadoutId = context?.currentLoadoutId as string | undefined;
+    const rateLimitResult = await checkAndIncrementRateLimit(user.id, operationType as OperationType);
 
     // Check rate limit result first (early return if exceeded)
     if (!rateLimitResult.allowed) {
@@ -483,25 +366,9 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Use the memory context fetched in parallel
-    const memoryContext = memoryContextResult;
-
-    // 8. Detect correction intent (T028)
-    const isCorrection = detectCorrectionIntent(message);
-    if (isCorrection) {
-      logInfo('Correction intent detected', {
-        userId: user.id,
-        conversationId,
-      });
-    }
-
-    // 9. Build system prompt with memory context
-    const promptContext = buildPromptContext(context, memoryContext.history, memoryContext.warning, user.id);
-    const systemPrompt = buildMastraSystemPrompt(promptContext);
-
-    // 10. Check AI availability
-    if (!isAIAvailable()) {
-      logWarn('AI service unavailable', { userId: user.id });
+    // 7. Check AI availability before starting stream (proper HTTP 503)
+    if (!process.env.AI_GATEWAY_KEY && !process.env.AI_GATEWAY_API_KEY) {
+      logWarn('AI service unavailable - AI_GATEWAY_KEY not configured', { userId: user.id });
       recordChatError('ai_unavailable');
 
       return createStreamingErrorResponse(
@@ -511,35 +378,426 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 11. Generate streaming response with tracing (T032)
+    // 8. Start the stream IMMEDIATELY, then do slow pipeline work inside start()
+    // This allows us to emit workflow_progress SSE events during memory fetch,
+    // intent classification, and prefetch so the user sees real-time progress.
     const encoder = new TextEncoder();
     const messageId = crypto.randomUUID();
     let fullResponse = '';
 
+    // Determine locale for progress messages (hardcoded server-side, no i18n needed)
+    const locale = (context?.locale as string) === 'de' ? 'de' : 'en';
+
+    const progressMessages = {
+      en: {
+        memory: 'Loading your profile...',
+        context: 'Analysing your gear...',
+        thinking: 'Preparing answer...',
+      },
+      de: {
+        memory: 'Profil wird geladen...',
+        context: 'Ausrüstung wird analysiert...',
+        thinking: 'Antwort wird vorbereitet...',
+      },
+    } as const;
+
     const stream = new ReadableStream({
       async start(controller) {
+        let hadError = false;
+
+        // Helper to emit progress events
+        const emitProgress = (step: string, msg: string) => {
+          controller.enqueue(encoder.encode(encodeWorkflowProgressEvent(step, 'running', msg)));
+        };
+
         try {
-          // Stream AI response
+          // =============================================================
+          // Phase 1-3: Execute Mastra Workflow (Classify → Prefetch → Build Context)
+          // The gear-assistant workflow handles:
+          //   Step 1 (classifyIntent): Gemini Flash intent classification
+          //   Step 2 (prefetchData): Parallel data fetching
+          //   Step 3 (buildContext): System prompt assembly + fast-path attempt
+          // =============================================================
+          emitProgress('memory', progressMessages[locale].memory);
+
+          // --- Phase 1b: Parallel Classification (Intent + Domain) + Semantic Cache check ---
+          // Run intent classification AND domain classification in parallel:
+          // - Intent: Gemini Flash, determines query type + data requirements + cache eligibility
+          // - Domain: Haiku (Supervisor-Agent-Pattern, Kap. 22), determines tool subset
+          //
+          // Both are independent LLM calls (~50ms each). Running in parallel adds minimal
+          // latency — the domain call overlaps with intent classification rather than being
+          // sequential. On a cold Haiku start the domain call could still add latency, but
+          // the 400ms timeout and 'gear' fallback cap the worst-case impact.
+          //
+          // After classification, we check the semantic cache for factual questions
+          // (general_knowledge, gear_comparison) before running the full workflow.
+          // Note: classifyIntent is also called inside the gear-assistant workflow
+          // (Step 1); the redundant call on cache-miss is accepted as a minor cost
+          // to keep the cache check outside the workflow boundary.
+          //
+          // GRACEFUL DEGRADATION: The entire block is wrapped so that a failure in
+          // classifyIntent, classifyDomain, or getSemanticCacheHit does not prevent the
+          // workflow from running.  intentResult defaults to 'complex' (not cacheable)
+          // so the downstream cache-store at end-of-stream is skipped.
+          // classifiedDomain defaults to DEFAULT_DOMAIN ('gear') on any error.
+          // Minimum LLM confidence threshold is centralised in SUPERVISOR_CONFIG.
+          // See config.ts for rationale (keyword vs LLM score ranges, sentinel value).
+          let intentResult: { intent: string } = { intent: 'complex' };
+          let classifiedDomain = DEFAULT_DOMAIN;
+          let domainConfidence = 0;
+          const currentScreen = context?.screen as string | undefined;
+          try {
+            const [intentClassification, domainResult] = await Promise.all([
+              classifyIntent(message, currentScreen, currentLoadoutId),
+              SUPERVISOR_CONFIG.ENABLED
+                ? classifyDomain(message, currentScreen)
+                : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
+            ]);
+            intentResult = intentClassification;
+
+            // Apply confidence threshold: only trust a non-gear classification if
+            // the model is sufficiently confident. This prevents LLM uncertainty from
+            // causing incorrect tool routing; the safe fallback (gear) is used instead.
+            if (domainResult.confidence >= SUPERVISOR_CONFIG.CONFIDENCE_THRESHOLD) {
+              classifiedDomain = domainResult.domain;
+            } else {
+              classifiedDomain = DEFAULT_DOMAIN;
+              logInfo('Domain classification below confidence threshold, using default', {
+                metadata: {
+                  rawDomain: domainResult.domain,
+                  confidence: domainResult.confidence,
+                  threshold: SUPERVISOR_CONFIG.CONFIDENCE_THRESHOLD,
+                  fallback: DEFAULT_DOMAIN,
+                },
+              });
+            }
+            domainConfidence = domainResult.confidence;
+
+            if (isCacheableIntent(intentResult.intent)) {
+              const cacheLocale = (context?.locale as string) || 'en';
+              const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
+
+              if (cacheHit) {
+                // Snapshot latency once — used for both the log and the done event
+                const totalLatencyMs = requestTimer();
+
+                logInfo('Serving response from semantic cache', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    intent: intentResult.intent,
+                    cacheId: cacheHit.cacheId,
+                    similarity: cacheHit.similarity,
+                    latencyMs: totalLatencyMs,
+                  },
+                });
+
+                fullResponse = cacheHit.response;
+                controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
+                controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+                recordAgentLatency(totalLatencyMs / 1000, 'simple');
+
+                // Persist the user message + cached response to Mastra memory so
+                // the agent retains conversational context for follow-up questions.
+                // Fire-and-forget: failures here must never affect the served response.
+                persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                  (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  })
+                );
+
+                controller.close();
+                return;
+              }
+            }
+          } catch (cacheCheckError) {
+            // Classification or semantic cache check failed — log and proceed to the workflow.
+            // classifyIntent and classifyDomain have their own internal fallbacks, so this
+            // catch primarily guards against getSemanticCacheHit failures or unexpected errors.
+            // classifiedDomain remains DEFAULT_DOMAIN ('gear') ensuring safe fallback behavior.
+            const cacheErrMsg = cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown';
+            logWarn('Classification or semantic cache check failed, proceeding to workflow', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                error: cacheErrMsg,
+              },
+            });
+            addSpanAttributes({ 'cache.check.failed': true, 'cache.check.error': cacheErrMsg });
+          }
+
+          // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
+          // Emit context progress BEFORE starting the workflow so the user sees
+          // visible feedback during the multi-second classify + prefetch phase.
+          // The workflow encapsulates all three steps as a black box, so this is
+          // the only opportunity to show an intermediate progress state.
+          emitProgress('context', progressMessages[locale].context);
+
+          // GRACEFUL DEGRADATION: Workflow execution is wrapped in its own
+          // try/catch so that a failure in any step (e.g. Gemini API timeout
+          // in classifyIntent) does not kill the entire chat request.  On
+          // failure we fall back to a minimal pipelineOutput that lets the
+          // agent answer without pre-classified intent or prefetched data.
+          let pipelineOutput: GearAssistantWorkflowOutput;
+          let workflowFallback = false;
+          // Starts empty; only populated on the success path (workflowResult.steps).
+          // On the fallback path this remains [] — referenced only in the logInfo
+          // metadata below, where workflowFallback guards the conditional spread.
+          let workflowStepNames: string[] = [];
+
+          // Compute domain-specific tool names for prompt building.
+          // Only for trailblazer tier — standard tier uses its own tool descriptions
+          // (content.toolsStandard) which are different from the per-tool trailblazer
+          // descriptions in TOOL_DESCRIPTIONS_EN/DE. Passing domainToolNames for standard
+          // would incorrectly use trailblazer-level descriptions (e.g., mentioning
+          // communityInsights which standard searchGearKnowledge doesn't support).
+          const domainToolNames = SUPERVISOR_CONFIG.ENABLED && subscriptionTier === 'trailblazer'
+            ? getToolNamesForRequest(subscriptionTier, classifiedDomain)
+            : undefined;
+
+          try {
+            const workflow = mastra.getWorkflow('gear-assistant');
+            const run = await workflow.createRun({ resourceId: user.id });
+
+            const workflowResult = await run.start({
+              inputData: {
+                message,
+                userId: user.id,
+                conversationId,
+                locale: (context?.locale as string) || 'en',
+                screen: (context?.screen as string) || 'inventory',
+                inventoryCount: (context?.inventoryCount as number) || 0,
+                currentLoadoutId,
+                enableTools,
+                subscriptionTier,
+                domain: classifiedDomain,
+                domainToolNames,
+              },
+            });
+
+            // Extract workflow output
+            if (workflowResult.status !== 'success' || !workflowResult.result) {
+              const stepErrors = Object.entries(workflowResult.steps)
+                .filter(([, step]) => step?.status === 'failed')
+                .map(([name]) => name);
+
+              throw new Error(
+                `Workflow failed at step(s): ${stepErrors.join(', ') || 'unknown'}`,
+              );
+            }
+
+            // Cast required because Mastra's generic types do not propagate the workflow
+            // output type through workflowResult.result — the schema is validated at
+            // runtime by Zod inside the workflow engine before this point.
+            pipelineOutput = workflowResult.result as GearAssistantWorkflowOutput;
+            workflowStepNames = Object.keys(workflowResult.steps);
+          } catch (workflowError) {
+            // Workflow failed → fall back to direct agent call with minimal context.
+            // The agent can still answer without pre-classified intent or prefetched data;
+            // it just won't benefit from pre-loaded inventory/catalog context.
+            workflowFallback = true;
+            const errorMsg = workflowError instanceof Error ? workflowError.message : 'unknown';
+
+            logWarn('Workflow pipeline failed, falling back to direct agent call', {
+              userId: user.id,
+              conversationId,
+              metadata: { error: errorMsg },
+            });
+
+            // Use dedicated fallback counter — NOT recordChatError — because the
+            // user still receives a valid response; this is a degraded-mode success,
+            // not an error.  Routing it through error counters would inflate SLOs
+            // and trigger false-positive alerts.
+            recordWorkflowFallback();
+            addSpanAttributes({ 'workflow.fallback': true, 'workflow.error': errorMsg });
+
+            // Do NOT emit a second 'context' progress event here — line 494 already
+            // fired one unconditionally.  Emitting again would send two events for
+            // the same step to the client, causing visible flicker or duplicate state.
+
+            pipelineOutput = {
+              enrichedSystemPrompt: buildMastraSystemPrompt({
+                userContext: {
+                  screen: (context?.screen as string) || 'inventory',
+                  locale,  // Reuse the `locale` constant already derived above (line 386)
+                  inventoryCount: (context?.inventoryCount as number) || 0,
+                  currentLoadoutId,
+                  userId: user.id,
+                  subscriptionTier,
+                },
+              }),
+              // 'complex' is the highest QueryComplexity value (QUERY_COMPLEXITY_VALUES in
+              // intent-router.ts).  Safe default: ensures the full-capability model is used
+              // when pre-classified intent/context is unavailable.
+              queryComplexity: QUERY_COMPLEXITY_VALUES[1],
+              fastAnswer: null,
+              intent: 'complex',
+              confidence: 0,
+              loadoutContext: null,
+              message,
+              userId: user.id,
+              conversationId,
+              currentLoadoutId,
+              enableTools,
+              locale,  // Reuse the `locale` constant already derived above (line 386)
+              subscriptionTier,
+            };
+          }
+
+          // --- A/B Test: Resolve prompt variant for this user ---
+          // The workflow builds enrichedSystemPrompt; we append the variant suffix
+          // here so A/B testing is decoupled from the workflow internals.
+          let variantResolution: VariantResolution | null = null;
+          try {
+            const serviceClient = createServiceRoleClient();
+            const userLocale = (context?.locale as string) || 'en';
+            variantResolution = await resolveVariant(user.id, userLocale, serviceClient);
+
+            if (variantResolution?.isInExperiment) {
+              // Track variant in OTel span attributes (no PII — user.id omitted)
+              addSpanAttributes({
+                'prompt.variant': variantResolution.variantId,
+                'prompt.experiment': variantResolution.experimentName,
+              });
+
+              logDebug('A/B variant assigned', {
+                userId: user.id,
+                metadata: {
+                  experiment: variantResolution.experimentName,
+                  variant: variantResolution.variantId,
+                },
+              });
+
+              // Record Prometheus metrics
+              recordPromptVariantAssignment(
+                variantResolution.experimentName,
+                variantResolution.variantId
+              );
+            }
+
+            // Log assignment for ALL resolutions (including control group) so the
+            // analytics view has a baseline to compare against.  Without control-group
+            // rows the A/B comparison is statistically invalid.
+            if (variantResolution) {
+              logAssignment(serviceClient, variantResolution, user.id, conversationId).catch((err) => {
+                logWarn('[PromptAB] logAssignment threw unexpectedly', { metadata: { error: String(err) } });
+              });
+            }
+          } catch {
+            // Graceful degradation: proceed without A/B variant
+            logWarn('A/B variant resolution failed, proceeding without variant', {
+              userId: user.id,
+            });
+          }
+
+          // Inject A/B variant suffix into the workflow-generated system prompt.
+          // This keeps A/B testing decoupled from the workflow step that builds
+          // enrichedSystemPrompt, so experiments can be added without touching the workflow.
+          const effectiveSystemPrompt =
+            variantResolution?.isInExperiment && variantResolution.promptSuffix
+              ? `${pipelineOutput.enrichedSystemPrompt}\n\n${variantResolution.promptSuffix}`
+              : pipelineOutput.enrichedSystemPrompt;
+
+          logInfo(
+            workflowFallback
+              ? 'Workflow fallback — proceeding with direct agent call'
+              : 'Gear-assistant workflow completed',
+            {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                intent: pipelineOutput.intent,
+                confidence: pipelineOutput.confidence,
+                hasFastAnswer: !!pipelineOutput.fastAnswer,
+                ...(workflowFallback
+                  ? { fallback: true }
+                  : { workflowSteps: workflowStepNames }),
+                domain: classifiedDomain,
+                domainConfidence,
+                toolCount: domainToolNames?.length ?? 'full',
+              },
+            },
+          );
+
+          // =============================================================
+          // Fast-path: If the workflow produced a fast answer, return it
+          // =============================================================
+          if (pipelineOutput.fastAnswer) {
+            logInfo('Fast-path answer served via workflow', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                intent: pipelineOutput.intent,
+                latencyMs: requestTimer(),
+              },
+            });
+
+            fullResponse = pipelineOutput.fastAnswer;
+            const totalLatencyMs = requestTimer();
+            controller.enqueue(encoder.encode(encodeTextEvent(pipelineOutput.fastAnswer)));
+            controller.enqueue(
+              encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)),
+            );
+
+            recordAgentLatency(totalLatencyMs / 1000, 'simple');
+            controller.close();
+            return;
+          }
+
+          // =============================================================
+          // Phase 4: Agent Streaming (uses workflow output as context)
+          // =============================================================
+          emitProgress('thinking', progressMessages[locale].thinking);
+
+          // Build RuntimeContext for the Dynamic Agent Pattern:
+          // - subscriptionTier → determines which tools available (standard vs trailblazer)
+          // - domain → Supervisor-Agent-Pattern: restricts tool set to classified domain
+          // - lang → prompt language fallback
+          // - enrichedPromptSuffix → the full system prompt built by the workflow + A/B variant
+          // - currentLoadoutId → passed through for loadout-aware tools
+          const runtimeContext = createGearshackRequestContext({
+            userId: user.id,
+            subscriptionTier,
+            lang: (context?.locale as string) || 'en',
+            enrichedPromptSuffix: effectiveSystemPrompt,
+            currentLoadoutId,
+            domain: classifiedDomain,
+          });
+
+          // Create Dynamic Mastra Agent with complexity routing and stream response.
+          // Agent resolves instructions & tools at runtime via runtimeContext.
           const { result: streamingResult } = await traceWorkflowStep(
             `chat-${conversationId}`,
             'agent_generation',
             async () => {
-              return await generateStreamingAIResponse(
-                systemPrompt,
-                message,
-                enableTools,
-                undefined,
-                user.id
+              const agent = createGearAgent(
+                // Explicit fallback to 'simple' when classification didn't return
+                // a complexity value (e.g. fallback path in classifyIntent).
+                pipelineOutput.queryComplexity ?? 'simple',
               );
+              return await streamMastraResponse(agent, message, user.id, conversationId, runtimeContext);
             },
-            { userId: user.id }
+            { userId: user.id },
           );
 
           // Stream text chunks
+          let chunkCount = 0;
           for await (const chunk of streamingResult.textStream) {
             fullResponse += chunk;
             controller.enqueue(encoder.encode(encodeTextEvent(chunk)));
+            chunkCount++;
           }
+
+          logDebug('Text stream completed', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              chunkCount,
+              fullResponseLength: fullResponse.length,
+              responsePreview: fullResponse.substring(0, 100),
+            },
+          });
 
           // Wait for tool calls and finish reason
           const [toolCalls, finishReason] = await Promise.all([
@@ -547,35 +805,133 @@ export async function POST(request: Request): Promise<Response> {
             streamingResult.finishReason,
           ]);
 
+          logDebug('Streaming finished', {
+            userId: user.id,
+            conversationId,
+            metadata: {
+              finishReason,
+              toolCallCount: toolCalls?.length || 0,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
+              toolNames: toolCalls?.map((tc: any) => tc.toolName || tc.name || 'unknown').join(', ') || 'none',
+            },
+          });
+
           // Record tool call metrics (T031)
           if (toolCalls && Array.isArray(toolCalls)) {
-            for (const tc of toolCalls) {
-              recordToolCall(tc.toolName || 'unknown');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool calls have dynamic structure from AI SDK
+            for (const tc of toolCalls as any[]) {
+              recordToolCall(tc.toolName || tc.name || 'unknown');
+
+              // Detect addToLoadout tool results that require user confirmation
+              // (Suspend/Resume pattern for human-in-the-loop write safety)
+              if (
+                (tc.toolName === 'addToLoadout' || tc.name === 'addToLoadout') &&
+                isConfirmableResult(tc.result)
+              ) {
+                const confirmData: ConfirmActionData = {
+                  runId: tc.result.runId,
+                  actionType: 'add_to_loadout',
+                  message: tc.result.message,
+                  details: {
+                    gearItemId: tc.result.gearItemId,
+                    gearItemName: tc.result.gearItemName,
+                    loadoutId: tc.result.loadoutId,
+                    loadoutName: tc.result.loadoutName,
+                  },
+                };
+                controller.enqueue(encoder.encode(encodeConfirmActionEvent(confirmData)));
+
+                logDebug('Confirm action event emitted (suspend/resume)', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    runId: confirmData.runId,
+                    gearItemName: confirmData.details.gearItemName,
+                    loadoutName: confirmData.details.loadoutName,
+                  },
+                });
+              }
             }
           }
 
-          // Save to memory after successful response (T026)
-          await traceWorkflowStep(
-            `chat-${conversationId}`,
-            'memory_save',
-            () => saveToMemory(
-              memoryContext.adapter,
-              user.id,
+          // BUGFIX: Detect empty responses and provide fallback message
+          if (!fullResponse || fullResponse.trim().length === 0) {
+            const fallbackMessage = toolCalls && toolCalls.length > 0
+              ? "I apologize, but I'm having trouble accessing your data right now. This might be due to temporary rate limiting. Please try again in a moment, or rephrase your question."
+              : "I apologize, but I wasn't able to generate a response. Please try asking your question again.";
+
+            fullResponse = fallbackMessage;
+            controller.enqueue(encoder.encode(encodeTextEvent(fallbackMessage)));
+
+            logWarn('Empty AI response detected, injected fallback message', {
+              userId: user.id,
               conversationId,
-              message,
-              fullResponse,
-              isCorrection
-            ),
-            { userId: user.id }
-          );
+              metadata: {
+                hadToolCalls: toolCalls?.length || 0,
+                finishReason,
+              },
+            });
+          }
+
+          // Improvement #4: Add proactive suggestions to stream
+          const isNaturalCompletion = finishReason === 'stop';
+          if (isNaturalCompletion && shouldShowProactiveSuggestions(fullResponse.length, hadError)) {
+            const suggestions = generateProactiveSuggestions(
+              {
+                screen: (context?.screen as string) || 'inventory',
+                locale: (context?.locale as string) || 'en',
+                inventoryCount: (context?.inventoryCount as number) || 0,
+                currentLoadoutId,
+                userId: user.id,
+                subscriptionTier: pipelineOutput.subscriptionTier || 'standard',
+              },
+              // loadoutContext is z.unknown() at the Zod boundary; cast to the known type here
+              (pipelineOutput.loadoutContext as LoadoutContext | null),
+              (context?.locale as 'en' | 'de') || 'en',
+            );
+
+            if (suggestions.length > 0) {
+              const suggestionsText = formatSuggestionsForStream(
+                suggestions,
+                (context?.locale as 'en' | 'de') || 'en',
+              );
+              controller.enqueue(encoder.encode(encodeTextEvent(suggestionsText)));
+              fullResponse += suggestionsText;
+
+              logDebug('Proactive suggestions added to response', {
+                userId: user.id,
+                conversationId,
+                metadata: {
+                  suggestionCount: suggestions.length,
+                  finishReason,
+                },
+              });
+            }
+          }
 
           // Record latency metrics (T031)
           const totalLatencyMs = requestTimer();
           recordAgentLatency(totalLatencyMs / 1000, queryType);
 
-          // Send completion event (tokensUsed not available from streaming, pass undefined)
+          // Record A/B variant latency (for comparing variant performance)
+          if (variantResolution?.isInExperiment) {
+            recordPromptVariantLatency(
+              variantResolution.experimentName,
+              variantResolution.variantId,
+              totalLatencyMs / 1000
+            );
+          }
+
+          // Send completion event (include variant info so client can correlate feedback)
           controller.enqueue(
-            encoder.encode(encodeDoneEvent(messageId, finishReason || 'stop', undefined, totalLatencyMs))
+            encoder.encode(encodeDoneEvent(
+              messageId,
+              finishReason || 'stop',
+              undefined,
+              totalLatencyMs,
+              variantResolution?.isInExperiment ? variantResolution.variantId : undefined,
+              variantResolution?.isInExperiment ? variantResolution.experimentName : undefined,
+            ))
           );
 
           logInfo('Mastra chat request completed', {
@@ -584,13 +940,39 @@ export async function POST(request: Request): Promise<Response> {
               latencyMs: totalLatencyMs,
               responseLength: fullResponse.length,
               toolCallCount: toolCalls?.length || 0,
-              memoryAvailable: memoryContext.available,
-              isCorrection,
+              queryComplexity: pipelineOutput.queryComplexity,
+              intent: pipelineOutput.intent,
+              domain: classifiedDomain,
+              toolCount: domainToolNames?.length ?? 'full',
+              ...(variantResolution?.isInExperiment && {
+                promptVariant: variantResolution.variantId,
+                promptExperiment: variantResolution.experimentName,
+              }),
             },
           });
 
+          // Store cacheable responses in semantic cache (fire-and-forget)
+          if (
+            isNaturalCompletion &&
+            isCacheableIntent(intentResult.intent) &&
+            fullResponse.length > 0
+          ) {
+            const cacheLocale = (context?.locale as string) || 'en';
+            storeInSemanticCache(
+              message,
+              fullResponse,
+              intentResult.intent,
+              cacheLocale
+            ).catch((err: unknown) => {
+              logWarn('Background cache store failed', {
+                metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+              });
+            });
+          }
+
           controller.close();
         } catch (streamError) {
+          hadError = true;
           const errorMessage =
             streamError instanceof Error ? streamError.message : 'Unknown streaming error';
 
@@ -610,13 +992,11 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
 
-    // Return streaming response with memory warning and rate limit headers (T105)
+    // Return streaming response with rate limit headers and conversation ID
     const headers: Record<string, string> = {
       ...rateLimitHeaders,
+      'X-Conversation-Id': conversationId,
     };
-    if (memoryContext.warning) {
-      headers['X-Memory-Warning'] = memoryContext.warning;
-    }
 
     return createStreamingResponse(stream, headers);
   } catch (error) {

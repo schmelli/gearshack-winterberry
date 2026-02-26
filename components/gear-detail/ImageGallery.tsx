@@ -11,6 +11,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,8 @@ export function ImageGallery({
   altText,
   className,
 }: ImageGalleryProps) {
+  const t = useTranslations('ImageGallery');
+
   // Combine primary and gallery images
   const allImages = [
     ...(primaryImageUrl ? [primaryImageUrl] : []),
@@ -76,11 +80,12 @@ export function ImageGallery({
     <div className={cn('relative', className)}>
       {/* Main Image - constrained height, centered */}
       <div className="relative flex h-48 w-full items-center justify-center overflow-hidden rounded-lg bg-muted/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={currentImage}
           alt={`${altText} - Image ${currentIndex + 1}`}
-          className="max-h-full max-w-full object-contain"
+          fill
+          className="object-contain"
+          unoptimized
         />
 
         {/* Navigation Arrows */}
@@ -91,18 +96,18 @@ export function ImageGallery({
               size="icon"
               className="absolute left-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToPrevious}
+              aria-label={t('aria.previousImage')}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Previous image</span>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               className="absolute right-2 top-1/2 z-10 h-8 w-8 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm"
               onClick={goToNext}
+              aria-label={t('aria.nextImage')}
             >
               <ChevronRight className="h-4 w-4" />
-              <span className="sr-only">Next image</span>
             </Button>
           </>
         )}
@@ -129,11 +134,12 @@ export function ImageGallery({
                   : 'border-transparent opacity-60 hover:opacity-100'
               )}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={url}
                 alt={`${altText} thumbnail ${index + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             </button>
           ))}

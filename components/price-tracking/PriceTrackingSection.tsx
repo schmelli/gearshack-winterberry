@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Bell,
   BellOff,
@@ -48,6 +49,7 @@ export function PriceTrackingSection({
   item,
   className,
 }: PriceTrackingSectionProps) {
+  const t = useTranslations('PriceTracking');
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Hooks for price tracking functionality
@@ -86,8 +88,8 @@ export function PriceTrackingSection({
           item_name: `${item.brand ?? ''} ${item.name}`.trim(),
         });
       }
-    } catch (error) {
-      console.error('Failed to toggle tracking:', error);
+    } catch (err) {
+      console.error('Failed to toggle tracking:', err);
     }
   }, [tracking, enableTracking, disableTracking, searchPrices, item]);
 
@@ -95,8 +97,8 @@ export function PriceTrackingSection({
   const handleToggleAlerts = useCallback(async (enabled: boolean) => {
     try {
       await toggleAlerts(enabled);
-    } catch (error) {
-      console.error('Failed to toggle alerts:', error);
+    } catch (err) {
+      console.error('Failed to toggle alerts:', err);
     }
   }, [toggleAlerts]);
 
@@ -107,8 +109,8 @@ export function PriceTrackingSection({
         gear_item_id: item.id,
         item_name: `${item.brand ?? ''} ${item.name}`.trim(),
       });
-    } catch (error) {
-      console.error('Failed to refresh prices:', error);
+    } catch (err) {
+      console.error('Failed to refresh prices:', err);
     }
   }, [searchPrices, item]);
 
@@ -138,7 +140,7 @@ export function PriceTrackingSection({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Price Tracking</span>
+          <span className="text-sm font-medium">{t('title')}</span>
         </div>
         <div className="flex items-center gap-2">
           <Switch
@@ -147,7 +149,7 @@ export function PriceTrackingSection({
             onCheckedChange={handleToggleTracking}
           />
           <Label htmlFor="price-tracking" className="text-xs text-muted-foreground">
-            {tracking?.enabled ? 'Enabled' : 'Disabled'}
+            {tracking?.enabled ? t('enabled') : t('disabled')}
           </Label>
         </div>
       </div>
@@ -157,7 +159,7 @@ export function PriceTrackingSection({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {trackingError.message || 'Failed to load price tracking'}
+            {trackingError.message || t('loadingError')}
           </AlertDescription>
         </Alert>
       )}
@@ -173,7 +175,7 @@ export function PriceTrackingSection({
               ) : (
                 <BellOff className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className="text-sm">Price drop alerts</span>
+              <span className="text-sm">{t('priceDropAlerts')}</span>
             </div>
             <Switch
               checked={tracking.alerts_enabled}
@@ -187,10 +189,10 @@ export function PriceTrackingSection({
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 -ml-2">
                   <Search className="h-4 w-4" />
-                  Current Prices
+                  {t('currentPrices')}
                   {results?.results && results.results.length > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      ({results.results.length} found)
+                      {t('found', { count: results.results.length })}
                     </span>
                   )}
                 </Button>
@@ -201,6 +203,7 @@ export function PriceTrackingSection({
                 onClick={handleRefreshPrices}
                 disabled={searchStatus === 'loading'}
                 className="h-8 w-8"
+                aria-label={t('aria.refreshPrices')}
               >
                 {searchStatus === 'loading' ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -216,7 +219,7 @@ export function PriceTrackingSection({
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {searchError.message || 'Failed to search prices'}
+                    {searchError.message || t('searchError')}
                   </AlertDescription>
                 </Alert>
               )}
@@ -226,7 +229,7 @@ export function PriceTrackingSection({
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Some sources unavailable: {results.failed_sources.map(s => s.source_name).join(', ')}
+                    {t('someSourcesUnavailable', { sources: results.failed_sources.map(s => s.source_name).join(', ') })}
                   </AlertDescription>
                 </Alert>
               )}
@@ -251,7 +254,7 @@ export function PriceTrackingSection({
                   ))}
                   {results.results.length > 5 && (
                     <p className="text-xs text-center text-muted-foreground py-2">
-                      +{results.results.length - 5} more results
+                      {t('moreResults', { count: results.results.length - 5 })}
                     </p>
                   )}
                 </div>
@@ -260,7 +263,7 @@ export function PriceTrackingSection({
               {/* No results */}
               {searchStatus === 'success' && (!results?.results || results.results.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No prices found. Try adding brand and model information.
+                  {t('noResults')}
                 </p>
               )}
 
@@ -268,7 +271,7 @@ export function PriceTrackingSection({
               {results?.fuzzy_matches && results.fuzzy_matches.length > 0 && (
                 <div className="mt-4">
                   <p className="text-xs text-muted-foreground mb-2">
-                    Similar products found (may not be exact match):
+                    {t('similarProducts')}
                   </p>
                   <div className="space-y-1">
                     {results.fuzzy_matches.slice(0, 3).map((match, i) => (
@@ -278,7 +281,7 @@ export function PriceTrackingSection({
                       >
                         <span className="truncate flex-1">{match.product_name}</span>
                         <span className="text-muted-foreground ml-2">
-                          {match.similarity > 0.8 ? 'High' : 'Low'} match
+                          {match.similarity > 0.8 ? t('highMatch') : t('lowMatch')} {t('match')}
                         </span>
                       </div>
                     ))}
@@ -305,10 +308,10 @@ export function PriceTrackingSection({
         <div className="rounded-lg border border-dashed p-4 text-center">
           <TrendingDown className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
-            Enable price tracking to monitor prices across retailers
+            {t('enableTracking')}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Get alerts when prices drop
+            {t('getAlerts')}
           </p>
         </div>
       )}

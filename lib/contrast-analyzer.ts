@@ -108,8 +108,22 @@ export function analyzeImageBrightness(imageElement: HTMLImageElement): number {
   }
 
   try {
+    // Validate image dimensions before processing
+    if (!Number.isFinite(imageElement.width) || !Number.isFinite(imageElement.height) ||
+        imageElement.width <= 0 || imageElement.height <= 0) {
+      console.warn('[ContrastAnalyzer] Invalid image dimensions');
+      return 0.5; // Return mid-value as fallback
+    }
+
     // Sample bottom 30% of image (where text overlay appears)
     const sampleHeight = Math.floor(imageElement.height * 0.3);
+
+    // Ensure we have valid canvas dimensions
+    if (sampleHeight <= 0 || imageElement.width <= 0) {
+      console.warn('[ContrastAnalyzer] Sample height too small for analysis');
+      return 0.5; // Return mid-value as fallback
+    }
+
     canvas.width = imageElement.width;
     canvas.height = sampleHeight;
 
@@ -135,6 +149,12 @@ export function analyzeImageBrightness(imageElement: HTMLImageElement): number {
     let totalG = 0;
     let totalB = 0;
     const pixelCount = pixels.length / 4;
+
+    // Guard against division by zero (empty canvas or zero dimensions)
+    if (pixelCount === 0) {
+      console.warn('[ContrastAnalyzer] No pixels to analyze (empty canvas)');
+      return 0.5; // Return mid-value as fallback
+    }
 
     for (let i = 0; i < pixels.length; i += 4) {
       totalR += pixels[i];

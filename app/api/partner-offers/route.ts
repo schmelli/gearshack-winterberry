@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * API route: Partner retailers submit personal offers
  * Feature: 050-price-tracking (US5)
@@ -7,33 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { RATE_LIMITING, SEARCH_CONFIG } from '@/lib/constants/price-tracking';
+import { SEARCH_CONFIG } from '@/lib/constants/price-tracking';
 import {
   partnerOfferSchema,
   validateRequestBody,
-  type PartnerOfferRequest,
 } from '@/lib/validation/price-tracking';
 import type { FuzzySearchResult } from '@/types/database-helpers';
-
-// Rate limiting tracking (in-memory for MVP - Review #4: Should migrate to Redis)
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(partnerId: string, maxRequests: number = RATE_LIMITING.DEFAULT_PARTNER_RATE_LIMIT): boolean {
-  const now = Date.now();
-  const limit = rateLimits.get(partnerId);
-
-  if (!limit || now > limit.resetAt) {
-    rateLimits.set(partnerId, { count: 1, resetAt: now + RATE_LIMITING.RATE_WINDOW_MS });
-    return true;
-  }
-
-  if (limit.count >= maxRequests) {
-    return false;
-  }
-
-  limit.count++;
-  return true;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,12 +29,11 @@ export async function POST(request: NextRequest) {
     // Verify API key belongs to an active partner (Review fix #2)
     const { data: partnerRaw, error: authError } = await supabase
       .from('partner_retailers')
-      // @ts-ignore - Price tracking table, types will be regenerated after migrations
       .select('id, name, is_active, rate_limit_per_hour')
       .eq('api_key', apiKey)
       .maybeSingle();
 
-    const partner = partnerRaw as any;
+    const partner = partnerRaw as { id: string; name: string; is_active: boolean; rate_limit_per_hour: number } | null;
     if (authError || !partner) {
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -81,8 +58,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    // Check rate limit using authenticated partner
-    if (!checkRateLimit(partner.id, partner.rate_limit_per_hour)) {
+    // Check rate limit using database (production-safe, survives serverless cold starts)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC function not yet in generated Supabase types
+    const { data: withinLimit, error: rateLimitError } = await (supabase as any).rpc(
+      'check_partner_rate_limit',
+      {
+        p_partner_id: partner.id,
+        p_max_requests: partner.rate_limit_per_hour,
+        p_window_seconds: 3600,
+      }
+    );
+
+    // Separate error handling: database errors vs rate limit violations
+    if (rateLimitError) {
+      console.error('Rate limit check failed:', rateLimitError);
+      return NextResponse.json(
+        { error: 'Failed to check rate limit' },
+        { status: 500 }
+      );
+    }
+
+    if (!withinLimit) {
       return NextResponse.json(
         { error: `Rate limit exceeded. Maximum ${partner.rate_limit_per_hour} requests per hour.` },
         { status: 429 }
@@ -140,7 +136,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert personal offers
-    const { data: createdOffers, error: offerError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: createdOffers, error: offerError } = await (supabase as any)
       .from('personal_offers')
       .insert(offers)
       .select();

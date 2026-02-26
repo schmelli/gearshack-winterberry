@@ -6,8 +6,28 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { RATE_LIMITING } from '@/lib/constants/price-tracking';
+
+/**
+ * Timing-safe comparison of authorization header to prevent timing attacks.
+ * Uses constant-time comparison to avoid leaking secret length or content.
+ */
+function verifyAuthHeader(authHeader: string | null, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  const expected = `Bearer ${expectedSecret}`;
+  if (authHeader.length !== expected.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 interface DeliveryTask {
   queue_id: string;
@@ -21,17 +41,17 @@ interface DeliveryTask {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret using timing-safe comparison
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!verifyAuthHeader(authHeader, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = createServiceRoleClient();
 
     // Get next batch of deliveries to process
-    const { data: tasksRaw, error: fetchError } = await supabase.rpc(
-      // @ts-ignore - Price tracking RPC function, types will be regenerated after migrations are applied
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: tasksRaw, error: fetchError } = await (supabase as any).rpc(
       'get_next_delivery_batch',
       { p_batch_size: RATE_LIMITING.MAX_CONCURRENT_SEARCHES }
     );
@@ -41,7 +61,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch batch' }, { status: 500 });
     }
 
-    const tasks = tasksRaw as any[];
+    const tasks = tasksRaw as unknown as DeliveryTask[];
     if (!tasks || tasks.length === 0) {
       return NextResponse.json({
         success: true,
@@ -49,8 +69,6 @@ export async function GET(request: NextRequest) {
         processed: 0,
       });
     }
-
-    console.log(`Processing ${tasks.length} alert deliveries...`);
 
     // Process each delivery task
     const results = await Promise.allSettled(
@@ -63,9 +81,8 @@ export async function GET(request: NextRequest) {
     // Clean up old records (if this is the first run of the hour)
     const now = new Date();
     if (now.getMinutes() < 2) {
-      // @ts-ignore - Price tracking RPC function
-      const { data: cleanupCount } = await supabase.rpc('cleanup_delivery_queue');
-      console.log(`Cleaned up ${cleanupCount} old delivery records`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('cleanup_delivery_queue');
     }
 
     return NextResponse.json({
@@ -84,7 +101,7 @@ export async function GET(request: NextRequest) {
 /**
  * Process a single delivery task
  */
-async function processDelivery(task: DeliveryTask, supabase: any): Promise<void> {
+async function processDelivery(task: DeliveryTask, supabase: ReturnType<typeof createServiceRoleClient>): Promise<void> {
   try {
     if (task.delivery_channel === 'push') {
       await sendPushNotification(task);
@@ -93,16 +110,17 @@ async function processDelivery(task: DeliveryTask, supabase: any): Promise<void>
     }
 
     // Mark as successful
-    await supabase.rpc('mark_delivery_success', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).rpc('mark_delivery_success', {
       p_queue_id: task.queue_id,
     });
 
-    console.log(`✓ Delivered ${task.delivery_channel} for alert ${task.alert_id}`);
   } catch (error) {
     // Mark as failed (will retry if attempts remaining)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    await supabase.rpc('mark_delivery_failed', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).rpc('mark_delivery_failed', {
       p_queue_id: task.queue_id,
       p_error_message: errorMessage,
     });
@@ -122,7 +140,6 @@ async function processDelivery(task: DeliveryTask, supabase: any): Promise<void>
 async function sendPushNotification(task: DeliveryTask): Promise<void> {
   // TODO: Integrate with push notification service (Firebase Cloud Messaging, OneSignal, etc.)
   // For now, just simulate delivery
-  console.log(`[PUSH] ${task.alert_title}: ${task.alert_message}`);
 
   // Simulate occasional failures for testing
   if (Math.random() < 0.1 && task.attempt_count === 1) {
@@ -136,7 +153,6 @@ async function sendPushNotification(task: DeliveryTask): Promise<void> {
 async function sendEmailAlert(task: DeliveryTask): Promise<void> {
   // TODO: Integrate with email service (SendGrid, Resend, etc.)
   // For now, just simulate delivery
-  console.log(`[EMAIL] ${task.alert_title}: ${task.alert_message}`);
 
   // Simulate occasional failures for testing
   if (Math.random() < 0.1 && task.attempt_count === 1) {

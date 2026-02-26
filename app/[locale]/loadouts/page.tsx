@@ -19,16 +19,23 @@
 
 import { Link } from '@/i18n/navigation';
 import { Plus, Backpack, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useLoadouts, useItems } from '@/hooks/useSupabaseStore';
+import { useScreenEffect } from '@/hooks/useScreenEffect';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';
 import { LoadoutToolbar } from '@/components/loadouts/LoadoutToolbar';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 function LoadoutsContent() {
+  const t = useTranslations('Loadouts');
   const loadouts = useLoadouts();
   const items = useItems();
+
+  // AI Agent Context-Awareness: Set screen context for AI assistant
+  useScreenEffect('loadouts-list');
 
   // Feature 017: Extended search, filter, and sort functionality
   const {
@@ -47,13 +54,13 @@ function LoadoutsContent() {
   const hasResults = filteredLoadouts.length > 0;
 
   return (
-    <div className="container py-8">
+    <PageContainer>
       {/* Page Header - Create New Loadout button */}
       <div className="mb-6 flex items-center justify-end">
         <Button asChild>
           <Link href="/loadouts/new">
             <Plus className="mr-2 h-4 w-4" />
-            Create New Loadout
+            {t('page.createNewLoadout')}
           </Link>
         </Button>
       </div>
@@ -80,15 +87,14 @@ function LoadoutsContent() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Backpack className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h2 className="mb-2 text-xl font-semibold">No loadouts yet</h2>
+          <h2 className="mb-2 text-xl font-semibold">{t('page.noLoadoutsYet')}</h2>
           <p className="mb-6 max-w-sm text-center text-muted-foreground">
-            Create your first loadout to start planning your next adventure.
-            Combine gear from your inventory to track weight and categories.
+            {t('page.noLoadoutsDescription')}
           </p>
           <Button asChild>
             <Link href="/loadouts/new">
               <Plus className="mr-2 h-4 w-4" />
-              Create New Loadout
+              {t('page.createNewLoadout')}
             </Link>
           </Button>
         </div>
@@ -98,12 +104,12 @@ function LoadoutsContent() {
       {!isEmpty && !hasResults && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
           <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-          <h2 className="mb-2 text-xl font-semibold">No matching loadouts found</h2>
+          <h2 className="mb-2 text-xl font-semibold">{t('page.noMatchingLoadouts')}</h2>
           <p className="mb-6 max-w-sm text-center text-muted-foreground">
-            No loadouts match your search criteria. Try adjusting your filters.
+            {t('page.noMatchingDescription')}
           </p>
           <Button variant="outline" onClick={clearFilters}>
-            Clear Filters
+            {t('page.clearFilters')}
           </Button>
         </div>
       )}
@@ -116,7 +122,7 @@ function LoadoutsContent() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

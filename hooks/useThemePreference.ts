@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTheme } from 'next-themes';
 
 /**
@@ -12,12 +13,12 @@ export function useThemePreference() {
 
   const isDarkMode = resolvedTheme === 'dark';
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(isDarkMode ? 'light' : 'dark');
-  };
+  }, [isDarkMode, setTheme]);
 
-  const setLightMode = () => setTheme('light');
-  const setDarkMode = () => setTheme('dark');
+  const setLightMode = useCallback(() => setTheme('light'), [setTheme]);
+  const setDarkMode = useCallback(() => setTheme('dark'), [setTheme]);
 
   return {
     /** Current theme setting ('light' | 'dark') */

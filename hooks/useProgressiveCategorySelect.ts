@@ -83,6 +83,7 @@ export function useProgressiveCategorySelect(
       const { categoryId, subcategoryId } = getParentCategoryIds(initialProductTypeId, categories);
 
       if (categoryId && subcategoryId) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setState({
           level: 3,
           categoryId,

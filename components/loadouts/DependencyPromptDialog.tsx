@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTranslations } from 'next-intl';
 import type { GearItem } from '@/types/gear';
 import type { DependencyPromptItem } from '@/hooks/useDependencyPrompt';
 import { formatWeightForDisplay } from '@/lib/gear-utils';
@@ -80,6 +81,8 @@ export function DependencyPromptDialog({
   onSkip,
   onCancel,
 }: DependencyPromptDialogProps) {
+  const t = useTranslations('Loadouts');
+
   if (!triggeringItem) return null;
 
   const hasSelection = selectedCount > 0;
@@ -91,12 +94,10 @@ export function DependencyPromptDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Add Dependencies?
+            {t('dependencies.title')}
           </DialogTitle>
           <DialogDescription>
-            &quot;{triggeringItem.name}&quot; has {totalCount} item
-            {totalCount !== 1 ? 's' : ''} that typically go
-            {totalCount === 1 ? 'es' : ''} with it:
+            {t('dependencies.description', { itemName: triggeringItem.name, count: totalCount })}
           </DialogDescription>
         </DialogHeader>
 
@@ -161,7 +162,7 @@ export function DependencyPromptDialog({
                         className="text-xs"
                       >
                         <Link2 className="h-3 w-3 mr-1" />
-                        {dep.isDirect ? 'Direct' : 'Transitive'}
+                        {dep.isDirect ? t('dependencies.direct') : t('dependencies.transitive')}
                       </Badge>
                     </div>
                   </div>
@@ -180,7 +181,7 @@ export function DependencyPromptDialog({
             onClick={selectAll}
             disabled={allSelected}
           >
-            Select All
+            {t('dependencies.selectAll')}
           </Button>
           <Button
             type="button"
@@ -189,16 +190,16 @@ export function DependencyPromptDialog({
             onClick={deselectAll}
             disabled={selectedCount === 0}
           >
-            Deselect All
+            {t('dependencies.deselectAll')}
           </Button>
           <span className="ml-auto text-muted-foreground">
-            {selectedCount} of {totalCount} selected
+            {t('dependencies.selectedCount', { selected: selectedCount, total: totalCount })}
           </span>
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button type="button" variant="ghost" onClick={onSkip}>
-            Skip
+            {t('dependencies.skip')}
           </Button>
           <Button
             type="button"
@@ -206,10 +207,10 @@ export function DependencyPromptDialog({
             onClick={onAddSelected}
             disabled={!hasSelection}
           >
-            Add Selected ({selectedCount})
+            {t('dependencies.addSelected', { count: selectedCount })}
           </Button>
           <Button type="button" onClick={onAddAll}>
-            Add All ({totalCount})
+            {t('dependencies.addAll', { count: totalCount })}
           </Button>
         </DialogFooter>
       </DialogContent>

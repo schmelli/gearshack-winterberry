@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 
@@ -32,7 +32,7 @@ export interface SignUpOptions {
   email: string;
   password: string;
   options?: {
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
     emailRedirectTo?: string;
   };
 }
@@ -78,8 +78,8 @@ export function useSupabaseAuth(): UseSupabaseAuthReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
 
-  // Create Supabase client (browser client for client components)
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
 
   // T021: Listen for auth state changes
   useEffect(() => {

@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { cleanProductUrl } from '@/lib/utils';
 import type { WishlistItem, AddWishlistItemParams, UpdateWishlistItemParams } from '@/types/wishlist';
 import type { Database } from '@/types/database';
 import type { NobgImages } from '@/types/gear';
@@ -67,51 +68,58 @@ function transformWishlistItem(row: GearItemRow): WishlistItem {
 
     // Section 1: General Info
     name: row.name,
-    brand: row.brand,
-    description: row.description,
-    brandUrl: row.brand_url,
-    modelNumber: row.model_number,
-    productUrl: row.product_url,
+    brand: row.brand ?? null,
+    description: row.description ?? null,
+    brandUrl: row.brand_url ?? null,
+    modelNumber: row.model_number ?? null,
+    productUrl: row.product_url ?? null,
 
     // Section 2: Classification
-    productTypeId: row.product_type_id,
+    productTypeId: row.product_type_id ?? null,
 
     // Section 3: Weight & Specifications
-    weightGrams: row.weight_grams,
-    weightDisplayUnit: row.weight_display_unit as 'g' | 'oz' | 'lb',
-    lengthCm: row.length_cm,
-    widthCm: row.width_cm,
-    heightCm: row.height_cm,
-    size: row.size,
-    color: row.color,
-    volumeLiters: row.volume_liters,
-    materials: row.materials,
-    tentConstruction: row.tent_construction,
+    weightGrams: row.weight_grams ?? null,
+    weightDisplayUnit: (row.weight_display_unit as 'g' | 'oz' | 'lb') ?? null,
+    lengthCm: row.length_cm ?? null,
+    widthCm: row.width_cm ?? null,
+    heightCm: row.height_cm ?? null,
+    size: row.size ?? null,
+    color: row.color ?? null,
+    volumeLiters: row.volume_liters ?? null,
+    materials: row.materials ?? null,
+    tentConstruction: row.tent_construction ?? null,
 
     // Section 4: Purchase Details
-    pricePaid: row.price_paid,
-    currency: row.currency,
+    pricePaid: row.price_paid ?? null,
+    currency: row.currency ?? null,
+    manufacturerPrice: row.manufacturer_price ?? null,
+    manufacturerCurrency: row.manufacturer_currency ?? null,
     purchaseDate: row.purchase_date ? new Date(row.purchase_date) : null,
-    retailer: row.retailer,
-    retailerUrl: row.retailer_url,
+    retailer: row.retailer ?? null,
+    retailerUrl: row.retailer_url ?? null,
 
     // Section 5: Media
-    primaryImageUrl: row.primary_image_url,
+    primaryImageUrl: row.primary_image_url ?? null,
     galleryImageUrls: row.gallery_image_urls ?? [],
     nobgImages: (row.nobg_images as Record<string, unknown> | null) as NobgImages | undefined, // Type assertion for JSONB object
 
     // Section 6: Status & Condition
-    condition: row.condition as 'new' | 'used' | 'worn',
+    condition: (row.condition as 'new' | 'used' | 'worn') ?? null,
     status: 'wishlist', // Enforce wishlist status at type level
-    notes: row.notes,
+    notes: row.notes ?? null,
     quantity: (row as { quantity?: number }).quantity ?? 1,
-    isFavourite: row.is_favourite,
-    isForSale: row.is_for_sale,
-    canBeBorrowed: row.can_be_borrowed,
-    canBeTraded: row.can_be_traded,
+    isFavourite: row.is_favourite ?? false,
+    isForSale: row.is_for_sale ?? false,
+    canBeBorrowed: row.can_be_borrowed ?? false,
+    canBeTraded: row.can_be_traded ?? false,
 
     // Section 7: Dependencies
     dependencyIds: row.dependency_ids ?? [],
+
+    // Section 8: Merchant integration (053)
+    sourceMerchantId: (row as { source_merchant_id?: string | null }).source_merchant_id ?? null,
+    sourceOfferId: (row as { source_offer_id?: string | null }).source_offer_id ?? null,
+    sourceLoadoutId: (row as { source_loadout_id?: string | null }).source_loadout_id ?? null,
   };
 }
 
@@ -189,7 +197,7 @@ export async function addWishlistItem(item: AddWishlistItemParams): Promise<Wish
     description: item.description,
     brand_url: item.brandUrl,
     model_number: item.modelNumber,
-    product_url: item.productUrl,
+    product_url: cleanProductUrl(item.productUrl) ?? item.productUrl,
 
     product_type_id: item.productTypeId,
 
@@ -325,16 +333,23 @@ export async function deleteWishlistItem(itemId: string): Promise<void> {
     throw new Error('User must be authenticated to delete wishlist items');
   }
 
-  // Delete from database
-  const { error } = await supabase
+  // Delete from database with count verification
+  // FIXED: Using select() after delete() to verify rows were actually deleted
+  const { data: deletedRows, error } = await supabase
     .from('gear_items')
     .delete()
     .eq('id', itemId)
     .eq('user_id', user.id)
-    .eq('status', 'wishlist');
+    .eq('status', 'wishlist')
+    .select('id');
 
   if (error) {
     throw new Error(`Failed to delete wishlist item: ${error.message}`);
+  }
+
+  // Verify the item was actually deleted
+  if (!deletedRows || deletedRows.length === 0) {
+    throw new NotFoundError(itemId);
   }
 }
 
@@ -411,14 +426,25 @@ export async function checkWishlistDuplicate(
     return null;
   }
 
+  // Escape ILIKE special characters to prevent injection
+  // Order matters: escape backslash first, then wildcards
+  const escapedBrand = normalizedBrand
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+  const escapedModel = normalizedModel
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+
   // Query with case-insensitive matching using ilike
   const { data, error } = await supabase
     .from('gear_items')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', 'wishlist')
-    .ilike('brand', normalizedBrand)
-    .ilike('model_number', normalizedModel)
+    .ilike('brand', escapedBrand)
+    .ilike('model_number', escapedModel)
     .maybeSingle();
 
   if (error) {

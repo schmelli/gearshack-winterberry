@@ -7,15 +7,15 @@
  * Supabase query helpers for messaging operations.
  */
 
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  Conversation,
   ConversationListItem,
   Message,
   MessageWithSender,
   MessageReaction,
   UserInfo,
-  FriendInfo,
+  MessagingFriendInfo,
   BlockedUserInfo,
   SearchableUser,
   MessagingPrivacySettings,
@@ -28,6 +28,63 @@ import type {
 // Note: Database types for messaging tables are defined in supabase/migrations/20251213_user_messaging.sql
 // After applying the migration, regenerate types with: npx supabase gen types typescript
 // For now, we use explicit typing since the tables don't exist in Database types yet.
+
+// ============================================================================
+// Zod Schemas for RPC Function Response Validation
+// ============================================================================
+
+/**
+ * Schema for participant info returned by get_user_conversations RPC
+ */
+const ParticipantInfoSchema = z.object({
+  id: z.string().uuid(),
+  display_name: z.string(),
+  avatar_url: z.string().nullable(),
+  role: z.enum(['admin', 'member']),
+  joined_at: z.string(),
+});
+
+/**
+ * Schema for last message preview returned by get_user_conversations RPC
+ */
+const MessagePreviewSchema = z.object({
+  id: z.string().uuid(),
+  content: z.string().nullable(),
+  message_type: z.string(), // Validated at runtime in Message type
+  sender_id: z.string().uuid(),
+  sender_name: z.string().nullable(),
+  created_at: z.string(),
+});
+
+/**
+ * Schema for conversation row returned by get_user_conversations RPC
+ */
+const ConversationRowSchema = z.object({
+  conversation_id: z.string().uuid(),
+  role: z.enum(['admin', 'member']),
+  is_muted: z.boolean(),
+  is_archived: z.boolean(),
+  unread_count: z.number(),
+  last_read_at: z.string().nullable(),
+  conv_id: z.string().uuid(),
+  conv_type: z.enum(['direct', 'group']),
+  conv_name: z.string().nullable(),
+  conv_created_by: z.string().uuid(),
+  conv_created_at: z.string(),
+  conv_updated_at: z.string(),
+  last_message: MessagePreviewSchema.nullable(),
+  participants: z.array(ParticipantInfoSchema).nullable(),
+});
+
+/**
+ * Schema for user row returned by search_users_with_block_status RPC
+ */
+const SearchableUserSchema = z.object({
+  id: z.string().uuid(),
+  display_name: z.string(),
+  avatar_url: z.string().nullable(),
+  can_message: z.boolean(),
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryResult = any;
@@ -46,6 +103,9 @@ function getMessagingClient(): any {
 /**
  * Fetches user's conversations with last message and participants.
  * Returns empty array if messaging tables don't exist yet.
+ *
+ * Optimized to avoid N+1 queries using database RPC function.
+ * Performance: Reduces 1+2N queries to 1 single query.
  */
 export async function fetchConversations(
   userId: string,
@@ -53,64 +113,54 @@ export async function fetchConversations(
 ): Promise<ConversationListItem[]> {
   const supabase = getMessagingClient();
 
-  let query = supabase
-    .from('conversation_participants')
-    .select(
-      `
-      conversation_id,
-      role,
-      is_muted,
-      is_archived,
-      unread_count,
-      last_read_at,
-      conversations!inner (
-        id,
-        type,
-        name,
-        created_by,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .eq('user_id', userId)
-    .order('conversations(updated_at)', { ascending: false });
-
-  if (!includeArchived) {
-    query = query.eq('is_archived', false);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc('get_user_conversations', {
+    p_user_id: userId,
+    p_include_archived: includeArchived,
+  });
 
   if (error) {
-    // Check if error is due to missing table (42P01 is PostgreSQL "undefined_table" error)
-    if (error.code === '42P01' || error.message.includes('does not exist')) {
+    // Check if error is due to missing table/function
+    // 42P01 = undefined_table, 42883 = undefined_function
+    if (
+      error.code === '42P01' ||
+      error.code === '42883' ||
+      error.message.includes('does not exist')
+    ) {
       return [];
     }
     throw new Error(`Failed to fetch conversations: ${error.message}`);
   }
 
-  // Transform and fetch additional data
-  const conversations: ConversationListItem[] = [];
-
-  for (const row of (data ?? []) as QueryResult[]) {
-    const conv = row.conversations as Conversation;
-    const participants = await fetchConversationParticipants(conv.id);
-    const lastMessage = await fetchLastMessage(conv.id);
-
-    conversations.push({
-      conversation: conv,
-      role: row.role as ParticipantRole,
-      is_muted: row.is_muted,
-      is_archived: row.is_archived,
-      unread_count: row.unread_count,
-      last_read_at: row.last_read_at,
-      last_message: lastMessage ?? undefined,
-      participants,
-    });
+  if (!data || data.length === 0) {
+    return [];
   }
 
-  return conversations;
+  // Validate RPC response with Zod schema for type safety
+  const validatedData = z.array(ConversationRowSchema).safeParse(data);
+
+  if (!validatedData.success) {
+    console.error('Invalid RPC response from get_user_conversations:', validatedData.error);
+    throw new Error('Invalid data format from get_user_conversations');
+  }
+
+  // Transform validated RPC results to ConversationListItem format
+  return validatedData.data.map((row) => ({
+    conversation: {
+      id: row.conv_id,
+      type: row.conv_type as ConversationType,
+      name: row.conv_name,
+      created_by: row.conv_created_by,
+      created_at: row.conv_created_at,
+      updated_at: row.conv_updated_at,
+    },
+    role: row.role as ParticipantRole,
+    is_muted: row.is_muted,
+    is_archived: row.is_archived,
+    unread_count: row.unread_count,
+    last_read_at: row.last_read_at,
+    last_message: row.last_message as MessagePreview | null ?? undefined,
+    participants: (row.participants ?? []) as ParticipantInfo[],
+  }));
 }
 
 /**
@@ -318,10 +368,10 @@ export async function fetchMessages(
       id: row.id,
       conversation_id: row.conversation_id,
       sender_id: row.sender_id,
-      content: row.content,
+      content: row.content ?? null,
       message_type: row.message_type,
-      media_url: row.media_url,
-      metadata: row.metadata,
+      media_url: row.media_url ?? null,
+      metadata: row.metadata ?? {},
       deletion_state: row.deletion_state,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -422,7 +472,7 @@ export async function deleteMessage(
 /**
  * Fetches user's friends list with profile info.
  */
-export async function fetchFriends(userId: string): Promise<FriendInfo[]> {
+export async function fetchFriends(userId: string): Promise<MessagingFriendInfo[]> {
   const supabase = getMessagingClient();
 
   const { data, error } = await supabase
@@ -607,26 +657,45 @@ export async function unblockUser(
 
 /**
  * Checks if a user is blocked (in either direction).
+ * Uses separate queries instead of .or() with string interpolation to prevent PostgREST injection.
  */
 export async function isBlocked(user1: string, user2: string): Promise<boolean> {
   const supabase = getMessagingClient();
 
-  const { count, error } = await supabase
+  // Check if user1 blocked user2
+  const { count: count1, error: error1 } = await supabase
     .from('user_blocks')
     .select('*', { count: 'exact', head: true })
-    .or(`and(user_id.eq.${user1},blocked_id.eq.${user2}),and(user_id.eq.${user2},blocked_id.eq.${user1})`);
+    .eq('user_id', user1)
+    .eq('blocked_id', user2);
 
-  if (error) {
-    throw new Error(`Failed to check block status: ${error.message}`);
+  if (error1) {
+    throw new Error(`Failed to check block status: ${error1.message}`);
   }
 
-  return (count ?? 0) > 0;
+  if ((count1 ?? 0) > 0) return true;
+
+  // Check if user2 blocked user1
+  const { count: count2, error: error2 } = await supabase
+    .from('user_blocks')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user2)
+    .eq('blocked_id', user1);
+
+  if (error2) {
+    throw new Error(`Failed to check block status: ${error2.message}`);
+  }
+
+  return (count2 ?? 0) > 0;
 }
 
 // ----- User Search Queries -----
 
 /**
  * Searches for discoverable users.
+ *
+ * Optimized to avoid N+1 queries using database RPC function.
+ * Performance: Reduces 1+N queries to 1 single query.
  */
 export async function searchUsers(
   query: string,
@@ -635,34 +704,37 @@ export async function searchUsers(
 ): Promise<SearchableUser[]> {
   const supabase = getMessagingClient();
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_url, messaging_privacy')
-    .eq('discoverable', true)
-    .neq('id', currentUserId)
-    .ilike('display_name', `%${query}%`)
-    .limit(limit);
+  const { data, error } = await supabase.rpc('search_users_with_block_status', {
+    p_query: query,
+    p_current_user_id: currentUserId,
+    p_limit: limit,
+  });
 
   if (error) {
+    // Check if error is due to missing table/function
+    if (
+      error.code === '42P01' ||
+      error.code === '42883' ||
+      error.message.includes('does not exist')
+    ) {
+      return [];
+    }
     throw new Error(`Failed to search users: ${error.message}`);
   }
 
-  // Check messaging ability for each user
-  const results: SearchableUser[] = [];
-
-  for (const user of data ?? []) {
-    const blocked = await isBlocked(currentUserId, user.id);
-    const canMessage = !blocked && user.messaging_privacy !== 'nobody';
-
-    results.push({
-      id: user.id,
-      display_name: user.display_name ?? 'Unknown',
-      avatar_url: user.avatar_url,
-      can_message: canMessage,
-    });
+  if (!data || data.length === 0) {
+    return [];
   }
 
-  return results;
+  // Validate RPC response with Zod schema for type safety
+  const validatedData = z.array(SearchableUserSchema).safeParse(data);
+
+  if (!validatedData.success) {
+    console.error('Invalid RPC response from search_users_with_block_status:', validatedData.error);
+    throw new Error('Invalid data format from search_users_with_block_status');
+  }
+
+  return validatedData.data;
 }
 
 // ----- Privacy Settings Queries -----
@@ -969,7 +1041,7 @@ export async function leaveGroupConversation(
 
     if (!admins || admins.length === 0) {
       // No other admins - transfer admin to oldest member
-      const { data: oldestMember } = await supabase
+      const { data: oldestMember, error: memberError } = await supabase
         .from('conversation_participants')
         .select('user_id')
         .eq('conversation_id', conversationId)
@@ -977,6 +1049,11 @@ export async function leaveGroupConversation(
         .order('joined_at', { ascending: true })
         .limit(1)
         .single();
+
+      // PGRST116 = no rows found (OK - no members to transfer to)
+      if (memberError && memberError.code !== 'PGRST116') {
+        throw new Error(`Failed to find oldest member: ${memberError.message}`);
+      }
 
       if (oldestMember) {
         // Transfer admin role

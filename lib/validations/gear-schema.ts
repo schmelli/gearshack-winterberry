@@ -39,21 +39,31 @@ const optionalUrlSchema = z
 
 /**
  * Optional positive number from string input (no transform)
+ * Uses Number.isFinite() to reject NaN and Infinity values
  */
 const optionalPositiveNumberSchema = z
   .string()
   .refine(
-    (val) => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+    (val) => {
+      if (val === '') return true;
+      const parsed = parseFloat(val);
+      return Number.isFinite(parsed) && parsed >= 0;
+    },
     { message: 'Must be a positive number' }
   );
 
 /**
  * Optional strictly positive number (> 0) from string input (no transform)
+ * Uses Number.isFinite() to reject NaN and Infinity values
  */
 const optionalStrictPositiveNumberSchema = z
   .string()
   .refine(
-    (val) => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) > 0),
+    (val) => {
+      if (val === '') return true;
+      const parsed = parseFloat(val);
+      return Number.isFinite(parsed) && parsed > 0;
+    },
     { message: 'Must be a positive number greater than zero' }
   );
 
@@ -93,6 +103,8 @@ export const gearItemFormSchema = z.object({
   // Section 4: Purchase Details
   pricePaid: optionalPositiveNumberSchema,
   currency: z.string().max(3, 'Currency code must be 3 characters'),
+  manufacturerPrice: optionalPositiveNumberSchema,
+  manufacturerCurrency: z.string().max(3, 'Currency code must be 3 characters'),
   purchaseDate: z
     .string()
     .refine((val) => val === '' || !isNaN(Date.parse(val)), {
@@ -115,10 +127,16 @@ export const gearItemFormSchema = z.object({
   status: gearStatusSchema,
   notes: z.string().max(5000, 'Notes must be 5000 characters or less'),
   /** Quantity owned (default 1) - supports items like stakes, batteries, etc. */
-  quantity: z.string().refine(
-    (val) => val === '' || (!isNaN(parseInt(val, 10)) && parseInt(val, 10) >= 1),
-    { message: 'Quantity must be at least 1' }
-  ),
+  quantity: z
+    .string()
+    .refine(
+      (val) => {
+        if (val === '') return true;
+        const parsed = parseInt(val, 10);
+        return !isNaN(parsed) && parsed >= 1;
+      },
+      { message: 'Quantity must be at least 1' }
+    ),
   /** Whether this item is marked as favourite - Feature 041 */
   isFavourite: z.boolean(),
   /** Whether this item is available for sale - Feature 045 */

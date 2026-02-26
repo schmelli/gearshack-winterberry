@@ -20,7 +20,6 @@ function categoryFromDb(row: DbCategory): Category {
     label: row.label,
     slug: row.slug,
     i18n: row.i18n as { en: string; de?: string },
-    // @ts-ignore - sort_order will exist after migration
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
   };
@@ -52,7 +51,6 @@ export async function createCategory(data: {
 
   const { data: siblings } = await query;
 
-  // @ts-ignore - sort_order will exist after migration
   const nextSortOrder = siblings?.[0]?.sort_order ? siblings[0].sort_order + 1 : 1;
 
   const { data: newCategory, error } = await supabase
@@ -63,7 +61,6 @@ export async function createCategory(data: {
       label: data.label,
       slug: data.slug,
       i18n: data.i18n,
-      // @ts-ignore - sort_order will exist after migration
       sort_order: nextSortOrder,
     })
     .select()
@@ -176,7 +173,6 @@ export async function indentCategory(id: string): Promise<{ error: string | null
     .update({
       parent_id: newParent.id,
       level: (current.level + 1) as 1 | 2 | 3,
-      // @ts-ignore - sort_order exists
       sort_order: 1, // First child of new parent
     })
     .eq('id', id);
@@ -217,7 +213,6 @@ export async function outdentCategory(id: string): Promise<{ error: string | nul
     .update({
       parent_id: parent.parent_id, // Grandparent (could be null for L1)
       level: (current.level - 1) as 1 | 2 | 3,
-      // @ts-ignore - sort_order exists
       sort_order: 999, // Move to end of siblings
     })
     .eq('id', id);
@@ -268,26 +263,46 @@ export async function moveCategory(
 
   if (!adjacent) return { error: 'No adjacent sibling to swap with' };
 
-  // @ts-ignore - sort_order will exist after migration
   const currentSortOrder = current.sort_order;
-  // @ts-ignore - sort_order will exist after migration
   const adjacentSortOrder = adjacent.sort_order;
 
-  // Swap sort_order values
+  // RACE CONDITION FIX: Use temporary negative value to prevent concurrent swap conflicts
+  // Step 1: Move current to temporary position (-1)
+  // Step 2: Move adjacent to current's position
+  // Step 3: Move current to adjacent's position
+  // This ensures unique sort_order values throughout the swap
+  const tempSortOrder = -1;
+
   const { error: error1 } = await supabase
     .from('categories')
-    // @ts-ignore - sort_order will exist after migration
-    .update({ sort_order: adjacentSortOrder })
+    .update({ sort_order: tempSortOrder })
     .eq('id', current.id);
+
+  if (error1) {
+    return { error: `Failed to start swap: ${error1.message}` };
+  }
 
   const { error: error2 } = await supabase
     .from('categories')
-    // @ts-ignore - sort_order will exist after migration
     .update({ sort_order: currentSortOrder })
     .eq('id', adjacent.id);
 
-  if (error1 || error2) {
-    return { error: error1?.message || error2?.message || 'Failed to swap' };
+  if (error2) {
+    // Rollback: restore current's original position
+    await supabase.from('categories').update({ sort_order: currentSortOrder }).eq('id', current.id);
+    return { error: `Failed to update adjacent: ${error2.message}` };
+  }
+
+  const { error: error3 } = await supabase
+    .from('categories')
+    .update({ sort_order: adjacentSortOrder })
+    .eq('id', current.id);
+
+  if (error3) {
+    // Rollback: restore both to original positions
+    await supabase.from('categories').update({ sort_order: adjacentSortOrder }).eq('id', adjacent.id);
+    await supabase.from('categories').update({ sort_order: currentSortOrder }).eq('id', current.id);
+    return { error: `Failed to complete swap: ${error3.message}` };
   }
 
   return { error: null };
@@ -303,6 +318,7 @@ export interface CategoryIssue {
 export async function getCategoryIssues(): Promise<CategoryIssue[]> {
   const supabase = createClient();
 
+  // PERFORMANCE FIX: Avoid N+1 query by fetching all data in 2 queries total
   const { data: allCategories } = await supabase
     .from('categories')
     .select('*')
@@ -310,6 +326,17 @@ export async function getCategoryIssues(): Promise<CategoryIssue[]> {
     .order('sort_order');
 
   if (!allCategories) return [];
+
+  // Single query to get all parent IDs that have children (eliminates N+1)
+  const { data: childParentIds } = await supabase
+    .from('categories')
+    .select('parent_id')
+    .not('parent_id', 'is', null);
+
+  // Build Set for O(1) lookup of categories with children
+  const parentsWithChildren = new Set(
+    childParentIds?.map(c => c.parent_id).filter(Boolean) ?? []
+  );
 
   const issues: CategoryIssue[] = [];
 
@@ -321,17 +348,9 @@ export async function getCategoryIssues(): Promise<CategoryIssue[]> {
     if (!i18n?.en) catIssues.push('Missing English translation');
     if (!i18n?.de) catIssues.push('Missing German translation');
 
-    // Check for empty parent categories
-    if (cat.level < 3) {
-      const { data: children } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('parent_id', cat.id)
-        .limit(1);
-
-      if (!children || children.length === 0) {
-        catIssues.push('Empty category (no children)');
-      }
+    // Check for empty parent categories (O(1) lookup instead of query)
+    if (cat.level < 3 && !parentsWithChildren.has(cat.id)) {
+      catIssues.push('Empty category (no children)');
     }
 
     if (catIssues.length > 0) {

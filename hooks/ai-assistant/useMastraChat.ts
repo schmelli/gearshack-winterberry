@@ -13,10 +13,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { z } from 'zod';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { logAIEvent } from '@/lib/ai-assistant/observability';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { parseSSEStream, type SSEEvent, type ToolCallData } from '@/lib/ai-assistant/stream-parser';
+import type { WorkflowStep } from '@/types/ai-assistant';
+import type { ConfirmActionData } from '@/types/mastra';
 
 // =====================================================
 // Types
@@ -42,6 +46,8 @@ export interface MastraMessage {
   createdAt: string;
   toolCalls?: ToolCallData[];
   memoryUpdates?: MemoryUpdate[];
+  /** Pending confirmation actions (suspend/resume pattern) */
+  pendingConfirmations?: ConfirmActionData[];
 }
 
 /**
@@ -95,6 +101,12 @@ export interface UseMastraChatResult {
   conversationId: string | null;
   /** Abort current streaming request */
   abort: () => void;
+  /** Current workflow progress message (shown during pipeline phases) */
+  progressMessage: string | null;
+  /** Granular workflow step tracking with per-step status */
+  workflowSteps: WorkflowStep[];
+  /** Handle user response to a pending confirmation (suspend/resume) */
+  resolveConfirmation: (runId: string, approved: boolean) => Promise<void>;
 }
 
 // =====================================================
@@ -110,27 +122,115 @@ const DEFAULT_MAX_TOKENS = 2000;
 // =====================================================
 
 export function useMastraChat(): UseMastraChatResult {
+  const t = useTranslations('AIChat');
+
   // State
   const [messages, setMessages] = useState<MastraMessage[]>([]);
   const [state, setState] = useState<ChatState>('idle');
   const [error, setError] = useState<ChatError | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
+  // Initialize conversationId from localStorage
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem('gearshack:ai-conversation-id');
+    } catch {
+      return null;
+    }
+  });
   // Refs for tracking request state
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastMessageRef = useRef<{ text: string; options?: SendMessageOptions } | null>(null);
+  // Ref for text debounce timeout cleanup on abort
+  const textUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref for the workflow-steps clear timeout — must be cancelled if a new request starts
+  const clearWorkflowStepsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to track if history has been loaded for this conversation
+  const historyLoadedRef = useRef<string | null>(null);
 
   // Auth context - uses cookie-based authentication
   const { user } = useAuthContext();
 
   /**
+   * Load conversation history from database
+   */
+  const loadConversationHistory = useCallback(async (convId: string) => {
+    if (!user || historyLoadedRef.current === convId) {
+      return; // Already loaded or no user
+    }
+
+    try {
+      const response = await fetch('/api/mastra/conversation-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        // If the stored conversation ID is invalid or unauthorized, clear it so
+        // the user starts a fresh conversation on the next interaction.
+        if (response.status === 404 || response.status === 401) {
+          try {
+            localStorage.removeItem('gearshack:ai-conversation-id');
+          } catch {
+            // Silently fail if localStorage unavailable
+          }
+          setConversationId(null);
+          historyLoadedRef.current = null;
+        }
+        throw new Error('Failed to load conversation history');
+      }
+
+      const data = await response.json();
+      const validRoles = ['user', 'assistant'] as const;
+      const historyMessages: MastraMessage[] = data.messages.map((msg: { id: string; role: string; content: string; created_at: string }) => ({
+        id: msg.id,
+        role: validRoles.includes(msg.role as 'user' | 'assistant')
+          ? (msg.role as 'user' | 'assistant')
+          : 'assistant',
+        content: msg.content,
+        createdAt: msg.created_at,
+      }));
+
+      setMessages(historyMessages);
+      historyLoadedRef.current = convId;
+      logAIEvent('info', 'Conversation history loaded', {
+        userId: user.uid,
+        conversationId: convId,
+        messageCount: historyMessages.length,
+      });
+    } catch (err) {
+      logAIEvent('error', 'Failed to load conversation history', {
+        userId: user.uid,
+        conversationId: convId,
+        error: err instanceof Error ? err.message : 'Unknown',
+      });
+      // Don't show error to user - just start fresh conversation
+    }
+  }, [user]);
+
+  /**
    * Abort any in-flight request
    */
   const abort = useCallback(() => {
+    // Cancel any pending workflow-steps clear timeout from a previous request
+    if (clearWorkflowStepsTimeoutRef.current) {
+      clearTimeout(clearWorkflowStepsTimeoutRef.current);
+      clearWorkflowStepsTimeoutRef.current = null;
+    }
+    // Clean up any pending text update timeout
+    if (textUpdateTimeoutRef.current) {
+      clearTimeout(textUpdateTimeoutRef.current);
+      textUpdateTimeoutRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setState('idle');
+      setProgressMessage(null);
+      setWorkflowSteps([]);
       logAIEvent('info', 'Chat request aborted by user');
     }
   }, []);
@@ -143,7 +243,7 @@ export function useMastraChat(): UseMastraChatResult {
       // Validate auth - cookie-based auth, just check user exists
       if (!user) {
         const authError: ChatError = {
-          message: 'Authentication required. Please sign in to use the AI assistant.',
+          message: t('errors.authRequired'),
           code: 'AUTH_REQUIRED',
           retryable: false,
         };
@@ -161,7 +261,7 @@ export function useMastraChat(): UseMastraChatResult {
 
       if (trimmedText.length > 10000) {
         const validationError: ChatError = {
-          message: 'Message too long. Maximum length is 10,000 characters.',
+          message: t('errors.messageTooLong'),
           code: 'VALIDATION_ERROR',
           retryable: false,
         };
@@ -180,8 +280,10 @@ export function useMastraChat(): UseMastraChatResult {
       // Create new abort controller
       abortControllerRef.current = new AbortController();
 
-      // Clear previous error
+      // Clear previous error and progress
       setError(null);
+      setProgressMessage(null);
+      setWorkflowSteps([]);
 
       // Transition to loading state
       setState('loading');
@@ -218,6 +320,7 @@ export function useMastraChat(): UseMastraChatResult {
           message: trimmedText,
           conversationId,
           context: options?.context,
+          enableTools: true, // CRITICAL: Enable tool calling (queryUserData, searchCatalog, etc.)
           options: {
             stream: true,
             includeMemory: options?.includeMemory ?? true,
@@ -229,6 +332,7 @@ export function useMastraChat(): UseMastraChatResult {
           userId: user.uid,
           conversationId,
           messageLength: trimmedText.length,
+          enableTools: requestBody.enableTools,
         });
 
         // Make streaming request - uses cookie-based auth (credentials: 'include')
@@ -262,6 +366,12 @@ export function useMastraChat(): UseMastraChatResult {
         const responseConversationId = response.headers.get('X-Conversation-Id');
         if (responseConversationId && !conversationId) {
           setConversationId(responseConversationId);
+          // Persist to localStorage
+          try {
+            localStorage.setItem('gearshack:ai-conversation-id', responseConversationId);
+          } catch {
+            // Silently fail if localStorage unavailable
+          }
         }
 
         // Transition to streaming state
@@ -275,7 +385,6 @@ export function useMastraChat(): UseMastraChatResult {
         // Performance optimization: Debounce text updates to reduce re-renders
         // For long responses (1000+ tokens), this prevents 100+ state updates
         let textUpdateBuffer = '';
-        let textUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
         const DEBOUNCE_MS = 100; // Update UI every 100ms max
 
         const flushTextUpdates = () => {
@@ -297,19 +406,24 @@ export function useMastraChat(): UseMastraChatResult {
             event,
             assistantMessageId,
             (text) => {
+              // Clear progress message once actual content starts flowing
+              setProgressMessage(null);
+              // Mark all running steps as completed when text content arrives
+              setWorkflowSteps(prev => completeRunningSteps(prev));
               fullContent += text;
               textUpdateBuffer += text;
 
-              // Debounce text updates
-              if (textUpdateTimeout) {
-                clearTimeout(textUpdateTimeout);
+              // Debounce text updates - use ref for cleanup on abort
+              if (textUpdateTimeoutRef.current) {
+                clearTimeout(textUpdateTimeoutRef.current);
               }
-              textUpdateTimeout = setTimeout(flushTextUpdates, DEBOUNCE_MS);
+              textUpdateTimeoutRef.current = setTimeout(flushTextUpdates, DEBOUNCE_MS);
             },
             (toolCall) => {
               // Flush pending text updates before adding tool call
-              if (textUpdateTimeout) {
-                clearTimeout(textUpdateTimeout);
+              if (textUpdateTimeoutRef.current) {
+                clearTimeout(textUpdateTimeoutRef.current);
+                textUpdateTimeoutRef.current = null;
                 flushTextUpdates();
               }
 
@@ -331,20 +445,67 @@ export function useMastraChat(): UseMastraChatResult {
                     : msg
                 )
               );
+            },
+            (progress, progressData) => {
+              // When structured step data is present, WorkflowProgress renders instead of
+              // the plain progressMessage bubble — skip the extra state update.
+              if (!progressData) {
+                setProgressMessage(progress);
+              }
+              // Track granular step status: mark previous running steps as completed
+              if (progressData) {
+                setWorkflowSteps(prev => {
+                  const updated = completeRunningSteps(prev);
+                  const status: WorkflowStep['status'] =
+                    progressData.status === 'failed' ? 'failed' :
+                    progressData.status === 'completed' ? 'completed' :
+                    progressData.status === 'pending' ? 'pending' :
+                    'running';
+                  return [...updated, {
+                    step: progressData.step,
+                    status,
+                    message: progressData.message,
+                  }];
+                });
+              }
+            },
+            (confirmation) => {
+              // Handle confirm_action events (suspend/resume pattern)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        pendingConfirmations: [
+                          ...(msg.pendingConfirmations || []),
+                          confirmation,
+                        ],
+                      }
+                    : msg
+                )
+              );
             }
           );
         }
 
         // Flush any remaining text updates
-        if (textUpdateTimeout) {
-          clearTimeout(textUpdateTimeout);
+        if (textUpdateTimeoutRef.current) {
+          clearTimeout(textUpdateTimeoutRef.current);
+          textUpdateTimeoutRef.current = null;
         }
         flushTextUpdates();
 
         const latency = Date.now() - startTime;
 
         // Transition to success state
+        setProgressMessage(null);
         setState('success');
+        // Delay clearing steps so users can see the final completed state before it disappears.
+        // Track in a ref so a rapid subsequent request can cancel this before it fires.
+        clearWorkflowStepsTimeoutRef.current = setTimeout(() => {
+          clearWorkflowStepsTimeoutRef.current = null;
+          setWorkflowSteps([]);
+        }, 800);
 
         logAIEvent('info', 'Mastra chat response completed', {
           userId: user.uid,
@@ -397,6 +558,8 @@ export function useMastraChat(): UseMastraChatResult {
         abortControllerRef.current = null;
       }
     },
+    // t is excluded intentionally - translation function reference stays stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, conversationId, abort]
   );
 
@@ -410,6 +573,13 @@ export function useMastraChat(): UseMastraChatResult {
     setError(null);
     setConversationId(null);
     lastMessageRef.current = null;
+    historyLoadedRef.current = null;
+    // Clear from localStorage
+    try {
+      localStorage.removeItem('gearshack:ai-conversation-id');
+    } catch {
+      // Silently fail if localStorage unavailable
+    }
     logAIEvent('info', 'Conversation reset');
   }, [abort]);
 
@@ -418,13 +588,81 @@ export function useMastraChat(): UseMastraChatResult {
    */
   const retryLastMessage = useCallback(async () => {
     if (!lastMessageRef.current) {
-      toast.error('No message to retry');
+      toast.error(t('noMessageToRetry'));
       return;
     }
 
     const { text, options } = lastMessageRef.current;
     await sendMessage(text, options);
-  }, [sendMessage]);
+  }, [sendMessage, t]);
+
+  /**
+   * Resolve a pending confirmation (suspend/resume workflow)
+   * Calls the resume API endpoint and updates message state
+   */
+  const resolveConfirmation = useCallback(
+    async (runId: string, approved: boolean): Promise<void> => {
+      try {
+        const response = await fetch('/api/mastra/workflows/add-gear/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, approved }),
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          // Throw so callers can keep the confirmation card visible/retryable
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+
+        // Remove the resolved confirmation from message state so the card unmounts
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (!msg.pendingConfirmations?.some((c) => c.runId === runId)) return msg;
+            return {
+              ...msg,
+              pendingConfirmations: msg.pendingConfirmations.filter(
+                (c) => c.runId !== runId
+              ),
+            };
+          })
+        );
+
+        // Map structured result codes to i18n messages instead of using API strings
+        if (result.resultCode === 'ADD_TO_LOADOUT_CANCELLED') {
+          toast.info(t('confirmAction.cancelled', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else if (result.success && result.resultCode === 'ADD_TO_LOADOUT_SUCCESS') {
+          toast.success(t('confirmAction.success', {
+            gearItemName: result.details?.gearItemName ?? '',
+            loadoutName: result.details?.loadoutName ?? '',
+          }));
+        } else {
+          throw new Error(result.error || t('confirmAction.errorApprove'));
+        }
+      } catch (err) {
+        // Re-throw so the ConfirmAddToLoadout component can show an error toast
+        // and keep the card visible for retry
+        throw err instanceof Error ? err : new Error(t('confirmAction.errorApprove'));
+      }
+    },
+    // t is stable (next-intl), setMessages is stable (useState setter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setMessages, t]
+  );
+
+  // Load conversation history on mount if conversationId exists.
+  // Guard with state === 'idle' to prevent overwriting optimistic message updates
+  // if the user sends a message before history finishes loading.
+  useEffect(() => {
+    if (conversationId && user && historyLoadedRef.current !== conversationId && state === 'idle') {
+      loadConversationHistory(conversationId);
+    }
+  }, [conversationId, user, loadConversationHistory, state]);
 
   // Cleanup on unmount - CRITICAL for preventing memory leaks
   // Aborts in-flight requests when component unmounts
@@ -445,12 +683,32 @@ export function useMastraChat(): UseMastraChatResult {
     isStreaming: state === 'streaming',
     conversationId,
     abort,
+    progressMessage,
+    workflowSteps,
+    resolveConfirmation,
   };
 }
 
 // =====================================================
 // Helper Functions
 // =====================================================
+
+/**
+ * Mark all currently running steps as completed.
+ * Returns the same array reference if no change is needed (avoids unnecessary re-renders).
+ */
+function completeRunningSteps(steps: WorkflowStep[]): WorkflowStep[] {
+  if (!steps.some(s => s.status === 'running')) return steps;
+  return steps.map(s => s.status === 'running' ? { ...s, status: 'completed' as const } : s);
+}
+
+/** Zod schema for runtime validation of backend workflow_progress events */
+const WorkflowProgressDataSchema = z.object({
+  step: z.string(),
+  status: z.enum(['pending', 'running', 'completed', 'failed']),
+  message: z.string().optional(),
+});
+type ValidatedProgressData = z.infer<typeof WorkflowProgressDataSchema>;
 
 /**
  * Process a single SSE event from the stream
@@ -460,7 +718,9 @@ async function processStreamEvent(
   messageId: string,
   onText: (text: string) => void,
   onToolCall: (toolCall: ToolCallData) => void,
-  onMemoryUpdate: (update: MemoryUpdate) => void
+  onMemoryUpdate: (update: MemoryUpdate) => void,
+  onProgress?: (message: string, data?: ValidatedProgressData) => void,
+  onConfirmAction?: (confirmation: ConfirmActionData) => void
 ): Promise<void> {
   switch (event.type) {
     case 'text':
@@ -472,6 +732,23 @@ async function processStreamEvent(
     case 'tool_call':
       if (typeof event.data === 'object' && 'toolName' in event.data) {
         onToolCall(event.data as ToolCallData);
+      }
+      break;
+
+    case 'workflow_progress': {
+      const parsed = WorkflowProgressDataSchema.safeParse(event.data);
+      if (parsed.success) {
+        // Use nullish coalesce: message is optional in the schema (string | undefined),
+        // but the onProgress callback signature requires string for setProgressMessage.
+        onProgress?.(parsed.data.message ?? '', parsed.data);
+      }
+      break;
+    }
+
+    case 'confirm_action':
+      // Suspend/resume pattern: workflow suspended, needs user confirmation
+      if (typeof event.data === 'object' && 'runId' in event.data) {
+        onConfirmAction?.(event.data as ConfirmActionData);
       }
       break;
 

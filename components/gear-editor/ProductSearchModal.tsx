@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, Search, AlertCircle } from 'lucide-react';
 import {
   Dialog,
@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { useProductSearch } from '@/hooks/useProductSearch';
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { ProductSearchGrid } from '@/components/gear-editor/ProductSearchGrid';
+import { useTranslations } from 'next-intl';
 
 // =============================================================================
 // Types
@@ -58,6 +59,8 @@ export function ProductSearchModal({
   userId,
   itemId,
 }: ProductSearchModalProps) {
+  const t = useTranslations('GearEditor');
+
   // Product search hook
   const { query, setQuery, results, status: searchStatus, error: searchError, search, searchWithQuery, clear } = useProductSearch();
 
@@ -70,6 +73,9 @@ export function ProductSearchModal({
   // Track if we've auto-searched for this modal open
   const hasAutoSearchedRef = useRef(false);
 
+  // Timer ref for cleanup timeout
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Auto-search when modal opens with initial query
   useEffect(() => {
     if (open && initialQuery && !hasAutoSearchedRef.current) {
@@ -79,19 +85,26 @@ export function ProductSearchModal({
     }
   }, [open, initialQuery, searchWithQuery]);
 
+  // Reset state when modal closes - memoize to stabilize cleanup
+  const handleClose = useCallback(() => {
+    hasAutoSearchedRef.current = false;
+    clear();
+    resetUpload();
+    setUploadingUrl(null);
+  }, [clear, resetUpload]);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
       // Use timeout to avoid setState during render
-      const timer = setTimeout(() => {
-        hasAutoSearchedRef.current = false;
-        clear();
-        resetUpload();
-        setUploadingUrl(null);
-      }, 0);
-      return () => clearTimeout(timer);
+      closeTimerRef.current = setTimeout(handleClose, 0);
+      return () => {
+        if (closeTimerRef.current) {
+          clearTimeout(closeTimerRef.current);
+        }
+      };
     }
-  }, [open, clear, resetUpload]);
+  }, [open, handleClose]);
 
   // Handle image selection - upload to Cloudinary
   const handleImageSelect = async (imageUrl: string) => {
@@ -114,9 +127,9 @@ export function ProductSearchModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Search Product Images</DialogTitle>
+          <DialogTitle>{t('productSearchModal.title')}</DialogTitle>
           <DialogDescription>
-            Find product images via Google. Click an image to use it.
+            {t('productSearchModal.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,7 +138,7 @@ export function ProductSearchModal({
           <div className="flex gap-2">
             <Input
               type="text"
-              placeholder="Search for product images..."
+              placeholder={t('productSearchModal.searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -179,7 +192,7 @@ export function ProductSearchModal({
           {/* No Results */}
           {!isSearching && searchStatus === 'idle' && results.length === 0 && query && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No images found. Try a different search term.
+              {t('productSearchModal.noResults')}
             </p>
           )}
 
@@ -187,13 +200,13 @@ export function ProductSearchModal({
           {isProcessing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Removing background...
+              {t('productSearchModal.removingBackground')}
             </div>
           )}
           {isUploading && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Uploading to Cloudinary...
+              {t('productSearchModal.uploading')}
             </div>
           )}
         </div>

@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, ArrowLeft, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,6 +37,7 @@ interface ForgotPasswordFormProps {
 }
 
 export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
+  const t = useTranslations('Auth');
   const { sendPasswordReset } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
@@ -54,15 +56,15 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
       await sendPasswordReset(data.email);
       setIsEmailSent(true);
       // T026: Success toast
-      toast.success('Password reset email sent', {
-        description: 'Check your inbox for instructions to reset your password.',
+      toast.success(t('passwordReset.successTitle'), {
+        description: t('passwordReset.successDescription'),
       });
     } catch {
       // sendPasswordReset doesn't throw to prevent email enumeration
       // Always show success to prevent revealing if email exists
       setIsEmailSent(true);
-      toast.success('Password reset email sent', {
-        description: 'If an account exists with this email, you will receive reset instructions.',
+      toast.success(t('passwordReset.successTitle'), {
+        description: t('passwordReset.successFallback'),
       });
     } finally {
       setIsLoading(false);
@@ -77,15 +79,15 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
           <Mail className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold">Check your email</h3>
+          <h3 className="text-lg font-semibold">{t('passwordReset.checkEmail')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            If an account exists with that email, we&apos;ve sent password reset instructions.
+            {t('passwordReset.instructions')}
           </p>
         </div>
         {onBackClick && (
           <Button variant="outline" onClick={onBackClick} className="w-full">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Sign In
+            {t('backToSignIn')}
           </Button>
         )}
       </div>
@@ -96,9 +98,9 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="text-center">
-          <h3 className="text-lg font-semibold">Forgot password?</h3>
+          <h3 className="text-lg font-semibold">{t('passwordReset.title')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter your email and we&apos;ll send you reset instructions.
+            {t('passwordReset.description')}
           </p>
         </div>
 
@@ -108,11 +110,11 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('emailLabel')}</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('emailPlaceholder')}
                   autoComplete="email"
                   disabled={isLoading}
                   {...field}
@@ -126,7 +128,7 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Send Reset Link
+          {t('passwordReset.sendResetLink')}
         </Button>
 
         {/* Back to Login */}
@@ -138,7 +140,7 @@ export function ForgotPasswordForm({ onBackClick }: ForgotPasswordFormProps) {
             onClick={onBackClick}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Sign In
+            {t('backToSignIn')}
           </Button>
         )}
       </form>

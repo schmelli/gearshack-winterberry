@@ -20,14 +20,16 @@ import type { CategoryOption } from './category';
  *
  * - name: Sort alphabetically by item name (A-Z)
  * - category: Sort by category with visual separators between groups
+ * - brand: Sort alphabetically by brand name (A-Z)
+ * - productType: Sort by product type with visual separators between groups
  * - dateAdded: Sort by creation date (newest first)
  */
-export type SortOption = 'name' | 'category' | 'dateAdded';
+export type SortOption = 'name' | 'category' | 'brand' | 'productType' | 'dateAdded';
 
 /**
  * All sort options for iteration
  */
-export const SORT_OPTIONS: SortOption[] = ['name', 'category', 'dateAdded'];
+export const SORT_OPTIONS: SortOption[] = ['name', 'category', 'brand', 'productType', 'dateAdded'];
 
 /**
  * Default sort option
@@ -63,11 +65,11 @@ export type ViewDensity = 'compact' | 'standard' | 'detailed';
 /**
  * UI Labels for view density options
  */
-export const VIEW_DENSITY_LABELS: Record<ViewDensity, string> = {
+export const VIEW_DENSITY_LABELS = {
   compact: 'Compact',
   standard: 'Standard',
   detailed: 'Detailed',
-};
+} as const satisfies Record<ViewDensity, string>;
 
 /**
  * All view density options for iteration

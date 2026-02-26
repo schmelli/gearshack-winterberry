@@ -62,8 +62,11 @@ export function useLoadoutCreationForm(): UseLoadoutCreationFormReturn {
     },
   });
 
-  const selectedSeasons = form.watch('seasons') ?? [];
-  const selectedActivities = form.watch('activityTypes') ?? [];
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch is a known pattern
+  const watchedSeasons = form.watch('seasons');
+  const watchedActivities = form.watch('activityTypes');
+  const selectedSeasons = watchedSeasons ?? [];
+  const selectedActivities = watchedActivities ?? [];
 
   const toggleSeason = (season: Season) => {
     const current = form.getValues('seasons') ?? [];

@@ -47,6 +47,7 @@ import { CategorySpecsSection } from '@/components/gear-editor/sections/Category
 import { PurchaseSection } from '@/components/gear-editor/sections/PurchaseSection';
 import { MediaSection } from '@/components/gear-editor/sections/MediaSection';
 import { StatusSection } from '@/components/gear-editor/sections/StatusSection';
+import { DuplicateWarningDialog } from '@/components/gear-editor/DuplicateWarningDialog';
 import { useItems } from '@/hooks/useSupabaseStore';
 
 // =============================================================================
@@ -60,6 +61,9 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
   mode?: 'inventory' | 'wishlist';
 }
 
+// Re-export UseGearEditorOptions for prefill support
+export type { UseGearEditorOptions };
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -67,21 +71,35 @@ export interface GearEditorFormProps extends UseGearEditorOptions {
 export function GearEditorForm({
   title,
   initialItem,
+  prefillFormData,
+  prefillMeta,
   onSaveSuccess,
   onSaveError,
   redirectPath,
   mode = 'inventory',
 }: GearEditorFormProps) {
   const t = useTranslations('GearEditor');
+  const tCommon = useTranslations('Common');
 
-  const { form, isEditing, isDirty, isSubmitting, isDeleting, handleSubmit, handleCancel, handleDelete } =
-    useGearEditor({
-      initialItem,
-      onSaveSuccess,
-      onSaveError,
-      redirectPath,
-      mode,
-    });
+  const {
+    form,
+    isEditing,
+    isDirty,
+    isSubmitting,
+    isDeleting,
+    handleSubmit,
+    handleCancel,
+    handleDelete,
+    duplicateDetection,
+  } = useGearEditor({
+    initialItem,
+    prefillFormData,
+    prefillMeta,
+    onSaveSuccess,
+    onSaveError,
+    redirectPath,
+    mode,
+  });
 
   // Get all items for dependency picker (Feature: 037-gear-dependencies)
   const allItems = useItems();
@@ -129,11 +147,9 @@ export function GearEditorForm({
               </TabsContent>
 
               <TabsContent value="details" className="mt-0">
-                <div className="space-y-8">
+                <div className="space-y-2">
                   <CategorySpecsSection />
-                  <div className="border-t pt-6">
-                    <PurchaseSection />
-                  </div>
+                  <PurchaseSection mode={mode} />
                 </div>
               </TabsContent>
 
@@ -155,7 +171,7 @@ export function GearEditorForm({
                 onClick={handleCancel}
                 disabled={isSubmitting}
               >
-                Cancel
+                {tCommon('cancel')}
               </Button>
 
               {/* Delete button - only when editing */}
@@ -170,23 +186,23 @@ export function GearEditorForm({
                       disabled={isSubmitting || isDeleting}
                     >
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete item</span>
+                      <span className="sr-only">{t('deleteItem')}</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Gear Item?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('deleteItemTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This cannot be undone.
+                        {t('deleteItemDescription')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDelete}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete
+                        {tCommon('delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -197,20 +213,31 @@ export function GearEditorForm({
             <div className="flex gap-2 items-center">
               {isDirty && (
                 <span className="text-sm text-muted-foreground">
-                  Unsaved changes
+                  {t('unsavedChanges')}
                 </span>
               )}
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting
-                  ? 'Saving...'
+                  ? t('saving')
                   : isEditing
-                    ? 'Save Changes'
-                    : 'Add Item'}
+                    ? t('saveChanges')
+                    : t('addItem')}
               </Button>
             </div>
           </CardFooter>
         </form>
       </Form>
+
+      {/* Duplicate Warning Dialog */}
+      <DuplicateWarningDialog
+        isOpen={duplicateDetection.isOpen}
+        bestMatch={duplicateDetection.bestMatch}
+        newItem={duplicateDetection.isOpen ? form.getValues() : null}
+        isIncreasingQuantity={duplicateDetection.isIncreasingQuantity}
+        onConfirmSave={duplicateDetection.onConfirmSave}
+        onCancel={duplicateDetection.onCancel}
+        onIncreaseQuantity={duplicateDetection.onIncreaseQuantity}
+      />
     </Card>
   );
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck - Price tracking feature requires schema fixes
 /**
  * Custom hook for personal offers from partner retailers
  * Feature: 050-price-tracking (US5)
@@ -7,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { PersonalOffer } from '@/types/price-tracking';
 
@@ -24,7 +23,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadOffers = async () => {
+  const loadOffers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -71,22 +70,23 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
-      setOffers(data || []);
+      // Cast through unknown as DB schema may differ from client type
+      setOffers((data || []) as unknown as PersonalOffer[]);
     } catch (err) {
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [gearItemId]);
 
   const dismissOffer = async (offerId: string) => {
     try {
       const supabase = createClient();
 
-      // Mark offer as expired by setting expires_at to past
+      // Mark offer as expired by setting valid_until to past
       const { error: dismissError } = await supabase
         .from('personal_offers')
-        .update({ expires_at: new Date(0).toISOString() })
+        .update({ valid_until: new Date(0).toISOString() })
         .eq('id', offerId);
 
       if (dismissError) throw dismissError;
@@ -101,7 +101,7 @@ export function usePersonalOffers(gearItemId?: string): UsePersonalOffersResult 
 
   useEffect(() => {
     loadOffers();
-  }, [gearItemId]);
+  }, [loadOffers]);
 
   return {
     offers,

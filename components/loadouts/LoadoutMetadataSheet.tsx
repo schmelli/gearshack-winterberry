@@ -9,6 +9,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Sheet,
   SheetContent,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Loadout, Season } from '@/types/loadout';
-import { SEASON_LABELS } from '@/types/loadout';
 
 // =============================================================================
 // Types
@@ -57,6 +57,10 @@ interface MetadataFormProps {
 }
 
 function MetadataForm({ loadout, onSave, onCancel }: MetadataFormProps) {
+  const t = useTranslations('Loadouts.metadataSheet');
+  const tSeasons = useTranslations('LoadoutCreation.seasons');
+  const tCommon = useTranslations('Common');
+
   // Initialize form state from loadout
   const [name, setName] = useState(loadout.name);
   const [description, setDescription] = useState(loadout.description ?? '');
@@ -83,24 +87,24 @@ function MetadataForm({ loadout, onSave, onCancel }: MetadataFormProps) {
       <div className="flex flex-col gap-4 py-4">
         {/* Name Field */}
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="name">{t('nameLabel')}</Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter loadout name"
+            placeholder={t('namePlaceholder')}
             maxLength={100}
           />
         </div>
 
         {/* Description Field */}
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{t('descriptionLabel')}</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional notes about this loadout"
+            placeholder={t('descriptionPlaceholder')}
             rows={3}
             maxLength={500}
           />
@@ -108,27 +112,27 @@ function MetadataForm({ loadout, onSave, onCancel }: MetadataFormProps) {
 
         {/* Season Select */}
         <div className="space-y-2">
-          <Label htmlFor="season">Season</Label>
+          <Label htmlFor="season">{t('seasonLabel')}</Label>
           <Select
             value={season ?? 'none'}
             onValueChange={(value) => setSeason(value === 'none' ? null : value as Season)}
           >
             <SelectTrigger id="season" className="w-full">
-              <SelectValue placeholder="Select a season" />
+              <SelectValue placeholder={t('seasonPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No season</SelectItem>
-              <SelectItem value="spring">{SEASON_LABELS.spring}</SelectItem>
-              <SelectItem value="summer">{SEASON_LABELS.summer}</SelectItem>
-              <SelectItem value="fall">{SEASON_LABELS.fall}</SelectItem>
-              <SelectItem value="winter">{SEASON_LABELS.winter}</SelectItem>
+              <SelectItem value="none">{t('noSeason')}</SelectItem>
+              <SelectItem value="spring">{tSeasons('spring')}</SelectItem>
+              <SelectItem value="summer">{tSeasons('summer')}</SelectItem>
+              <SelectItem value="fall">{tSeasons('fall')}</SelectItem>
+              <SelectItem value="winter">{tSeasons('winter')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Trip Date Field */}
         <div className="space-y-2">
-          <Label htmlFor="tripDate">Trip Date</Label>
+          <Label htmlFor="tripDate">{t('tripDateLabel')}</Label>
           <Input
             id="tripDate"
             type="date"
@@ -140,10 +144,10 @@ function MetadataForm({ loadout, onSave, onCancel }: MetadataFormProps) {
 
       <SheetFooter>
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {tCommon('cancel')}
         </Button>
         <Button onClick={handleSave} disabled={!isValid}>
-          Save Changes
+          {tCommon('saveChanges')}
         </Button>
       </SheetFooter>
     </>
@@ -160,6 +164,8 @@ export function LoadoutMetadataSheet({
   onOpenChange,
   onSave,
 }: LoadoutMetadataSheetProps) {
+  const t = useTranslations('Loadouts.metadataSheet');
+
   // Generate a key that changes when the sheet opens to reset the form
   const formKey = useMemo(() => {
     return open ? `${loadout.id}-${loadout.updatedAt.getTime()}` : 'closed';
@@ -180,9 +186,9 @@ export function LoadoutMetadataSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Edit Loadout</SheetTitle>
+          <SheetTitle>{t('title')}</SheetTitle>
           <SheetDescription>
-            Update the name, description, season, and trip date for this loadout.
+            {t('description')}
           </SheetDescription>
         </SheetHeader>
 

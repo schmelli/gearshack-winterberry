@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,16 +40,11 @@ interface LoginFormTranslations {
   forgotPassword: string;
   noAccount: string;
   signUpLink: string;
+  emailPlaceholder: string;
+  enterPasswordPlaceholder: string;
+  showPassword: string;
+  hidePassword: string;
 }
-
-const DEFAULT_TRANSLATIONS: LoginFormTranslations = {
-  emailLabel: 'Email',
-  passwordLabel: 'Password',
-  loginButton: 'Sign In',
-  forgotPassword: 'Forgot password?',
-  noAccount: "Don't have an account?",
-  signUpLink: 'Sign up',
-};
 
 interface LoginFormProps {
   /** Callback after successful login */
@@ -67,10 +63,24 @@ export function LoginForm({
   onForgotPasswordClick,
   translations: translationsProp,
 }: LoginFormProps) {
+  const tAuth = useTranslations('Auth');
   const { signInWithEmail, error: authError, clearError } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const t = { ...DEFAULT_TRANSLATIONS, ...translationsProp };
+
+  // Use translations from props if provided, otherwise use i18n
+  const t: LoginFormTranslations = {
+    emailLabel: translationsProp?.emailLabel ?? tAuth('emailLabel'),
+    passwordLabel: translationsProp?.passwordLabel ?? tAuth('passwordLabel'),
+    loginButton: translationsProp?.loginButton ?? tAuth('loginButton'),
+    forgotPassword: translationsProp?.forgotPassword ?? tAuth('forgotPassword'),
+    noAccount: translationsProp?.noAccount ?? tAuth('noAccount'),
+    signUpLink: translationsProp?.signUpLink ?? tAuth('signUpLink'),
+    emailPlaceholder: translationsProp?.emailPlaceholder ?? tAuth('emailPlaceholder'),
+    enterPasswordPlaceholder: translationsProp?.enterPasswordPlaceholder ?? tAuth('enterPasswordPlaceholder'),
+    showPassword: translationsProp?.showPassword ?? tAuth('showPassword'),
+    hidePassword: translationsProp?.hidePassword ?? tAuth('hidePassword'),
+  };
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -109,7 +119,7 @@ export function LoginForm({
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.emailPlaceholder}
                   autoComplete="email"
                   disabled={isLoading}
                   {...field}
@@ -131,7 +141,7 @@ export function LoginForm({
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
+                    placeholder={t.enterPasswordPlaceholder}
                     autoComplete="current-password"
                     disabled={isLoading}
                     {...field}
@@ -150,7 +160,7 @@ export function LoginForm({
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                     <span className="sr-only">
-                      {showPassword ? 'Hide password' : 'Show password'}
+                      {showPassword ? t.hidePassword : t.showPassword}
                     </span>
                   </Button>
                 </div>
