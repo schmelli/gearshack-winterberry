@@ -57,6 +57,21 @@ function sanitizeSearchQuery(input: string): string {
 }
 
 /**
+ * Type alias for the `status` column of `gear_items` (matches DB enum).
+ * Used to satisfy the Supabase typed client when calling `.eq('status', ...)`.
+ */
+type GearItemStatus = 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
+
+/**
+ * Resolve the caller-supplied status string to a concrete `GearItemStatus`
+ * value suitable for direct use in Supabase `.eq('status', ...)` calls.
+ * The special value `'all'` falls back to `'own'` (the most common default).
+ */
+function resolveStatus(status: string): GearItemStatus {
+  return (status === 'all' ? 'own' : status) as GearItemStatus;
+}
+
+/**
  * Sanitize a database error message before returning to the client.
  * Strips potentially sensitive information (table names, column details, etc.)
  */
@@ -149,10 +164,129 @@ const BIG3_PATTERNS = {
 };
 
 // ============================================================================
+// Typed Interfaces for DB Rows and RPC Results
+// ============================================================================
+
+/** Row shape for category resolution */
+interface CategoryRow {
+  id: string;
+  slug: string;
+  label: string;
+  parent_id: string | null;
+  i18n: Record<string, string> | null;
+}
+
+/**
+ * Module-level TTL cache for category data.
+ * Avoids a full `categories` table fetch on every `searchGear` call.
+ * Cache is per-process-instance and resets on cold starts (acceptable for serverless).
+ */
+interface CategoryCache {
+  data: CategoryRow[];
+  expiresAt: number;
+}
+
+/** 5-minute TTL for the category cache */
+const CATEGORY_CACHE_TTL_MS = 5 * 60 * 1000;
+let _categoryCache: CategoryCache | null = null;
+
+/** Row shape for gear_items search results */
+interface GearItemSearchRow {
+  id: string;
+  name: string;
+  brand: string | null;
+  weight_grams: number | null;
+  price_paid: number | null;
+  status: string;
+  product_type_id: string | null;
+  categories: { label: string } | null;
+}
+
+/** Row shape for catalog_products search results */
+interface CatalogProductSearchRow {
+  id: string;
+  name: string;
+  product_type: string | null;
+  description: string | null;
+  price_usd: number | null;
+  weight_grams: number | null;
+  catalog_brands: { name: string } | null;
+}
+
+/** Row shape for heaviest/lightest item queries */
+interface WeightedItemRow {
+  id: string;
+  name: string;
+  brand: string | null;
+  weight_grams: number;
+  categories: { label: string } | null;
+}
+
+/** Row shape for brand breakdown queries */
+interface BrandRow {
+  brand: string | null;
+  weight_grams: number | null;
+}
+
+/** Row shape for weight distribution queries */
+interface WeightDistRow {
+  weight_grams: number;
+}
+
+/** Row shape for value summary queries */
+interface ValueRow {
+  price_paid: number | null;
+  currency: string | null;
+}
+
+/** Row shape for recent additions queries */
+interface RecentItemRow {
+  id: string;
+  name: string;
+  brand: string | null;
+  weight_grams: number | null;
+  created_at: string;
+  categories: { label: string } | null;
+}
+
+/** Shape returned by the `analyze_loadout` RPC function */
+interface AnalyzeLoadoutRPCResult {
+  error?: string;
+  loadout: Record<string, unknown>;
+  items: Array<Record<string, unknown>>;
+  categoryBreakdown: Array<Record<string, unknown>>;
+  totalWeight: number;
+  wornWeight: number;
+  consumableWeight: number;
+}
+
+type RPCResponse<T> = { data: T | null; error: { message: string } | null };
+
+/**
+ * Type-safe wrapper for calling Supabase RPC functions not yet in the generated
+ * schema types. Concentrates the necessary `any` escape to a single location
+ * instead of scattering eslint-disable comments throughout the file.
+ *
+ * SECURITY NOTE: The MCP server uses a service-role client that bypasses RLS.
+ * The `userId` parameter in every tool is therefore validated with `isValidUUID`
+ * before being passed to any DB query. Only trusted internal tooling should hold
+ * the MCP_SERVER_API_KEY environment variable.
+ */
+function callRpc<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  functionName: string,
+  params: Record<string, unknown>
+): Promise<RPCResponse<T>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(functionName, params) as Promise<RPCResponse<T>>;
+}
+
+// ============================================================================
 // Tool Definitions (MCP JSON Schema format)
 // ============================================================================
 
-const TOOL_DEFINITIONS: MCPToolDefinition[] = [
+export const TOOL_DEFINITIONS: MCPToolDefinition[] = [
   {
     name: 'analyzeLoadout',
     description: `Analyze a GearShack loadout for weight, completeness, and optimization.
@@ -217,7 +351,7 @@ Use for: "Find ultralight tents under 1kg", "What rain jackets do I own?", "Sear
     name: 'inventoryInsights',
     description: `Get inventory statistics and insights for a GearShack user.
 
-Available insights: overview (counts, total weight, brands), count_by_category (with i18n search), heaviest_items, lightest_items, brand_breakdown, weight_distribution (min/max/avg/median), value_summary (by currency), recent_additions.
+Available insights: overview (counts, total weight, brands), count_by_category (with i18n search; note: status='all' defaults to 'own' since the underlying RPC does not support cross-status counts), heaviest_items, lightest_items, brand_breakdown, weight_distribution (min/max/avg/median), value_summary (by currency), recent_additions.
 
 Use for: "How many tents do I have?", "What's my heaviest item?", "Which brands do I own?", "Total gear value?"`,
     inputSchema: {
@@ -239,7 +373,7 @@ Use for: "How many tents do I have?", "What's my heaviest item?", "Which brands 
         status: {
           type: 'string',
           enum: ['own', 'wishlist', 'sold', 'all'],
-          description: 'Item status filter. Default: own',
+          description: "Item status filter. Default: own. Note: for count_by_category, status='all' falls back to 'own'.",
         },
         limit: {
           type: 'number',
@@ -316,12 +450,18 @@ export async function handleMCPRequest(body: JSONRPCRequest): Promise<JSONRPCRes
         result: {},
       };
 
-    default:
+    default: {
+      // Sanitize the method name before embedding it in the error response to
+      // prevent log injection from user-controlled values (CWE-117).
+      const safeMethod = typeof method === 'string'
+        ? method.replace(/[^\w/.-]/g, '').slice(0, 64)
+        : 'unknown';
       return {
         jsonrpc: '2.0',
         id: id ?? null,
-        error: { code: -32601, message: `Method not found: ${method}` },
+        error: { code: -32601, message: `Method not found: ${safeMethod}` },
       };
+    }
   }
 }
 
@@ -348,10 +488,12 @@ async function executeToolCall(
         };
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[MCP Server] Tool "${name}" error:`, error);
+    // Route all errors through sanitizeDbError to prevent leaking internal
+    // details (table names, column info, stack traces) in the tool response.
+    console.error('[MCP Server] Tool execution error:', error);
+    const safeMessage = error instanceof Error ? sanitizeDbError(error) : 'Unexpected error';
     return {
-      content: [{ type: 'text', text: `Tool execution failed: ${message}` }],
+      content: [{ type: 'text', text: `Tool execution failed: ${safeMessage}` }],
       isError: true,
     };
   }
@@ -374,11 +516,11 @@ async function handleAnalyzeLoadout(args: Record<string, unknown>): Promise<MCPT
 
   const supabase = createServiceRoleClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: analysis, error } = await (supabase.rpc as any)('analyze_loadout', {
-    p_loadout_id: loadoutId,
-    p_user_id: userId,
-  });
+  const { data: analysis, error } = await callRpc<AnalyzeLoadoutRPCResult>(
+    supabase,
+    'analyze_loadout',
+    { p_loadout_id: loadoutId, p_user_id: userId }
+  );
 
   if (error) {
     return errorResult(sanitizeDbError(error));
@@ -399,7 +541,8 @@ async function handleAnalyzeLoadout(args: Record<string, unknown>): Promise<MCPT
   const totalWeight = (analysis.totalWeight as number) || 0;
   const wornWeight = (analysis.wornWeight as number) || 0;
   const consumableWeight = (analysis.consumableWeight as number) || 0;
-  const baseWeight = totalWeight - wornWeight - consumableWeight;
+  // Clamp to zero: data inconsistencies can cause worn + consumable > total
+  const baseWeight = Math.max(0, totalWeight - wornWeight - consumableWeight);
 
   // Classify weight
   const activityTypes = (loadoutMeta?.activityTypes as string[]) || [];
@@ -509,96 +652,109 @@ async function handleSearchGear(args: Record<string, unknown>): Promise<MCPToolR
   const supabase = createServiceRoleClient();
   const results: { myGear?: unknown[]; catalogProducts?: unknown[] } = {};
 
+  // Build independent search tasks and run them in parallel when scope === 'all'
+  // to halve latency for the common case.
+  const searchTasks: Promise<void>[] = [];
+
   // Search user inventory
   if (scope === 'my_gear' || scope === 'all') {
-    // Resolve category IDs for i18n-aware search (uses exact matching, not ILIKE)
-    const categoryIds = await resolveCategoryIds(supabase, categorySearchTerm);
+    searchTasks.push(
+      (async () => {
+        // Resolve category IDs for i18n-aware search (uses exact matching, not ILIKE)
+        const categoryIds = await resolveCategoryIds(supabase, categorySearchTerm);
 
-    let gearQuery = supabase
-      .from('gear_items')
-      .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories!gear_items_product_type_id_fkey(label)')
-      .eq('user_id', userId);
+        let gearQuery = supabase
+          .from('gear_items')
+          .select('id, name, brand, weight_grams, price_paid, status, product_type_id, categories!gear_items_product_type_id_fkey(label)')
+          .eq('user_id', userId);
 
-    if (categoryIds.length > 0) {
-      const orFilters = [
-        `name.ilike.%${query}%`,
-        `brand.ilike.%${query}%`,
-        `notes.ilike.%${query}%`,
-        `product_type_id.in.(${categoryIds.join(',')})`,
-      ];
-      gearQuery = gearQuery.or(orFilters.join(','));
-    } else {
-      gearQuery = gearQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
-    }
+        if (categoryIds.length > 0) {
+          const orFilters = [
+            `name.ilike.%${query}%`,
+            `brand.ilike.%${query}%`,
+            `notes.ilike.%${query}%`,
+            `product_type_id.in.(${categoryIds.join(',')})`,
+          ];
+          gearQuery = gearQuery.or(orFilters.join(','));
+        } else {
+          gearQuery = gearQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+        }
 
-    // Validate status filter against allowed values
-    const allowedStatuses = ['own', 'wishlist', 'sold', 'all'];
-    const statusFilter = allowedStatuses.includes(filters?.status as string)
-      ? (filters?.status as string)
-      : 'own';
-    if (statusFilter !== 'all') {
-      gearQuery = gearQuery.eq('status', statusFilter);
-    }
-    if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
-      gearQuery = gearQuery.lte('weight_grams', filters.maxWeight);
-    }
-    if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
-      gearQuery = gearQuery.gte('weight_grams', filters.minWeight);
-    }
-    if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
-      gearQuery = gearQuery.lte('price_paid', filters.maxPrice);
-    }
+        // Validate status filter against allowed values
+        const allowedStatuses = ['own', 'wishlist', 'sold', 'all'];
+        const statusFilter = allowedStatuses.includes(filters?.status as string)
+          ? (filters?.status as string)
+          : 'own';
+        if (statusFilter !== 'all') {
+          gearQuery = gearQuery.eq('status', resolveStatus(statusFilter));
+        }
+        if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
+          gearQuery = gearQuery.lte('weight_grams', filters.maxWeight);
+        }
+        if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
+          gearQuery = gearQuery.gte('weight_grams', filters.minWeight);
+        }
+        if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+          gearQuery = gearQuery.lte('price_paid', filters.maxPrice);
+        }
 
-    gearQuery = gearQuery.order('name', { ascending: true }).limit(limit);
+        gearQuery = gearQuery.order('name', { ascending: true }).limit(limit);
 
-    const { data, error } = await gearQuery;
-    if (!error && data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      results.myGear = data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        brand: item.brand || null,
-        weightGrams: item.weight_grams || null,
-        pricePaid: item.price_paid || null,
-        category: item.categories?.label || null,
-        status: item.status || 'own',
-      }));
-    }
+        const { data, error } = await gearQuery;
+        if (!error && data) {
+          results.myGear = (data as GearItemSearchRow[]).map((item) => ({
+            id: item.id,
+            name: item.name,
+            brand: item.brand || null,
+            weightGrams: item.weight_grams || null,
+            pricePaid: item.price_paid || null,
+            category: item.categories?.label || null,
+            status: item.status || 'own',
+          }));
+        }
+      })()
+    );
   }
 
   // Search product catalog
   if (scope === 'catalog' || scope === 'all') {
-    let catalogQuery = supabase
-      .from('catalog_products')
-      .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)')
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
+    searchTasks.push(
+      (async () => {
+        let catalogQuery = supabase
+          .from('catalog_products')
+          .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)')
+          .or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
 
-    if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
-      catalogQuery = catalogQuery.lte('weight_grams', filters.maxWeight);
-    }
-    if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
-      catalogQuery = catalogQuery.gte('weight_grams', filters.minWeight);
-    }
-    if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
-      catalogQuery = catalogQuery.lte('price_usd', filters.maxPrice);
-    }
+        if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
+          catalogQuery = catalogQuery.lte('weight_grams', filters.maxWeight);
+        }
+        if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
+          catalogQuery = catalogQuery.gte('weight_grams', filters.minWeight);
+        }
+        if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+          catalogQuery = catalogQuery.lte('price_usd', filters.maxPrice);
+        }
 
-    catalogQuery = catalogQuery.order('name', { ascending: true }).limit(limit);
+        catalogQuery = catalogQuery.order('name', { ascending: true }).limit(limit);
 
-    const { data, error } = await catalogQuery;
-    if (!error && data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      results.catalogProducts = data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        brand: item.catalog_brands?.name || null,
-        weightGrams: item.weight_grams || null,
-        priceUsd: item.price_usd || null,
-        productType: item.product_type || null,
-        description: item.description || null,
-      }));
-    }
+        const { data, error } = await catalogQuery;
+        if (!error && data) {
+          results.catalogProducts = (data as CatalogProductSearchRow[]).map((item) => ({
+            id: item.id,
+            name: item.name,
+            brand: item.catalog_brands?.name || null,
+            weightGrams: item.weight_grams || null,
+            priceUsd: item.price_usd || null,
+            productType: item.product_type || null,
+            description: item.description || null,
+          }));
+        }
+      })()
+    );
   }
+
+  // Await all search tasks in parallel
+  await Promise.all(searchTasks);
 
   const myGearCount = results.myGear?.length || 0;
   const catalogCount = results.catalogProducts?.length || 0;
@@ -651,10 +807,11 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
 
   switch (question) {
     case 'overview': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_inventory_intelligence', {
-        p_user_id: userId,
-      });
+      const { data, error } = await callRpc<Record<string, unknown>>(
+        supabase,
+        'get_inventory_intelligence',
+        { p_user_id: userId }
+      );
       if (error) return errorResult(sanitizeDbError(error));
 
       const stats = data as Record<string, unknown>;
@@ -672,12 +829,18 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         return errorResult('Missing "category" parameter for count_by_category');
       }
       const sanitizedCategory = category.slice(0, MAX_QUERY_LENGTH).trim();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('count_items_by_category', {
-        p_user_id: userId,
-        p_search_term: sanitizedCategory,
-        p_status: status === 'all' ? 'own' : status,
-      });
+      // NOTE: The count_items_by_category RPC does not support status='all'.
+      // When status='all' is requested we fall back to 'own' to maintain
+      // consistent behavior. This is documented in the tool schema description.
+      const { data, error } = await callRpc<Record<string, unknown>>(
+        supabase,
+        'count_items_by_category',
+        {
+          p_user_id: userId,
+          p_search_term: sanitizedCategory,
+          p_status: status === 'all' ? 'own' : status,
+        }
+      );
       if (error) return errorResult(sanitizeDbError(error));
 
       const result = data as Record<string, unknown>;
@@ -691,7 +854,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .from('gear_items')
         .select('id, name, brand, weight_grams, categories!gear_items_product_type_id_fkey(label)')
         .eq('user_id', userId)
-        .eq('status', status === 'all' ? 'own' : status)
+        .eq('status', resolveStatus(status))
         .not('weight_grams', 'is', null)
         .gt('weight_grams', 0)
         .order('weight_grams', { ascending })
@@ -699,8 +862,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
 
       if (error) return errorResult(sanitizeDbError(error));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items = (data || []).map((item: any, idx: number) => ({
+      const items = (data as WeightedItemRow[] || []).map((item, idx) => ({
         rank: idx + 1,
         name: item.name,
         brand: item.brand || null,
@@ -713,17 +875,20 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
     }
 
     case 'brand_breakdown': {
+      // Selects only the two columns required for in-memory aggregation.
+      // TODO: For very large inventories, consider a Supabase RPC with
+      // `GROUP BY brand` to push aggregation to the database side.
       const { data, error } = await supabase
         .from('gear_items')
         .select('brand, weight_grams')
         .eq('user_id', userId)
-        .eq('status', status === 'all' ? 'own' : status)
+        .eq('status', resolveStatus(status))
         .not('brand', 'is', null);
 
       if (error) return errorResult(sanitizeDbError(error));
 
       const brandMap = new Map<string, { count: number; totalWeight: number }>();
-      for (const item of data || []) {
+      for (const item of (data as BrandRow[] || [])) {
         const brand = item.brand || 'Unknown';
         const existing = brandMap.get(brand) || { count: 0, totalWeight: 0 };
         existing.count++;
@@ -748,13 +913,13 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .from('gear_items')
         .select('weight_grams')
         .eq('user_id', userId)
-        .eq('status', 'own')
+        .eq('status', resolveStatus(status))
         .not('weight_grams', 'is', null)
         .gt('weight_grams', 0);
 
       if (error) return errorResult(sanitizeDbError(error));
 
-      const weights = (data || []).map(i => i.weight_grams as number).sort((a, b) => a - b);
+      const weights = (data as WeightDistRow[] || []).map(i => i.weight_grams).sort((a, b) => a - b);
       if (weights.length === 0) {
         return textResult({ message: 'No items with weight data found' });
       }
@@ -778,14 +943,14 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .from('gear_items')
         .select('price_paid, currency')
         .eq('user_id', userId)
-        .eq('status', 'own')
+        .eq('status', resolveStatus(status))
         .not('price_paid', 'is', null)
         .gt('price_paid', 0);
 
       if (error) return errorResult(sanitizeDbError(error));
 
       const currencyTotals = new Map<string, { total: number; count: number }>();
-      for (const item of data || []) {
+      for (const item of (data as ValueRow[] || [])) {
         const currency = item.currency || 'EUR';
         const existing = currencyTotals.get(currency) || { total: 0, count: 0 };
         existing.total += item.price_paid ?? 0;
@@ -807,14 +972,13 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .from('gear_items')
         .select('id, name, brand, weight_grams, created_at, categories!gear_items_product_type_id_fkey(label)')
         .eq('user_id', userId)
-        .eq('status', status === 'all' ? 'own' : status)
+        .eq('status', resolveStatus(status))
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) return errorResult(sanitizeDbError(error));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items = (data || []).map((item: any) => ({
+      const items = (data as RecentItemRow[] || []).map((item) => ({
         name: item.name,
         brand: item.brand || null,
         weight: item.weight_grams ? formatWeight(item.weight_grams) : null,
@@ -870,31 +1034,46 @@ function identifyBig3(items: Array<Record<string, unknown>>) {
 /**
  * Resolve a category search term to matching category IDs.
  * Supports English and German search terms via i18n translations.
+ *
+ * Uses a module-level TTL cache (5 min) to avoid fetching the full `categories`
+ * table on every `searchGear` call. The cache resets on cold starts, which is
+ * acceptable for a serverless environment since categories are rarely updated.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<string[]> {
+async function resolveCategoryIds(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  searchTerm: string
+): Promise<string[]> {
   const searchLower = searchTerm.toLowerCase();
 
-  const { data: allCategories, error } = await supabase
-    .from('categories')
-    .select('id, slug, label, parent_id, i18n');
+  // Populate cache if missing or expired
+  const now = Date.now();
+  if (!_categoryCache || now > _categoryCache.expiresAt) {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, slug, label, parent_id, i18n');
 
-  if (error || !allCategories || allCategories.length === 0) return [];
+    if (error || !data || data.length === 0) return [];
 
+    _categoryCache = {
+      data: data as CategoryRow[],
+      expiresAt: now + CATEGORY_CACHE_TTL_MS,
+    };
+  }
+
+  const allCategories = _categoryCache.data;
   const matchingIds = new Set<string>();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const cat of allCategories as any[]) {
+  for (const cat of allCategories) {
     const fields: string[] = [
       cat.slug,
       cat.label,
       ...(typeof cat.i18n === 'object' && cat.i18n !== null
-        ? Object.values(cat.i18n as Record<string, string>)
+        ? Object.values(cat.i18n)
         : []),
     ].filter((f): f is string => typeof f === 'string');
 
     if (fields.some(f => f.toLowerCase().includes(searchLower))) {
-      matchingIds.add(cat.id as string);
+      matchingIds.add(cat.id);
     }
   }
 
@@ -902,10 +1081,9 @@ async function resolveCategoryIds(supabase: any, searchTerm: string): Promise<st
   let prevSize = 0;
   while (matchingIds.size > prevSize) {
     prevSize = matchingIds.size;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const cat of allCategories as any[]) {
-      if (cat.parent_id && matchingIds.has(cat.parent_id as string)) {
-        matchingIds.add(cat.id as string);
+    for (const cat of allCategories) {
+      if (cat.parent_id && matchingIds.has(cat.parent_id)) {
+        matchingIds.add(cat.id);
       }
     }
   }

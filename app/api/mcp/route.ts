@@ -15,9 +15,9 @@
  * @see https://modelcontextprotocol.io/specification
  */
 
-import { timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
-import { handleMCPRequest, type JSONRPCRequest } from '@/lib/mastra/mcp-server';
+import { handleMCPRequest, TOOL_DEFINITIONS, type JSONRPCRequest } from '@/lib/mastra/mcp-server';
 
 // ============================================================================
 // Auth
@@ -25,7 +25,11 @@ import { handleMCPRequest, type JSONRPCRequest } from '@/lib/mastra/mcp-server';
 
 /**
  * Validate API key using timing-safe comparison to prevent timing attacks.
- * Follows the same pattern as cron route auth (crypto.timingSafeEqual).
+ *
+ * Both the provided key and the expected key are hashed with SHA-256 before
+ * comparison, producing fixed 32-byte buffers regardless of input length.
+ * This prevents key-length leakage that would occur if the lengths were
+ * pre-checked before the timing-safe comparison.
  */
 function validateApiKey(request: Request): boolean {
   const apiKey = request.headers.get('x-api-key');
@@ -36,12 +40,17 @@ function validateApiKey(request: Request): boolean {
     return false;
   }
 
-  if (!apiKey || apiKey.length !== expectedKey.length) {
+  if (!apiKey) {
     return false;
   }
 
   try {
-    return timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey));
+    // Hash both keys to fixed 32-byte SHA-256 digests before comparing.
+    // This ensures timingSafeEqual always receives equal-length buffers and
+    // prevents the expected key's length from being inferred via early exit.
+    const a = createHash('sha256').update(apiKey).digest();
+    const b = createHash('sha256').update(expectedKey).digest();
+    return timingSafeEqual(a, b);
   } catch {
     return false;
   }
@@ -97,7 +106,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         jsonrpc: '2.0',
-        id: (rpcBody as Record<string, unknown>)?.id ?? null,
+        id: (rpcBody as unknown as Record<string, unknown>)?.id ?? null,
         error: { code: -32600, message: 'Invalid request: must be a JSON object with jsonrpc "2.0" and method' },
       },
       { status: 400 }
@@ -128,7 +137,8 @@ export async function GET() {
     protocol: 'MCP (Model Context Protocol)',
     protocolVersion: '2024-11-05',
     status: isConfigured ? 'active' : 'unconfigured',
-    tools: ['analyzeLoadout', 'searchGear', 'inventoryInsights'],
+    // Derive tool names dynamically from TOOL_DEFINITIONS to stay in sync
+    tools: TOOL_DEFINITIONS.map((tool) => tool.name),
     documentation: 'Authenticate with X-API-Key header. Send JSON-RPC 2.0 POST requests.',
   });
 }
