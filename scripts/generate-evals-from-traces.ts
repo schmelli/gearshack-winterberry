@@ -146,7 +146,7 @@ async function fetchRecentTraces(): Promise<ProductionTrace[]> {
     .limit(Math.floor(traceLimit / 2));
 
   if (lowErr) {
-    console.error('  Error fetching low-scoring traces:', lowErr.message);
+    throw new Error(`Error fetching low-scoring traces: ${lowErr.message}`);
   }
 
   // Fetch high-scoring traces (good examples for regression testing)
@@ -159,7 +159,7 @@ async function fetchRecentTraces(): Promise<ProductionTrace[]> {
     .limit(Math.floor(traceLimit / 2));
 
   if (highErr) {
-    console.error('  Error fetching high-scoring traces:', highErr.message);
+    throw new Error(`Error fetching high-scoring traces: ${highErr.message}`);
   }
 
   const allTraces = [...(lowScoring ?? []), ...(highScoring ?? [])];

@@ -40,8 +40,11 @@ CREATE TABLE IF NOT EXISTS eval_review_queue (
   -- LLM's rationale for why this trace is a good eval candidate
   rationale TEXT NOT NULL,
 
-  -- Which eval dataset this should be promoted to
-  target_dataset TEXT NOT NULL DEFAULT 'general',
+  -- Which eval dataset this should be promoted to.
+  -- Default matches the 'edge-cases' enum value used in generate-evals-from-traces.ts
+  -- and the fallback in promote-approved-evals.ts. 'general' is intentionally excluded
+  -- from the application enum so the DB default must match an actual valid dataset name.
+  target_dataset TEXT NOT NULL DEFAULT 'edge-cases',
 
   -- Trace metadata for provenance
   source_trace_id TEXT,
