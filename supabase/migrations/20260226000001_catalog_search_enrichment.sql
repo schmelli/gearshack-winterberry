@@ -49,11 +49,7 @@ AS $$
   )
 $$;
 
--- 6. Generated column with tsvector for full-text search on enrichment
--- NOTE: We create a helper function that can be used in queries instead of a generated column,
--- since IMMUTABLE functions on JSONB columns work better with query planning.
-
--- 7. RPC function: Search catalog products with enrichment-aware matching
+-- 6. RPC function: Search catalog products with enrichment-aware matching
 -- Searches name, description, product_type (ILIKE) AND search_enrichment JSONB.
 -- Returns products sorted by a simple relevance score:
 --   3 = name match, 2 = description/product_type match, 1 = enrichment-only match

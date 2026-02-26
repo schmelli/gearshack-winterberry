@@ -32,6 +32,7 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
+import { escapeLikePattern } from '@/lib/catalog-scoring';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
@@ -662,13 +663,17 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Escape ILIKE wildcards to prevent pattern injection (%, _, \)
+  const escapedQuery = escapeLikePattern(query);
+
   // Pre-filter by brand if specified (needed before RPC call)
   let brandIds: string[] | null = null;
   if (filters?.brand) {
+    const escapedBrand = escapeLikePattern(filters.brand);
     const { data: matchingBrands } = await supabase
       .from('catalog_brands')
       .select('id')
-      .ilike('name', `%${filters.brand}%`);
+      .ilike('name', `%${escapedBrand}%`);
     brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
     if (brandIds.length === 0) {
       return { type: 'catalog', data: [] };
@@ -679,7 +684,7 @@ async function searchCatalog(
   // Falls back to standard ILIKE on name/description/product_type when
   // search_enrichment is NULL (unenriched products still found).
   const { data: rpcResults, error: rpcError } = await supabase.rpc('search_catalog_enriched', {
-    p_query: query,
+    p_query: escapedQuery,
     p_limit: limit * 3, // Overfetch to allow for post-filtering
     p_offset: 0,        // We handle offset after filtering
   });
@@ -784,11 +789,14 @@ async function searchCatalogFallback(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Escape ILIKE wildcards to prevent pattern injection
+  const escapedQuery = escapeLikePattern(query);
+
   let dbQuery = supabase
     .from('catalog_products')
     .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)');
 
-  dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
+  dbQuery = dbQuery.or(`name.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,product_type.ilike.%${escapedQuery}%`);
 
   if (filters?.maxWeight) {
     dbQuery = dbQuery.lte('weight_grams', filters.maxWeight);
@@ -800,10 +808,11 @@ async function searchCatalogFallback(
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
   if (filters?.brand) {
+    const escapedBrand = escapeLikePattern(filters.brand);
     const { data: matchingBrands } = await supabase
       .from('catalog_brands')
       .select('id')
-      .ilike('name', `%${filters.brand}%`);
+      .ilike('name', `%${escapedBrand}%`);
     const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
     if (brandIds.length > 0) {
       dbQuery = dbQuery.in('brand_id', brandIds);

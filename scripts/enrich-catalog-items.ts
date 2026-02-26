@@ -143,10 +143,14 @@ interface CatalogProductRow {
 
 /**
  * Generate structured enrichment for a single catalog product using an LLM.
+ * @param gateway - AI Gateway instance
+ * @param item - Product data to enrich
+ * @param abortSignal - Optional abort signal for timeout cancellation
  */
 async function enrichItem(
   gateway: ReturnType<typeof createGateway>,
-  item: CatalogProductRow
+  item: CatalogProductRow,
+  abortSignal?: AbortSignal
 ): Promise<EnrichmentResult> {
   const promptParts = [
     `Gear item: ${item.name}`,
@@ -170,6 +174,7 @@ async function enrichItem(
         content: `Generate structured enrichment for better search discoverability:\n\n${promptParts}`,
       },
     ],
+    abortSignal,
   });
 
   return object;
@@ -189,7 +194,7 @@ async function enrichItemWithRetry(
       const timeoutId = setTimeout(() => controller.abort(), ENRICHMENT_TIMEOUT_MS);
 
       try {
-        const result = await enrichItem(gateway, item);
+        const result = await enrichItem(gateway, item, controller.signal);
         return result;
       } finally {
         clearTimeout(timeoutId);
