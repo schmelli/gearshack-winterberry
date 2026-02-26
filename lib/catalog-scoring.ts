@@ -22,3 +22,23 @@ export function escapeLikePattern(input: string): string {
     .replace(/\)/g, '')
     .replace(/\./g, ' ');
 }
+
+/**
+ * Escapes only ILIKE wildcards (%, _, \) for use with bound parameters.
+ *
+ * Unlike `escapeLikePattern`, this does NOT strip commas, dots, or parens —
+ * those characters are only meaningful in PostgREST filter strings (`.or()`),
+ * not in bound parameters passed to `.rpc()` or `.ilike()`.
+ *
+ * Use this for:  `.rpc()` parameters, `.ilike()` method values
+ * Use `escapeLikePattern` for:  `.or()` filter strings
+ *
+ * @param input - Raw user input
+ * @returns String with ILIKE wildcards escaped, safe for bound parameters
+ */
+export function escapeIlikeWildcards(input: string): string {
+  return input
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+}

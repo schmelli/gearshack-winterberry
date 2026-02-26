@@ -32,28 +32,9 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
-import { escapeLikePattern } from '@/lib/catalog-scoring';
+import { escapeLikePattern, escapeIlikeWildcards } from '@/lib/catalog-scoring';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
-
-// =============================================================================
-// ILIKE Escape Helpers
-// =============================================================================
-
-/**
- * Escape only ILIKE wildcards (%, _, \) for use with bound parameters.
- * Unlike escapeLikePattern, this does NOT strip commas/dots/parens since
- * bound parameters are not parsed as PostgREST filter strings.
- *
- * Use this for:  .rpc() parameters, .ilike() method values
- * Use escapeLikePattern for:  .or() filter strings where PostgREST syntax matters
- */
-function escapeIlikeWildcards(input: string): string {
-  return input
-    .replace(/\\/g, '\\\\')
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_');
-}
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -730,7 +711,10 @@ async function searchCatalog(
     return searchCatalogFallback(supabase, query, filters, sortBy, limit, offset);
   }
 
-  /** Shape returned by the search_catalog_enriched RPC function */
+  /**
+   * Shape returned by the search_catalog_enriched RPC function.
+   * brand_name is returned directly via LEFT JOIN — no secondary round-trip needed.
+   */
   interface EnrichedRpcRow {
     id: string;
     name: string;
@@ -739,35 +723,18 @@ async function searchCatalog(
     price_usd: number | null;
     weight_grams: number | null;
     brand_id: string | null;
+    brand_name: string | null;
     search_enrichment: unknown;
     match_source: string;
   }
 
   const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
 
-  // Resolve brand names for the returned results
-  const uniqueBrandIds = [...new Set(
-    results
-      .map((item) => item.brand_id)
-      .filter((id): id is string => id !== null)
-  )];
-
-  const brandNameMap = new Map<string, string>();
-  if (uniqueBrandIds.length > 0) {
-    const { data: brands } = await supabase
-      .from('catalog_brands')
-      .select('id, name')
-      .in('id', uniqueBrandIds);
-    for (const brand of (brands ?? []) as Array<{ id: string; name: string }>) {
-      brandNameMap.set(brand.id, brand.name);
-    }
-  }
-
-  // Flatten results with brand name; strip internal fields (brand_id, search_enrichment,
-  // match_source) that are implementation details and must not leak into agent output.
+  // Strip internal fields (brand_id, search_enrichment, match_source) that are
+  // implementation details and must not leak into agent output.
+  // brand_name is already included via the RPC JOIN — no secondary lookup needed.
   const flattened = results.map((item) => ({
     ...item,
-    brand_name: brandNameMap.get(item.brand_id ?? '') || null,
     brand_id: undefined,
     search_enrichment: undefined,
     match_source: undefined,
