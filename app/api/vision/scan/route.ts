@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
+import { fileTypeFromBuffer } from 'file-type';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { matchDetectedItemsWithCatalog } from '@/lib/vision-catalog-matcher';
@@ -24,12 +25,13 @@ import type { VisionScanResponse } from '@/types/vision-scan';
 // Configuration
 // =============================================================================
 
-const ALLOWED_IMAGE_TYPES = [
+/** MIME types accepted after magic-bytes validation */
+const ALLOWED_MAGIC_MIMES = new Set([
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
-];
+]);
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const VISION_MODEL = process.env.AI_VISION_MODEL || 'anthropic/claude-sonnet-4-5';
 const VISION_TIMEOUT_MS = 60000; // 60 seconds
@@ -80,11 +82,6 @@ function getGateway() {
   return createGateway({ apiKey });
 }
 
-async function fileToBase64(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  return Buffer.from(arrayBuffer).toString('base64');
-}
-
 // =============================================================================
 // Route Handler
 // =============================================================================
@@ -124,18 +121,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 4. Validate image
-    if (!ALLOWED_IMAGE_TYPES.includes(imageFile.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          items: [],
-          error: 'INVALID_IMAGE_TYPE',
-        },
-        { status: 400 }
-      );
-    }
-
+    // 4. Validate size
     if (imageFile.size > MAX_IMAGE_SIZE_BYTES) {
       return NextResponse.json(
         {
@@ -147,8 +133,23 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 5. Convert to base64
-    const imageBase64 = await fileToBase64(imageFile);
+    // 5. Read buffer once, validate magic bytes, then convert to base64
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const detectedType = await fileTypeFromBuffer(arrayBuffer);
+
+    if (!detectedType || !ALLOWED_MAGIC_MIMES.has(detectedType.mime)) {
+      return NextResponse.json(
+        {
+          success: false,
+          items: [],
+          error: 'INVALID_IMAGE_TYPE',
+        },
+        { status: 400 }
+      );
+    }
+
+    const imageBase64 = Buffer.from(arrayBuffer).toString('base64');
+    const imageMime = detectedType.mime;
 
     // 6. AI Vision analysis with timeout
     const gateway = getGateway();
@@ -170,7 +171,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
             content: [
               {
                 type: 'image',
-                image: `data:${imageFile.type};base64,${imageBase64}`,
+                image: `data:${imageMime};base64,${imageBase64}`,
               },
               {
                 type: 'text',

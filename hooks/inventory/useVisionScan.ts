@@ -4,7 +4,7 @@
  * Feature: Image-to-Inventory via Vision
  *
  * Business logic for AI-powered gear detection from photos.
- * State machine: idle → uploading → analyzing → review → importing → success/error
+ * State machine: idle → analyzing → review → importing → success/error
  */
 
 'use client';
@@ -43,13 +43,15 @@ export interface UseVisionScanReturn {
 // Initial State
 // =============================================================================
 
-const INITIAL_STATE: VisionScanState = {
-  status: 'idle',
-  results: [],
-  selectedIndices: new Set(),
-  error: null,
-  importedCount: 0,
-};
+function createInitialState(): VisionScanState {
+  return {
+    status: 'idle',
+    results: [],
+    selectedIndices: new Set(),
+    error: null,
+    importedCount: 0,
+  };
+}
 
 // =============================================================================
 // Helpers
@@ -107,7 +109,7 @@ export function useVisionScan({
 }: UseVisionScanOptions = {}): UseVisionScanReturn {
   const t = useTranslations('VisionScan');
   const addItem = useSupabaseStore((state) => state.addItem);
-  const [state, setState] = useState<VisionScanState>(INITIAL_STATE);
+  const [state, setState] = useState<VisionScanState>(createInitialState);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Clean up any in-flight request when the component unmounts
@@ -133,7 +135,7 @@ export function useVisionScan({
       abortControllerRef.current = controller;
 
       setState({
-        status: 'uploading',
+        status: 'analyzing',
         results: [],
         selectedIndices: new Set(),
         error: null,
@@ -141,9 +143,6 @@ export function useVisionScan({
       });
 
       try {
-        // Move to analyzing state after upload starts
-        setStatus('analyzing');
-
         const formData = new FormData();
         formData.append('image', file);
 
@@ -203,7 +202,7 @@ export function useVisionScan({
         toast.error(t('scanFailed'), { description: message });
       }
     },
-    [t, setStatus]
+    [t]
   );
 
   // =========================================================================
@@ -354,7 +353,7 @@ export function useVisionScan({
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();
-    setState(INITIAL_STATE);
+    setState(createInitialState());
   }, []);
 
   return {

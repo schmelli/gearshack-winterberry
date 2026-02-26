@@ -47,9 +47,9 @@ export interface CatalogMatchResult {
 // Vision Scan State
 // =============================================================================
 
+/** State machine: idle -> analyzing -> review -> importing -> success/error */
 export type VisionScanStatus =
   | 'idle'
-  | 'uploading'
   | 'analyzing'
   | 'review'
   | 'importing'

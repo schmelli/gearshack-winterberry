@@ -8,11 +8,13 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import pLimit from 'p-limit';
 import type { Database } from '@/types/supabase';
 import type {
   DetectedGearItem,
   CatalogMatchResult,
 } from '@/types/vision-scan';
+import { escapeLikePattern } from '@/lib/catalog-scoring';
 
 // =============================================================================
 // Configuration
@@ -21,20 +23,8 @@ import type {
 /** Minimum match score to consider a catalog match valid */
 const MIN_MATCH_SCORE = 0.3;
 
-/**
- * Escapes special characters in LIKE/ILIKE patterns.
- * Mirrors the pattern from lib/supabase/catalog.ts.
- */
-function escapeLikePattern(input: string): string {
-  return input
-    .replace(/\\/g, '\\\\')
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_')
-    .replace(/,/g, '')
-    .replace(/\(/g, '')
-    .replace(/\)/g, '')
-    .replace(/\./g, ' ');
-}
+/** Maximum concurrent catalog queries to avoid overwhelming the database */
+const CATALOG_QUERY_CONCURRENCY = 5;
 
 // =============================================================================
 // Main Matcher
@@ -54,19 +44,23 @@ export async function matchDetectedItemsWithCatalog(
   supabase: SupabaseClient<Database>,
   detectedItems: DetectedGearItem[]
 ): Promise<CatalogMatchResult[]> {
+  const limit = pLimit(CATALOG_QUERY_CONCURRENCY);
+
   return Promise.all(
-    detectedItems.map(async (detected) => {
-      try {
-        const catalogMatch = await findBestCatalogMatch(supabase, detected);
-        return { detected, catalogMatch };
-      } catch (error) {
-        console.error(
-          `[VisionMatcher] Failed to match "${detected.name}":`,
-          error
-        );
-        return { detected, catalogMatch: null };
-      }
-    })
+    detectedItems.map((detected) =>
+      limit(async () => {
+        try {
+          const catalogMatch = await findBestCatalogMatch(supabase, detected);
+          return { detected, catalogMatch };
+        } catch (error) {
+          console.error(
+            `[VisionMatcher] Failed to match "${detected.name}":`,
+            error
+          );
+          return { detected, catalogMatch: null };
+        }
+      })
+    )
   );
 }
 
@@ -131,8 +125,9 @@ async function findBestCatalogMatch(
 
   for (const product of data) {
     const productName = (product.name ?? '').toLowerCase();
-    const brandName =
-      ((product.catalog_brands as { id: string; name: string } | null)?.name ?? '').toLowerCase();
+    const rawBrand = product.catalog_brands;
+    const brandInfo = Array.isArray(rawBrand) ? rawBrand[0] ?? null : rawBrand ?? null;
+    const brandName = (brandInfo?.name ?? '').toLowerCase();
     const combinedText = `${brandName} ${productName}`.trim();
 
     const potentialScores: number[] = [];
@@ -191,12 +186,13 @@ async function findBestCatalogMatch(
   }
 
   const { product, score } = bestMatch;
-  const brandInfo = product.catalog_brands as { id: string; name: string } | null;
+  const rawBrandResult = product.catalog_brands;
+  const matchedBrand = Array.isArray(rawBrandResult) ? rawBrandResult[0] ?? null : rawBrandResult ?? null;
 
   return {
     productId: product.id,
     productName: product.name,
-    brandName: brandInfo?.name ?? null,
+    brandName: matchedBrand?.name ?? null,
     productTypeId: product.product_type_id ?? null,
     weightGrams: product.weight_grams ? Number(product.weight_grams) : null,
     priceUsd: product.price_usd ? Number(product.price_usd) : null,

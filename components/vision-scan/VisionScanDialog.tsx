@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -31,7 +31,7 @@ import { VisionScanResults } from './VisionScanResults';
 interface VisionScanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImportComplete?: () => void;
+  onImportComplete?: (count: number) => void;
 }
 
 // =============================================================================
@@ -45,6 +45,7 @@ export function VisionScanDialog({
 }: VisionScanDialogProps) {
   const t = useTranslations('VisionScan');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     state,
@@ -56,13 +57,22 @@ export function VisionScanDialog({
     reset,
   } = useVisionScan({
     onImportComplete: (count) => {
-      onImportComplete?.();
+      onImportComplete?.(count);
       // Auto-close after short delay on success
-      setTimeout(() => {
+      closeTimerRef.current = setTimeout(() => {
         handleClose();
       }, 1500);
     },
   });
+
+  // Clean up auto-close timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleClose = useCallback(() => {
     reset();
@@ -87,13 +97,7 @@ export function VisionScanDialog({
     fileInputRef.current?.click();
   }, []);
 
-  const handleImport = useCallback(() => {
-    importSelected();
-  }, [importSelected]);
-
-  const isProcessing =
-    state.status === 'uploading' ||
-    state.status === 'analyzing';
+  const isProcessing = state.status === 'analyzing';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -110,7 +114,7 @@ export function VisionScanDialog({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -151,8 +155,7 @@ export function VisionScanDialog({
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center">
               <p className="text-sm font-medium">
-                {state.status === 'uploading' && t('statusUploading')}
-                {state.status === 'analyzing' && t('statusAnalyzing')}
+                {t('statusAnalyzing')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {t('pleaseWait')}
@@ -220,7 +223,7 @@ export function VisionScanDialog({
                 {t('scanAnother')}
               </Button>
               <Button
-                onClick={handleImport}
+                onClick={importSelected}
                 disabled={state.selectedIndices.size === 0}
               >
                 {t('importSelected', {

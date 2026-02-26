@@ -432,7 +432,6 @@
     "description": "Take a photo of your gear and AI will identify each item for quick import into your inventory.",
     "uploadPrompt": "Upload a photo of your gear",
     "uploadHint": "JPEG, PNG, or WebP — max 10 MB",
-    "statusUploading": "Uploading image...",
     "statusAnalyzing": "AI is analyzing your gear...",
     "statusImporting": "Importing items...",
     "pleaseWait": "This may take a few seconds",

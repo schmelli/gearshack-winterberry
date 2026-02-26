@@ -432,7 +432,6 @@
     "description": "Fotografiere deine Ausrüstung und die KI erkennt jedes Teil für den schnellen Import in dein Inventar.",
     "uploadPrompt": "Foto deiner Ausrüstung hochladen",
     "uploadHint": "JPEG, PNG oder WebP — max. 10 MB",
-    "statusUploading": "Bild wird hochgeladen...",
     "statusAnalyzing": "KI analysiert deine Ausrüstung...",
     "statusImporting": "Artikel werden importiert...",
     "pleaseWait": "Das kann einige Sekunden dauern",
