@@ -15,6 +15,7 @@
  * @see https://modelcontextprotocol.io/specification
  */
 
+import { timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { handleMCPRequest, type JSONRPCRequest } from '@/lib/mastra/mcp-server';
 
@@ -22,6 +23,10 @@ import { handleMCPRequest, type JSONRPCRequest } from '@/lib/mastra/mcp-server';
 // Auth
 // ============================================================================
 
+/**
+ * Validate API key using timing-safe comparison to prevent timing attacks.
+ * Follows the same pattern as cron route auth (crypto.timingSafeEqual).
+ */
 function validateApiKey(request: Request): boolean {
   const apiKey = request.headers.get('x-api-key');
   const expectedKey = process.env.MCP_SERVER_API_KEY;
@@ -31,7 +36,15 @@ function validateApiKey(request: Request): boolean {
     return false;
   }
 
-  return apiKey === expectedKey;
+  if (!apiKey || apiKey.length !== expectedKey.length) {
+    return false;
+  }
+
+  try {
+    return timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey));
+  } catch {
+    return false;
+  }
 }
 
 // ============================================================================
@@ -52,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   // Parse request body
-  let body: JSONRPCRequest;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -66,20 +79,33 @@ export async function POST(request: Request) {
     );
   }
 
-  // Validate JSON-RPC structure
-  if (!body.method || body.jsonrpc !== '2.0') {
+  // Reject batch requests (JSON-RPC arrays) — not supported
+  if (Array.isArray(body)) {
     return NextResponse.json(
       {
         jsonrpc: '2.0',
-        id: body?.id ?? null,
-        error: { code: -32600, message: 'Invalid request: must include jsonrpc "2.0" and method' },
+        id: null,
+        error: { code: -32600, message: 'Batch requests are not supported' },
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validate JSON-RPC structure
+  const rpcBody = body as JSONRPCRequest;
+  if (!rpcBody || typeof rpcBody !== 'object' || !rpcBody.method || rpcBody.jsonrpc !== '2.0') {
+    return NextResponse.json(
+      {
+        jsonrpc: '2.0',
+        id: (rpcBody as Record<string, unknown>)?.id ?? null,
+        error: { code: -32600, message: 'Invalid request: must be a JSON object with jsonrpc "2.0" and method' },
       },
       { status: 400 }
     );
   }
 
   // Handle the MCP request
-  const response = await handleMCPRequest(body);
+  const response = await handleMCPRequest(rpcBody);
 
   // Notifications return null (no response needed)
   if (response === null) {

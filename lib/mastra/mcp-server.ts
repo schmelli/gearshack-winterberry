@@ -19,6 +19,60 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatWeight } from './tools/utils';
 
 // ============================================================================
+// Input Validation & Sanitization
+// ============================================================================
+
+/** UUID v4 format regex */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(value: unknown): value is string {
+  return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
+/** Maximum length for search queries */
+const MAX_QUERY_LENGTH = 200;
+
+/**
+ * Sanitize a search string for use in Supabase ILIKE filters.
+ *
+ * Prevents:
+ * - ILIKE wildcard injection (% and _)
+ * - PostgREST operator injection (commas, parentheses, dots, colons)
+ * - Backslash escape manipulation
+ *
+ * Follows the same pattern as admin/reseller and messaging/users search routes.
+ */
+function sanitizeSearchQuery(input: string): string {
+  return input
+    .slice(0, MAX_QUERY_LENGTH)
+    .replace(/\\/g, '\\\\')   // Escape backslashes first
+    .replace(/%/g, '\\%')     // Escape ILIKE %
+    .replace(/_/g, '\\_')     // Escape ILIKE _
+    .replace(/,/g, '')        // Remove commas (PostgREST .or() delimiter)
+    .replace(/\(/g, '')       // Remove parentheses (PostgREST operators)
+    .replace(/\)/g, '')
+    .replace(/\./g, ' ')      // Replace dots (prevents .eq. .neq. injection)
+    .replace(/:/g, '')         // Remove colons (prevents ::text casting)
+    .trim();
+}
+
+/**
+ * Sanitize a database error message before returning to the client.
+ * Strips potentially sensitive information (table names, column details, etc.)
+ */
+function sanitizeDbError(error: { message: string }): string {
+  const msg = error.message;
+  // Return generic message for common Postgres errors
+  if (msg.includes('permission denied')) return 'Access denied';
+  if (msg.includes('violates')) return 'Data validation error';
+  if (msg.includes('timeout')) return 'Request timed out';
+  if (msg.includes('does not exist')) return 'Resource not found';
+  // Strip detailed Postgres error info, keep first sentence only
+  const firstSentence = msg.split('.')[0].split('\n')[0];
+  return firstSentence.length > 100 ? 'Database operation failed' : firstSentence;
+}
+
+// ============================================================================
 // MCP Protocol Types
 // ============================================================================
 
@@ -308,14 +362,14 @@ async function executeToolCall(
 // ============================================================================
 
 async function handleAnalyzeLoadout(args: Record<string, unknown>): Promise<MCPToolResult> {
-  const userId = args.userId as string | undefined;
-  const loadoutId = args.loadoutId as string | undefined;
+  const userId = args.userId;
+  const loadoutId = args.loadoutId;
 
-  if (!userId || !loadoutId) {
-    return {
-      content: [{ type: 'text', text: 'Missing required parameters: userId, loadoutId' }],
-      isError: true,
-    };
+  if (!isValidUUID(userId)) {
+    return errorResult('Invalid or missing userId: must be a valid UUID');
+  }
+  if (!isValidUUID(loadoutId)) {
+    return errorResult('Invalid or missing loadoutId: must be a valid UUID');
   }
 
   const supabase = createServiceRoleClient();
@@ -327,10 +381,7 @@ async function handleAnalyzeLoadout(args: Record<string, unknown>): Promise<MCPT
   });
 
   if (error) {
-    return {
-      content: [{ type: 'text', text: `Database error: ${error.message}` }],
-      isError: true,
-    };
+    return errorResult(sanitizeDbError(error));
   }
 
   if (!analysis || analysis.error) {
@@ -432,26 +483,36 @@ async function handleAnalyzeLoadout(args: Record<string, unknown>): Promise<MCPT
 // ============================================================================
 
 async function handleSearchGear(args: Record<string, unknown>): Promise<MCPToolResult> {
-  const userId = args.userId as string | undefined;
-  const query = args.query as string | undefined;
+  const rawQuery = args.query;
   const scope = (args.scope as string) || 'all';
   const filters = args.filters as Record<string, unknown> | undefined;
   const limit = Math.min(Math.max((args.limit as number) || 10, 1), 30);
 
-  if (!userId || !query) {
-    return {
-      content: [{ type: 'text', text: 'Missing required parameters: userId, query' }],
-      isError: true,
-    };
+  if (!isValidUUID(args.userId)) {
+    return errorResult('Invalid or missing userId: must be a valid UUID');
   }
+  const userId = args.userId;
+
+  if (typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
+    return errorResult('Missing or empty query parameter');
+  }
+
+  // Sanitize query to prevent ILIKE/PostgREST injection
+  const query = sanitizeSearchQuery(rawQuery);
+  if (query.length === 0) {
+    return errorResult('Query contains only special characters');
+  }
+
+  // Use original query for category resolution (matches slugs, not ILIKE)
+  const categorySearchTerm = (rawQuery as string).slice(0, MAX_QUERY_LENGTH).trim();
 
   const supabase = createServiceRoleClient();
   const results: { myGear?: unknown[]; catalogProducts?: unknown[] } = {};
 
   // Search user inventory
   if (scope === 'my_gear' || scope === 'all') {
-    // Resolve category IDs for i18n-aware search
-    const categoryIds = await resolveCategoryIds(supabase, query);
+    // Resolve category IDs for i18n-aware search (uses exact matching, not ILIKE)
+    const categoryIds = await resolveCategoryIds(supabase, categorySearchTerm);
 
     let gearQuery = supabase
       .from('gear_items')
@@ -470,13 +531,23 @@ async function handleSearchGear(args: Record<string, unknown>): Promise<MCPToolR
       gearQuery = gearQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
     }
 
-    const statusFilter = (filters?.status as string) || 'own';
+    // Validate status filter against allowed values
+    const allowedStatuses = ['own', 'wishlist', 'sold', 'all'];
+    const statusFilter = allowedStatuses.includes(filters?.status as string)
+      ? (filters?.status as string)
+      : 'own';
     if (statusFilter !== 'all') {
       gearQuery = gearQuery.eq('status', statusFilter);
     }
-    if (filters?.maxWeight) gearQuery = gearQuery.lte('weight_grams', filters.maxWeight as number);
-    if (filters?.minWeight) gearQuery = gearQuery.gte('weight_grams', filters.minWeight as number);
-    if (filters?.maxPrice) gearQuery = gearQuery.lte('price_paid', filters.maxPrice as number);
+    if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
+      gearQuery = gearQuery.lte('weight_grams', filters.maxWeight);
+    }
+    if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
+      gearQuery = gearQuery.gte('weight_grams', filters.minWeight);
+    }
+    if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+      gearQuery = gearQuery.lte('price_paid', filters.maxPrice);
+    }
 
     gearQuery = gearQuery.order('name', { ascending: true }).limit(limit);
 
@@ -502,9 +573,15 @@ async function handleSearchGear(args: Record<string, unknown>): Promise<MCPToolR
       .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)')
       .or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
 
-    if (filters?.maxWeight) catalogQuery = catalogQuery.lte('weight_grams', filters.maxWeight as number);
-    if (filters?.minWeight) catalogQuery = catalogQuery.gte('weight_grams', filters.minWeight as number);
-    if (filters?.maxPrice) catalogQuery = catalogQuery.lte('price_usd', filters.maxPrice as number);
+    if (typeof filters?.maxWeight === 'number' && Number.isFinite(filters.maxWeight)) {
+      catalogQuery = catalogQuery.lte('weight_grams', filters.maxWeight);
+    }
+    if (typeof filters?.minWeight === 'number' && Number.isFinite(filters.minWeight)) {
+      catalogQuery = catalogQuery.gte('weight_grams', filters.minWeight);
+    }
+    if (typeof filters?.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+      catalogQuery = catalogQuery.lte('price_usd', filters.maxPrice);
+    }
 
     catalogQuery = catalogQuery.order('name', { ascending: true }).limit(limit);
 
@@ -549,18 +626,26 @@ async function handleSearchGear(args: Record<string, unknown>): Promise<MCPToolR
 // ============================================================================
 
 async function handleInventoryInsights(args: Record<string, unknown>): Promise<MCPToolResult> {
-  const userId = args.userId as string | undefined;
   const question = args.question as string | undefined;
   const category = args.category as string | undefined;
-  const status = (args.status as string) || 'own';
   const limit = Math.min(Math.max((args.limit as number) || 10, 1), 50);
 
-  if (!userId || !question) {
-    return {
-      content: [{ type: 'text', text: 'Missing required parameters: userId, question' }],
-      isError: true,
-    };
+  if (!isValidUUID(args.userId)) {
+    return errorResult('Invalid or missing userId: must be a valid UUID');
   }
+  const userId = args.userId;
+
+  const allowedQuestions = [
+    'overview', 'count_by_category', 'heaviest_items', 'lightest_items',
+    'brand_breakdown', 'weight_distribution', 'value_summary', 'recent_additions',
+  ];
+  if (!question || !allowedQuestions.includes(question)) {
+    return errorResult(`Invalid or missing question. Must be one of: ${allowedQuestions.join(', ')}`);
+  }
+
+  // Validate status against allowed values
+  const allowedStatuses = ['own', 'wishlist', 'sold', 'all'];
+  const status = allowedStatuses.includes(args.status as string) ? (args.status as string) : 'own';
 
   const supabase = createServiceRoleClient();
 
@@ -570,7 +655,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
       const { data, error } = await (supabase.rpc as any)('get_inventory_intelligence', {
         p_user_id: userId,
       });
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       const stats = data as Record<string, unknown>;
       return textResult({
@@ -583,16 +668,17 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
     }
 
     case 'count_by_category': {
-      if (!category) {
+      if (!category || typeof category !== 'string' || category.trim().length === 0) {
         return errorResult('Missing "category" parameter for count_by_category');
       }
+      const sanitizedCategory = category.slice(0, MAX_QUERY_LENGTH).trim();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.rpc as any)('count_items_by_category', {
         p_user_id: userId,
-        p_search_term: category,
+        p_search_term: sanitizedCategory,
         p_status: status === 'all' ? 'own' : status,
       });
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       const result = data as Record<string, unknown>;
       return textResult(result);
@@ -611,7 +697,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .order('weight_grams', { ascending })
         .limit(limit);
 
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = (data || []).map((item: any, idx: number) => ({
@@ -634,7 +720,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .eq('status', status === 'all' ? 'own' : status)
         .not('brand', 'is', null);
 
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       const brandMap = new Map<string, { count: number; totalWeight: number }>();
       for (const item of data || []) {
@@ -666,7 +752,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .not('weight_grams', 'is', null)
         .gt('weight_grams', 0);
 
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       const weights = (data || []).map(i => i.weight_grams as number).sort((a, b) => a - b);
       if (weights.length === 0) {
@@ -696,7 +782,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .not('price_paid', 'is', null)
         .gt('price_paid', 0);
 
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       const currencyTotals = new Map<string, { total: number; count: number }>();
       for (const item of data || []) {
@@ -725,7 +811,7 @@ async function handleInventoryInsights(args: Record<string, unknown>): Promise<M
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) return errorResult(`Database error: ${error.message}`);
+      if (error) return errorResult(sanitizeDbError(error));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = (data || []).map((item: any) => ({
