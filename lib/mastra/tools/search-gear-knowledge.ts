@@ -760,6 +760,12 @@ async function searchCatalogFallback(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Guard: empty or whitespace-only queries would match every row via ILIKE '%%'.
+  // Mirrors the guard in searchCatalog() — keeps both paths consistent for defensive safety.
+  if (!query.trim()) {
+    return { type: 'catalog', data: [] };
+  }
+
   // Escape ILIKE wildcards to prevent pattern injection
   const escapedQuery = escapeLikePattern(query);
 

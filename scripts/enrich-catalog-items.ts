@@ -28,7 +28,7 @@ import { createClient } from '@supabase/supabase-js';
 import { generateObject } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
-import type { Json } from '@/types/supabase';
+import type { Json, Database } from '@/types/supabase';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
@@ -267,7 +267,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
@@ -318,9 +318,7 @@ async function main(): Promise<void> {
   if (dryRun) {
     console.log('\n--- Dry Run: Products that would be enriched ---');
     for (const product of products) {
-      // catalog_brands is typed as { name: any }[] by the Supabase client (join result).
-      // Cast through unknown to access the .name property safely.
-      const brandName = (product.catalog_brands as unknown as { name: string } | null)?.name ?? 'Unknown';
+      const brandName = product.catalog_brands?.name ?? 'Unknown';
       console.log(`  - ${product.name} (${brandName}) [${product.product_type ?? 'uncategorized'}]`);
     }
     console.log('\nNo changes written. Remove --dry-run to execute.');
@@ -335,7 +333,7 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
-    const brandName = (product.catalog_brands as unknown as { name: string } | null)?.name ?? null;
+    const brandName = product.catalog_brands?.name ?? null;
     const progress = `[${i + 1}/${products.length}]`;
 
     console.log(`${progress} Enriching: ${product.name} (${brandName ?? 'no brand'})...`);

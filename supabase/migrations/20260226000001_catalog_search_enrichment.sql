@@ -10,6 +10,11 @@
 --
 -- The enrichment is generated asynchronously via scripts/enrich-catalog-items.ts
 -- and does NOT affect live request latency.
+--
+-- NOTE: This migration supersedes the original two-migration split
+-- (000001 + 000002). Both are combined here so the final schema state
+-- is captured in a single, atomic migration. The DROP + CREATE
+-- pattern from 000002 is no longer needed.
 
 -- 1. Add JSONB column for enrichment data
 ALTER TABLE catalog_products
@@ -91,6 +96,7 @@ RETURNS TABLE (
   price_usd numeric,
   weight_grams numeric,
   brand_id uuid,
+  brand_name text,
   search_enrichment jsonb,
   match_source text
 )
@@ -98,9 +104,11 @@ LANGUAGE sql
 STABLE
 AS $$
   -- NOTE: p_query is expected to already be ILIKE-escaped by the caller
-  -- (TypeScript: escapeIlikeWildcards). Do NOT re-escape here — double-escaping
-  -- corrupts queries (e.g. "trail_shoe" → "trail\_shoe" by TS → "trail\\_shoe" by SQL).
-  -- PostgreSQL bound parameters prevent SQL injection; escaping in one layer is sufficient.
+  -- (TypeScript: escapeIlikeWildcards escapes \, %, _). Do NOT re-escape here —
+  -- double-escaping corrupts queries containing underscores or backslashes.
+  -- Example: "trail_shoe" → TS escapes to "trail\_shoe" → SQL re-escape would
+  -- produce "trail\\_shoe" which matches the literal string "trail\_shoe", not "trail_shoe".
+  -- PostgreSQL bound parameters prevent SQL injection; single-layer escaping is sufficient.
   SELECT
     cp.id,
     cp.name,
@@ -109,52 +117,61 @@ AS $$
     cp.price_usd,
     cp.weight_grams,
     cp.brand_id,
+    cb.name AS brand_name,
     cp.search_enrichment,
-    CASE
-      WHEN cp.name ILIKE '%' || p_query || '%' THEN 'name'
-      WHEN cp.description ILIKE '%' || p_query || '%' THEN 'description'
-      WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 'product_type'
-      WHEN enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || p_query || '%' THEN 'enrichment'
+    -- Derive match_source from the pre-computed relevance_score in enr_scored.
+    -- All ILIKE evaluations happen ONCE in the enr_scored LATERAL below —
+    -- this SELECT does not re-evaluate any ILIKE predicate.
+    CASE enr_scored.relevance_score
+      WHEN 1 THEN 'name'
+      WHEN 2 THEN 'description'
+      WHEN 3 THEN 'product_type'
+      WHEN 4 THEN 'enrichment'
       ELSE 'unknown'
     END AS match_source
   FROM catalog_products cp
-  -- LATERAL subquery computes catalog_enrichment_text(cp) exactly ONCE per row.
-  -- Without LATERAL, the function would be called once in WHERE and once in SELECT,
-  -- doubling per-row work. LATERAL binds the result to `enr.enr_text` so both
-  -- clauses reuse the single computed value.
+  -- LEFT JOIN so products with no brand (brand_id IS NULL) are still returned.
+  -- brand_name returned directly here avoids a secondary round-trip from the caller.
+  LEFT JOIN catalog_brands cb ON cp.brand_id = cb.id
+  -- First LATERAL: compute catalog_enrichment_text(cp) exactly ONCE per row.
+  -- Without LATERAL, calling catalog_enrichment_text in both the WHERE and SELECT
+  -- clauses would double per-row work.
   CROSS JOIN LATERAL (
     SELECT
       CASE
         WHEN cp.search_enrichment IS NOT NULL THEN catalog_enrichment_text(cp)
         ELSE NULL
       END AS enr_text
-  ) enr
+  ) enr_text_computed
+  -- Second LATERAL: compute relevance_score once using the pre-computed enr_text.
+  -- WHERE, SELECT (match_source), and ORDER BY all reference enr_scored.relevance_score —
+  -- this eliminates triple re-evaluation of name/description/product_type ILIKE predicates
+  -- across the three clauses.
+  --   1 = name match (highest relevance)
+  --   2 = description match
+  --   3 = product_type match
+  --   4 = enrichment-only match (lowest relevance)
+  --   5 = no match (filtered out by WHERE enr_scored.relevance_score <= 4)
+  CROSS JOIN LATERAL (
+    SELECT
+      CASE
+        WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
+        WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
+        WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
+        WHEN enr_text_computed.enr_text IS NOT NULL
+          AND enr_text_computed.enr_text ILIKE '%' || p_query || '%' THEN 4
+        ELSE 5
+      END AS relevance_score
+  ) enr_scored
   WHERE
-    (
-      cp.name ILIKE '%' || p_query || '%'
-      OR cp.description ILIKE '%' || p_query || '%'
-      OR cp.product_type ILIKE '%' || p_query || '%'
-      OR (enr.enr_text IS NOT NULL AND enr.enr_text ILIKE '%' || p_query || '%')
-    )
+    enr_scored.relevance_score <= 4  -- matched at least one field
     AND (p_brand_ids IS NULL OR cp.brand_id = ANY(p_brand_ids))
     AND (p_max_weight IS NULL OR cp.weight_grams <= p_max_weight)
     AND (p_min_weight IS NULL OR cp.weight_grams >= p_min_weight)
     AND (p_max_price IS NULL OR cp.price_usd <= p_max_price)
   ORDER BY
-    -- Relevance score: only active when p_sort_by = 'relevance' (ORDER BY ASC, lower = better)
-    --   1 = name match (highest relevance)
-    --   2 = description match
-    --   3 = product_type match
-    --   4 = enrichment-only match (lowest relevance)
-    CASE WHEN p_sort_by = 'relevance' THEN
-      CASE
-        WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
-        WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
-        WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
-        ELSE 4
-      END
-    ELSE 0
-    END ASC,
+    -- Use pre-computed relevance_score — no ILIKE re-evaluation in ORDER BY.
+    CASE WHEN p_sort_by = 'relevance' THEN enr_scored.relevance_score ELSE 0 END ASC,
     -- Weight sorting (only one of these is non-NULL at a time)
     CASE WHEN p_sort_by = 'weight_asc' THEN cp.weight_grams END ASC NULLS LAST,
     CASE WHEN p_sort_by = 'weight_desc' THEN cp.weight_grams END DESC NULLS LAST,
@@ -175,8 +192,7 @@ $$;
 -- The product catalog is a public, read-only resource — browsable without login,
 -- similar to a public storefront. Restricting to authenticated only would prevent
 -- the gear assistant from searching the catalog on behalf of unauthenticated users.
--- If catalog access ever needs to be restricted, remove the anon grant here and
--- in migration 20260226000002.
+-- If catalog access ever needs to be restricted, remove the anon grant here.
 GRANT EXECUTE ON FUNCTION catalog_enrichment_text(catalog_products) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, text) TO anon, authenticated;
 
@@ -192,3 +208,12 @@ COMMENT ON FUNCTION catalog_enrichment_text(catalog_products) IS
   'compatibleWith, avoidFor) into a single space-separated text string for ILIKE matching. '
   'Called internally by search_catalog_enriched() via CROSS JOIN LATERAL — not for direct use. '
   'Returns empty string when search_enrichment IS NULL.';
+
+COMMENT ON FUNCTION search_catalog_enriched IS
+  'Enrichment-aware catalog search RPC. Searches name, description, product_type '
+  'and search_enrichment JSONB via ILIKE. LEFT JOINs catalog_brands to return '
+  'brand_name directly, eliminating a secondary round-trip from the caller. '
+  'All filtering, sorting, and pagination are handled at the DB level. '
+  'p_query must be pre-escaped by the caller (TypeScript: escapeIlikeWildcards). '
+  'Uses two LATERAL subqueries to compute enrichment text and relevance score once '
+  'per row, avoiding ILIKE re-evaluation across WHERE, SELECT, and ORDER BY clauses.';
