@@ -414,7 +414,7 @@ export function createGearAgent(queryComplexity?: QueryComplexity) {
     // Dynamic tools: selected at runtime based on subscription tier.
     // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
     // Standard tier gets basic browse/search tools (4)
-    // Trailblazer tier gets full toolset (9) including analysis, actions, and graph
+    // Trailblazer tier gets full toolset (10) including analysis, actions, critic, and graph
     tools: async ({ requestContext }) => {
       const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
       return tier === 'trailblazer'

@@ -82,7 +82,8 @@ const reviewRecommendationInputSchema = z.object({
     .max(1000)
     .describe('What the user needs the item for (e.g., "3-season solo hiking in the Alps")'),
   userInventory: z
-    .array(z.string())
+    .array(z.string().max(200))
+    .max(50)
     .optional()
     .describe('List of relevant gear items the user already owns (e.g., ["MSR Hubba Hubba 2", "Big Agnes Copper Spur UL1"])'),
 });

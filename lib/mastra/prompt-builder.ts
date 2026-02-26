@@ -486,7 +486,7 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     );
   }
 
-  // 3. Available Tools (tier-aware: standard users see 4 tools, trailblazer sees all 9)
+  // 3. Available Tools (tier-aware: standard users see 4 tools, trailblazer sees all 10)
   const isTrailblazer = userContext.subscriptionTier === 'trailblazer';
   sections.push(`\n${isTrailblazer ? content.tools : content.toolsStandard}`);
 
