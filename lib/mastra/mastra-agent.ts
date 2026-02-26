@@ -627,6 +627,9 @@ export async function streamMastraResponse(
 
   // Also sanitize the resolved full-text value so callers using fullText
   // (e.g. for persistence or logging) do not receive unredacted PII.
+  // The `Promise.resolve('')` fallback when stream.text is falsy is intentional —
+  // it mirrors the original `stream.text || Promise.resolve('')` behaviour and
+  // ensures callers always receive a settled Promise rather than undefined.
   const sanitizedFullText: Promise<string> = stream.text
     ? stream.text.then((text: string) => afterGenerate(text, userId, conversationId).sanitizedText)
     : Promise.resolve('');
@@ -639,6 +642,3 @@ export async function streamMastraResponse(
   };
 }
 
-// NOTE: createSanitizedTextStream and OUTPUT_BUFFER_SIZE are defined in
-// agent-middleware.ts and imported above. They live there so they can be
-// unit-tested independently of the heavy Mastra/DB dependencies in this file.

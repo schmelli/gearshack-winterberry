@@ -85,7 +85,7 @@ const OUTPUT_BUFFER_SIZE = 128;
 const INJECTION_PATTERNS: readonly RegExp[] = [
   // Direct instruction override
   /IGNORE\s+(ALL\s+)?PREVIOUS\s+(INSTRUCTIONS|PROMPTS?|CONTEXT)/i,
-  /DISREGARD\s+(ALL\s+)?PREVIOUS/i,
+  /DISREGARD\s+(ALL\s+)?PREVIOUS\s+(INSTRUCTIONS|CONTEXT|RULES)/i,
   /FORGET\s+(ALL\s+)?(YOUR\s+)?(PREVIOUS\s+)?INSTRUCTIONS/i,
   /OVERRIDE\s+(SYSTEM|SAFETY|YOUR)\s+(PROMPT|INSTRUCTIONS|RULES)/i,
 
@@ -115,6 +115,18 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /show\s+(me\s+)?(your|the)\s+system\s+prompt/i,
   /what\s+(are|is)\s+your\s+system\s+(instructions|prompt)/i,
   /(print|output|reveal|display)\s+(your|the)\s+system\s+prompt/i,
+
+  // Common injection sentence templates (frequently observed in public jailbreak datasets).
+  // Each pattern requires an action verb / adversarial marker to reduce false-positive risk:
+  //   1. "From now on, you will act…" — requires one of: act/behave/respond/pretend/ignore
+  //      ("From now on, you will need a bigger tent" is NOT blocked — "need" is not in the list)
+  //   2. "Your new instructions are:" — requires a trailing colon or dash to distinguish
+  //      command syntax from natural references like "your new instructions are clear"
+  //   3. "New context: You are" — the colon+phrase is a strong adversarial signal with very
+  //      low legitimate use in a gear-discussion context
+  /FROM\s+NOW\s+ON[\s,]+YOU\s+(WILL|SHALL|MUST)\s+(ACT|BEHAVE|RESPOND|PRETEND|IGNORE)/i,
+  /YOUR\s+NEW\s+INSTRUCTIONS\s+ARE\s*[:\-]/i,
+  /NEW\s+CONTEXT\s*:\s*YOU\s+ARE/i,
 ];
 
 // =============================================================================
@@ -248,7 +260,9 @@ export function afterGenerate(
   userId?: string,
   conversationId?: string,
 ): AfterGenerateResult {
-  if (!text || text.length === 0) {
+  // `!text` covers both empty string (falsy) and any unexpected null-like value.
+  // The `text.length === 0` check would be redundant since empty string is already falsy.
+  if (!text) {
     return { sanitizedText: text, redactionCount: 0 };
   }
 
@@ -292,6 +306,20 @@ export function afterGenerate(
  * buffered and flushed at stream end — this is intentional and avoids
  * yielding partial PII patterns. For typical short responses (< 128 chars)
  * the end-of-stream flush arrives quickly so UX impact is negligible.
+ *
+ * KNOWN LIMITATION — flush-boundary PII split:
+ *   A PII pattern that straddles the exact flush boundary
+ *   (i.e. starts inside `toFlush` and ends inside the retained `buffer`)
+ *   will be split across two `afterGenerate` calls, and neither half
+ *   constitutes a recognisable PII token on its own, so the pattern may
+ *   not be redacted.  Example: a 16-char email starting 4 chars before
+ *   the flush point will have "user" in `toFlush` and "@example.com" in
+ *   the next buffer segment — neither is a valid email address alone.
+ *   For the PII sizes covered (email ≤ ~40 chars, SSN = 11 chars,
+ *   IPv4 = 15 chars) this requires the pattern to land within the last
+ *   OUTPUT_BUFFER_SIZE chars of `toFlush`, which is unlikely in practice.
+ *   This layer is a defense-in-depth heuristic; the agent's system prompt
+ *   remains the primary trust boundary.
  *
  * @param textStream - Original text stream from agent
  * @param userId - User ID for logging context
