@@ -404,7 +404,13 @@ LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic
         // 4a. GearGraph INSIGHTS (HAS_TIP relationships)
         fetchInsightsFromGearGraph(insightSearchTerms),
         // 4b. Community Knowledge (bulletin board posts via pgvector RAG)
-        searchCommunityKnowledge(query, { topK: 3 }).catch(() => []),
+        // Quality filters (Vorschlag 6): prioritize recent, engaged-with content
+        searchCommunityKnowledge(query, {
+          topK: 3,
+          maxAgeMonths: 24,          // Only posts from the last 2 years
+          minReplies: 2,             // At least 2 replies (engagement signal)
+          excludeNoEngagement: true, // Skip zero-engagement posts
+        }).catch(() => []),
       ]);
 
       const communityInsights = formatCommunityResults(communityResults);

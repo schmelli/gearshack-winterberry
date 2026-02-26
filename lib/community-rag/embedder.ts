@@ -123,6 +123,7 @@ export async function upsertChunksWithEmbeddings(
       gear_names: chunk.gear_names,
       brand_names: chunk.brand_names,
       source_created_at: chunk.source_created_at,
+      reply_count: chunk.reply_count,
       embedding: `[${batchEmbeddings[idx].join(',')}]`,
       indexed_at: new Date().toISOString(),
     }));

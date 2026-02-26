@@ -33,7 +33,15 @@ export async function searchCommunityKnowledge(
     threshold = COMMUNITY_RAG_CONFIG.DEFAULT_THRESHOLD,
     sourceType = null,
     tags = null,
+    minReplies = null,
+    maxAgeMonths = null,
+    excludeNoEngagement = false,
   } = options;
+
+  // excludeNoEngagement is a shorthand for minReplies: 1
+  const effectiveMinReplies = excludeNoEngagement
+    ? Math.max(minReplies ?? 0, 1)
+    : (minReplies ?? null);
 
   try {
     // Generate embedding for the search query
@@ -48,6 +56,8 @@ export async function searchCommunityKnowledge(
       max_results: topK,
       filter_source_type: sourceType,
       filter_tags: tags,
+      filter_max_age_months: maxAgeMonths,
+      filter_min_replies: effectiveMinReplies,
     });
 
     if (error) {

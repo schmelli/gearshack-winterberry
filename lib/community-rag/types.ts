@@ -37,6 +37,8 @@ export interface CommunityChunk {
   brand_names: string[];
   /** When the source content was created */
   source_created_at: string | null;
+  /** Denormalized reply count from the source post (engagement/quality signal) */
+  reply_count: number;
 }
 
 // ============================================================================
@@ -65,6 +67,13 @@ export interface CommunitySearchOptions {
   sourceType?: CommunitySourceType;
   /** Filter by tags (returns results matching ANY of the given tags) */
   tags?: string[];
+  // Quality filters (Vorschlag 6 — Hybrid RAG)
+  /** Minimum reply count as engagement/quality signal */
+  minReplies?: number;
+  /** Maximum age in months — excludes content older than this */
+  maxAgeMonths?: number;
+  /** Exclude posts with 0 replies (shorthand for minReplies: 1) */
+  excludeNoEngagement?: boolean;
 }
 
 // ============================================================================

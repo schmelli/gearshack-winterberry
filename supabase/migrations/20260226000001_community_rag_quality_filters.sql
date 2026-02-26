@@ -1,0 +1,109 @@
+-- Community RAG Quality Filters
+-- Feature: Hybrid RAG — Qualitätsfilter für Community-Wissen (Vorschlag 6, Kap. 19)
+--
+-- Adds a reply_count column to community_knowledge_chunks for engagement-based
+-- quality filtering, and updates the search_community_knowledge RPC function
+-- to support age and engagement filters.
+--
+-- Quality signals:
+--   - reply_count:      Engagement metric — posts with more replies are more
+--                       likely to contain validated, useful information.
+--   - source_created_at: Already stored — used for recency filtering.
+--
+-- New RPC parameters:
+--   - filter_max_age_months: Exclude chunks older than N months
+--   - filter_min_replies:    Require at least N replies (quality gate)
+
+-- ============================================================================
+-- Schema Change: Add reply_count column
+-- ============================================================================
+
+ALTER TABLE community_knowledge_chunks
+  ADD COLUMN IF NOT EXISTS reply_count INT NOT NULL DEFAULT 0;
+
+-- Index for efficient quality filtering
+CREATE INDEX IF NOT EXISTS idx_community_knowledge_reply_count
+  ON community_knowledge_chunks (reply_count)
+  WHERE reply_count > 0;
+
+-- Composite index for age + quality filtering (most common filter combination)
+CREATE INDEX IF NOT EXISTS idx_community_knowledge_quality
+  ON community_knowledge_chunks (source_created_at DESC, reply_count DESC)
+  WHERE reply_count > 0;
+
+-- ============================================================================
+-- Updated Semantic Search Function
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION search_community_knowledge(
+  query_embedding vector(1536),
+  similarity_threshold float DEFAULT 0.65,
+  max_results int DEFAULT 5,
+  filter_source_type text DEFAULT NULL,
+  filter_tags text[] DEFAULT NULL,
+  -- NEW: Quality filters (Vorschlag 6)
+  filter_max_age_months int DEFAULT NULL,
+  filter_min_replies int DEFAULT NULL
+)
+RETURNS TABLE (
+  id uuid,
+  source_type text,
+  source_id uuid,
+  chunk_text text,
+  tags text[],
+  gear_names text[],
+  brand_names text[],
+  author_id uuid,
+  source_created_at timestamptz,
+  similarity float
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ck.id,
+    ck.source_type,
+    ck.source_id,
+    ck.chunk_text,
+    ck.tags,
+    ck.gear_names,
+    ck.brand_names,
+    ck.author_id,
+    ck.source_created_at,
+    (1 - (ck.embedding <=> query_embedding))::float as similarity
+  FROM community_knowledge_chunks ck
+  WHERE ck.embedding IS NOT NULL
+    AND (1 - (ck.embedding <=> query_embedding)) > similarity_threshold
+    -- Existing filters
+    AND (filter_source_type IS NULL OR ck.source_type = filter_source_type)
+    AND (filter_tags IS NULL OR ck.tags && filter_tags)
+    -- Quality filter: Recency — exclude chunks older than N months
+    AND (filter_max_age_months IS NULL
+         OR ck.source_created_at > NOW() - (filter_max_age_months * interval '1 month'))
+    -- Quality filter: Engagement — require minimum reply count
+    AND (filter_min_replies IS NULL
+         OR ck.reply_count >= filter_min_replies)
+  ORDER BY ck.embedding <=> query_embedding
+  LIMIT max_results;
+END;
+$$;
+
+-- Update GRANT to match new function signature
+-- (PostgreSQL treats each signature as a distinct function; we need to grant
+-- execute on the new overload. The old 5-param overload was replaced above
+-- via CREATE OR REPLACE since only DEFAULT values were added.)
+GRANT EXECUTE ON FUNCTION search_community_knowledge(vector, float, int, text, text[], int, int)
+  TO authenticated;
+
+-- ============================================================================
+-- Comments
+-- ============================================================================
+
+COMMENT ON COLUMN community_knowledge_chunks.reply_count IS
+  'Denormalized reply count from the source post. Used as engagement-based quality signal for hybrid RAG filtering.';
+
+COMMENT ON FUNCTION search_community_knowledge IS
+  'Performs semantic similarity search on community knowledge chunks using pgvector cosine distance. Supports filtering by source type, tags, recency (max age in months), and engagement (min reply count).';
