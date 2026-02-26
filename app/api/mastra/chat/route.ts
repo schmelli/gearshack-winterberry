@@ -54,6 +54,7 @@ import {
   recordChatRequest,
   recordAgentLatency,
   recordChatError,
+  recordWorkflowFallback,
   recordToolCall,
   classifyQuery,
   recordPromptVariantAssignment,
@@ -72,10 +73,10 @@ import {
 } from '@/lib/mastra/proactive-suggestions';
 import { mastra } from '@/lib/mastra/instance';
 import type { GearAssistantWorkflowOutput } from '@/lib/mastra/workflows/gear-assistant-workflow';
-import { buildMastraSystemPrompt } from '@/lib/mastra/prompt-builder';
+import { buildMastraSystemPrompt } from '@/lib/mastra/config';
 import type { LoadoutContext } from '@/lib/mastra/context-preloader';
 import type { MastraChatRequest, ConfirmActionData } from '@/types/mastra';
-import { classifyIntent } from '@/lib/mastra/intent-router';
+import { classifyIntent, QUERY_COMPLEXITY_VALUES } from '@/lib/mastra/intent-router';
 import {
   getSemanticCacheHit,
   storeInSemanticCache,
@@ -477,13 +478,15 @@ export async function POST(request: Request): Promise<Response> {
             // Semantic cache check failed — log and proceed to the workflow.
             // classifyIntent has its own internal fallback, so this catch
             // primarily guards against getSemanticCacheHit failures.
+            const cacheErrMsg = cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown';
             logWarn('Semantic cache check failed, proceeding to workflow', {
               userId: user.id,
               conversationId,
               metadata: {
-                error: cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown',
+                error: cacheErrMsg,
               },
             });
+            addSpanAttributes({ 'cache.check.failed': true, 'cache.check.error': cacheErrMsg });
           }
 
           // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
@@ -500,6 +503,9 @@ export async function POST(request: Request): Promise<Response> {
           // agent answer without pre-classified intent or prefetched data.
           let pipelineOutput: GearAssistantWorkflowOutput;
           let workflowFallback = false;
+          // Starts empty; only populated on the success path (workflowResult.steps).
+          // On the fallback path this remains [] — referenced only in the logInfo
+          // metadata below, where workflowFallback guards the conditional spread.
           let workflowStepNames: string[] = [];
 
           try {
@@ -548,27 +554,33 @@ export async function POST(request: Request): Promise<Response> {
               conversationId,
               metadata: { error: errorMsg },
             });
-            recordChatError('workflow_fallback');
+
+            // Use dedicated fallback counter — NOT recordChatError — because the
+            // user still receives a valid response; this is a degraded-mode success,
+            // not an error.  Routing it through error counters would inflate SLOs
+            // and trigger false-positive alerts.
+            recordWorkflowFallback();
             addSpanAttributes({ 'workflow.fallback': true, 'workflow.error': errorMsg });
 
-            emitProgress(
-              'context',
-              locale === 'de' ? 'Direkte Verarbeitung…' : 'Processing directly…',
-            );
+            // Do NOT emit a second 'context' progress event here — line 494 already
+            // fired one unconditionally.  Emitting again would send two events for
+            // the same step to the client, causing visible flicker or duplicate state.
 
-            const userLocale = (context?.locale as string) || 'en';
             pipelineOutput = {
               enrichedSystemPrompt: buildMastraSystemPrompt({
                 userContext: {
                   screen: (context?.screen as string) || 'inventory',
-                  locale: userLocale,
+                  locale,  // Reuse the `locale` constant already derived above (line 386)
                   inventoryCount: (context?.inventoryCount as number) || 0,
                   currentLoadoutId,
                   userId: user.id,
                   subscriptionTier,
                 },
               }),
-              queryComplexity: 'complex',  // Safe default: use full-capability model
+              // 'complex' is the highest QueryComplexity value (QUERY_COMPLEXITY_VALUES in
+              // intent-router.ts).  Safe default: ensures the full-capability model is used
+              // when pre-classified intent/context is unavailable.
+              queryComplexity: QUERY_COMPLEXITY_VALUES[1],
               fastAnswer: null,
               intent: 'complex',
               confidence: 0,
@@ -578,7 +590,7 @@ export async function POST(request: Request): Promise<Response> {
               conversationId,
               currentLoadoutId,
               enableTools,
-              locale: userLocale,
+              locale,  // Reuse the `locale` constant already derived above (line 386)
               subscriptionTier,
             };
           }

@@ -427,6 +427,22 @@ export const voiceEndToEndDurationSeconds = new Histogram({
   registers: [register],
 });
 
+// ==================== Workflow Fallback Metrics ====================
+
+/**
+ * Workflow fallback executions — incremented when the gear-assistant workflow
+ * fails and the route falls back to a minimal direct-agent call.
+ *
+ * Intentionally NOT part of chatErrorsTotal / errorsTotal: a fallback is a
+ * degraded-mode success (the user receives a valid response), not an error.
+ * Keeping it separate prevents SLO alert inflation.
+ */
+export const workflowFallbacksTotal = new Counter({
+  name: 'mastra_workflow_fallbacks_total',
+  help: 'Total number of times the workflow pipeline fell back to a direct agent call',
+  registers: [register],
+});
+
 // ==================== Response Cache Metrics ====================
 
 /**
@@ -631,6 +647,20 @@ export function recordAgentLatency(
 export function recordChatError(errorType: ErrorType): void {
   chatErrorsTotal.inc({ error_type: errorType });
   errorsTotal.inc({ error_type: errorType });
+}
+
+/**
+ * Records a workflow pipeline fallback event.
+ *
+ * A fallback means the gear-assistant workflow failed but the user still
+ * received a valid response via a minimal direct-agent call.  This is a
+ * degraded-mode success, NOT an error — so it increments the dedicated
+ * `mastra_workflow_fallbacks_total` counter and does NOT touch
+ * `mastra_chat_errors_total` or `mastra_errors_total`, preventing SLO
+ * alert inflation.
+ */
+export function recordWorkflowFallback(): void {
+  workflowFallbacksTotal.inc();
 }
 
 /**

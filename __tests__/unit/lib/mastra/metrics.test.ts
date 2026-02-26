@@ -23,6 +23,8 @@ import {
   chatErrorsTotal,
   errorsTotal,
   tokensUsedTotal,
+  // Workflow fallback metrics
+  workflowFallbacksTotal,
   // Workflow metrics
   workflowExecutionsTotal,
   workflowDurationMs,
@@ -67,6 +69,7 @@ import {
   recordChatLatency,
   recordAgentLatency,
   recordChatError,
+  recordWorkflowFallback,
   recordTokenUsage,
   recordWorkflowExecution,
   recordWorkflowDuration,
@@ -243,6 +246,33 @@ describe('Chat/Agent Metrics', () => {
       recordTokenUsage('claude-3-5-sonnet', 200, 150);
       recordTokenUsage('gpt-4o', 500, 300);
       expect(tokensUsedTotal).toBeDefined();
+    });
+  });
+
+  describe('workflowFallbacksTotal / recordWorkflowFallback', () => {
+    it('should increment only the dedicated fallback counter, NOT chatErrorsTotal or errorsTotal', async () => {
+      // Call the fallback recorder
+      recordWorkflowFallback();
+
+      // workflowFallbacksTotal must have exactly 1 observation
+      const fallbackMetric = await workflowFallbacksTotal.get();
+      expect(fallbackMetric.values).toHaveLength(1);
+      expect(fallbackMetric.values[0].value).toBe(1);
+
+      // chatErrorsTotal and errorsTotal must remain empty (no error counters touched)
+      const chatErrorMetric = await chatErrorsTotal.get();
+      const totalErrorMetric = await errorsTotal.get();
+      expect(chatErrorMetric.values).toHaveLength(0);
+      expect(totalErrorMetric.values).toHaveLength(0);
+    });
+
+    it('should accumulate multiple fallback events', async () => {
+      recordWorkflowFallback();
+      recordWorkflowFallback();
+      recordWorkflowFallback();
+
+      const fallbackMetric = await workflowFallbacksTotal.get();
+      expect(fallbackMetric.values[0].value).toBe(3);
     });
   });
 });
