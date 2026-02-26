@@ -14,6 +14,45 @@ import type { CommunitySearchResult, CommunitySearchOptions } from './types';
 import { COMMUNITY_RAG_CONFIG } from './types';
 
 // ============================================================================
+// Quality Filter Helpers
+// ============================================================================
+
+/**
+ * Compute the effective minimum reply count for quality filtering.
+ *
+ * Merges `minReplies` and the `excludeNoEngagement` shorthand into a single
+ * value that can be passed to the database RPC.
+ *
+ * Rules:
+ * - Both absent → `null` (no filter applied)
+ * - `minReplies` only → use that value
+ * - `excludeNoEngagement: true` → require at least 1 reply
+ * - Both set → `Math.max(minReplies, 1)` (more restrictive wins)
+ *
+ * Exported for direct unit testing — the pure function is easier to test than
+ * going through the full search stack with mocked Supabase clients.
+ *
+ * @example
+ * computeEffectiveMinReplies({})                                    // null
+ * computeEffectiveMinReplies({ minReplies: 3 })                     // 3
+ * computeEffectiveMinReplies({ excludeNoEngagement: true })         // 1
+ * computeEffectiveMinReplies({ excludeNoEngagement: true, minReplies: 3 }) // 3
+ * computeEffectiveMinReplies({ excludeNoEngagement: true, minReplies: 0 }) // 1
+ */
+export function computeEffectiveMinReplies(options: {
+  minReplies?: number | null;
+  excludeNoEngagement?: boolean;
+}): number | null {
+  const { minReplies = null, excludeNoEngagement = false } = options;
+
+  if (excludeNoEngagement) {
+    return Math.max(minReplies ?? 0, 1);
+  }
+
+  return minReplies ?? null;
+}
+
+// ============================================================================
 // Search Functions
 // ============================================================================
 
@@ -38,10 +77,7 @@ export async function searchCommunityKnowledge(
     excludeNoEngagement = false,
   } = options;
 
-  // excludeNoEngagement is a shorthand for minReplies: 1
-  const effectiveMinReplies = excludeNoEngagement
-    ? Math.max(minReplies ?? 0, 1)
-    : (minReplies ?? null);
+  const effectiveMinReplies = computeEffectiveMinReplies({ minReplies, excludeNoEngagement });
 
   try {
     // Generate embedding for the search query
