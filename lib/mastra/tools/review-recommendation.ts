@@ -20,9 +20,9 @@
 
 import { createTool } from '@mastra/core/tools';
 import { generateObject } from 'ai';
-import { createGateway } from '@ai-sdk/gateway';
 import { z } from 'zod';
 import { COMPLEXITY_ROUTING_CONFIG } from '../config';
+import { getSharedGateway } from '../gateway';
 
 // =============================================================================
 // Constants
@@ -42,25 +42,6 @@ const REVIEW_PRICE_THRESHOLD_EUR = Number.isFinite(parsedThreshold) && parsedThr
  * Budget consultations are short prompts — 8s is generous.
  */
 const REVIEW_TIMEOUT_MS = 8000;
-
-// =============================================================================
-// Gateway — lazy singleton (same pattern as intent-router.ts)
-// =============================================================================
-
-let gatewayInstance: ReturnType<typeof createGateway> | null = null;
-
-function getGateway() {
-  if (!gatewayInstance) {
-    const key = process.env.AI_GATEWAY_API_KEY || process.env.AI_GATEWAY_KEY;
-    if (!key) {
-      throw new Error(
-        '[reviewExpensiveRecommendation] AI_GATEWAY_API_KEY or AI_GATEWAY_KEY is required.'
-      );
-    }
-    gatewayInstance = createGateway({ apiKey: key });
-  }
-  return gatewayInstance;
-}
 
 // =============================================================================
 // Input / Output Schemas
@@ -162,7 +143,7 @@ async function executeReviewRecommendation(
   }
 
   try {
-    const gateway = getGateway();
+    const gateway = getSharedGateway();
     const model = gateway(COMPLEXITY_ROUTING_CONFIG.SIMPLE_MODEL);
 
     const inventorySection = userInventory && userInventory.length > 0

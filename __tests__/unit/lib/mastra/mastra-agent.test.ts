@@ -83,6 +83,10 @@ vi.mock('@/lib/mastra/tools/search-web', () => ({
 vi.mock('@/lib/mastra/tools/review-recommendation', () => ({
   reviewExpensiveRecommendationTool: {},
 }));
+vi.mock('@/lib/mastra/gateway', () => ({
+  getSharedGateway: vi.fn(() => vi.fn(() => 'mocked-model')),
+  getSharedGatewayOrNull: vi.fn(() => vi.fn(() => 'mocked-model')),
+}));
 // NOTE: update-working-memory mock REMOVED — persistUserProfile tool was removed from agent
 // Mastra provides its own updateWorkingMemory tool natively
 vi.mock('@/lib/mastra/schemas/working-memory', () => ({
