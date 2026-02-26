@@ -118,7 +118,7 @@ async function main(): Promise<void> {
   const allCandidates = [...(previouslyPromoted ?? []), ...newlyApproved];
   console.log(`  Total candidates for file generation: ${allCandidates.length} (${previouslyPromoted?.length ?? 0} previously promoted + ${newlyApproved.length} newly approved)`);
 
-  // Step 3: Group by target dataset
+  // Group all candidates by target dataset
   const grouped = new Map<string, ApprovedCandidate[]>();
   for (const c of allCandidates) {
     const dataset = c.target_dataset || 'edge-cases';
