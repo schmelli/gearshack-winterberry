@@ -29,6 +29,8 @@ import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
 import { addToLoadoutTool } from './tools/add-to-loadout';
 // GearGraph MCP tools (searchGear + findAlternatives via GearGraph MCP server)
 import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
+// Critic agent: budget-conscious review for expensive recommendations (Kap. 21)
+import { reviewExpensiveRecommendationTool } from './tools/review-recommendation';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -212,10 +214,10 @@ const STANDARD_TOOLS = {
 };
 
 /**
- * Trailblazer tier tools: Full access to all 9 tools including
- * advanced analysis, actions, graph relationships, and web search.
+ * Trailblazer tier tools: Full access to all 10 tools including
+ * advanced analysis, actions, graph relationships, budget review, and web search.
  *
- * 9 tools: 3 composite + 1 action + 2 GearGraph MCP + 3 legacy
+ * 10 tools: 3 composite + 1 action + 2 GearGraph MCP + 1 critic + 3 legacy
  */
 const TRAILBLAZER_TOOLS = {
   // Composite Domain Tools (Feature 060: preferred for most queries)
@@ -228,6 +230,9 @@ const TRAILBLAZER_TOOLS = {
   // findAlternatives uses graph edges (LIGHTER_THAN, SIMILAR_TO, etc.) — NOT replaceable with SQL
   searchGear: searchGearTool,
   findAlternatives: findAlternativesTool,
+  // Critic Agent: budget-conscious review for expensive recommendations (>€300)
+  // Call AFTER identifying a recommendation, BEFORE presenting it to the user
+  reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
   // Legacy tools (fallback for edge cases + direct Cypher)
   queryUserData: queryUserDataSqlTool,
   queryGearGraph: queryGearGraphTool,
