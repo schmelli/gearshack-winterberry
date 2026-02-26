@@ -170,12 +170,30 @@ const DOMAIN_KEYWORDS: Partial<Record<Domain, RegExp>> = {
 };
 
 /**
+ * Explicit domain check order for keyword classification.
+ *
+ * Using a typed priority array instead of `Object.entries(DOMAIN_KEYWORDS)` has
+ * two benefits:
+ * 1. **Deterministic**: Not reliant on V8's implicit string-key insertion-order
+ *    guarantee (technically an implementation detail, not part of the ES spec).
+ * 2. **Self-documenting**: The order itself communicates intent — community and
+ *    marketplace keywords should take precedence over the profile fallback in the
+ *    rare event a message matches multiple patterns.
+ */
+const DOMAIN_KEYWORD_PRIORITY: ReadonlyArray<Exclude<Domain, 'gear'>> = [
+  'community',
+  'marketplace',
+  'profile',
+];
+
+/**
  * Fast keyword-based classification without LLM call.
  * Returns null if no strong keyword match is found.
  */
 function tryKeywordClassification(message: string): Domain | null {
-  for (const [domain, pattern] of Object.entries(DOMAIN_KEYWORDS)) {
-    if (pattern && pattern.test(message)) return domain as Domain;
+  for (const domain of DOMAIN_KEYWORD_PRIORITY) {
+    const pattern = DOMAIN_KEYWORDS[domain];
+    if (pattern?.test(message)) return domain;
   }
   return null;
 }
@@ -259,7 +277,12 @@ export async function classifyDomain(
         model: gateway(SUPERVISOR_CONFIG.MODEL),
         schema: DomainSchema,
         system: SUPERVISOR_PROMPT,
-        prompt: `Classify this message:${contextHint}\n\n"${message}"`,
+        // Use XML delimiters to prevent prompt injection — a crafted message starting
+        // with a closing quote could otherwise escape the inline "..." context and
+        // influence classification. XML-style tags are harder to escape and are idiomatic
+        // for Claude prompts. The consequence of a successful injection is only incorrect
+        // tool routing (no data leak), but hardening this is still best practice.
+        prompt: `Classify this message:${contextHint}\n\n<user_message>\n${message}\n</user_message>`,
         temperature: 0,
       }),
       timeoutPromise,

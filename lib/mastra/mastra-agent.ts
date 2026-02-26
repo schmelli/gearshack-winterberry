@@ -267,15 +267,15 @@ type DomainToolSubset = Partial<typeof TRAILBLAZER_TOOLS>;
  * non-gear queries.
  *
  * Tool counts per domain:
- * - gear:        9 tools (full set — >70% of queries, prompt references queryGearGraph + searchWeb)
+ * - gear:        10 tools (full set — >70% of queries, prompt references queryGearGraph + searchWeb)
  * - community:   3 tools (search + web + SQL fallback)
  * - marketplace: 4 tools (catalog search + alternatives + web + SQL)
  * - profile:     2 tools (SQL + inventory stats)
  *
- * Gear keeps the full 9-tool set because the system prompt's GearGraph guidance
+ * Gear keeps the full 10-tool set because the system prompt's GearGraph guidance
  * and loadout analysis sections reference queryGearGraph and searchWeb. Excluding
  * them would create a prompt-tool mismatch. The token savings come from the ~30%
- * of non-gear queries that drop from 9 to 2–4 tools.
+ * of non-gear queries that drop from 10 to 2–4 tools.
  *
  * Standard tier users always get STANDARD_TOOLS (4) regardless of domain,
  * since their toolset is already minimal.

@@ -441,6 +441,21 @@ export async function POST(request: Request): Promise<Response> {
           // workflow from running.  intentResult defaults to 'complex' (not cacheable)
           // so the downstream cache-store at end-of-stream is skipped.
           // classifiedDomain defaults to DEFAULT_DOMAIN ('gear') on any error.
+          // Minimum LLM confidence to trust a non-gear classification.
+          // Below this threshold the domain result is treated as low-confidence
+          // and we fall back to DEFAULT_DOMAIN ('gear') for tool selection.
+          //
+          // Rationale: keyword matches are fixed at 0.85 (always trusted).
+          // LLM returns scores in [0.5, 1.0] for confident classifications and
+          // near-zero for uncertain ones. A 0.5 cut-off rejects "coin toss" results
+          // while passing any classification the model is meaningfully confident about.
+          //
+          // NOTE: confidence = 0 is the sentinel for "classification failed/skipped"
+          // (e.g. gateway init error, timeout fallback, or supervisor disabled).
+          // It is deliberately below the threshold so the fallback path is taken
+          // without any additional checks.
+          const DOMAIN_CONFIDENCE_THRESHOLD = 0.5;
+
           let intentResult: { intent: string } = { intent: 'complex' };
           let classifiedDomain = DEFAULT_DOMAIN;
           let domainConfidence = 0;
@@ -453,7 +468,23 @@ export async function POST(request: Request): Promise<Response> {
                 : Promise.resolve({ domain: DEFAULT_DOMAIN, confidence: 0 }),
             ]);
             intentResult = intentClassification;
-            classifiedDomain = domainResult.domain;
+
+            // Apply confidence threshold: only trust a non-gear classification if
+            // the model is sufficiently confident. This prevents LLM uncertainty from
+            // causing incorrect tool routing; the safe fallback (gear) is used instead.
+            if (domainResult.confidence >= DOMAIN_CONFIDENCE_THRESHOLD) {
+              classifiedDomain = domainResult.domain;
+            } else {
+              classifiedDomain = DEFAULT_DOMAIN;
+              logInfo('Domain classification below confidence threshold, using default', {
+                metadata: {
+                  rawDomain: domainResult.domain,
+                  confidence: domainResult.confidence,
+                  threshold: DOMAIN_CONFIDENCE_THRESHOLD,
+                  fallback: DEFAULT_DOMAIN,
+                },
+              });
+            }
             domainConfidence = domainResult.confidence;
 
             if (isCacheableIntent(intentResult.intent)) {
