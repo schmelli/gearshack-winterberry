@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_community_knowledge_quality
 -- Backfill: Populate reply_count for existing bulletin_post chunks
 -- ============================================================================
 -- Without this, all existing chunks have reply_count = 0 and would be
--- invisible to the default quality filter (minReplies: 2).
+-- invisible to the default quality filter (minReplies: 1).
 
 UPDATE community_knowledge_chunks ck
 SET reply_count = bp.reply_count

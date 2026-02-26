@@ -34,6 +34,7 @@ import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
+import { parseEnvInt } from '@/lib/utils/parse-env-int';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -136,14 +137,8 @@ const REFORMULATION_TIMEOUT_MS = 3000;
 //     Exclude community chunks older than this many months. 24 months (2 years)
 //     ensures gear advice stays relevant without discarding too much history.
 //     Set to 0 or omit to disable recency filtering.
-const COMMUNITY_RAG_MIN_REPLIES = Math.max(
-  0,
-  parseInt(process.env.COMMUNITY_RAG_MIN_REPLIES ?? '1', 10) || 1
-);
-const COMMUNITY_RAG_MAX_AGE_MONTHS = Math.max(
-  0,
-  parseInt(process.env.COMMUNITY_RAG_MAX_AGE_MONTHS ?? '24', 10) || 24
-);
+const COMMUNITY_RAG_MIN_REPLIES = parseEnvInt(process.env.COMMUNITY_RAG_MIN_REPLIES, 1);
+const COMMUNITY_RAG_MAX_AGE_MONTHS = parseEnvInt(process.env.COMMUNITY_RAG_MAX_AGE_MONTHS, 24);
 
 /**
  * Lazy-loaded gateway instance for reformulation calls.
