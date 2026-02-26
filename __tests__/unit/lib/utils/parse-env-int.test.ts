@@ -37,8 +37,9 @@ describe('parseEnvInt', () => {
     expect(parseEnvInt('abc', 5)).toBe(5);
   });
 
-  it('returns defaultValue for a float string like "3.7"', () => {
-    // parseInt('3.7') === 3, which IS numeric, so this parses to 3
+  it('parses the integer part of a float string "3.7" — returns 3, not the defaultValue 5', () => {
+    // parseInt('3.7', 10) === 3 (numeric prefix), so this is NOT treated as invalid.
+    // The integer part (3) is returned, NOT the defaultValue (5).
     expect(parseEnvInt('3.7', 5)).toBe(3);
   });
 

@@ -45,13 +45,22 @@ CREATE INDEX IF NOT EXISTS idx_community_knowledge_quality
 -- ============================================================================
 -- Without this, all existing chunks have reply_count = 0 and would be
 -- invisible to the default quality filter (minReplies: 1).
+--
+-- Implementation note: We query live COUNT(*) from bulletin_replies (source of
+-- truth) rather than reading bulletin_posts.reply_count (the denormalized
+-- increment/decrement cache maintained by trg_bulletin_reply_count). This
+-- matches the approach used by the sync trigger in migration _002 and avoids
+-- propagating any accumulated drift in the denormalized cache into the RAG
+-- quality filter data.
 
 UPDATE community_knowledge_chunks ck
-SET reply_count = bp.reply_count
-FROM bulletin_posts bp
-WHERE ck.source_type = 'bulletin_post'
-  AND ck.source_id = bp.id
-  AND bp.reply_count > 0;
+SET reply_count = (
+  SELECT COUNT(*)::INT
+  FROM bulletin_replies br
+  WHERE br.post_id = ck.source_id
+    AND br.is_deleted = false
+)
+WHERE ck.source_type = 'bulletin_post';
 
 -- ============================================================================
 -- Updated Semantic Search Function
