@@ -45,3 +45,9 @@ export {
   type EvalTestCase,
   type EvalTestDataset,
 } from './test-datasets';
+
+// Synthetic datasets (auto-generated from production traces)
+export {
+  allSyntheticDatasets,
+  getAllSyntheticTestCases,
+} from './synthetic-datasets';
