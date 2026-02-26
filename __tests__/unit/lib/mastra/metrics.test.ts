@@ -675,6 +675,7 @@ describe('Type Safety', () => {
       'ai_unavailable',
       'stream_error',
       'server_error',
+      'workflow_fallback',
       'unknown',
     ];
 

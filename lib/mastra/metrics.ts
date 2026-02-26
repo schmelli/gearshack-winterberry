@@ -574,6 +574,7 @@ export type ErrorType =
   | 'ai_unavailable'
   | 'stream_error'
   | 'server_error'
+  | 'workflow_fallback'
   | 'unknown';
 
 /**

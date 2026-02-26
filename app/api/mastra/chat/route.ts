@@ -423,48 +423,67 @@ export async function POST(request: Request): Promise<Response> {
           // Note: classifyIntent is also called inside the gear-assistant workflow
           // (Step 1); the redundant call on cache-miss is accepted as a minor cost
           // to keep the cache check outside the workflow boundary.
-          const intentResult = await classifyIntent(
-            message,
-            context?.screen as string | undefined,
-            currentLoadoutId
-          );
+          //
+          // GRACEFUL DEGRADATION: The entire cache check is wrapped so that a
+          // failure in classifyIntent or getSemanticCacheHit does not prevent the
+          // workflow from running.  intentResult defaults to 'complex' (not
+          // cacheable) so the downstream cache-store at end-of-stream is skipped.
+          let intentResult: { intent: string } = { intent: 'complex' };
+          try {
+            intentResult = await classifyIntent(
+              message,
+              context?.screen as string | undefined,
+              currentLoadoutId
+            );
 
-          if (isCacheableIntent(intentResult.intent)) {
-            const cacheLocale = (context?.locale as string) || 'en';
-            const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
+            if (isCacheableIntent(intentResult.intent)) {
+              const cacheLocale = (context?.locale as string) || 'en';
+              const cacheHit = await getSemanticCacheHit(message, cacheLocale, undefined, intentResult.intent);
 
-            if (cacheHit) {
-              // Snapshot latency once — used for both the log and the done event
-              const totalLatencyMs = requestTimer();
+              if (cacheHit) {
+                // Snapshot latency once — used for both the log and the done event
+                const totalLatencyMs = requestTimer();
 
-              logInfo('Serving response from semantic cache', {
-                userId: user.id,
-                conversationId,
-                metadata: {
-                  intent: intentResult.intent,
-                  cacheId: cacheHit.cacheId,
-                  similarity: cacheHit.similarity,
-                  latencyMs: totalLatencyMs,
-                },
-              });
+                logInfo('Serving response from semantic cache', {
+                  userId: user.id,
+                  conversationId,
+                  metadata: {
+                    intent: intentResult.intent,
+                    cacheId: cacheHit.cacheId,
+                    similarity: cacheHit.similarity,
+                    latencyMs: totalLatencyMs,
+                  },
+                });
 
-              fullResponse = cacheHit.response;
-              controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
-              controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
-              recordAgentLatency(totalLatencyMs / 1000, 'simple');
+                fullResponse = cacheHit.response;
+                controller.enqueue(encoder.encode(encodeTextEvent(cacheHit.response)));
+                controller.enqueue(encoder.encode(encodeDoneEvent(messageId, 'stop', undefined, totalLatencyMs)));
+                recordAgentLatency(totalLatencyMs / 1000, 'simple');
 
-              // Persist the user message + cached response to Mastra memory so
-              // the agent retains conversational context for follow-up questions.
-              // Fire-and-forget: failures here must never affect the served response.
-              persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
-                (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
-                  metadata: { error: err instanceof Error ? err.message : 'Unknown' },
-                })
-              );
+                // Persist the user message + cached response to Mastra memory so
+                // the agent retains conversational context for follow-up questions.
+                // Fire-and-forget: failures here must never affect the served response.
+                persistCacheHitToMemory(user.id, conversationId, message, cacheHit.response).catch(
+                  (err: unknown) => logWarn('Background cache-hit memory persistence failed', {
+                    metadata: { error: err instanceof Error ? err.message : 'Unknown' },
+                  })
+                );
 
-              controller.close();
-              return;
+                controller.close();
+                return;
+              }
             }
+          } catch (cacheCheckError) {
+            // Semantic cache check failed — log and proceed to the workflow.
+            // classifyIntent has its own internal fallback, so this catch
+            // primarily guards against getSemanticCacheHit failures.
+            logWarn('Semantic cache check failed, proceeding to workflow', {
+              userId: user.id,
+              conversationId,
+              metadata: {
+                error: cacheCheckError instanceof Error ? cacheCheckError.message : 'unknown',
+              },
+            });
           }
 
           // --- Phase 2: Execute Mastra Workflow (Classify → Prefetch → Build Context) ---
@@ -529,7 +548,8 @@ export async function POST(request: Request): Promise<Response> {
               conversationId,
               metadata: { error: errorMsg },
             });
-            recordChatError('agent_failure');
+            recordChatError('workflow_fallback');
+            addSpanAttributes({ 'workflow.fallback': true, 'workflow.error': errorMsg });
 
             emitProgress(
               'context',
