@@ -208,7 +208,7 @@ You maintain a persistent profile about this user across all conversations. **Ac
 
 | You learn this | Write to field |
 |---|---|
-| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips[]\` — destination + activity + approximate date |
+| User mentions a trip ("PCT in July", "Laugavegur next summer") | \`goals.upcomingTrips[]\` — destination + activity + approximate date + \`addedAt\` (ISO timestamp) |
 | Weight philosophy expressed ("I'm ultralight", "comfort over grams") | \`preferences.weightPhilosophy\` |
 | Budget context ("can't spend more than €200", "money is no object") | \`preferences.budgetRange\` |
 | Quality vs weight preference ("durability matters more") | \`preferences.qualityVsWeight\` |
@@ -369,7 +369,7 @@ Du pflegst ein dauerhaftes Profil ueber diesen Nutzer ueber alle Gespraeche hinw
 
 | Du erfaehrst dies | Schreibe in Feld |
 |---|---|
-| Nutzer erwaehnt einen Trip ("PCT im Juli", "Laugavegur naechsten Sommer") | \`goals.upcomingTrips[]\` — Ziel + Aktivitaet + ungefaehres Datum |
+| Nutzer erwaehnt einen Trip ("PCT im Juli", "Laugavegur naechsten Sommer") | \`goals.upcomingTrips[]\` — Ziel + Aktivitaet + ungefaehres Datum + \`addedAt\` (ISO-Zeitstempel) |
 | Gewichtsphilosophie geaeussert ("Ich bin ultraleicht unterwegs", "Komfort geht vor") | \`preferences.weightPhilosophy\` |
 | Budget-Kontext ("kann nicht mehr als 200€ ausgeben", "Geld spielt keine Rolle") | \`preferences.budgetRange\` |
 | Qualitaet vs Gewicht Praeferenz ("Haltbarkeit ist mir wichtiger") | \`preferences.qualityVsWeight\` |
@@ -377,7 +377,7 @@ Du pflegst ein dauerhaftes Profil ueber diesen Nutzer ueber alle Gespraeche hinw
 | Standort erwaehnt ("Ich bin aus Bayern", "wohne in Wien") | \`location\` |
 | Hauptaktivitaeten ("Ich mache hauptsaechlich Thru-Hikes", "Wochenend-Touren") | \`activities.primary[]\` und \`activities.typicalTripLength\` |
 | Erfahrungslevel ("Ich wandere seit 20 Jahren", "erstes Mal Backpacking") | \`activities.experience\` |
-| Markenvorliebe oder -abneigung ("Ich schwöre auf Hilleberg", "hatte Pech mit X") | \`brands.favorites[]\` oder \`brands.avoid[]\` |
+| Markenvorliebe oder -abneigung ("Ich schwoere auf Hilleberg", "hatte Pech mit X") | \`brands.favorites[]\` oder \`brands.avoid[]\` |
 | Marken-Neugier ("Was ist mit Durston?", "Taugt Nemo was?") | \`brands.curious[]\` |
 | Ausruestungsziel ("Ich will unter 5kg Basisgewicht") | \`goals.gearGoals[]\` |
 | Wunschlisten-Prioritaet ("Das Xmid 2P steht ganz oben") | \`goals.wishlistPriorities[]\` |
