@@ -217,14 +217,6 @@ describe('checkQueryForPersonalContext', () => {
   });
 
   describe('Temporal planning references (DE)', () => {
-    it('should detect "im Februar"', () => {
-      const result = checkQueryForPersonalContext(
-        'Bestes Zelt für Wandern im Februar'
-      );
-      expect(result.containsPersonalContext).toBe(true);
-      expect(result.matchedPatterns).toContain('temporal_planning_de');
-    });
-
     it('should detect "nächsten März"', () => {
       const result = checkQueryForPersonalContext(
         'Schlafsack für nächsten März'
@@ -239,6 +231,29 @@ describe('checkQueryForPersonalContext', () => {
       );
       expect(result.containsPersonalContext).toBe(true);
       expect(result.matchedPatterns).toContain('temporal_planning_de');
+    });
+
+    it('should detect "nächste Winter"', () => {
+      const result = checkQueryForPersonalContext(
+        'Zelt für nächste Winter Expedition'
+      );
+      expect(result.containsPersonalContext).toBe(true);
+      expect(result.matchedPatterns).toContain('temporal_planning_de');
+    });
+
+    it('should NOT match "im Winter" (factual seasonal reference)', () => {
+      const result = checkQueryForPersonalContext(
+        'Bester Schlafsack im Winter'
+      );
+      // "im Winter" is a factual seasonal qualifier, not personal planning
+      expect(result.matchedPatterns).not.toContain('temporal_planning_de');
+    });
+
+    it('should NOT match "im Sommer" (factual seasonal reference)', () => {
+      const result = checkQueryForPersonalContext(
+        'Gore-Tex Leistung im Sommer'
+      );
+      expect(result.matchedPatterns).not.toContain('temporal_planning_de');
     });
   });
 
@@ -410,6 +425,20 @@ describe('checkQueryForPersonalContext', () => {
     it('should allow "Similar products for Thermarest pads" (brand name)', () => {
       const result = checkQueryForPersonalContext(
         'Similar products for Thermarest pads'
+      );
+      expect(result.containsPersonalContext).toBe(false);
+    });
+
+    it('should allow "Bester Schlafsack im Winter" (DE factual seasonal)', () => {
+      const result = checkQueryForPersonalContext(
+        'Bester Schlafsack im Winter'
+      );
+      expect(result.containsPersonalContext).toBe(false);
+    });
+
+    it('should allow "Wanderstiefel im Herbst empfohlen" (DE factual seasonal)', () => {
+      const result = checkQueryForPersonalContext(
+        'Wanderstiefel im Herbst empfohlen'
       );
       expect(result.containsPersonalContext).toBe(false);
     });

@@ -15,8 +15,8 @@
  * text from being stored in `response_cache.query_text` (GDPR/DSGVO risk).
  *
  * @example
- *   "Best tent for my trip to Patagonia in February"
- *   → possessive pronoun + geographic destination + temporal context → blocked
+ *   "Best tent for my trip to Patagonia next February"
+ *   → possessive pronoun + geographic destination + temporal planning → blocked
  *
  *   "Difference between Gore-Tex and eVent membranes"
  *   → factual, no personal markers → allowed
@@ -63,6 +63,9 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
   //    NOTE: "for" and "für" are excluded because they match brand names
   //    ("for Osprey", "for Thermarest") and German capitalized nouns
   //    ("für Regenjacken"). "to" and "nach" are strong destination indicators.
+  //    Known limitation: title-cased input like "Guide to Layering" can
+  //    trigger a false positive. In conversational chat, users rarely
+  //    title-case verbs after "to", so this tradeoff is acceptable.
   {
     name: 'personal_destination',
     pattern:
@@ -79,11 +82,15 @@ export const PERSONAL_CONTEXT_PATTERNS: ReadonlyArray<{
       /\b(next|this)\s+(january|february|march|april|may|june|july|august|september|october|november|december|spring|summer|fall|autumn|winter)\b/i,
   },
   // 5. Temporal references with personal planning context (DE)
-  //    Matches: "im Februar", "nächsten März", "diesen Sommer"
+  //    Matches: "nächsten März", "diesen Sommer"
+  //    NOTE: "im" is excluded for the same reason "in" is excluded in EN —
+  //    "im Winter" / "im Sommer" are common factual seasonal qualifiers
+  //    ("Bester Schlafsack im Winter"). "nächsten" and "diesen" strongly
+  //    imply a personal timeline.
   {
     name: 'temporal_planning_de',
     pattern:
-      /\b(im|nächsten?|diesen?[mr]?)\s+(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|frühling|sommer|herbst|winter)\b/i,
+      /\b(nächsten?|diesen?[mr]?)\s+(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|frühling|sommer|herbst|winter)\b/i,
   },
   // 6. First-person planning verbs (EN + DE)
   //    Matches: "I'm going", "I am going", "I plan to", "we need",
