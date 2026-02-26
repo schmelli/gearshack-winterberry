@@ -621,7 +621,7 @@ export function buildMastraSystemPrompt(context: PromptContext): string {
     sections.push(`\n${content.safetyGuidance}`);
   }
 
-  // 11. A/B Test Variant Suffix (appended when experiment is active)
+  // 13. A/B Test Variant Suffix (appended when experiment is active)
   if (context.abTestSuffix) {
     sections.push(`\n${context.abTestSuffix}`);
   }

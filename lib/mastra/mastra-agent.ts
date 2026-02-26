@@ -252,16 +252,23 @@ const TRAILBLAZER_TOOLS = {
  * non-gear queries.
  *
  * Tool counts per domain:
- * - gear:        7 tools (core domain — most queries land here)
+ * - gear:        9 tools (full set — >70% of queries, prompt references queryGearGraph + searchWeb)
  * - community:   3 tools (search + web + SQL fallback)
  * - marketplace: 4 tools (catalog search + alternatives + web + SQL)
  * - profile:     2 tools (SQL + inventory stats)
+ *
+ * Gear keeps the full 9-tool set because the system prompt's GearGraph guidance
+ * and loadout analysis sections reference queryGearGraph and searchWeb. Excluding
+ * them would create a prompt-tool mismatch. The token savings come from the ~30%
+ * of non-gear queries that drop from 9 to 2–4 tools.
  *
  * Standard tier users always get STANDARD_TOOLS (4) regardless of domain,
  * since their toolset is already minimal.
  */
 const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, Record<string, unknown>> = {
   gear: {
+    // Full toolset — system prompt's GearGraph guidance and loadout analysis
+    // sections reference queryGearGraph and searchWeb explicitly
     analyzeLoadout: analyzeLoadoutTool,
     inventoryInsights: inventoryInsightsTool,
     searchGearKnowledge: searchGearKnowledgeTool,
@@ -269,6 +276,8 @@ const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, Record<string, unknown>> = {
     searchGear: searchGearTool,
     findAlternatives: findAlternativesTool,
     queryUserData: queryUserDataSqlTool,
+    queryGearGraph: queryGearGraphTool,
+    searchWeb: searchWebTool,
   },
   community: {
     searchGearKnowledge: searchGearKnowledgeTool, // includes communityInsights via RAG

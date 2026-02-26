@@ -118,11 +118,22 @@ function tryScreenShortcut(screen?: string): Domain | null {
 // Keyword-Based Fast Classification
 // =============================================================================
 
-/** Keywords that strongly indicate a specific domain (case-insensitive) */
+/**
+ * Keywords that strongly indicate a specific domain (case-insensitive).
+ *
+ * IMPORTANT: Only include terms with high precision for their domain.
+ * Avoid broad words that appear in gear conversations:
+ * - "buy" → common in "should I buy this tent?" (gear question, not marketplace)
+ * - "follow" → common in "follow up on my gear" (not social)
+ * - "post" → common in "I posted my pack weight" (not community)
+ * - "price" → common in "what's the price of the Nemo Hornet?" (gear question)
+ *
+ * When in doubt, let the LLM classify instead of keyword matching.
+ */
 const DOMAIN_KEYWORDS: Record<Domain, RegExp> = {
-  community: /\b(bulletin|shakedown|trip\s*report|community|friend\s*request|follow(?:ing|er)?|social|post(?:s|ed)?|reply|replies|discussion)\b/i,
-  marketplace: /\b(buy|sell|selling|trade|trading|price|deal|marketplace|used\s*gear|second\s*hand|gebraucht)\b/i,
-  profile: /\b(my\s*(?:profile|account|settings|subscription)|change\s*(?:password|email|language)|einstellungen|profil|konto)\b/i,
+  community: /\b(bulletin\s*board|shakedowns?|trip\s*reports?|friend\s*requests?|community\s*(?:posts?|board|forum|discussions?))\b/i,
+  marketplace: /\b(sell(?:ing)?\s+(?:my|this|the)|trade\s+(?:my|this)|marketplace|used\s*gear|second\s*hand|gebraucht(?:e|er|es)?(?:\s+ausruestung)?)\b/i,
+  profile: /\b(my\s*(?:profile|account|settings|subscription)|change\s*(?:password|email|language)|einstellungen|mein\s*(?:profil|konto))\b/i,
   gear: /(?!)/, // Never shortcut to gear via keywords — it's the default fallback
 };
 

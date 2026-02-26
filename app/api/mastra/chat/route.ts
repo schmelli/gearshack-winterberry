@@ -486,10 +486,13 @@ export async function POST(request: Request): Promise<Response> {
           const workflow = mastra.getWorkflow('gear-assistant');
           const run = await workflow.createRun({ resourceId: user.id });
 
-          // Compute domain-specific tool names for prompt building
-          // This allows the workflow's buildContext step to only include tool descriptions
-          // relevant to the classified domain in the system prompt
-          const domainToolNames = SUPERVISOR_CONFIG.ENABLED
+          // Compute domain-specific tool names for prompt building.
+          // Only for trailblazer tier — standard tier uses its own tool descriptions
+          // (content.toolsStandard) which are different from the per-tool trailblazer
+          // descriptions in TOOL_DESCRIPTIONS_EN/DE. Passing domainToolNames for standard
+          // would incorrectly use trailblazer-level descriptions (e.g., mentioning
+          // communityInsights which standard searchGearKnowledge doesn't support).
+          const domainToolNames = SUPERVISOR_CONFIG.ENABLED && subscriptionTier === 'trailblazer'
             ? getToolNamesForRequest(subscriptionTier, classifiedDomain)
             : undefined;
 
