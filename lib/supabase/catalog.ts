@@ -8,28 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Escapes special characters in LIKE/ILIKE patterns AND PostgREST .or() syntax.
- * Prevents user input containing %, _, or \ from being interpreted as wildcards.
- * Also prevents PostgREST filter injection via commas, parens, and dots.
- * @param input - Raw user input
- * @returns Escaped string safe for LIKE patterns and .or() filter strings
- */
-function escapeLikePattern(input: string): string {
-  return input
-    .replace(/\\/g, '\\\\')  // Escape backslash first
-    .replace(/%/g, '\\%')    // Escape percent
-    .replace(/_/g, '\\_')    // Escape underscore
-    .replace(/,/g, '')       // Remove commas (PostgREST .or() delimiter)
-    .replace(/\(/g, '')      // Remove opening parens (PostgREST grouping)
-    .replace(/\)/g, '')      // Remove closing parens (PostgREST grouping)
-    .replace(/\./g, ' ');    // Replace dots with space (prevents .eq., .neq. injection)
-}
+import { escapeLikePattern } from '@/lib/catalog-scoring';
 
 // ============================================================================
 // CLIENT SETUP
