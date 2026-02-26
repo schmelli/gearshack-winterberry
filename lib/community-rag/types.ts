@@ -68,10 +68,17 @@ export interface CommunitySearchOptions {
   /** Filter by tags (returns results matching ANY of the given tags) */
   tags?: string[];
   // Quality filters (Vorschlag 6 — Hybrid RAG)
-  /** Minimum reply count as engagement/quality signal */
-  minReplies?: number;
-  /** Maximum age in months — excludes content older than this */
-  maxAgeMonths?: number;
+  /**
+   * Minimum reply count as engagement/quality signal.
+   * Pass `null` explicitly (or omit) to disable engagement filtering.
+   * Aligned with `computeEffectiveMinReplies` which accepts `number | null | undefined`.
+   */
+  minReplies?: number | null;
+  /**
+   * Maximum age in months — excludes content older than this.
+   * Pass `null` explicitly (or omit) to disable recency filtering.
+   */
+  maxAgeMonths?: number | null;
   /** Exclude posts with 0 replies (shorthand for minReplies: 1) */
   excludeNoEngagement?: boolean;
 }

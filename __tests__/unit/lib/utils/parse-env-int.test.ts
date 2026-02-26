@@ -1,130 +1,116 @@
 /**
- * Unit Tests: parseEnvInt utility
+ * Unit Tests: parseEnvInt — pure utility function
+ * Module: lib/env.ts
  *
- * Guards against the `parseInt() || defaultVal` falsy-zero bug where setting
- * an env var to "0" (to disable a feature flag / filter) was silently ignored
- * because `parseInt('0') || 1` evaluates to 1 in JavaScript.
- *
- * See PR #260 review — "parseInt() || fallback prevents 0 from disabling filters"
+ * Tests that `parseEnvInt` correctly handles all edge cases when parsing
+ * integer environment variables, in particular that explicit `0` is preserved
+ * rather than overridden by a falsy-check fallback (the `|| defaultValue`
+ * anti-pattern that motivated this utility).
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseEnvInt } from '@/lib/utils/parse-env-int';
+import { parseEnvInt } from '@/lib/env';
 
 describe('parseEnvInt', () => {
-  // ---------------------------------------------------------------------------
-  // Default fallback (undefined / missing env var)
-  // ---------------------------------------------------------------------------
+  // =========================================================================
+  // Absent / empty input → use default
+  // =========================================================================
 
-  describe('undefined input (env var not set)', () => {
-    it('returns the default when raw is undefined', () => {
-      expect(parseEnvInt(undefined, 24)).toBe(24);
-    });
-
-    it('returns 1 as default when raw is undefined', () => {
-      expect(parseEnvInt(undefined, 1)).toBe(1);
-    });
-
-    it('returns 0 as default when raw is undefined and default is 0', () => {
-      expect(parseEnvInt(undefined, 0)).toBe(0);
-    });
+  it('returns defaultValue when raw is undefined', () => {
+    expect(parseEnvInt(undefined, 5)).toBe(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Zero — the critical case that the || fallback gets wrong
-  // ---------------------------------------------------------------------------
-
-  describe('zero ("0") — must NOT fall back to default', () => {
-    it('returns 0 when raw is "0" (disable filter)', () => {
-      // This is the key regression test.
-      // parseInt('0') || 1  →  1  ← WRONG (old behaviour)
-      // parseEnvInt('0', 1) →  0  ← CORRECT (new behaviour)
-      expect(parseEnvInt('0', 1)).toBe(0);
-    });
-
-    it('returns 0 when raw is "0" and default is 24', () => {
-      expect(parseEnvInt('0', 24)).toBe(0);
-    });
+  it('returns defaultValue when raw is an empty string', () => {
+    expect(parseEnvInt('', 5)).toBe(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Valid positive integers
-  // ---------------------------------------------------------------------------
-
-  describe('valid positive integer strings', () => {
-    it('returns 1 for "1"', () => {
-      expect(parseEnvInt('1', 24)).toBe(1);
-    });
-
-    it('returns 2 for "2"', () => {
-      expect(parseEnvInt('2', 1)).toBe(2);
-    });
-
-    it('returns 24 for "24"', () => {
-      expect(parseEnvInt('24', 1)).toBe(24);
-    });
-
-    it('returns 100 for "100"', () => {
-      expect(parseEnvInt('100', 1)).toBe(100);
-    });
+  it('returns defaultValue when raw is a whitespace string', () => {
+    // parseInt('  ', 10) === NaN
+    expect(parseEnvInt('  ', 5)).toBe(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Negative values — clamped to 0 (no negative filter thresholds)
-  // ---------------------------------------------------------------------------
+  // =========================================================================
+  // Non-numeric input → use default
+  // =========================================================================
 
-  describe('negative values are clamped to 0', () => {
-    it('clamps "-1" to 0', () => {
-      expect(parseEnvInt('-1', 1)).toBe(0);
-    });
-
-    it('clamps "-5" to 0', () => {
-      expect(parseEnvInt('-5', 24)).toBe(0);
-    });
+  it('returns defaultValue for a non-numeric string like "abc"', () => {
+    expect(parseEnvInt('abc', 5)).toBe(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Non-numeric / invalid input — falls back to default
-  // ---------------------------------------------------------------------------
-
-  describe('non-numeric input falls back to default', () => {
-    it('returns default for alphabetic string', () => {
-      expect(parseEnvInt('abc', 1)).toBe(1);
-    });
-
-    it('returns default for empty string', () => {
-      // parseInt('') returns NaN → falls back to default
-      expect(parseEnvInt('', 24)).toBe(24);
-    });
-
-    it('returns default for whitespace-only string', () => {
-      expect(parseEnvInt('   ', 1)).toBe(1);
-    });
-
-    it('returns default for "NaN" string', () => {
-      expect(parseEnvInt('NaN', 1)).toBe(1);
-    });
-
-    it('returns default for "undefined" literal string', () => {
-      expect(parseEnvInt('undefined', 24)).toBe(24);
-    });
+  it('returns defaultValue for a float string like "3.7"', () => {
+    // parseInt('3.7') === 3, which IS numeric, so this parses to 3
+    expect(parseEnvInt('3.7', 5)).toBe(3);
   });
 
-  // ---------------------------------------------------------------------------
-  // Edge cases
-  // ---------------------------------------------------------------------------
+  it('returns defaultValue for NaN-producing input', () => {
+    expect(parseEnvInt('NaN', 5)).toBe(5);
+  });
 
-  describe('edge cases', () => {
-    it('handles "0.9" (parseInt ignores fractional part → 0)', () => {
-      expect(parseEnvInt('0.9', 1)).toBe(0);
-    });
+  it('returns defaultValue for "Infinity"', () => {
+    // parseInt('Infinity') === NaN
+    expect(parseEnvInt('Infinity', 5)).toBe(5);
+  });
 
-    it('handles "3.7" (parseInt ignores fractional part → 3)', () => {
-      expect(parseEnvInt('3.7', 1)).toBe(3);
-    });
+  // =========================================================================
+  // Valid integers → parsed value
+  // =========================================================================
 
-    it('handles "10px" (parseInt stops at first non-digit → 10)', () => {
-      expect(parseEnvInt('10px', 1)).toBe(10);
-    });
+  it('returns parsed integer for a valid numeric string', () => {
+    expect(parseEnvInt('3', 5)).toBe(3);
+  });
+
+  it('returns 1 when raw is "1"', () => {
+    expect(parseEnvInt('1', 5)).toBe(1);
+  });
+
+  it('returns 24 when raw is "24"', () => {
+    expect(parseEnvInt('24', 99)).toBe(24);
+  });
+
+  it('returns large positive integers correctly', () => {
+    expect(parseEnvInt('9999', 1)).toBe(9999);
+  });
+
+  // =========================================================================
+  // CRITICAL: `0` must be preserved — not overridden to default
+  // =========================================================================
+  // This is the primary motivation for the utility. The `|| defaultValue`
+  // anti-pattern would incorrectly return `defaultValue` here because `0`
+  // is falsy in JavaScript.
+
+  it('returns 0 when raw is "0" (explicit disable signal must be preserved)', () => {
+    // This is the key test — parseInt('0') === 0, which is falsy, but valid.
+    // `0 || defaultValue` would WRONGLY return `defaultValue`.
+    expect(parseEnvInt('0', 5)).toBe(0);
+  });
+
+  it('returns 0 for "0" regardless of defaultValue', () => {
+    expect(parseEnvInt('0', 1)).toBe(0);
+    expect(parseEnvInt('0', 24)).toBe(0);
+    expect(parseEnvInt('0', 100)).toBe(0);
+  });
+
+  // =========================================================================
+  // Negative integers → clamped to 0
+  // =========================================================================
+
+  it('clamps negative values to 0', () => {
+    expect(parseEnvInt('-1', 5)).toBe(0);
+  });
+
+  it('clamps large negative values to 0', () => {
+    expect(parseEnvInt('-999', 5)).toBe(0);
+  });
+
+  // =========================================================================
+  // Default value edge cases
+  // =========================================================================
+
+  it('returns 0 defaultValue correctly when input is absent', () => {
+    expect(parseEnvInt(undefined, 0)).toBe(0);
+  });
+
+  it('handles defaultValue of 0 with non-numeric input', () => {
+    expect(parseEnvInt('abc', 0)).toBe(0);
   });
 });

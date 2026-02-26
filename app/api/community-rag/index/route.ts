@@ -132,7 +132,9 @@ export async function POST(request: Request): Promise<Response> {
       // sourceRecord was fetched with `select('id, author_id, reply_count')` for posts
       // (see selectFields above). We use a narrow typed interface here instead of a
       // catch-all cast to preserve type safety without splitting into two query branches.
-      const postRecord = sourceRecord as { id: string; author_id: string; reply_count: number };
+      // reply_count is typed as `number | null` because Supabase can return null for
+      // any column (e.g. for rows pre-dating the migration); the `?? 0` below handles it.
+      const postRecord = sourceRecord as { id: string; author_id: string; reply_count: number | null };
       const post: BulletinPostForIndexing = {
         id: source_id,
         content,
