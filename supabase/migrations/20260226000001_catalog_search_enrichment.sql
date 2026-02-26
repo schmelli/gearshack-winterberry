@@ -51,12 +51,22 @@ $$;
 
 -- 6. RPC function: Search catalog products with enrichment-aware matching
 -- Searches name, description, product_type (ILIKE) AND search_enrichment JSONB.
--- Returns products sorted by a simple relevance score:
---   3 = name match, 2 = description/product_type match, 1 = enrichment-only match
+-- Returns products sorted by a simple relevance score (when p_sort_by = 'relevance'):
+--   1 = name match (highest relevance)
+--   2 = description match
+--   3 = product_type match
+--   4 = enrichment-only match (lowest relevance)
+-- All filtering, sorting, and pagination are handled at the DB level to ensure
+-- correct pagination and sorting across the full result set (not a client-side subset).
 CREATE OR REPLACE FUNCTION search_catalog_enriched(
   p_query text,
   p_limit int DEFAULT 10,
-  p_offset int DEFAULT 0
+  p_offset int DEFAULT 0,
+  p_brand_ids uuid[] DEFAULT NULL,
+  p_max_weight numeric DEFAULT NULL,
+  p_min_weight numeric DEFAULT NULL,
+  p_max_price numeric DEFAULT NULL,
+  p_sort_by text DEFAULT 'relevance'
 )
 RETURNS TABLE (
   id uuid,
@@ -91,21 +101,38 @@ AS $$
     END AS match_source
   FROM catalog_products cp
   WHERE
-    cp.name ILIKE '%' || p_query || '%'
-    OR cp.description ILIKE '%' || p_query || '%'
-    OR cp.product_type ILIKE '%' || p_query || '%'
-    OR (
-      cp.search_enrichment IS NOT NULL
-      AND catalog_enrichment_text(cp) ILIKE '%' || p_query || '%'
+    (
+      cp.name ILIKE '%' || p_query || '%'
+      OR cp.description ILIKE '%' || p_query || '%'
+      OR cp.product_type ILIKE '%' || p_query || '%'
+      OR (
+        cp.search_enrichment IS NOT NULL
+        AND catalog_enrichment_text(cp) ILIKE '%' || p_query || '%'
+      )
     )
+    AND (p_brand_ids IS NULL OR cp.brand_id = ANY(p_brand_ids))
+    AND (p_max_weight IS NULL OR cp.weight_grams <= p_max_weight)
+    AND (p_min_weight IS NULL OR cp.weight_grams >= p_min_weight)
+    AND (p_max_price IS NULL OR cp.price_usd <= p_max_price)
   ORDER BY
-    CASE
-      WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
-      WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
-      WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
-      ELSE 4
-    END,
-    cp.name
+    -- Relevance score: only active when p_sort_by = 'relevance'
+    CASE WHEN p_sort_by = 'relevance' THEN
+      CASE
+        WHEN cp.name ILIKE '%' || p_query || '%' THEN 1
+        WHEN cp.description ILIKE '%' || p_query || '%' THEN 2
+        WHEN cp.product_type ILIKE '%' || p_query || '%' THEN 3
+        ELSE 4
+      END
+    ELSE 0
+    END ASC,
+    -- Weight sorting (only one of these is non-NULL at a time)
+    CASE WHEN p_sort_by = 'weight_asc' THEN cp.weight_grams END ASC NULLS LAST,
+    CASE WHEN p_sort_by = 'weight_desc' THEN cp.weight_grams END DESC NULLS LAST,
+    -- Price sorting (only one of these is non-NULL at a time)
+    CASE WHEN p_sort_by = 'price_asc' THEN cp.price_usd END ASC NULLS LAST,
+    CASE WHEN p_sort_by = 'price_desc' THEN cp.price_usd END DESC NULLS LAST,
+    -- Name as final tiebreaker for all sort modes
+    cp.name ASC
   LIMIT p_limit
   OFFSET p_offset
 $$;

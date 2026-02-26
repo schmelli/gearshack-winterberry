@@ -687,7 +687,8 @@ async function searchCatalog(
   // parsed as PostgREST filter strings.
   const escapedQuery = escapeIlikeWildcards(query);
 
-  // Pre-filter by brand if specified (needed before RPC call)
+  // Pre-resolve brand IDs if a brand filter is specified.
+  // The resolved IDs are passed directly to the RPC so the DB handles filtering.
   let brandIds: string[] | null = null;
   if (filters?.brand) {
     const escapedBrand = escapeIlikeWildcards(filters.brand);
@@ -701,13 +702,20 @@ async function searchCatalog(
     }
   }
 
-  // Use enrichment-aware RPC function for search
+  // Use enrichment-aware RPC function for search.
+  // All filtering, sorting, and pagination are handled at the DB level so that
+  // results are always correct regardless of offset or active filters.
   // Falls back to standard ILIKE on name/description/product_type when
   // search_enrichment is NULL (unenriched products still found).
   const { data: rpcResults, error: rpcError } = await supabase.rpc('search_catalog_enriched', {
     p_query: escapedQuery,
-    p_limit: limit * 3, // Overfetch to allow for post-filtering
-    p_offset: 0,        // We handle offset after filtering
+    p_limit: limit,
+    p_offset: offset,
+    p_brand_ids: brandIds ?? null,
+    p_max_weight: filters?.maxWeight ?? null,
+    p_min_weight: filters?.minWeight ?? null,
+    p_max_price: filters?.maxPrice ?? null,
+    p_sort_by: sortBy,
   });
 
   if (rpcError) {
@@ -720,56 +728,11 @@ async function searchCatalog(
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let results: any[] = rpcResults || [];
+  const results: any[] = rpcResults || [];
 
-  // Apply post-RPC filters (brand, weight, price)
-  if (brandIds) {
-    const matchedBrandIds = brandIds;
-    results = results.filter((item: { brand_id: string | null }) =>
-      item.brand_id && matchedBrandIds.includes(item.brand_id)
-    );
-  }
-  if (filters?.maxWeight) {
-    results = results.filter((item: { weight_grams: number | null }) =>
-      item.weight_grams !== null && item.weight_grams <= (filters.maxWeight as number)
-    );
-  }
-  if (filters?.minWeight) {
-    results = results.filter((item: { weight_grams: number | null }) =>
-      item.weight_grams !== null && item.weight_grams >= (filters.minWeight as number)
-    );
-  }
-  if (filters?.maxPrice) {
-    results = results.filter((item: { price_usd: number | null }) =>
-      item.price_usd !== null && item.price_usd <= (filters.maxPrice as number)
-    );
-  }
-
-  // Apply sorting
-  switch (sortBy) {
-    case 'weight_asc':
-      results.sort((a, b) => (a.weight_grams ?? Infinity) - (b.weight_grams ?? Infinity));
-      break;
-    case 'weight_desc':
-      results.sort((a, b) => (b.weight_grams ?? 0) - (a.weight_grams ?? 0));
-      break;
-    case 'price_asc':
-      results.sort((a, b) => (a.price_usd ?? Infinity) - (b.price_usd ?? Infinity));
-      break;
-    case 'price_desc':
-      results.sort((a, b) => (b.price_usd ?? 0) - (a.price_usd ?? 0));
-      break;
-    default:
-      // RPC already sorts by relevance then name
-      break;
-  }
-
-  // Apply pagination
-  const paginated = results.slice(offset, offset + limit);
-
-  // Resolve brand names for results
+  // Resolve brand names for the returned results
   const uniqueBrandIds = [...new Set(
-    paginated
+    results
       .map((item: { brand_id: string | null }) => item.brand_id)
       .filter((id: string | null): id is string => id !== null)
   )];
@@ -785,9 +748,9 @@ async function searchCatalog(
     }
   }
 
-  // Flatten results with brand name and match source
+  // Flatten results with brand name; strip internal fields from output
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const flattened = paginated.map((item: any) => ({
+  const flattened = results.map((item: any) => ({
     ...item,
     brand_name: brandNameMap.get(item.brand_id) || null,
     brand_id: undefined,
