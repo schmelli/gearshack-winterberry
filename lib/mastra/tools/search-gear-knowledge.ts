@@ -759,7 +759,12 @@ async function searchCatalog(
     logWarn('search_catalog_enriched RPC failed, falling back to standard search', {
       metadata: { error: rpcError.message },
     });
-    return searchCatalogFallback(supabase, normalizedQuery, filters, sortBy, limit, offset);
+    // Pass safeSortBy (not raw sortBy) so the already-validated sort key propagates
+    // to the fallback — the fallback has its own switch/default but passing the
+    // validated value ensures consistent sort semantics regardless of which path runs.
+    // Note: searchCatalogFallback can throw (e.g. on brand lookup failure); callers
+    // should let that exception propagate rather than silently swallowing it.
+    return searchCatalogFallback(supabase, normalizedQuery, filters, safeSortBy, limit, offset);
   }
 
   const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
@@ -791,6 +796,12 @@ async function searchCatalog(
 /**
  * Fallback search when search_catalog_enriched RPC is unavailable.
  * Uses standard ILIKE on name, description, and product_type.
+ *
+ * **Throwing contract**: This function can throw on database errors (e.g., brand lookup
+ * failure, catalog query failure). Callers — including the RPC fallback path in
+ * `searchCatalog()` — should NOT wrap this in a try/catch that swallows errors.
+ * Propagating the error gives the caller accurate failure information rather than
+ * silently returning empty results or incorrect data.
  */
 async function searchCatalogFallback(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

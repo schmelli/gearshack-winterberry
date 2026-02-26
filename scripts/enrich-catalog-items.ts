@@ -113,6 +113,13 @@ Options:
   --force       Re-enrich products that already have enrichment data
   --dry-run     Preview which products would be enriched without writing to DB
   --help        Show this help message
+
+Throughput:
+  Inter-call delay: ${THROTTLE_DELAY_MS}ms between LLM API calls (fixed rate limiter).
+  Effective throughput: ~${Math.floor(60000 / THROTTLE_DELAY_MS)} products/minute maximum.
+  This delay is intentionally fixed to stay well within Haiku API rate limits.
+  For faster enrichment, run multiple instances targeting different product ranges
+  using --limit and the --force flag (results are idempotent).
 `);
       process.exit(0);
     }

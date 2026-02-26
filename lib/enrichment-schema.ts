@@ -29,16 +29,20 @@ export const EnrichmentSchema = z.object({
   /**
    * When/where this item excels (e.g., "multi-day alpine expedition in wet conditions").
    * Used to improve search for scenario-based queries ("what should I bring to Scotland?").
+   * Requires at least one entry — an LLM response with an empty array is rejected at
+   * Zod validation time before the downstream `totalEnrichmentTerms` safety check.
    */
-  useCases: z.array(z.string())
-    .describe('When/where would this item excel? Include specific scenarios like "multi-day alpine expedition", "wet weather hiking in Scotland", "ultralight thru-hiking"'),
+  useCases: z.array(z.string()).min(1)
+    .describe('When/where would this item excel? Include specific scenarios like "multi-day alpine expedition", "wet weather hiking in Scotland", "ultralight thru-hiking". At least one entry required.'),
 
   /**
    * How users might search for this item (e.g., "rain jacket", "Regenjacke", "waterproof shell").
    * Includes synonyms, German translations, abbreviations, and colloquial terms.
+   * Requires at least one entry — an LLM response with an empty array is rejected at
+   * Zod validation time before the downstream `totalEnrichmentTerms` safety check.
    */
-  alternativeSearchTerms: z.array(z.string())
-    .describe('How might users search for this? Include synonyms, German translations, abbreviations, and colloquial terms. E.g., "rain jacket", "Regenjacke", "waterproof shell", "hardshell"'),
+  alternativeSearchTerms: z.array(z.string()).min(1)
+    .describe('How might users search for this? Include synonyms, German translations, abbreviations, and colloquial terms. E.g., "rain jacket", "Regenjacke", "waterproof shell", "hardshell". At least one entry required.'),
 
   /**
    * Weather/terrain conditions this item suits (e.g., "cold rain", "snow", "Scottish Highlands").
