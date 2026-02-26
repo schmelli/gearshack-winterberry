@@ -492,6 +492,20 @@ export const cacheLatencySeconds = new Histogram({
   registers: [register],
 });
 
+/**
+ * Cache writes skipped due to PII guard heuristic
+ * Labels: pattern_name (each matched pattern is recorded separately, so one
+ *   cache-write skip may increment this counter multiple times when several
+ *   patterns co-occur. Use `sum by (pattern_name)` for per-pattern breakdowns.)
+ * Feature: PII Guard Middleware (Kap. 9)
+ */
+export const cachePiiSkipsTotal = new Counter({
+  name: 'mastra_cache_pii_skips_total',
+  help: 'Total cache writes skipped by PII guard heuristic',
+  labelNames: ['pattern_name'] as const,
+  registers: [register],
+});
+
 // ==================== Rate Limiting Metrics ====================
 
 /**
@@ -1025,4 +1039,15 @@ export function recordCacheStore(intentType = 'unknown'): void {
  */
 export function recordCacheLatency(latencyMs: number): void {
   cacheLatencySeconds.observe(latencyMs / 1000);
+}
+
+/**
+ * Records a cache write skipped by the PII guard heuristic.
+ * Call once per matched pattern — the caller loops over all matched patterns
+ * so that per-pattern Prometheus counters are accurate even when multiple
+ * patterns co-occur in a single query.
+ * @param patternName - Name of the matched PII pattern (for debugging)
+ */
+export function recordCachePiiSkip(patternName = 'unknown'): void {
+  cachePiiSkipsTotal.inc({ pattern_name: patternName });
 }
