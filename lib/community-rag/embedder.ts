@@ -128,7 +128,8 @@ export async function upsertChunksWithEmbeddings(
       indexed_at: new Date().toISOString(),
     }));
 
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+    const { error } = await (supabase as any)
       .from('community_knowledge_chunks')
       .upsert(records, {
         onConflict: 'source_type,source_id,chunk_index',
@@ -153,7 +154,8 @@ export async function deleteChunksForSource(
   sourceType: string,
   sourceId: string
 ): Promise<void> {
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+  const { error } = await (supabase as any)
     .from('community_knowledge_chunks')
     .delete()
     .eq('source_type', sourceType)

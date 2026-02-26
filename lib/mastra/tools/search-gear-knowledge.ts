@@ -35,6 +35,7 @@ import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/communit
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 import { parseEnvInt } from '@/lib/utils/parse-env-int';
+import { escapeLikePattern } from '@/lib/catalog-scoring';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -580,12 +581,14 @@ async function searchUserGear(
 
   console.log(`[searchGearKnowledge] query="${query}" → categoryIds=[${categoryIds.join(',')}]`);
 
+  const escapedQuery = escapeLikePattern(query);
+
   if (categoryIds.length > 0) {
     // Search by text fields OR by matching category
     const orFilters = [
-      `name.ilike.%${query}%`,
-      `brand.ilike.%${query}%`,
-      `notes.ilike.%${query}%`,
+      `name.ilike.%${escapedQuery}%`,
+      `brand.ilike.%${escapedQuery}%`,
+      `notes.ilike.%${escapedQuery}%`,
       `product_type_id.in.(${categoryIds.join(',')})`,
     ];
     const orString = orFilters.join(',');
@@ -594,7 +597,7 @@ async function searchUserGear(
   } else {
     // Fallback: text-only search
     console.log(`[searchGearKnowledge] No categories found, using text-only search`);
-    dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+    dbQuery = dbQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%,notes.ilike.%${escapedQuery}%`);
   }
 
   // Apply filters
@@ -701,8 +704,9 @@ async function searchCatalog(
     .from('catalog_products')
     .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)');
 
-  // Text search
-  dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,product_type.ilike.%${query}%`);
+  // Text search (escape query to prevent PostgREST filter injection)
+  const escapedCatalogQuery = escapeLikePattern(query);
+  dbQuery = dbQuery.or(`name.ilike.%${escapedCatalogQuery}%,description.ilike.%${escapedCatalogQuery}%,product_type.ilike.%${escapedCatalogQuery}%`);
 
   // Apply filters
   if (filters?.maxWeight) {

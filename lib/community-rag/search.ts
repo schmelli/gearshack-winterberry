@@ -93,7 +93,8 @@ export async function searchCommunityKnowledge(
     //     content is timestamped in the future. 0 should mean "disabled" (= null), not empty.
     // The tool layer already guards against this for env-var paths; this normalisation ensures
     // direct callers of searchCommunityKnowledge also get consistent semantics.
-    const { data, error } = await supabase.rpc('search_community_knowledge', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC function not yet in generated Supabase types
+    const { data, error } = await (supabase as any).rpc('search_community_knowledge', {
       query_embedding: `[${queryEmbedding.join(',')}]`,
       similarity_threshold: threshold,
       max_results: topK,

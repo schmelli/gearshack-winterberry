@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -45,7 +45,6 @@ export function VisionScanDialog({
 }: VisionScanDialogProps) {
   const t = useTranslations('VisionScan');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     state,
@@ -56,23 +55,9 @@ export function VisionScanDialog({
     importSelected,
     reset,
   } = useVisionScan({
-    onImportComplete: (count) => {
-      onImportComplete?.(count);
-      // Auto-close after short delay on success
-      closeTimerRef.current = setTimeout(() => {
-        handleClose();
-      }, 1500);
-    },
+    onImportComplete,
+    onAutoClose: () => onOpenChange(false),
   });
-
-  // Clean up auto-close timer on unmount
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
 
   const handleClose = useCallback(() => {
     reset();

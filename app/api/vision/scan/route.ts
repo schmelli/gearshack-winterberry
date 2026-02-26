@@ -18,6 +18,8 @@ import { createGateway } from '@ai-sdk/gateway';
 import { fileTypeFromBuffer } from 'file-type';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { visionScanLimiter } from '@/lib/rate-limit';
+import { logError } from '@/lib/mastra/logging';
 import { matchDetectedItemsWithCatalog } from '@/lib/vision-catalog-matcher';
 import type { VisionScanResponse } from '@/types/vision-scan';
 
@@ -41,33 +43,37 @@ const VISION_TIMEOUT_MS = 60000; // 60 seconds
 // =============================================================================
 
 const DetectedItemsSchema = z.object({
-  detectedItems: z.array(
-    z.object({
-      name: z.string().describe('Product name of the gear item'),
-      brand: z
-        .string()
-        .nullable()
-        .describe('Brand name if recognizable from logo or design'),
-      category: z
-        .string()
-        .describe(
-          'Category like Backpack, Tent, Sleeping Bag, Jacket, Stove, etc.'
-        ),
-      estimatedWeightGrams: z
-        .number()
-        .nullable()
-        .describe('Estimated weight in grams if recognizable'),
-      condition: z
-        .enum(['new', 'good', 'fair', 'poor'])
-        .nullable()
-        .describe('Estimated condition based on visible wear'),
-      confidence: z
-        .number()
-        .min(0)
-        .max(1)
-        .describe('Confidence score from 0 to 1'),
-    })
-  ),
+  detectedItems: z
+    .array(
+      z.object({
+        name: z.string().max(200).describe('Product name of the gear item'),
+        brand: z
+          .string()
+          .max(100)
+          .nullable()
+          .describe('Brand name if recognizable from logo or design'),
+        category: z
+          .string()
+          .max(100)
+          .describe(
+            'Category like Backpack, Tent, Sleeping Bag, Jacket, Stove, etc.'
+          ),
+        estimatedWeightGrams: z
+          .number()
+          .nullable()
+          .describe('Estimated weight in grams if recognizable'),
+        condition: z
+          .enum(['new', 'good', 'fair', 'poor'])
+          .nullable()
+          .describe('Estimated condition based on visible wear'),
+        confidence: z
+          .number()
+          .min(0)
+          .max(1)
+          .describe('Confidence score from 0 to 1'),
+      })
+    )
+    .max(30),
 });
 
 // =============================================================================
@@ -102,7 +108,24 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 2. Check AI configuration
+    // 2. Rate limiting
+    const rateLimitResult = visionScanLimiter.check(user.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, items: [], error: 'RATE_LIMITED' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
+
+    // 3. Check AI configuration (renumbered after rate limit insertion)
     if (!process.env.AI_GATEWAY_API_KEY) {
       return NextResponse.json(
         { success: false, items: [], error: 'AI_NOT_CONFIGURED' },
@@ -110,7 +133,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 3. Parse FormData
+    // 4. Parse FormData
     const formData = await request.formData();
     const imageFile = formData.get('image');
 
@@ -121,7 +144,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 4. Validate size
+    // 5. Validate size
     if (imageFile.size > MAX_IMAGE_SIZE_BYTES) {
       return NextResponse.json(
         {
@@ -133,7 +156,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 5. Read buffer once, validate magic bytes, then convert to base64
+    // 6. Read buffer once, validate magic bytes, then convert to base64
     const arrayBuffer = await imageFile.arrayBuffer();
     const detectedType = await fileTypeFromBuffer(arrayBuffer);
 
@@ -151,7 +174,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     const imageBase64 = Buffer.from(arrayBuffer).toString('base64');
     const imageMime = detectedType.mime;
 
-    // 6. AI Vision analysis with timeout
+    // 7. AI Vision analysis with timeout
     const gateway = getGateway();
 
     const abortController = new AbortController();
@@ -195,7 +218,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       });
     }
 
-    // 7. Match with catalog
+    // 8. Match with catalog
     const matchedItems = await matchDetectedItemsWithCatalog(
       supabase,
       detectedItems
@@ -206,7 +229,9 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       items: matchedItems,
     });
   } catch (error: unknown) {
-    console.error('[Vision] Scan failed:', error);
+    logError('[Vision] Scan failed', error instanceof Error ? error : undefined, {
+      metadata: { model: VISION_MODEL },
+    });
 
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json(

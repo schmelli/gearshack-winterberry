@@ -681,7 +681,7 @@ export async function POST(request: Request): Promise<Response> {
             // rows the A/B comparison is statistically invalid.
             if (variantResolution) {
               logAssignment(serviceClient, variantResolution, user.id, conversationId).catch((err) => {
-                logWarn('[PromptAB] logAssignment threw unexpectedly', { error: err });
+                logWarn('[PromptAB] logAssignment threw unexpectedly', { metadata: { error: String(err) } });
               });
             }
           } catch {

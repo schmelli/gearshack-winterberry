@@ -129,6 +129,8 @@ export function createGearAssistantWithEvals(options?: {
       screen: 'inventory',
       locale: lang,
       inventoryCount: 0,
+      userId: 'eval-user',
+      subscriptionTier: 'standard',
       ...options?.userContext,
     },
   });
@@ -141,7 +143,8 @@ export function createGearAssistantWithEvals(options?: {
   const hallucinationScorer = createGearHallucinationScorer(judgeModel);
   const toolCallScorer = createGearToolCallAccuracyScorer(
     judgeModel,
-    Object.values(EVAL_TOOLS)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mastra Tool generics variance mismatch
+    Object.values(EVAL_TOOLS) as any
   );
 
   const agent = new Agent({
@@ -150,21 +153,19 @@ export function createGearAssistantWithEvals(options?: {
     instructions: systemPrompt,
     model: getEvalGateway()(AI_CHAT_MODEL),
     tools: EVAL_TOOLS,
-    evals: {
-      scorers: [
-        {
-          scorer: faithfulnessScorer,
-          sampling: { type: 'ratio', rate: samplingRate },
-        },
-        {
-          scorer: hallucinationScorer,
-          sampling: { type: 'ratio', rate: samplingRate },
-        },
-        {
-          scorer: toolCallScorer,
-          sampling: { type: 'ratio', rate: samplingRate },
-        },
-      ],
+    scorers: {
+      faithfulness: {
+        scorer: faithfulnessScorer,
+        sampling: { type: 'ratio', rate: samplingRate },
+      },
+      hallucination: {
+        scorer: hallucinationScorer,
+        sampling: { type: 'ratio', rate: samplingRate },
+      },
+      toolCallAccuracy: {
+        scorer: toolCallScorer,
+        sampling: { type: 'ratio', rate: samplingRate },
+      },
     },
   });
 
