@@ -13,7 +13,6 @@
 
 'use client';
 
-import { useMemo } from 'react';
 import Image from 'next/image';
 import { Check, Star, ImageIcon, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -27,6 +26,8 @@ import type { CatalogMatchResult, CatalogMatch } from '@/types/vision-scan';
 
 interface VisionScanDisambiguationProps {
   item: CatalogMatchResult;
+  /** Pre-sorted list of all options (best match + alternatives). Built once in VisionScanDialog. */
+  allOptions: CatalogMatch[];
   /** Map of productId → lazy-loaded imageUrl (or null). Provided by parent. */
   lazyImages: Record<string, string | null>;
   onSelect: (match: CatalogMatch) => void;
@@ -39,22 +40,13 @@ interface VisionScanDisambiguationProps {
 
 export function VisionScanDisambiguation({
   item,
+  allOptions,
   lazyImages,
   onSelect,
   onCancel,
 }: VisionScanDisambiguationProps) {
   const t = useTranslations('VisionScan');
-  const { detected, catalogMatch, alternatives } = item;
-
-  // Combine current best match + alternatives into one sorted list (memoized)
-  const allOptions = useMemo(() => {
-    const options: CatalogMatch[] = [];
-    if (catalogMatch) {
-      options.push(catalogMatch);
-    }
-    options.push(...alternatives);
-    return options.sort((a, b) => b.matchScore - a.matchScore);
-  }, [catalogMatch, alternatives]);
+  const { detected, catalogMatch } = item;
 
   return (
     <div className="space-y-4">
@@ -72,8 +64,13 @@ export function VisionScanDisambiguation({
         </p>
       </div>
 
-      {/* Options List */}
-      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+      {/* Options List — uses radiogroup semantics so screen readers
+          understand this is a single-select product picker */}
+      <div
+        className="space-y-2 max-h-[350px] overflow-y-auto pr-1"
+        role="radiogroup"
+        aria-label={t('disambiguationTitle')}
+      >
         {allOptions.map((option) => {
           const isCurrent = option.productId === catalogMatch?.productId;
           // Use the option's own image, or the lazy-loaded one from parent
@@ -86,6 +83,8 @@ export function VisionScanDisambiguation({
             <button
               key={option.productId}
               type="button"
+              role="radio"
+              aria-checked={isCurrent}
               onClick={() => {
                 // If we lazy-loaded an image, attach it to the match before selecting
                 const matchWithImage: CatalogMatch =

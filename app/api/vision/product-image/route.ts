@@ -86,9 +86,11 @@ export async function POST(request: Request) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // Map all upstream errors to generic 502 to avoid leaking internal
+      // provider details (e.g. Serper 402 billing state) to the client
       return NextResponse.json(
         { imageUrl: null, error: 'Failed to fetch image from provider.' },
-        { status: response.status }
+        { status: 502 }
       );
     }
 

@@ -330,11 +330,12 @@ export function useVisionScan({
   }, []);
 
   const closeDisambiguation = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      status: 'review',
-      disambiguatingIndex: null,
-    }));
+    setState((prev) => {
+      // Guard: only allow closing disambiguation from 'selecting' state.
+      // Prevents stale closures (e.g. unmounting dialog) from corrupting state.
+      if (prev.status !== 'selecting') return prev;
+      return { ...prev, status: 'review', disambiguatingIndex: null };
+    });
   }, []);
 
   // =========================================================================
@@ -428,14 +429,16 @@ export function useVisionScan({
         importedCount,
       }));
 
-      const successKey = isWishlist
-        ? 'importSuccessWishlist'
-        : 'importSuccess';
+      // Use direct ternary instead of dynamic key variable to preserve
+      // next-intl compile-time key validation (string literals only)
+      const successMsg = isWishlist
+        ? t('importSuccessWishlist', { count: importedCount })
+        : t('importSuccess', { count: importedCount });
 
       if (failedNames.length === 0) {
-        toast.success(t(successKey, { count: importedCount }));
+        toast.success(successMsg);
       } else {
-        toast.success(t(successKey, { count: importedCount }), {
+        toast.success(successMsg, {
           description: t('importPartialFailure', {
             failed: failedNames.join(', '),
           }),

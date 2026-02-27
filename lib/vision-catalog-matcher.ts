@@ -48,6 +48,16 @@ const MIN_ALTERNATIVE_SCORE = 0.25;
 // Image Search via Serper
 // =============================================================================
 
+/**
+ * Fetch a single product image from Serper Images API.
+ *
+ * NOTE: This server-side call does NOT go through `productImageLimiter`
+ * (which only guards the client-facing `/api/vision/product-image` endpoint).
+ * This is an accepted cost because:
+ * 1. It's bounded to 1 Serper call per detected item (best match only).
+ * 2. The overall scan rate is already constrained by `visionScanLimiter`.
+ * 3. Alternative images are lazy-loaded via the rate-limited API route.
+ */
 async function searchProductImage(
   brand: string | null,
   productName: string

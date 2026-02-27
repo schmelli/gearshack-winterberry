@@ -77,9 +77,9 @@ export function VisionScanDialog({
       ? state.results[state.disambiguatingIndex] ?? null
       : null;
 
-  // Build the list of alternatives for lazy image loading.
-  // Always called (hooks can't be conditional), but returns an empty array
-  // when disambiguation is not active, making it a no-op.
+  // Build sorted list of all options (best match + alternatives) in one place.
+  // Shared between useAlternativeImages (for lazy loading) and the
+  // VisionScanDisambiguation component (for display), avoiding duplication.
   const disambiguationOptions = useMemo(() => {
     if (!disambiguatingItem) return [];
     const options: CatalogMatch[] = [];
@@ -87,7 +87,7 @@ export function VisionScanDialog({
       options.push(disambiguatingItem.catalogMatch);
     }
     options.push(...disambiguatingItem.alternatives);
-    return options;
+    return options.sort((a, b) => b.matchScore - a.matchScore);
   }, [disambiguatingItem]);
 
   // Lazy-load images for disambiguation alternatives (hook in hooks/ layer)
@@ -220,6 +220,7 @@ export function VisionScanDialog({
         {state.status === 'selecting' && disambiguatingItem && (
           <VisionScanDisambiguation
             item={disambiguatingItem}
+            allOptions={disambiguationOptions}
             lazyImages={lazyImages}
             onSelect={selectAlternative}
             onCancel={closeDisambiguation}
