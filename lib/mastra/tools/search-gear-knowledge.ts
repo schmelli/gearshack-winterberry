@@ -33,7 +33,6 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
 import { escapeIlikeWildcards, normalizeSearchQuery } from '@/lib/catalog-scoring';
-import type { SearchEnrichment } from '@/lib/enrichment-schema';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 
@@ -213,6 +212,7 @@ const searchGearKnowledgeInputSchema = z.object({
     maxWeight: z.number().optional().describe('Maximum weight in grams'),
     minWeight: z.number().optional().describe('Minimum weight in grams'),
     maxPrice: z.number().optional().describe('Maximum price'),
+    minPrice: z.number().optional().describe('Minimum price'),
     status: z.enum(['own', 'wishlist', 'sold', 'all']).optional().describe('Item status filter (for user gear)'),
   }).optional().describe('Optional filters to narrow results'),
 
@@ -669,7 +669,9 @@ interface EnrichedRpcRow {
   weight_grams: number | null;
   brand_id: string | null;
   brand_name: string | null;
-  search_enrichment: SearchEnrichment | null;
+  // Always NULL from the RPC (the SQL returns NULL::jsonb to avoid serializing
+  // the full JSONB column for transfer — the caller strips this field anyway).
+  search_enrichment: null;
   match_source: string;
 }
 
@@ -746,6 +748,7 @@ async function searchCatalog(
     p_max_weight: filters?.maxWeight ?? null,
     p_min_weight: filters?.minWeight ?? null,
     p_max_price: filters?.maxPrice ?? null,
+    p_min_price: filters?.minPrice ?? null,
     p_sort_by: safeSortBy,
   });
 
@@ -856,12 +859,15 @@ async function searchCatalogFallback(
   if (filters?.maxPrice) {
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
+  if (filters?.minPrice) {
+    dbQuery = dbQuery.gte('price_usd', filters.minPrice);
+  }
   if (filters?.brand) {
     // Use pre-resolved brand IDs if available (passed from searchCatalog to avoid
     // a redundant DB round-trip — the IDs were already resolved in the primary path).
     // Falls back to resolving brand IDs here when called directly without pre-resolved IDs.
     let brandIds: string[];
-    if (resolvedBrandIds !== undefined && resolvedBrandIds !== null) {
+    if (resolvedBrandIds != null) {
       brandIds = resolvedBrandIds;
     } else {
       const escapedBrand = escapeIlikeWildcards(filters.brand);

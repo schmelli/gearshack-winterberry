@@ -94,6 +94,7 @@ CREATE OR REPLACE FUNCTION search_catalog_enriched(
   p_max_weight numeric DEFAULT NULL,
   p_min_weight numeric DEFAULT NULL,
   p_max_price numeric DEFAULT NULL,
+  p_min_price numeric DEFAULT NULL,
   p_sort_by text DEFAULT 'relevance'
 )
 RETURNS TABLE (
@@ -126,7 +127,12 @@ AS $$
     cp.weight_grams,
     cp.brand_id,
     cb.name AS brand_name,
-    cp.search_enrichment,
+    -- Return NULL instead of the actual JSONB column to avoid serializing the
+    -- (potentially large) enrichment data for every row — the caller destructures
+    -- and discards this field immediately. The LATERAL subquery already reads
+    -- cp.search_enrichment to compute enr_text, so the column is still accessed
+    -- internally; this just prevents it from being serialized for transfer.
+    NULL::jsonb AS search_enrichment,
     -- Derive match_source from the pre-computed relevance_score in enr_scored.
     -- All ILIKE evaluations happen ONCE in the enr_scored LATERAL below —
     -- this SELECT does not re-evaluate any ILIKE predicate.
@@ -177,6 +183,7 @@ AS $$
     AND (p_max_weight IS NULL OR cp.weight_grams <= p_max_weight)
     AND (p_min_weight IS NULL OR cp.weight_grams >= p_min_weight)
     AND (p_max_price IS NULL OR cp.price_usd <= p_max_price)
+    AND (p_min_price IS NULL OR cp.price_usd >= p_min_price)
   ORDER BY
     -- Use pre-computed relevance_score — no ILIKE re-evaluation in ORDER BY.
     CASE WHEN p_sort_by = 'relevance' THEN enr_scored.relevance_score ELSE 0 END ASC,
@@ -211,7 +218,7 @@ $$;
 -- the gear assistant from searching the catalog on behalf of unauthenticated users.
 -- If catalog access ever needs to be restricted, remove the anon grant here.
 GRANT EXECUTE ON FUNCTION catalog_enrichment_text(catalog_products) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION search_catalog_enriched(text, int, int, uuid[], numeric, numeric, numeric, numeric, text) TO anon, authenticated;
 
 COMMENT ON COLUMN catalog_products.search_enrichment IS 'LLM-generated semantic metadata for search discoverability (ReAG pattern). Contains useCases, alternativeSearchTerms, conditions, compatibleWith, avoidFor fields.';
 COMMENT ON COLUMN catalog_products.enriched_at IS 'Timestamp of last LLM enrichment run for this product.';
@@ -230,7 +237,10 @@ COMMENT ON FUNCTION search_catalog_enriched IS
   'Enrichment-aware catalog search RPC. Searches name, description, product_type '
   'and search_enrichment JSONB via ILIKE. LEFT JOINs catalog_brands to return '
   'brand_name directly, eliminating a secondary round-trip from the caller. '
-  'All filtering, sorting, and pagination are handled at the DB level. '
+  'Returns NULL::jsonb for search_enrichment to avoid serializing the full JSONB '
+  'column — the caller strips this field immediately. '
+  'All filtering (brand, weight range, price range), sorting, and pagination are '
+  'handled at the DB level. '
   'p_query must be pre-escaped by the caller (TypeScript: escapeIlikeWildcards). '
   'Uses two LATERAL subqueries to compute enrichment text and relevance score once '
   'per row, avoiding ILIKE re-evaluation across WHERE, SELECT, and ORDER BY clauses. '

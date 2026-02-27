@@ -1,3 +1,4 @@
+-- NOOP
 -- Migration: Consolidated into 20260226000001_catalog_search_enrichment.sql
 --
 -- This migration was originally used to add brand_name to the search_catalog_enriched()

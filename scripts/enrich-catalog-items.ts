@@ -18,6 +18,7 @@
  *   SUPABASE_SERVICE_ROLE_KEY  - Service role key (bypasses RLS)
  *   AI_GATEWAY_API_KEY         - Vercel AI Gateway API key
  *   ENRICHMENT_MODEL           - Model to use (default: anthropic/claude-haiku-4-5-20251001)
+ *   ENRICHMENT_THROTTLE_MS    - Delay between API calls in ms (default: 500, min: 100)
  *
  * @see specs/060-ai-agent-evolution/analysis.md - Vorschlag 5 (ReAG)
  * @see supabase/migrations/20260226000001_catalog_search_enrichment.sql
@@ -50,8 +51,21 @@ const DEFAULT_BATCH_LIMIT = 100;
  */
 const MAX_SAFE_LIMIT = 1000;
 
-/** Delay between API calls to avoid rate limiting (ms) */
-const THROTTLE_DELAY_MS = 500;
+/**
+ * Delay between API calls to avoid rate limiting (ms).
+ * Configurable via ENRICHMENT_THROTTLE_MS env var for operators who need
+ * faster throughput (lower values) or more conservative rate limiting (higher values).
+ * Default: 500ms (~120 products/minute).
+ */
+const THROTTLE_DELAY_MS = (() => {
+  const envVal = process.env.ENRICHMENT_THROTTLE_MS;
+  if (envVal) {
+    const parsed = parseInt(envVal, 10);
+    if (!isNaN(parsed) && parsed >= 100) return parsed;
+    console.warn(`Warning: ENRICHMENT_THROTTLE_MS="${envVal}" is invalid (must be integer >= 100). Using default 500ms.`);
+  }
+  return 500;
+})();
 
 /** Maximum retries for transient errors */
 const MAX_RETRIES = 2;
@@ -214,11 +228,24 @@ async function enrichItemWithRetry(
       }
     } catch (error: unknown) {
       const isLastAttempt = attempt === maxRetries;
+
+      // ZodError / TypeValidationError are non-transient: the LLM produced structurally
+      // invalid output that won't change on retry for the same product. Skip immediately
+      // rather than wasting MAX_RETRIES additional API calls on the same malformed response.
+      // generateObject() throws TypeValidationError (Vercel AI SDK wrapper) which contains
+      // the underlying ZodError. Check both names for forward-compatibility.
+      const errorName = error instanceof Error ? error.name : '';
+      if (errorName === 'ZodError' || errorName === 'AI_TypeValidationError' || errorName === 'TypeValidationError') {
+        console.error(`  [SKIP] Schema validation failed for "${item.name}" (non-retryable ${errorName}):`,
+          (error as Error).message.slice(0, 200));
+        return null;
+      }
+
       const statusCode = error && typeof error === 'object' && 'status' in error
         ? (error as { status: number }).status
         : null;
 
-      // Don't retry non-transient errors
+      // Don't retry non-transient HTTP errors (4xx except 429 rate-limit)
       if (statusCode && statusCode >= 400 && statusCode < 500 && statusCode !== 429) {
         console.error(`  [SKIP] Non-retryable error for "${item.name}": ${statusCode}`);
         return null;
@@ -313,10 +340,13 @@ async function main(): Promise<void> {
   if (dryRun) {
     // Estimated cost: ~$0.0003 per product (Claude Haiku: ~300 input + ~200 output tokens,
     // at $0.25/M input + $1.25/M output = ~$0.000075 + ~$0.00025 ≈ $0.00033 per item).
-    // Note: estimate assumes default Haiku pricing. If ENRICHMENT_MODEL is overridden
-    // via env var, actual cost may differ — check current model pricing before large runs.
-    const estimatedCostUsd = (products.length * 0.00033).toFixed(4);
+    const DEFAULT_MODEL = 'anthropic/claude-haiku-4-5-20251001';
+    const HAIKU_COST_PER_ITEM = 0.00033;
+    const estimatedCostUsd = (products.length * HAIKU_COST_PER_ITEM).toFixed(4);
     console.log(`\n--- Dry Run: ${products.length} product(s) would be enriched (est. ~$${estimatedCostUsd} using ${ENRICHMENT_MODEL}) ---`);
+    if (ENRICHMENT_MODEL !== DEFAULT_MODEL) {
+      console.warn(`⚠️  Cost estimate assumes default Haiku pricing ($${HAIKU_COST_PER_ITEM}/item). Active model "${ENRICHMENT_MODEL}" may have different pricing — verify before large runs.`);
+    }
     for (const product of products) {
       // catalog_brands is a many-to-one FK; Supabase typed client returns a single
       // object (not an array) for this join direction. Access as `.name` directly.
