@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/server';
 import { visionScanLimiter } from '@/lib/rate-limit';
 import { logError } from '@/lib/mastra/logging';
 import { matchDetectedItemsWithCatalog } from '@/lib/vision-catalog-matcher';
+import { resolveProductTypeId } from '@/lib/category-resolver';
 import type { VisionScanResponse } from '@/types/vision-scan';
 
 // =============================================================================
@@ -244,15 +245,45 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       });
     }
 
-    // 8. Match with catalog
+    // 9. Match with catalog
     const matchedItems = await matchDetectedItemsWithCatalog(
       supabase,
       detectedItems
     );
 
+    // 10. Resolve missing productTypeIds via category resolver.
+    //     - catalogMatch with productTypeId → already good, skip
+    //     - catalogMatch without productTypeId → enrich the match
+    //     - no catalogMatch at all → attach resolvedProductTypeId to detected item
+    const enrichedItems = await Promise.all(
+      matchedItems.map(async (item) => {
+        const existingTypeId = item.catalogMatch?.productTypeId ?? null;
+        if (existingTypeId) return item;
+
+        const resolvedTypeId = await resolveProductTypeId(
+          supabase,
+          item.detected.category,
+          item.detected.name
+        );
+        if (!resolvedTypeId) return item;
+
+        if (item.catalogMatch) {
+          return {
+            ...item,
+            catalogMatch: { ...item.catalogMatch, productTypeId: resolvedTypeId },
+          };
+        }
+
+        return {
+          ...item,
+          detected: { ...item.detected, resolvedProductTypeId: resolvedTypeId },
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      items: matchedItems,
+      items: enrichedItems,
     });
   } catch (error: unknown) {
     logError('[Vision] Scan failed', error instanceof Error ? error : undefined, {

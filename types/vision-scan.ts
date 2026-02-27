@@ -22,6 +22,12 @@ export interface DetectedGearItem {
   condition: 'new' | 'good' | 'fair' | 'poor' | null;
   /** AI confidence score (0.0 - 1.0) */
   confidence: number;
+  /**
+   * Server-resolved level-3 category ID from the `categories` table.
+   * Set by the API route via `resolveProductTypeId()` when no catalog match
+   * provides a `productTypeId`. Used as fallback during inventory import.
+   */
+  resolvedProductTypeId?: string | null;
 }
 
 // =============================================================================
