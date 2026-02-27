@@ -4,7 +4,10 @@
  * Feature: Image-to-Inventory via Vision
  *
  * Business logic for AI-powered gear detection from photos.
- * State machine: idle → analyzing → review → importing → success/error
+ * State machine: idle → analyzing → review → selecting → importing → success/error
+ *
+ * Supports importing to inventory or wishlist based on destination prop.
+ * Supports disambiguation when multiple catalog matches exist.
  */
 
 'use client';
@@ -13,10 +16,13 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { useSupabaseStore } from '@/hooks/useSupabaseStore';
+import { addWishlistItem } from '@/lib/supabase/wishlist-queries';
 import type {
   VisionScanState,
   VisionScanStatus,
+  VisionScanDestination,
   CatalogMatchResult,
+  CatalogMatch,
   VisionScanResponse,
 } from '@/types/vision-scan';
 import type { GearCondition, GearItem } from '@/types/gear';
@@ -26,6 +32,8 @@ import type { GearCondition, GearItem } from '@/types/gear';
 // =============================================================================
 
 export interface UseVisionScanOptions {
+  /** Where to import scanned items: 'inventory' or 'wishlist' */
+  destination?: VisionScanDestination;
   onImportComplete?: (count: number) => void;
   /** Called after successful import to trigger auto-close. Managed internally with delay. */
   onAutoClose?: () => void;
@@ -35,12 +43,19 @@ export interface UseVisionScanOptions {
 
 export interface UseVisionScanReturn {
   state: VisionScanState;
+  destination: VisionScanDestination;
   scanImage: (file: File) => Promise<void>;
   toggleItem: (index: number) => void;
   selectAll: () => void;
   deselectAll: () => void;
   importSelected: () => Promise<void>;
   reset: () => void;
+  /** Open disambiguation dialog for an item with alternatives */
+  openDisambiguation: (index: number) => void;
+  /** Select a specific alternative for the disambiguating item */
+  selectAlternative: (match: CatalogMatch) => void;
+  /** Close disambiguation without selecting */
+  closeDisambiguation: () => void;
 }
 
 // =============================================================================
@@ -54,6 +69,7 @@ function createInitialState(): VisionScanState {
     selectedIndices: new Set(),
     error: null,
     importedCount: 0,
+    disambiguatingIndex: null,
   };
 }
 
@@ -111,6 +127,7 @@ function mapApiError(
 // =============================================================================
 
 export function useVisionScan({
+  destination = 'inventory',
   onImportComplete,
   onAutoClose,
   autoCloseDelayMs = 1500,
@@ -168,6 +185,7 @@ export function useVisionScan({
         selectedIndices: new Set(),
         error: null,
         importedCount: 0,
+        disambiguatingIndex: null,
       });
 
       try {
@@ -193,6 +211,7 @@ export function useVisionScan({
             selectedIndices: new Set(),
             error: null,
             importedCount: 0,
+            disambiguatingIndex: null,
           });
           toast.info(t('noItemsDetected'));
           return;
@@ -212,6 +231,7 @@ export function useVisionScan({
           selectedIndices,
           error: null,
           importedCount: 0,
+          disambiguatingIndex: null,
         });
 
         toast.success(t('itemsDetected', { count: data.items.length }));
@@ -264,6 +284,57 @@ export function useVisionScan({
   }, []);
 
   // =========================================================================
+  // Disambiguation Controls
+  // =========================================================================
+
+  const openDisambiguation = useCallback((index: number) => {
+    setState((prev) => ({
+      ...prev,
+      status: 'selecting',
+      disambiguatingIndex: index,
+    }));
+  }, []);
+
+  const selectAlternative = useCallback((match: CatalogMatch) => {
+    setState((prev) => {
+      if (prev.disambiguatingIndex === null) return prev;
+      const updatedResults = [...prev.results];
+      const current = updatedResults[prev.disambiguatingIndex];
+      if (!current) return prev;
+
+      // Move current best match to alternatives, put selected as best
+      const oldAlternatives = current.alternatives.filter(
+        (a) => a.productId !== match.productId
+      );
+      if (current.catalogMatch) {
+        oldAlternatives.push(current.catalogMatch);
+        oldAlternatives.sort((a, b) => b.matchScore - a.matchScore);
+      }
+
+      updatedResults[prev.disambiguatingIndex] = {
+        ...current,
+        catalogMatch: match,
+        alternatives: oldAlternatives,
+      };
+
+      return {
+        ...prev,
+        status: 'review',
+        results: updatedResults,
+        disambiguatingIndex: null,
+      };
+    });
+  }, []);
+
+  const closeDisambiguation = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      status: 'review',
+      disambiguatingIndex: null,
+    }));
+  }, []);
+
+  // =========================================================================
   // Import Selected Items
   // =========================================================================
 
@@ -283,15 +354,17 @@ export function useVisionScan({
     setStatus('importing');
 
     try {
+      const isWishlist = destination === 'wishlist';
+
       // Build all GearItem payloads upfront
       const itemPayloads: Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'>[] =
         selectedItems.map(({ detected, catalogMatch }) => ({
           name: catalogMatch?.productName ?? detected.name,
           brand: catalogMatch?.brandName ?? detected.brand ?? null,
-          description: null,
+          description: catalogMatch?.description ?? null,
           brandUrl: null,
           modelNumber: null,
-          productUrl: null,
+          productUrl: catalogMatch?.productUrl ?? null,
           productTypeId: catalogMatch?.productTypeId ?? null,
           weightGrams:
             catalogMatch?.weightGrams ??
@@ -313,11 +386,11 @@ export function useVisionScan({
           retailerUrl: null,
           manufacturerPrice: catalogMatch?.priceUsd || null,
           manufacturerCurrency: catalogMatch?.priceUsd ? 'USD' : null,
-          primaryImageUrl: null,
+          primaryImageUrl: catalogMatch?.imageUrl ?? null,
           galleryImageUrls: [],
           nobgImages: undefined,
           condition: mapVisionConditionToGear(detected.condition),
-          status: 'own',
+          status: isWishlist ? 'wishlist' : 'own',
           notes: null,
           quantity: 1,
           isFavourite: false,
@@ -331,10 +404,16 @@ export function useVisionScan({
           dependencyIds: [],
         }));
 
-      // Batch import in parallel via the Zustand store so the UI refreshes
-      // immediately without requiring a page reload.
+      // Import via appropriate store method based on destination
       const importResults = await Promise.allSettled(
-        itemPayloads.map((payload) => addItem(payload))
+        itemPayloads.map((payload) => {
+          if (isWishlist) {
+            // addWishlistItem expects payload without status (it sets status='wishlist' internally)
+            const { status: _status, ...wishlistPayload } = payload;
+            return addWishlistItem(wishlistPayload);
+          }
+          return addItem(payload);
+        })
       );
 
       const importedCount = importResults.filter(
@@ -352,10 +431,14 @@ export function useVisionScan({
         importedCount,
       }));
 
+      const successKey = isWishlist
+        ? 'importSuccessWishlist'
+        : 'importSuccess';
+
       if (failedNames.length === 0) {
-        toast.success(t('importSuccess', { count: importedCount }));
+        toast.success(t(successKey, { count: importedCount }));
       } else {
-        toast.success(t('importSuccess', { count: importedCount }), {
+        toast.success(t(successKey, { count: importedCount }), {
           description: t('importPartialFailure', {
             failed: failedNames.join(', '),
           }),
@@ -380,7 +463,7 @@ export function useVisionScan({
       }));
       toast.error(t('importFailed'), { description: message });
     }
-  }, [state.results, state.selectedIndices, t, setStatus, onImportComplete, onAutoClose, autoCloseDelayMs, addItem]);
+  }, [state.results, state.selectedIndices, t, setStatus, onImportComplete, onAutoClose, autoCloseDelayMs, addItem, destination]);
 
   // =========================================================================
   // Reset
@@ -397,12 +480,16 @@ export function useVisionScan({
 
   return {
     state,
+    destination,
     scanImage,
     toggleItem,
     selectAll,
     deselectAll,
     importSelected,
     reset,
+    openDisambiguation,
+    selectAlternative,
+    closeDisambiguation,
   };
 }
 
