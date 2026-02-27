@@ -36,6 +36,8 @@ const ALLOWED_MAGIC_MIMES = new Set([
   'image/webp',
 ]);
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+// Sonnet default: better visual reasoning than Haiku for product identification.
+// Override via AI_VISION_MODEL env var if needed (e.g. anthropic/claude-opus-4).
 const VISION_MODEL = process.env.AI_VISION_MODEL || 'anthropic/claude-sonnet-4-5';
 const VISION_TIMEOUT_MS = 60000; // 60 seconds
 
@@ -44,34 +46,41 @@ const VISION_TIMEOUT_MS = 60000; // 60 seconds
 // =============================================================================
 
 const DetectedItemsSchema = z.object({
+  /**
+   * Chain-of-thought field: filled BEFORE detectedItems.
+   * Forces the model to reason visually (colors, logos, labels, shape,
+   * design details) before committing to a product name.
+   * Not exposed to the client — stripped before the API response.
+   */
+  visualAnalysis: z.string().describe(
+    'FIRST: describe every item in the image in detail — exact colors, visible logos/brand marks/text, material textures, shape, distinctive design features, any printed model numbers or labels. Be specific and thorough. This reasoning informs the product identification below.'
+  ),
   detectedItems: z
     .array(
       z.object({
-        name: z.string().max(200).describe('Product name of the gear item'),
+        name: z.string().max(200).describe('Exact product name and model/variant, inferred from your visual analysis above'),
         brand: z
           .string()
           .max(100)
           .nullable()
-          .describe('Brand name if recognizable from logo or design'),
+          .describe('Exact brand name from logos or labels, null if uncertain'),
         category: z
           .string()
           .max(100)
-          .describe(
-            'Category like Backpack, Tent, Sleeping Bag, Jacket, Stove, etc.'
-          ),
+          .describe('Product category'),
         estimatedWeightGrams: z
           .number()
           .nullable()
-          .describe('Estimated weight in grams if recognizable'),
+          .describe('Weight in grams based on known product specs — null if uncertain (do NOT guess)'),
         condition: z
           .enum(['new', 'good', 'fair', 'poor'])
           .nullable()
-          .describe('Estimated condition based on visible wear'),
+          .describe('Condition from visible wear'),
         confidence: z
           .number()
           .min(0)
           .max(1)
-          .describe('Confidence score from 0 to 1'),
+          .describe('How confident are you in the product identification? 0=wild guess, 1=certain'),
       })
     )
     .max(30),
@@ -225,7 +234,11 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
               },
               {
                 type: 'text',
-                text: `Identify all outdoor gear items in this image. For each item: brand (exact name from logos/labels, null if unknown), name (exact product name with model/variant if visible), category (one of: ${categoryList}), estimatedWeightGrams (null if unknown), condition (new/good/fair/poor), confidence (0–1). Return [] if no gear visible.`,
+                text: `You are an expert outdoor gear identifier. Analyze this image carefully.
+
+Step 1 — Visual analysis (visualAnalysis field): Describe every item you see in detail. Note exact colors, visible brand logos or text, material appearance, shape, construction details, any model numbers or labels on the product itself.
+
+Step 2 — Identification (detectedItems): Based ONLY on what you described above, identify each item. Use the category list: ${categoryList}. Set confidence honestly — if you can only see "it's a Sea to Summit sleeping bag" but not which model, say so in the name and set confidence to 0.5. Do NOT guess weight — only fill estimatedWeightGrams if you know it from product specs. Return [] if no outdoor gear is visible.`,
               },
             ],
           },
@@ -236,6 +249,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       clearTimeout(timeoutId);
     }
 
+    // Strip visualAnalysis (chain-of-thought helper) — not part of the public API
     const detectedItems = aiResult.object.detectedItems;
 
     if (detectedItems.length === 0) {
