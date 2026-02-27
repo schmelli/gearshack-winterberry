@@ -22,7 +22,8 @@
  * @see lib/enrichment-schema.ts — canonical schema definition (Zod + derived type)
  * @see supabase/migrations/20260226000001_catalog_search_enrichment.sql
  */
-export type { SearchEnrichment } from '@/lib/enrichment-schema';
+import type { SearchEnrichment } from '@/lib/enrichment-schema';
+export type { SearchEnrichment };
 
 // ============================================================================
 // DATABASE ENTITY TYPES
