@@ -26,6 +26,7 @@ import { useVisionScan } from '@/hooks/inventory/useVisionScan';
 import { useAlternativeImages } from '@/hooks/inventory/useAlternativeImages';
 import { VisionScanResults } from './VisionScanResults';
 import { VisionScanDisambiguation } from './VisionScanDisambiguation';
+import { VisionScanImagePreview } from './VisionScanImagePreview';
 import type { VisionScanDestination, CatalogMatch } from '@/types/vision-scan';
 
 // =============================================================================
@@ -170,19 +171,24 @@ export function VisionScanDialog({
         )}
 
         {/* ============================================================== */}
-        {/* PROCESSING: Loading State                                      */}
+        {/* PROCESSING: Scan Animation                                     */}
         {/* ============================================================== */}
         {isProcessing && (
-          <div className="flex flex-col items-center justify-center gap-4 py-8">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <div className="text-center">
-              <p className="text-sm font-medium">
-                {t('statusAnalyzing')}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('pleaseWait')}
-              </p>
-            </div>
+          <div className="space-y-3">
+            {state.previewUrl ? (
+              <VisionScanImagePreview
+                previewUrl={state.previewUrl}
+                status={state.status}
+                results={state.results}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              </div>
+            )}
+            <p className="text-center text-xs text-muted-foreground">
+              {t('pleaseWait')}
+            </p>
           </div>
         )}
 
@@ -191,6 +197,15 @@ export function VisionScanDialog({
         {/* ============================================================== */}
         {state.status === 'review' && (
           <>
+            {/* Image preview with detection chips (only when items found) */}
+            {state.previewUrl && state.results.length > 0 && (
+              <VisionScanImagePreview
+                previewUrl={state.previewUrl}
+                status={state.status}
+                results={state.results}
+              />
+            )}
+
             {state.results.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-8">
                 <Camera className="h-10 w-10 text-muted-foreground" />

@@ -85,6 +85,8 @@ export interface VisionScanState {
   importedCount: number;
   /** Index of item currently being disambiguated (choosing from alternatives) */
   disambiguatingIndex: number | null;
+  /** Object URL for the uploaded image preview (revoked on reset) */
+  previewUrl: string | null;
 }
 
 // =============================================================================

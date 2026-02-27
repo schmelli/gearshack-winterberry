@@ -167,3 +167,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================================
+   Vision Scan Animations
+   ============================================================================ */
+
+@keyframes vision-scan-line {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(700%); }
+}
+
+@keyframes vision-detect-in {
+  0%   { opacity: 0; transform: scale(0.7) translateY(4px); }
+  60%  { opacity: 1; transform: scale(1.05) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes vision-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.35); }
+  50%       { box-shadow: 0 0 0 4px rgba(255,255,255,0.10); }
+}

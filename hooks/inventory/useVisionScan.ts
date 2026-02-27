@@ -69,6 +69,7 @@ function createInitialState(): VisionScanState {
     error: null,
     importedCount: 0,
     disambiguatingIndex: null,
+    previewUrl: null,
   };
 }
 
@@ -178,6 +179,9 @@ export function useVisionScan({
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      // Create object URL for image preview (revoked on reset)
+      const previewUrl = URL.createObjectURL(file);
+
       setState({
         status: 'analyzing',
         results: [],
@@ -185,6 +189,7 @@ export function useVisionScan({
         error: null,
         importedCount: 0,
         disambiguatingIndex: null,
+        previewUrl,
       });
 
       try {
@@ -204,14 +209,15 @@ export function useVisionScan({
         }
 
         if (data.items.length === 0) {
-          setState({
+          setState((prev) => ({
+            ...prev,
             status: 'review',
             results: [],
             selectedIndices: new Set(),
             error: null,
             importedCount: 0,
             disambiguatingIndex: null,
-          });
+          }));
           toast.info(t('noItemsDetected'));
           return;
         }
@@ -224,14 +230,15 @@ export function useVisionScan({
           }
         });
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: 'review',
           results: data.items,
           selectedIndices,
           error: null,
           importedCount: 0,
           disambiguatingIndex: null,
-        });
+        }));
 
         toast.success(t('itemsDetected', { count: data.items.length }));
       } catch (error: unknown) {
@@ -369,7 +376,7 @@ export function useVisionScan({
           brandUrl: null,
           modelNumber: null,
           productUrl: catalogMatch?.productUrl ?? null,
-          productTypeId: catalogMatch?.productTypeId ?? null,
+          productTypeId: catalogMatch?.productTypeId ?? detected.resolvedProductTypeId ?? null,
           weightGrams:
             catalogMatch?.weightGrams ??
             detected.estimatedWeightGrams ??
@@ -475,7 +482,10 @@ export function useVisionScan({
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-    setState(createInitialState());
+    setState((prev) => {
+      if (prev.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return createInitialState();
+    });
   }, []);
 
   return {
