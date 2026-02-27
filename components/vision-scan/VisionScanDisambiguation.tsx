@@ -7,15 +7,13 @@
  * choose the correct product. Displayed when an item has multiple matches
  * (e.g. 500ml, 650ml, 750ml variants of the same mug).
  *
- * Images for alternatives are lazy-loaded on mount via /api/vision/product-image
- * to avoid N+1 Serper calls during the initial scan.
- *
- * Stateless - receives all data via props.
+ * Stateless — receives all data via props. Image lazy-loading is handled
+ * by the useAlternativeImages hook in VisionScanDialog.
  */
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import { Check, Star, ImageIcon, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -29,72 +27,10 @@ import type { CatalogMatchResult, CatalogMatch } from '@/types/vision-scan';
 
 interface VisionScanDisambiguationProps {
   item: CatalogMatchResult;
+  /** Map of productId → lazy-loaded imageUrl (or null). Provided by parent. */
+  lazyImages: Record<string, string | null>;
   onSelect: (match: CatalogMatch) => void;
   onCancel: () => void;
-}
-
-// =============================================================================
-// Hook: lazy-load images for alternatives
-// =============================================================================
-
-function useAlternativeImages(options: CatalogMatch[]) {
-  const [imageMap, setImageMap] = useState<Record<string, string | null>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // Only fetch images for options that don't have one yet
-    const toFetch = options.filter(
-      (o) => o.imageUrl === null && !(o.productId in imageMap)
-    );
-
-    if (toFetch.length === 0) return;
-
-    // Fetch sequentially to avoid hammering Serper (max ~5 alternatives)
-    const fetchImages = async () => {
-      const results: PromiseSettledResult<{ productId: string; imageUrl: string | null }>[] = [];
-      for (const option of toFetch) {
-        if (cancelled) break;
-        try {
-          const res = await fetch('/api/vision/product-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              brand: option.brandName,
-              productName: option.productName,
-            }),
-          });
-          const value = !res.ok
-            ? { productId: option.productId, imageUrl: null }
-            : { productId: option.productId, imageUrl: ((await res.json())?.imageUrl as string) ?? null };
-          results.push({ status: 'fulfilled', value });
-        } catch (err) {
-          results.push({ status: 'rejected', reason: err });
-        }
-      }
-
-      if (cancelled) return;
-
-      const newMap: Record<string, string | null> = {};
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          newMap[result.value.productId] = result.value.imageUrl;
-        }
-      }
-
-      setImageMap((prev) => ({ ...prev, ...newMap }));
-    };
-
-    void fetchImages();
-
-    return () => {
-      cancelled = true;
-    };
-    // Only re-run when the set of option productIds changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.map((o) => o.productId).join(',')]);
-
-  return imageMap;
 }
 
 // =============================================================================
@@ -103,6 +39,7 @@ function useAlternativeImages(options: CatalogMatch[]) {
 
 export function VisionScanDisambiguation({
   item,
+  lazyImages,
   onSelect,
   onCancel,
 }: VisionScanDisambiguationProps) {
@@ -118,9 +55,6 @@ export function VisionScanDisambiguation({
     options.push(...alternatives);
     return options.sort((a, b) => b.matchScore - a.matchScore);
   }, [catalogMatch, alternatives]);
-
-  // Lazy-load images for alternatives that don't have one
-  const lazyImages = useAlternativeImages(allOptions);
 
   return (
     <div className="space-y-4">
@@ -142,7 +76,7 @@ export function VisionScanDisambiguation({
       <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
         {allOptions.map((option) => {
           const isCurrent = option.productId === catalogMatch?.productId;
-          // Use the option's own image, or the lazy-loaded one
+          // Use the option's own image, or the lazy-loaded one from parent
           const resolvedImage =
             option.imageUrl ?? lazyImages[option.productId] ?? null;
           const isLoadingImage =
@@ -166,7 +100,8 @@ export function VisionScanDisambiguation({
                   : 'border-border'
               }`}
             >
-              {/* Product Image */}
+              {/* Product Image — uses `unoptimized` because these are arbitrary
+                  external URLs from Serper that aren't in next.config images.domains */}
               <div className="shrink-0 h-14 w-14 rounded-md border bg-muted overflow-hidden flex items-center justify-center">
                 {resolvedImage ? (
                   <Image

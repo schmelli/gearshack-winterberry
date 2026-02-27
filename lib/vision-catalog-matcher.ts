@@ -22,6 +22,11 @@ import {
   scoreCatalogCandidate,
 } from '@/lib/catalog-scoring';
 import { logWarn, logError } from '@/lib/mastra/logging';
+import {
+  buildProductImageQuery,
+  sanitizeImageUrl,
+  SERPER_TIMEOUT_MS,
+} from '@/lib/serper-helpers';
 
 // =============================================================================
 // Configuration
@@ -50,11 +55,12 @@ async function searchProductImage(
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey) return null;
 
-  const query = [brand, productName, 'outdoor gear product']
-    .filter(Boolean)
-    .join(' ');
+  const query = buildProductImageQuery(brand, productName);
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SERPER_TIMEOUT_MS);
+
     const response = await fetch('https://google.serper.dev/images', {
       method: 'POST',
       headers: {
@@ -62,14 +68,19 @@ async function searchProductImage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ q: query, num: 1 }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) return null;
 
     const data = await response.json();
-    const firstImage = data?.images?.[0];
-    return firstImage?.imageUrl ?? null;
-  } catch {
+    return sanitizeImageUrl(data?.images?.[0]?.imageUrl);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      logWarn(`[VisionMatcher] Image search timed out for query: ${query}`);
+    }
     return null;
   }
 }

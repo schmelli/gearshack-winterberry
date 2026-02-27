@@ -458,7 +458,7 @@
     "done": "Done",
     "disambiguationTitle": "Choose the correct product",
     "disambiguationDescription": "Multiple matches found for \"{name}\". Select the right one:",
-    "currentMatch": "Current",
+    "currentMatch": "Best match",
     "keepCurrent": "Keep current selection",
     "errorUnauthorized": "Please sign in to scan gear",
     "errorNotConfigured": "AI vision is not available right now",

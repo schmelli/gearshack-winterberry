@@ -458,7 +458,7 @@
     "done": "Fertig",
     "disambiguationTitle": "Richtiges Produkt auswählen",
     "disambiguationDescription": "Mehrere Treffer für \"{name}\" gefunden. Wähle das richtige Produkt:",
-    "currentMatch": "Aktuell",
+    "currentMatch": "Bester Treffer",
     "keepCurrent": "Aktuelle Auswahl beibehalten",
     "errorUnauthorized": "Bitte melde dich an, um Gear zu scannen",
     "errorNotConfigured": "KI-Vision ist momentan nicht verfügbar",

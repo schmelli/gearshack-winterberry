@@ -16,8 +16,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { productImageLimiter } from '@/lib/rate-limit';
-
-const SERPER_TIMEOUT_MS = 5000;
+import {
+  buildProductImageQuery,
+  sanitizeImageUrl,
+  SERPER_TIMEOUT_MS,
+} from '@/lib/serper-helpers';
 
 export async function POST(request: Request) {
   // Authenticate
@@ -34,7 +37,16 @@ export async function POST(request: Request) {
   // Rate limit: 30 image lookups per hour per user
   const rateLimitResult = productImageLimiter.check(user.id);
   if (!rateLimitResult.allowed) {
-    return NextResponse.json({ imageUrl: null }, { status: 429 });
+    const retryAfterSec = Math.ceil(
+      Math.max(0, rateLimitResult.resetAt - Date.now()) / 1000
+    );
+    return NextResponse.json(
+      { imageUrl: null },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSec) },
+      }
+    );
   }
 
   const body = await request.json();
@@ -48,12 +60,14 @@ export async function POST(request: Request) {
   const apiKey = process.env.SERPER_API_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ imageUrl: null });
+    console.error('SERPER_API_KEY is not configured.');
+    return NextResponse.json(
+      { imageUrl: null, error: 'Image search service is not configured.' },
+      { status: 500 }
+    );
   }
 
-  const query = [brand, productName, 'outdoor gear product']
-    .filter(Boolean)
-    .join(' ');
+  const query = buildProductImageQuery(brand, productName);
 
   try {
     const controller = new AbortController();
@@ -72,14 +86,27 @@ export async function POST(request: Request) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      return NextResponse.json({ imageUrl: null });
+      return NextResponse.json(
+        { imageUrl: null, error: 'Failed to fetch image from provider.' },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
-    const imageUrl = data?.images?.[0]?.imageUrl ?? null;
+    // Validate URL scheme to prevent javascript:/data: URLs from Serper
+    const imageUrl = sanitizeImageUrl(data?.images?.[0]?.imageUrl);
 
     return NextResponse.json({ imageUrl });
-  } catch {
-    return NextResponse.json({ imageUrl: null });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        { imageUrl: null, error: 'Image search timed out' },
+        { status: 504 }
+      );
+    }
+    return NextResponse.json(
+      { imageUrl: null, error: 'An internal server error occurred' },
+      { status: 500 }
+    );
   }
 }

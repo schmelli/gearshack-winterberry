@@ -119,7 +119,8 @@ export function VisionScanResults({
                 className="mt-0.5"
               />
 
-              {/* Product Image */}
+              {/* Product Image — uses `unoptimized` because these are arbitrary
+                  external URLs from Serper that aren't in next.config images.domains */}
               <div className="shrink-0 h-12 w-12 rounded-md border bg-muted overflow-hidden flex items-center justify-center">
                 {imageUrl ? (
                   <Image
@@ -176,54 +177,36 @@ export function VisionScanResults({
                   </p>
                 )}
 
-                {/* Catalog Match indicator */}
-                {catalogMatch && (
-                  <div className="flex items-center gap-2 mt-1">
+                {/* Catalog Match indicator + disambiguation button (rendered once) */}
+                <div className="flex items-center gap-2 mt-1">
+                  {catalogMatch ? (
                     <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                       <Check className="h-3 w-3" />
                       {t('catalogMatch', {
                         score: Math.round(catalogMatch.matchScore * 100),
                       })}
                     </div>
-
-                    {/* Disambiguation button */}
-                    {hasAlternatives && (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenDisambiguation(index);
-                        }}
-                      >
-                        <ArrowRightLeft className="h-3 w-3" />
-                        {t('showAlternatives', { count: alternatives.length })}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {!catalogMatch && (
-                  <div className="flex items-center gap-2 mt-1">
+                  ) : (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <X className="h-3 w-3" />
                       {t('noCatalogMatch')}
                     </div>
-                    {hasAlternatives && (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenDisambiguation(index);
-                        }}
-                      >
-                        <ArrowRightLeft className="h-3 w-3" />
-                        {t('showAlternatives', { count: alternatives.length })}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+
+                  {hasAlternatives && (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDisambiguation(index);
+                      }}
+                    >
+                      <ArrowRightLeft className="h-3 w-3" />
+                      {t('showAlternatives', { count: alternatives.length })}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

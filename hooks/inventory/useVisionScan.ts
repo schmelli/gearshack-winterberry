@@ -287,11 +287,15 @@ export function useVisionScan({
   // =========================================================================
 
   const openDisambiguation = useCallback((index: number) => {
-    setState((prev) => ({
-      ...prev,
-      status: 'selecting',
-      disambiguatingIndex: index,
-    }));
+    setState((prev) => {
+      // Guard: only allow disambiguation from the review state
+      if (prev.status !== 'review') return prev;
+      return {
+        ...prev,
+        status: 'selecting',
+        disambiguatingIndex: index,
+      };
+    });
   }, []);
 
   const selectAlternative = useCallback((match: CatalogMatch) => {

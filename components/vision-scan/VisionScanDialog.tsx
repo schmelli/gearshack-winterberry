@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -23,9 +23,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useVisionScan } from '@/hooks/inventory/useVisionScan';
+import { useAlternativeImages } from '@/hooks/inventory/useAlternativeImages';
 import { VisionScanResults } from './VisionScanResults';
 import { VisionScanDisambiguation } from './VisionScanDisambiguation';
-import type { VisionScanDestination } from '@/types/vision-scan';
+import type { VisionScanDestination, CatalogMatch } from '@/types/vision-scan';
 
 // =============================================================================
 // Types
@@ -70,6 +71,28 @@ export function VisionScanDialog({
     onAutoClose: () => onOpenChange(false),
   });
 
+  // Get the item being disambiguated
+  const disambiguatingItem =
+    state.disambiguatingIndex !== null
+      ? state.results[state.disambiguatingIndex] ?? null
+      : null;
+
+  // Build the list of alternatives for lazy image loading.
+  // Always called (hooks can't be conditional), but returns an empty array
+  // when disambiguation is not active, making it a no-op.
+  const disambiguationOptions = useMemo(() => {
+    if (!disambiguatingItem) return [];
+    const options: CatalogMatch[] = [];
+    if (disambiguatingItem.catalogMatch) {
+      options.push(disambiguatingItem.catalogMatch);
+    }
+    options.push(...disambiguatingItem.alternatives);
+    return options;
+  }, [disambiguatingItem]);
+
+  // Lazy-load images for disambiguation alternatives (hook in hooks/ layer)
+  const lazyImages = useAlternativeImages(disambiguationOptions);
+
   const handleClose = useCallback(() => {
     reset();
     onOpenChange(false);
@@ -95,12 +118,6 @@ export function VisionScanDialog({
 
   const isProcessing = state.status === 'analyzing';
   const isWishlist = activeDestination === 'wishlist';
-
-  // Get the item being disambiguated
-  const disambiguatingItem =
-    state.disambiguatingIndex !== null
-      ? state.results[state.disambiguatingIndex] ?? null
-      : null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -203,6 +220,7 @@ export function VisionScanDialog({
         {state.status === 'selecting' && disambiguatingItem && (
           <VisionScanDisambiguation
             item={disambiguatingItem}
+            lazyImages={lazyImages}
             onSelect={selectAlternative}
             onCancel={closeDisambiguation}
           />
