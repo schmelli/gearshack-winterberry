@@ -88,6 +88,26 @@ function getGateway() {
   return createGateway({ apiKey });
 }
 
+/** Module-level cache — survives across requests in the same serverless instance */
+let categoryLabelsCache: string[] | null = null;
+
+/**
+ * Returns level-2 category labels from the DB (e.g. "Backpacks", "Tents", …).
+ * Result is cached in module scope so the DB is only queried once per cold start.
+ */
+async function getCategoryLabels(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string[]> {
+  if (categoryLabelsCache) return categoryLabelsCache;
+  const { data } = await supabase
+    .from('categories')
+    .select('label')
+    .eq('level', 2)
+    .order('label', { ascending: true });
+  categoryLabelsCache = (data ?? []).map((r) => r.label);
+  return categoryLabelsCache;
+}
+
 // =============================================================================
 // Route Handler
 // =============================================================================
@@ -174,7 +194,13 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     const imageBase64 = Buffer.from(arrayBuffer).toString('base64');
     const imageMime = detectedType.mime;
 
-    // 7. AI Vision analysis with timeout
+    // 7. Fetch category labels from DB (cached after first call)
+    const categories = await getCategoryLabels(supabase);
+    const categoryList = categories.length > 0
+      ? categories.join(', ')
+      : 'Backpacks, Tents, Sleeping Bags, Sleeping Pads, Jackets, Base Layers, Stoves, Cookware, Trekking Poles, Headlamps';
+
+    // 8. AI Vision analysis with timeout
     const gateway = getGateway();
 
     const abortController = new AbortController();
@@ -198,7 +224,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
               },
               {
                 type: 'text',
-                text: 'Identify all outdoor gear items visible in this image. For each item:\n- brand: exact brand name from logos, labels, or distinctive design (e.g. "Sea to Summit", "MSR", "Black Diamond"). Set to null if uncertain.\n- name: precise product name including series and model number if visible (e.g. "Alto TR2 Tarp Shelter", "PocketRocket 2", "Neoair XTherm"). Include model variant (TR1, TR2, TR3, S/M/L, etc.) if identifiable from visible design cues, labels, or distinctive features.\n- category: Tent, Tarp Shelter, Sleeping Bag, Sleeping Pad, Backpack, Jacket, Fleece, Base Layer, Stove, Cookware, Trekking Poles, Headlamp, etc.\n- estimatedWeightGrams: only if you can reasonably estimate from known product specs\n- condition: based on visible wear (new/good/fair/poor)\n- confidence: how certain you are about the identification (0-1)\nBe thorough and precise. Detect every distinct gear item. Return an empty array if no outdoor gear is visible.',
+                text: `Identify all outdoor gear items in this image. For each item: brand (exact name from logos/labels, null if unknown), name (exact product name with model/variant if visible), category (one of: ${categoryList}), estimatedWeightGrams (null if unknown), condition (new/good/fair/poor), confidence (0–1). Return [] if no gear visible.`,
               },
             ],
           },
