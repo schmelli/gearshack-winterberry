@@ -4,12 +4,13 @@
  * Feature: Image-to-Inventory via Vision
  *
  * Dialog for uploading a photo and importing detected gear items.
+ * Supports importing to inventory or wishlist based on destination prop.
  * Follows Feature-Sliced Light: stateless UI, logic in useVisionScan hook.
  */
 
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -22,7 +23,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useVisionScan } from '@/hooks/inventory/useVisionScan';
+import { useAlternativeImages } from '@/hooks/inventory/useAlternativeImages';
 import { VisionScanResults } from './VisionScanResults';
+import { VisionScanDisambiguation } from './VisionScanDisambiguation';
+import type { VisionScanDestination, CatalogMatch } from '@/types/vision-scan';
 
 // =============================================================================
 // Types
@@ -32,6 +36,8 @@ interface VisionScanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImportComplete?: (count: number) => void;
+  /** Where to import scanned items: 'inventory' or 'wishlist' */
+  destination?: VisionScanDestination;
 }
 
 // =============================================================================
@@ -42,22 +48,50 @@ export function VisionScanDialog({
   open,
   onOpenChange,
   onImportComplete,
+  destination = 'inventory',
 }: VisionScanDialogProps) {
   const t = useTranslations('VisionScan');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     state,
+    destination: activeDestination,
     scanImage,
     toggleItem,
     selectAll,
     deselectAll,
     importSelected,
     reset,
+    openDisambiguation,
+    selectAlternative,
+    closeDisambiguation,
   } = useVisionScan({
+    destination,
     onImportComplete,
     onAutoClose: () => onOpenChange(false),
   });
+
+  // Get the item being disambiguated
+  const disambiguatingItem =
+    state.disambiguatingIndex !== null
+      ? state.results[state.disambiguatingIndex] ?? null
+      : null;
+
+  // Build sorted list of all options (best match + alternatives) in one place.
+  // Shared between useAlternativeImages (for lazy loading) and the
+  // VisionScanDisambiguation component (for display), avoiding duplication.
+  const disambiguationOptions = useMemo(() => {
+    if (!disambiguatingItem) return [];
+    const options: CatalogMatch[] = [];
+    if (disambiguatingItem.catalogMatch) {
+      options.push(disambiguatingItem.catalogMatch);
+    }
+    options.push(...disambiguatingItem.alternatives);
+    return options.sort((a, b) => b.matchScore - a.matchScore);
+  }, [disambiguatingItem]);
+
+  // Lazy-load images for disambiguation alternatives (hook in hooks/ layer)
+  const lazyImages = useAlternativeImages(disambiguationOptions);
 
   const handleClose = useCallback(() => {
     reset();
@@ -83,6 +117,7 @@ export function VisionScanDialog({
   }, []);
 
   const isProcessing = state.status === 'analyzing';
+  const isWishlist = activeDestination === 'wishlist';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -92,7 +127,9 @@ export function VisionScanDialog({
             <Camera className="h-5 w-5" />
             {t('title')}
           </DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+          <DialogDescription>
+            {isWishlist ? t('descriptionWishlist') : t('description')}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Hidden file input */}
@@ -171,9 +208,23 @@ export function VisionScanDialog({
                 onToggleItem={toggleItem}
                 onSelectAll={selectAll}
                 onDeselectAll={deselectAll}
+                onOpenDisambiguation={openDisambiguation}
               />
             )}
           </>
+        )}
+
+        {/* ============================================================== */}
+        {/* SELECTING: Disambiguation                                      */}
+        {/* ============================================================== */}
+        {state.status === 'selecting' && disambiguatingItem && (
+          <VisionScanDisambiguation
+            item={disambiguatingItem}
+            allOptions={disambiguationOptions}
+            lazyImages={lazyImages}
+            onSelect={selectAlternative}
+            onCancel={closeDisambiguation}
+          />
         )}
 
         {/* ============================================================== */}
@@ -193,7 +244,9 @@ export function VisionScanDialog({
           <div className="flex flex-col items-center justify-center gap-4 py-8">
             <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
             <p className="text-sm font-medium">
-              {t('importSuccess', { count: state.importedCount })}
+              {isWishlist
+                ? t('importSuccessWishlist', { count: state.importedCount })
+                : t('importSuccess', { count: state.importedCount })}
             </p>
           </div>
         )}
@@ -211,9 +264,13 @@ export function VisionScanDialog({
                 onClick={importSelected}
                 disabled={state.selectedIndices.size === 0}
               >
-                {t('importSelected', {
-                  count: state.selectedIndices.size,
-                })}
+                {isWishlist
+                  ? t('importSelectedWishlist', {
+                      count: state.selectedIndices.size,
+                    })
+                  : t('importSelected', {
+                      count: state.selectedIndices.size,
+                    })}
               </Button>
             </>
           )}

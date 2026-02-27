@@ -3,14 +3,16 @@
  *
  * Feature: Image-to-Inventory via Vision
  *
- * Displays detected gear items with catalog match info.
- * Allows selection/deselection before importing to inventory.
+ * Displays detected gear items with catalog match info, images, and descriptions.
+ * Shows disambiguation button when multiple catalog alternatives exist.
+ * Allows selection/deselection before importing.
  * Stateless - receives all data via props.
  */
 
 'use client';
 
-import { Check, X, Star, Package } from 'lucide-react';
+import Image from 'next/image';
+import { Check, X, Star, Package, ArrowRightLeft, ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,7 @@ interface VisionScanResultsProps {
   onToggleItem: (index: number) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
+  onOpenDisambiguation: (index: number) => void;
 }
 
 // =============================================================================
@@ -55,6 +58,7 @@ export function VisionScanResults({
   onToggleItem,
   onSelectAll,
   onDeselectAll,
+  onOpenDisambiguation,
 }: VisionScanResultsProps) {
   const t = useTranslations('VisionScan');
   const selectedCount = selectedIndices.size;
@@ -81,9 +85,12 @@ export function VisionScanResults({
       {/* Results List */}
       <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
         {results.map((result, index) => {
-          const { detected, catalogMatch } = result;
+          const { detected, catalogMatch, alternatives } = result;
           const isSelected = selectedIndices.has(index);
           const confidence = getConfidenceBadge(detected.confidence);
+          const hasAlternatives = alternatives.length > 0;
+          const imageUrl = catalogMatch?.imageUrl ?? null;
+          const description = catalogMatch?.description ?? null;
 
           return (
             <div
@@ -111,6 +118,23 @@ export function VisionScanResults({
                 onClick={(e) => e.stopPropagation()}
                 className="mt-0.5"
               />
+
+              {/* Product Image — uses `unoptimized` because these are arbitrary
+                  external URLs from Serper that aren't in next.config images.domains */}
+              <div className="shrink-0 h-12 w-12 rounded-md border bg-muted overflow-hidden flex items-center justify-center">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt={catalogMatch?.productName ?? detected.name}
+                    width={48}
+                    height={48}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
 
               {/* Item Info */}
               <div className="flex-1 min-w-0">
@@ -146,22 +170,43 @@ export function VisionScanResults({
                   )}
                 </div>
 
-                {/* Catalog Match indicator */}
-                {catalogMatch && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-green-600 dark:text-green-400">
-                    <Check className="h-3 w-3" />
-                    {t('catalogMatch', {
-                      score: Math.round(catalogMatch.matchScore * 100),
-                    })}
-                  </div>
+                {/* Description (truncated) */}
+                {description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                    {description}
+                  </p>
                 )}
 
-                {!catalogMatch && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                    <X className="h-3 w-3" />
-                    {t('noCatalogMatch')}
-                  </div>
-                )}
+                {/* Catalog Match indicator + disambiguation button (rendered once) */}
+                <div className="flex items-center gap-2 mt-1">
+                  {catalogMatch ? (
+                    <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                      <Check className="h-3 w-3" />
+                      {t('catalogMatch', {
+                        score: Math.round(catalogMatch.matchScore * 100),
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <X className="h-3 w-3" />
+                      {t('noCatalogMatch')}
+                    </div>
+                  )}
+
+                  {hasAlternatives && (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDisambiguation(index);
+                      }}
+                    >
+                      <ArrowRightLeft className="h-3 w-3" />
+                      {t('showAlternatives', { count: alternatives.length })}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

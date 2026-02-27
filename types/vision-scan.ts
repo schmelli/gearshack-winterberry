@@ -25,36 +25,51 @@ export interface DetectedGearItem {
 }
 
 // =============================================================================
-// Catalog Match Result
+// Single Catalog Match
+// =============================================================================
+
+export interface CatalogMatch {
+  productId: string;
+  productName: string;
+  brandName: string | null;
+  productTypeId: string | null;
+  weightGrams: number | null;
+  priceUsd: number | null;
+  description: string | null;
+  productUrl: string | null;
+  imageUrl: string | null;
+  matchScore: number;
+}
+
+// =============================================================================
+// Catalog Match Result (with alternatives)
 // =============================================================================
 
 export interface CatalogMatchResult {
   /** Original detected item from vision */
   detected: DetectedGearItem;
   /** Best catalog product match, if found */
-  catalogMatch: {
-    productId: string;
-    productName: string;
-    brandName: string | null;
-    productTypeId: string | null;
-    weightGrams: number | null;
-    priceUsd: number | null;
-    matchScore: number;
-  } | null;
+  catalogMatch: CatalogMatch | null;
+  /** Alternative catalog matches for disambiguation (sorted by score desc) */
+  alternatives: CatalogMatch[];
 }
 
 // =============================================================================
 // Vision Scan State
 // =============================================================================
 
-/** State machine: idle -> analyzing -> review -> importing -> success/error */
+/** State machine: idle -> analyzing -> review -> selecting -> importing -> success/error */
 export type VisionScanStatus =
   | 'idle'
   | 'analyzing'
   | 'review'
+  | 'selecting'
   | 'importing'
   | 'success'
   | 'error';
+
+/** Destination for imported items */
+export type VisionScanDestination = 'inventory' | 'wishlist';
 
 export interface VisionScanState {
   status: VisionScanStatus;
@@ -62,6 +77,8 @@ export interface VisionScanState {
   selectedIndices: Set<number>;
   error: string | null;
   importedCount: number;
+  /** Index of item currently being disambiguated (choosing from alternatives) */
+  disambiguatingIndex: number | null;
 }
 
 // =============================================================================
