@@ -166,7 +166,7 @@ async function findCatalogMatches(
   supabase: SupabaseClient<Database>,
   detected: DetectedGearItem
 ): Promise<CatalogMatchesResult> {
-  // Build search query: combine brand and name for best match
+  // Build full search query (brand + name) for scoring later
   const searchParts: string[] = [];
   if (detected.brand) {
     searchParts.push(detected.brand);
@@ -178,14 +178,25 @@ async function findCatalogMatches(
     return { bestMatch: null, alternatives: [] };
   }
 
-  const normalizedQuery = searchQuery.toLowerCase().trim();
-  const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+  // For the DB filter, use words from the *product name* only (not brand name).
+  // catalog_products.name stores only the product name (e.g. "Alto TR2 Tent"),
+  // never the brand. Using brand words like "Sea" / "Summit" in name.ilike would
+  // never match and produce zero results.
+  const productNameWords = detected.name
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length >= 3); // skip short words like "to", "a", "in"
 
-  if (queryWords.length === 0) {
+  if (productNameWords.length === 0) {
     return { bestMatch: null, alternatives: [] };
   }
 
-  const firstWord = escapeLikePattern(queryWords[0]);
+  // Build OR conditions: each significant word in the product name is a candidate
+  // filter. This broadens recall so scoring can narrow down the best match.
+  const orFilters = productNameWords
+    .slice(0, 5) // max 5 words to keep the query manageable
+    .map((word) => `name.ilike.%${escapeLikePattern(word)}%`)
+    .join(',');
 
   // Query catalog_products with brand join, including description and product_url
   const { data, error } = await supabase
@@ -206,7 +217,7 @@ async function findCatalogMatches(
       )
     `
     )
-    .or(`name.ilike.%${firstWord}%`)
+    .or(orFilters)
     .limit(20);
 
   if (error || !data || data.length === 0) {

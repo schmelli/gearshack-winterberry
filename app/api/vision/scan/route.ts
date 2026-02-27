@@ -198,7 +198,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
               },
               {
                 type: 'text',
-                text: 'Identify all outdoor gear items visible in this image. For each item, provide the brand (if recognizable from logos, labels, or distinctive design), product name, category (e.g., Backpack, Tent, Sleeping Bag, Jacket, Stove, Trekking Poles, etc.), estimated weight in grams (if you can reasonably estimate), and condition based on visible wear. Be thorough — detect every distinct gear item you can see. If you cannot identify a specific brand, set brand to null. Return an empty array if no outdoor gear is visible.',
+                text: 'Identify all outdoor gear items visible in this image. For each item:\n- brand: exact brand name from logos, labels, or distinctive design (e.g. "Sea to Summit", "MSR", "Black Diamond"). Set to null if uncertain.\n- name: precise product name including series and model number if visible (e.g. "Alto TR2 Tarp Shelter", "PocketRocket 2", "Neoair XTherm"). Include model variant (TR1, TR2, TR3, S/M/L, etc.) if identifiable from visible design cues, labels, or distinctive features.\n- category: Tent, Tarp Shelter, Sleeping Bag, Sleeping Pad, Backpack, Jacket, Fleece, Base Layer, Stove, Cookware, Trekking Poles, Headlamp, etc.\n- estimatedWeightGrams: only if you can reasonably estimate from known product specs\n- condition: based on visible wear (new/good/fair/poor)\n- confidence: how certain you are about the identification (0-1)\nBe thorough and precise. Detect every distinct gear item. Return an empty array if no outdoor gear is visible.',
               },
             ],
           },
