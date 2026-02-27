@@ -27,6 +27,10 @@ import type { GearCondition, GearItem } from '@/types/gear';
 
 export interface UseVisionScanOptions {
   onImportComplete?: (count: number) => void;
+  /** Called after successful import to trigger auto-close. Managed internally with delay. */
+  onAutoClose?: () => void;
+  /** Delay in ms before calling onAutoClose after success (default: 1500) */
+  autoCloseDelayMs?: number;
 }
 
 export interface UseVisionScanReturn {
@@ -94,6 +98,8 @@ function mapApiError(
       return t('errorTooLarge');
     case 'VISION_TIMEOUT':
       return t('errorTimeout');
+    case 'RATE_LIMITED':
+      return t('errorRateLimited');
     case 'SCAN_FAILED':
     default:
       return t('scanFailed');
@@ -106,16 +112,22 @@ function mapApiError(
 
 export function useVisionScan({
   onImportComplete,
+  onAutoClose,
+  autoCloseDelayMs = 1500,
 }: UseVisionScanOptions = {}): UseVisionScanReturn {
   const t = useTranslations('VisionScan');
   const addItem = useSupabaseStore((state) => state.addItem);
   const [state, setState] = useState<VisionScanState>(createInitialState);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clean up any in-flight request when the component unmounts
+  // Clean up in-flight request and auto-close timer on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
     };
   }, []);
 
@@ -129,6 +141,22 @@ export function useVisionScan({
 
   const scanImage = useCallback(
     async (file: File) => {
+      // Client-side validation before upload
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+      if (file.size > MAX_FILE_SIZE) {
+        setState((prev) => ({ ...prev, status: 'error', error: t('errorTooLarge') }));
+        toast.error(t('errorTooLarge'));
+        return;
+      }
+
+      if (file.type && !ALLOWED_TYPES.includes(file.type)) {
+        setState((prev) => ({ ...prev, status: 'error', error: t('errorInvalidType') }));
+        toast.error(t('errorInvalidType'));
+        return;
+      }
+
       // Abort any in-flight request
       abortControllerRef.current?.abort();
       const controller = new AbortController();
@@ -258,16 +286,16 @@ export function useVisionScan({
       // Build all GearItem payloads upfront
       const itemPayloads: Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'>[] =
         selectedItems.map(({ detected, catalogMatch }) => ({
-          name: catalogMatch?.productName || detected.name,
-          brand: catalogMatch?.brandName || detected.brand || null,
+          name: catalogMatch?.productName ?? detected.name,
+          brand: catalogMatch?.brandName ?? detected.brand ?? null,
           description: null,
           brandUrl: null,
           modelNumber: null,
           productUrl: null,
-          productTypeId: catalogMatch?.productTypeId || null,
+          productTypeId: catalogMatch?.productTypeId ?? null,
           weightGrams:
-            catalogMatch?.weightGrams ||
-            detected.estimatedWeightGrams ||
+            catalogMatch?.weightGrams ??
+            detected.estimatedWeightGrams ??
             null,
           weightDisplayUnit: 'g',
           lengthCm: null,
@@ -335,6 +363,13 @@ export function useVisionScan({
       }
 
       onImportComplete?.(importedCount);
+
+      // Schedule auto-close if callback provided
+      if (onAutoClose) {
+        closeTimerRef.current = setTimeout(() => {
+          onAutoClose();
+        }, autoCloseDelayMs);
+      }
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : t('importFailed');
@@ -345,7 +380,7 @@ export function useVisionScan({
       }));
       toast.error(t('importFailed'), { description: message });
     }
-  }, [state.results, state.selectedIndices, t, setStatus, onImportComplete, addItem]);
+  }, [state.results, state.selectedIndices, t, setStatus, onImportComplete, onAutoClose, autoCloseDelayMs, addItem]);
 
   // =========================================================================
   // Reset
@@ -353,6 +388,10 @@ export function useVisionScan({
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
     setState(createInitialState());
   }, []);
 

@@ -12,10 +12,11 @@
  * - Workflow Visualizer in Mastra Studio
  * - Suspend/Resume capability for future Human-in-the-Loop flows
  *
- * Note: Per-step retries (retryConfig) are not yet configured. The current
- * error handling surfaces which step failed but does not automatically retry.
- * Network-bound steps (classifyIntent → Gemini) could benefit from retries: 1
- * in a follow-up. See TODO below.
+ * Retry policy: Network-bound steps (classifyIntent, prefetchData) use
+ * `retries: 1` for one automatic retry on failure. The workflow-level
+ * `retryConfig` sets a uniform 1s delay between retry attempts.
+ * buildContextStep has no retries — its network calls (preloadLoadoutContext,
+ * generateFastAnswer) are conditional and already guarded by timeouts.
  *
  * @see https://mastra.ai/docs/workflows/overview
  */
@@ -30,6 +31,7 @@ import {
   type DataRequirement,
   type QueryComplexity,
 } from '../intent-router';
+import { DOMAIN_VALUES } from '../supervisor';
 import { prefetchData, type PrefetchedContext } from '../parallel-prefetch';
 import { buildMastraSystemPrompt, LOCALIZED_CONTENT, type PromptContext } from '../config';
 import {
@@ -63,6 +65,10 @@ const WorkflowInputSchema = z.object({
   currentLoadoutId: z.string().optional(),
   enableTools: z.boolean().default(true),
   subscriptionTier: z.enum(SUBSCRIPTION_TIERS).default('standard'),
+  /** Domain classification from Supervisor Agent (Kapitel 22) */
+  domain: z.enum(DOMAIN_VALUES).optional(),
+  /** Tool names available for the classified domain + tier */
+  domainToolNames: z.array(z.string()).optional(),
 });
 
 /**
@@ -79,6 +85,8 @@ const PassThroughSchema = WorkflowInputSchema.pick({
   currentLoadoutId: true,
   enableTools: true,
   subscriptionTier: true,
+  domain: true,
+  domainToolNames: true,
 });
 
 /** Step 1 output: intent classification result */
@@ -117,6 +125,8 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
   enableTools: true,
   locale: true,
   subscriptionTier: true,
+  domain: true,
+  domainToolNames: true,
 }).extend({
   /** Enriched system prompt with prefetched data */
   enrichedSystemPrompt: z.string(),
@@ -152,6 +162,7 @@ const BuildContextOutputSchema = PassThroughSchema.pick({
 const classifyIntentStep = createStep({
   id: 'classifyIntent',
   description: 'Classify user intent using Gemini Flash for fast routing',
+  retries: 1,
   inputSchema: WorkflowInputSchema,
   outputSchema: ClassifyIntentOutputSchema,
   execute: async ({ inputData }) => {
@@ -165,6 +176,8 @@ const classifyIntentStep = createStep({
       inventoryCount,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     const intentResult = await classifyIntent(message, screen, currentLoadoutId);
@@ -176,6 +189,7 @@ const classifyIntentStep = createStep({
         confidence: intentResult.confidence,
         queryComplexity: intentResult.queryComplexity,
         dataRequirements: intentResult.dataRequirements.length,
+        domain,
       },
     });
 
@@ -199,6 +213,8 @@ const classifyIntentStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     };
   },
 });
@@ -215,6 +231,7 @@ const classifyIntentStep = createStep({
 const prefetchDataStep = createStep({
   id: 'prefetchData',
   description: 'Parallel pre-fetch data based on intent classification',
+  retries: 1,
   inputSchema: ClassifyIntentOutputSchema,
   outputSchema: PrefetchDataOutputSchema,
   execute: async ({ inputData }) => {
@@ -234,6 +251,8 @@ const prefetchDataStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     // Convert back to typed requirements — no cast needed because the schema
@@ -281,6 +300,8 @@ const prefetchDataStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     };
   },
 });
@@ -316,6 +337,8 @@ const buildContextStep = createStep({
       currentLoadoutId,
       enableTools,
       subscriptionTier,
+      domain,
+      domainToolNames,
     } = inputData;
 
     // Narrow locale once — used in multiple places below to avoid repeated casts
@@ -336,6 +359,11 @@ const buildContextStep = createStep({
 
     const promptContext: PromptContext = {
       userContext: promptUserContext,
+      // Pass domain directly so prompt builder can use it for gating gear-specific
+      // sections (e.g. GearGraph guidance) without coupling to specific tool names.
+      domain,
+      // Pass domain tool names so prompt builder builds the correct tool description section.
+      domainToolNames,
     };
 
     // Add parsed query constraints to prompt
@@ -404,6 +432,8 @@ const buildContextStep = createStep({
       conversationId,
       currentLoadoutId,
       enableTools,
+      domain,
+      domainToolNames,
       locale,
       subscriptionTier,
     };
@@ -432,6 +462,10 @@ export const gearAssistantWorkflow = createWorkflow({
     'Orchestrates intent classification, parallel data prefetching, and context assembly for the gear assistant chat pipeline',
   inputSchema: WorkflowInputSchema,
   outputSchema: BuildContextOutputSchema,
+  retryConfig: {
+    attempts: 2,
+    delay: 1000,
+  },
 });
 
 gearAssistantWorkflow.then(classifyIntentStep).then(prefetchDataStep).then(buildContextStep);

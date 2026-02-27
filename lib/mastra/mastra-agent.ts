@@ -29,6 +29,8 @@ import { searchGearKnowledgeTool } from './tools/search-gear-knowledge';
 import { addToLoadoutTool } from './tools/add-to-loadout';
 // GearGraph MCP tools (searchGear + findAlternatives via GearGraph MCP server)
 import { searchGearTool, findAlternativesTool } from './tools/mcp-graph';
+// Critic agent: budget-conscious review for expensive recommendations (Kap. 21)
+import { reviewExpensiveRecommendationTool } from './tools/review-recommendation';
 // Legacy tools kept as fallback for edge cases
 import { queryUserDataSqlTool } from './tools/query-user-data-sql';
 import { queryGearGraphTool } from './tools/query-geargraph-v2';
@@ -39,9 +41,17 @@ import { createEmbedder, getEmbeddingModelId, getEmbeddingDimensions } from './e
 import {
   GearshackUserProfileSchema,
 } from './schemas/working-memory';
-import { COMPLEXITY_ROUTING_CONFIG } from './config';
+import { COMPLEXITY_ROUTING_CONFIG, SUPERVISOR_CONFIG } from './config';
 import type { QueryComplexity } from './intent-router';
-import { logWarn } from './logging';
+import type { Domain } from './supervisor';
+import { logWarn, logInfo } from './logging';
+// Agent Middleware — defense-in-depth guardrails
+import { beforeGenerate, afterGenerate, createSanitizedTextStream } from './agent-middleware';
+// AsyncLocalStorage bridge for tool execution context
+// @mastra/core v1.0.4 creates a new empty RequestContext inside its agentic loop,
+// discarding the one passed to agent.stream(). This store bridges that gap.
+import { runWithRequestStore, wrapAsyncIterableWithContext } from './request-store';
+import type { RequestStoreContext } from './request-store';
 
 // =============================================================================
 // Request Context Type Definition
@@ -51,24 +61,27 @@ import { logWarn } from './logging';
  * Type-safe request context for the Gearshack agent.
  * Passed via requestContext to dynamic instructions and tools callbacks.
  *
+ * Extends RequestStoreContext (the tool-visible subset) with agent-level
+ * fields that only the dynamic instructions/tools callbacks need.
+ * RequestStoreContext is the single source of truth for userId,
+ * subscriptionTier, lang, and currentLoadoutId — see request-store.ts.
+ *
  * In Mastra v1.0+, DynamicArgument callbacks receive { requestContext }
  * which is the RequestContext instance passed to agent.stream()/generate().
  *
  * @see https://mastra.ai/docs/agents/runtime-context
  */
-export type GearshackRequestContext = {
-  /** Authenticated user ID */
-  userId: string;
-  /** User's subscription tier — determines available tools */
-  subscriptionTier: 'standard' | 'trailblazer';
-  /** User's locale (e.g., 'en', 'de') */
-  lang: string;
+export type GearshackRequestContext = RequestStoreContext & {
   /** Pre-built prompt context for system prompt generation (optional when enrichedPromptSuffix is the full prompt) */
   promptContext?: PromptContext;
   /** Optional pre-fetched data to append to the system prompt */
   enrichedPromptSuffix: string | undefined;
-  /** Current loadout ID for loadout-aware tools */
-  currentLoadoutId: string | undefined;
+  /**
+   * Domain classification from the Supervisor Agent (Kapitel 22).
+   * Used to reduce tool set from 10 to 3–4 per request.
+   * When undefined or supervisor routing is disabled, falls back to full tier-based toolset.
+   */
+  domain: Domain | undefined;
 };
 
 // =============================================================================
@@ -212,10 +225,10 @@ const STANDARD_TOOLS = {
 };
 
 /**
- * Trailblazer tier tools: Full access to all 9 tools including
- * advanced analysis, actions, graph relationships, and web search.
+ * Trailblazer tier tools: Full access to all 10 tools including
+ * advanced analysis, actions, graph relationships, budget review, and web search.
  *
- * 9 tools: 3 composite + 1 action + 2 GearGraph MCP + 3 legacy
+ * 10 tools: 3 composite + 1 action + 2 GearGraph MCP + 1 critic + 3 legacy
  */
 const TRAILBLAZER_TOOLS = {
   // Composite Domain Tools (Feature 060: preferred for most queries)
@@ -228,11 +241,129 @@ const TRAILBLAZER_TOOLS = {
   // findAlternatives uses graph edges (LIGHTER_THAN, SIMILAR_TO, etc.) — NOT replaceable with SQL
   searchGear: searchGearTool,
   findAlternatives: findAlternativesTool,
+  // Critic Agent: budget-conscious review for expensive recommendations (>€300)
+  // Call AFTER identifying a recommendation, BEFORE presenting it to the user
+  reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
   // Legacy tools (fallback for edge cases + direct Cypher)
   queryUserData: queryUserDataSqlTool,
   queryGearGraph: queryGearGraphTool,
   searchWeb: searchWebTool,
 };
+
+// =============================================================================
+// Domain-Based Tool Subsets (Supervisor-Agent-Pattern, Kapitel 22)
+// =============================================================================
+
+/**
+ * A subset of the Trailblazer tool collection.
+ * Using Partial<typeof TRAILBLAZER_TOOLS> constrains each domain entry to only
+ * reference tools that actually exist in TRAILBLAZER_TOOLS, surfacing accidental
+ * tool name mismatches at compile time rather than silently at runtime.
+ */
+type DomainToolSubset = Partial<typeof TRAILBLAZER_TOOLS>;
+
+/**
+ * Domain-specific tool subsets for the Trailblazer tier.
+ * The Supervisor Agent classifies each message into a domain, then only the
+ * relevant tools are passed to the LLM — reducing prompt size by ~40% for
+ * non-gear queries.
+ *
+ * Tool counts per domain:
+ * - gear:        10 tools (full set — >70% of queries, prompt references queryGearGraph + searchWeb)
+ * - community:   3 tools (search + web + SQL fallback)
+ * - marketplace: 4 tools (catalog search + alternatives + web + SQL)
+ * - profile:     2 tools (SQL + inventory stats)
+ *
+ * Gear keeps the full 10-tool set because the system prompt's GearGraph guidance
+ * and loadout analysis sections reference queryGearGraph and searchWeb. Excluding
+ * them would create a prompt-tool mismatch. The token savings come from the ~30%
+ * of non-gear queries that drop from 10 to 2–4 tools.
+ *
+ * Standard tier users always get STANDARD_TOOLS (4) regardless of domain,
+ * since their toolset is already minimal.
+ */
+const DOMAIN_TOOLS_TRAILBLAZER: Record<Domain, DomainToolSubset> = {
+  gear: {
+    // Full toolset — system prompt's GearGraph guidance and loadout analysis
+    // sections reference queryGearGraph and searchWeb explicitly.
+    // reviewExpensiveRecommendation is included because the system prompt instructs
+    // the model to call it for any gear recommendation over €300 — omitting it would
+    // create a silent mismatch between instructions and available tools.
+    analyzeLoadout: analyzeLoadoutTool,
+    inventoryInsights: inventoryInsightsTool,
+    searchGearKnowledge: searchGearKnowledgeTool,
+    addToLoadout: addToLoadoutTool,
+    searchGear: searchGearTool,
+    findAlternatives: findAlternativesTool,
+    reviewExpensiveRecommendation: reviewExpensiveRecommendationTool,
+    queryUserData: queryUserDataSqlTool,
+    queryGearGraph: queryGearGraphTool,
+    searchWeb: searchWebTool,
+  },
+  community: {
+    searchGearKnowledge: searchGearKnowledgeTool, // includes communityInsights via RAG
+    searchWeb: searchWebTool,
+    queryUserData: queryUserDataSqlTool,
+  },
+  marketplace: {
+    searchGear: searchGearTool,
+    findAlternatives: findAlternativesTool,
+    searchWeb: searchWebTool,
+    queryUserData: queryUserDataSqlTool,
+  },
+  profile: {
+    queryUserData: queryUserDataSqlTool,
+    inventoryInsights: inventoryInsightsTool,
+  },
+};
+
+/**
+ * Select tools based on subscription tier and domain classification.
+ *
+ * Priority: tier → domain
+ * - Standard tier: always STANDARD_TOOLS (4 tools) — already minimal
+ * - Trailblazer tier + domain: DOMAIN_TOOLS_TRAILBLAZER[domain]
+ * - Trailblazer tier + no domain: full TRAILBLAZER_TOOLS (10 tools, legacy path)
+ *
+ * Return type is `typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS>` rather
+ * than the broad `Record<string, unknown>` so that compile-time type checking still
+ * applies at call sites. `typeof TRAILBLAZER_TOOLS` satisfies `Partial<typeof TRAILBLAZER_TOOLS>`,
+ * so all three branches are covered by this union without losing the `DomainToolSubset`
+ * safety guarantee established by the type alias above.
+ */
+function selectToolsForRequest(
+  tier: 'standard' | 'trailblazer',
+  domain?: Domain,
+): typeof STANDARD_TOOLS | Partial<typeof TRAILBLAZER_TOOLS> {
+  // Standard tier is already minimal (4 tools) — domain filtering adds no benefit
+  if (tier !== 'trailblazer') {
+    return { ...STANDARD_TOOLS };
+  }
+
+  // Trailblazer: apply domain-based filtering if supervisor routing is enabled
+  if (SUPERVISOR_CONFIG.ENABLED && domain) {
+    return { ...DOMAIN_TOOLS_TRAILBLAZER[domain] };
+  }
+
+  // Fallback: full trailblazer toolset (supervisor disabled or domain not classified)
+  return { ...TRAILBLAZER_TOOLS };
+}
+
+/**
+ * Get the tool names that will be used for a given tier + domain combination.
+ * Used by the chat route to pass domainToolNames to the workflow for prompt building.
+ *
+ * @param tier - Subscription tier
+ * @param domain - Classified domain (optional)
+ * @returns Array of tool name strings
+ */
+export function getToolNamesForRequest(
+  tier: 'standard' | 'trailblazer',
+  domain?: Domain,
+): string[] {
+  const tools = selectToolsForRequest(tier, domain);
+  return Object.keys(tools);
+}
 
 // =============================================================================
 // Three-Tier Memory Configuration
@@ -406,20 +537,26 @@ export function createGearAgent(queryComplexity?: QueryComplexity) {
     memory: agentMemory,
     inputProcessors: INPUT_PROCESSORS,
 
-    // Dynamic tools: selected at runtime based on subscription tier.
+    // Dynamic tools: selected at runtime based on subscription tier AND domain.
     // DynamicArgument<TTools> = TTools | (({ requestContext }) => TTools | Promise<TTools>)
-    // Standard tier gets basic browse/search tools (4)
-    // Trailblazer tier gets full toolset (9) including analysis, actions, and graph
+    //
+    // Two-axis selection (Supervisor-Agent-Pattern, Kapitel 22):
+    // 1. Tier: standard (4 tools) vs trailblazer (up to 10)
+    // 2. Domain: gear/community/marketplace/profile — reduces trailblazer from 10 to 2–9
+    //
+    // Standard tier gets basic browse/search tools (4).
+    // Trailblazer tier gets full toolset (10) including analysis, actions, critic, and graph.
+    // Net effect: non-gear queries on trailblazer get 2–4 tools instead of 10,
+    // reducing prompt size by ~40% and improving tool selection accuracy.
     tools: async ({ requestContext }) => {
       const tier = requestContext.get('subscriptionTier') === 'trailblazer' ? 'trailblazer' : 'standard';
-      return tier === 'trailblazer'
-        ? { ...TRAILBLAZER_TOOLS }
-        : { ...STANDARD_TOOLS };
+      const domain = requestContext.get('domain') as Domain | undefined;
+      return selectToolsForRequest(tier, domain);
     },
   });
 
   console.log(
-    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier-based), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
+    `[Mastra Agent] Created with ${modelId} (complexity: ${queryComplexity ?? 'default'}), dynamic tools (tier + domain routing), three-tier memory, processors: ToolCallFilter + TokenLimiter(${TOKEN_LIMIT}), embeddings: ${getEmbeddingModelId()} (${getEmbeddingDimensions()}d)`
   );
   return agent;
 }
@@ -451,6 +588,8 @@ export function createGearshackRequestContext(params: {
   promptContext?: PromptContext;
   enrichedPromptSuffix?: string;
   currentLoadoutId?: string;
+  /** Domain from Supervisor Agent classification (Kapitel 22) */
+  domain?: Domain;
 }): RequestContext<GearshackRequestContext> {
   const requestContext = new RequestContext<GearshackRequestContext>();
   requestContext.set('userId', params.userId);
@@ -464,6 +603,9 @@ export function createGearshackRequestContext(params: {
   }
   if (params.currentLoadoutId !== undefined) {
     requestContext.set('currentLoadoutId', params.currentLoadoutId);
+  }
+  if (params.domain !== undefined) {
+    requestContext.set('domain', params.domain);
   }
   return requestContext;
 }
@@ -560,18 +702,23 @@ export async function persistCacheHitToMemory(
 // =============================================================================
 
 /**
- * Stream response from Mastra Agent with RequestContext
+ * Stream response from Mastra Agent with RequestContext and Guardrails
  *
  * The requestContext drives the Dynamic Agent's behavior:
  * - instructions callback reads tier, locale, promptContext → builds system prompt
  * - tools callback reads tier → selects appropriate toolset
  * - Tool execution receives userId, currentLoadoutId for data access
  *
+ * Agent Middleware:
+ * - beforeGenerate: Prompt injection detection + message length enforcement
+ * - afterGenerate: PII redaction from agent output text (stream + fullText)
+ *
  * @param agent - Mastra Agent instance (created via createGearAgent)
  * @param message - Current user message
  * @param userId - User ID for memory scoping (resourceId)
  * @param conversationId - Conversation/thread ID for Mastra memory persistence
  * @param requestContext - Populated RequestContext with tier, locale, and prompt data
+ * @throws Error if beforeGenerate rejects the message (prompt injection detected)
  */
 export async function streamMastraResponse(
   agent: Agent,
@@ -580,22 +727,86 @@ export async function streamMastraResponse(
   conversationId: string,
   requestContext: RequestContext<GearshackRequestContext>
 ) {
-  // Only the current message — Mastra retrieves history via threadId
-  const messages = [{ role: 'user' as const, content: message }];
+  // ── beforeGenerate: Input validation & sanitization ──
+  const guardResult = beforeGenerate(message, userId, conversationId);
 
-  // Stream with requestContext so dynamic instructions/tools resolve per-request,
-  // and threadId so Mastra's PostgresStore injects conversation history
-  const stream = await agent.stream(messages, {
-    resourceId: userId,
-    threadId: conversationId,
-    requestContext,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  if (!guardResult.allowed) {
+    // Throw so the caller (chat route) can emit an error SSE event.
+    // The generic message avoids leaking detection logic to the client.
+    throw new Error(guardResult.rejectionReason ?? 'Message blocked by safety filter');
+  }
+
+  // Use the sanitized (possibly truncated) message
+  const safeMessage = guardResult.sanitizedMessage ?? message;
+
+  if (guardResult.wasTruncated) {
+    logInfo('[Agent Middleware] Streaming with truncated message', {
+      userId,
+      conversationId,
+      metadata: { originalLength: message.length, safeLength: safeMessage.length },
+    });
+  }
+
+  // Only the current message — Mastra retrieves history via threadId
+  const messages = [{ role: 'user' as const, content: safeMessage }];
+
+  // Build AsyncLocalStorage context so tools can access userId even though
+  // @mastra/core v1.0.4 does not propagate requestContext to tool execute().
+  // Runtime validation instead of unsafe `as` casts — values from requestContext.get()
+  // are typed as `unknown`, so we validate before assigning.
+  const tier = requestContext.get('subscriptionTier');
+  const lang = requestContext.get('lang');
+  const loadoutId = requestContext.get('currentLoadoutId');
+
+  const storeContext: RequestStoreContext = {
+    userId,
+    subscriptionTier: tier === 'trailblazer' ? 'trailblazer' : 'standard',
+    lang: typeof lang === 'string' && lang ? lang : 'en',
+    currentLoadoutId: typeof loadoutId === 'string' ? loadoutId : undefined,
+  };
+
+  // Wrap the entire streaming lifecycle in AsyncLocalStorage so that ALL
+  // async operations — including deferred tool execute() callbacks triggered
+  // by the LLM's agentic loop — inherit the request-scoped context.
+  const stream = await runWithRequestStore(storeContext, () =>
+    agent.stream(messages, {
+      resourceId: userId,
+      threadId: conversationId,
+      requestContext,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+  );
+
+  // ── Ensure ALS context propagates during stream consumption ──
+  // CRITICAL FIX (Sentry + Claude review): When textStream is a lazy async
+  // iterable, tool execute() callbacks are triggered during iteration (each
+  // next() call), NOT during agent.stream() creation. Without this wrapper,
+  // getRequestStore() returns undefined inside tool callbacks because the
+  // runWithRequestStore scope ended after agent.stream() resolved.
+  // wrapAsyncIterableWithContext re-enters the ALS context for each iteration
+  // step, ensuring tools always have access to userId, subscriptionTier, etc.
+  const originalTextStream = stream.textStream;
+  const contextAwareTextStream = wrapAsyncIterableWithContext(originalTextStream, storeContext);
+
+  // ── afterGenerate: Wrap textStream with PII sanitization ──
+  // Transform the async iterable to apply output guardrails on each chunk.
+  // Uses a small buffer to catch PII patterns that straddle chunk boundaries.
+  const sanitizedTextStream = createSanitizedTextStream(contextAwareTextStream, userId, conversationId);
+
+  // Also sanitize the resolved full-text value so callers using fullText
+  // (e.g. for persistence or logging) do not receive unredacted PII.
+  // The `Promise.resolve('')` fallback when stream.text is falsy is intentional —
+  // it mirrors the original `stream.text || Promise.resolve('')` behaviour and
+  // ensures callers always receive a settled Promise rather than undefined.
+  const sanitizedFullText: Promise<string> = stream.text
+    ? stream.text.then((text: string) => afterGenerate(text, userId, conversationId).sanitizedText)
+    : Promise.resolve('');
 
   return {
-    textStream: stream.textStream,
+    textStream: sanitizedTextStream,
     toolCalls: stream.toolCalls || Promise.resolve([]),
-    fullText: stream.text || Promise.resolve(''),
+    fullText: sanitizedFullText,
     finishReason: stream.finishReason || Promise.resolve('stop'),
   };
 }
+

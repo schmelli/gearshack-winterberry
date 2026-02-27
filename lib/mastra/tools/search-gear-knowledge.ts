@@ -35,6 +35,8 @@ import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/communit
 import { escapeIlikeWildcards, normalizeSearchQuery } from '@/lib/catalog-scoring';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
+import { parseEnvInt } from '@/lib/utils/parse-env-int';
+import { escapeLikePattern } from '@/lib/catalog-scoring';
 
 // =============================================================================
 // GearGraph Insights Integration
@@ -117,6 +119,28 @@ async function fetchInsightsFromGearGraph(
 const REFORMULATION_MODEL = process.env.REFORMULATION_MODEL ?? 'anthropic/claude-haiku-4-5-20251001';
 /** Timeout for the reformulation LLM call (ms) */
 const REFORMULATION_TIMEOUT_MS = 3000;
+
+// =============================================================================
+// Community RAG Quality Filter Defaults
+// =============================================================================
+// Both thresholds can be tuned via environment variables without a code change.
+// This is intentional: the right thresholds depend on community size and activity
+// at the time of deployment and should be tunable without requiring a redeploy.
+//
+//   COMMUNITY_RAG_MIN_REPLIES   (default: 1)
+//     Minimum reply count for bulletin_post chunks to appear in RAG results.
+//     Set to 1 to exclude zero-reply posts (posts with at least one reply are
+//     more likely to contain validated, community-endorsed information).
+//     Set higher (e.g., 2 or 3) once the community is active enough that stricter
+//     thresholds won't starve the agent of results.
+//     Set to 0 to disable engagement filtering entirely.
+//
+//   COMMUNITY_RAG_MAX_AGE_MONTHS  (default: 24)
+//     Exclude community chunks older than this many months. 24 months (2 years)
+//     ensures gear advice stays relevant without discarding too much history.
+//     Set to 0 or omit to disable recency filtering.
+const COMMUNITY_RAG_MIN_REPLIES = parseEnvInt(process.env.COMMUNITY_RAG_MIN_REPLIES, 1);
+const COMMUNITY_RAG_MAX_AGE_MONTHS = parseEnvInt(process.env.COMMUNITY_RAG_MAX_AGE_MONTHS, 24);
 
 /**
  * Lazy-loaded gateway instance for reformulation calls.
@@ -406,7 +430,19 @@ LATENCY NOTE: Zero-result queries trigger automatic query reformulation (Agentic
         // 4a. GearGraph INSIGHTS (HAS_TIP relationships)
         fetchInsightsFromGearGraph(insightSearchTerms),
         // 4b. Community Knowledge (bulletin board posts via pgvector RAG)
-        searchCommunityKnowledge(query, { topK: 3 }).catch(() => []),
+        // Quality filters (Vorschlag 6): prioritize recent, engaged-with content.
+        // Thresholds are read from env vars (COMMUNITY_RAG_MIN_REPLIES,
+        // COMMUNITY_RAG_MAX_AGE_MONTHS) so they can be tuned without redeploying.
+        searchCommunityKnowledge(query, {
+          topK: 3,
+          // Explicit comparison avoids the `|| undefined` falsy anti-pattern that
+          // parseEnvInt was introduced to fix. 0 means "disabled" — pass null to
+          // signal "no filter" to the RPC rather than relying on 0 being falsy.
+          // Uses null (not undefined) to align with CommunitySearchOptions type:
+          //   maxAgeMonths?: number | null  /  minReplies?: number | null
+          maxAgeMonths: COMMUNITY_RAG_MAX_AGE_MONTHS === 0 ? null : COMMUNITY_RAG_MAX_AGE_MONTHS,
+          minReplies: COMMUNITY_RAG_MIN_REPLIES === 0 ? null : COMMUNITY_RAG_MIN_REPLIES,
+        }).catch(() => []),
       ]);
 
       const communityInsights = formatCommunityResults(communityResults);
@@ -547,12 +583,14 @@ async function searchUserGear(
 
   console.log(`[searchGearKnowledge] query="${query}" → categoryIds=[${categoryIds.join(',')}]`);
 
+  const escapedQuery = escapeLikePattern(query);
+
   if (categoryIds.length > 0) {
     // Search by text fields OR by matching category
     const orFilters = [
-      `name.ilike.%${query}%`,
-      `brand.ilike.%${query}%`,
-      `notes.ilike.%${query}%`,
+      `name.ilike.%${escapedQuery}%`,
+      `brand.ilike.%${escapedQuery}%`,
+      `notes.ilike.%${escapedQuery}%`,
       `product_type_id.in.(${categoryIds.join(',')})`,
     ];
     const orString = orFilters.join(',');
@@ -561,7 +599,7 @@ async function searchUserGear(
   } else {
     // Fallback: text-only search
     console.log(`[searchGearKnowledge] No categories found, using text-only search`);
-    dbQuery = dbQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%,notes.ilike.%${query}%`);
+    dbQuery = dbQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%,notes.ilike.%${escapedQuery}%`);
   }
 
   // Apply filters

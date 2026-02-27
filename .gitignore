@@ -67,3 +67,6 @@ firebase-service-account.json
 # Auto Claude data directory
 .auto-claude/
 .mastra/
+
+# Memory MCP
+.memory/

@@ -457,7 +457,8 @@
     "errorNoImage": "No image was provided",
     "errorInvalidType": "Please upload a JPEG, PNG, or WebP image",
     "errorTooLarge": "Image is too large. Maximum size is 10 MB",
-    "errorTimeout": "Vision analysis timed out. Please try again"
+    "errorTimeout": "Vision analysis timed out. Please try again",
+    "errorRateLimited": "Too many scans. Please try again later"
   },
   "ProductSearch": {
     "enterSearchTerm": "Please enter a search term",

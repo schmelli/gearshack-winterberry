@@ -14,7 +14,12 @@ import type {
   DetectedGearItem,
   CatalogMatchResult,
 } from '@/types/vision-scan';
-import { escapeLikePattern } from '@/lib/catalog-scoring';
+import {
+  escapeLikePattern,
+  buildScoringContext,
+  scoreCatalogCandidate,
+} from '@/lib/catalog-scoring';
+import { logWarn, logError } from '@/lib/mastra/logging';
 
 // =============================================================================
 // Configuration
@@ -45,23 +50,39 @@ export async function matchDetectedItemsWithCatalog(
   detectedItems: DetectedGearItem[]
 ): Promise<CatalogMatchResult[]> {
   const limit = pLimit(CATALOG_QUERY_CONCURRENCY);
+  let errorCount = 0;
 
-  return Promise.all(
+  const results = await Promise.all(
     detectedItems.map((detected) =>
       limit(async () => {
         try {
           const catalogMatch = await findBestCatalogMatch(supabase, detected);
           return { detected, catalogMatch };
         } catch (error) {
-          console.error(
-            `[VisionMatcher] Failed to match "${detected.name}":`,
-            error
-          );
+          errorCount++;
+          logWarn(`[VisionMatcher] Failed to match "${detected.name}"`, {
+            metadata: {
+              itemName: detected.name,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          });
           return { detected, catalogMatch: null };
         }
       })
     )
   );
+
+  // Log elevated warning if majority of matches failed (likely infrastructure issue)
+  if (errorCount > 0 && errorCount >= Math.ceil(detectedItems.length / 2)) {
+    logError('[VisionMatcher] Majority of catalog matches failed', undefined, {
+      metadata: {
+        totalItems: detectedItems.length,
+        failedItems: errorCount,
+      },
+    });
+  }
+
+  return results;
 }
 
 // =============================================================================
@@ -117,66 +138,23 @@ async function findBestCatalogMatch(
     return null;
   }
 
-  // Score each candidate using multi-strategy approach (same as catalog.ts)
+  // Score each candidate using shared scoring logic
   let bestMatch: {
     product: (typeof data)[0];
     score: number;
   } | null = null;
 
   for (const product of data) {
-    const productName = (product.name ?? '').toLowerCase();
     const rawBrand = product.catalog_brands;
     const brandInfo = Array.isArray(rawBrand) ? rawBrand[0] ?? null : rawBrand ?? null;
-    const brandName = (brandInfo?.name ?? '').toLowerCase();
-    const combinedText = `${brandName} ${productName}`.trim();
 
-    const potentialScores: number[] = [];
+    const ctx = buildScoringContext(searchQuery, product.name, brandInfo?.name);
+    const score = scoreCatalogCandidate(ctx, {
+      minScore: MIN_MATCH_SCORE,
+      includeBrandMatches: false,
+    });
 
-    // Strategy 1: Full query in combined text
-    if (combinedText.includes(normalizedQuery)) {
-      const matchIndex = combinedText.indexOf(normalizedQuery);
-      const score =
-        matchIndex === 0
-          ? 0.95 + 0.05 * (normalizedQuery.length / combinedText.length)
-          : 0.85 + 0.1 * (normalizedQuery.length / combinedText.length);
-      potentialScores.push(score);
-    }
-
-    // Strategy 2: All query words in combined text
-    if (
-      queryWords.length > 1 &&
-      queryWords.every((word) => combinedText.includes(word))
-    ) {
-      const score =
-        0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
-      potentialScores.push(score);
-    }
-
-    // Strategy 3: Query in product name only
-    if (productName.includes(normalizedQuery)) {
-      const matchIndex = productName.indexOf(normalizedQuery);
-      const score =
-        matchIndex === 0
-          ? 0.7 + 0.1 * (normalizedQuery.length / productName.length)
-          : 0.5 + 0.15 * (normalizedQuery.length / productName.length);
-      potentialScores.push(score);
-    }
-
-    // Strategy 4: Any words match (require 50%)
-    if (queryWords.some((word) => combinedText.includes(word))) {
-      const matchingWords = queryWords.filter((word) =>
-        combinedText.includes(word)
-      );
-      const matchRatio = matchingWords.length / queryWords.length;
-      if (matchRatio >= 0.5) {
-        potentialScores.push(0.3 * matchRatio);
-      }
-    }
-
-    const score =
-      potentialScores.length > 0 ? Math.max(...potentialScores) : 0;
-
-    if (score >= MIN_MATCH_SCORE && (!bestMatch || score > bestMatch.score)) {
+    if (score > 0 && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { product, score };
     }
   }

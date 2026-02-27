@@ -8,7 +8,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import type { BrandSearchResult, ProductSearchResult } from '@/types/catalog';
-import { escapeLikePattern } from '@/lib/catalog-scoring';
+import {
+  escapeLikePattern,
+  buildScoringContext,
+  scoreCatalogCandidate,
+} from '@/lib/catalog-scoring';
 
 // ============================================================================
 // CLIENT SETUP
@@ -181,69 +185,19 @@ export async function fuzzyProductSearch(
 
   if (error) throw error;
 
-  // Filter and score products
+  // Filter and score products using shared scoring logic
   const scoredProducts = (data || [])
     .map((product) => {
-      // Defensive null checks for product name and brand
-      const productName = (product.name ?? '').toLowerCase();
-      const brandName = (product.catalog_brands?.name ?? '').toLowerCase();
-      const combinedText = `${brandName} ${productName}`.trim();
+      const ctx = buildScoringContext(
+        normalizedQuery,
+        product.name,
+        product.catalog_brands?.name
+      );
 
-      // Evaluate all scoring strategies and select the highest score
-      const potentialScores: number[] = [];
-
-      // Strategy 1: Check if full query matches combined brand + name (0.85-1.0)
-      let strategy1Matched = false;
-      if (combinedText.includes(normalizedQuery)) {
-        const matchIndex = combinedText.indexOf(normalizedQuery);
-        const currentScore = matchIndex === 0
-          ? 0.95 + 0.05 * (normalizedQuery.length / combinedText.length)
-          : 0.85 + 0.1 * (normalizedQuery.length / combinedText.length);
-        potentialScores.push(currentScore);
-        strategy1Matched = true;
-      }
-
-      // Strategy 2: Check if all query words appear in combined text (0.75-0.85)
-      // Skip if Strategy 1 already matched (optimization - Strategy 1 implies Strategy 2)
-      if (!strategy1Matched && queryWords.length > 1 && queryWords.every(word => combinedText.includes(word))) {
-        const currentScore = 0.75 + 0.1 * (normalizedQuery.length / combinedText.length);
-        potentialScores.push(currentScore);
-      }
-
-      // Strategy 3: Check product name only (0.5-0.8)
-      if (productName.includes(normalizedQuery)) {
-        const matchIndex = productName.indexOf(normalizedQuery);
-        const currentScore = matchIndex === 0
-          ? 0.7 + 0.1 * (normalizedQuery.length / productName.length)
-          : 0.5 + 0.15 * (normalizedQuery.length / productName.length);
-        potentialScores.push(currentScore);
-      }
-
-      // Strategy 4: Check brand name only (0.4-0.7)
-      if (brandName.includes(normalizedQuery)) {
-        const matchIndex = brandName.indexOf(normalizedQuery);
-        const currentScore = matchIndex === 0
-          ? 0.6 + 0.1 * (normalizedQuery.length / brandName.length)
-          : 0.4 + 0.15 * (normalizedQuery.length / brandName.length);
-        potentialScores.push(currentScore);
-      }
-
-      // Strategy 5: Check if any query word matches (0.1-0.3)
-      // Require at least 50% of words to match to avoid too many irrelevant results
-      if (queryWords.some(word => combinedText.includes(word))) {
-        const matchingWords = queryWords.filter(word => combinedText.includes(word));
-        const matchRatio = matchingWords.length / queryWords.length;
-
-        // Only score if at least 50% of query words are present
-        if (matchRatio >= 0.5) {
-          const currentScore = 0.3 * matchRatio;
-          potentialScores.push(currentScore);
-        }
-      }
-
-      // Select the highest score from all strategies
-      const score = potentialScores.length > 0 ? Math.max(...potentialScores) : 0;
-      const hasMatch = potentialScores.length > 0;
+      const score = scoreCatalogCandidate(ctx, {
+        includeBrandMatches: true,
+        optimizeSkip: true,
+      });
 
       return {
         id: product.id,
@@ -251,21 +205,21 @@ export async function fuzzyProductSearch(
         brand: product.catalog_brands
           ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
           : null,
-        categoryMain: null, // Derived from categories table - use API for full hierarchy
-        subcategory: null,  // Derived from categories table - use API for full hierarchy
+        categoryMain: null,
+        subcategory: null,
         productType: product.product_type,
         productTypeId: product.product_type_id,
         description: product.description,
         priceUsd: product.price_usd,
         weightGrams: product.weight_grams,
-        score: Math.round(score * 100) / 100,
-        hasMatch,
+        score,
+        hasMatch: score > 0,
       };
     })
     .filter(product => product.hasMatch)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ hasMatch: _hasMatch, ...product }) => product); // Remove hasMatch flag
+    .map(({ hasMatch: _hasMatch, ...product }) => product);
 
   return scoredProducts;
 }

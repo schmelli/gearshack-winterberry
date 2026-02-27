@@ -170,6 +170,7 @@ export function buildPostChunks(post: BulletinPostForIndexing): CommunityChunk[]
     gear_names: gearNames,
     brand_names: brandNames,
     source_created_at: post.created_at,
+    reply_count: post.reply_count ?? 0,
   }));
 }
 
@@ -207,5 +208,6 @@ export function buildReplyChunks(
     gear_names: gearNames,
     brand_names: brandNames,
     source_created_at: reply.created_at,
+    reply_count: 0, // Replies don't have their own reply count
   }));
 }

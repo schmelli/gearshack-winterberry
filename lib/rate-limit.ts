@@ -212,6 +212,15 @@ export const aiChatLimiter = new RateLimiter(
 );
 
 /**
+ * Rate limiter for AI vision scan (image-to-inventory)
+ * Limit: 10 scans per hour per user
+ */
+export const visionScanLimiter = new RateLimiter(
+  10, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
  * Helper to check rate limit and return appropriate response
  */
 export function checkRateLimit(userId: string): {

@@ -116,7 +116,7 @@ export function VisionScanResults({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm truncate">
-                    {catalogMatch?.productName || detected.name}
+                    {catalogMatch?.productName ?? detected.name}
                   </span>
                   <Badge variant={confidence.variant} className="text-xs shrink-0">
                     {Math.round(detected.confidence * 100)}%
@@ -125,10 +125,10 @@ export function VisionScanResults({
 
                 <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
                   {/* Brand */}
-                  {(catalogMatch?.brandName || detected.brand) && (
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3" />
-                      {catalogMatch?.brandName || detected.brand}
+                  {(catalogMatch?.brandName ?? detected.brand) && (
+                    <span className="flex items-center gap-1 truncate">
+                      <Star className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{catalogMatch?.brandName ?? detected.brand}</span>
                     </span>
                   )}
 
@@ -139,9 +139,9 @@ export function VisionScanResults({
                   </span>
 
                   {/* Weight */}
-                  {(catalogMatch?.weightGrams || detected.estimatedWeightGrams) && (
+                  {(catalogMatch?.weightGrams ?? detected.estimatedWeightGrams) != null && (
                     <span>
-                      {catalogMatch?.weightGrams || detected.estimatedWeightGrams}g
+                      {catalogMatch?.weightGrams ?? detected.estimatedWeightGrams}g
                     </span>
                   )}
                 </div>

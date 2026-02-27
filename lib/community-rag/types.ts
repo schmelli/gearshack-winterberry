@@ -37,6 +37,8 @@ export interface CommunityChunk {
   brand_names: string[];
   /** When the source content was created */
   source_created_at: string | null;
+  /** Denormalized reply count from the source post (engagement/quality signal) */
+  reply_count: number;
 }
 
 // ============================================================================
@@ -65,6 +67,20 @@ export interface CommunitySearchOptions {
   sourceType?: CommunitySourceType;
   /** Filter by tags (returns results matching ANY of the given tags) */
   tags?: string[];
+  // Quality filters (Vorschlag 6 — Hybrid RAG)
+  /**
+   * Minimum reply count as engagement/quality signal.
+   * Pass `null` explicitly (or omit) to disable engagement filtering.
+   * Aligned with `computeEffectiveMinReplies` which accepts `number | null | undefined`.
+   */
+  minReplies?: number | null;
+  /**
+   * Maximum age in months — excludes content older than this.
+   * Pass `null` explicitly (or omit) to disable recency filtering.
+   */
+  maxAgeMonths?: number | null;
+  /** Exclude posts with 0 replies (shorthand for minReplies: 1) */
+  excludeNoEngagement?: boolean;
 }
 
 // ============================================================================
@@ -89,7 +105,12 @@ export interface BulletinPostForIndexing {
   author_id: string;
   created_at: string;
   author_name?: string;
-  reply_count?: number;
+  /**
+   * Engagement count from the source post. Required — callers must provide
+   * the current reply_count to ensure the quality filter reflects actual engagement.
+   * Use `0` when the value is unknown rather than omitting the field.
+   */
+  reply_count: number;
 }
 
 export interface BulletinReplyForIndexing {

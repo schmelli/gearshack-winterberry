@@ -457,7 +457,8 @@
     "errorNoImage": "Kein Bild wurde bereitgestellt",
     "errorInvalidType": "Bitte lade ein JPEG, PNG oder WebP hoch",
     "errorTooLarge": "Bild ist zu groß. Maximale Größe ist 10 MB",
-    "errorTimeout": "Analyse-Zeitlimit überschritten. Bitte versuche es erneut"
+    "errorTimeout": "Analyse-Zeitlimit überschritten. Bitte versuche es erneut",
+    "errorRateLimited": "Zu viele Scans. Bitte versuche es später erneut"
   },
   "ProductSearch": {
     "enterSearchTerm": "Bitte gib einen Suchbegriff ein",
