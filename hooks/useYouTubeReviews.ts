@@ -108,6 +108,9 @@ export function useYouTubeReviews({
 
       const data: YouTubeSearchResponse = await response.json();
 
+      // Guard against stale state updates if aborted after fetch resolved but during json parse
+      if (signal?.aborted) return;
+
       setVideos(data.videos);
       setCached(data.cached);
       setExpiresAt(data.expiresAt);
@@ -138,7 +141,11 @@ export function useYouTubeReviews({
     setIsQuotaExhausted(false);
     lastFetchParamsRef.current = null; // Force re-fetch
     isFetchingRef.current = false;
-    fetchReviews();
+    // Abort any in-flight request and create a new AbortController for the retry
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    fetchReviews(controller.signal);
   }, [fetchReviews]);
 
   // T035: Trigger fetch when modal opens and brand+name are available
@@ -146,6 +153,9 @@ export function useYouTubeReviews({
     if (enabled && name) {
       // Abort any in-flight request before starting a new one
       abortControllerRef.current?.abort();
+      // Reset isFetchingRef since we just aborted the old request — prevents
+      // the dedup guard from silently dropping this fetch (race condition fix)
+      isFetchingRef.current = false;
       const controller = new AbortController();
       abortControllerRef.current = controller;
       fetchReviews(controller.signal);
@@ -155,7 +165,7 @@ export function useYouTubeReviews({
       // Cleanup: abort in-flight request when deps change or component unmounts
       abortControllerRef.current?.abort();
     };
-  }, [enabled, fetchReviews]);
+  }, [enabled, name, fetchReviews]);
 
   return {
     videos,
