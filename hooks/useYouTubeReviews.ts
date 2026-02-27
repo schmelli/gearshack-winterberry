@@ -67,9 +67,14 @@ export function useYouTubeReviews({
   const lastFetchParamsRef = useRef<string | null>(null);
   // Track if currently fetching to prevent concurrent requests
   const isFetchingRef = useRef(false);
+  // AbortController ref for cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Normalize brand to prevent null vs undefined causing useCallback identity changes
+  const normalizedBrand = brand ?? '';
 
   // T033: Fetch logic for /api/youtube/search
-  const fetchReviews = useCallback(async () => {
+  const fetchReviews = useCallback(async (signal?: AbortSignal) => {
     // Skip if name is missing
     if (!name) {
       setVideos(null);
@@ -77,7 +82,7 @@ export function useYouTubeReviews({
       return;
     }
 
-    const fetchKey = `${brand ?? ''}|${name}|${limit}`;
+    const fetchKey = `${normalizedBrand}|${name}|${limit}`;
 
     // Skip if already fetched with same params or currently fetching
     if (fetchKey === lastFetchParamsRef.current || isFetchingRef.current) {
@@ -90,11 +95,11 @@ export function useYouTubeReviews({
 
     try {
       const params = new URLSearchParams();
-      if (brand) params.set('brand', brand);
+      if (normalizedBrand) params.set('brand', normalizedBrand);
       params.set('name', name);
       params.set('limit', String(limit));
 
-      const response = await fetch(`/api/youtube/search?${params.toString()}`);
+      const response = await fetch(`/api/youtube/search?${params.toString()}`, { signal });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -103,22 +108,32 @@ export function useYouTubeReviews({
 
       const data: YouTubeSearchResponse = await response.json();
 
+      // Guard against stale state updates if aborted after fetch resolved but during json parse
+      if (signal?.aborted) return;
+
       setVideos(data.videos);
       setCached(data.cached);
       setExpiresAt(data.expiresAt);
       lastFetchParamsRef.current = fetchKey;
     } catch (err) {
+      // Don't update state if the request was aborted
+      if (signal?.aborted) return;
+
       console.error('YouTube fetch error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unable to load reviews';
       setError(errorMessage);
       // Detect quota exhaustion from error message (retry won't help until quota resets)
       setIsQuotaExhausted(errorMessage.toLowerCase().includes('quota'));
       setVideos(null);
+      // Mark this fetchKey as attempted to prevent re-fetching the same failed query
+      lastFetchParamsRef.current = fetchKey;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
       isFetchingRef.current = false;
     }
-  }, [brand, name, limit]);
+  }, [normalizedBrand, name, limit]);
 
   // T034a: Retry function that clears error state and re-fetches
   const retry = useCallback(() => {
@@ -126,15 +141,31 @@ export function useYouTubeReviews({
     setIsQuotaExhausted(false);
     lastFetchParamsRef.current = null; // Force re-fetch
     isFetchingRef.current = false;
-    fetchReviews();
+    // Abort any in-flight request and create a new AbortController for the retry
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    fetchReviews(controller.signal);
   }, [fetchReviews]);
 
   // T035: Trigger fetch when modal opens and brand+name are available
   useEffect(() => {
     if (enabled && name) {
-      fetchReviews();
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      // Reset isFetchingRef since we just aborted the old request — prevents
+      // the dedup guard from silently dropping this fetch (race condition fix)
+      isFetchingRef.current = false;
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      fetchReviews(controller.signal);
     }
-  }, [enabled, name, brand, fetchReviews]);
+
+    return () => {
+      // Cleanup: abort in-flight request when deps change or component unmounts
+      abortControllerRef.current?.abort();
+    };
+  }, [enabled, name, fetchReviews]);
 
   return {
     videos,

@@ -6,6 +6,26 @@
  */
 
 // ============================================================================
+// SEARCH ENRICHMENT TYPES (ReAG Pattern)
+// ============================================================================
+
+/**
+ * LLM-generated semantic metadata for improved search discoverability.
+ * Stored as JSONB in catalog_products.search_enrichment column.
+ * Generated asynchronously via scripts/enrich-catalog-items.ts.
+ *
+ * The type is derived from the Zod `EnrichmentSchema` in `lib/enrichment-schema.ts`
+ * so the runtime validation schema and this compile-time type always stay in sync.
+ * To add or rename enrichment fields, edit `lib/enrichment-schema.ts` — this file
+ * will reflect the change automatically via `z.infer`.
+ *
+ * @see lib/enrichment-schema.ts — canonical schema definition (Zod + derived type)
+ * @see supabase/migrations/20260226000001_catalog_search_enrichment.sql
+ */
+import type { SearchEnrichment } from '@/lib/enrichment-schema';
+export type { SearchEnrichment };
+
+// ============================================================================
 // DATABASE ENTITY TYPES
 // ============================================================================
 
@@ -38,6 +58,8 @@ export interface CatalogProduct {
   description: string | null;
   priceUsd: number | null;
   weightGrams: number | null;
+  searchEnrichment: SearchEnrichment | null;
+  enrichedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

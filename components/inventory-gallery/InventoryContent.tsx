@@ -304,6 +304,7 @@ export function InventoryContent({
       <VisionScanDialog
         open={visionScanOpen}
         onOpenChange={setVisionScanOpen}
+        destination={viewMode === 'wishlist' ? 'wishlist' : 'inventory'}
       />
     </main>
   );

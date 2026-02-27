@@ -32,6 +32,7 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { extractUserId } from './utils';
 import { searchCommunityKnowledge, formatCommunityResults } from '@/lib/community-rag';
+import { escapeIlikeWildcards, normalizeSearchQuery } from '@/lib/catalog-scoring';
 import { logInfo, logWarn, createTimer } from '../logging';
 import { recordSpanEvent, addSpanAttributes } from '@/lib/mastra/tracing';
 import { parseEnvInt } from '@/lib/utils/parse-env-int';
@@ -235,6 +236,7 @@ const searchGearKnowledgeInputSchema = z.object({
     maxWeight: z.number().optional().describe('Maximum weight in grams'),
     minWeight: z.number().optional().describe('Minimum weight in grams'),
     maxPrice: z.number().optional().describe('Maximum price'),
+    minPrice: z.number().optional().describe('Minimum price'),
     status: z.enum(['own', 'wishlist', 'sold', 'all']).optional().describe('Item status filter (for user gear)'),
   }).optional().describe('Optional filters to narrow results'),
 
@@ -691,6 +693,26 @@ async function logCatalogGap(
   }
 }
 
+/**
+ * Shape returned by the search_catalog_enriched RPC function.
+ * brand_name is returned directly via LEFT JOIN catalog_brands — no secondary round-trip needed.
+ * brand_id and search_enrichment are implementation details stripped before returning to the agent.
+ */
+interface EnrichedRpcRow {
+  id: string;
+  name: string;
+  product_type: string | null;
+  description: string | null;
+  price_usd: number | null;
+  weight_grams: number | null;
+  brand_id: string | null;
+  brand_name: string | null;
+  // Always NULL from the RPC (the SQL returns NULL::jsonb to avoid serializing
+  // the full JSONB column for transfer — the caller strips this field anyway).
+  search_enrichment: null;
+  match_source: string;
+}
+
 async function searchCatalog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -700,15 +722,172 @@ async function searchCatalog(
   limit: number,
   offset: number
 ): Promise<{ type: string; data: unknown }> {
+  // Normalize raw query: strip PostgREST-unsafe chars (commas→space, parens→removed,
+  // dots→space) and collapse whitespace. Applied BEFORE escaping so both the RPC and
+  // fallback paths receive the same semantic input — prevents divergent results for
+  // queries like "tent, poles" (RPC would preserve comma; fallback would strip it).
+  const normalizedQuery = normalizeSearchQuery(query);
+
+  // Guard: empty/whitespace or normalization-emptied queries would match every row.
+  // Catches whitespace-only strings (e.g., "   ") AND queries that are purely
+  // PostgREST-unsafe chars (e.g., ",,," → "" after normalization).
+  if (!normalizedQuery) {
+    return { type: 'catalog', data: [] };
+  }
+
+  // Escape ILIKE wildcards for bound parameters (RPC args, .ilike() values).
+  // Only escapes %, _, \ — after normalization no PostgREST-unsafe chars remain.
+  const escapedQuery = escapeIlikeWildcards(normalizedQuery);
+
+  // Validate sortBy against the accepted set.
+  // Although the Zod schema enforces this at the tool boundary, this guard
+  // ensures correct DB behaviour if searchCatalog is called directly with an
+  // unexpected value (unknown values would silently fall back to name-order in SQL).
+  const VALID_SORT_BY = new Set(['weight_asc', 'weight_desc', 'price_asc', 'price_desc', 'name', 'relevance']);
+  let safeSortBy = sortBy;
+  if (!VALID_SORT_BY.has(sortBy)) {
+    logWarn('searchCatalog: unknown sortBy value, defaulting to relevance', { metadata: { sortBy } });
+    safeSortBy = 'relevance';
+  }
+
+  // Pre-resolve brand IDs if a brand filter is specified.
+  // The resolved IDs are passed directly to the RPC so the DB handles filtering.
+  let brandIds: string[] | null = null;
+  if (filters?.brand) {
+    const escapedBrand = escapeIlikeWildcards(filters.brand);
+    const { data: matchingBrands, error: brandError } = await supabase
+      .from('catalog_brands')
+      .select('id')
+      .ilike('name', `%${escapedBrand}%`);
+    // Propagate DB errors — silently swallowing them would return empty results
+    // even when matching brands exist, making brand-filtered searches unreliable.
+    if (brandError) {
+      throw new Error(`Brand lookup failed: ${brandError.message}`);
+    }
+    // Cast through typed array so TS narrows brandIds to string[] after the assignment.
+    // Without this, supabase: any causes matchingBrands to be any, and .map() on any
+    // returns any, which prevents control-flow narrowing from string[] | null to string[].
+    brandIds = ((matchingBrands ?? []) as Array<{ id: string }>).map((b) => b.id);
+    if (brandIds.length === 0) {
+      return { type: 'catalog', data: [] };
+    }
+  }
+
+  // Use enrichment-aware RPC function for search.
+  // All filtering, sorting, and pagination are handled at the DB level so that
+  // results are always correct regardless of offset or active filters.
+  // Falls back to standard ILIKE on name/description/product_type when
+  // search_enrichment is NULL (unenriched products still found).
+  const { data: rpcResults, error: rpcError } = await supabase.rpc('search_catalog_enriched', {
+    p_query: escapedQuery,
+    p_limit: limit,
+    p_offset: offset,
+    p_brand_ids: brandIds ?? null,
+    p_max_weight: filters?.maxWeight ?? null,
+    p_min_weight: filters?.minWeight ?? null,
+    p_max_price: filters?.maxPrice ?? null,
+    p_min_price: filters?.minPrice ?? null,
+    p_sort_by: safeSortBy,
+  });
+
+  if (rpcError) {
+    // Fallback: if RPC not available (e.g., migration not yet applied),
+    // use the standard ILIKE approach.
+    // Pass normalizedQuery (not raw query) so the fallback receives the same
+    // semantic input as the RPC path. The fallback also normalizes internally
+    // (defensive idempotency), but passing the already-normalized value avoids
+    // double work and removes the risk of divergence if the fallback's internal
+    // normalization is ever removed.
+    logWarn('search_catalog_enriched RPC failed, falling back to standard search', {
+      metadata: { error: rpcError.message },
+    });
+    // Pass safeSortBy (not raw sortBy) so the already-validated sort key propagates
+    // to the fallback — the fallback has its own switch/default but passing the
+    // validated value ensures consistent sort semantics regardless of which path runs.
+    // Pass brandIds so the fallback skips the redundant brand lookup DB round-trip
+    // (the IDs were already resolved above). If brandIds is null (no brand filter),
+    // the fallback will skip brand filtering entirely.
+    // Note: searchCatalogFallback can throw (e.g. on brand lookup failure); callers
+    // should let that exception propagate rather than silently swallowing it.
+    return searchCatalogFallback(supabase, normalizedQuery, filters, safeSortBy, limit, offset, brandIds);
+  }
+
+  const results: EnrichedRpcRow[] = (rpcResults as EnrichedRpcRow[] | null) ?? [];
+
+  // Aggregate match_source across results for observability.
+  // Logging the breakdown (name vs description vs enrichment hits) makes it possible
+  // to measure enrichment effectiveness in production without a schema change.
+  // Keeps logging at a single logInfo call per query (not per row) to avoid verbosity.
+  if (results.length > 0) {
+    const matchSourceCounts = results.reduce<Record<string, number>>((acc, row) => {
+      acc[row.match_source] = (acc[row.match_source] ?? 0) + 1;
+      return acc;
+    }, {});
+    // Log normalizedQuery (not escapedQuery) for human-readable dashboard output.
+    // escapedQuery contains backslash escapes (e.g., "trail\_shoe", "50\% off")
+    // which make logs harder to scan. normalizedQuery is what the user intended.
+    logInfo('catalog_search_match_sources', {
+      metadata: { query: normalizedQuery, offset, matchSources: matchSourceCounts },
+    });
+  }
+
+  // Destructure to omit internal fields (brand_id, search_enrichment, match_source).
+  // Using destructuring instead of `property: undefined` actually removes the keys from
+  // the object, making the intent self-documenting and preventing accidental leakage
+  // into agent output or JSON serialization.
+  // brand_name is already in `rest` via the RPC JOIN — no secondary lookup needed.
+  const flattened = results.map(({ brand_id: _bid, search_enrichment: _se, match_source: _ms, ...rest }) => rest);
+
+  return { type: 'catalog', data: flattened };
+}
+
+/** Valid sort values for catalog search (shared between primary and fallback paths). */
+type CatalogSortBy = 'weight_asc' | 'weight_desc' | 'price_asc' | 'price_desc' | 'name' | 'relevance';
+
+/**
+ * Fallback search when search_catalog_enriched RPC is unavailable.
+ * Uses standard ILIKE on name, description, and product_type.
+ *
+ * @param resolvedBrandIds - Pre-resolved brand IDs from searchCatalog(). When provided,
+ *   the fallback skips the redundant brand lookup DB round-trip (the IDs were already
+ *   resolved in the primary path). Pass `null` when no brand filter is active, or
+ *   `undefined` to let the fallback resolve brand IDs itself (e.g., when called directly).
+ *
+ * **Throwing contract**: This function can throw on database errors (e.g., brand lookup
+ * failure, catalog query failure). Callers — including the RPC fallback path in
+ * `searchCatalog()` — should NOT wrap this in a try/catch that swallows errors.
+ * Propagating the error gives the caller accurate failure information rather than
+ * silently returning empty results or incorrect data.
+ */
+async function searchCatalogFallback(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  query: string,
+  filters: z.infer<typeof searchGearKnowledgeInputSchema>['filters'],
+  sortBy: CatalogSortBy | string,
+  limit: number,
+  offset: number,
+  resolvedBrandIds?: string[] | null,
+): Promise<{ type: string; data: unknown }> {
+  // Normalize: mirrors searchCatalog() so both paths produce consistent results.
+  // When called from searchCatalog(), the query is already normalized (defensive
+  // idempotency — normalizeSearchQuery is idempotent, so double-normalizing is safe).
+  // When called directly, this ensures the same normalization is applied.
+  const normalizedQuery = normalizeSearchQuery(query);
+  if (!normalizedQuery) {
+    return { type: 'catalog', data: [] };
+  }
+
+  // Use escapeIlikeWildcards (not escapeLikePattern) since normalization already
+  // handled PostgREST-unsafe chars — only ILIKE wildcards (%, _, \) remain to escape.
+  const escapedQuery = escapeIlikeWildcards(normalizedQuery);
+
   let dbQuery = supabase
     .from('catalog_products')
     .select('id, name, product_type, description, price_usd, weight_grams, catalog_brands(name)');
 
-  // Text search (escape query to prevent PostgREST filter injection)
-  const escapedCatalogQuery = escapeLikePattern(query);
-  dbQuery = dbQuery.or(`name.ilike.%${escapedCatalogQuery}%,description.ilike.%${escapedCatalogQuery}%,product_type.ilike.%${escapedCatalogQuery}%`);
+  dbQuery = dbQuery.or(`name.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,product_type.ilike.%${escapedQuery}%`);
 
-  // Apply filters
   if (filters?.maxWeight) {
     dbQuery = dbQuery.lte('weight_grams', filters.maxWeight);
   }
@@ -718,21 +897,36 @@ async function searchCatalog(
   if (filters?.maxPrice) {
     dbQuery = dbQuery.lte('price_usd', filters.maxPrice);
   }
+  if (filters?.minPrice) {
+    dbQuery = dbQuery.gte('price_usd', filters.minPrice);
+  }
   if (filters?.brand) {
-    const { data: matchingBrands } = await supabase
-      .from('catalog_brands')
-      .select('id')
-      .ilike('name', `%${filters.brand}%`);
-    const brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    // Use pre-resolved brand IDs if available (passed from searchCatalog to avoid
+    // a redundant DB round-trip — the IDs were already resolved in the primary path).
+    // Falls back to resolving brand IDs here when called directly without pre-resolved IDs.
+    let brandIds: string[];
+    if (resolvedBrandIds != null) {
+      brandIds = resolvedBrandIds;
+    } else {
+      const escapedBrand = escapeIlikeWildcards(filters.brand);
+      const { data: matchingBrands, error: brandError } = await supabase
+        .from('catalog_brands')
+        .select('id')
+        .ilike('name', `%${escapedBrand}%`);
+      // Propagate DB errors — silently swallowing them would return empty results
+      // even when matching brands exist, making brand-filtered searches unreliable.
+      if (brandError) {
+        throw new Error(`Brand lookup failed: ${brandError.message}`);
+      }
+      brandIds = (matchingBrands ?? []).map((b: { id: string }) => b.id);
+    }
     if (brandIds.length > 0) {
       dbQuery = dbQuery.in('brand_id', brandIds);
     } else {
-      // Keine Marken gefunden - leeres Ergebnis zurückgeben
       return { type: 'catalog', data: [] };
     }
   }
 
-  // Sort
   switch (sortBy) {
     case 'weight_asc':
       dbQuery = dbQuery.order('weight_grams', { ascending: true, nullsFirst: false });
@@ -753,7 +947,6 @@ async function searchCatalog(
   const { data, error } = await dbQuery.range(offset, offset + limit - 1);
   if (error) throw new Error(`Catalog search: ${error.message}`);
 
-  // Flatten brand name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flattened = (data || []).map((item: any) => ({
     ...item,

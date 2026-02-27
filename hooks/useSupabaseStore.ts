@@ -115,8 +115,14 @@ export const useSupabaseStore = create<SupabaseStore>()(
         const now = new Date();
         const newItem: GearItem = { ...item, id, createdAt: now, updatedAt: now };
 
+        // Optimistic update: only add to local items array for inventory items.
+        // Wishlist items are persisted to Supabase but not shown in the
+        // inventory UI — the wishlist view fetches its own data on load.
+        // Without this guard, wishlist items ghost in the inventory until reload.
         set((state) => ({
-          items: [...state.items, newItem],
+          items: item.status === 'wishlist'
+            ? state.items
+            : [...state.items, newItem],
           syncState: startSyncOperation(state.syncState),
         }));
 
