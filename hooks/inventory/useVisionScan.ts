@@ -16,7 +16,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { useSupabaseStore } from '@/hooks/useSupabaseStore';
-import { addWishlistItem } from '@/lib/supabase/wishlist-queries';
 import type {
   VisionScanState,
   VisionScanStatus,
@@ -384,7 +383,7 @@ export function useVisionScan({
           purchaseDate: null,
           retailer: null,
           retailerUrl: null,
-          manufacturerPrice: catalogMatch?.priceUsd || null,
+          manufacturerPrice: catalogMatch?.priceUsd ?? null,
           manufacturerCurrency: catalogMatch?.priceUsd ? 'USD' : null,
           primaryImageUrl: catalogMatch?.imageUrl ?? null,
           galleryImageUrls: [],
@@ -404,16 +403,10 @@ export function useVisionScan({
           dependencyIds: [],
         }));
 
-      // Import via appropriate store method based on destination
+      // Import all items via Zustand store (handles both inventory and wishlist
+      // based on the status field, and updates local state reactively)
       const importResults = await Promise.allSettled(
-        itemPayloads.map((payload) => {
-          if (isWishlist) {
-            // addWishlistItem expects payload without status (it sets status='wishlist' internally)
-            const { status: _status, ...wishlistPayload } = payload;
-            return addWishlistItem(wishlistPayload);
-          }
-          return addItem(payload);
-        })
+        itemPayloads.map((payload) => addItem(payload))
       );
 
       const importedCount = importResults.filter(

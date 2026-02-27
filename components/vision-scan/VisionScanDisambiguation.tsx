@@ -6,13 +6,18 @@
  * Shows all catalog alternatives for a detected item and lets the user
  * choose the correct product. Displayed when an item has multiple matches
  * (e.g. 500ml, 650ml, 750ml variants of the same mug).
+ *
+ * Images for alternatives are lazy-loaded on mount via /api/vision/product-image
+ * to avoid N+1 Serper calls during the initial scan.
+ *
  * Stateless - receives all data via props.
  */
 
 'use client';
 
+import { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Check, Star, ImageIcon } from 'lucide-react';
+import { Check, Star, ImageIcon, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +34,68 @@ interface VisionScanDisambiguationProps {
 }
 
 // =============================================================================
+// Hook: lazy-load images for alternatives
+// =============================================================================
+
+function useAlternativeImages(options: CatalogMatch[]) {
+  const [imageMap, setImageMap] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // Only fetch images for options that don't have one yet
+    const toFetch = options.filter(
+      (o) => o.imageUrl === null && !(o.productId in imageMap)
+    );
+
+    if (toFetch.length === 0) return;
+
+    // Fetch in parallel but with modest concurrency (max 3)
+    const fetchImages = async () => {
+      const results = await Promise.allSettled(
+        toFetch.map(async (option) => {
+          const res = await fetch('/api/vision/product-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              brand: option.brandName,
+              productName: option.productName,
+            }),
+          });
+          if (!res.ok) return { productId: option.productId, imageUrl: null };
+          const data = await res.json();
+          return {
+            productId: option.productId,
+            imageUrl: (data?.imageUrl as string) ?? null,
+          };
+        })
+      );
+
+      if (cancelled) return;
+
+      const newMap: Record<string, string | null> = {};
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          newMap[result.value.productId] = result.value.imageUrl;
+        }
+      }
+
+      setImageMap((prev) => ({ ...prev, ...newMap }));
+    };
+
+    void fetchImages();
+
+    return () => {
+      cancelled = true;
+    };
+    // Only re-run when the set of option productIds changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.map((o) => o.productId).join(',')]);
+
+  return imageMap;
+}
+
+// =============================================================================
 // Component
 // =============================================================================
 
@@ -40,15 +107,18 @@ export function VisionScanDisambiguation({
   const t = useTranslations('VisionScan');
   const { detected, catalogMatch, alternatives } = item;
 
-  // Combine current best match + alternatives into one list for display
-  const allOptions: CatalogMatch[] = [];
-  if (catalogMatch) {
-    allOptions.push(catalogMatch);
-  }
-  allOptions.push(...alternatives);
+  // Combine current best match + alternatives into one sorted list (memoized)
+  const allOptions = useMemo(() => {
+    const options: CatalogMatch[] = [];
+    if (catalogMatch) {
+      options.push(catalogMatch);
+    }
+    options.push(...alternatives);
+    return options.sort((a, b) => b.matchScore - a.matchScore);
+  }, [catalogMatch, alternatives]);
 
-  // Sort by match score descending
-  allOptions.sort((a, b) => b.matchScore - a.matchScore);
+  // Lazy-load images for alternatives that don't have one
+  const lazyImages = useAlternativeImages(allOptions);
 
   return (
     <div className="space-y-4">
@@ -70,12 +140,24 @@ export function VisionScanDisambiguation({
       <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
         {allOptions.map((option) => {
           const isCurrent = option.productId === catalogMatch?.productId;
+          // Use the option's own image, or the lazy-loaded one
+          const resolvedImage =
+            option.imageUrl ?? lazyImages[option.productId] ?? null;
+          const isLoadingImage =
+            option.imageUrl === null && !(option.productId in lazyImages);
 
           return (
             <button
               key={option.productId}
               type="button"
-              onClick={() => onSelect(option)}
+              onClick={() => {
+                // If we lazy-loaded an image, attach it to the match before selecting
+                const matchWithImage: CatalogMatch =
+                  resolvedImage && !option.imageUrl
+                    ? { ...option, imageUrl: resolvedImage }
+                    : option;
+                onSelect(matchWithImage);
+              }}
               className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 ${
                 isCurrent
                   ? 'border-primary bg-primary/5'
@@ -84,15 +166,17 @@ export function VisionScanDisambiguation({
             >
               {/* Product Image */}
               <div className="shrink-0 h-14 w-14 rounded-md border bg-muted overflow-hidden flex items-center justify-center">
-                {option.imageUrl ? (
+                {resolvedImage ? (
                   <Image
-                    src={option.imageUrl}
+                    src={resolvedImage}
                     alt={option.productName}
                     width={56}
                     height={56}
                     className="h-full w-full object-cover"
                     unoptimized
                   />
+                ) : isLoadingImage ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 ) : (
                   <ImageIcon className="h-6 w-6 text-muted-foreground" />
                 )}

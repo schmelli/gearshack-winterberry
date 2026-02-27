@@ -256,12 +256,6 @@ export function VisionScanDialog({
             </>
           )}
 
-          {state.status === 'selecting' && (
-            <Button variant="outline" onClick={closeDisambiguation}>
-              {t('cancel')}
-            </Button>
-          )}
-
           {(state.status === 'idle' || state.status === 'error') && (
             <Button variant="outline" onClick={handleClose}>
               {t('cancel')}

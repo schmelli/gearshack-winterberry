@@ -219,49 +219,47 @@ async function findCatalogMatches(
     return { bestMatch: null, alternatives: [] };
   }
 
-  // Build CatalogMatch objects for each scored result
-  const imageLimit = pLimit(3);
-  const matchPromises = scoredMatches
+  // Build CatalogMatch objects for each scored result (synchronous — no external API calls)
+  const allMatches: CatalogMatch[] = scoredMatches
     .slice(0, MAX_ALTERNATIVES + 1)
-    .map((sm) =>
-      imageLimit(async (): Promise<CatalogMatch> => {
-        const rawBrandResult = sm.product.catalog_brands;
-        const matchedBrand = Array.isArray(rawBrandResult)
-          ? rawBrandResult[0] ?? null
-          : rawBrandResult ?? null;
+    .map((sm) => {
+      const rawBrandResult = sm.product.catalog_brands;
+      const matchedBrand = Array.isArray(rawBrandResult)
+        ? rawBrandResult[0] ?? null
+        : rawBrandResult ?? null;
 
-        // Try to find a product image via Serper
-        const imageUrl = await searchProductImage(
-          matchedBrand?.name ?? null,
-          sm.product.name
-        );
-
-        return {
-          productId: sm.product.id,
-          productName: sm.product.name,
-          brandName: matchedBrand?.name ?? null,
-          productTypeId: sm.product.product_type_id ?? null,
-          weightGrams: sm.product.weight_grams
-            ? Number(sm.product.weight_grams)
-            : null,
-          priceUsd: sm.product.price_usd
-            ? Number(sm.product.price_usd)
-            : null,
-          description: sm.product.description ?? null,
-          productUrl: sm.product.product_url ?? null,
-          imageUrl,
-          matchScore: Math.round(sm.score * 100) / 100,
-        };
-      })
-    );
-
-  const allMatches = await Promise.all(matchPromises);
+      return {
+        productId: sm.product.id,
+        productName: sm.product.name,
+        brandName: matchedBrand?.name ?? null,
+        productTypeId: sm.product.product_type_id ?? null,
+        weightGrams: sm.product.weight_grams
+          ? Number(sm.product.weight_grams)
+          : null,
+        priceUsd: sm.product.price_usd
+          ? Number(sm.product.price_usd)
+          : null,
+        description: sm.product.description ?? null,
+        productUrl: sm.product.product_url ?? null,
+        imageUrl: null, // Images fetched lazily on the client via /api/vision/product-image
+        matchScore: Math.round(sm.score * 100) / 100,
+      };
+    });
 
   // Best match must meet minimum score threshold
-  const bestMatch =
+  let bestMatch =
     allMatches[0] && allMatches[0].matchScore >= MIN_MATCH_SCORE
       ? allMatches[0]
       : null;
+
+  // Fetch image only for the best match (1 Serper call max per detected item)
+  if (bestMatch) {
+    const imageUrl = await searchProductImage(
+      bestMatch.brandName,
+      bestMatch.productName
+    );
+    bestMatch = { ...bestMatch, imageUrl };
+  }
 
   // Alternatives: remaining matches that meet the alt threshold, excluding best
   const alternatives = allMatches
