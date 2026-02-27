@@ -50,10 +50,12 @@ function useAlternativeImages(options: CatalogMatch[]) {
 
     if (toFetch.length === 0) return;
 
-    // Fetch in parallel but with modest concurrency (max 3)
+    // Fetch sequentially to avoid hammering Serper (max ~5 alternatives)
     const fetchImages = async () => {
-      const results = await Promise.allSettled(
-        toFetch.map(async (option) => {
+      const results: PromiseSettledResult<{ productId: string; imageUrl: string | null }>[] = [];
+      for (const option of toFetch) {
+        if (cancelled) break;
+        try {
           const res = await fetch('/api/vision/product-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -62,14 +64,14 @@ function useAlternativeImages(options: CatalogMatch[]) {
               productName: option.productName,
             }),
           });
-          if (!res.ok) return { productId: option.productId, imageUrl: null };
-          const data = await res.json();
-          return {
-            productId: option.productId,
-            imageUrl: (data?.imageUrl as string) ?? null,
-          };
-        })
-      );
+          const value = !res.ok
+            ? { productId: option.productId, imageUrl: null }
+            : { productId: option.productId, imageUrl: ((await res.json())?.imageUrl as string) ?? null };
+          results.push({ status: 'fulfilled', value });
+        } catch (err) {
+          results.push({ status: 'rejected', reason: err });
+        }
+      }
 
       if (cancelled) return;
 

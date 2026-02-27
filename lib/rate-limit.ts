@@ -221,6 +221,15 @@ export const visionScanLimiter = new RateLimiter(
 );
 
 /**
+ * Rate limiter for on-demand product image lookups (Serper)
+ * Limit: 30 lookups per hour per user (called per alternative during disambiguation)
+ */
+export const productImageLimiter = new RateLimiter(
+  30, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
  * Helper to check rate limit and return appropriate response
  */
 export function checkRateLimit(userId: string): {

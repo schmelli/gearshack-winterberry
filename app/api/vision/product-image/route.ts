@@ -15,6 +15,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { productImageLimiter } from '@/lib/rate-limit';
 
 const SERPER_TIMEOUT_MS = 5000;
 
@@ -28,6 +29,12 @@ export async function POST(request: Request) {
 
   if (authError || !user) {
     return NextResponse.json({ imageUrl: null }, { status: 401 });
+  }
+
+  // Rate limit: 30 image lookups per hour per user
+  const rateLimitResult = productImageLimiter.check(user.id);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json({ imageUrl: null }, { status: 429 });
   }
 
   const body = await request.json();
