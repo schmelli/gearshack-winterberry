@@ -1,0 +1,14 @@
+-- NOOP
+-- Migration: Consolidated into 20260226000001_catalog_search_enrichment.sql
+--
+-- This migration was originally used to add brand_name to the search_catalog_enriched()
+-- return columns (via LEFT JOIN catalog_brands). Since both migrations were developed
+-- before being deployed to any environment, they were consolidated into migration 000001
+-- to avoid the DROP + CREATE churn and produce a cleaner schema history.
+--
+-- See: 20260226000001_catalog_search_enrichment.sql for the full final schema.
+--
+-- This file is a no-op to preserve migration sequence numbering.
+-- A valid SQL statement is required so migration tools (Supabase CLI, Flyway, etc.)
+-- do not fail or emit warnings on an empty file.
+SELECT 1;
