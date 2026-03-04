@@ -24,7 +24,7 @@ import type { TextExtractResponse, QuickAddExtraction } from '@/types/quick-add'
 // Configuration
 // =============================================================================
 
-const PARSE_MODEL = 'claude-haiku-4-5-20251001';
+const PARSE_MODEL = 'claude-haiku-4-5';
 const MIN_CATALOG_MATCH_SCORE = 0.5;
 
 // =============================================================================

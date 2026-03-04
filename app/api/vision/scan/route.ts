@@ -51,7 +51,7 @@ const VISION_SEARCH_MODEL = (process.env.AI_VISION_MODEL ?? 'claude-sonnet-4-5')
   .replace(/^anthropic\//, '');
 
 /** Phase 2: Haiku for cheap structured-output parsing of Phase 1 research text */
-const PARSE_MODEL = 'claude-haiku-4-5-20251001';
+const PARSE_MODEL = 'claude-haiku-4-5';
 
 /**
  * Combined timeout for both phases.
