@@ -36,7 +36,7 @@ function mapProfileToOwner(profile: {
     facebook: profile.facebook,
     youtube: profile.youtube,
     website: profile.website,
-    messagingPrivacy: (profile.messaging_privacy as 'everyone' | 'friends_only' | 'nobody') || 'everyone',
+    messagingPrivacy: (profile.messaging_privacy as 'everyone' | 'friends_only' | 'nobody') || 'nobody',
   };
 }
 
@@ -140,23 +140,50 @@ export async function getShareWithStats(
   supabase: SupabaseClient,
   shareToken: string
 ): Promise<ShareWithStats | null> {
-  const baseShare = await getSharedLoadoutWithOwner(supabase, shareToken);
-  if (!baseShare) return null;
-
-  const { data, error } = await supabase
+  // Single query to get share + stats (avoids the double round-trip of
+  // calling getSharedLoadoutWithOwner which already fetches the share row)
+  const { data: shareData, error: shareError } = await supabase
     .from('loadout_shares')
-    .select('view_count, last_viewed_at, expires_at, password_hash')
+    .select('share_token, payload, allow_comments, created_at, owner_id, view_count, last_viewed_at, expires_at, password_hash')
     .eq('share_token', shareToken)
     .single();
 
-  if (error || !data) return null;
+  if (shareError || !shareData) return null;
+
+  // Fetch owner profile via v_profiles_public (same pattern as getSharedLoadoutWithOwner)
+  let owner: SharedLoadoutOwner | null = null;
+  const { data: profileData } = await supabase
+    .from('v_profiles_public' as string)
+    .select('id, display_name, avatar_url, trail_name')
+    .eq('id', shareData.owner_id)
+    .single();
+
+  if (profileData) {
+    owner = mapProfileToOwner({
+      id: profileData.id,
+      display_name: profileData.display_name,
+      avatar_url: profileData.avatar_url,
+      trail_name: profileData.trail_name,
+      bio: null,
+      location_name: null,
+      instagram: null,
+      facebook: null,
+      youtube: null,
+      website: null,
+      messaging_privacy: null,
+    });
+  }
 
   return {
-    ...baseShare,
-    viewCount: data.view_count ?? 0,
-    lastViewedAt: data.last_viewed_at,
-    expiresAt: data.expires_at,
-    hasPassword: !!data.password_hash,
+    shareToken: shareData.share_token,
+    payload: shareData.payload as SharedLoadoutPayload,
+    allowComments: shareData.allow_comments,
+    createdAt: shareData.created_at,
+    owner,
+    viewCount: shareData.view_count ?? 0,
+    lastViewedAt: shareData.last_viewed_at,
+    expiresAt: shareData.expires_at,
+    hasPassword: !!shareData.password_hash,
   };
 }
 
