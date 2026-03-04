@@ -325,8 +325,13 @@ export function InventoryContent({
       />
 
       {/* Quick Add Review Sheet (054-zero-friction-input) */}
+      {/* Keep sheet open during 'saving' and 'error' so users can retry on failure */}
       <QuickAddSheet
-        extraction={quickAdd.status === 'reviewing' ? quickAdd.extraction : null}
+        extraction={
+          quickAdd.status === 'reviewing' || quickAdd.status === 'saving' || quickAdd.status === 'error'
+            ? quickAdd.extraction
+            : null
+        }
         onSave={quickAdd.confirmSave}
         onDismiss={quickAdd.dismiss}
         isSaving={quickAdd.status === 'saving'}

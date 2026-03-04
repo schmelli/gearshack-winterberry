@@ -193,18 +193,11 @@ export function useQuickAdd(): UseQuickAddReturn {
     setError(null);
   }, []);
 
+  // dismiss is semantically distinct (user cancelled review) vs reset (programmatic),
+  // but the implementation is identical. Delegate to reset to prevent future drift.
   const dismiss = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-      successTimerRef.current = null;
-    }
-    setStatus('idle');
-    setInputType(null);
-    setExtraction(null);
-    setError(null);
-  }, []);
+    reset();
+  }, [reset]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Auto-save or review
@@ -257,6 +250,13 @@ export function useQuickAdd(): UseQuickAddReturn {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+
+      // Clear any pending success-reset timer to prevent it from
+      // resetting the UI mid-extraction (race condition fix)
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
 
       const type = detectInputType(trimmed);
       setInputType(type);
@@ -366,6 +366,13 @@ export function useQuickAdd(): UseQuickAddReturn {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+
+      // Clear any pending success-reset timer to prevent it from
+      // resetting the UI mid-extraction (race condition fix)
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
 
       setInputType('image');
       setStatus('extracting');

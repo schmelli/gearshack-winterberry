@@ -103,7 +103,12 @@ const DetectedItemsSchema = z.object({
 // Helpers
 // =============================================================================
 
-/** Module-level cache — survives across requests in the same serverless instance */
+/**
+ * Module-level cache — survives across requests in the same serverless instance.
+ * No TTL: category labels are mostly static and only change via admin actions.
+ * A cold start (new serverless instance) will re-fetch from the DB.
+ * If categories need to update more frequently, add a TTL check here.
+ */
 let categoryLabelsCache: string[] | null = null;
 
 /**
@@ -166,8 +171,8 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 3. Check AI configuration
-    if (!process.env.ANTHROPIC_API_KEY) {
+    // 3. Check AI configuration (accept either direct key or gateway key)
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
       return NextResponse.json(
         { success: false, items: [], error: 'AI_NOT_CONFIGURED' },
         { status: 503 }

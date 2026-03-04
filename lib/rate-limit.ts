@@ -224,8 +224,9 @@ export const visionScanLimiter = new RateLimiter(
  * Rate limiter for quick-add text extraction
  * Limit: 20 extractions per hour per user
  */
+export const QUICK_ADD_TEXT_LIMIT = 20;
 export const quickAddTextLimiter = new RateLimiter(
-  20, // maxAttempts
+  QUICK_ADD_TEXT_LIMIT, // maxAttempts
   60 * 60 * 1000 // windowMs (1 hour)
 );
 

@@ -15,7 +15,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { createClient } from '@/lib/supabase/server';
 import { fuzzyProductSearch } from '@/lib/supabase/catalog';
 import { resolveProductTypeId } from '@/lib/category-resolver';
-import { quickAddTextLimiter } from '@/lib/rate-limit';
+import { quickAddTextLimiter, QUICK_ADD_TEXT_LIMIT } from '@/lib/rate-limit';
 import { logError, logWarn } from '@/lib/mastra/logging';
 import { clampConfidence } from '@/types/quick-add';
 import type { TextExtractResponse, QuickAddExtraction } from '@/types/quick-add';
@@ -73,15 +73,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'Authentication required' },
+        { success: false, error: 'AUTH_REQUIRED' },
         { status: 401 }
       );
     }
 
-    // Check AI configuration
-    if (!process.env.ANTHROPIC_API_KEY) {
+    // Check AI configuration (accept either direct key or gateway key)
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'AI service not configured' },
+        { success: false, error: 'AI_NOT_CONFIGURED' },
         { status: 503 }
       );
     }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'Invalid JSON in request body' },
+        { success: false, error: 'INVALID_JSON' },
         { status: 400 }
       );
     }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+        { success: false, error: 'INVALID_INPUT' },
         { status: 400 }
       );
     }
@@ -112,17 +112,16 @@ export async function POST(request: NextRequest) {
     const trimmedText = parsed.data.text.trim();
 
     // Rate limit check (after validation so invalid requests don't burn tokens)
-    // Note: '20' must match quickAddTextLimiter maxAttempts in lib/rate-limit.ts
     const rateLimit = quickAddTextLimiter.check(user.id);
     const rateLimitHeaders = {
-      'X-RateLimit-Limit': '20',
+      'X-RateLimit-Limit': String(QUICK_ADD_TEXT_LIMIT),
       'X-RateLimit-Remaining': rateLimit.remaining.toString(),
       'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
     };
 
     if (!rateLimit.allowed) {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'Rate limit exceeded. Please wait before trying again.' },
+        { success: false, error: 'RATE_LIMITED' },
         { status: 429, headers: rateLimitHeaders }
       );
     }
@@ -155,7 +154,7 @@ Convert weight to grams if given in other units (1 kg = 1000g, 1 oz = 28.35g, 1 
         metadata: { model: PARSE_MODEL },
       });
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'Failed to extract gear data' },
+        { success: false, error: 'EXTRACTION_FAILED' },
         { status: 500 }
       );
     } finally {
@@ -263,7 +262,7 @@ Convert weight to grams if given in other units (1 kg = 1000g, 1 oz = 28.35g, 1 
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json<TextExtractResponse>(
-        { success: false, error: 'AI extraction timed out' },
+        { success: false, error: 'EXTRACTION_TIMEOUT' },
         { status: 504 }
       );
     }
@@ -272,7 +271,7 @@ Convert weight to grams if given in other units (1 kg = 1000g, 1 oz = 28.35g, 1 
       metadata: { model: PARSE_MODEL },
     });
     return NextResponse.json<TextExtractResponse>(
-      { success: false, error: 'Failed to extract gear data' },
+      { success: false, error: 'EXTRACTION_FAILED' },
       { status: 500 }
     );
   }

@@ -185,6 +185,8 @@ export function QuickAddInput({
                 : ''
           }`}
           aria-label={t('placeholder')}
+          aria-invalid={isError || undefined}
+          aria-describedby={isError && error ? 'quick-add-error' : undefined}
         />
 
         {/* Status icon inside input */}
@@ -216,7 +218,6 @@ export function QuickAddInput({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        capture="environment"
         className="hidden"
         onChange={handleFileChange}
         aria-hidden="true"
@@ -224,7 +225,11 @@ export function QuickAddInput({
 
       {/* Error message */}
       {isError && error && (
-        <p className="absolute -bottom-6 left-0 text-xs text-destructive truncate max-w-full">
+        <p
+          id="quick-add-error"
+          role="alert"
+          className="absolute -bottom-6 left-0 text-xs text-destructive truncate max-w-full"
+        >
           {error}
         </p>
       )}

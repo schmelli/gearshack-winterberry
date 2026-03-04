@@ -10,6 +10,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useQuickAddForm } from '@/hooks/useQuickAddForm';
@@ -208,11 +209,13 @@ export function QuickAddSheet({
         <div className="space-y-2">
           <Label>{t('image')}</Label>
           <div className="relative h-32 w-32 overflow-hidden rounded-md border bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={extraction.primaryImageUrl}
               alt={extraction.name ?? ''}
-              className="h-full w-full object-contain"
+              fill
+              sizes="128px"
+              className="object-contain"
+              unoptimized
             />
           </div>
         </div>
