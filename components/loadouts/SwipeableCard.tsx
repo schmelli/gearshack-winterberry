@@ -47,13 +47,63 @@ interface SwipeableCardProps {
 // =============================================================================
 
 const ACTION_ICONS: Record<SwipeAction, React.ReactNode> = {
-  remove: <X className="h-5 w-5" />,
-  toggleWorn: <Shirt className="h-5 w-5" />,
-  toggleConsumable: <Apple className="h-5 w-5" />,
-  duplicate: <Copy className="h-5 w-5" />,
-  viewDetails: <Eye className="h-5 w-5" />,
+  remove: <X className="h-5 w-5" aria-hidden="true" />,
+  toggleWorn: <Shirt className="h-5 w-5" aria-hidden="true" />,
+  toggleConsumable: <Apple className="h-5 w-5" aria-hidden="true" />,
+  duplicate: <Copy className="h-5 w-5" aria-hidden="true" />,
+  viewDetails: <Eye className="h-5 w-5" aria-hidden="true" />,
   none: null,
 };
+
+// =============================================================================
+// Sub-Component: Action Panel
+// =============================================================================
+
+interface ActionPanelProps {
+  actions: SwipeActionDisplay[];
+  absOffset: number;
+  primaryReached: boolean;
+  secondaryReached: boolean;
+}
+
+function ActionPanel({ actions, absOffset, primaryReached, secondaryReached }: ActionPanelProps) {
+  return (
+    <>
+      {actions.map((action, index) => {
+        const isActive =
+          action.isPrimary
+            ? primaryReached && !secondaryReached
+            : secondaryReached;
+
+        return (
+          <div
+            key={`${action.action}-${index}`}
+            role="img"
+            aria-label={action.label}
+            className={cn(
+              'flex flex-1 flex-col items-center justify-center gap-1 px-3',
+              action.bgColor,
+              action.textColor,
+              isActive && 'brightness-110',
+              !action.isAvailable && 'opacity-40'
+            )}
+          >
+            {absOffset > 40 && (
+              <>
+                {ACTION_ICONS[action.action]}
+                {absOffset > 70 && (
+                  <span className="text-[10px] font-medium leading-tight">
+                    {action.label}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 // =============================================================================
 // Component
@@ -84,36 +134,12 @@ export function SwipeableCard({
           )}
           style={{ width: `${absOffset}px` }}
         >
-          {leftActions.map((action, index) => {
-            const isActive =
-              action.isPrimary
-                ? primaryReached && !secondaryReached
-                : secondaryReached;
-
-            return (
-              <div
-                key={`${action.action}-${index}`}
-                className={cn(
-                  'flex flex-1 flex-col items-center justify-center gap-1 px-3',
-                  action.bgColor,
-                  action.textColor,
-                  isActive && 'brightness-110',
-                  !action.isAvailable && 'opacity-40'
-                )}
-              >
-                {absOffset > 40 && (
-                  <>
-                    {ACTION_ICONS[action.action]}
-                    {absOffset > 70 && (
-                      <span className="text-[10px] font-medium leading-tight">
-                        {action.label}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
+          <ActionPanel
+            actions={leftActions}
+            absOffset={absOffset}
+            primaryReached={primaryReached}
+            secondaryReached={secondaryReached}
+          />
         </div>
       )}
 
@@ -126,44 +152,21 @@ export function SwipeableCard({
           )}
           style={{ width: `${absOffset}px` }}
         >
-          {rightActions.map((action, index) => {
-            const isActive =
-              action.isPrimary
-                ? primaryReached && !secondaryReached
-                : secondaryReached;
-
-            return (
-              <div
-                key={`${action.action}-${index}`}
-                className={cn(
-                  'flex flex-1 flex-col items-center justify-center gap-1 px-3',
-                  action.bgColor,
-                  action.textColor,
-                  isActive && 'brightness-110',
-                  !action.isAvailable && 'opacity-40'
-                )}
-              >
-                {absOffset > 40 && (
-                  <>
-                    {ACTION_ICONS[action.action]}
-                    {absOffset > 70 && (
-                      <span className="text-[10px] font-medium leading-tight">
-                        {action.label}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
+          <ActionPanel
+            actions={rightActions}
+            absOffset={absOffset}
+            primaryReached={primaryReached}
+            secondaryReached={secondaryReached}
+          />
         </div>
       )}
 
       {/* Card content — translated by swipe offset */}
+      {/* touch-action: pan-y allows vertical scrolling but lets JS handle horizontal */}
       <div
         {...touchHandlers}
         className={cn(shouldAnimate && 'transition-transform duration-300 ease-out')}
-        style={{ transform: `translateX(${offsetX}px)` }}
+        style={{ transform: `translateX(${offsetX}px)`, touchAction: 'pan-y' }}
       >
         {children}
       </div>

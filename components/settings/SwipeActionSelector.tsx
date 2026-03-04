@@ -63,6 +63,7 @@ export function SwipeActionSelector({
   const t = useTranslations('settings.appearance.swipeActions');
 
   const handleChange = (key: keyof SwipeActionConfig, value: string) => {
+    if (!SWIPE_ACTION_OPTIONS.includes(value as SwipeAction)) return;
     onConfigChange({
       ...config,
       [key]: value as SwipeAction,

@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // =============================================================================
 // Types
@@ -113,6 +113,17 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
   // Track whether we've determined swipe direction (horizontal vs vertical)
   const directionLockedRef = useRef(false);
   const isHorizontalRef = useRef(false);
+  // Track settle timeout to clear on unmount
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (settleTimeoutRef.current) {
+        clearTimeout(settleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const reset = useCallback(() => {
     setState(INITIAL_STATE);
@@ -229,9 +240,13 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
       phase: 'settling',
     }));
 
-    // After animation, reset to idle
+    // After animation, reset to idle (clear previous timeout if any)
+    if (settleTimeoutRef.current) {
+      clearTimeout(settleTimeoutRef.current);
+    }
     const settleTime = reduceAnimations ? 0 : 300;
-    setTimeout(() => {
+    settleTimeoutRef.current = setTimeout(() => {
+      settleTimeoutRef.current = null;
       reset();
     }, settleTime);
   }, [enabled, state, onPrimaryAction, onSecondaryAction, reduceAnimations, reset]);
