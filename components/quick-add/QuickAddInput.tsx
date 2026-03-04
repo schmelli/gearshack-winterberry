@@ -55,7 +55,8 @@ export function QuickAddInput({
     const trimmed = value.trim();
     if (!trimmed || isProcessing) return;
     onSubmitText(trimmed);
-    setValue('');
+    // Don't clear input here — clear on success only (isSuccess branch renders empty input).
+    // Keeping the text on error lets users fix a typo and re-submit without retyping.
   }, [value, isProcessing, onSubmitText]);
 
   const handleKeyDown = useCallback(

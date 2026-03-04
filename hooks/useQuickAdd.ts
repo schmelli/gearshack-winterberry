@@ -105,7 +105,9 @@ function normalizeUrlImportResult(data: ImportedProductData): QuickAddExtraction
     productTypeId: data.catalogMatch?.productTypeId ?? data.categorySuggestion?.categoryId ?? null,
     categoryLabel: data.categorySuggestion?.categoryPath ?? null,
     weightGrams: data.weightGrams,
-    condition: 'new',
+    // Condition is unknown from URL import — could be a marketplace listing (eBay, Vinted).
+    // Let the user set this in the review sheet rather than assuming 'new'.
+    condition: null,
     primaryImageUrl: data.imageUrl,
     productUrl: data.productUrl,
     pricePaid: data.priceValue,
@@ -153,7 +155,9 @@ function normalizeVisionScanResult(result: CatalogMatchResult): QuickAddExtracti
 // Hook
 // =============================================================================
 
-export function useQuickAdd(): UseQuickAddReturn {
+export function useQuickAdd(
+  destination: 'inventory' | 'wishlist' = 'inventory',
+): UseQuickAddReturn {
   const t = useTranslations('QuickAdd');
   const addItem = useSupabaseStore((state) => state.addItem);
 
@@ -210,7 +214,7 @@ export function useQuickAdd(): UseQuickAddReturn {
         // Auto-save path
         setStatus('saving');
         try {
-          const payload = buildGearItemPayload(result);
+          const payload = buildGearItemPayload(result, destination);
           await addItem(payload);
           toast.success(t('savedSuccess'), {
             description: t('savedSuccessDesc', { name: result.name }),
@@ -235,7 +239,7 @@ export function useQuickAdd(): UseQuickAddReturn {
         setStatus('reviewing');
       }
     },
-    [addItem, t]
+    [addItem, destination, t]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -457,7 +461,7 @@ export function useQuickAdd(): UseQuickAddReturn {
       setError(null);
 
       try {
-        const payload = buildGearItemPayload(merged);
+        const payload = buildGearItemPayload(merged, destination);
         await addItem(payload);
         toast.success(t('savedSuccess'), {
           description: t('savedSuccessDesc', { name: merged.name }),
@@ -477,7 +481,7 @@ export function useQuickAdd(): UseQuickAddReturn {
         setError(t('errorSave'));
       }
     },
-    [extraction, addItem, t]
+    [extraction, addItem, destination, t]
   );
 
   return {
@@ -498,7 +502,8 @@ export function useQuickAdd(): UseQuickAddReturn {
 // =============================================================================
 
 function buildGearItemPayload(
-  extraction: QuickAddExtraction
+  extraction: QuickAddExtraction,
+  destination: 'inventory' | 'wishlist' = 'inventory',
 ): Omit<GearItem, 'id' | 'createdAt' | 'updatedAt'> {
   return {
     name: extraction.name ?? 'Unknown Gear',
@@ -528,7 +533,7 @@ function buildGearItemPayload(
     primaryImageUrl: extraction.primaryImageUrl ?? null,
     galleryImageUrls: [],
     condition: extraction.condition ?? 'new',
-    status: 'own',
+    status: destination === 'wishlist' ? 'wishlist' : 'own',
     notes: null,
     quantity: 1,
     isFavourite: false,

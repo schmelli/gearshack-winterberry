@@ -20,7 +20,7 @@
 import { NextResponse } from 'next/server';
 import { generateText, generateObject, stepCountIs } from 'ai';
 import type { ToolSet } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { fileTypeFromBuffer } from 'file-type';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -52,6 +52,15 @@ const VISION_SEARCH_MODEL = (process.env.AI_VISION_MODEL ?? 'claude-sonnet-4-5')
 
 /** Phase 2: Haiku for cheap structured-output parsing of Phase 1 research text */
 const PARSE_MODEL = 'claude-haiku-4-5';
+
+/**
+ * Create an Anthropic provider that accepts either ANTHROPIC_API_KEY (direct) or
+ * AI_GATEWAY_API_KEY (Vercel AI Gateway). The default `anthropic` singleton only
+ * reads ANTHROPIC_API_KEY, so gateway-only deployments would fail without this.
+ */
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY,
+});
 
 /**
  * Combined timeout for both phases.

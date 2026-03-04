@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { createClient } from '@/lib/supabase/server';
 import { fuzzyProductSearch } from '@/lib/supabase/catalog';
 import { resolveProductTypeId } from '@/lib/category-resolver';
@@ -26,6 +26,15 @@ import type { TextExtractResponse, QuickAddExtraction } from '@/types/quick-add'
 
 const PARSE_MODEL = 'claude-haiku-4-5';
 const MIN_CATALOG_MATCH_SCORE = 0.5;
+
+/**
+ * Create an Anthropic provider that accepts either ANTHROPIC_API_KEY (direct) or
+ * AI_GATEWAY_API_KEY (Vercel AI Gateway). The default `anthropic` singleton only
+ * reads ANTHROPIC_API_KEY, so gateway-only deployments would fail without this.
+ */
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY,
+});
 
 // =============================================================================
 // Zod schema for AI extraction

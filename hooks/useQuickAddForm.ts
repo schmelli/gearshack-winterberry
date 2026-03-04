@@ -79,7 +79,8 @@ export function useQuickAddForm(
     let weightGrams: number | null = null;
     const rawWeight = parseFloat(form.weightGrams);
     if (!isNaN(rawWeight) && rawWeight > 0) {
-      weightGrams = form.weightUnit === 'kg' ? Math.round(rawWeight * 1000) : Math.round(rawWeight);
+      // Round only when converting from kg (avoids sub-gram precision loss for gram input)
+      weightGrams = form.weightUnit === 'kg' ? Math.round(rawWeight * 1000) : rawWeight;
     }
 
     const overrides: QuickAddOverrides = {

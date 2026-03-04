@@ -125,7 +125,7 @@ export function QuickAddSheet({
             id="qa-weight"
             type="number"
             min="0"
-            step="1"
+            step="any"
             value={form.weightGrams}
             onChange={(e) => updateField('weightGrams', e.target.value)}
             placeholder="0"

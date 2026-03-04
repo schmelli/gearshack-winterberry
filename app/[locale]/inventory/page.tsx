@@ -145,8 +145,8 @@ function InventoryWithModal() {
     enabled: isOpen && !!selectedItem,
   });
 
-  // Quick Add (054-zero-friction-input)
-  const quickAdd = useQuickAdd();
+  // Quick Add (054-zero-friction-input) — destination follows current view mode
+  const quickAdd = useQuickAdd(viewMode === 'wishlist' ? 'wishlist' : 'inventory');
 
   return (
     <InventoryContent
