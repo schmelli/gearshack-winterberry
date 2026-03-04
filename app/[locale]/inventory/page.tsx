@@ -19,6 +19,7 @@ import { useYouTubeReviews } from '@/hooks/useYouTubeReviews';
 import { useGearInsights } from '@/hooks/useGearInsights';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useScreenEffect } from '@/hooks/useScreenEffect';
+import { useQuickAdd } from '@/hooks/useQuickAdd';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { InventoryContent } from '@/components/inventory-gallery/InventoryContent';
 import type { SortOption } from '@/types/inventory';
@@ -144,6 +145,9 @@ function InventoryWithModal() {
     enabled: isOpen && !!selectedItem,
   });
 
+  // Quick Add (054-zero-friction-input) — destination follows current view mode
+  const quickAdd = useQuickAdd(viewMode === 'wishlist' ? 'wishlist' : 'inventory');
+
   return (
     <InventoryContent
       user={user}
@@ -187,6 +191,7 @@ function InventoryWithModal() {
       isSelectedItemFromWishlist={isSelectedItemFromWishlist}
       onAnnouncement={handleAnnouncement}
       announcement={announcement}
+      quickAdd={quickAdd}
     />
   );
 }

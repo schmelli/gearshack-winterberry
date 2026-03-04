@@ -4,9 +4,13 @@
  *
  * Implements sliding window rate limiting without external dependencies.
  *
- * IMPORTANT: This is an in-memory implementation suitable for single-instance
- * deployments. For production with multiple instances, use a distributed
- * rate limiter like @upstash/ratelimit with Redis.
+ * IMPORTANT — Serverless limitation:
+ * This is an in-memory implementation. In serverless environments (Vercel, AWS Lambda),
+ * each cold start creates a fresh instance, so rate limits reset per function invocation.
+ * A user could exceed limits by hitting different serverless instances. This is acceptable
+ * as a best-effort guard against accidental overuse, but is NOT a security boundary.
+ * For production enforcement, migrate to a distributed rate limiter (e.g. @upstash/ratelimit
+ * with Redis, or Supabase RPC with a persistent counter).
  */
 
 interface RateLimitEntry {
@@ -217,6 +221,16 @@ export const aiChatLimiter = new RateLimiter(
  */
 export const visionScanLimiter = new RateLimiter(
   10, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
+ * Rate limiter for quick-add text extraction
+ * Limit: 20 extractions per hour per user
+ */
+export const QUICK_ADD_TEXT_LIMIT = 20;
+export const quickAddTextLimiter = new RateLimiter(
+  QUICK_ADD_TEXT_LIMIT, // maxAttempts
   60 * 60 * 1000 // windowMs (1 hour)
 );
 
