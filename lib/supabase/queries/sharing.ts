@@ -41,52 +41,60 @@ function mapProfileToOwner(profile: {
 }
 
 /**
- * Fetches a shared loadout with owner profile data
+ * Fetches a shared loadout with owner profile data.
+ *
+ * Uses two separate queries to avoid profiles RLS blocking the entire share
+ * lookup. The profiles table has restrictive RLS (only own-profile + admin),
+ * so embedding profiles via PostgREST JOIN causes the query to fail for
+ * anonymous users and non-owner authenticated users. By splitting the fetch,
+ * the share is always accessible (loadout_shares has USING(true) SELECT),
+ * and the owner profile is fetched separately via v_profiles_public (a
+ * SECURITY DEFINER view that bypasses profiles RLS safely).
  */
 export async function getSharedLoadoutWithOwner(
   supabase: SupabaseClient,
   shareToken: string
 ): Promise<SharedLoadoutWithOwner | null> {
-  const { data, error } = await supabase
+  // Step 1: Fetch the share itself (loadout_shares has public read RLS)
+  const { data: shareData, error: shareError } = await supabase
     .from('loadout_shares')
-    .select(`
-      share_token,
-      payload,
-      allow_comments,
-      created_at,
-      owner:profiles!owner_id (
-        id,
-        display_name,
-        avatar_url,
-        trail_name,
-        bio,
-        location_name,
-        instagram,
-        facebook,
-        youtube,
-        website,
-        messaging_privacy
-      )
-    `)
+    .select('share_token, payload, allow_comments, created_at, owner_id')
     .eq('share_token', shareToken)
     .single();
 
-  if (error || !data) return null;
+  if (shareError || !shareData) return null;
 
-  // Handle the owner data - it can be an object, array, or null
+  // Step 2: Fetch owner profile via v_profiles_public (SECURITY DEFINER view,
+  // bypasses profiles RLS to expose only non-sensitive columns safely)
   let owner: SharedLoadoutOwner | null = null;
-  if (data.owner) {
-    const ownerData = Array.isArray(data.owner) ? data.owner[0] : data.owner;
-    if (ownerData) {
-      owner = mapProfileToOwner(ownerData);
-    }
+  const { data: profileData } = await supabase
+    .from('v_profiles_public' as string)
+    .select('id, display_name, avatar_url, trail_name')
+    .eq('id', shareData.owner_id)
+    .single();
+
+  if (profileData) {
+    owner = mapProfileToOwner({
+      id: profileData.id,
+      display_name: profileData.display_name,
+      avatar_url: profileData.avatar_url,
+      trail_name: profileData.trail_name,
+      // These fields are not in v_profiles_public; set to null
+      bio: null,
+      location_name: null,
+      instagram: null,
+      facebook: null,
+      youtube: null,
+      website: null,
+      messaging_privacy: null,
+    });
   }
 
   return {
-    shareToken: data.share_token,
-    payload: data.payload as SharedLoadoutPayload,
-    allowComments: data.allow_comments,
-    createdAt: data.created_at,
+    shareToken: shareData.share_token,
+    payload: shareData.payload as SharedLoadoutPayload,
+    allowComments: shareData.allow_comments,
+    createdAt: shareData.created_at,
     owner,
   };
 }
