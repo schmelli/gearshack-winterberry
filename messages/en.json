@@ -1196,7 +1196,12 @@
       "markAsConsumable": "Mark as consumable",
       "lighterAlternativeAvailable": "Lighter alternative available",
       "swapItem": "Swap item",
-      "saveWeight": "Save {weight}"
+      "saveWeight": "Save {weight}",
+      "swipeRemove": "Remove",
+      "swipeWorn": "Worn",
+      "swipeConsumable": "Consumable",
+      "swipeDuplicate": "Duplicate",
+      "swipeDetails": "Details"
     },
     "dependencies": {
       "title": "Add Dependencies?",
@@ -4525,6 +4530,27 @@
         "weightBreakdown": {
           "label": "Show Weight Breakdown",
           "description": "Display detailed weight breakdown in loadouts."
+        }
+      },
+      "swipeActions": {
+        "title": "Swipe Actions",
+        "description": "Customize swipe gestures on loadout item cards (mobile and tablet only).",
+        "swipeLeft": "Swipe Left",
+        "swipeRight": "Swipe Right",
+        "primary": "Primary (short swipe)",
+        "secondary": "Secondary (long swipe)",
+        "preview": "Preview",
+        "previewCard": "Gear item",
+        "actions": {
+          "remove": "Remove from loadout",
+          "toggleWorn": "Toggle worn",
+          "toggleConsumable": "Toggle consumable",
+          "duplicate": "Duplicate item",
+          "viewDetails": "View details",
+          "none": "No action"
+        },
+        "hints": {
+          "mobileOnly": "Swipe actions are only available on touch devices. On desktop, use the hover action buttons instead."
         }
       },
       "navigation": {

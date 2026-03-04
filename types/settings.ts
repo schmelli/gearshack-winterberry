@@ -139,6 +139,31 @@ export interface NotificationPreferences {
 }
 
 // =============================================================================
+// Swipe Action Types
+// =============================================================================
+
+/** Actions available for swipe gestures on loadout items (mobile/tablet) */
+export type SwipeAction =
+  | 'remove'
+  | 'toggleWorn'
+  | 'toggleConsumable'
+  | 'duplicate'
+  | 'viewDetails'
+  | 'none';
+
+/** Configuration for swipe gesture actions on loadout item cards */
+export interface SwipeActionConfig {
+  /** Primary action on left swipe (short swipe) */
+  swipeLeftPrimary: SwipeAction;
+  /** Secondary action on left swipe (long swipe) */
+  swipeLeftSecondary: SwipeAction;
+  /** Primary action on right swipe (short swipe) */
+  swipeRightPrimary: SwipeAction;
+  /** Secondary action on right swipe (long swipe) */
+  swipeRightSecondary: SwipeAction;
+}
+
+// =============================================================================
 // Combined User Preferences
 // =============================================================================
 
@@ -173,6 +198,9 @@ export interface UserPreferences {
 
   // Notifications
   notificationPreferences: NotificationPreferences;
+
+  // Swipe Actions (mobile/tablet)
+  swipeActions: SwipeActionConfig;
 }
 
 // =============================================================================
@@ -199,6 +227,7 @@ export interface UserPreferencesRow {
   show_weight_breakdown: boolean;
   start_page: StartPage;
   notification_preferences: NotificationPreferences;
+  swipe_actions: SwipeActionConfig;
 }
 
 // =============================================================================
@@ -289,6 +318,12 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
     },
     sound: true,
     badge_count: true,
+  },
+  swipeActions: {
+    swipeLeftPrimary: 'remove',
+    swipeLeftSecondary: 'toggleConsumable',
+    swipeRightPrimary: 'toggleWorn',
+    swipeRightSecondary: 'duplicate',
   },
 };
 

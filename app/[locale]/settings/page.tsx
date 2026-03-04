@@ -18,8 +18,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingItem } from '@/components/settings/SettingItem';
+import { SwipeActionSelector } from '@/components/settings/SwipeActionSelector';
 import { useUserPreferences } from '@/hooks/settings/useUserPreferences';
-import type { DisplayDensity, StartPage } from '@/types/settings';
+import type { DisplayDensity, StartPage, SwipeActionConfig } from '@/types/settings';
 
 export default function SettingsAppearancePage() {
   const t = useTranslations('settings.appearance');
@@ -39,6 +40,10 @@ export default function SettingsAppearancePage() {
 
   const handleStartPageChange = (value: string) => {
     updatePreference('startPage', value as StartPage);
+  };
+
+  const handleSwipeActionsChange = (config: SwipeActionConfig) => {
+    updatePreference('swipeActions', config);
   };
 
   return (
@@ -99,6 +104,18 @@ export default function SettingsAppearancePage() {
             disabled={isLoading}
           />
         </SettingItem>
+      </SettingsSection>
+
+      {/* Swipe Actions Section */}
+      <SettingsSection
+        title={t('swipeActions.title')}
+        description={t('swipeActions.description')}
+      >
+        <SwipeActionSelector
+          config={preferences.swipeActions}
+          onConfigChange={handleSwipeActionsChange}
+          disabled={isLoading}
+        />
       </SettingsSection>
 
       {/* Navigation Section - Community Section Restructure */}

@@ -11,6 +11,10 @@
  *
  * Feature: 007-grand-polish-sprint
  * US4: Advanced Weight Calculations - Worn/Consumable toggles
+ *
+ * Swipeable gear item cards:
+ * On mobile/tablet, items support swipe-to-reveal actions (configurable in settings).
+ * Desktop retains hover-based action buttons.
  */
 
 'use client';
@@ -34,6 +38,10 @@ import { useCategories } from '@/hooks/useCategories';
 import { getLocalizedLabel, getParentCategoryIds } from '@/lib/utils/category-helpers';
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import type { LighterAlternative } from '@/hooks/useLighterAlternatives';
+import type { SwipeActionConfig } from '@/types/settings';
+import { SwipeableCard } from '@/components/loadouts/SwipeableCard';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useSwipeActions } from '@/hooks/useSwipeActions';
 
 // =============================================================================
 // Types
@@ -60,6 +68,14 @@ interface LoadoutListProps {
   onItemClick?: (itemId: string) => void;
   /** Get lighter alternative for an item */
   getLighterAlternative?: (itemId: string) => LighterAlternative | null;
+  /** Swipe action configuration (mobile/tablet) */
+  swipeConfig?: SwipeActionConfig;
+  /** Whether the device supports touch (below lg breakpoint) */
+  isTouchDevice?: boolean;
+  /** Duplicate an item in the loadout */
+  onDuplicateItem?: (itemId: string) => void;
+  /** Whether user prefers reduced animations */
+  reduceAnimations?: boolean;
 }
 
 // =============================================================================
@@ -78,11 +94,17 @@ export function LoadoutList({
   onToggleConsumable,
   onItemClick,
   getLighterAlternative,
+  swipeConfig,
+  isTouchDevice = false,
+  onDuplicateItem,
+  reduceAnimations = false,
 }: LoadoutListProps) {
   const { categories, getLabelById } = useCategories();
   const locale = useLocale();
   const t = useTranslations('Loadouts');
   const isEmpty = items.length === 0;
+
+  const swipeEnabled = isTouchDevice && !!swipeConfig;
 
   // Create category lookup map for O(1) access (Performance optimization)
   const categoryMap = useMemo(() => {
@@ -154,6 +176,10 @@ export function LoadoutList({
                     lighterAlternative={lighterAlt}
                     productTypeLabel={item.productTypeId ? getLabelById(item.productTypeId) : undefined}
                     t={t}
+                    swipeConfig={swipeConfig}
+                    swipeEnabled={swipeEnabled}
+                    onDuplicate={onDuplicateItem ? () => onDuplicateItem(item.id) : undefined}
+                    reduceAnimations={reduceAnimations}
                   />
                 );
               })}
@@ -204,6 +230,10 @@ export function LoadoutList({
                     lighterAlternative={lighterAlt}
                     productTypeLabel={item.productTypeId ? getLabelById(item.productTypeId) : undefined}
                     t={t}
+                    swipeConfig={swipeConfig}
+                    swipeEnabled={swipeEnabled}
+                    onDuplicate={onDuplicateItem ? () => onDuplicateItem(item.id) : undefined}
+                    reduceAnimations={reduceAnimations}
                   />
                 );
               })}
@@ -237,6 +267,14 @@ interface LoadoutListItemProps {
   productTypeLabel?: string;
   /** Translation function */
   t: ReturnType<typeof useTranslations<'Loadouts'>>;
+  /** Swipe action configuration (mobile/tablet) */
+  swipeConfig?: SwipeActionConfig;
+  /** Whether swipe is enabled */
+  swipeEnabled: boolean;
+  /** Duplicate item callback */
+  onDuplicate?: () => void;
+  /** Whether to reduce animations */
+  reduceAnimations: boolean;
 }
 
 function LoadoutListItem({
@@ -251,6 +289,10 @@ function LoadoutListItem({
   lighterAlternative,
   productTypeLabel,
   t,
+  swipeConfig,
+  swipeEnabled,
+  onDuplicate,
+  reduceAnimations,
 }: LoadoutListItemProps) {
   // Handle click on item body to open detail modal (Feature 045)
   const handleClick = () => {
@@ -262,7 +304,30 @@ function LoadoutListItem({
   // Get optimized image URL (56x56 display * 2 for retina)
   const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
 
-  return (
+  // Swipe actions (only used when swipeEnabled)
+  const swipeActions = useSwipeActions({
+    config: swipeConfig ?? {
+      swipeLeftPrimary: 'remove',
+      swipeLeftSecondary: 'toggleConsumable',
+      swipeRightPrimary: 'toggleWorn',
+      swipeRightSecondary: 'duplicate',
+    },
+    onRemove,
+    onToggleWorn,
+    onToggleConsumable,
+    onDuplicate,
+    onViewDetails: onClick,
+  });
+
+  const swipeGesture = useSwipeGesture({
+    enabled: swipeEnabled,
+    reduceAnimations,
+    onPrimaryAction: swipeActions.handlePrimaryAction,
+    onSecondaryAction: swipeActions.handleSecondaryAction,
+  });
+
+  // The card content — shared between swipeable and non-swipeable modes
+  const cardContent = (
     <div
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -301,7 +366,7 @@ function LoadoutListItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <p className="truncate font-medium">{item.name}</p>
-          {lighterAlternative && (
+          {lighterAlternative && !swipeEnabled && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
@@ -342,28 +407,66 @@ function LoadoutListItem({
             </Tooltip>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">
-          {item.brand && <span>{item.brand} · </span>}
-          <span>{formatWeight(item.weightGrams)}</span>
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-muted-foreground">
+            {item.brand && <span>{item.brand} · </span>}
+            <span>{formatWeight(item.weightGrams)}</span>
+          </p>
+          {/* Status indicators for touch mode (replacing hover buttons) */}
+          {swipeEnabled && (isWorn || isConsumable) && (
+            <div className="flex items-center gap-1">
+              {isWorn && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20">
+                  <Shirt className="h-2.5 w-2.5 text-primary" />
+                </span>
+              )}
+              {isConsumable && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-600/20">
+                  <Apple className="h-2.5 w-2.5 text-amber-600" />
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Worn and Consumable Toggles (US4) - stopPropagation to not trigger modal */}
-      <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        <WornToggle pressed={isWorn} onPressedChange={onToggleWorn} />
-        <ConsumableToggle pressed={isConsumable} onPressedChange={onToggleConsumable} />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-          onClick={onRemove}
-          aria-label={`Remove ${item.name} from loadout`}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Worn and Consumable Toggles (US4) - desktop only */}
+      {!swipeEnabled && (
+        <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <WornToggle pressed={isWorn} onPressedChange={onToggleWorn} />
+          <ConsumableToggle pressed={isConsumable} onPressedChange={onToggleConsumable} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={onRemove}
+            aria-label={`Remove ${item.name} from loadout`}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
+
+  // Wrap with SwipeableCard on touch devices
+  if (swipeEnabled) {
+    return (
+      <SwipeableCard
+        offsetX={swipeGesture.state.offsetX}
+        shouldAnimate={swipeGesture.shouldAnimate}
+        primaryReached={swipeGesture.state.primaryReached}
+        secondaryReached={swipeGesture.state.secondaryReached}
+        touchHandlers={swipeGesture.handlers}
+        leftActions={swipeActions.leftActions}
+        rightActions={swipeActions.rightActions}
+      >
+        {cardContent}
+      </SwipeableCard>
+    );
+  }
+
+  return cardContent;
 }
 
 // =============================================================================
