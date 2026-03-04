@@ -5323,6 +5323,7 @@
   },
   "QuickAdd": {
     "placeholder": "URL einfügen, Gear-Name eingeben oder Foto ablegen...",
+    "inputLabel": "Ausrüstung schnell hinzufügen",
     "cameraButton": "Foto aufnehmen",
     "extracting": "Wird analysiert...",
     "saving": "Wird gespeichert...",

@@ -7,6 +7,7 @@
  * Single input field (text, URL, or image) → AI extraction → auto-save or quick-edit.
  */
 
+import { z } from 'zod';
 import type { GearCondition } from '@/types/gear';
 
 // =============================================================================
@@ -85,6 +86,22 @@ export type QuickAddOverrides = Partial<Pick<QuickAddExtraction,
   | 'pricePaid'
   | 'currency'
 >>;
+
+/**
+ * Runtime Zod schema for QuickAddOverrides.
+ * Used by confirmSave to validate user-edited data before building the payload.
+ */
+export const QuickAddOverridesSchema = z.object({
+  name: z.string().max(200).nullable().optional(),
+  brand: z.string().max(100).nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
+  weightGrams: z.number().nonnegative().nullable().optional(),
+  condition: z.enum(['new', 'used', 'worn']).nullable().optional(),
+  productTypeId: z.string().nullable().optional(),
+  categoryLabel: z.string().nullable().optional(),
+  pricePaid: z.number().nonnegative().nullable().optional(),
+  currency: z.string().max(3).nullable().optional(),
+}).strict();
 
 // =============================================================================
 // API Response

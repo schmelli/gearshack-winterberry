@@ -185,7 +185,7 @@ export function QuickAddInput({
                 ? 'border-destructive/50'
                 : ''
           }`}
-          aria-label={t('placeholder')}
+          aria-label={t('inputLabel')}
           aria-invalid={isError || undefined}
           aria-describedby={isError && error ? 'quick-add-error' : undefined}
         />
@@ -214,11 +214,15 @@ export function QuickAddInput({
         <Camera className="h-4 w-4" />
       </Button>
 
-      {/* Hidden file input for camera / image picker */}
+      {/* Hidden file input for camera capture (rear camera on mobile).
+          Note: capture="environment" is intentional here — the camera button's purpose
+          is "Take photo" (see aria-label). Gallery picking is handled by drag-and-drop,
+          paste, or the separate image search/import features. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
         aria-hidden="true"

@@ -5323,6 +5323,7 @@
   },
   "QuickAdd": {
     "placeholder": "Paste URL, type gear name, or drop a photo...",
+    "inputLabel": "Quick add gear input",
     "cameraButton": "Take photo",
     "extracting": "Analyzing...",
     "saving": "Saving...",

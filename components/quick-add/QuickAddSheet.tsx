@@ -66,10 +66,15 @@ export function QuickAddSheet({
   onDismiss,
   isSaving,
 }: QuickAddSheetProps) {
-  const isOpen = extraction !== null;
   const t = useTranslations('QuickAdd');
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const { form, updateField, handleSave } = useQuickAddForm(extraction, onSave);
+
+  // Early return: skip rendering form content when there is no extraction to review.
+  // The Sheet/Dialog would be closed anyway, but this avoids wasteful JSX evaluation.
+  if (!extraction) return null;
+
+  const isOpen = true; // extraction is guaranteed non-null at this point
 
   // ── Confidence badge color ──────────────────────────────────────────────
   const confidence = extraction?.confidence ?? 0;

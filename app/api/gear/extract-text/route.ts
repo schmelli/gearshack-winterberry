@@ -11,12 +11,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { createClient } from '@/lib/supabase/server';
 import { fuzzyProductSearch } from '@/lib/supabase/catalog';
 import { resolveProductTypeId } from '@/lib/category-resolver';
 import { quickAddTextLimiter, QUICK_ADD_TEXT_LIMIT } from '@/lib/rate-limit';
 import { logError, logWarn } from '@/lib/mastra/logging';
+import { anthropic, isAIConfigured } from '@/lib/ai/anthropic';
 import { clampConfidence } from '@/types/quick-add';
 import type { TextExtractResponse, QuickAddExtraction } from '@/types/quick-add';
 
@@ -27,15 +27,6 @@ import type { TextExtractResponse, QuickAddExtraction } from '@/types/quick-add'
 const PARSE_MODEL = 'claude-haiku-4-5';
 const MIN_CATALOG_MATCH_SCORE = 0.5;
 
-/**
- * Create an Anthropic provider that accepts either ANTHROPIC_API_KEY (direct) or
- * AI_GATEWAY_API_KEY (Vercel AI Gateway). The default `anthropic` singleton only
- * reads ANTHROPIC_API_KEY, so gateway-only deployments would fail without this.
- */
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY,
-});
-
 // =============================================================================
 // Zod schema for AI extraction
 // =============================================================================
@@ -45,6 +36,10 @@ const TextExtractionSchema = z.object({
   brand: z.string().max(100).nullable().describe('Brand name'),
   category: z.string().max(100).nullable().describe('Gear category (e.g. Backpack, Tent, Trekking Poles, Sleeping Bag)'),
   weightGrams: z.number().positive().nullable().describe('Weight in grams (convert from kg/oz/lb if needed)'),
+  // Uses the app's 3-value condition scale directly (new/used/worn).
+  // This differs from the vision scan route which uses a 4-value visual scale
+  // (new/good/fair/poor) mapped via mapVisionCondition(), because text input
+  // describes condition semantically while vision infers it from visible wear.
   condition: z.enum(['new', 'used', 'worn']).nullable().describe('Item condition'),
   pricePaid: z.number().positive().nullable().describe('Price paid'),
   currency: z.string().max(3).nullable().describe('Currency code (EUR, USD, GBP, CHF)'),
@@ -88,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check AI configuration (accept either direct key or gateway key)
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
+    if (!isAIConfigured()) {
       return NextResponse.json<TextExtractResponse>(
         { success: false, error: 'AI_NOT_CONFIGURED' },
         { status: 503 }

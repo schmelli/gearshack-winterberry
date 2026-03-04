@@ -20,12 +20,12 @@
 import { NextResponse } from 'next/server';
 import { generateText, generateObject, stepCountIs } from 'ai';
 import type { ToolSet } from 'ai';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { fileTypeFromBuffer } from 'file-type';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { visionScanLimiter } from '@/lib/rate-limit';
 import { logError, logWarn } from '@/lib/mastra/logging';
+import { anthropic, isAIConfigured } from '@/lib/ai/anthropic';
 import { matchDetectedItemsWithCatalog } from '@/lib/vision-catalog-matcher';
 import { resolveProductTypeId } from '@/lib/category-resolver';
 import type { VisionScanResponse } from '@/types/vision-scan';
@@ -52,15 +52,6 @@ const VISION_SEARCH_MODEL = (process.env.AI_VISION_MODEL ?? 'claude-sonnet-4-5')
 
 /** Phase 2: Haiku for cheap structured-output parsing of Phase 1 research text */
 const PARSE_MODEL = 'claude-haiku-4-5';
-
-/**
- * Create an Anthropic provider that accepts either ANTHROPIC_API_KEY (direct) or
- * AI_GATEWAY_API_KEY (Vercel AI Gateway). The default `anthropic` singleton only
- * reads ANTHROPIC_API_KEY, so gateway-only deployments would fail without this.
- */
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY,
-});
 
 /**
  * Combined timeout for both phases.
@@ -113,21 +104,25 @@ const DetectedItemsSchema = z.object({
 // =============================================================================
 
 /**
- * Module-level cache — survives across requests in the same serverless instance.
- * No TTL: category labels are mostly static and only change via admin actions.
- * A cold start (new serverless instance) will re-fetch from the DB.
- * If categories need to update more frequently, add a TTL check here.
+ * Module-level cache with TTL — survives across requests in the same serverless instance.
+ * Category labels are mostly static (admin-managed), so a 15-minute TTL balances freshness
+ * with DB load. A cold start always re-fetches from the DB.
  */
-let categoryLabelsCache: string[] | null = null;
+const CATEGORY_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+let categoryLabelsCache: { labels: string[]; cachedAt: number } | null = null;
 
 /**
  * Returns level-2 category labels from the DB (e.g. "Backpacks", "Tents", …).
- * Result is cached in module scope so the DB is only queried once per cold start.
+ * Result is cached in module scope with a 15-minute TTL.
  */
 async function getCategoryLabels(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<string[]> {
-  if (categoryLabelsCache) return categoryLabelsCache;
+  const now = Date.now();
+  if (categoryLabelsCache && (now - categoryLabelsCache.cachedAt) < CATEGORY_CACHE_TTL_MS) {
+    return categoryLabelsCache.labels;
+  }
+
   const { data, error } = await supabase
     .from('categories')
     .select('label')
@@ -137,10 +132,12 @@ async function getCategoryLabels(
     logWarn('[Vision] Failed to fetch category labels, skipping cache', {
       metadata: { error: error.message },
     });
-    return [];
+    // On error, return stale cache if available, otherwise empty
+    return categoryLabelsCache?.labels ?? [];
   }
-  categoryLabelsCache = (data ?? []).map((r) => r.label);
-  return categoryLabelsCache;
+  const labels = (data ?? []).map((r) => r.label);
+  categoryLabelsCache = { labels, cachedAt: now };
+  return labels;
 }
 
 // =============================================================================
@@ -181,7 +178,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     }
 
     // 3. Check AI configuration (accept either direct key or gateway key)
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
+    if (!isAIConfigured()) {
       return NextResponse.json(
         { success: false, items: [], error: 'AI_NOT_CONFIGURED' },
         { status: 503 }

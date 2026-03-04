@@ -25,7 +25,7 @@ import type {
 } from '@/types/quick-add';
 import type { ImportUrlResponse, ImportedProductData } from '@/types/contributions';
 import type { VisionScanResponse, CatalogMatchResult } from '@/types/vision-scan';
-import { AUTO_SAVE_CONFIDENCE, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE, clampConfidence } from '@/types/quick-add';
+import { AUTO_SAVE_CONFIDENCE, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE, clampConfidence, QuickAddOverridesSchema } from '@/types/quick-add';
 
 // =============================================================================
 // Return Type
@@ -170,10 +170,14 @@ export function useQuickAdd(
   const abortRef = useRef<AbortController | null>(null);
   // Timer ref to clear success-reset timeout on unmount / manual reset
   const successTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Mounted guard — prevents success timer callbacks from setting state after unmount
+  const isMountedRef = useRef(true);
 
   // Cleanup on unmount: abort in-flight requests and clear timers
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       abortRef.current?.abort();
       if (successTimerRef.current) {
         clearTimeout(successTimerRef.current);
@@ -224,6 +228,7 @@ export function useQuickAdd(
           if (successTimerRef.current) clearTimeout(successTimerRef.current);
           successTimerRef.current = setTimeout(() => {
             successTimerRef.current = null;
+            if (!isMountedRef.current) return; // guard against unmount
             setStatus('idle');
             setExtraction(null);
             setInputType(null);
@@ -446,6 +451,17 @@ export function useQuickAdd(
         return;
       }
 
+      // Validate overrides at runtime to catch malformed data from the form
+      if (overrides) {
+        const parsed = QuickAddOverridesSchema.safeParse(overrides);
+        if (!parsed.success) {
+          logger.error('[QuickAdd] Invalid overrides', { module: 'QuickAdd', zodErrors: parsed.error.flatten() });
+          setStatus('error');
+          setError(t('errorSave'));
+          return;
+        }
+      }
+
       const merged: QuickAddExtraction = {
         ...extraction,
         ...overrides,
@@ -470,6 +486,7 @@ export function useQuickAdd(
         if (successTimerRef.current) clearTimeout(successTimerRef.current);
         successTimerRef.current = setTimeout(() => {
           successTimerRef.current = null;
+          if (!isMountedRef.current) return; // guard against unmount
           setStatus('idle');
           setExtraction(null);
           setInputType(null);
