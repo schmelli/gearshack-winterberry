@@ -74,15 +74,20 @@ export function QuickAddSheet({
   // The Sheet/Dialog would be closed anyway, but this avoids wasteful JSX evaluation.
   if (!extraction) return null;
 
-  const isOpen = true; // extraction is guaranteed non-null at this point
+  // extraction is guaranteed non-null at this point (early return above)
 
   // ── Confidence badge color ──────────────────────────────────────────────
-  const confidence = extraction?.confidence ?? 0;
+  // Items at AUTO_SAVE_CONFIDENCE (0.75+) are auto-saved and never reach this sheet,
+  // so the effective visible range is 0–0.74. The three-tier scale is calibrated to
+  // this range: green (good match, >= 0.65), yellow (partial, >= 0.4), red (low, < 0.4).
+  const confidence = extraction.confidence ?? 0;
   const confidencePercent = Math.round(confidence * 100);
   const confidenceColor =
-    confidence >= 0.6
-      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'
-      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
+    confidence >= 0.65
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+      : confidence >= 0.4
+        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'
+        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
 
   // ── Form content (shared between Sheet and Dialog) ──────────────────────
   const formContent = (
@@ -92,7 +97,7 @@ export function QuickAddSheet({
         <Badge variant="outline" className={confidenceColor}>
           {t('confidence')}: {confidencePercent}%
         </Badge>
-        {extraction?.categoryLabel && (
+        {extraction.categoryLabel && (
           <Badge variant="secondary" className="text-xs">
             {extraction.categoryLabel}
           </Badge>
@@ -210,7 +215,7 @@ export function QuickAddSheet({
       </div>
 
       {/* Image preview */}
-      {extraction?.primaryImageUrl && (
+      {extraction.primaryImageUrl && (
         <div className="space-y-2">
           <Label>{t('image')}</Label>
           <div className="relative h-32 w-32 overflow-hidden rounded-md border bg-muted">
@@ -242,7 +247,7 @@ export function QuickAddSheet({
   // ── Desktop: Dialog ─────────────────────────────────────────────────────
   if (isDesktop) {
     return (
-      <Dialog open={isOpen} onOpenChange={(o) => !o && onDismiss()}>
+      <Dialog open onOpenChange={(o) => !o && onDismiss()}>
         <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('reviewTitle')}</DialogTitle>
@@ -257,7 +262,7 @@ export function QuickAddSheet({
 
   // ── Mobile: Sheet ───────────────────────────────────────────────────────
   return (
-    <Sheet open={isOpen} onOpenChange={(o) => !o && onDismiss()}>
+    <Sheet open onOpenChange={(o) => !o && onDismiss()}>
       <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{t('reviewTitle')}</SheetTitle>

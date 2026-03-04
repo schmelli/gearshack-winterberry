@@ -12,18 +12,35 @@
 
 import { createAnthropic } from '@ai-sdk/anthropic';
 
+const resolvedKey = process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY;
+
 /**
  * Pre-configured Anthropic provider instance.
  * Import this instead of calling `createAnthropic()` in each route.
  */
 export const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.AI_GATEWAY_API_KEY,
+  apiKey: resolvedKey,
 });
 
 /**
  * Check whether at least one AI API key is configured.
  * Call this at the top of route handlers to return 503 early.
+ * Also logs a diagnostic warning when only the gateway key is set,
+ * since the gateway key format may not be accepted by the Anthropic SDK
+ * directly — helps operators diagnose 401 errors in production.
  */
 export function isAIConfigured(): boolean {
-  return !!(process.env.ANTHROPIC_API_KEY || process.env.AI_GATEWAY_API_KEY);
+  const hasDirectKey = !!process.env.ANTHROPIC_API_KEY;
+  const hasGatewayKey = !!process.env.AI_GATEWAY_API_KEY;
+
+  if (!hasDirectKey && hasGatewayKey) {
+    // Log once per cold start — gateway keys work via Vercel AI Gateway proxy
+    // but may fail if passed directly to the Anthropic SDK without a gateway.
+    console.warn(
+      '[AI Config] Using AI_GATEWAY_API_KEY (no ANTHROPIC_API_KEY set). ' +
+      'Ensure requests are routed through the AI Gateway, or set ANTHROPIC_API_KEY for direct access.'
+    );
+  }
+
+  return hasDirectKey || hasGatewayKey;
 }

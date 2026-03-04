@@ -253,7 +253,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       try {
         const phase1Result = await generateText({
           model: anthropic(VISION_SEARCH_MODEL),
-          // TODO: Remove cast when @ai-sdk/anthropic >=1.2.0 exports compatible types for provider tools
+          // TODO(#278): Remove cast when @ai-sdk/anthropic >=1.2.0 exports compatible types for provider tools
           tools: {
             web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
           } as unknown as ToolSet,

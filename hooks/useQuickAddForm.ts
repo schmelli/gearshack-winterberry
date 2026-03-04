@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { QuickAddExtraction, QuickAddOverrides } from '@/types/quick-add';
 import type { GearCondition } from '@/types/gear';
 
@@ -60,9 +60,16 @@ export function useQuickAddForm(
 ): UseQuickAddFormReturn {
   const [form, setForm] = useState<FormState>(() => initFormState(extraction));
 
-  // Reset form when extraction changes
+  // Track the extraction identity to avoid resetting user edits on referential re-renders.
+  // We use a composite key (name + confidence) because the extraction object may be
+  // structurally identical but referentially new after a parent re-render.
+  const prevExtractionKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (extraction) {
+    if (!extraction) return;
+    const key = `${extraction.name ?? ''}::${extraction.confidence}`;
+    if (key !== prevExtractionKeyRef.current) {
+      prevExtractionKeyRef.current = key;
       setForm(initFormState(extraction));
     }
   }, [extraction]);

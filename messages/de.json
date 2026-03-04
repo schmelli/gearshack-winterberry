@@ -5325,6 +5325,7 @@
     "placeholder": "URL einfügen, Gear-Name eingeben oder Foto ablegen...",
     "inputLabel": "Ausrüstung schnell hinzufügen",
     "cameraButton": "Foto aufnehmen",
+    "submitButton": "Ausrüstung suchen",
     "extracting": "Wird analysiert...",
     "saving": "Wird gespeichert...",
     "savedSuccess": "Zum Inventar hinzugefügt",

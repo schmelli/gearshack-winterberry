@@ -11,7 +11,7 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
-import { Loader2, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Camera, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -200,6 +200,21 @@ export function QuickAddInput({
           )}
         </div>
       </div>
+
+      {/* Submit button — visible when input has text, provides a touch-friendly
+          affordance for mobile users who may not know to press Enter */}
+      {value.trim() && !isProcessing && (
+        <Button
+          type="button"
+          variant="default"
+          size="icon"
+          className="shrink-0"
+          onClick={handleSubmit}
+          aria-label={t('submitButton')}
+        >
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      )}
 
       {/* Camera button */}
       <Button

@@ -427,8 +427,14 @@ export function useQuickAdd(
           return;
         }
 
-        // Take the first (highest confidence) detected item
-        const bestResult = result.items[0];
+        // Known limitation: only the best-confidence item is used when multiple items
+        // are detected in a single photo. Multi-item import is a future enhancement.
+        // Sort by confidence (descending) to ensure we pick the best match regardless
+        // of API response ordering — matchDetectedItemsWithCatalog does not guarantee order.
+        const sortedItems = [...result.items].sort(
+          (a, b) => (b.detected.confidence ?? 0) - (a.detected.confidence ?? 0)
+        );
+        const bestResult = sortedItems[0];
         await handleExtractionResult(normalizeVisionScanResult(bestResult));
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
