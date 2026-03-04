@@ -221,6 +221,15 @@ export const visionScanLimiter = new RateLimiter(
 );
 
 /**
+ * Rate limiter for quick-add text extraction
+ * Limit: 20 extractions per hour per user
+ */
+export const quickAddTextLimiter = new RateLimiter(
+  20, // maxAttempts
+  60 * 60 * 1000 // windowMs (1 hour)
+);
+
+/**
  * Rate limiter for on-demand product image lookups (Serper)
  * Limit: 30 lookups per hour per user (called per alternative during disambiguation)
  */

@@ -1,7 +1,7 @@
 /**
  * InventoryContent Component
  *
- * Feature: 002-inventory-gallery, 045-gear-detail-modal, 049-wishlist-view
+ * Feature: 002-inventory-gallery, 045-gear-detail-modal, 049-wishlist-view, 054-zero-friction-input
  *
  * Core inventory/wishlist view content with toolbar, grid, and modal.
  * Extracted from page.tsx for better separation of concerns.
@@ -20,6 +20,8 @@ import { WishlistToggle } from '@/components/wishlist/WishlistToggle';
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
 import { UrlImportDialog } from '@/components/gear-editor/UrlImportDialog';
 import { VisionScanDialog } from '@/components/vision-scan/VisionScanDialog';
+import { QuickAddInput } from '@/components/quick-add/QuickAddInput';
+import { QuickAddSheet } from '@/components/quick-add/QuickAddSheet';
 import { Announcement } from '@/components/ui/visually-hidden';
 import type { GearItem } from '@/types/gear';
 import type { ViewDensity, SortOption, CategoryGroup } from '@/types/inventory';
@@ -27,6 +29,7 @@ import type { CategoryOption } from '@/types/category';
 import type { User } from '@supabase/supabase-js';
 import type { YouTubeVideo } from '@/types/youtube';
 import type { GearInsight } from '@/types/geargraph';
+import type { UseQuickAddReturn } from '@/hooks/useQuickAdd';
 
 // =============================================================================
 // Types
@@ -79,6 +82,8 @@ export interface InventoryContentProps {
   // Accessibility props
   onAnnouncement: (message: string, politeness?: 'polite' | 'assertive') => void;
   announcement: { message: string; politeness: 'polite' | 'assertive' };
+  // Quick Add props (054-zero-friction-input)
+  quickAdd: UseQuickAddReturn;
 }
 
 // =============================================================================
@@ -127,6 +132,7 @@ export function InventoryContent({
   isSelectedItemFromWishlist,
   onAnnouncement,
   announcement,
+  quickAdd,
 }: InventoryContentProps) {
   const t = useTranslations('Inventory');
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -160,7 +166,7 @@ export function InventoryContent({
       />
 
       {/* View Toggle and Add Button */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <WishlistToggle
           mode={viewMode}
           onModeChange={setViewMode}
@@ -196,6 +202,17 @@ export function InventoryContent({
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Quick Add Input (054-zero-friction-input) */}
+      <div className="mb-8 relative">
+        <QuickAddInput
+          status={quickAdd.status}
+          error={quickAdd.error}
+          onSubmitText={quickAdd.processInput}
+          onSubmitImage={quickAdd.processImage}
+          onReset={quickAdd.reset}
+        />
       </div>
 
       {/* Categories Error Warning */}
@@ -305,6 +322,14 @@ export function InventoryContent({
         open={visionScanOpen}
         onOpenChange={setVisionScanOpen}
         destination={viewMode === 'wishlist' ? 'wishlist' : 'inventory'}
+      />
+
+      {/* Quick Add Review Sheet (054-zero-friction-input) */}
+      <QuickAddSheet
+        extraction={quickAdd.status === 'reviewing' ? quickAdd.extraction : null}
+        onSave={quickAdd.confirmSave}
+        onDismiss={quickAdd.dismiss}
+        isSaving={quickAdd.status === 'saving'}
       />
     </main>
   );

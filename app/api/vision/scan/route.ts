@@ -1,25 +1,31 @@
 /**
- * Vision Scan API Route
+ * Vision Scan API Route — Two-Phase Web-Search Identification
  *
  * Feature: Image-to-Inventory via Vision
  *
- * Accepts an image (via FormData) and uses AI vision to detect outdoor gear items.
- * Detected items are then matched against the product catalog via fuzzy search.
+ * Phase 1: generateText with claude-sonnet-4-5 + web_search tool
+ *   → Claude visually analyzes the image AND searches the web for exact product data
+ * Phase 2: generateObject with claude-haiku (cheap) parses Phase 1 text into Zod schema
  *
  * POST /api/vision/scan
  * - Auth required
  * - FormData with 'image' field (max 10MB, JPEG/PNG/WebP)
  * - Returns detected items with catalog matches
+ *
+ * Prerequisites:
+ *   - ANTHROPIC_API_KEY in environment
+ *   - Web search enabled in Anthropic Console → Settings → Privacy
  */
 
 import { NextResponse } from 'next/server';
-import { generateObject } from 'ai';
-import { createGateway } from '@ai-sdk/gateway';
+import { generateText, generateObject, stepCountIs } from 'ai';
+import type { ToolSet } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { fileTypeFromBuffer } from 'file-type';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { visionScanLimiter } from '@/lib/rate-limit';
-import { logError } from '@/lib/mastra/logging';
+import { logError, logWarn } from '@/lib/mastra/logging';
 import { matchDetectedItemsWithCatalog } from '@/lib/vision-catalog-matcher';
 import { resolveProductTypeId } from '@/lib/category-resolver';
 import type { VisionScanResponse } from '@/types/vision-scan';
@@ -36,51 +42,58 @@ const ALLOWED_MAGIC_MIMES = new Set([
   'image/webp',
 ]);
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
-// Sonnet default: better visual reasoning than Haiku for product identification.
-// Override via AI_VISION_MODEL env var if needed (e.g. anthropic/claude-opus-4).
-const VISION_MODEL = process.env.AI_VISION_MODEL || 'anthropic/claude-sonnet-4-5';
-const VISION_TIMEOUT_MS = 60000; // 60 seconds
+
+/**
+ * Phase 1: Sonnet for vision + web search (needs strong reasoning).
+ * Strip "anthropic/" prefix if env var uses the Gateway format.
+ */
+const VISION_SEARCH_MODEL = (process.env.AI_VISION_MODEL ?? 'claude-sonnet-4-5')
+  .replace(/^anthropic\//, '');
+
+/** Phase 2: Haiku for cheap structured-output parsing of Phase 1 research text */
+const PARSE_MODEL = 'claude-haiku-4-5-20251001';
+
+/**
+ * Combined timeout for both phases.
+ * Web search: ~30-45s, Parse: ~5-10s → 90s total.
+ */
+const VISION_TIMEOUT_MS = 90_000;
 
 // =============================================================================
-// Zod Schema for AI Output
+// Zod Schema for Phase 2 (structured parsing)
 // =============================================================================
 
+/**
+ * No visualAnalysis field needed here — chain-of-thought reasoning happens
+ * naturally in Phase 1 through the web search tool steps.
+ */
 const DetectedItemsSchema = z.object({
-  /**
-   * Chain-of-thought field: filled BEFORE detectedItems.
-   * Forces the model to reason visually (colors, logos, labels, shape,
-   * design details) before committing to a product name.
-   * Not exposed to the client — stripped before the API response.
-   */
-  visualAnalysis: z.string().describe(
-    'FIRST: describe every item in the image in detail — exact colors, visible logos/brand marks/text, material textures, shape, distinctive design features, any printed model numbers or labels. Be specific and thorough. This reasoning informs the product identification below.'
-  ),
   detectedItems: z
     .array(
       z.object({
-        name: z.string().max(200).describe('Exact product name and model/variant, inferred from your visual analysis above'),
+        name: z.string().max(200).describe('Exact product name and model/variant from web search research'),
         brand: z
           .string()
           .max(100)
           .nullable()
-          .describe('Exact brand name from logos or labels, null if uncertain'),
+          .describe('Exact brand name, null if not found in research'),
         category: z
           .string()
           .max(100)
-          .describe('Product category'),
+          .describe('Product category from the available list'),
         estimatedWeightGrams: z
           .number()
           .nullable()
-          .describe('Weight in grams based on known product specs — null if uncertain (do NOT guess)'),
+          .describe('Weight in grams from manufacturer specs — null if not found in research'),
         condition: z
           .enum(['new', 'good', 'fair', 'poor'])
           .nullable()
-          .describe('Condition from visible wear'),
+          .describe('Condition inferred from visible wear in the image'),
         confidence: z
           .number()
           .min(0)
           .max(1)
-          .describe('How confident are you in the product identification? 0=wild guess, 1=certain'),
+          .describe('0.9+ if exact model verified by web search, 0.5 if only brand/type known, 0.3 if guessing'),
       })
     )
     .max(30),
@@ -89,14 +102,6 @@ const DetectedItemsSchema = z.object({
 // =============================================================================
 // Helpers
 // =============================================================================
-
-function getGateway() {
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
-  if (!apiKey) {
-    throw new Error('AI_GATEWAY_API_KEY is required for vision analysis');
-  }
-  return createGateway({ apiKey });
-}
 
 /** Module-level cache — survives across requests in the same serverless instance */
 let categoryLabelsCache: string[] | null = null;
@@ -109,11 +114,17 @@ async function getCategoryLabels(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<string[]> {
   if (categoryLabelsCache) return categoryLabelsCache;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('categories')
     .select('label')
     .eq('level', 2)
     .order('label', { ascending: true });
+  if (error) {
+    logWarn('[Vision] Failed to fetch category labels, skipping cache', {
+      metadata: { error: error.message },
+    });
+    return [];
+  }
   categoryLabelsCache = (data ?? []).map((r) => r.label);
   return categoryLabelsCache;
 }
@@ -155,8 +166,8 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       );
     }
 
-    // 3. Check AI configuration (renumbered after rate limit insertion)
-    if (!process.env.AI_GATEWAY_API_KEY) {
+    // 3. Check AI configuration
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { success: false, items: [], error: 'AI_NOT_CONFIGURED' },
         { status: 503 }
@@ -164,7 +175,18 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     }
 
     // 4. Parse FormData
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch (formDataError) {
+      logWarn('[Vision] Failed to parse FormData', {
+        metadata: { error: String(formDataError) },
+      });
+      return NextResponse.json(
+        { success: false, items: [], error: 'INVALID_UPLOAD' },
+        { status: 400 }
+      );
+    }
     const imageFile = formData.get('image');
 
     if (!imageFile || !(imageFile instanceof File)) {
@@ -177,26 +199,18 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
     // 5. Validate size
     if (imageFile.size > MAX_IMAGE_SIZE_BYTES) {
       return NextResponse.json(
-        {
-          success: false,
-          items: [],
-          error: 'IMAGE_TOO_LARGE',
-        },
+        { success: false, items: [], error: 'IMAGE_TOO_LARGE' },
         { status: 400 }
       );
     }
 
-    // 6. Read buffer once, validate magic bytes, then convert to base64
+    // 6. Read buffer once, validate magic bytes, convert to base64
     const arrayBuffer = await imageFile.arrayBuffer();
     const detectedType = await fileTypeFromBuffer(arrayBuffer);
 
     if (!detectedType || !ALLOWED_MAGIC_MIMES.has(detectedType.mime)) {
       return NextResponse.json(
-        {
-          success: false,
-          items: [],
-          error: 'INVALID_IMAGE_TYPE',
-        },
+        { success: false, items: [], error: 'INVALID_IMAGE_TYPE' },
         { status: 400 }
       );
     }
@@ -210,47 +224,115 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       ? categories.join(', ')
       : 'Backpacks, Tents, Sleeping Bags, Sleeping Pads, Jackets, Base Layers, Stoves, Cookware, Trekking Poles, Headlamps';
 
-    // 8. AI Vision analysis with timeout
-    const gateway = getGateway();
-
+    // 8. Two-phase AI identification with shared timeout
     const abortController = new AbortController();
     const timeoutId = setTimeout(
       () => abortController.abort(),
       VISION_TIMEOUT_MS
     );
 
-    let aiResult;
+    let detectedItems: z.infer<typeof DetectedItemsSchema>['detectedItems'];
     try {
-      aiResult = await generateObject({
-        model: gateway(VISION_MODEL),
-        schema: DetectedItemsSchema,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                image: `data:${imageMime};base64,${imageBase64}`,
-              },
-              {
-                type: 'text',
-                text: `You are an expert outdoor gear identifier. Analyze this image carefully.
+      // -----------------------------------------------------------------------
+      // Phase 1 — Vision + Web Search
+      // Claude analyzes the image visually, then searches the web for the exact
+      // product name, model, weight, and price. Up to 5 search steps allowed.
+      // -----------------------------------------------------------------------
+      let researchText: string;
+      try {
+        const phase1Result = await generateText({
+          model: anthropic(VISION_SEARCH_MODEL),
+          // TODO: Remove cast when @ai-sdk/anthropic >=1.2.0 exports compatible types for provider tools
+          tools: {
+            web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
+          } as unknown as ToolSet,
+          stopWhen: stepCountIs(5),
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: `data:${imageMime};base64,${imageBase64}`,
+                },
+                {
+                  type: 'text',
+                  text: `You are an expert outdoor gear specialist. Identify every item in this image:
 
-Step 1 — Visual analysis (visualAnalysis field): Describe every item you see in detail. Note exact colors, visible brand logos or text, material appearance, shape, construction details, any model numbers or labels on the product itself.
+Step 1 — Visual analysis: Describe ALL visible branding, logos, text, model numbers, colors, materials, and distinctive design details on each item.
 
-Step 2 — Identification (detectedItems): Based ONLY on what you described above, identify each item. Use the category list: ${categoryList}. Set confidence honestly — if you can only see "it's a Sea to Summit sleeping bag" but not which model, say so in the name and set confidence to 0.5. Do NOT guess weight — only fill estimatedWeightGrams if you know it from product specs. Return [] if no outdoor gear is visible.`,
-              },
-            ],
-          },
-        ],
-        abortSignal: abortController.signal,
-      });
+Step 2 — Web search identification: For each item, search the web to find the EXACT product:
+- Search for "[brand] [visible product name] [distinctive detail] outdoor gear specifications"
+- Find the manufacturer's official product page for the exact model name, variant, and weight
+- Note the manufacturer's suggested retail price (EUR preferred, USD also OK)
+
+Provide complete identification for each item you find. Available categories: ${categoryList}.`,
+                },
+              ],
+            },
+          ],
+          abortSignal: abortController.signal,
+        });
+        researchText = phase1Result.text;
+      } catch (phase1Error) {
+        // Re-throw AbortError so the outer handler can respond with 504
+        if (phase1Error instanceof Error && phase1Error.name === 'AbortError') {
+          throw phase1Error;
+        }
+        logError('[Vision] Phase 1 (vision+search) failed', phase1Error instanceof Error ? phase1Error : undefined, {
+          metadata: { model: VISION_SEARCH_MODEL },
+        });
+        return NextResponse.json(
+          { success: false, items: [], error: 'SCAN_FAILED' },
+          { status: 500 }
+        );
+      }
+
+      // Guard: if Phase 1 returned empty/very short text, skip Phase 2
+      if (!researchText || researchText.trim().length < 20) {
+        logWarn('[Vision] Phase 1 returned empty or very short research text', {
+          metadata: { researchTextLength: researchText?.length ?? 0 },
+        });
+        return NextResponse.json({ success: true, items: [] });
+      }
+
+      // -----------------------------------------------------------------------
+      // Phase 2 — Structured Parsing
+      // Haiku extracts the structured data from Phase 1's research text.
+      // Much cheaper than running Sonnet twice.
+      // -----------------------------------------------------------------------
+      try {
+        const aiResult = await generateObject({
+          model: anthropic(PARSE_MODEL),
+          schema: DetectedItemsSchema,
+          prompt: `Extract structured outdoor gear item data from this identification research.
+
+Rules:
+- confidence: 0.9+ if exact model verified by web search, 0.5 if brand/type only, 0.3 if guessing
+- estimatedWeightGrams: only if explicitly stated in the research (in grams)
+- category: must be one of: ${categoryList}
+- Return [] if no outdoor gear was identified
+
+Research:
+${researchText}`,
+          abortSignal: abortController.signal,
+        });
+        detectedItems = aiResult.object.detectedItems;
+      } catch (phase2Error) {
+        if (phase2Error instanceof Error && phase2Error.name === 'AbortError') {
+          throw phase2Error;
+        }
+        logError('[Vision] Phase 2 (structured parsing) failed', phase2Error instanceof Error ? phase2Error : undefined, {
+          metadata: { model: PARSE_MODEL, researchTextLength: researchText.length },
+        });
+        return NextResponse.json(
+          { success: false, items: [], error: 'PARSE_FAILED' },
+          { status: 500 }
+        );
+      }
     } finally {
       clearTimeout(timeoutId);
     }
-
-    // Strip visualAnalysis (chain-of-thought helper) — not part of the public API
-    const detectedItems = aiResult.object.detectedItems;
 
     if (detectedItems.length === 0) {
       return NextResponse.json({
@@ -259,11 +341,23 @@ Step 2 — Identification (detectedItems): Based ONLY on what you described abov
       });
     }
 
-    // 9. Match with catalog
-    const matchedItems = await matchDetectedItemsWithCatalog(
-      supabase,
-      detectedItems
-    );
+    // 9. Match with catalog (graceful degradation if catalog search fails)
+    let matchedItems: Awaited<ReturnType<typeof matchDetectedItemsWithCatalog>>;
+    try {
+      matchedItems = await matchDetectedItemsWithCatalog(
+        supabase,
+        detectedItems
+      );
+    } catch (catalogError) {
+      logWarn('[Vision] Catalog matching failed, returning detected items without matches', {
+        metadata: { error: String(catalogError), itemCount: detectedItems.length },
+      });
+      matchedItems = detectedItems.map((d) => ({
+        detected: d,
+        catalogMatch: null,
+        alternatives: [],
+      }));
+    }
 
     // 10. Resolve missing productTypeIds via category resolver.
     //     - catalogMatch with productTypeId → already good, skip
@@ -274,24 +368,31 @@ Step 2 — Identification (detectedItems): Based ONLY on what you described abov
         const existingTypeId = item.catalogMatch?.productTypeId ?? null;
         if (existingTypeId) return item;
 
-        const resolvedTypeId = await resolveProductTypeId(
-          supabase,
-          item.detected.category,
-          item.detected.name
-        );
-        if (!resolvedTypeId) return item;
+        try {
+          const resolvedTypeId = await resolveProductTypeId(
+            supabase,
+            item.detected.category,
+            item.detected.name
+          );
+          if (!resolvedTypeId) return item;
 
-        if (item.catalogMatch) {
+          if (item.catalogMatch) {
+            return {
+              ...item,
+              catalogMatch: { ...item.catalogMatch, productTypeId: resolvedTypeId },
+            };
+          }
+
           return {
             ...item,
-            catalogMatch: { ...item.catalogMatch, productTypeId: resolvedTypeId },
+            detected: { ...item.detected, resolvedProductTypeId: resolvedTypeId },
           };
+        } catch (resolveError) {
+          logWarn('[Vision] Category resolution failed for item', {
+            metadata: { itemName: item.detected.name, error: String(resolveError) },
+          });
+          return item;
         }
-
-        return {
-          ...item,
-          detected: { ...item.detected, resolvedProductTypeId: resolvedTypeId },
-        };
       })
     );
 
@@ -300,16 +401,20 @@ Step 2 — Identification (detectedItems): Based ONLY on what you described abov
       items: enrichedItems,
     });
   } catch (error: unknown) {
-    logError('[Vision] Scan failed', error instanceof Error ? error : undefined, {
-      metadata: { model: VISION_MODEL },
-    });
-
+    // Check AbortError first to avoid noisy Sentry reports for expected timeouts
     if (error instanceof Error && error.name === 'AbortError') {
+      logWarn('[Vision] Scan timed out', {
+        metadata: { model: VISION_SEARCH_MODEL, timeoutMs: VISION_TIMEOUT_MS },
+      });
       return NextResponse.json(
         { success: false, items: [], error: 'VISION_TIMEOUT' },
         { status: 504 }
       );
     }
+
+    logError('[Vision] Scan failed', error instanceof Error ? error : undefined, {
+      metadata: { model: VISION_SEARCH_MODEL },
+    });
 
     return NextResponse.json(
       { success: false, items: [], error: 'SCAN_FAILED' },
