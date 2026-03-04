@@ -102,7 +102,7 @@
   },
   "Footer": {
     "logoAlt": "Gearshack Logo",
-    "tagline": "Ausrüstungsmanagement für Besessene. Verfolge deine Ausrüstung, erstelle Packlisten und erkunde die Natur mit Zuversicht.",
+    "tagline": "Ausrüstungsmanagement für Gear-Heads. Erfasse deine Ausrüstung, erstelle Packlisten für jeden Anlass und erkunde die Welt - mit Zuversicht.",
     "features": "Funktionen",
     "tripPlanning": "Tourenplanung",
     "resources": "Ressourcen",
@@ -113,8 +113,8 @@
     "copyright": "© {year} Gearshack. Mit Leidenschaft gebaut."
   },
   "Hero": {
-    "title": "Meistere Deine Ausrüstung",
-    "subtitle": "Organisiere deine Ausrüstung, plane deine Abenteuer, erobere die Natur."
+    "title": "Manage Deine Ausrüstung wie ein Profi",
+    "subtitle": "Erfasse dein Inventar mit allen Details, plane perfekte Packlisten für jeden Anlass, erobere die Natur."
   },
   "Common": {
     "loading": "Laden...",
