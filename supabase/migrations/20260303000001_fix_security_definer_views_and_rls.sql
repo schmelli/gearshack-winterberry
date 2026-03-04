@@ -17,13 +17,25 @@
 --   - INFO: community_availability kept as SECURITY DEFINER (needs cross-user gear data)
 --   - INFO: Analytics views now correctly per-user scoped (admin uses service_role)
 --
+-- Round 2 fixes (Claude review #2, Sentry review #2):
+--   - CRITICAL: v_shakedowns_feed kept as SECURITY DEFINER (INNER JOIN on loadouts
+--     breaks with security_invoker due to owner-only RLS on loadouts table)
+--   - MEDIUM: Added moderator RLS policies on bulletin_posts and bulletin_replies
+--     so v_bulletin_reports_for_mods subqueries can access deleted/archived content
+--   - MEDIUM: Removed ORDER BY from v_bulletin_reports_for_mods (not guaranteed in views)
+--   - MEDIUM: Added explicit GRANT SELECT on all recreated views (no schema-level grant)
+--   - INFO: Improved service_role_full_access policy comment
+--   - INFO: Documented reporter_name inclusion as intentional moderator tooling decision
+--
 -- Strategy:
 --   1. Create v_profiles_public restricted view (safe columns only)
 --   2. Create is_moderator_or_admin() helper function
---   3. Add missing RLS policies (gear_items marketplace, bulletin_reports moderator)
+--   3. Add missing RLS policies (gear_items marketplace, bulletin_reports moderator,
+--      bulletin_posts/replies moderator access for deleted/archived content)
 --   4. Recreate community views to JOIN on v_profiles_public instead of profiles
---   5. Switch 11 views to security_invoker (community_availability excluded)
+--   5. Switch 10 views to security_invoker (community_availability + v_shakedowns_feed excluded)
 --   6. Enable RLS + service_role policy on Mastra tables (with existence guards)
+--   7. Add explicit GRANT SELECT on all recreated/modified views
 
 BEGIN;
 
@@ -133,6 +145,45 @@ BEGIN
   END IF;
 END $$;
 
+-- 3c. bulletin_posts: Allow moderators/admins to read ALL posts (incl. deleted/archived)
+-- -------------------------------------------------------------------------
+-- Without this policy, subqueries in v_bulletin_reports_for_mods (security_invoker)
+-- cannot access deleted or archived posts, since bulletin_posts_read_active excludes
+-- is_deleted=true and is_archived=true, and bulletin_posts_read_by_id excludes
+-- is_deleted=true. Moderators need full visibility for content moderation.
+-- (Fix for: Sentry medium review — moderators can't see deleted/archived content)
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'bulletin_posts' AND policyname = 'bulletin_posts_moderator_read'
+  ) THEN
+    CREATE POLICY "bulletin_posts_moderator_read"
+      ON public.bulletin_posts FOR SELECT
+      TO authenticated
+      USING (is_moderator_or_admin());
+  END IF;
+END $$;
+
+-- 3d. bulletin_replies: Allow moderators/admins to read ALL replies (incl. deleted)
+-- -------------------------------------------------------------------------
+-- Same rationale as 3c. bulletin_replies_read only allows is_deleted=false.
+-- Moderators need to see deleted replies for content moderation review.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'bulletin_replies' AND policyname = 'bulletin_replies_moderator_read'
+  ) THEN
+    CREATE POLICY "bulletin_replies_moderator_read"
+      ON public.bulletin_replies FOR SELECT
+      TO authenticated
+      USING (is_moderator_or_admin());
+  END IF;
+END $$;
+
 -- ============================================================================
 -- STEP 4: Recreate community views to JOIN on v_profiles_public
 -- ============================================================================
@@ -186,6 +237,15 @@ WHERE r.is_deleted = false;
 -- 4c. Bulletin reports for moderators
 -- Subqueries for target_author_name also use v_profiles_public.
 -- Access controlled by bulletin_reports_moderator_read RLS policy (Step 3b).
+-- Moderator access to deleted/archived posts/replies enabled by Step 3c/3d policies.
+--
+-- Note: reporter_name is intentionally included. This view is for moderators who
+-- need reporter identity for follow-up, pattern detection, and abuse prevention.
+-- If reporter anonymity is required in the future, remove this column and track
+-- reporter identity only through reporter_id (visible to service_role).
+--
+-- ORDER BY removed: PostgreSQL does not guarantee ORDER BY in views without LIMIT.
+-- Callers should apply their own ORDER BY at query time.
 CREATE OR REPLACE VIEW v_bulletin_reports_for_mods AS
 SELECT
   r.id,
@@ -235,14 +295,18 @@ SELECT
   END AS target_author_name
 FROM bulletin_reports r
 JOIN v_profiles_public reporter ON r.reporter_id = reporter.id
-WHERE r.status = 'pending'
-ORDER BY report_count DESC, r.created_at ASC;
+WHERE r.status = 'pending';
 
 -- 4d. Shakedowns feed with author
--- Note: total_weight_grams and item_count subqueries may return 0 for
--- shakedowns not owned by the calling user, since loadout_items and
--- gear_items RLS restricts to owner access. This is a known limitation;
--- denormalizing weight/count onto the shakedowns table would fix it.
+-- This view intentionally remains SECURITY DEFINER (NOT switched to security_invoker).
+-- Reason: The INNER JOIN on loadouts would filter out other users' non-VIP shakedowns
+-- because loadouts RLS only allows owner access (loadouts_select_own) and VIP loadouts
+-- (loadouts_vip_public_read). This would silently break the public community feed.
+-- Same rationale as community_availability — the view inherently needs cross-user data.
+--
+-- Note: total_weight_grams and item_count subqueries access loadout_items and
+-- gear_items which also have owner-only RLS. Since this view is SECURITY DEFINER,
+-- these subqueries will work correctly and return accurate data for all shakedowns.
 CREATE OR REPLACE VIEW v_shakedowns_feed AS
 SELECT
   s.id,
@@ -328,7 +392,7 @@ WHERE
   AND gi.status = 'own';
 
 -- ============================================================================
--- STEP 5: Switch 11 views to security_invoker
+-- STEP 5: Switch 10 views to security_invoker
 -- ============================================================================
 -- PostgreSQL 15+ security_invoker makes views execute with the calling user's
 -- permissions, so RLS on underlying tables applies correctly via PostgREST.
@@ -337,14 +401,16 @@ WHERE
 --   - v_profiles_public: Needs to bypass profiles RLS (only exposes safe columns)
 --   - community_availability: Needs cross-user gear_items access for aggregate
 --     stats (user_count, min/max/avg price). Only returns aggregate data, no PII.
+--   - v_shakedowns_feed: Needs cross-user loadouts access for INNER JOIN on
+--     loadout name. loadouts RLS only allows owner + VIP, which would silently
+--     filter out most shakedowns from other users. Only exposes loadout name.
 
 -- Bulletin board views
 ALTER VIEW public.v_bulletin_posts_with_author SET (security_invoker = on);
 ALTER VIEW public.v_bulletin_replies_with_author SET (security_invoker = on);
 ALTER VIEW public.v_bulletin_reports_for_mods SET (security_invoker = on);
 
--- Shakedown views
-ALTER VIEW public.v_shakedowns_feed SET (security_invoker = on);
+-- Shakedown views (v_shakedowns_feed excluded — see Step 5 header comment)
 ALTER VIEW public.v_shakedown_feedback_with_author SET (security_invoker = on);
 
 -- Marketplace view
@@ -362,20 +428,25 @@ ALTER VIEW public.pending_contributions SET (security_invoker = on);
 ALTER VIEW public.tool_execution_stats SET (security_invoker = on);
 ALTER VIEW public.web_search_usage_stats SET (security_invoker = on);
 
--- NOTE: community_availability is intentionally NOT switched to security_invoker.
--- It performs a cross-user self-join on gear_items to compute aggregate stats
--- (how many users own this item, price range). With security_invoker, the inner
--- join would return 0 rows due to owner-only RLS on gear_items. The view only
--- exposes item name and aggregate data (count, min/max/avg price) — no PII.
+-- NOTE: community_availability and v_shakedowns_feed are intentionally NOT
+-- switched to security_invoker:
+--   - community_availability: cross-user self-join on gear_items for aggregate
+--     stats. Only exposes item name + count/min/max/avg price — no PII.
+--   - v_shakedowns_feed: INNER JOIN on loadouts for loadout name. loadouts RLS
+--     is owner-only + VIP, so security_invoker would silently drop most rows.
+--     Only exposes loadout name (non-sensitive) alongside shakedown data.
 
 -- ============================================================================
 -- STEP 6: Enable RLS + service_role policies on Mastra tables
 -- ============================================================================
 -- Mastra tables are auto-created by @mastra/pg using direct DATABASE_URL
 -- (service_role credentials). They should NOT be accessible via PostgREST
--- anon/authenticated keys. Enable RLS and grant full access only to
--- service_role (which bypasses RLS by default, but explicit policy ensures
--- correct behavior).
+-- anon/authenticated keys. Enable RLS to block anon/authenticated access.
+--
+-- Note: service_role bypasses RLS by default (superuser-equivalent in Supabase).
+-- The explicit service_role_full_access policy is documentation-only — the
+-- important security action is ENABLE ROW LEVEL SECURITY, which blocks
+-- anon/authenticated access when no permissive policy matches those roles.
 --
 -- Wrapped in existence checks since Mastra tables may not exist in fresh
 -- environments where the app hasn't initialized yet.
@@ -416,5 +487,20 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- ============================================================================
+-- STEP 7: Explicit GRANT SELECT on all recreated/modified views
+-- ============================================================================
+-- CREATE OR REPLACE VIEW preserves existing grants, but there is no
+-- schema-level GRANT SELECT ON ALL TABLES that would cover new views.
+-- Explicit grants ensure PostgREST (authenticated) callers can query them.
+-- v_profiles_public was already granted in Step 1.
+
+GRANT SELECT ON v_bulletin_posts_with_author TO authenticated;
+GRANT SELECT ON v_bulletin_replies_with_author TO authenticated;
+GRANT SELECT ON v_bulletin_reports_for_mods TO authenticated;
+GRANT SELECT ON v_shakedowns_feed TO authenticated;
+GRANT SELECT ON v_shakedown_feedback_with_author TO authenticated;
+GRANT SELECT ON v_marketplace_listings TO authenticated;
 
 COMMIT;
