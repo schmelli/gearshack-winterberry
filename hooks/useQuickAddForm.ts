@@ -37,7 +37,9 @@ function initFormState(extraction: QuickAddExtraction | null): FormState {
       ? String(extraction.weightGrams)
       : '',
     weightUnit: 'g',
-    condition: extraction?.condition ?? 'new',
+    // Default to 'used' when condition is unknown — safer than 'new' for
+    // marketplace listings and second-hand gear imports.
+    condition: extraction?.condition ?? 'used',
     productTypeId: extraction?.productTypeId ?? '',
     pricePaid: extraction?.pricePaid ? String(extraction.pricePaid) : '',
     currency: extraction?.currency ?? 'EUR',
@@ -61,13 +63,14 @@ export function useQuickAddForm(
   const [form, setForm] = useState<FormState>(() => initFormState(extraction));
 
   // Track the extraction identity to avoid resetting user edits on referential re-renders.
-  // We use a composite key (name + confidence) because the extraction object may be
-  // structurally identical but referentially new after a parent re-render.
+  // We use a composite key with multiple fields to minimize false negatives (two different
+  // extractions colliding) and false positives (same extraction with float precision drift).
+  // Including inputType + brand + weightGrams makes collisions extremely unlikely.
   const prevExtractionKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!extraction) return;
-    const key = `${extraction.name ?? ''}::${extraction.confidence}`;
+    const key = `${extraction.inputType}::${extraction.name ?? ''}::${extraction.brand ?? ''}::${extraction.weightGrams ?? ''}::${extraction.confidence}`;
     if (key !== prevExtractionKeyRef.current) {
       prevExtractionKeyRef.current = key;
       setForm(initFormState(extraction));

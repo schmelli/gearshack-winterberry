@@ -336,7 +336,15 @@ export function useQuickAdd(
 
           if (!result.success) {
             setStatus('error');
-            setError(result.error);
+            // Map structured API error codes to i18n strings.
+            // The API returns codes like 'AUTH_REQUIRED', 'EXTRACTION_FAILED', etc.
+            // rather than user-facing text — map them to translated messages here.
+            const errorMessage = result.error === 'RATE_LIMITED'
+              ? t('errorRateLimit')
+              : result.error === 'AUTH_REQUIRED'
+                ? t('errorExtraction') // Auth errors are unexpected in normal flow
+                : t('errorExtraction');
+            setError(errorMessage);
             return;
           }
 
@@ -555,7 +563,10 @@ function buildGearItemPayload(
     manufacturerCurrency: null,
     primaryImageUrl: extraction.primaryImageUrl ?? null,
     galleryImageUrls: [],
-    condition: extraction.condition ?? 'new',
+    // Default to 'used' when condition is unknown (e.g., URL imports, text extraction).
+    // 'new' would be incorrect for marketplace listings (eBay, Vinted), and most
+    // second-hand gear is in 'used' condition. The review sheet lets users correct this.
+    condition: extraction.condition ?? 'used',
     status: destination === 'wishlist' ? 'wishlist' : 'own',
     notes: null,
     quantity: 1,

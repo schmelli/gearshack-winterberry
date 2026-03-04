@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Loader2, Camera, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,13 @@ export function QuickAddInput({
   const isProcessing = status === 'extracting' || status === 'saving';
   const isSuccess = status === 'success';
   const isError = status === 'error';
+
+  // Sync local input text with external status: clear text when extraction
+  // succeeds, so stale text doesn't reappear when the hook auto-resets
+  // from success → idle after 1500ms. This is a legitimate case of syncing
+  // local component state with an external prop (status from useQuickAdd).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (isSuccess) setValue(''); }, [isSuccess]);
 
   // ── Submit handler ──────────────────────────────────────────────────────
   const handleSubmit = useCallback(() => {
@@ -186,6 +193,7 @@ export function QuickAddInput({
                 : ''
           }`}
           aria-label={t('inputLabel')}
+          aria-busy={isProcessing || undefined}
           aria-invalid={isError || undefined}
           aria-describedby={isError && error ? 'quick-add-error' : undefined}
         />

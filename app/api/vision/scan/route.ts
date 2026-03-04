@@ -162,15 +162,18 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
 
     // 2. Rate limiting
     const rateLimitResult = visionScanLimiter.check(user.id);
+    const rateLimitHeaders = {
+      'X-RateLimit-Limit': '10',
+      'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+      'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+    };
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { success: false, items: [], error: 'RATE_LIMITED' },
         {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': '10',
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+            ...rateLimitHeaders,
             'Retry-After': Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000).toString(),
           },
         }
@@ -247,7 +250,9 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
       // -----------------------------------------------------------------------
       // Phase 1 — Vision + Web Search
       // Claude analyzes the image visually, then searches the web for the exact
-      // product name, model, weight, and price. Up to 5 search steps allowed.
+      // product name, model, weight, and price. maxUses limits web searches to 5.
+      // stepCountIs counts ALL LLM generations (tool calls + synthesis steps),
+      // so we set it to 8 to allow up to 5 web searches plus synthesis rounds.
       // -----------------------------------------------------------------------
       let researchText: string;
       try {
@@ -257,7 +262,7 @@ export async function POST(request: Request): Promise<NextResponse<VisionScanRes
           tools: {
             web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
           } as unknown as ToolSet,
-          stopWhen: stepCountIs(5),
+          stopWhen: stepCountIs(8),
           messages: [
             {
               role: 'user',
@@ -304,7 +309,7 @@ Provide complete identification for each item you find. Available categories: ${
         logWarn('[Vision] Phase 1 returned empty or very short research text', {
           metadata: { researchTextLength: researchText?.length ?? 0 },
         });
-        return NextResponse.json({ success: true, items: [] });
+        return NextResponse.json({ success: true, items: [] }, { headers: rateLimitHeaders });
       }
 
       // -----------------------------------------------------------------------
@@ -346,10 +351,10 @@ ${researchText}`,
     }
 
     if (detectedItems.length === 0) {
-      return NextResponse.json({
-        success: true,
-        items: [],
-      });
+      return NextResponse.json(
+        { success: true, items: [] },
+        { headers: rateLimitHeaders }
+      );
     }
 
     // 9. Match with catalog (graceful degradation if catalog search fails)
@@ -407,10 +412,10 @@ ${researchText}`,
       })
     );
 
-    return NextResponse.json({
-      success: true,
-      items: enrichedItems,
-    });
+    return NextResponse.json(
+      { success: true, items: enrichedItems },
+      { headers: rateLimitHeaders }
+    );
   } catch (error: unknown) {
     // Check AbortError first to avoid noisy Sentry reports for expected timeouts
     if (error instanceof Error && error.name === 'AbortError') {
