@@ -1201,7 +1201,8 @@
       "swipeWorn": "Getragen",
       "swipeConsumable": "Verbrauch",
       "swipeDuplicate": "Duplizieren",
-      "swipeDetails": "Details"
+      "swipeDetails": "Details",
+      "removeFromLoadout": "{name} aus Ladung entfernen"
     },
     "dependencies": {
       "title": "Abhängigkeiten hinzufügen?",

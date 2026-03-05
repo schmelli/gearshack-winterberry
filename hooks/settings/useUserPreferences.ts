@@ -63,7 +63,7 @@ function rowToPreferences(row: Partial<UserPreferencesRow>): Partial<UserPrefere
     showWeightBreakdown: row.show_weight_breakdown,
     startPage: row.start_page,
     notificationPreferences: row.notification_preferences,
-    swipeActions: row.swipe_actions,
+    swipeActions: row.swipe_actions ?? undefined,
   };
 }
 

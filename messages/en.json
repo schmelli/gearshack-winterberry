@@ -1201,7 +1201,8 @@
       "swipeWorn": "Worn",
       "swipeConsumable": "Consumable",
       "swipeDuplicate": "Duplicate",
-      "swipeDetails": "Details"
+      "swipeDetails": "Details",
+      "removeFromLoadout": "Remove {name} from loadout"
     },
     "dependencies": {
       "title": "Add Dependencies?",

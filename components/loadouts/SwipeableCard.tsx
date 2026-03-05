@@ -11,9 +11,8 @@
 
 'use client';
 
-import { X, Shirt, Apple, Copy, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SwipeAction } from '@/types/settings';
+import { SWIPE_ACTION_ICONS } from '@/lib/swipe-action-icons';
 import type { SwipeActionDisplay } from '@/hooks/useSwipeActions';
 
 // =============================================================================
@@ -43,17 +42,13 @@ interface SwipeableCardProps {
 }
 
 // =============================================================================
-// Icon Map
+// Constants
 // =============================================================================
 
-const ACTION_ICONS: Record<SwipeAction, React.ReactNode> = {
-  remove: <X className="h-5 w-5" aria-hidden="true" />,
-  toggleWorn: <Shirt className="h-5 w-5" aria-hidden="true" />,
-  toggleConsumable: <Apple className="h-5 w-5" aria-hidden="true" />,
-  duplicate: <Copy className="h-5 w-5" aria-hidden="true" />,
-  viewDetails: <Eye className="h-5 w-5" aria-hidden="true" />,
-  none: null,
-};
+/** Minimum swipe offset before showing the action icon */
+const ICON_REVEAL_THRESHOLD = 40;
+/** Minimum swipe offset before showing the action label */
+const LABEL_REVEAL_THRESHOLD = 70;
 
 // =============================================================================
 // Sub-Component: Action Panel
@@ -78,8 +73,9 @@ function ActionPanel({ actions, absOffset, primaryReached, secondaryReached }: A
         return (
           <div
             key={`${action.action}-${index}`}
-            role="img"
+            role="button"
             aria-label={action.label}
+            aria-disabled={!action.isAvailable}
             className={cn(
               'flex flex-1 flex-col items-center justify-center gap-1 px-3',
               action.bgColor,
@@ -88,10 +84,10 @@ function ActionPanel({ actions, absOffset, primaryReached, secondaryReached }: A
               !action.isAvailable && 'opacity-40'
             )}
           >
-            {absOffset > 40 && (
+            {absOffset > ICON_REVEAL_THRESHOLD && (
               <>
-                {ACTION_ICONS[action.action]}
-                {absOffset > 70 && (
+                {SWIPE_ACTION_ICONS[action.action]}
+                {absOffset > LABEL_REVEAL_THRESHOLD && (
                   <span className="text-[10px] font-medium leading-tight">
                     {action.label}
                   </span>

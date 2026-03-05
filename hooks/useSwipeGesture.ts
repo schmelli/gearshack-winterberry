@@ -77,7 +77,9 @@ const DEFAULT_PRIMARY_DISTANCE = 80;
 const DEFAULT_SECONDARY_DISTANCE = 160;
 const DEFAULT_MAX_DISTANCE = 200;
 const VELOCITY_THRESHOLD = 500; // px/s - fast flick triggers primary action
-const RUBBER_BAND_FACTOR = 0.3; // Resistance when past max distance
+const VELOCITY_MIN_DISTANCE = 30; // px - minimum distance before velocity-based triggering applies
+// 30% resistance when dragging past maxDistance — gives a "stretchy" feel
+const RUBBER_BAND_FACTOR = 0.3;
 
 // =============================================================================
 // Hook
@@ -115,6 +117,8 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
   const isHorizontalRef = useRef(false);
   // Track settle timeout to clear on unmount
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirror phase in a ref so high-frequency handlers avoid stale closures
+  const phaseRef = useRef<SwipePhase>('idle');
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -127,6 +131,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
 
   const reset = useCallback(() => {
     setState(INITIAL_STATE);
+    phaseRef.current = 'idle';
     directionLockedRef.current = false;
     isHorizontalRef.current = false;
   }, []);
@@ -154,6 +159,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
       directionLockedRef.current = false;
       isHorizontalRef.current = false;
 
+      phaseRef.current = 'detecting';
       setState((prev) => ({
         ...prev,
         phase: 'detecting',
@@ -164,7 +170,8 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      if (!enabled || state.phase === 'idle' || state.phase === 'settling') return;
+      const currentPhase = phaseRef.current;
+      if (!enabled || currentPhase === 'idle' || currentPhase === 'settling') return;
 
       const deltaX = e.touches[0].clientX - touchStartRef.current.x;
       const deltaY = e.touches[0].clientY - touchStartRef.current.y;
@@ -184,6 +191,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
         if (absDeltaY > absDeltaX) {
           // Vertical scroll intent - abort swipe and let ScrollArea handle it
           isHorizontalRef.current = false;
+          phaseRef.current = 'idle';
           setState(INITIAL_STATE);
           return;
         }
@@ -200,6 +208,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
       const absOffset = Math.abs(dampedOffset);
       const direction: SwipeDirection = dampedOffset < 0 ? 'left' : dampedOffset > 0 ? 'right' : null;
 
+      phaseRef.current = 'swiping';
       setState({
         offsetX: dampedOffset,
         direction,
@@ -208,7 +217,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
         secondaryReached: absOffset >= secondaryDistance,
       });
     },
-    [enabled, state.phase, directionThreshold, primaryDistance, secondaryDistance, applyRubberBand]
+    [enabled, directionThreshold, primaryDistance, secondaryDistance, applyRubberBand]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -218,7 +227,10 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
     }
 
     const deltaTime = Date.now() - touchStartRef.current.time;
-    const velocity = Math.abs(state.offsetX) / (deltaTime / 1000);
+    // Use damped offset for distance thresholds (matches visual position)
+    const absOffset = Math.abs(state.offsetX);
+    // Use raw displacement for velocity calculation (undamped, more accurate)
+    const velocity = absOffset / (deltaTime / 1000);
     const direction = state.direction;
 
     // Check if action thresholds were met
@@ -227,14 +239,18 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
       onSecondaryAction?.(direction);
       // Haptic feedback
       navigator.vibrate?.(10);
-    } else if (state.primaryReached || velocity >= VELOCITY_THRESHOLD) {
-      // Trigger primary action (either by distance or velocity)
+    } else if (
+      state.primaryReached ||
+      (velocity >= VELOCITY_THRESHOLD && absOffset >= VELOCITY_MIN_DISTANCE)
+    ) {
+      // Trigger primary action (either by distance or by fast flick with minimum travel)
       onPrimaryAction?.(direction);
       // Haptic feedback
       navigator.vibrate?.(10);
     }
 
     // Settle back to idle
+    phaseRef.current = 'settling';
     setState((prev) => ({
       ...prev,
       phase: 'settling',

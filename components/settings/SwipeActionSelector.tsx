@@ -8,7 +8,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { X, Shirt, Apple, Copy, Eye, ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { SwipeAction, SwipeActionConfig } from '@/types/settings';
+import { SWIPE_ACTION_ICONS_SM } from '@/lib/swipe-action-icons';
 
 // =============================================================================
 // Types
@@ -42,14 +43,7 @@ const SWIPE_ACTION_OPTIONS: SwipeAction[] = [
   'none',
 ];
 
-const ACTION_ICONS: Record<SwipeAction, React.ReactNode> = {
-  remove: <X className="h-4 w-4" />,
-  toggleWorn: <Shirt className="h-4 w-4" />,
-  toggleConsumable: <Apple className="h-4 w-4" />,
-  duplicate: <Copy className="h-4 w-4" />,
-  viewDetails: <Eye className="h-4 w-4" />,
-  none: null,
-};
+// Icons imported from shared constant (lib/swipe-action-icons.tsx)
 
 // =============================================================================
 // Component
@@ -180,7 +174,7 @@ function ActionSelect({ label, value, onChange, actionLabel, disabled }: ActionS
           {SWIPE_ACTION_OPTIONS.map((action) => (
             <SelectItem key={action} value={action}>
               <div className="flex items-center gap-2">
-                {ACTION_ICONS[action]}
+                {SWIPE_ACTION_ICONS_SM[action]}
                 <span>{actionLabel(action)}</span>
               </div>
             </SelectItem>

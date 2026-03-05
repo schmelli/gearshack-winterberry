@@ -227,7 +227,7 @@ export interface UserPreferencesRow {
   show_weight_breakdown: boolean;
   start_page: StartPage;
   notification_preferences: NotificationPreferences;
-  swipe_actions: SwipeActionConfig;
+  swipe_actions: SwipeActionConfig | null;
 }
 
 // =============================================================================

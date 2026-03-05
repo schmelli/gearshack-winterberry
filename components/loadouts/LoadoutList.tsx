@@ -39,6 +39,7 @@ import { getLocalizedLabel, getParentCategoryIds } from '@/lib/utils/category-he
 import { getOptimizedImageUrl } from '@/lib/gear-utils';
 import type { LighterAlternative } from '@/hooks/useLighterAlternatives';
 import type { SwipeActionConfig } from '@/types/settings';
+import { DEFAULT_USER_PREFERENCES } from '@/types/settings';
 import { SwipeableCard } from '@/components/loadouts/SwipeableCard';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useSwipeActions } from '@/hooks/useSwipeActions';
@@ -294,40 +295,147 @@ function LoadoutListItem({
   onDuplicate,
   reduceAnimations,
 }: LoadoutListItemProps) {
-  // Handle click on item body to open detail modal (Feature 045)
+  // Get optimized image URL (56x56 display * 2 for retina)
+  const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
+
+  // The card content — shared between swipeable and non-swipeable modes
+  const cardContent = (
+    <LoadoutListItemContent
+      item={item}
+      onRemove={onRemove}
+      onSwap={onSwap}
+      isWorn={isWorn}
+      isConsumable={isConsumable}
+      onToggleWorn={onToggleWorn}
+      onToggleConsumable={onToggleConsumable}
+      onClick={onClick}
+      lighterAlternative={lighterAlternative}
+      productTypeLabel={productTypeLabel}
+      t={t}
+      swipeEnabled={swipeEnabled}
+      optimizedImageUrl={optimizedImageUrl}
+    />
+  );
+
+  // Only mount swipe hooks when actually needed (perf: avoids useTranslations +
+  // useMemo overhead for every item on desktop)
+  if (swipeEnabled) {
+    return (
+      <SwipeableLoadoutListItem
+        config={swipeConfig ?? DEFAULT_USER_PREFERENCES.swipeActions}
+        onRemove={onRemove}
+        onToggleWorn={onToggleWorn}
+        onToggleConsumable={onToggleConsumable}
+        onDuplicate={onDuplicate}
+        onViewDetails={onClick}
+        reduceAnimations={reduceAnimations}
+      >
+        {cardContent}
+      </SwipeableLoadoutListItem>
+    );
+  }
+
+  return cardContent;
+}
+
+// =============================================================================
+// SwipeableLoadoutListItem — mounts swipe hooks only on touch devices
+// =============================================================================
+
+interface SwipeableLoadoutListItemProps {
+  children: React.ReactNode;
+  config: SwipeActionConfig;
+  onRemove: () => void;
+  onToggleWorn: () => void;
+  onToggleConsumable: () => void;
+  onDuplicate?: () => void;
+  onViewDetails?: () => void;
+  reduceAnimations: boolean;
+}
+
+function SwipeableLoadoutListItem({
+  children,
+  config,
+  onRemove,
+  onToggleWorn,
+  onToggleConsumable,
+  onDuplicate,
+  onViewDetails,
+  reduceAnimations,
+}: SwipeableLoadoutListItemProps) {
+  const swipeActions = useSwipeActions({
+    config,
+    onRemove,
+    onToggleWorn,
+    onToggleConsumable,
+    onDuplicate,
+    onViewDetails,
+  });
+
+  const swipeGesture = useSwipeGesture({
+    enabled: true,
+    reduceAnimations,
+    onPrimaryAction: swipeActions.handlePrimaryAction,
+    onSecondaryAction: swipeActions.handleSecondaryAction,
+  });
+
+  return (
+    <SwipeableCard
+      offsetX={swipeGesture.state.offsetX}
+      shouldAnimate={swipeGesture.shouldAnimate}
+      primaryReached={swipeGesture.state.primaryReached}
+      secondaryReached={swipeGesture.state.secondaryReached}
+      touchHandlers={swipeGesture.handlers}
+      leftActions={swipeActions.leftActions}
+      rightActions={swipeActions.rightActions}
+    >
+      {children}
+    </SwipeableCard>
+  );
+}
+
+// =============================================================================
+// LoadoutListItemContent — pure UI for a single item row
+// =============================================================================
+
+interface LoadoutListItemContentProps {
+  item: GearItem;
+  onRemove: () => void;
+  onSwap?: () => void;
+  isWorn: boolean;
+  isConsumable: boolean;
+  onToggleWorn: () => void;
+  onToggleConsumable: () => void;
+  onClick?: () => void;
+  lighterAlternative: LighterAlternative | null;
+  productTypeLabel?: string;
+  t: ReturnType<typeof useTranslations<'Loadouts'>>;
+  swipeEnabled: boolean;
+  optimizedImageUrl: string | null;
+}
+
+function LoadoutListItemContent({
+  item,
+  onRemove,
+  onSwap,
+  isWorn,
+  isConsumable,
+  onToggleWorn,
+  onToggleConsumable,
+  onClick,
+  lighterAlternative,
+  productTypeLabel,
+  t,
+  swipeEnabled,
+  optimizedImageUrl,
+}: LoadoutListItemContentProps) {
   const handleClick = () => {
     if (onClick) {
       onClick();
     }
   };
 
-  // Get optimized image URL (56x56 display * 2 for retina)
-  const optimizedImageUrl = getOptimizedImageUrl(item, 56 * 2);
-
-  // Swipe actions (only used when swipeEnabled)
-  const swipeActions = useSwipeActions({
-    config: swipeConfig ?? {
-      swipeLeftPrimary: 'remove',
-      swipeLeftSecondary: 'toggleConsumable',
-      swipeRightPrimary: 'toggleWorn',
-      swipeRightSecondary: 'duplicate',
-    },
-    onRemove,
-    onToggleWorn,
-    onToggleConsumable,
-    onDuplicate,
-    onViewDetails: onClick,
-  });
-
-  const swipeGesture = useSwipeGesture({
-    enabled: swipeEnabled,
-    reduceAnimations,
-    onPrimaryAction: swipeActions.handlePrimaryAction,
-    onSecondaryAction: swipeActions.handleSecondaryAction,
-  });
-
-  // The card content — shared between swipeable and non-swipeable modes
-  const cardContent = (
+  return (
     <div
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -366,6 +474,7 @@ function LoadoutListItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <p className="truncate font-medium">{item.name}</p>
+          {/* Lighter alternative: tooltip on desktop, compact badge on touch */}
           {lighterAlternative && !swipeEnabled && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -406,6 +515,15 @@ function LoadoutListItem({
               </TooltipContent>
             </Tooltip>
           )}
+          {lighterAlternative && swipeEnabled && (
+            <span
+              className="shrink-0 text-amber-500"
+              role="img"
+              aria-label={t('itemActions.lighterAlternativeAvailable')}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <p className="text-sm text-muted-foreground">
@@ -440,7 +558,7 @@ function LoadoutListItem({
             size="icon"
             className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
             onClick={onRemove}
-            aria-label={`Remove ${item.name} from loadout`}
+            aria-label={t('itemActions.removeFromLoadout', { name: item.name })}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -448,25 +566,6 @@ function LoadoutListItem({
       )}
     </div>
   );
-
-  // Wrap with SwipeableCard on touch devices
-  if (swipeEnabled) {
-    return (
-      <SwipeableCard
-        offsetX={swipeGesture.state.offsetX}
-        shouldAnimate={swipeGesture.shouldAnimate}
-        primaryReached={swipeGesture.state.primaryReached}
-        secondaryReached={swipeGesture.state.secondaryReached}
-        touchHandlers={swipeGesture.handlers}
-        leftActions={swipeActions.leftActions}
-        rightActions={swipeActions.rightActions}
-      >
-        {cardContent}
-      </SwipeableCard>
-    );
-  }
-
-  return cardContent;
 }
 
 // =============================================================================

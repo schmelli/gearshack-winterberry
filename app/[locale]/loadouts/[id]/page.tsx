@@ -86,6 +86,9 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   // Swipe gesture configuration
   const { preferences } = useUserPreferences();
   const isDesktop = useMediaQuery(MEDIA_QUERIES.desktop);
+  // Detect actual touch capability via coarse pointer, not just viewport width.
+  // This prevents hiding desktop controls on narrow non-touch windows.
+  const hasTouchPointer = useMediaQuery('(pointer: coarse)');
 
   // Editor state and actions
   const {
@@ -294,7 +297,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               onItemClick={handleGearClick}
               getLighterAlternative={getLighterAlternative}
               swipeConfig={preferences.swipeActions}
-              isTouchDevice={!isDesktop}
+              isTouchDevice={hasTouchPointer && !isDesktop}
               onDuplicateItem={handleDuplicateItem}
               reduceAnimations={preferences.reduceAnimations}
             />
