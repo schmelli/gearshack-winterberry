@@ -10,7 +10,14 @@ import type {
 } from '@/types/sharing';
 
 /**
- * Maps database profile row to SharedLoadoutOwner interface
+ * Maps database profile row to SharedLoadoutOwner interface.
+ *
+ * When called from share-page contexts (getSharedLoadoutWithOwner,
+ * getShareWithStats), bio, social links, and messaging_privacy will
+ * always be null because v_profiles_public intentionally omits those
+ * sensitive columns. The 'nobody' default for messagingPrivacy is a
+ * security-conservative choice: when we cannot verify the owner's
+ * actual setting, we must not expose the "Send Message" button.
  */
 function mapProfileToOwner(profile: {
   id: string;
@@ -41,6 +48,67 @@ function mapProfileToOwner(profile: {
 }
 
 /**
+ * Fetches owner profile from v_profiles_public (SECURITY DEFINER view).
+ *
+ * Returns null if the profile cannot be fetched (best-effort).
+ * Only non-sensitive columns are available from this view;
+ * bio, social links, and messaging_privacy are set to null.
+ */
+async function fetchOwnerProfile(
+  supabase: SupabaseClient,
+  ownerId: string
+): Promise<SharedLoadoutOwner | null> {
+  // Cast to `string` because v_profiles_public is a SECURITY DEFINER view
+  // not present in the Supabase generated types. This silences the TS
+  // compiler for the query chain. TODO: add view to generated types.
+  const { data: profileData, error: profileError } = await supabase
+    .from('v_profiles_public' as string)
+    .select('id, display_name, avatar_url, trail_name')
+    .eq('id', ownerId)
+    .single();
+
+  if (profileError) {
+    console.warn('[sharing] Failed to fetch owner profile:', profileError.message);
+  }
+
+  if (!profileData) return null;
+
+  return mapProfileToOwner({
+    id: profileData.id,
+    display_name: profileData.display_name,
+    avatar_url: profileData.avatar_url,
+    trail_name: profileData.trail_name,
+    // These fields are not in v_profiles_public; set to null
+    bio: null,
+    location_name: null,
+    instagram: null,
+    facebook: null,
+    youtube: null,
+    website: null,
+    messaging_privacy: null,
+  });
+}
+
+/**
+ * Validates that a payload conforms to the SharedLoadoutPayload schema.
+ * Handles older/stale data schemas gracefully by checking required fields.
+ */
+function isValidSharedLoadoutPayload(
+  payload: unknown
+): payload is SharedLoadoutPayload {
+  if (!payload || typeof payload !== 'object') return false;
+
+  const p = payload as Record<string, unknown>;
+  if (!p.loadout || typeof p.loadout !== 'object') return false;
+
+  const loadout = p.loadout as Record<string, unknown>;
+  if (typeof loadout.name !== 'string') return false;
+  if (!Array.isArray(p.items)) return false;
+
+  return true;
+}
+
+/**
  * Fetches a shared loadout with owner profile data.
  *
  * Uses two separate queries to avoid profiles RLS blocking the entire share
@@ -64,35 +132,18 @@ export async function getSharedLoadoutWithOwner(
 
   if (shareError || !shareData) return null;
 
-  // Step 2: Fetch owner profile via v_profiles_public (SECURITY DEFINER view,
-  // bypasses profiles RLS to expose only non-sensitive columns safely)
-  let owner: SharedLoadoutOwner | null = null;
-  const { data: profileData } = await supabase
-    .from('v_profiles_public' as string)
-    .select('id, display_name, avatar_url, trail_name')
-    .eq('id', shareData.owner_id)
-    .single();
-
-  if (profileData) {
-    owner = mapProfileToOwner({
-      id: profileData.id,
-      display_name: profileData.display_name,
-      avatar_url: profileData.avatar_url,
-      trail_name: profileData.trail_name,
-      // These fields are not in v_profiles_public; set to null
-      bio: null,
-      location_name: null,
-      instagram: null,
-      facebook: null,
-      youtube: null,
-      website: null,
-      messaging_privacy: null,
-    });
+  // Step 2: Validate payload structure before returning
+  if (!isValidSharedLoadoutPayload(shareData.payload)) {
+    console.error('[getSharedLoadoutWithOwner] Invalid payload for token:', shareToken);
+    return null;
   }
+
+  // Step 3: Fetch owner profile (best-effort, share still loads if this fails)
+  const owner = await fetchOwnerProfile(supabase, shareData.owner_id);
 
   return {
     shareToken: shareData.share_token,
-    payload: shareData.payload as SharedLoadoutPayload,
+    payload: shareData.payload,
     allowComments: shareData.allow_comments,
     createdAt: shareData.created_at,
     owner,
@@ -150,33 +201,18 @@ export async function getShareWithStats(
 
   if (shareError || !shareData) return null;
 
-  // Fetch owner profile via v_profiles_public (same pattern as getSharedLoadoutWithOwner)
-  let owner: SharedLoadoutOwner | null = null;
-  const { data: profileData } = await supabase
-    .from('v_profiles_public' as string)
-    .select('id, display_name, avatar_url, trail_name')
-    .eq('id', shareData.owner_id)
-    .single();
-
-  if (profileData) {
-    owner = mapProfileToOwner({
-      id: profileData.id,
-      display_name: profileData.display_name,
-      avatar_url: profileData.avatar_url,
-      trail_name: profileData.trail_name,
-      bio: null,
-      location_name: null,
-      instagram: null,
-      facebook: null,
-      youtube: null,
-      website: null,
-      messaging_privacy: null,
-    });
+  // Validate payload structure before returning
+  if (!isValidSharedLoadoutPayload(shareData.payload)) {
+    console.error('[getShareWithStats] Invalid payload for token:', shareToken);
+    return null;
   }
+
+  // Fetch owner profile (best-effort, share still loads if this fails)
+  const owner = await fetchOwnerProfile(supabase, shareData.owner_id);
 
   return {
     shareToken: shareData.share_token,
-    payload: shareData.payload as SharedLoadoutPayload,
+    payload: shareData.payload,
     allowComments: shareData.allow_comments,
     createdAt: shareData.created_at,
     owner,

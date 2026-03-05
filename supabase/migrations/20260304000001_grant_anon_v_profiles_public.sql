@@ -11,4 +11,5 @@
 -- shakedown_helpful_received) — the same non-sensitive subset already
 -- visible to authenticated users. No sensitive data is exposed.
 
+-- GRANT is idempotent in PostgreSQL — safe to re-run without errors.
 GRANT SELECT ON v_profiles_public TO anon;
