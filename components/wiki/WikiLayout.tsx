@@ -9,6 +9,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ interface WikiLayoutProps {
 }
 
 export function WikiLayout({ children }: WikiLayoutProps) {
+  const t = useTranslations('Wiki');
   const [open, setOpen] = useState(false);
 
   return (
@@ -34,11 +36,11 @@ export function WikiLayout({ children }: WikiLayoutProps) {
           <SheetTrigger asChild>
             <Button variant="outline" size="sm">
               <Menu className="h-4 w-4 mr-2" />
-              Wiki
+              {t('sidebarTrigger')}
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[280px] p-4">
-            <SheetTitle className="sr-only">Wiki Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{t('sidebarNavigation')}</SheetTitle>
             <WikiSidebar />
           </SheetContent>
         </Sheet>

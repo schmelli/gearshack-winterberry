@@ -363,7 +363,15 @@ export function MerchantOffersListClient() {
                   <Card
                     key={offer.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
+                    tabIndex={0}
+                    role="button"
                     onClick={() => handleOfferClick(offer.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOfferClick(offer.id);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="relative w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden">

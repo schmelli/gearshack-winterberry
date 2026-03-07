@@ -82,7 +82,7 @@ export function QuietHoursPicker({
 
       {/* Time Range */}
       {settings.enabled && (
-        <div className="ml-0 sm:ml-13 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 rounded-lg border p-4">
+        <div className="ml-0 sm:ml-[3.25rem] flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 rounded-lg border p-4">
           <div className="flex items-center gap-2">
             <Label htmlFor="start-time">{t('from')}</Label>
             <Select

@@ -1450,7 +1450,9 @@
     "noRevisions": "Kein Revisionsverlauf verfügbar.",
     "current": "Aktuell",
     "langEnglish": "Englisch",
-    "langDeutsch": "Deutsch"
+    "langDeutsch": "Deutsch",
+    "sidebarTrigger": "Wiki",
+    "sidebarNavigation": "Wiki-Navigation"
   },
   "Shakedown": {
     "shareLoadoutTitle": "Packliste teilen",
