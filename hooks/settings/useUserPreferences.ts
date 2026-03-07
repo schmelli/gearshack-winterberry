@@ -63,6 +63,7 @@ function rowToPreferences(row: Partial<UserPreferencesRow>): Partial<UserPrefere
     showWeightBreakdown: row.show_weight_breakdown,
     startPage: row.start_page,
     notificationPreferences: row.notification_preferences,
+    swipeActions: row.swipe_actions ?? undefined,
   };
 }
 
@@ -90,6 +91,7 @@ function keyToColumn(key: keyof UserPreferences): string {
     showWeightBreakdown: 'show_weight_breakdown',
     startPage: 'start_page',
     notificationPreferences: 'notification_preferences',
+    swipeActions: 'swipe_actions',
   };
   return mapping[key];
 }
@@ -142,7 +144,8 @@ export function useUserPreferences(): UseUserPreferencesReturn {
           reduce_animations,
           show_weight_breakdown,
           start_page,
-          notification_preferences
+          notification_preferences,
+          swipe_actions
         `
         )
         .eq('id', user.id)

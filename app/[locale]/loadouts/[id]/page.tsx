@@ -26,6 +26,9 @@ import { useChartFilter } from '@/hooks/useChartFilter';
 import { useDependencyPrompt } from '@/hooks/useDependencyPrompt';
 import { useCategories } from '@/hooks/useCategories';
 import { useLighterAlternatives } from '@/hooks/useLighterAlternatives';
+import { useUserPreferences } from '@/hooks/settings/useUserPreferences';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { MEDIA_QUERIES } from '@/lib/constants/breakpoints';
 import { LoadoutHeader } from '@/components/loadouts/LoadoutHeader';
 import { LoadoutList } from '@/components/loadouts/LoadoutList';
 import { LoadoutPicker } from '@/components/loadouts/LoadoutPicker';
@@ -40,7 +43,6 @@ import {
 } from '@/components/loadouts/LoadoutHeroActions';
 
 import { GearDetailModal } from '@/components/gear-detail/GearDetailModal';
-import { useMediaQuery } from '@/hooks/useGearDetailModal';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +82,13 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
 
   // AI Agent Context-Awareness: Set screen context
   useLoadoutScreenEffect(id, loadout?.name);
+
+  // Swipe gesture configuration
+  const { preferences } = useUserPreferences();
+  const isDesktop = useMediaQuery(MEDIA_QUERIES.desktop);
+  // Detect actual touch capability via coarse pointer, not just viewport width.
+  // This prevents hiding desktop controls on narrow non-touch windows.
+  const hasTouchPointer = useMediaQuery('(pointer: coarse)');
 
   // Editor state and actions
   const {
@@ -156,6 +165,11 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
     if (!hasPrompt) {
       addItem(itemId);
     }
+  }
+
+  function handleDuplicateItem(itemId: string): void {
+    if (!canAddItem(itemId)) return;
+    addItemToLoadout(id, itemId);
   }
 
   async function handleMetadataSave(data: {
@@ -282,6 +296,10 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
               onToggleConsumable={toggleConsumable}
               onItemClick={handleGearClick}
               getLighterAlternative={getLighterAlternative}
+              swipeConfig={preferences.swipeActions}
+              isTouchDevice={hasTouchPointer && !isDesktop}
+              onDuplicateItem={handleDuplicateItem}
+              reduceAnimations={preferences.reduceAnimations}
             />
           </div>
         </div>

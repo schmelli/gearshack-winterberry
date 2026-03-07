@@ -1196,7 +1196,13 @@
       "markAsConsumable": "Als Verbrauchsgut markieren",
       "lighterAlternativeAvailable": "Leichtere Alternative verfügbar",
       "swapItem": "Gegenstand austauschen",
-      "saveWeight": "Spare {weight}"
+      "saveWeight": "Spare {weight}",
+      "swipeRemove": "Entfernen",
+      "swipeWorn": "Getragen",
+      "swipeConsumable": "Verbrauch",
+      "swipeDuplicate": "Duplizieren",
+      "swipeDetails": "Details",
+      "removeFromLoadout": "{name} aus Ladung entfernen"
     },
     "dependencies": {
       "title": "Abhängigkeiten hinzufügen?",
@@ -4525,6 +4531,27 @@
         "weightBreakdown": {
           "label": "Gewichtsaufschlüsselung anzeigen",
           "description": "Detaillierte Gewichtsaufschlüsselung in Loadouts anzeigen."
+        }
+      },
+      "swipeActions": {
+        "title": "Wischgesten",
+        "description": "Wischgesten auf Packlisten-Gegenstandskarten anpassen (nur Mobil und Tablet).",
+        "swipeLeft": "Nach links wischen",
+        "swipeRight": "Nach rechts wischen",
+        "primary": "Primär (kurzes Wischen)",
+        "secondary": "Sekundär (langes Wischen)",
+        "preview": "Vorschau",
+        "previewCard": "Gegenstand",
+        "actions": {
+          "remove": "Aus Packliste entfernen",
+          "toggleWorn": "Getragen umschalten",
+          "toggleConsumable": "Verbrauchsgut umschalten",
+          "duplicate": "Gegenstand duplizieren",
+          "viewDetails": "Details anzeigen",
+          "none": "Keine Aktion"
+        },
+        "hints": {
+          "mobileOnly": "Wischgesten sind nur auf Touch-Geräten verfügbar. Am Desktop verwenden Sie die Hover-Aktionsschaltflächen."
         }
       },
       "navigation": {
