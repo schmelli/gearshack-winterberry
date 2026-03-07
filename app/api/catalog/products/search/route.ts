@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 interface ProductSearchResult {
   id: string;
   name: string;
-  brand: { id: string; name: string } | null;
+  brand: { id: string; name: string; websiteUrl: string | null } | null;
   categoryMain: string | null;
   subcategory: string | null;
   productType: string | null;
@@ -31,6 +31,7 @@ interface ProductSearchResult {
   weightGrams: number | null;
   priceUsd: number | null;
   description: string | null;
+  productUrl: string | null;
   score: number;
 }
 
@@ -122,13 +123,15 @@ export async function GET(request: NextRequest) {
         name,
         product_type,
         product_type_id,
+        product_url,
         weight_grams,
         price_usd,
         description,
         brand_id,
         catalog_brands!catalog_products_brand_id_fkey (
           id,
-          name
+          name,
+          website_url
         )
       `)
       .ilike('name', `%${normalizedQuery}%`)
@@ -201,7 +204,7 @@ export async function GET(request: NextRequest) {
             return {
               id: `inventory-${item.id}`,
               name: item.name || '',
-              brand: item.brand ? { id: `inv-brand-${item.brand}`, name: item.brand } : null,
+              brand: item.brand ? { id: `inv-brand-${item.brand}`, name: item.brand, websiteUrl: null } : null,
               categoryMain: null,
               subcategory: null,
               productType: null,
@@ -209,6 +212,7 @@ export async function GET(request: NextRequest) {
               weightGrams: item.weight_grams || null,
               priceUsd: null,
               description: item.description || null,
+              productUrl: null,
               score: Math.round(score * 100) / 100,
             };
           });
@@ -312,15 +316,21 @@ export async function GET(request: NextRequest) {
         id: product.id,
         name: product.name,
         brand: product.catalog_brands
-          ? { id: product.catalog_brands.id, name: product.catalog_brands.name }
+          ? {
+              id: product.catalog_brands.id,
+              name: product.catalog_brands.name,
+              websiteUrl: product.catalog_brands.website_url || null,
+            }
           : null,
         categoryMain: categoryInfo?.categoryMain ?? null,
         subcategory: categoryInfo?.subcategory ?? null,
         productType: categoryInfo?.productType ?? product.product_type,
         productTypeId: product.product_type_id,
-        weightGrams: product.weight_grams,
-        priceUsd: product.price_usd,
-        description: product.description,
+        // DB stores 0 for "unknown" — normalize to null for consumers
+        weightGrams: product.weight_grams && product.weight_grams > 0 ? product.weight_grams : null,
+        priceUsd: product.price_usd && product.price_usd > 0 ? product.price_usd : null,
+        description: product.description || null,
+        productUrl: product.product_url || null,
         score: Math.round(score * 100) / 100,
       };
     });
