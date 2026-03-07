@@ -164,7 +164,7 @@ export function MerchantBillingClient() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={selectedYear} onValueChange={handleYearChange}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-full sm:w-[100px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -184,7 +184,7 @@ export function MerchantAnalyticsClient() {
               }
             }}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-full sm:w-[120px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

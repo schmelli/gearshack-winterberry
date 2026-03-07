@@ -81,7 +81,7 @@ export function PurchaseSection({ mode = 'inventory' }: PurchaseSectionProps) {
         </AccordionTrigger>
         <AccordionContent className="space-y-4 pt-2">
           {/* Price and Currency - Conditional based on mode (Feature 057) */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {isWishlist ? (
           <>
             {/* Manufacturer Price (Wishlist mode) */}

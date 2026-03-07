@@ -126,12 +126,12 @@ export function GearEditorForm({
           <CardContent>
             <Tabs defaultValue="general" className="w-full">
               {/* Tab Navigation - Simplified 5 tabs with full labels */}
-              <TabsList className="w-full flex h-auto gap-1.5 mb-6 bg-muted rounded-full p-1.5">
+              <TabsList className="w-full flex h-auto gap-1 sm:gap-1.5 mb-6 bg-muted rounded-full p-1 sm:p-1.5 overflow-x-auto">
                 {TABS.map((tab) => (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="flex-1 rounded-full data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-sm"
+                    className="flex-1 rounded-full data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-xs sm:text-sm"
                   >
                     {tab.label}
                   </TabsTrigger>

@@ -165,7 +165,7 @@ export function MobileNav({
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Plus className="h-4 w-4" />
                 </div>
-                <span className="text-center text-[10px] font-medium leading-tight">{t('addNewItem')}</span>
+                <span className="text-center text-[11px] font-medium leading-tight">{t('addNewItem')}</span>
               </Link>
               <Link
                 href="/loadouts/new"
@@ -175,7 +175,7 @@ export function MobileNav({
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Calendar className="h-4 w-4" />
                 </div>
-                <span className="text-center text-[10px] font-medium leading-tight">{t('planNewLoadout')}</span>
+                <span className="text-center text-[11px] font-medium leading-tight">{t('planNewLoadout')}</span>
               </Link>
               {/* Feature Flag: Only show "New Shakedown" if community is enabled */}
               {isCommunityEnabled && (
@@ -187,7 +187,7 @@ export function MobileNav({
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                     <FileEdit className="h-4 w-4" />
                   </div>
-                  <span className="text-center text-[10px] font-medium leading-tight">{t('generateNewPost')}</span>
+                  <span className="text-center text-[11px] font-medium leading-tight">{t('generateNewPost')}</span>
                 </Link>
               )}
               {/* Feature Flag: Only show "New Message" if messaging is enabled */}
@@ -199,7 +199,7 @@ export function MobileNav({
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                     <MessageSquarePlus className="h-4 w-4" />
                   </div>
-                  <span className="text-center text-[10px] font-medium leading-tight">{t('newMessage')}</span>
+                  <span className="text-center text-[11px] font-medium leading-tight">{t('newMessage')}</span>
                 </button>
               )}
             </div>

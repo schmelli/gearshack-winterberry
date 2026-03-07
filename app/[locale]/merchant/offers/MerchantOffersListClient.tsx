@@ -256,12 +256,12 @@ export function MerchantOffersListClient() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Select
               value={filters.status ?? 'all'}
               onValueChange={handleStatusFilter}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('filterByStatus')} />
               </SelectTrigger>
               <SelectContent>

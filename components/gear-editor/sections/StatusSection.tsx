@@ -58,7 +58,7 @@ export function StatusSection() {
       <h3 className="text-lg font-medium">{t('statusConditionTitle')}</h3>
 
       {/* Condition and Status */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Condition */}
         <FormField
           control={form.control}

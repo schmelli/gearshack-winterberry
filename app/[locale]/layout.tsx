@@ -92,7 +92,7 @@ export default async function RootLayout({ children, params }: Props) {
                   </Suspense>
                 </Shell>
               </ScreenContextProvider>
-              <Toaster richColors position="bottom-right" />
+              <Toaster richColors position="top-center" />
             </SupabaseAuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
