@@ -23,6 +23,7 @@ export interface ProductSuggestion {
   priceUsd: number | null;
   description: string | null;
   productUrl: string | null;
+  imageUrl: string | null;
   score: number;
 }
 
@@ -39,6 +40,7 @@ interface ProductSearchResponse {
     priceUsd: number | null;
     description: string | null;
     productUrl: string | null;
+    imageUrl: string | null;
     score: number;
   }>;
   query: string;
@@ -141,6 +143,7 @@ export function useProductAutocomplete(
             priceUsd: result.priceUsd,
             description: result.description,
             productUrl: result.productUrl,
+            imageUrl: result.imageUrl,
             score: result.score,
           }))
         );
