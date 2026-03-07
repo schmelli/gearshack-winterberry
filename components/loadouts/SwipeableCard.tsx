@@ -73,9 +73,8 @@ function ActionPanel({ actions, absOffset, primaryReached, secondaryReached }: A
         return (
           <div
             key={`${action.action}-${index}`}
-            role="button"
-            aria-label={action.label}
-            aria-disabled={!action.isAvailable}
+            role="presentation"
+            aria-hidden="true"
             className={cn(
               'flex flex-1 flex-col items-center justify-center gap-1 px-3',
               action.bgColor,
@@ -126,7 +125,7 @@ export function SwipeableCard({
         <div
           className={cn(
             'absolute inset-y-0 right-0 flex items-stretch',
-            !isSwipingLeft && absOffset === 0 && 'hidden'
+            !isSwipingLeft && 'hidden'
           )}
           style={{ width: `${absOffset}px` }}
         >
@@ -144,7 +143,7 @@ export function SwipeableCard({
         <div
           className={cn(
             'absolute inset-y-0 left-0 flex items-stretch',
-            !isSwipingRight && absOffset === 0 && 'hidden'
+            !isSwipingRight && 'hidden'
           )}
           style={{ width: `${absOffset}px` }}
         >

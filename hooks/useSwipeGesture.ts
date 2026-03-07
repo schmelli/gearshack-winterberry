@@ -117,8 +117,16 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
   const isHorizontalRef = useRef(false);
   // Track settle timeout to clear on unmount
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Mirror phase in a ref so high-frequency handlers avoid stale closures
+  // Mirror mutable state in refs so high-frequency handlers avoid stale closures.
+  // These are updated alongside setState and read in handleTouchMove/handleTouchEnd
+  // so the callbacks can remain stable (no `state` in their dependency arrays).
   const phaseRef = useRef<SwipePhase>('idle');
+  const offsetXRef = useRef(0);
+  const directionRef = useRef<SwipeDirection>(null);
+  const primaryReachedRef = useRef(false);
+  const secondaryReachedRef = useRef(false);
+  // Raw (undamped) horizontal displacement — used for accurate velocity calculation
+  const rawDeltaXRef = useRef(0);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -132,6 +140,11 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
   const reset = useCallback(() => {
     setState(INITIAL_STATE);
     phaseRef.current = 'idle';
+    offsetXRef.current = 0;
+    directionRef.current = null;
+    primaryReachedRef.current = false;
+    secondaryReachedRef.current = false;
+    rawDeltaXRef.current = 0;
     directionLockedRef.current = false;
     isHorizontalRef.current = false;
   }, []);
@@ -201,51 +214,67 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
 
       if (!isHorizontalRef.current) return;
 
-      // Prevent vertical scroll while swiping horizontally
-      e.preventDefault();
+      // Note: e.preventDefault() is NOT called here because React 17+ registers
+      // touch listeners as passive by default, making preventDefault() a no-op
+      // that logs console warnings. The `touch-action: pan-y` CSS on the card
+      // content div (in SwipeableCard.tsx) correctly delegates vertical scroll
+      // to the browser while JS handles horizontal movement.
 
       const dampedOffset = applyRubberBand(deltaX);
       const absOffset = Math.abs(dampedOffset);
       const direction: SwipeDirection = dampedOffset < 0 ? 'left' : dampedOffset > 0 ? 'right' : null;
+      const primaryHit = absOffset >= primaryDistance;
+      const secondaryHit = absOffset >= secondaryDistance;
 
+      // Mirror state in refs for stable handleTouchEnd (avoids `state` dependency)
       phaseRef.current = 'swiping';
+      offsetXRef.current = dampedOffset;
+      directionRef.current = direction;
+      primaryReachedRef.current = primaryHit;
+      secondaryReachedRef.current = secondaryHit;
+      rawDeltaXRef.current = deltaX;
+
       setState({
         offsetX: dampedOffset,
         direction,
         phase: 'swiping',
-        primaryReached: absOffset >= primaryDistance,
-        secondaryReached: absOffset >= secondaryDistance,
+        primaryReached: primaryHit,
+        secondaryReached: secondaryHit,
       });
     },
     [enabled, directionThreshold, primaryDistance, secondaryDistance, applyRubberBand]
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (!enabled || state.phase !== 'swiping' || !state.direction) {
+    // Read from refs (not state) to avoid stale closures — handleTouchEnd
+    // no longer depends on `state`, so it is not recreated per touchmove pixel.
+    const currentPhase = phaseRef.current;
+    const direction = directionRef.current;
+
+    if (!enabled || currentPhase !== 'swiping' || !direction) {
       reset();
       return;
     }
 
     const deltaTime = Date.now() - touchStartRef.current.time;
-    // Use damped offset for distance thresholds (matches visual position)
-    const absOffset = Math.abs(state.offsetX);
-    // Use raw displacement for velocity calculation (undamped, more accurate)
-    const velocity = absOffset / (deltaTime / 1000);
-    const direction = state.direction;
+    // Use raw (undamped) displacement for velocity — damped offset compresses
+    // values past maxDistance, which would understate velocity for long swipes.
+    const rawAbsDelta = Math.abs(rawDeltaXRef.current);
+    const velocity = rawAbsDelta / (deltaTime / 1000);
 
-    // Check if action thresholds were met
-    if (state.secondaryReached) {
+    // Check if action thresholds were met (read from refs)
+    if (secondaryReachedRef.current) {
       // Trigger secondary action
       onSecondaryAction?.(direction);
-      // Haptic feedback
+      // Haptic feedback — navigator.vibrate is not supported on iOS Safari;
+      // the optional chaining handles this gracefully (no-op on iPhone).
       navigator.vibrate?.(10);
     } else if (
-      state.primaryReached ||
-      (velocity >= VELOCITY_THRESHOLD && absOffset >= VELOCITY_MIN_DISTANCE)
+      primaryReachedRef.current ||
+      (velocity >= VELOCITY_THRESHOLD && rawAbsDelta >= VELOCITY_MIN_DISTANCE)
     ) {
       // Trigger primary action (either by distance or by fast flick with minimum travel)
       onPrimaryAction?.(direction);
-      // Haptic feedback
       navigator.vibrate?.(10);
     }
 
@@ -265,7 +294,7 @@ export function useSwipeGesture(options: UseSwipeGestureOptions = {}): UseSwipeG
       settleTimeoutRef.current = null;
       reset();
     }, settleTime);
-  }, [enabled, state, onPrimaryAction, onSecondaryAction, reduceAnimations, reset]);
+  }, [enabled, onPrimaryAction, onSecondaryAction, reduceAnimations, reset]);
 
   const shouldAnimate = state.phase === 'settling' || state.phase === 'idle';
 
