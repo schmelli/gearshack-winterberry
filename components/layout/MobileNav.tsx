@@ -156,7 +156,7 @@ export function MobileNav({
 
             {/* Quick action buttons - direct links to create pages */}
             {/* Feature Flags: Conditionally show actions based on enabled features */}
-            <div className="mt-4 grid grid-cols-4 gap-1 px-2">
+            <div className="mt-4 grid grid-cols-4 gap-2 px-2">
               <Link
                 href="/inventory/new"
                 onClick={handleNavigate}
@@ -210,7 +210,7 @@ export function MobileNav({
 
         {/* Main navigation items */}
         {/* Community Section Restructure: Items with children render as collapsible sections */}
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2" aria-label={t('navigation')}>
+        <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto px-2" aria-label={t('navigation')}>
           {items.map((item) => {
             // Items with children render as collapsible
             if (item.children && item.children.length > 0) {

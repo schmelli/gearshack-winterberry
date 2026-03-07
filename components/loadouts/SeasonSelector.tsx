@@ -44,7 +44,7 @@ export function SeasonSelector({ value, onChange }: SeasonSelectorProps) {
   const t = useTranslations('Loadouts');
 
   return (
-    <div className="grid grid-cols-4 gap-2" role="group" aria-label={t('seasons.selectSeason')}>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label={t('seasons.selectSeason')}>
       {SEASONS.map((season) => {
         const Icon = season.icon;
         const isSelected = value === season.value;

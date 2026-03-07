@@ -160,7 +160,7 @@ export function WeightHeatmapBar({
                   className="size-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: segment.color }}
                 />
-                <span className="text-muted-foreground truncate max-w-[100px]">
+                <span className="text-muted-foreground truncate max-w-[140px]">
                   {segment.categoryName}
                 </span>
                 <span className="font-medium">{segment.percentage.toFixed(0)}%</span>

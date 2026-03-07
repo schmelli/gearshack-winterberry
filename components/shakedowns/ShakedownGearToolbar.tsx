@@ -225,7 +225,7 @@ function CategorySelect({
       value={value || 'all'}
       onValueChange={(val) => onChange(val === 'all' ? null : val)}
     >
-      <SelectTrigger className={cn('w-[140px]', className)}>
+      <SelectTrigger className={cn('w-full sm:w-[140px]', className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -251,7 +251,7 @@ function StatusSelect({ value, onChange, className }: StatusSelectProps): React.
 
   return (
     <Select value={value} onValueChange={(val) => onChange(val as GearStatusFilter)}>
-      <SelectTrigger className={cn('w-[130px]', className)}>
+      <SelectTrigger className={cn('w-full sm:w-[130px]', className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -275,7 +275,7 @@ function SortSelect({ value, onChange, className }: SortSelectProps): React.Reac
 
   return (
     <Select value={value} onValueChange={(val) => onChange(val as GearSortOption)}>
-      <SelectTrigger className={cn('w-[150px]', className)}>
+      <SelectTrigger className={cn('w-full sm:w-[150px]', className)}>
         <ArrowUpDown className="size-4 mr-2" />
         <SelectValue />
       </SelectTrigger>

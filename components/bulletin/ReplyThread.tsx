@@ -214,8 +214,8 @@ const ReplyItem = memo(function ReplyItem({
             {/* Actions menu - always visible for report, delete only for author */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-3 w-3" />
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">

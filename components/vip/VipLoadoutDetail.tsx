@@ -225,7 +225,7 @@ export function VipLoadoutDetail({
 
         <CardContent className="space-y-4">
           {/* Stats Row */}
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-4 text-sm sm:gap-6">
             <span className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-muted-foreground" />
               <span className="font-semibold text-lg">

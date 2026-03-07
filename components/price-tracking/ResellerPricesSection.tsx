@@ -234,7 +234,7 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
 
   if (isLoading) {
     return (
-      <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
+      <Button variant="ghost" size="icon" className="h-9 w-9" disabled>
         <Bell className="h-4 w-4 animate-pulse" />
       </Button>
     );
@@ -249,7 +249,7 @@ function PriceMonitoringButton({ gearItemId }: { gearItemId: string }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-7 w-7 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`}
+                className={`h-9 w-9 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`}
               >
                 {isEnabled ? (
                   <Bell className="h-4 w-4" />

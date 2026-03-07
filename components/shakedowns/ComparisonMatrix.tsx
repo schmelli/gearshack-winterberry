@@ -152,55 +152,100 @@ export function ComparisonMatrix({
 
         {/* Comparison Table */}
         {criteria.length > 0 ? (
-          <div className="rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">{t('criterion')}</TableHead>
-                  {items.map((item) => (
-                    <TableHead key={item.id} className="text-center">
-                      <span className="sr-only">{item.name}</span>
-                    </TableHead>
+          <>
+            {/* Desktop: Table */}
+            <div className="hidden md:block rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px]">{t('criterion')}</TableHead>
+                    {items.map((item) => (
+                      <TableHead key={item.id} className="text-center">
+                        <span className="sr-only">{item.name}</span>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {criteria.map((criterion) => (
+                    <TableRow key={criterion.key}>
+                      <TableCell className="font-medium text-sm">
+                        {t(`criteria.${criterion.key}`, { defaultValue: criterion.label })}
+                      </TableCell>
+                      {criterion.values.map((value, index) => {
+                        const isWinner = criterion.winner === index;
+                        return (
+                          <TableCell
+                            key={index}
+                            className={cn(
+                              'text-center',
+                              isWinner && 'bg-emerald-50 dark:bg-emerald-900/20'
+                            )}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              {isWinner && (
+                                <Crown className="size-3 text-emerald-600 dark:text-emerald-400" />
+                              )}
+                              <span
+                                className={cn(
+                                  'text-sm',
+                                  isWinner && 'font-semibold text-emerald-700 dark:text-emerald-300'
+                                )}
+                              >
+                                {formatValue(value, criterion.unit)}
+                              </span>
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
                   ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {criteria.map((criterion) => (
-                  <TableRow key={criterion.key}>
-                    <TableCell className="font-medium text-sm">
-                      {t(`criteria.${criterion.key}`, { defaultValue: criterion.label })}
-                    </TableCell>
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile: Stacked Cards per Criterion */}
+            <div className="space-y-3 md:hidden">
+              {criteria.map((criterion) => (
+                <Card key={criterion.key} className="p-4">
+                  <p className="text-sm font-medium mb-2">
+                    {t(`criteria.${criterion.key}`, { defaultValue: criterion.label })}
+                  </p>
+                  <div className="space-y-1.5">
                     {criterion.values.map((value, index) => {
                       const isWinner = criterion.winner === index;
+                      const item = items[index];
                       return (
-                        <TableCell
+                        <div
                           key={index}
                           className={cn(
-                            'text-center',
+                            'flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm',
                             isWinner && 'bg-emerald-50 dark:bg-emerald-900/20'
                           )}
                         >
-                          <div className="flex items-center justify-center gap-1">
+                          <span className="truncate text-muted-foreground">
+                            {item?.name ?? `Item ${index + 1}`}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
                             {isWinner && (
                               <Crown className="size-3 text-emerald-600 dark:text-emerald-400" />
                             )}
                             <span
                               className={cn(
-                                'text-sm',
                                 isWinner && 'font-semibold text-emerald-700 dark:text-emerald-300'
                               )}
                             >
                               {formatValue(value, criterion.unit)}
                             </span>
                           </div>
-                        </TableCell>
+                        </div>
                       );
                     })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
             {t('selectMoreItems')}

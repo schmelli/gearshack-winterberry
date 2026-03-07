@@ -241,61 +241,115 @@ export function BillingOverview({
               {t('noBillingHistory')}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('period')}</TableHead>
-                  <TableHead className="text-right">{t('listing')}</TableHead>
-                  <TableHead className="text-right">{t('offers')}</TableHead>
-                  <TableHead className="text-right">
-                    {t('commission')}
-                  </TableHead>
-                  <TableHead className="text-right">{t('total')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('period')}</TableHead>
+                      <TableHead className="text-right">{t('listing')}</TableHead>
+                      <TableHead className="text-right">{t('offers')}</TableHead>
+                      <TableHead className="text-right">
+                        {t('commission')}
+                      </TableHead>
+                      <TableHead className="text-right">{t('total')}</TableHead>
+                      <TableHead>{t('status')}</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {billingCycles.map((cycle) => (
+                      <TableRow
+                        key={cycle.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => onViewCycle?.(cycle.id)}
+                      >
+                        <TableCell className="font-medium">
+                          {formatMonth(cycle.cycleStart)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(cycle.listingFees)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(cycle.offerFees)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(cycle.commissions)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(cycle.totalDue)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(cycle.status, t)}</TableCell>
+                        <TableCell>
+                          {cycle.invoiceUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDownloadInvoice?.(cycle.id);
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: Billing Cards */}
+              <div className="space-y-3 md:hidden">
                 {billingCycles.map((cycle) => (
-                  <TableRow
+                  <Card
                     key={cycle.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="p-4 cursor-pointer hover:bg-muted/50"
                     onClick={() => onViewCycle?.(cycle.id)}
                   >
-                    <TableCell className="font-medium">
-                      {formatMonth(cycle.cycleStart)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(cycle.listingFees)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(cycle.offerFees)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(cycle.commissions)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(cycle.totalDue)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(cycle.status, t)}</TableCell>
-                    <TableCell>
-                      {cycle.invoiceUrl && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDownloadInvoice?.(cycle.id);
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium">{formatMonth(cycle.cycleStart)}</span>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(cycle.status, t)}
+                        {cycle.invoiceUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDownloadInvoice?.(cycle.id);
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('listing')}</span>
+                        <span>{formatCurrency(cycle.listingFees)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('offers')}</span>
+                        <span>{formatCurrency(cycle.offerFees)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('commission')}</span>
+                        <span>{formatCurrency(cycle.commissions)}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1 mt-1">
+                        <span className="font-medium">{t('total')}</span>
+                        <span className="font-medium">{formatCurrency(cycle.totalDue)}</span>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -163,7 +163,7 @@ export function DependenciesSection({
                         Search for items to link...
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0" align="start">
+                    <PopoverContent className="w-full sm:w-[350px] p-0" align="start">
                       <div className="p-2 border-b">
                         <Input
                           placeholder="Search by name or brand..."

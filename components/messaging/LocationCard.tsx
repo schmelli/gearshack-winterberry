@@ -67,7 +67,7 @@ export function LocationCard({
   return (
     <Card
       className={cn(
-        'w-[280px] cursor-pointer overflow-hidden transition-shadow hover:shadow-md',
+        'w-full max-w-[280px] cursor-pointer overflow-hidden transition-shadow hover:shadow-md',
         isOwnMessage ? 'bg-primary/10' : 'bg-muted/50',
         className
       )}

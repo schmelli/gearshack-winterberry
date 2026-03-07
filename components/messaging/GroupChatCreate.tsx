@@ -111,7 +111,7 @@ export function GroupChatCreate({ onGroupCreated, onCancel }: GroupChatCreatePro
               <Badge
                 key={user.id}
                 variant="secondary"
-                className="flex items-center gap-1 py-1 pl-1 pr-2"
+                className="flex items-center gap-1.5 py-1 pl-1 pr-2"
               >
                 <Avatar className="h-5 w-5">
                   <AvatarImage src={user.avatar_url ?? undefined} />

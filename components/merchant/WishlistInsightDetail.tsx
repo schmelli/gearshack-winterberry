@@ -302,7 +302,7 @@ export const WishlistInsightDetail = memo(function WishlistInsightDetail({
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <Users className="h-5 w-5 mx-auto text-primary mb-1" />

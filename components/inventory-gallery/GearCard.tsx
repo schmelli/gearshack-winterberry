@@ -144,7 +144,7 @@ function GearCardComponent({
           </div>
 
           <div className="flex items-center gap-2 mt-0.5">
-            {item.brand && <p className="text-xs text-muted-foreground truncate max-w-[120px]">{item.brand}</p>}
+            {item.brand && <p className="text-xs text-muted-foreground truncate max-w-[160px]">{item.brand}</p>}
             {productTypeLabel && (
               <>
                 <span className="text-[10px] text-stone-300 dark:text-stone-700">*</span>

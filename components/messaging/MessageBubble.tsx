@@ -178,15 +178,15 @@ export function MessageBubble({
           >
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <MoreVertical className="h-3 w-3" />
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isOwnMessage ? 'end' : 'start'}>
                 {/* Reaction picker */}
                 {onReact && (
                   <>
-                    <div className="flex gap-1 px-2 py-1">
+                    <div className="flex gap-1.5 px-2 py-1">
                       {REACTION_EMOJIS.map((emoji) => (
                         <Button
                           key={emoji}

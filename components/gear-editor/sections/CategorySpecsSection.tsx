@@ -353,7 +353,7 @@ export function CategorySpecsSection() {
         {fields.showDimensions && (
           <div className="space-y-2">
             <FormLabel className="text-base">{t('dimensions.title')}</FormLabel>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {/* Length */}
               <FormField
                 control={form.control}

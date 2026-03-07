@@ -93,7 +93,7 @@ export function VoiceRecordingIndicator({
         variant="ghost"
         size="icon"
         onClick={onCancel}
-        className="h-6 w-6 rounded-full hover:bg-destructive/20"
+        className="h-9 w-9 rounded-full hover:bg-destructive/20"
         aria-label={t('cancelRecording')}
       >
         <X className="h-4 w-4 text-destructive" />
