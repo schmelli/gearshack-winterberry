@@ -14,13 +14,15 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 export interface ProductSuggestion {
   id: string;
   name: string;
-  brand: { id: string; name: string } | null;
+  brand: { id: string; name: string; websiteUrl: string | null } | null;
   categoryMain: string | null;
   subcategory: string | null;
   productType: string | null;
+  productTypeId: string | null;
   weightGrams: number | null;
   priceUsd: number | null;
   description: string | null;
+  productUrl: string | null;
   score: number;
 }
 
@@ -28,13 +30,15 @@ interface ProductSearchResponse {
   results: Array<{
     id: string;
     name: string;
-    brand: { id: string; name: string } | null;
+    brand: { id: string; name: string; websiteUrl: string | null } | null;
     categoryMain: string | null;
     subcategory: string | null;
     productType: string | null;
+    productTypeId: string | null;
     weightGrams: number | null;
     priceUsd: number | null;
     description: string | null;
+    productUrl: string | null;
     score: number;
   }>;
   query: string;
@@ -132,9 +136,11 @@ export function useProductAutocomplete(
             categoryMain: result.categoryMain,
             subcategory: result.subcategory,
             productType: result.productType,
+            productTypeId: result.productTypeId,
             weightGrams: result.weightGrams,
             priceUsd: result.priceUsd,
             description: result.description,
+            productUrl: result.productUrl,
             score: result.score,
           }))
         );

@@ -80,13 +80,20 @@ export function GeneralInfoSection({
     setSelectedBrandId(brand?.id);
   }, []);
 
-  // Handle product selection - auto-fill brand if not already set
+  // Handle product selection - auto-fill brand from catalog data
   const handleProductSelect = useCallback(
     (product: ProductSuggestion) => {
-      // If product has a brand and no brand is currently selected, auto-fill it
-      if (product.brand && !form.getValues('brand')) {
-        form.setValue('brand', product.brand.name);
+      // Auto-fill brand when the catalog provides one.
+      // Always set it (even if user already typed something) because the
+      // catalog brand is the authoritative source for a selected product.
+      if (product.brand) {
+        form.setValue('brand', product.brand.name, { shouldDirty: true });
         setSelectedBrandId(product.brand.id);
+
+        // Auto-fill brand URL from catalog
+        if (product.brand.websiteUrl) {
+          form.setValue('brandUrl', product.brand.websiteUrl, { shouldDirty: true });
+        }
       }
     },
     [form]
