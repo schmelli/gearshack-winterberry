@@ -50,6 +50,7 @@ export const productPayloadSchema = z.object({
   price_usd: z.number().min(0).nullable().optional(),
   // Weight must be > 0 if provided (0g is invalid for outdoor gear, use null for unknown weight)
   weight_grams: z.number().positive('weight_grams must be greater than 0 (use null for unknown)').nullable().optional(),
+  image_url: z.string().url('image_url must be a valid URL').max(2000).nullable().optional(),
 });
 
 /**

@@ -125,6 +125,11 @@ export function ProductAutocompleteInput({
         form.setValue('brandUrl', suggestion.brand.websiteUrl, { shouldDirty: true });
       }
 
+      // Auto-fill product image from catalog if available and no image set yet
+      if (suggestion.imageUrl && !form.getValues('primaryImageUrl')) {
+        form.setValue('primaryImageUrl', suggestion.imageUrl, { shouldDirty: true });
+      }
+
       // Auto-fill productTypeId: prefer direct ID from API, fall back to label-based lookup
       if (suggestion.productTypeId) {
         form.setValue('productTypeId', suggestion.productTypeId, { shouldDirty: true });

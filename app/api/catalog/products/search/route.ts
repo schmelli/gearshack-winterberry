@@ -32,6 +32,7 @@ interface ProductSearchResult {
   priceUsd: number | null;
   description: string | null;
   productUrl: string | null;
+  imageUrl: string | null;
   score: number;
 }
 
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest) {
         product_type,
         product_type_id,
         product_url,
+        image_url,
         weight_grams,
         price_usd,
         description,
@@ -213,6 +215,7 @@ export async function GET(request: NextRequest) {
               priceUsd: null,
               description: item.description || null,
               productUrl: null,
+              imageUrl: null,
               score: Math.round(score * 100) / 100,
             };
           });
@@ -331,6 +334,7 @@ export async function GET(request: NextRequest) {
         priceUsd: product.price_usd && product.price_usd > 0 ? product.price_usd : null,
         description: product.description || null,
         productUrl: product.product_url || null,
+        imageUrl: product.image_url || null,
         score: Math.round(score * 100) / 100,
       };
     });
