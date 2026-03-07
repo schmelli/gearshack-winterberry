@@ -8,7 +8,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { WikiSidebar } from './WikiSidebar';
+import { useWikiSidebar } from '@/hooks/useWikiSidebar';
 
 interface WikiLayoutProps {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ interface WikiLayoutProps {
 
 export function WikiLayout({ children }: WikiLayoutProps) {
   const t = useTranslations('Wiki');
-  const [open, setOpen] = useState(false);
+  const { open, setOpen } = useWikiSidebar();
 
   return (
     <div className="container mx-auto px-4 py-6">

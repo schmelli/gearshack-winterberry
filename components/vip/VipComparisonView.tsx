@@ -132,15 +132,15 @@ export function VipComparisonView({
               >
                 <span className="font-medium">{cat.category}</span>
                 <div className="flex items-center justify-between gap-3 text-sm sm:gap-4">
-                  <span className="text-right">
+                  <span className="text-right sm:w-20">
                     {formatWeightFromGrams(cat.userWeightGrams, 'g')}
                   </span>
                   <span className="text-muted-foreground">vs</span>
-                  <span>
+                  <span className="sm:w-20">
                     {formatWeightFromGrams(cat.vipWeightGrams, 'g')}
                   </span>
                   <span
-                    className={`text-right ${
+                    className={`text-right sm:w-24 ${
                       cat.differenceGrams < 0
                         ? 'text-green-600'
                         : cat.differenceGrams > 0

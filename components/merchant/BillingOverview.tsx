@@ -307,7 +307,15 @@ export function BillingOverview({
                   <Card
                     key={cycle.id}
                     className="p-4 cursor-pointer hover:bg-muted/50"
+                    tabIndex={0}
+                    role="button"
                     onClick={() => onViewCycle?.(cycle.id)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onViewCycle?.(cycle.id);
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-medium">{formatMonth(cycle.cycleStart)}</span>
