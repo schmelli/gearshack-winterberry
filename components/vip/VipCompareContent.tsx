@@ -201,9 +201,9 @@ export function VipCompareContent() {
 
         <Alert>
           <LogIn className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span>{t('signInRequired')}</span>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="shrink-0 self-start sm:self-auto">
               <Link href="/auth/login">{t('signIn')}</Link>
             </Button>
           </AlertDescription>

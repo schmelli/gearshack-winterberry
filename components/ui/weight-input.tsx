@@ -131,7 +131,7 @@ export const WeightInput = React.forwardRef<HTMLInputElement, WeightInputProps>(
         <Select value={unit} onValueChange={onUnitChange} disabled={disabled}>
           <SelectTrigger
             size="default"
-            className={cn('w-[120px]', selectClassName)}
+            className={cn('w-[100px] sm:w-[120px]', selectClassName)}
             aria-label="Weight unit"
           >
             <SelectValue />

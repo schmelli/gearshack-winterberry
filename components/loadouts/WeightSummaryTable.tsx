@@ -84,7 +84,8 @@ export function WeightSummaryTable({
 
   return (
     <div className={cn('rounded-lg border bg-card', className)}>
-      <table className="w-full text-sm">
+      {/* Desktop: Table */}
+      <table className="hidden md:table w-full text-sm">
         <tbody>
           {/* Total */}
           <tr className="border-b">
@@ -119,6 +120,34 @@ export function WeightSummaryTable({
           </tr>
         </tbody>
       </table>
+
+      {/* Mobile: Stacked Weight Cards */}
+      <div className="space-y-0 md:hidden text-sm">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b">
+          <span className="font-medium">{t('weightSummary.total')}</span>
+          <span className="tabular-nums">
+            <WeightDisplay value={weightSummary.totalWeight} showToggle />
+          </span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+          <span className="text-muted-foreground">{t('weightSummary.worn')}</span>
+          <span className="tabular-nums text-muted-foreground">
+            − <WeightDisplay value={weightSummary.wornWeight} />
+          </span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+          <span className="text-muted-foreground">{t('weightSummary.consumable')}</span>
+          <span className="tabular-nums text-muted-foreground">
+            − <WeightDisplay value={weightSummary.consumableWeight} />
+          </span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+          <span className="font-semibold text-primary">{t('weightSummary.baseWeight')}</span>
+          <span className="tabular-nums font-semibold text-primary">
+            <WeightDisplay value={weightSummary.baseWeight} showToggle />
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

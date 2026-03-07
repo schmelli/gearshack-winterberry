@@ -95,7 +95,7 @@ export function ShakedownExpertiseSection({
       </CardHeader>
       <CardContent>
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           <StatItem
             icon={<FileEdit className="h-5 w-5" />}
             value={stats.shakedownsCreated}

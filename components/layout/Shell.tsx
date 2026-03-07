@@ -74,7 +74,7 @@ export function Shell({ children }: ShellProps) {
       <SiteHeader />
       <AppLayoutWithAIPanel>
         <main className="flex-1">
-          <div className="container mx-auto max-w-7xl px-4 lg:px-6 xl:px-8">
+          <div className="container mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 xl:px-8">
             {children}
           </div>
         </main>

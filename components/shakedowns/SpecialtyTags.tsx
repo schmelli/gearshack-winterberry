@@ -120,7 +120,7 @@ const SPECIALTY_CONFIG: Record<SpecialtyType, SpecialtyConfig> = {
 const SIZE_CONFIG = {
   sm: {
     iconSize: 10,
-    badgeClass: 'px-1.5 py-0 text-[10px] gap-0.5',
+    badgeClass: 'px-2 py-0.5 text-[11px] gap-0.5',
   },
   md: {
     iconSize: 12,
@@ -170,7 +170,7 @@ export function SpecialtyTags({
                   )}
                 >
                   <Icon size={sizeConfig.iconSize} className="shrink-0" aria-hidden="true" />
-                  <span className="truncate max-w-[80px]">{t(specialty)}</span>
+                  <span className="truncate max-w-[120px]">{t(specialty)}</span>
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>

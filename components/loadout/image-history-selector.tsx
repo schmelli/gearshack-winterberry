@@ -48,7 +48,7 @@ export function ImageHistorySelector({
         {t('title', { count: images.length, max: 3 })}
       </h3>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {images.map((image, index) => {
           const isActive = image.id === activeImageId;
 

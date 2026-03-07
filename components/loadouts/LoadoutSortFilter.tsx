@@ -112,7 +112,7 @@ export function LoadoutSortFilter({
         value={filterCategoryId ?? 'all'}
         onValueChange={(value) => onFilterChange(value === 'all' ? null : value)}
       >
-        <SelectTrigger className="h-8 w-[140px]">
+        <SelectTrigger className="h-8 w-full sm:w-[140px]">
           <Filter className="mr-1.5 h-3.5 w-3.5 shrink-0" />
           <SelectValue placeholder={t('sortFilter.allCategories')} />
         </SelectTrigger>

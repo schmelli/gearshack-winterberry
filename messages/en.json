@@ -1456,7 +1456,9 @@
     "noRevisions": "No revision history available.",
     "current": "Current",
     "langEnglish": "English",
-    "langDeutsch": "Deutsch"
+    "langDeutsch": "Deutsch",
+    "sidebarTrigger": "Wiki",
+    "sidebarNavigation": "Wiki Navigation"
   },
   "Shakedown": {
     "shareLoadoutTitle": "Share Loadout",

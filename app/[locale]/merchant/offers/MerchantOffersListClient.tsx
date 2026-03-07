@@ -256,12 +256,12 @@ export function MerchantOffersListClient() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Select
               value={filters.status ?? 'all'}
               onValueChange={handleStatusFilter}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t('filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
@@ -287,44 +287,146 @@ export function MerchantOffersListClient() {
       {/* Offers Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('product')}</TableHead>
-                <TableHead>{t('price')}</TableHead>
-                <TableHead>{t('status')}</TableHead>
-                <TableHead>{t('created')}</TableHead>
-                <TableHead>{t('expires')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <OfferRowSkeleton key={i} />)
-              ) : offers.length === 0 ? (
+          {/* Desktop: Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12">
-                    <Send className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-medium mb-2">{t('noOffers')}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {t('noOffersDescription')}
-                    </p>
-                    <Button onClick={handleNewOffer}>
-                      <Send className="h-4 w-4 mr-2" />
-                      {t('createFirstOffer')}
-                    </Button>
-                  </TableCell>
+                  <TableHead>{t('product')}</TableHead>
+                  <TableHead>{t('price')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
+                  <TableHead>{t('created')}</TableHead>
+                  <TableHead>{t('expires')}</TableHead>
                 </TableRow>
-              ) : (
-                offers.map((offer) => (
-                  <OfferRow
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => <OfferRowSkeleton key={i} />)
+                ) : offers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <Send className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-medium mb-2">{t('noOffers')}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {t('noOffersDescription')}
+                      </p>
+                      <Button onClick={handleNewOffer}>
+                        <Send className="h-4 w-4 mr-2" />
+                        {t('createFirstOffer')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  offers.map((offer) => (
+                    <OfferRow
+                      key={offer.id}
+                      offer={offer}
+                      onClick={() => handleOfferClick(offer.id)}
+                    />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile: Offer Cards */}
+          <div className="space-y-3 p-4 md:hidden">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Skeleton className="w-10 h-10 rounded shrink-0" />
+                    <div className="space-y-1 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                </Card>
+              ))
+            ) : offers.length === 0 ? (
+              <div className="text-center py-12">
+                <Send className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-medium mb-2">{t('noOffers')}</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {t('noOffersDescription')}
+                </p>
+                <Button onClick={handleNewOffer}>
+                  <Send className="h-4 w-4 mr-2" />
+                  {t('createFirstOffer')}
+                </Button>
+              </div>
+            ) : (
+              offers.map((offer) => {
+                const { variant, icon: StatusIcon } = getStatusBadge(offer.status);
+                return (
+                  <Card
                     key={offer.id}
-                    offer={offer}
+                    className="p-4 cursor-pointer hover:bg-muted/50"
+                    tabIndex={0}
+                    role="button"
                     onClick={() => handleOfferClick(offer.id)}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOfferClick(offer.id);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="relative w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                        {offer.catalogItem.imageUrl ? (
+                          <Image
+                            src={offer.catalogItem.imageUrl}
+                            alt={offer.catalogItem.name}
+                            fill
+                            sizes="40px"
+                            className="object-cover rounded"
+                          />
+                        ) : (
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{offer.catalogItem.name}</p>
+                        {offer.catalogItem.brand && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {offer.catalogItem.brand}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant={variant} className="flex items-center gap-1 shrink-0">
+                        <StatusIcon className="h-3 w-3" />
+                        {t(`status.${offer.status}`)}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{t('price')}</span>
+                        <div>
+                          <span className="text-muted-foreground line-through mr-2">
+                            {formatPrice(offer.regularPrice)}
+                          </span>
+                          <span className="font-medium">{formatPrice(offer.offerPrice)}</span>
+                          <Badge variant="secondary" className="text-xs ml-2">
+                            -{offer.discountPercent}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('created')}</span>
+                        <span className="text-muted-foreground">{formatDate(offer.createdAt)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('expires')}</span>
+                        <span className="text-muted-foreground">{formatDate(offer.expiresAt)}</span>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
 

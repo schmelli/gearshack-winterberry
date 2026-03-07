@@ -144,7 +144,7 @@ export function LoadoutComparisonModal({
                           {merchantLoadout.ownerName}
                         </p>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                         <div>
                           <Scale className="h-4 w-4 mx-auto text-muted-foreground" />
                           <p className="text-sm font-medium">
@@ -210,7 +210,7 @@ export function LoadoutComparisonModal({
                     </div>
 
                     {userLoadout && (
-                      <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                         <div>
                           <Scale className="h-4 w-4 mx-auto text-muted-foreground" />
                           <p className="text-sm font-medium">

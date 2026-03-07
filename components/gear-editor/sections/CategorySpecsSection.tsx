@@ -145,7 +145,7 @@ export function CategorySpecsSection() {
         <AccordionContent className="space-y-6 pt-2">
 
         {/* Weight with Unit */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           {/* Weight Value with Search Button */}
           <FormField
             control={form.control}
@@ -226,7 +226,7 @@ export function CategorySpecsSection() {
 
         {/* Category-Specific Specifications - Conditional rendering based on category (Issue #89) */}
         {(fields.showSize || fields.showColor) && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {/* Size (for clothing, footwear) */}
             {fields.showSize && (
               <FormField
@@ -265,7 +265,7 @@ export function CategorySpecsSection() {
 
         {/* Volume & Tent Construction row */}
         {(fields.showVolume || fields.showTentConstruction) && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {/* Volume (for packs, bags) */}
             {fields.showVolume && (
               <FormField
@@ -353,7 +353,7 @@ export function CategorySpecsSection() {
         {fields.showDimensions && (
           <div className="space-y-2">
             <FormLabel className="text-base">{t('dimensions.title')}</FormLabel>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {/* Length */}
               <FormField
                 control={form.control}

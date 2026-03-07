@@ -332,7 +332,7 @@ export const MerchantLoadoutGrid = memo(function MerchantLoadoutGrid({
           value={`${sort.field}-${sort.direction}`}
           onValueChange={handleSortChange}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

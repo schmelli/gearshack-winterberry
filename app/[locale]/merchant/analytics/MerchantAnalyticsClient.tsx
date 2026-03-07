@@ -184,7 +184,7 @@ export function MerchantAnalyticsClient() {
               }
             }}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-full sm:w-[120px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -206,58 +206,109 @@ export function MerchantAnalyticsClient() {
               {t('noConversions')}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('product')}</TableHead>
-                  <TableHead className="text-right">{t('salePrice')}</TableHead>
-                  <TableHead className="text-right">{t('commission')}</TableHead>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop: Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('product')}</TableHead>
+                      <TableHead className="text-right">{t('salePrice')}</TableHead>
+                      <TableHead className="text-right">{t('commission')}</TableHead>
+                      <TableHead>{t('date')}</TableHead>
+                      <TableHead>{t('status')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conversions.map((conversion) => (
+                      <TableRow key={conversion.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {conversion.catalogItem.imageUrl ? (
+                              <Image
+                                src={conversion.catalogItem.imageUrl}
+                                alt={conversion.catalogItem.name}
+                                width={40}
+                                height={40}
+                                className="rounded-md object-cover"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 bg-muted rounded-md" />
+                            )}
+                            <div>
+                              <p className="font-medium text-sm">
+                                {conversion.catalogItem.name}
+                              </p>
+                              {conversion.catalogItem.brand && (
+                                <p className="text-xs text-muted-foreground">
+                                  {conversion.catalogItem.brand}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(conversion.salePrice)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(conversion.commissionAmount)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(conversion.conversionDate)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(conversion.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: Analytics Cards */}
+              <div className="space-y-3 md:hidden">
                 {conversions.map((conversion) => (
-                  <TableRow key={conversion.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {conversion.catalogItem.imageUrl ? (
-                          <Image
-                            src={conversion.catalogItem.imageUrl}
-                            alt={conversion.catalogItem.name}
-                            width={40}
-                            height={40}
-                            className="rounded-md object-cover"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 bg-muted rounded-md" />
-                        )}
-                        <div>
-                          <p className="font-medium text-sm">
-                            {conversion.catalogItem.name}
+                  <Card key={conversion.id} className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      {conversion.catalogItem.imageUrl ? (
+                        <Image
+                          src={conversion.catalogItem.imageUrl}
+                          alt={conversion.catalogItem.name}
+                          width={40}
+                          height={40}
+                          className="rounded-md object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-muted rounded-md shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">
+                          {conversion.catalogItem.name}
+                        </p>
+                        {conversion.catalogItem.brand && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {conversion.catalogItem.brand}
                           </p>
-                          {conversion.catalogItem.brand && (
-                            <p className="text-xs text-muted-foreground">
-                              {conversion.catalogItem.brand}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(conversion.salePrice)}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatCurrency(conversion.commissionAmount)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(conversion.conversionDate)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(conversion.status)}</TableCell>
-                  </TableRow>
+                      {getStatusBadge(conversion.status)}
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('salePrice')}</span>
+                        <span className="font-medium">{formatCurrency(conversion.salePrice)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('commission')}</span>
+                        <span className="text-muted-foreground">{formatCurrency(conversion.commissionAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('date')}</span>
+                        <span className="text-muted-foreground">{formatDate(conversion.conversionDate)}</span>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
 
           {/* Pagination */}

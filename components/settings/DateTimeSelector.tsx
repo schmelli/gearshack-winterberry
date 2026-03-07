@@ -165,7 +165,7 @@ export function DateTimeSelector({
         disabled={disabled}
       >
         <Select value={timezone} onValueChange={onTimezoneChange} disabled={disabled}>
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger className="w-full sm:w-[250px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

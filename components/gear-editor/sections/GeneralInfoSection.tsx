@@ -379,7 +379,7 @@ export function GeneralInfoSection({
                           Search for items to link...
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[350px] p-0" align="start">
+                      <PopoverContent className="w-[min(350px,calc(100vw-2rem))] p-0" align="start">
                         <div className="p-2 border-b">
                           <Input
                             placeholder="Search by name or brand..."
@@ -451,7 +451,7 @@ export function GeneralInfoSection({
                             ) : (
                               <>
                                 <Link2 className="h-3 w-3" />
-                                <span className="max-w-[150px] truncate">
+                                <span className="max-w-[200px] truncate">
                                   {item?.name}
                                 </span>
                                 {item?.brand && (

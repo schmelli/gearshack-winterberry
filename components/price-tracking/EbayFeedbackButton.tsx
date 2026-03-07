@@ -139,7 +139,7 @@ export function EbayFeedbackButton({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 opacity-40 hover:opacity-100 transition-opacity"
+                className="h-9 w-9 p-0 opacity-40 hover:opacity-100 transition-opacity"
                 disabled={isSubmitting}
                 onClick={(e) => e.stopPropagation()}
               >

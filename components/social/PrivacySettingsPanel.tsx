@@ -139,7 +139,7 @@ function GranularControl({
         </div>
       </div>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -235,7 +235,7 @@ export function PrivacySettingsPanel({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <PresetCard
                 preset="only_me"
                 isActive={settings.privacy_preset === 'only_me'}
@@ -349,7 +349,7 @@ function PrivacySettingsSkeleton() {
           <div className="h-4 w-64 animate-pulse rounded bg-muted" />
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}

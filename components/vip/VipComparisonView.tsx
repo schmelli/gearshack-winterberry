@@ -128,19 +128,19 @@ export function VipComparisonView({
             {comparison.categoryComparison.map((cat) => (
               <div
                 key={cat.category}
-                className="flex items-center justify-between py-2 border-b last:border-0"
+                className="flex flex-col gap-1 py-2 border-b last:border-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
               >
                 <span className="font-medium">{cat.category}</span>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="w-20 text-right">
+                <div className="flex items-center justify-between gap-3 text-sm sm:gap-4">
+                  <span className="text-right sm:w-20">
                     {formatWeightFromGrams(cat.userWeightGrams, 'g')}
                   </span>
                   <span className="text-muted-foreground">vs</span>
-                  <span className="w-20">
+                  <span className="sm:w-20">
                     {formatWeightFromGrams(cat.vipWeightGrams, 'g')}
                   </span>
                   <span
-                    className={`w-24 text-right ${
+                    className={`text-right sm:w-24 ${
                       cat.differenceGrams < 0
                         ? 'text-green-600'
                         : cat.differenceGrams > 0
@@ -170,11 +170,11 @@ export function VipComparisonView({
               {comparison.uniqueToVip.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                  className="flex flex-col gap-2 py-2 px-3 rounded-lg bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <div className="flex gap-2 mt-1">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {item.brand && (
                         <Badge variant="outline" className="text-xs">
                           {item.brand}
@@ -185,7 +185,7 @@ export function VipComparisonView({
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className="text-sm text-muted-foreground">
                       {formatWeightFromGrams(item.weightGrams, 'g')}
                     </span>
@@ -218,15 +218,15 @@ export function VipComparisonView({
               {comparison.commonItems.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                  className="flex flex-col gap-1 py-2 px-3 rounded-lg bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
-                  <div>
-                    <p className="font-medium">{item.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.name}</p>
                     {item.brand && (
-                      <p className="text-sm text-muted-foreground">{item.brand}</p>
+                      <p className="text-sm text-muted-foreground truncate">{item.brand}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-3 text-sm shrink-0 sm:gap-4">
                     <span>{formatWeightFromGrams(item.userWeightGrams, 'g')}</span>
                     <span className="text-muted-foreground">vs</span>
                     <span>{formatWeightFromGrams(item.vipWeightGrams, 'g')}</span>
@@ -249,11 +249,11 @@ export function VipComparisonView({
               {comparison.uniqueToUser.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                  className="flex flex-col gap-1 py-2 px-3 rounded-lg bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <div className="flex gap-2 mt-1">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {item.brand && (
                         <Badge variant="outline" className="text-xs">
                           {item.brand}
@@ -264,7 +264,7 @@ export function VipComparisonView({
                       </Badge>
                     </div>
                   </div>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground shrink-0">
                     {formatWeightFromGrams(item.weightGrams, 'g')}
                   </span>
                 </div>

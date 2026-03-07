@@ -135,7 +135,7 @@ export function LocationFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="loc-postal">{t('form.postalCode')}</Label>
               <Input
@@ -168,7 +168,7 @@ export function LocationFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="loc-lat">{t('form.latitude')}</Label>
               <Input

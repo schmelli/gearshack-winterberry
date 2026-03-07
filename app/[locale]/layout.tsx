@@ -14,7 +14,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { SupabaseAuthProvider } from "@/components/auth/SupabaseAuthProvider";
 import { ScreenContextProvider } from "@/components/context/ScreenContextProvider";
 import { Shell } from "@/components/layout/Shell";
-import { Toaster } from "sonner";
+import { ResponsiveToaster } from "@/components/layout/ResponsiveToaster";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { locales } from '@/i18n/config';
@@ -92,7 +92,7 @@ export default async function RootLayout({ children, params }: Props) {
                   </Suspense>
                 </Shell>
               </ScreenContextProvider>
-              <Toaster richColors position="bottom-right" />
+              <ResponsiveToaster />
             </SupabaseAuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

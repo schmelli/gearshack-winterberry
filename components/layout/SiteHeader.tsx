@@ -159,7 +159,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
       {/* Issue #77: Mobile menu state management */}
       {/* Issue #206: Removed container class to allow full-width background on mobile */}
-      <div className="mx-auto flex h-24 max-w-7xl items-center px-3 lg:px-4">
+      <div className="mx-auto flex h-16 sm:h-20 lg:h-24 max-w-7xl items-center px-3 lg:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
         {/* Feature Flags: Pass filtered items and feature flags to MobileNav */}
         <MobileNav
