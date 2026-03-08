@@ -19,8 +19,8 @@ import { AppLayoutWithAIPanel } from '@/components/layout/AppLayoutWithAIPanel';
 // Constants
 // =============================================================================
 
-/** Route patterns that should not show header/footer (immersive auth experience) */
-const AUTH_ROUTE_PATTERNS = ['/login', '/register'];
+/** Route patterns that should not show header/footer (immersive experience) */
+const AUTH_ROUTE_PATTERNS = ['/login', '/register', '/coming-soon'];
 
 /** Routes that should show footer but no header (landing page) */
 const LANDING_ROUTES = ['/', '/en', '/de'];
