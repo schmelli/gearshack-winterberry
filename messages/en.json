@@ -136,6 +136,37 @@
     "anonymousUser": "Anonymous User",
     "close": "Close"
   },
+  "ComingSoon": {
+    "meta": {
+      "title": "Gearshack — Coming Soon",
+      "description": "The smart way to organize your outdoor gear. Sign up to be notified when we launch."
+    },
+    "headline": "Your Gear, Perfected.",
+    "subtitle": "The smartest way to organize, optimize, and share your outdoor gear. AI-powered inventory management, weight-optimized loadouts, and a passionate community — all in one place.",
+    "features": {
+      "inventory": {
+        "title": "Smart Inventory",
+        "description": "Catalog your gear with AI-assisted data enrichment and instant weight tracking."
+      },
+      "loadouts": {
+        "title": "Loadout Builder",
+        "description": "Build weight-optimized packing lists for every adventure, with AI-generated hero images."
+      },
+      "community": {
+        "title": "Gear Community",
+        "description": "Share shakedowns, get advice, and discover what fellow hikers carry."
+      }
+    },
+    "form": {
+      "label": "Be the first to know when we launch:",
+      "placeholder": "your@email.com",
+      "button": "Notify Me",
+      "success": "You're on the list! We'll let you know when Gearshack launches.",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "privacy": "No spam, ever. Unsubscribe anytime."
+    },
+    "footer": "All rights reserved."
+  },
   "Landing": {
     "meta": {
       "title": "Gearshack - Outdoor Gear Management",

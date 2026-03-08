@@ -44,6 +44,11 @@ export async function generateMetadata({
 }
 
 export default async function Home() {
+  // Coming Soon mode: redirect all visitors to the pre-announcement page
+  if (process.env.COMING_SOON_ENABLED === 'true') {
+    redirect('/coming-soon');
+  }
+
   // Check hostname to determine behavior
   const headersList = await headers();
   const host = headersList.get('host') || '';

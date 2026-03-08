@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
@@ -82,13 +82,29 @@ export function LoginForm({
     hidePassword: translationsProp?.hidePassword ?? tAuth('hidePassword'),
   };
 
+  // Dev auto-login: pre-fill credentials from env vars
+  const devEmail = process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN_EMAIL ?? '';
+  const devPassword = process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN_PASSWORD ?? '';
+  const isDevAutoLogin = process.env.NODE_ENV === 'development' && !!devEmail && !!devPassword;
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: isDevAutoLogin ? devEmail : '',
+      password: isDevAutoLogin ? devPassword : '',
     },
   });
+
+  // Dev auto-login: auto-submit once on mount
+  const autoLoginAttempted = useRef(false);
+  useEffect(() => {
+    if (isDevAutoLogin && !autoLoginAttempted.current) {
+      autoLoginAttempted.current = true;
+      console.log('[LoginForm] Dev auto-login enabled, signing in...');
+      form.handleSubmit(onSubmit)();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDevAutoLogin]);
 
   async function onSubmit(data: LoginFormData) {
     // Feature 023: Debug logging for form submission (FR-008)

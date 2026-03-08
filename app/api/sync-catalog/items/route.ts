@@ -150,6 +150,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Note: category_main and subcategory are no longer stored - use product_type_id FK instead
+      // Normalize zero values to NULL — 0g weight and $0 price are meaningless
+      // for outdoor gear and indicate missing data from the source system.
+      const weightGrams = product.weight_grams && product.weight_grams > 0 ? product.weight_grams : null;
+      const priceUsd = product.price_usd && product.price_usd > 0 ? product.price_usd : null;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- catalog_products not in generated types
       const { data: upserted, error } = await (supabase as any)
         .from('catalog_products')
@@ -162,8 +167,8 @@ export async function POST(request: NextRequest) {
             product_type: product.product_type ?? null,
             product_type_id: product.product_type_id ?? null,
             description: product.description ?? null,
-            price_usd: product.price_usd ?? null,
-            weight_grams: product.weight_grams ?? null,
+            price_usd: priceUsd,
+            weight_grams: weightGrams,
             image_url: product.image_url ?? null,
           },
           { onConflict: 'external_id' }

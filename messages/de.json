@@ -136,6 +136,37 @@
     "anonymousUser": "Anonymer Benutzer",
     "close": "Schließen"
   },
+  "ComingSoon": {
+    "meta": {
+      "title": "Gearshack — Bald verfügbar",
+      "description": "Die smarte Art, deine Outdoor-Ausrüstung zu organisieren. Melde dich an und erfahre als Erster, wenn wir starten."
+    },
+    "headline": "Deine Ausrüstung, perfektioniert.",
+    "subtitle": "Die smarteste Art, deine Outdoor-Ausrüstung zu organisieren, zu optimieren und zu teilen. KI-gestütztes Inventar, gewichtsoptimierte Packlisten und eine leidenschaftliche Community — alles an einem Ort.",
+    "features": {
+      "inventory": {
+        "title": "Smartes Inventar",
+        "description": "Erfasse deine Ausrüstung mit KI-gestützter Datenanreicherung und sofortiger Gewichtsverfolgung."
+      },
+      "loadouts": {
+        "title": "Packlisten-Builder",
+        "description": "Erstelle gewichtsoptimierte Packlisten für jedes Abenteuer, mit KI-generierten Titelbildern."
+      },
+      "community": {
+        "title": "Gear Community",
+        "description": "Teile Shakedowns, hole dir Tipps und entdecke, was andere Wanderer einpacken."
+      }
+    },
+    "form": {
+      "label": "Erfahre als Erster, wenn wir starten:",
+      "placeholder": "deine@email.de",
+      "button": "Benachrichtigen",
+      "success": "Du bist dabei! Wir informieren dich, sobald Gearshack startet.",
+      "errorGeneric": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "privacy": "Kein Spam, niemals. Jederzeit abmelden."
+    },
+    "footer": "Alle Rechte vorbehalten."
+  },
   "Landing": {
     "meta": {
       "title": "Gearshack - Outdoor-Ausrüstungsverwaltung",

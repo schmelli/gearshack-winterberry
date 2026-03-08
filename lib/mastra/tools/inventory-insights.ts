@@ -77,7 +77,15 @@ Examples:
       // Get userId
       const userId = extractUserId(executionContext);
 
+      console.log('[inventoryInsights] execute called', {
+        question: input.question,
+        category: input.category,
+        userId: userId ? `${userId.slice(0, 8)}...` : 'NULL',
+        hasExecutionContext: !!executionContext,
+      });
+
       if (!userId) {
+        console.error('[inventoryInsights] User not authenticated — ALS context may be lost in multi-step mode');
         return { success: false, summary: 'User not authenticated', error: 'User not authenticated' };
       }
 
@@ -324,11 +332,12 @@ Examples:
           return { success: false, summary: 'Unknown question type', error: 'Invalid question parameter' };
       }
     } catch (error) {
-      console.error('[inventoryInsights] Error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[inventoryInsights] Error:', errorMsg, error);
       return {
         success: false,
-        summary: 'An error occurred while analyzing your inventory.',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        summary: `Error analyzing inventory: ${errorMsg}`,
+        error: errorMsg,
       };
     }
   },
