@@ -770,7 +770,7 @@ export async function streamMastraResponse(
   // by the LLM's agentic loop — inherit the request-scoped context.
   const stream = await runWithRequestStore(storeContext, () =>
     agent.stream(messages, {
-      maxSteps: 5,
+      maxSteps: 15,
       resourceId: userId,
       threadId: conversationId,
       requestContext,
