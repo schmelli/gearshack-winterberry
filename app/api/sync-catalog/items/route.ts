@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
             description: product.description ?? null,
             price_usd: product.price_usd ?? null,
             weight_grams: product.weight_grams ?? null,
+            image_url: product.image_url ?? null,
           },
           { onConflict: 'external_id' }
         )

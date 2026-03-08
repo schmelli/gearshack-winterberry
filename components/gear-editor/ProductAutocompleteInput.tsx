@@ -98,8 +98,8 @@ export function ProductAutocompleteInput({
       // Set name
       form.setValue('name', suggestion.name, { shouldDirty: true });
 
-      // Auto-fill weight if available
-      if (suggestion.weightGrams) {
+      // Auto-fill weight if available (use explicit null check — 0 is falsy but valid)
+      if (suggestion.weightGrams != null && suggestion.weightGrams > 0) {
         form.setValue('weightValue', suggestion.weightGrams.toString(), { shouldDirty: true });
         form.setValue('weightDisplayUnit', 'g', { shouldDirty: true });
       }
@@ -109,14 +109,31 @@ export function ProductAutocompleteInput({
         form.setValue('description', suggestion.description, { shouldDirty: true });
       }
 
-      // Auto-fill price if available and current price is empty
-      if (suggestion.priceUsd && !form.getValues('pricePaid')) {
+      // Auto-fill price if available and current price is empty (use > 0 — DB stores 0 for unknown)
+      if (suggestion.priceUsd != null && suggestion.priceUsd > 0 && !form.getValues('pricePaid')) {
         form.setValue('pricePaid', suggestion.priceUsd.toString(), { shouldDirty: true });
         form.setValue('currency', 'USD', { shouldDirty: true });
       }
 
-      // Cascading Category Refactor (Phase 6): Auto-fill productTypeId from GearGraph classification
-      if (suggestion.productType && suggestion.subcategory && suggestion.categoryMain && categories.length > 0) {
+      // Auto-fill product URL if available
+      if (suggestion.productUrl && !form.getValues('productUrl')) {
+        form.setValue('productUrl', suggestion.productUrl, { shouldDirty: true });
+      }
+
+      // Auto-fill brand URL from catalog brand website
+      if (suggestion.brand?.websiteUrl && !form.getValues('brandUrl')) {
+        form.setValue('brandUrl', suggestion.brand.websiteUrl, { shouldDirty: true });
+      }
+
+      // Auto-fill product image from catalog if available and no image set yet
+      if (suggestion.imageUrl && !form.getValues('primaryImageUrl')) {
+        form.setValue('primaryImageUrl', suggestion.imageUrl, { shouldDirty: true });
+      }
+
+      // Auto-fill productTypeId: prefer direct ID from API, fall back to label-based lookup
+      if (suggestion.productTypeId) {
+        form.setValue('productTypeId', suggestion.productTypeId, { shouldDirty: true });
+      } else if (suggestion.productType && suggestion.subcategory && suggestion.categoryMain && categories.length > 0) {
         const productTypeId = findProductTypeId(
           {
             category: suggestion.categoryMain,

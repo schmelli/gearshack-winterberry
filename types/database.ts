@@ -665,6 +665,7 @@ export type Database = {
           embedding: string | null
           external_id: string
           id: string
+          image_url: string | null
           name: string
           price_usd: number | null
           product_type: string | null
@@ -681,6 +682,7 @@ export type Database = {
           embedding?: string | null
           external_id: string
           id?: string
+          image_url?: string | null
           name: string
           price_usd?: number | null
           product_type?: string | null
@@ -697,6 +699,7 @@ export type Database = {
           embedding?: string | null
           external_id?: string
           id?: string
+          image_url?: string | null
           name?: string
           price_usd?: number | null
           product_type?: string | null
