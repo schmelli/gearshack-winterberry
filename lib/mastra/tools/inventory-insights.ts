@@ -92,10 +92,38 @@ Examples:
           if (error) return { success: false, summary: 'Failed to load inventory', error: error.message };
 
           const stats = data as Record<string, unknown>;
-          const summary = `You have ${stats.totalOwned} items in your inventory` +
+
+          // Build compact summary with category breakdown so the agent
+          // knows WHAT the user owns without fetching full item details.
+          let summary = `You have ${stats.totalOwned} items in your inventory` +
             (stats.totalWishlist ? ` and ${stats.totalWishlist} on your wishlist` : '') +
             `. Total weight: ${fmtWeight(stats.totalWeight as number)}.` +
             ` ${stats.brandCount} different brands.`;
+
+          // Append category breakdown (product types with counts + weights)
+          const categories = stats.categoryBreakdown as Array<{
+            category_name: string | null;
+            item_count: number;
+            total_weight: number;
+          }> | undefined;
+
+          if (categories && categories.length > 0) {
+            const catLines = categories
+              .filter(c => c.category_name)
+              .map(c => `${c.category_name}: ${c.item_count} item${c.item_count !== 1 ? 's' : ''} (${fmtWeight(c.total_weight)})`);
+            summary += `\n\nGear by product type:\n  - ${catLines.join('\n  - ')}`;
+          }
+
+          // Append top brands
+          const brands = stats.topBrands as Array<{
+            brand: string;
+            item_count: number;
+          }> | undefined;
+
+          if (brands && brands.length > 0) {
+            const brandLines = brands.slice(0, 5).map(b => `${b.brand} (${b.item_count})`);
+            summary += `\n\nTop brands: ${brandLines.join(', ')}`;
+          }
 
           return { success: true, summary, data: stats, itemCount: stats.totalOwned as number };
         }
