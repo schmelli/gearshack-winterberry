@@ -77,7 +77,7 @@ export function ComingSoonPage() {
             alt="Gearshack"
             width={240}
             height={80}
-            className="brightness-0 invert"
+            className="drop-shadow-lg"
             priority
           />
         </Link>
