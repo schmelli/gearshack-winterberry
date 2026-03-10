@@ -1,0 +1,439 @@
+<!--
+  Gearshack — Supabase Auth Email Templates
+  ==========================================
+  Copy each template into Supabase Dashboard:
+  Authentication → Email Templates → [Template Type]
+
+  Available templates:
+  1. CONFIRM SIGNUP      — line ~25
+  2. RESET PASSWORD      — line ~140
+  3. MAGIC LINK          — line ~255
+  4. INVITE USER         — line ~370
+
+  Supabase variables (auto-replaced):
+  {{ .ConfirmationURL }}  — action URL
+  {{ .Email }}            — recipient email
+  {{ .SiteURL }}          — your site URL
+
+  Images hosted at:
+  - Hero:  https://gearshack.app/images/headers/headerimage2.jpeg
+  - Logo:  https://gearshack.app/logos/big_gearshack_logo.png
+-->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     1. CONFIRM SIGNUP
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<!--TEMPLATE:CONFIRM_SIGNUP-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    @media (prefers-color-scheme:dark){
+      .email-bg{background:#1a1a1a!important}
+      .card{background:#262626!important}
+      .heading{color:#f5f5f5!important}
+      .body-text{color:#d4d4d4!important}
+      .muted{color:#a3a3a3!important}
+      .footer-cell{background:#1f1f1f!important;border-color:#333!important}
+      .footer-text{color:#737373!important}
+      .divider{border-color:#333!important}
+    }
+    @media only screen and (max-width:620px){
+      .outer{width:100%!important;padding:16px!important}
+      .card{border-radius:8px!important}
+      .content{padding:28px 24px!important}
+      .hero-img{height:160px!important}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased">
+  <table class="email-bg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f0f4f3">
+    <tr><td align="center" style="padding:40px 20px" class="outer">
+      <table class="card" width="600" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;width:100%">
+
+        <!-- Hero Image -->
+        <tr><td style="padding:0;line-height:0">
+          <img class="hero-img" src="https://gearshack.app/images/headers/headerimage2.jpeg" alt="Outdoor adventure" width="600" height="200" style="display:block;width:100%;height:200px;object-fit:cover;border:0">
+        </td></tr>
+
+        <!-- Logo -->
+        <tr><td style="padding:28px 40px 0;text-align:center">
+          <img src="https://gearshack.app/logos/big_gearshack_logo.png" alt="Gearshack" width="140" height="47" style="display:inline-block;width:140px;height:auto;border:0">
+        </td></tr>
+
+        <!-- Divider -->
+        <tr><td style="padding:20px 40px 0"><hr class="divider" style="border:0;border-top:1px solid #e5e7eb;margin:0"></td></tr>
+
+        <!-- Heading -->
+        <tr><td class="content" style="padding:28px 40px 0">
+          <h1 class="heading" style="margin:0;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3">Confirm your Gearshack account</h1>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td class="content" style="padding:16px 40px 32px">
+          <p class="body-text" style="margin:0;color:#374151;font-size:16px;line-height:1.7">
+            Welcome to Gearshack! Please confirm your email address to activate your account and start organizing your outdoor gear.
+          </p>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 32px" align="center">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%;mso-text-raise:21pt">&nbsp;</i><![endif]-->
+            <span style="mso-text-raise:10pt">Confirm Email</span>
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%">&nbsp;</i><![endif]-->
+          </a>
+        </td></tr>
+
+        <!-- Signature -->
+        <tr><td style="padding:0 40px 32px">
+          <p class="muted" style="margin:0;color:#6b7280;font-size:14px;line-height:1.5">
+            Happy trails! &#127956;<br><span style="font-weight:600">The Gearshack Team</span>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td class="footer-cell" style="padding:24px 40px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td align="center">
+              <p class="footer-text" style="margin:0 0 8px;color:#9ca3af;font-size:12px;line-height:1.5">If you didn't sign up for Gearshack, you can safely ignore this email.</p>
+              <p class="footer-text" style="margin:0;color:#9ca3af;font-size:12px">
+                <a href="https://gearshack.app" style="color:#16a34a;text-decoration:none;font-weight:500">gearshack.app</a>
+                &nbsp;&middot;&nbsp; Smarter gear lists for outdoor adventures
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+<!--/TEMPLATE:CONFIRM_SIGNUP-->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     2. RESET PASSWORD
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<!--TEMPLATE:RESET_PASSWORD-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    @media (prefers-color-scheme:dark){
+      .email-bg{background:#1a1a1a!important}
+      .card{background:#262626!important}
+      .heading{color:#f5f5f5!important}
+      .body-text{color:#d4d4d4!important}
+      .muted{color:#a3a3a3!important}
+      .footer-cell{background:#1f1f1f!important;border-color:#333!important}
+      .footer-text{color:#737373!important}
+      .divider{border-color:#333!important}
+    }
+    @media only screen and (max-width:620px){
+      .outer{width:100%!important;padding:16px!important}
+      .card{border-radius:8px!important}
+      .content{padding:28px 24px!important}
+      .hero-img{height:160px!important}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased">
+  <table class="email-bg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f0f4f3">
+    <tr><td align="center" style="padding:40px 20px" class="outer">
+      <table class="card" width="600" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;width:100%">
+
+        <!-- Hero Image -->
+        <tr><td style="padding:0;line-height:0">
+          <img class="hero-img" src="https://gearshack.app/images/headers/headerimage2.jpeg" alt="Outdoor adventure" width="600" height="200" style="display:block;width:100%;height:200px;object-fit:cover;border:0">
+        </td></tr>
+
+        <!-- Logo -->
+        <tr><td style="padding:28px 40px 0;text-align:center">
+          <img src="https://gearshack.app/logos/big_gearshack_logo.png" alt="Gearshack" width="140" height="47" style="display:inline-block;width:140px;height:auto;border:0">
+        </td></tr>
+
+        <!-- Divider -->
+        <tr><td style="padding:20px 40px 0"><hr class="divider" style="border:0;border-top:1px solid #e5e7eb;margin:0"></td></tr>
+
+        <!-- Heading -->
+        <tr><td class="content" style="padding:28px 40px 0">
+          <h1 class="heading" style="margin:0;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3">Reset your password</h1>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td class="content" style="padding:16px 40px 32px">
+          <p class="body-text" style="margin:0;color:#374151;font-size:16px;line-height:1.7">
+            You requested a password reset for your Gearshack account. Click the button below to choose a new password.
+          </p>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 32px" align="center">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%;mso-text-raise:21pt">&nbsp;</i><![endif]-->
+            <span style="mso-text-raise:10pt">Reset Password</span>
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%">&nbsp;</i><![endif]-->
+          </a>
+        </td></tr>
+
+        <!-- Security Note -->
+        <tr><td style="padding:0 40px 32px">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#fef9c3;border-radius:8px;border:1px solid #fde68a">
+            <tr><td style="padding:14px 18px">
+              <p style="margin:0;color:#854d0e;font-size:13px;line-height:1.5">
+                &#128274;&nbsp; This link expires in 24 hours. If you didn't request this, your account is safe — just ignore this email.
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Signature -->
+        <tr><td style="padding:0 40px 32px">
+          <p class="muted" style="margin:0;color:#6b7280;font-size:14px;line-height:1.5">
+            Happy trails! &#127956;<br><span style="font-weight:600">The Gearshack Team</span>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td class="footer-cell" style="padding:24px 40px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td align="center">
+              <p class="footer-text" style="margin:0 0 8px;color:#9ca3af;font-size:12px;line-height:1.5">If you didn't request a password reset, you can safely ignore this email.</p>
+              <p class="footer-text" style="margin:0;color:#9ca3af;font-size:12px">
+                <a href="https://gearshack.app" style="color:#16a34a;text-decoration:none;font-weight:500">gearshack.app</a>
+                &nbsp;&middot;&nbsp; Smarter gear lists for outdoor adventures
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+<!--/TEMPLATE:RESET_PASSWORD-->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     3. MAGIC LINK
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<!--TEMPLATE:MAGIC_LINK-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    @media (prefers-color-scheme:dark){
+      .email-bg{background:#1a1a1a!important}
+      .card{background:#262626!important}
+      .heading{color:#f5f5f5!important}
+      .body-text{color:#d4d4d4!important}
+      .muted{color:#a3a3a3!important}
+      .footer-cell{background:#1f1f1f!important;border-color:#333!important}
+      .footer-text{color:#737373!important}
+      .divider{border-color:#333!important}
+    }
+    @media only screen and (max-width:620px){
+      .outer{width:100%!important;padding:16px!important}
+      .card{border-radius:8px!important}
+      .content{padding:28px 24px!important}
+      .hero-img{height:160px!important}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased">
+  <table class="email-bg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f0f4f3">
+    <tr><td align="center" style="padding:40px 20px" class="outer">
+      <table class="card" width="600" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;width:100%">
+
+        <!-- Hero Image -->
+        <tr><td style="padding:0;line-height:0">
+          <img class="hero-img" src="https://gearshack.app/images/headers/headerimage2.jpeg" alt="Outdoor adventure" width="600" height="200" style="display:block;width:100%;height:200px;object-fit:cover;border:0">
+        </td></tr>
+
+        <!-- Logo -->
+        <tr><td style="padding:28px 40px 0;text-align:center">
+          <img src="https://gearshack.app/logos/big_gearshack_logo.png" alt="Gearshack" width="140" height="47" style="display:inline-block;width:140px;height:auto;border:0">
+        </td></tr>
+
+        <!-- Divider -->
+        <tr><td style="padding:20px 40px 0"><hr class="divider" style="border:0;border-top:1px solid #e5e7eb;margin:0"></td></tr>
+
+        <!-- Heading -->
+        <tr><td class="content" style="padding:28px 40px 0">
+          <h1 class="heading" style="margin:0;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3">Your login link</h1>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td class="content" style="padding:16px 40px 32px">
+          <p class="body-text" style="margin:0;color:#374151;font-size:16px;line-height:1.7">
+            Click the button below to securely log in to your Gearshack account. No password needed!
+          </p>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 32px" align="center">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%;mso-text-raise:21pt">&nbsp;</i><![endif]-->
+            <span style="mso-text-raise:10pt">Log in to Gearshack</span>
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%">&nbsp;</i><![endif]-->
+          </a>
+        </td></tr>
+
+        <!-- Security Note -->
+        <tr><td style="padding:0 40px 32px">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe">
+            <tr><td style="padding:14px 18px">
+              <p style="margin:0;color:#1e40af;font-size:13px;line-height:1.5">
+                &#128274;&nbsp; This link is single-use and expires in 24 hours for your security.
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Signature -->
+        <tr><td style="padding:0 40px 32px">
+          <p class="muted" style="margin:0;color:#6b7280;font-size:14px;line-height:1.5">
+            Happy trails! &#127956;<br><span style="font-weight:600">The Gearshack Team</span>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td class="footer-cell" style="padding:24px 40px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td align="center">
+              <p class="footer-text" style="margin:0 0 8px;color:#9ca3af;font-size:12px;line-height:1.5">If you didn't request this login link, you can safely ignore this email.</p>
+              <p class="footer-text" style="margin:0;color:#9ca3af;font-size:12px">
+                <a href="https://gearshack.app" style="color:#16a34a;text-decoration:none;font-weight:500">gearshack.app</a>
+                &nbsp;&middot;&nbsp; Smarter gear lists for outdoor adventures
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+<!--/TEMPLATE:MAGIC_LINK-->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     4. INVITE USER
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<!--TEMPLATE:INVITE_USER-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    @media (prefers-color-scheme:dark){
+      .email-bg{background:#1a1a1a!important}
+      .card{background:#262626!important}
+      .heading{color:#f5f5f5!important}
+      .body-text{color:#d4d4d4!important}
+      .muted{color:#a3a3a3!important}
+      .footer-cell{background:#1f1f1f!important;border-color:#333!important}
+      .footer-text{color:#737373!important}
+      .divider{border-color:#333!important}
+    }
+    @media only screen and (max-width:620px){
+      .outer{width:100%!important;padding:16px!important}
+      .card{border-radius:8px!important}
+      .content{padding:28px 24px!important}
+      .hero-img{height:160px!important}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased">
+  <table class="email-bg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f0f4f3">
+    <tr><td align="center" style="padding:40px 20px" class="outer">
+      <table class="card" width="600" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:600px;width:100%">
+
+        <!-- Hero Image -->
+        <tr><td style="padding:0;line-height:0">
+          <img class="hero-img" src="https://gearshack.app/images/headers/headerimage2.jpeg" alt="Outdoor adventure" width="600" height="200" style="display:block;width:100%;height:200px;object-fit:cover;border:0">
+        </td></tr>
+
+        <!-- Logo -->
+        <tr><td style="padding:28px 40px 0;text-align:center">
+          <img src="https://gearshack.app/logos/big_gearshack_logo.png" alt="Gearshack" width="140" height="47" style="display:inline-block;width:140px;height:auto;border:0">
+        </td></tr>
+
+        <!-- Divider -->
+        <tr><td style="padding:20px 40px 0"><hr class="divider" style="border:0;border-top:1px solid #e5e7eb;margin:0"></td></tr>
+
+        <!-- Heading -->
+        <tr><td class="content" style="padding:28px 40px 0">
+          <h1 class="heading" style="margin:0;color:#0f172a;font-size:24px;font-weight:700;line-height:1.3">You've been invited!</h1>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td class="content" style="padding:16px 40px 32px">
+          <p class="body-text" style="margin:0;color:#374151;font-size:16px;line-height:1.7">
+            You've been invited to join Gearshack — the smarter way to organize your outdoor gear, build loadouts, and connect with fellow adventurers. Click below to accept your invitation and set up your account.
+          </p>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 32px" align="center">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:16px;font-weight:700;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px">
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%;mso-text-raise:21pt">&nbsp;</i><![endif]-->
+            <span style="mso-text-raise:10pt">Accept Invitation</span>
+            <!--[if mso]><i style="letter-spacing:36px;mso-font-width:-100%">&nbsp;</i><![endif]-->
+          </a>
+        </td></tr>
+
+        <!-- Signature -->
+        <tr><td style="padding:0 40px 32px">
+          <p class="muted" style="margin:0;color:#6b7280;font-size:14px;line-height:1.5">
+            Happy trails! &#127956;<br><span style="font-weight:600">The Gearshack Team</span>
+          </p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td class="footer-cell" style="padding:24px 40px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td align="center">
+              <p class="footer-text" style="margin:0 0 8px;color:#9ca3af;font-size:12px;line-height:1.5">If you weren't expecting this invitation, you can safely ignore this email.</p>
+              <p class="footer-text" style="margin:0;color:#9ca3af;font-size:12px">
+                <a href="https://gearshack.app" style="color:#16a34a;text-decoration:none;font-weight:500">gearshack.app</a>
+                &nbsp;&middot;&nbsp; Smarter gear lists for outdoor adventures
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+<!--/TEMPLATE:INVITE_USER-->
