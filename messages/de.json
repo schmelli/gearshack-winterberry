@@ -134,7 +134,9 @@
     "genericUser": "Benutzer",
     "unknown": "Unbekannt",
     "anonymousUser": "Anonymer Benutzer",
-    "close": "Schließen"
+    "close": "Schließen",
+    "optional": "Optional",
+    "submitting": "Wird gesendet..."
   },
   "ComingSoon": {
     "meta": {
@@ -1765,6 +1767,10 @@
       "rateLimitWarning": "Ratenlimit erreicht. Versuche es in {seconds}s erneut.",
       "characterCount": "{count}/{max}",
       "enterToSend": "Enter zum Senden, Shift+Enter für neue Zeile",
+      "disableVoice": "Sprache deaktivieren",
+      "enableVoice": "Sprache aktivieren",
+      "disableVoiceResponses": "Sprachantworten deaktivieren",
+      "enableVoiceResponses": "Sprachantworten aktivieren",
       "errors": {
         "unauthorized": "Du musst angemeldet sein, um den KI-Assistenten zu nutzen",
         "rateLimited": "Ratenlimit überschritten. Versuche es später erneut.",
@@ -2291,6 +2297,8 @@
       "viewAll": "Alle anzeigen"
     },
     "friends": {
+      "label": "Freunde",
+      "alreadyFriends": "Bereits befreundet",
       "title": "Freunde",
       "addFriend": "Freund hinzufügen",
       "pending": "Ausstehend",
@@ -2545,6 +2553,13 @@
       "expert": "Experte",
       "expertDesc": "Umfangreiche Erfahrung, hilft anderen oft"
     },
+    "private": "Privat",
+    "friendsOnly": "Nur Freunde",
+    "public": "Öffentlich",
+    "placeholder": {
+      "addNote": "Notiz zu diesem Gegenstand hinzufügen..."
+    },
+    "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
     "privacyOptions": {
       "public": "Öffentlich",
       "publicDesc": "Jeder kann sehen und Feedback geben",
@@ -2627,7 +2642,12 @@
       "archiveFailed": "Shakedown konnte nicht archiviert werden",
       "deleteSuccess": "Shakedown gelöscht",
       "deleteFailed": "Shakedown konnte nicht gelöscht werden",
-      "reportComingSoon": "Meldefunktion kommt bald"
+      "reportComingSoon": "Meldefunktion kommt bald",
+      "editNote": "Notiz bearbeiten",
+      "addNote": "Notiz hinzufügen",
+      "close": "Schließen",
+      "clearNote": "Notiz löschen",
+      "save": "Speichern"
     },
     "filters": {
       "title": "Filter",
@@ -2872,7 +2892,9 @@
       "shakedownsReviewed": "{count} Shakedowns bewertet",
       "empty": "Noch keine Community-Experten",
       "emptyDescription": "Sei der Erste, der hilft! Bewerte Shakedowns und verdiene Anerkennung für dein hilfreiches Feedback.",
-      "viewAll": "Alle Experten anzeigen"
+      "viewAll": "Alle Experten anzeigen",
+      "loadFailed": "Experten konnten nicht geladen werden",
+      "retry": "Erneut versuchen"
     },
     "completion": {
       "title": "Shakedown abschließen",
@@ -2945,6 +2967,11 @@
     }
   },
   "Merchant": {
+    "dashboard": "Dashboard",
+    "catalog": "Katalog",
+    "insights": "Insights",
+    "billing": "Abrechnung",
+    "settings": "Einstellungen",
     "common": {
       "notAuthenticated": "Nicht als Händler authentifiziert"
     },
@@ -3005,7 +3032,9 @@
         "pending": "Ausstehend",
         "approved": "Genehmigt",
         "suspended": "Gesperrt",
-        "rejected": "Abgelehnt"
+        "rejected": "Abgelehnt",
+        "verified": "Verifiziert",
+        "verifiedTooltip": "Dieser Händler ist verifiziert"
       }
     },
     "errorBoundary": {
@@ -3015,6 +3044,11 @@
     }
   },
   "MerchantLoadouts": {
+    "tripType": "Trip-Typ",
+    "allTripTypes": "Alle Trip-Typen",
+    "allSeasons": "Alle Jahreszeiten",
+    "priceRange": "Preisbereich",
+    "clearAll": "Alle löschen",
     "title": "Händler-Loadouts",
     "subtitle": "Professionell kuratierte Ausrüstungspakete von vertrauenswürdigen Händlern",
     "pageTitle": "Kuratierte Loadouts von vertrauenswürdigen Händlern",
@@ -3384,6 +3418,7 @@
     "errorTitle": "Fehler beim Laden der Einblicke"
   },
   "MerchantOffers": {
+    "users": "Nutzer",
     "pageTitle": "Angebote",
     "pageDescription": "Verwalte personalisierte Angebote an Nutzer",
     "title": "Angebote",
@@ -3952,7 +3987,14 @@
       "bookmarkedNotification": "Loadout zu Lesezeichen hinzugefügt",
       "bookmark": "Merken",
       "bookmarked": "Gemerkt",
-      "removeBookmark": "Lesezeichen entfernen"
+      "removeBookmark": "Lesezeichen entfernen",
+      "savedLoadouts": "Gespeicherte Packlisten",
+      "retry": "Erneut versuchen",
+      "emptyTitle": "Keine gespeicherten Packlisten",
+      "emptyHint": "Speichere VIP-Packlisten, um sie hier zu finden",
+      "browseVipLoadouts": "VIP-Packlisten durchstöbern",
+      "viewAllVips": "Alle VIPs anzeigen",
+      "savedTime": "Gespeichert {time}"
     },
     "claim": {
       "loading": "Einladung wird geladen...",
@@ -3994,7 +4036,10 @@
     },
     "search": {
       "placeholder": "VIPs suchen...",
-      "clearSearch": "Suche löschen"
+      "clearSearch": "Suche löschen",
+      "noResults": "Keine Ergebnisse gefunden",
+      "tryBroader": "Versuche allgemeinere Suchbegriffe",
+      "resultsCount": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}"
     },
     "loadoutForm": {
       "namePlaceholder": "z.B. Pacific Crest Trail 2023"
@@ -4002,13 +4047,44 @@
     "loadout": {
       "notFound": "Packliste nicht gefunden",
       "metaTitle": "{vipName} - {loadoutName} | Gearshack VIP",
-      "metaDescription": "{vipName}s Packliste {loadoutName} auf Gearshack ansehen"
+      "metaDescription": "{vipName}s Packliste {loadoutName} auf Gearshack ansehen",
+      "copySuccess": "Packliste in dein Konto kopiert",
+      "viewCopy": "Kopie anzeigen",
+      "copyError": "Packliste konnte nicht kopiert werden",
+      "errorTitle": "Packliste konnte nicht geladen werden",
+      "sourceAttribution": "Quelle",
+      "sourceUnavailable": "Quelle nicht verfügbar",
+      "viewOriginal": "Original anzeigen",
+      "attributionNotice": "Ursprünglich von {name}",
+      "itemCount": "{count, plural, one {# Gegenstand} other {# Gegenstände}}",
+      "backToProfile": "Zurück zum Profil",
+      "byVip": "von {name}",
+      "bookmarked": "Gespeichert",
+      "bookmark": "Merken",
+      "copyToAccount": "In mein Konto kopieren",
+      "weightBreakdown": "Gewichtsaufschlüsselung",
+      "items": "Gegenstände"
     },
     "directory": {
       "title": "VIP Packlisten",
       "description": "Entdecke Packlisten von Top-Outdoor-Athleten und Influencern",
       "metaTitle": "VIP Packlisten | Gearshack",
-      "metaDescription": "Erkunde Packlisten von Top-Outdoor-Athleten und Influencern auf Gearshack"
+      "metaDescription": "Erkunde Packlisten von Top-Outdoor-Athleten und Influencern auf Gearshack",
+      "errorTitle": "VIP-Verzeichnis konnte nicht geladen werden",
+      "empty": "Noch keine VIP-Profile",
+      "emptyHint": "Schau bald wieder vorbei für vorgestellte Outdoor-Athleten",
+      "loadMore": "Mehr laden",
+      "searchPlaceholder": "VIPs suchen...",
+      "noResults": "Keine VIPs gefunden",
+      "noResultsHint": "Versuche einen anderen Suchbegriff"
+    },
+    "featured": {
+      "title": "Vorgestellte VIPs",
+      "viewAll": "Alle anzeigen",
+      "errorTitle": "Vorgestellte VIPs konnten nicht geladen werden",
+      "errorMessage": "Bitte versuche es später erneut",
+      "emptyTitle": "Keine vorgestellten VIPs",
+      "emptyMessage": "Schau bald wieder vorbei für vorgestellte Outdoor-Athleten"
     }
   },
   "Wishlist": {
@@ -5705,5 +5781,79 @@
   },
   "LocationSearch": {
     "noCitiesFound": "Keine Städte gefunden"
+  },
+  "GearInsights": {
+    "unavailable": "Insights nicht verfügbar",
+    "notYetAvailable": "Insights für diesen Artikel noch nicht verfügbar",
+    "types": {
+      "tip": "Tipp",
+      "comparison": "Vergleich",
+      "warning": "Warnung",
+      "recommendation": "Empfehlung"
+    },
+    "aria": {
+      "thumbsUp": "Als hilfreich markieren",
+      "thumbsDown": "Insight ausblenden"
+    },
+    "source": "Quelle: GearGraph"
+  },
+  "PriceHistory": {
+    "title": "Preisverlauf",
+    "noHistory": "Kein Preisverlauf verfügbar",
+    "trend": {
+      "dropping": "Fallend",
+      "rising": "Steigend",
+      "stable": "Stabil"
+    },
+    "stats": {
+      "low": "Tief",
+      "avg": "Durchschn.",
+      "high": "Hoch"
+    },
+    "legend": {
+      "lowest": "Niedrigster",
+      "average": "Durchschnitt",
+      "highest": "Höchster"
+    }
+  },
+  "PriceResult": {
+    "lowestPrice": "Niedrigster Preis",
+    "shipping": "Versand",
+    "total": "Gesamt",
+    "kmAway": "{distance} km entfernt",
+    "view": "Anzeigen"
+  },
+  "PriceTracking": {
+    "title": "Preisverfolgung",
+    "enabled": "Verfolgung aktiviert",
+    "disabled": "Verfolgung deaktiviert",
+    "loadingError": "Preisverfolgung konnte nicht geladen werden",
+    "priceDropAlerts": "Preissenkungsalarme",
+    "currentPrices": "Aktuelle Preise",
+    "found": "{count} gefunden",
+    "aria": {
+      "refreshPrices": "Preise aktualisieren"
+    },
+    "searchError": "Preissuche fehlgeschlagen",
+    "someSourcesUnavailable": "Einige Quellen nicht verfügbar",
+    "moreResults": "Weitere Ergebnisse",
+    "noResults": "Keine Preise gefunden",
+    "similarProducts": "Ähnliche Produkte",
+    "highMatch": "Hohe Übereinstimmung",
+    "lowMatch": "Geringe Übereinstimmung",
+    "match": "{percent}% Übereinstimmung",
+    "enableTracking": "Verfolgung aktivieren",
+    "getAlerts": "Preisalarme aktivieren"
+  },
+  "YouTubeReviews": {
+    "quotaExhausted": "YouTube API-Kontingent erschöpft. Versuche es später erneut.",
+    "tryAgain": "Erneut versuchen",
+    "noReviews": "Keine Reviews gefunden"
+  },
+  "ImageGallery": {
+    "aria": {
+      "previousImage": "Vorheriges Bild",
+      "nextImage": "Nächstes Bild"
+    }
   }
 }
