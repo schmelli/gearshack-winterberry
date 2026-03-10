@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { sendNewsletterConfirmation } from '@/lib/services/email-service';
 import { z } from 'zod';
 
 const subscribeSchema = z.object({
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+
+    // Send confirmation email (fire-and-forget — don't block the response)
+    sendNewsletterConfirmation(parsed.data.email, parsed.data.locale).catch(
+      (err) => console.error('[newsletter] Email send failed:', err),
+    );
 
     return NextResponse.json({ success: true });
   } catch {
