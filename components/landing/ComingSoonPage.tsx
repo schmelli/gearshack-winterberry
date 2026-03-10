@@ -11,6 +11,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Mountain, Compass, Backpack, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,8 +70,8 @@ export function ComingSoonPage() {
 
       {/* Content */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-16">
-        {/* Logo */}
-        <div className="mb-8">
+        {/* Logo — hidden link to login for team access */}
+        <Link href="/login" className="mb-8 block">
           <Image
             src="/logos/big_gearshack_logo.png"
             alt="Gearshack"
@@ -79,7 +80,7 @@ export function ComingSoonPage() {
             className="brightness-0 invert"
             priority
           />
-        </div>
+        </Link>
 
         {/* Headline */}
         <h1 className="mb-4 max-w-3xl text-center font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">

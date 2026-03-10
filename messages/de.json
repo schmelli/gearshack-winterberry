@@ -1103,6 +1103,9 @@
       "title": "Meine Packlisten - Gearshack",
       "description": "Erstelle und verwalte deine Packlisten. Optimiere das Packgewicht und organisiere Ausrüstung für jedes Abenteuer."
     },
+    "picker": {
+      "add": "Hinzufügen"
+    },
     "deleteTitle": "Packliste löschen",
     "deleteDescription": "Bist du sicher, dass du \"{name}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden. Deine Ausrüstungsgegenstände sind davon nicht betroffen.",
     "deleteLoadout": "Packliste löschen",
@@ -1166,6 +1169,22 @@
     "backToLoadouts": "Zurück zu Packlisten",
     "addDescription": "Eine Beschreibung für diese Packliste hinzufügen...",
     "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
+    "header": {
+      "activity": "Aktivität",
+      "season": "Saison"
+    },
+    "weightBar": {
+      "ultralight": "Ultraleicht",
+      "moderate": "Moderat",
+      "heavy": "Schwer"
+    },
+    "seasons": {
+      "selectSeason": "Saison wählen",
+      "spring": "Frühling",
+      "summer": "Sommer",
+      "fall": "Herbst",
+      "winter": "Winter"
+    },
     "noWornItemsInCategory": "Keine getragenen Gegenstände in dieser Kategorie",
     "heroImage": {
       "generatingImage": "Bild wird generiert...",
@@ -1427,6 +1446,66 @@
       "errorId": "Fehler-ID: {id}",
       "tryAgain": "Erneut versuchen",
       "backToCommunity": "Zurück zur Community"
+    },
+    "tabs": {
+      "board": "Forum",
+      "shakedowns": "Shakedowns",
+      "vipLoadouts": "VIP Packlisten",
+      "marketplace": "Marktplatz",
+      "comingSoon": "Demnächst"
+    },
+    "navigation": {
+      "ariaLabel": "Community-Navigation"
+    },
+    "panels": {
+      "friends": {
+        "title": "Freunde",
+        "requests": "Freundschaftsanfragen",
+        "viewAllRequests": "Alle Anfragen anzeigen",
+        "online": "Online",
+        "noOnline": "Keine Freunde online",
+        "viewAll": "Alle Freunde anzeigen"
+      },
+      "offers": {
+        "title": "Angebote für dich",
+        "expired": "Abgelaufen",
+        "hoursLeft": "Noch {count} Std.",
+        "daysLeft": "Noch {count} T.",
+        "new": "Neu",
+        "noOffers": "Noch keine Angebote",
+        "addToWishlist": "Füge Artikel zu deiner Wunschliste hinzu, um Angebote zu erhalten",
+        "viewAll": "Alle Angebote anzeigen",
+        "manageOffers": "Angebote verwalten"
+      },
+      "activity": {
+        "title": "Freunde-Aktivität",
+        "viewAll": "Alle Aktivitäten anzeigen"
+      }
+    },
+    "friends": {
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "requestAccepted": "Freundschaftsanfrage angenommen",
+      "acceptFailed": "Anfrage konnte nicht angenommen werden",
+      "requestDeclined": "Freundschaftsanfrage abgelehnt",
+      "declineFailed": "Anfrage konnte nicht abgelehnt werden"
+    },
+    "activity": {
+      "newLoadout": "{name} hat eine neue Packliste erstellt",
+      "sharedLoadout": "{name} hat eine Packliste geteilt",
+      "listedItem": "{name} hat einen Artikel eingestellt",
+      "addedGear": "{name} hat neue Ausrüstung hinzugefügt",
+      "newFriend": "{name} hat einen neuen Freund",
+      "updatedProfile": "{name} hat das Profil aktualisiert",
+      "generic": "{name} war aktiv",
+      "noActivity": "Keine aktuelle Aktivität",
+      "addFriends": "Füge Freunde hinzu, um ihre Aktivitäten zu sehen"
+    },
+    "announcements": {
+      "learnMore": "Mehr erfahren",
+      "dismiss": "Schließen",
+      "loadFailed": "Ankündigungen konnten nicht geladen werden",
+      "retry": "Erneut versuchen"
     }
   },
   "Wiki": {
@@ -1500,6 +1579,8 @@
     "shareLoadout": "Packliste teilen",
     "shareOn": "Teilen auf:",
     "linkCopied": "Link kopiert",
+    "copied": "Kopiert!",
+    "copyLink": "Link kopieren",
     "copyFailed": "Kopieren fehlgeschlagen",
     "copyShareLink": "Link kopieren",
     "generating": "Wird erstellt...",
@@ -1616,6 +1697,7 @@
       "newNotification": "{author} hat deine Packliste kommentiert",
       "viewComment": "Kommentar ansehen",
       "loadFailed": "Kommentare konnten nicht geladen werden",
+      "messageRequired": "Bitte gib eine Nachricht ein",
       "minLengthError": "Bitte teile mindestens ein paar Zeichen Feedback",
       "sendFailed": "Kommentar konnte nicht gesendet werden",
       "sendAriaLabel": "Kommentar senden",
@@ -2187,6 +2269,9 @@
     },
     "following": {
       "title": "Folge ich",
+      "pageTitle": "Folge ich",
+      "pageDescription": "Personen, denen du folgst",
+      "discoverPeople": "Personen entdecken",
       "follow": "Folgen",
       "following": "Folge ich",
       "unfollow": "Entfolgen",
@@ -2194,7 +2279,16 @@
       "unfollowSuccess": "Du folgst {name} nicht mehr",
       "emptyTitle": "Du folgst noch niemandem",
       "emptyDescription": "Folge Community-Mitgliedern und VIP-Accounts, um ihre öffentlichen Aktivitäten zu sehen.",
-      "findPeople": "Leute zum Folgen finden"
+      "findPeople": "Leute zum Folgen finden",
+      "loading": "Laden...",
+      "unfollowAriaLabel": "{name} entfolgen",
+      "followAriaLabel": "{name} folgen",
+      "since": "Folgt seit {date}",
+      "searchPlaceholder": "Gefolgte suchen...",
+      "searchAriaLabel": "Personen suchen, denen du folgst",
+      "noSearchResults": "Keine Ergebnisse gefunden",
+      "listAriaLabel": "Personen, denen du folgst",
+      "viewAll": "Alle anzeigen"
     },
     "friends": {
       "title": "Freunde",
@@ -2250,7 +2344,29 @@
       "declineFailed": "Ablehnen der Freundschaftsanfrage fehlgeschlagen",
       "cancelFailed": "Abbrechen der Freundschaftsanfrage fehlgeschlagen",
       "rateLimitExceeded": "Du hast zu viele Freundschaftsanfragen gesendet. Versuche es später erneut.",
-      "noMessageExchange": "Du musst dieser Person zuerst eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst"
+      "noMessageExchange": "Du musst dieser Person zuerst eine Nachricht schreiben, bevor du eine Freundschaftsanfrage senden kannst",
+      "sent": "Anfrage gesendet",
+      "alreadyFriends": "Bereits befreundet",
+      "alreadySent": "Anfrage bereits gesendet",
+      "pendingFromThem": "Ausstehende Anfrage von dieser Person",
+      "accepted": "Angenommen",
+      "declined": "Abgelehnt",
+      "cancelled": "Abgebrochen",
+      "pending": "Ausstehend",
+      "cancel": "Anfrage abbrechen",
+      "respond": "Antworten",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "messageFirst": "Erst eine Nachricht senden",
+      "messageFirstTooltip": "Du musst erst Nachrichten austauschen, bevor du eine Freundschaftsanfrage senden kannst",
+      "addFriend": "Freund hinzufügen",
+      "addFriendAriaLabel": "Freundschaftsanfrage an {name} senden",
+      "sentYouRequest": "{name} hat dir eine Freundschaftsanfrage gesendet",
+      "acceptAriaLabel": "Freundschaftsanfrage annehmen",
+      "declineAriaLabel": "Freundschaftsanfrage ablehnen",
+      "newRequest": "Neue Freundschaftsanfrage",
+      "wantsToBeYourFriend": "{name} möchte dein Freund sein",
+      "noRequests": "Keine ausstehenden Anfragen"
     },
     "activity": {
       "title": "Aktivitäten",
@@ -2266,7 +2382,19 @@
       "newListing": "{name} hat etwas auf dem Marktplatz eingestellt",
       "addedGear": "{name} hat neue Ausrüstung hinzugefügt",
       "newFriend": "{name} ist jetzt mit {friend} befreundet",
-      "loadMore": "Mehr laden"
+      "loadMore": "Mehr laden",
+      "createdLoadout": "{name} hat eine neue Packliste erstellt",
+      "listedGear": "{name} bietet Ausrüstung zum Verkauf an",
+      "becameFriends": "{name} ist jetzt mit {friendName} befreundet",
+      "updatedProfile": "{name} hat das Profil aktualisiert",
+      "didSomething": "{name} war aktiv",
+      "filterBy": "Filtern nach",
+      "filterNewLoadouts": "Neue Packlisten",
+      "filterSharedLoadouts": "Geteilte Packlisten",
+      "filterNewGear": "Neue Ausrüstung",
+      "filterNewFriends": "Neue Freunde",
+      "noFilteredActivity": "Keine passende Aktivität",
+      "noFilteredActivityDesc": "Ändere den Filter, um mehr Aktivitäten zu sehen"
     },
     "presence": {
       "online": "Online",
@@ -2275,7 +2403,14 @@
       "offline": "Offline",
       "lastActive": "Zuletzt aktiv {time}",
       "updating": "Wird aktualisiert...",
-      "updateFailed": "Aktualisierung des Status fehlgeschlagen"
+      "updateFailed": "Aktualisierung des Status fehlgeschlagen",
+      "yourStatus": "Dein Status",
+      "appearDescription": "Steuere, wie du anderen angezeigt wirst",
+      "onlineDesc": "Für alle sichtbar",
+      "awayDesc": "Als abwesend angezeigt",
+      "invisibleDesc": "Für andere als offline angezeigt",
+      "offlineDesc": "Du bist offline",
+      "status": "Status"
     },
     "privacy": {
       "title": "Datenschutzeinstellungen",
@@ -2330,6 +2465,49 @@
     },
     "ariaLabels": {
       "toggleDarkMode": "Dunkelmodus umschalten"
+    },
+    "followers": {
+      "countLabel": "{count, plural, one {# Follower} other {# Follower}}",
+      "label": "Follower"
+    },
+    "emptyState": {
+      "following": {
+        "title": "Du folgst noch niemandem",
+        "description": "Folge anderen Outdoor-Enthusiasten, um ihre Aktivitäten zu sehen",
+        "cta": "Personen entdecken"
+      },
+      "followers": {
+        "title": "Noch keine Follower",
+        "description": "Teile deine Packlisten und Ausrüstung, um Follower zu gewinnen"
+      },
+      "friends": {
+        "title": "Noch keine Freunde",
+        "description": "Vernetze dich mit anderen Outdoor-Enthusiasten",
+        "cta": "Freunde finden"
+      },
+      "friendRequests": {
+        "title": "Keine ausstehenden Anfragen",
+        "description": "Freundschaftsanfragen, die du erhältst, erscheinen hier"
+      },
+      "activity": {
+        "title": "Keine aktuelle Aktivität",
+        "description": "Aktivitäten deiner Freunde erscheinen hier",
+        "cta": "Freunde finden"
+      },
+      "search": {
+        "title": "Keine Ergebnisse gefunden",
+        "description": "Versuche einen anderen Suchbegriff"
+      },
+      "default": {
+        "title": "Noch nichts hier",
+        "description": "Schau später wieder vorbei"
+      }
+    },
+    "time": {
+      "justNow": "Gerade eben",
+      "minutesAgo": "Vor {count} Min.",
+      "hoursAgo": "Vor {count} Std.",
+      "daysAgo": "Vor {count} T."
     }
   },
   "Shakedowns": {
@@ -2770,6 +2948,10 @@
     "common": {
       "notAuthenticated": "Nicht als Händler authentifiziert"
     },
+    "portal": {
+      "title": "Händler-Portal",
+      "subtitle": "Verwalte deinen Shop und Packlisten"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "loadouts": "Loadouts",
@@ -2777,7 +2959,8 @@
       "insights": "Einblicke",
       "offers": "Angebote",
       "billing": "Abrechnung",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "backToApp": "Zurück zu Gearshack"
     },
     "loadouts": {
       "created": "Loadout erstellt",
@@ -3690,9 +3873,16 @@
           "genericError": "Etwas ist schiefgelaufen"
         }
       },
-      "namePlaceholder": "z.B. Pacific Crest Trail 2023"
+      "namePlaceholder": "z.B. Pacific Crest Trail 2023",
+      "confirmTitle": "Archivierung bestätigen",
+      "confirmMessage": "Bist du sicher, dass du diesen VIP archivieren möchtest?",
+      "reason": "Grund",
+      "reasonPlaceholder": "Grund für die Archivierung eingeben...",
+      "cancel": "Abbrechen",
+      "confirm": "Archivieren"
     },
     "compare": {
+      "compareToVip": "Mit VIP vergleichen",
       "pageTitle": "Packlisten vergleichen",
       "pageDescription": "Vergleiche deine Packliste mit VIP-Packlisten, um Gewichtsersparnisse zu finden",
       "searchVipsPlaceholder": "VIPs und Loadouts suchen...",
@@ -3727,7 +3917,9 @@
       "addToWishlist": "Zur Wunschliste hinzufügen",
       "same": "Gleich",
       "lighter": "{weight} leichter",
-      "heavier": "{weight} schwerer"
+      "heavier": "{weight} schwerer",
+      "metaTitle": "Packlisten vergleichen | Gearshack VIP",
+      "metaDescription": "Vergleiche deine Packliste mit VIP-Packlisten, um Gewicht zu sparen"
     },
     "profile": {
       "title": "VIP-Profil",
@@ -3796,7 +3988,9 @@
       "claiming": "Wird übernommen...",
       "claimAccount": "Dieses Profil übernehmen",
       "signInToClaim": "Anmelden zum Übernehmen",
-      "expiresNotice": "Diese Einladung läuft am {date} ab"
+      "expiresNotice": "Diese Einladung läuft am {date} ab",
+      "pageTitle": "VIP-Profil beanspruchen",
+      "pageDescription": "Verifiziere deine Identität und übernimm die Kontrolle über dein VIP-Profil auf Gearshack"
     },
     "search": {
       "placeholder": "VIPs suchen...",
@@ -3804,6 +3998,17 @@
     },
     "loadoutForm": {
       "namePlaceholder": "z.B. Pacific Crest Trail 2023"
+    },
+    "loadout": {
+      "notFound": "Packliste nicht gefunden",
+      "metaTitle": "{vipName} - {loadoutName} | Gearshack VIP",
+      "metaDescription": "{vipName}s Packliste {loadoutName} auf Gearshack ansehen"
+    },
+    "directory": {
+      "title": "VIP Packlisten",
+      "description": "Entdecke Packlisten von Top-Outdoor-Athleten und Influencern",
+      "metaTitle": "VIP Packlisten | Gearshack",
+      "metaDescription": "Erkunde Packlisten von Top-Outdoor-Athleten und Influencern auf Gearshack"
     }
   },
   "Wishlist": {
@@ -3829,7 +4034,13 @@
       "privacyRestricted": "Die Datenschutzeinstellungen erlauben keine Nachrichten von Nicht-Freunden.",
       "conversationFailed": "Konversation konnte nicht gestartet werden",
       "tryAgainLater": "Bitte versuche es später erneut.",
-      "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut."
+      "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+      "messageUser": "Nachricht",
+      "peerPriceRange": "Preisspanne der Community",
+      "priceDataUnavailable": "Keine Preisdaten verfügbar",
+      "seePriceComparison": "Preisvergleich anzeigen",
+      "usersHaveItem": "{count, plural, one {# Nutzer hat} other {# Nutzer haben}} diesen Artikel",
+      "viewInventory": "Inventar anzeigen"
     },
     "actions": {
       "addedToWishlist": "Zur Wunschliste hinzugefügt!",
@@ -3885,6 +4096,50 @@
       "myGearCount": "Meine Ausrüstung, {count, plural, one {# Artikel} other {# Artikel}}",
       "wishlistCount": "Wunschliste, {count, plural, one {# Artikel} other {# Artikel}}",
       "switchedToView": "Zu {viewName} gewechselt. {count, plural, one {# Artikel} other {# Artikel}}."
+    },
+    "matchConfirmation": {
+      "title": "Katalog-Treffer gefunden",
+      "description": "Wir haben ein passendes Produkt in unserem Katalog gefunden. Verwenden?",
+      "matchPercent": "{percent}% Übereinstimmung",
+      "skip": "Überspringen",
+      "cancel": "Abbrechen"
+    },
+    "personalOffer": {
+      "badge": "Persönliches Angebot",
+      "daysRemaining": "Noch {count, plural, one {# Tag} other {# Tage}}",
+      "expired": "Abgelaufen",
+      "hoursMinutesRemaining": "Noch {hours} Std. {minutes} Min.",
+      "invalidDate": "Ungültiges Datum",
+      "minutesRemaining": "Noch {count} Min."
+    },
+    "priceAlerts": {
+      "title": "Preisalarme",
+      "description": "Benachrichtigung bei Preissenkungen erhalten"
+    },
+    "priceHistory": {
+      "stubTitle": "Preisverlauf",
+      "comingSoon": "Demnächst verfügbar"
+    },
+    "priceMonitoring": {
+      "title": "Preisüberwachung",
+      "comingSoon": "Demnächst verfügbar"
+    },
+    "priceTracking": {
+      "card": {
+        "titleDisabled": "Preise verfolgen",
+        "description": "Preise bei verschiedenen Händlern überwachen",
+        "trackPrices": "Preisverfolgung aktivieren",
+        "titleEnabled": "Preisverfolgung aktiv",
+        "priceDropAlerts": "Preissenkungsbenachrichtigungen aktiviert",
+        "searchPricesNow": "Jetzt Preise suchen",
+        "disable": "Verfolgung deaktivieren"
+      },
+      "lastChecked": "Zuletzt geprüft: {date}",
+      "alerts": {
+        "back": "Zurück",
+        "title": "Preisalarm-Einstellungen",
+        "description": "Benachrichtigungen für Preisänderungen deiner Wunschlisten-Artikel konfigurieren"
+      }
     }
   },
   "AIAssistant": {
@@ -4309,7 +4564,26 @@
       "tierChange": {
         "success": "Stufe erfolgreich aktualisiert",
         "error": "Stufe konnte nicht aktualisiert werden"
-      }
+      },
+      "roleChanged": "Rolle erfolgreich aktualisiert",
+      "error": "Ein Fehler ist aufgetreten",
+      "tierChanged": "Stufe erfolgreich aktualisiert",
+      "userSuspended": "Nutzer gesperrt",
+      "userUnsuspended": "Nutzer entsperrt",
+      "userBanned": "Nutzer gebannt",
+      "userUnbanned": "Nutzer entbannt",
+      "userDetails": "Nutzerdetails",
+      "userIsBanned": "Dieser Nutzer ist gebannt",
+      "userIsSuspended": "Dieser Nutzer ist gesperrt",
+      "reason": "Grund",
+      "since": "Seit",
+      "until": "Bis",
+      "contactInfo": "Kontaktdaten",
+      "joined": "Beigetreten",
+      "activity": "Aktivität",
+      "gearItems": "Ausrüstungsgegenstände",
+      "loadouts": "Packlisten",
+      "accountType": "Kontotyp"
     },
     "features": {
       "pageTitle": "Features aktivieren",
@@ -4989,6 +5263,11 @@
     }
   },
   "bulletin": {
+    "gearReference": {
+      "defaultName": "Ausrüstung {id}",
+      "description": "Referenzierter Ausrüstungsgegenstand",
+      "add": "Hinzufügen"
+    },
     "title": "Community Bulletin",
     "subtitle": "Teile Tipps, stelle Fragen und vernetze dich mit anderen Outdoor-Enthusiasten",
     "newPost": "Neuer Beitrag",
@@ -5065,6 +5344,7 @@
     },
     "moderation": {
       "title": "Moderations-Warteschlange",
+      "subtitle": "Gemeldete Inhalte überprüfen und verwalten",
       "noReports": "Keine ausstehenden Meldungen",
       "noReportsSubtitle": "Die Community ist in gutem Zustand!",
       "pendingCount": "{count, plural, one {# ausstehende Meldung} other {# ausstehende Meldungen}}",
@@ -5285,7 +5565,8 @@
     "sourceCustom": "Eigenes Foto hochladen",
     "sourceInitials": "Initialen",
     "sourceProvider": "Anbieter-Foto verwenden",
-    "uploadPhoto": "Foto hochladen"
+    "uploadPhoto": "Foto hochladen",
+    "helpText": "Profilfoto hochladen (max. 5 MB)"
   },
   "GearGraphStatus": {
     "pageTitle": "GearGraph Status",
@@ -5413,5 +5694,16 @@
     "errorImageTooLarge": "Bild ist zu groß. Maximale Größe ist 10 MB.",
     "noGearDetected": "Keine Outdoor-Ausrüstung erkannt. Versuche ein anderes Foto.",
     "dropHint": "Bild hier ablegen"
+  },
+  "ProfileStats": {
+    "items": "Gegenstände",
+    "loadouts": "Packlisten",
+    "shakedowns": "Shakedowns"
+  },
+  "ProfileModal": {
+    "editTitle": "Profil bearbeiten"
+  },
+  "LocationSearch": {
+    "noCitiesFound": "Keine Städte gefunden"
   }
 }

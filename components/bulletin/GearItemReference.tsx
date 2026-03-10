@@ -21,7 +21,7 @@ interface GearItemReferenceProps {
 }
 
 export function GearItemReference({ itemId, name }: GearItemReferenceProps) {
-  const t = useTranslations('Bulletin');
+  const t = useTranslations('bulletin');
   const [loading, setLoading] = useState(false);
 
   // TODO: Implement actual gear item data fetching and add-to-inventory/wishlist functionality

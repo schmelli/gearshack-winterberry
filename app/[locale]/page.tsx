@@ -13,10 +13,7 @@
 
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { LandingPage } from '@/components/landing/LandingPage';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
 
 export async function generateMetadata({
   params,
@@ -43,38 +40,36 @@ export async function generateMetadata({
   };
 }
 
-export default async function Home() {
-  // Coming Soon mode: redirect all visitors to the pre-announcement page
-  if (process.env.COMING_SOON_ENABLED === 'true') {
-    redirect('/coming-soon');
-  }
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
 
+  // Coming Soon mode: always redirect to pre-announcement page
+  // To disable: remove this redirect and uncomment the hostname-based logic below
+  redirect(`/${locale}/coming-soon`);
+
+  // --- Post-launch logic (currently disabled) ---
   // Check hostname to determine behavior
-  const headersList = await headers();
-  const host = headersList.get('host') || '';
-  const isWww = host.startsWith('www.');
+  // const headersList = await headers();
+  // const host = headersList.get('host') || '';
+  // const isWww = host.startsWith('www.');
 
   // If non-www domain (gearshack.app), redirect logged-in users to inventory
-  if (!isWww) {
-    try {
-      const supabase = await createClient();
-      const { data: { user }, error } = await supabase.auth.getUser();
-
-      if (error) {
-        // Auth check failed - log and continue to show landing page
-        console.error('[Home] Auth check failed:', error.message);
-      } else if (user) {
-        redirect('/inventory');
-      }
-    } catch (error) {
-      // Critical error in Supabase client - log and continue to show landing page
-      console.error('[Home] Critical error:', error instanceof Error ? error.message : 'Unknown error');
-      // Continue to show landing page as safe fallback
-    }
-  }
-
-  // Show landing page for:
-  // - www.gearshack.app (always)
-  // - gearshack.app (only if not logged in)
-  return <LandingPage />;
+  // if (!isWww) {
+  //   try {
+  //     const supabase = await createClient();
+  //     const { data: { user }, error } = await supabase.auth.getUser();
+  //     if (error) {
+  //       console.error('[Home] Auth check failed:', error.message);
+  //     } else if (user) {
+  //       redirect('/inventory');
+  //     }
+  //   } catch (error) {
+  //     console.error('[Home] Critical error:', error instanceof Error ? error.message : 'Unknown error');
+  //   }
+  // }
+  // return <LandingPage />;
 }

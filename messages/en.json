@@ -455,7 +455,7 @@
       "tryAgain": "Try Again",
       "backToInventory": "Back to Inventory"
     },
-    "quantityTooltip": "Quantity available",
+    "quantityTooltip": "Quantity: {quantity}",
     "visionScan": "Scan Gear"
   },
   "VisionScan": {
@@ -1103,6 +1103,9 @@
       "title": "My Loadouts - Gearshack",
       "description": "Create and manage your gear loadouts. Optimize pack weight and organize equipment for every adventure."
     },
+    "picker": {
+      "add": "Add"
+    },
     "deleteTitle": "Delete Loadout",
     "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Your gear items will not be affected.",
     "deleteLoadout": "Delete loadout",
@@ -1186,6 +1189,22 @@
       "worn": "Worn",
       "consumable": "Consumable",
       "baseWeight": "Base Weight"
+    },
+    "header": {
+      "activity": "Activity",
+      "season": "Season"
+    },
+    "weightBar": {
+      "ultralight": "Ultralight",
+      "moderate": "Moderate",
+      "heavy": "Heavy"
+    },
+    "seasons": {
+      "selectSeason": "Select season",
+      "spring": "Spring",
+      "summer": "Summer",
+      "fall": "Fall",
+      "winter": "Winter"
     },
     "noWornItemsInCategory": "No worn items in this category",
     "lighterAlternative": "Lighter option available",
@@ -1427,6 +1446,66 @@
       "errorId": "Error ID: {id}",
       "tryAgain": "Try Again",
       "backToCommunity": "Back to Community"
+    },
+    "tabs": {
+      "board": "Board",
+      "shakedowns": "Shakedowns",
+      "vipLoadouts": "VIP Loadouts",
+      "marketplace": "Marketplace",
+      "comingSoon": "Coming soon"
+    },
+    "navigation": {
+      "ariaLabel": "Community navigation"
+    },
+    "panels": {
+      "friends": {
+        "title": "Friends",
+        "requests": "Friend Requests",
+        "viewAllRequests": "View all requests",
+        "online": "Online",
+        "noOnline": "No friends online",
+        "viewAll": "View all friends"
+      },
+      "offers": {
+        "title": "Offers for You",
+        "expired": "Expired",
+        "hoursLeft": "{count}h left",
+        "daysLeft": "{count}d left",
+        "new": "New",
+        "noOffers": "No offers yet",
+        "addToWishlist": "Add items to your wishlist to get offers",
+        "viewAll": "View all offers",
+        "manageOffers": "Manage offers"
+      },
+      "activity": {
+        "title": "Friend Activity",
+        "viewAll": "View all activity"
+      }
+    },
+    "friends": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "requestAccepted": "Friend request accepted",
+      "acceptFailed": "Failed to accept request",
+      "requestDeclined": "Friend request declined",
+      "declineFailed": "Failed to decline request"
+    },
+    "activity": {
+      "newLoadout": "{name} created a new loadout",
+      "sharedLoadout": "{name} shared a loadout",
+      "listedItem": "{name} listed an item",
+      "addedGear": "{name} added new gear",
+      "newFriend": "{name} made a new friend",
+      "updatedProfile": "{name} updated their profile",
+      "generic": "{name} was active",
+      "noActivity": "No recent activity",
+      "addFriends": "Add friends to see their activity"
+    },
+    "announcements": {
+      "learnMore": "Learn more",
+      "dismiss": "Dismiss",
+      "loadFailed": "Failed to load announcements",
+      "retry": "Retry"
     }
   },
   "Wiki": {
@@ -1500,6 +1579,8 @@
     "shareLoadout": "Share loadout",
     "shareOn": "Share on:",
     "linkCopied": "Link copied",
+    "copied": "Copied!",
+    "copyLink": "Copy link",
     "copyFailed": "Failed to copy",
     "copyShareLink": "Copy share link",
     "generating": "Generating...",
@@ -1616,6 +1697,7 @@
       "newNotification": "{author} commented on your loadout",
       "viewComment": "View comment",
       "loadFailed": "Unable to load comments",
+      "messageRequired": "Please enter a message",
       "minLengthError": "Please share at least a few characters of feedback",
       "sendFailed": "Failed to send comment",
       "sendAriaLabel": "Send comment",
@@ -2187,6 +2269,9 @@
     },
     "following": {
       "title": "Following",
+      "pageTitle": "Following",
+      "pageDescription": "People you follow",
+      "discoverPeople": "Discover people",
       "follow": "Follow",
       "following": "Following",
       "unfollow": "Unfollow",
@@ -2194,7 +2279,16 @@
       "unfollowSuccess": "You unfollowed {name}",
       "emptyTitle": "Not following anyone yet",
       "emptyDescription": "Follow community members and VIP accounts to see their public activities.",
-      "findPeople": "Find People to Follow"
+      "findPeople": "Find People to Follow",
+      "loading": "Loading...",
+      "unfollowAriaLabel": "Unfollow {name}",
+      "followAriaLabel": "Follow {name}",
+      "since": "Following since {date}",
+      "searchPlaceholder": "Search following...",
+      "searchAriaLabel": "Search people you follow",
+      "noSearchResults": "No results found",
+      "listAriaLabel": "People you follow",
+      "viewAll": "View all"
     },
     "friends": {
       "title": "Friends",
@@ -2250,7 +2344,29 @@
       "declineFailed": "Failed to decline friend request",
       "cancelFailed": "Failed to cancel friend request",
       "rateLimitExceeded": "You've sent too many friend requests. Try again later.",
-      "noMessageExchange": "You need to message them first before sending a friend request"
+      "noMessageExchange": "You need to message them first before sending a friend request",
+      "sent": "Request sent",
+      "alreadyFriends": "Already friends",
+      "alreadySent": "Request already sent",
+      "pendingFromThem": "Pending request from them",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "cancel": "Cancel request",
+      "respond": "Respond",
+      "accept": "Accept",
+      "decline": "Decline",
+      "messageFirst": "Send a message first",
+      "messageFirstTooltip": "You need to exchange messages before sending a friend request",
+      "addFriend": "Add friend",
+      "addFriendAriaLabel": "Send friend request to {name}",
+      "sentYouRequest": "{name} sent you a friend request",
+      "acceptAriaLabel": "Accept friend request",
+      "declineAriaLabel": "Decline friend request",
+      "newRequest": "New friend request",
+      "wantsToBeYourFriend": "{name} wants to be your friend",
+      "noRequests": "No pending requests"
     },
     "activity": {
       "title": "Activity Feed",
@@ -2266,7 +2382,19 @@
       "newListing": "{name} listed something in the marketplace",
       "addedGear": "{name} added new gear",
       "newFriend": "{name} is now friends with {friend}",
-      "loadMore": "Load More"
+      "loadMore": "Load More",
+      "createdLoadout": "{name} created a new loadout",
+      "listedGear": "{name} listed gear for sale",
+      "becameFriends": "{name} became friends with {friendName}",
+      "updatedProfile": "{name} updated their profile",
+      "didSomething": "{name} was active",
+      "filterBy": "Filter by",
+      "filterNewLoadouts": "New loadouts",
+      "filterSharedLoadouts": "Shared loadouts",
+      "filterNewGear": "New gear",
+      "filterNewFriends": "New friends",
+      "noFilteredActivity": "No matching activity",
+      "noFilteredActivityDesc": "Try changing the filter to see more activity"
     },
     "presence": {
       "online": "Online",
@@ -2275,7 +2403,14 @@
       "offline": "Offline",
       "lastActive": "Last active {time}",
       "updating": "Updating...",
-      "updateFailed": "Failed to update status"
+      "updateFailed": "Failed to update status",
+      "yourStatus": "Your status",
+      "appearDescription": "Control how you appear to others",
+      "onlineDesc": "Visible to everyone",
+      "awayDesc": "Shown as away",
+      "invisibleDesc": "Appear offline to others",
+      "offlineDesc": "You are offline",
+      "status": "Status"
     },
     "privacy": {
       "title": "Privacy Settings",
@@ -2330,6 +2465,49 @@
     },
     "ariaLabels": {
       "toggleDarkMode": "Toggle dark mode"
+    },
+    "followers": {
+      "countLabel": "{count, plural, one {# follower} other {# followers}}",
+      "label": "Followers"
+    },
+    "emptyState": {
+      "following": {
+        "title": "Not following anyone yet",
+        "description": "Follow other gear enthusiasts to see their activity",
+        "cta": "Discover people"
+      },
+      "followers": {
+        "title": "No followers yet",
+        "description": "Share your loadouts and gear to attract followers"
+      },
+      "friends": {
+        "title": "No friends yet",
+        "description": "Connect with other outdoor enthusiasts",
+        "cta": "Find friends"
+      },
+      "friendRequests": {
+        "title": "No pending requests",
+        "description": "Friend requests you receive will appear here"
+      },
+      "activity": {
+        "title": "No recent activity",
+        "description": "Activity from your friends will appear here",
+        "cta": "Find friends"
+      },
+      "search": {
+        "title": "No results found",
+        "description": "Try a different search term"
+      },
+      "default": {
+        "title": "Nothing here yet",
+        "description": "Check back later for updates"
+      }
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{count}m ago",
+      "hoursAgo": "{count}h ago",
+      "daysAgo": "{count}d ago"
     }
   },
   "Shakedowns": {
@@ -2770,6 +2948,10 @@
     "common": {
       "notAuthenticated": "Not authenticated as merchant"
     },
+    "portal": {
+      "title": "Merchant Portal",
+      "subtitle": "Manage your store and loadouts"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "loadouts": "Loadouts",
@@ -2777,7 +2959,8 @@
       "insights": "Insights",
       "offers": "Offers",
       "billing": "Billing",
-      "settings": "Settings"
+      "settings": "Settings",
+      "backToApp": "Back to Gearshack"
     },
     "loadouts": {
       "created": "Loadout created",
@@ -3690,9 +3873,16 @@
           "genericError": "Something went wrong"
         }
       },
-      "namePlaceholder": "e.g., Pacific Crest Trail 2023"
+      "namePlaceholder": "e.g., Pacific Crest Trail 2023",
+      "confirmTitle": "Confirm Archive",
+      "confirmMessage": "Are you sure you want to archive this VIP?",
+      "reason": "Reason",
+      "reasonPlaceholder": "Enter reason for archiving...",
+      "cancel": "Cancel",
+      "confirm": "Archive"
     },
     "compare": {
+      "compareToVip": "Compare to VIP",
       "pageTitle": "Compare Loadouts",
       "pageDescription": "Compare your loadout with VIP loadouts to find weight savings",
       "searchVipsPlaceholder": "Search VIPs and loadouts...",
@@ -3727,7 +3917,9 @@
       "addToWishlist": "Add to Wishlist",
       "same": "Same",
       "lighter": "{weight} lighter",
-      "heavier": "{weight} heavier"
+      "heavier": "{weight} heavier",
+      "metaTitle": "Compare Loadouts | Gearshack VIP",
+      "metaDescription": "Compare your loadout with VIP loadouts to find weight savings"
     },
     "profile": {
       "title": "VIP Profile",
@@ -3796,7 +3988,9 @@
       "claiming": "Claiming...",
       "claimAccount": "Claim This Profile",
       "signInToClaim": "Sign in to claim",
-      "expiresNotice": "This invitation expires on {date}"
+      "expiresNotice": "This invitation expires on {date}",
+      "pageTitle": "Claim Your VIP Profile",
+      "pageDescription": "Verify your identity and take control of your VIP profile on Gearshack"
     },
     "search": {
       "placeholder": "Search VIPs...",
@@ -3804,6 +3998,17 @@
     },
     "loadoutForm": {
       "namePlaceholder": "e.g., Pacific Crest Trail 2023"
+    },
+    "loadout": {
+      "notFound": "Loadout not found",
+      "metaTitle": "{vipName} - {loadoutName} | Gearshack VIP",
+      "metaDescription": "Check out {vipName}'s {loadoutName} loadout on Gearshack"
+    },
+    "directory": {
+      "title": "VIP Loadouts",
+      "description": "Discover loadouts from top outdoor athletes and influencers",
+      "metaTitle": "VIP Loadouts | Gearshack",
+      "metaDescription": "Explore gear loadouts from top outdoor athletes and influencers on Gearshack"
     }
   },
   "Wishlist": {
@@ -3829,7 +4034,13 @@
       "privacyRestricted": "Their privacy settings prevent messages from non-friends.",
       "conversationFailed": "Failed to start conversation",
       "tryAgainLater": "Please try again later.",
-      "unexpectedError": "An unexpected error occurred. Please try again."
+      "unexpectedError": "An unexpected error occurred. Please try again.",
+      "messageUser": "Message",
+      "peerPriceRange": "Peer price range",
+      "priceDataUnavailable": "Price data unavailable",
+      "seePriceComparison": "See price comparison",
+      "usersHaveItem": "{count, plural, one {# user has} other {# users have}} this item",
+      "viewInventory": "View inventory"
     },
     "actions": {
       "addedToWishlist": "Added to wishlist!",
@@ -3885,6 +4096,50 @@
       "myGearCount": "My Gear, {count, plural, one {# item} other {# items}}",
       "wishlistCount": "Wishlist, {count, plural, one {# item} other {# items}}",
       "switchedToView": "Switched to {viewName} view. {count, plural, one {# item} other {# items}}."
+    },
+    "matchConfirmation": {
+      "title": "Catalog Match Found",
+      "description": "We found a matching product in our catalog. Use it?",
+      "matchPercent": "{percent}% match",
+      "skip": "Skip",
+      "cancel": "Cancel"
+    },
+    "personalOffer": {
+      "badge": "Personal Offer",
+      "daysRemaining": "{count, plural, one {# day} other {# days}} left",
+      "expired": "Expired",
+      "hoursMinutesRemaining": "{hours}h {minutes}m left",
+      "invalidDate": "Invalid date",
+      "minutesRemaining": "{count}m left"
+    },
+    "priceAlerts": {
+      "title": "Price Alerts",
+      "description": "Get notified when prices drop"
+    },
+    "priceHistory": {
+      "stubTitle": "Price History",
+      "comingSoon": "Coming soon"
+    },
+    "priceMonitoring": {
+      "title": "Price Monitoring",
+      "comingSoon": "Coming soon"
+    },
+    "priceTracking": {
+      "card": {
+        "titleDisabled": "Track Prices",
+        "description": "Monitor prices across retailers",
+        "trackPrices": "Enable price tracking",
+        "titleEnabled": "Price Tracking Active",
+        "priceDropAlerts": "Price drop alerts enabled",
+        "searchPricesNow": "Search prices now",
+        "disable": "Disable tracking"
+      },
+      "lastChecked": "Last checked {date}",
+      "alerts": {
+        "back": "Back",
+        "title": "Price Alert Settings",
+        "description": "Configure notifications for price changes on your wishlist items"
+      }
     }
   },
   "AIAssistant": {
@@ -4309,7 +4564,26 @@
       "tierChange": {
         "success": "Tier updated successfully",
         "error": "Failed to update tier"
-      }
+      },
+      "roleChanged": "Role updated successfully",
+      "error": "An error occurred",
+      "tierChanged": "Tier updated successfully",
+      "userSuspended": "User suspended",
+      "userUnsuspended": "User unsuspended",
+      "userBanned": "User banned",
+      "userUnbanned": "User unbanned",
+      "userDetails": "User Details",
+      "userIsBanned": "This user is banned",
+      "userIsSuspended": "This user is suspended",
+      "reason": "Reason",
+      "since": "Since",
+      "until": "Until",
+      "contactInfo": "Contact Info",
+      "joined": "Joined",
+      "activity": "Activity",
+      "gearItems": "Gear Items",
+      "loadouts": "Loadouts",
+      "accountType": "Account Type"
     },
     "features": {
       "pageTitle": "Activate Features",
@@ -4989,6 +5263,11 @@
     }
   },
   "bulletin": {
+    "gearReference": {
+      "defaultName": "Gear Item {id}",
+      "description": "Referenced gear item",
+      "add": "Add"
+    },
     "title": "Community Bulletin",
     "subtitle": "Share tips, ask questions, and connect with fellow outdoor enthusiasts",
     "newPost": "New Post",
@@ -5065,6 +5344,7 @@
     },
     "moderation": {
       "title": "Moderation Queue",
+      "subtitle": "Review and manage reported content",
       "noReports": "No pending reports",
       "noReportsSubtitle": "The community is in good shape!",
       "pendingCount": "{count, plural, one {# pending report} other {# pending reports}}",
@@ -5285,7 +5565,8 @@
     "sourceCustom": "Custom Upload",
     "sourceInitials": "Initials",
     "sourceProvider": "Use Provider Photo",
-    "uploadPhoto": "Upload Photo"
+    "uploadPhoto": "Upload Photo",
+    "helpText": "Upload a profile photo (max 5MB)"
   },
   "GearGraphStatus": {
     "pageTitle": "GearGraph Status",
@@ -5413,5 +5694,16 @@
     "errorImageTooLarge": "Image is too large. Maximum size is 10 MB.",
     "noGearDetected": "No outdoor gear detected in this image. Try a different photo.",
     "dropHint": "Drop image here"
+  },
+  "ProfileStats": {
+    "items": "Items",
+    "loadouts": "Loadouts",
+    "shakedowns": "Shakedowns"
+  },
+  "ProfileModal": {
+    "editTitle": "Edit Profile"
+  },
+  "LocationSearch": {
+    "noCitiesFound": "No cities found"
   }
 }

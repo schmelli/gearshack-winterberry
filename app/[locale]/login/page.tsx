@@ -20,9 +20,7 @@ import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/SupabaseAuthProvider';
 import { useAuthenticatedRedirect } from '@/hooks/useAuthRedirect';
-import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { RegistrationForm } from '@/components/auth/RegistrationForm';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import { BackgroundRotator } from '@/components/auth/BackgroundRotator';
 
@@ -30,7 +28,7 @@ import { BackgroundRotator } from '@/components/auth/BackgroundRotator';
 // Types
 // =============================================================================
 
-type AuthView = 'login' | 'register' | 'forgot-password';
+type AuthView = 'login' | 'forgot-password';
 
 // =============================================================================
 // Login Content Component (uses useSearchParams)
@@ -103,7 +101,6 @@ function LoginContent() {
           </h1>
           <p className="text-sm text-white/70">
             {view === 'login' && t('loginSubtitle')}
-            {view === 'register' && t('registerSubtitle')}
             {view === 'forgot-password' && t('forgotPassword')}
           </p>
         </CardHeader>
@@ -112,26 +109,10 @@ function LoginContent() {
           {/* Login View */}
           {view === 'login' && (
             <>
-              {/* Google Sign-In (T015) */}
-              <GoogleSignInButton onSuccess={handleAuthSuccess} />
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/20" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-transparent px-2 text-white/50">
-                    {t('orContinueWith')}
-                  </span>
-                </div>
-              </div>
-
               {/* Login Form (T021) */}
               <div className="[&_label]:text-white/90 [&_input]:border-white/20 [&_input]:bg-white/10 [&_input]:text-white [&_input]:placeholder:text-white/50 [&_button[type=submit]]:bg-white [&_button[type=submit]]:text-black [&_button[type=submit]]:hover:bg-white/90 [&_p]:text-white/70 [&_a]:text-white [&_button[variant=link]]:text-white">
                 <LoginForm
                   onSuccess={handleAuthSuccess}
-                  onRegisterClick={() => setView('register')}
                   onForgotPasswordClick={() => setView('forgot-password')}
                   translations={{
                     emailLabel: t('emailLabel'),
@@ -141,34 +122,6 @@ function LoginContent() {
                     noAccount: t('noAccount'),
                     signUpLink: t('signUpLink'),
                   }}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Registration View */}
-          {view === 'register' && (
-            <>
-              {/* Google Sign-In */}
-              <GoogleSignInButton onSuccess={handleAuthSuccess} />
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/20" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-transparent px-2 text-white/50">
-                    {t('orContinueWith')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Registration Form (T022) */}
-              <div className="[&_label]:text-white/90 [&_input]:border-white/20 [&_input]:bg-white/10 [&_input]:text-white [&_input]:placeholder:text-white/50 [&_button[type=submit]]:bg-white [&_button[type=submit]]:text-black [&_button[type=submit]]:hover:bg-white/90 [&_p]:text-white/70 [&_a]:text-white [&_button[variant=link]]:text-white">
-                <RegistrationForm
-                  onSuccess={handleAuthSuccess}
-                  onLoginClick={() => setView('login')}
                 />
               </div>
             </>
