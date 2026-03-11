@@ -80,7 +80,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "file-type": "^21.1.1",
+    "file-type": "^21.3.1",
     "geolib": "^3.3.4",
     "lucide-react": "^0.555.0",
     "mastra": "^1.0.1",
