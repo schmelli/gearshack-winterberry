@@ -14,8 +14,8 @@ import type {
   LighterpackResolutionType,
 } from '@/types/lighterpack-import';
 import {
-  lighterpackFinalizeApiResponseSchema,
-  lighterpackPreviewApiResponseSchema,
+  lighterpackFinalizeResponseSchema,
+  lighterpackPreviewResponseSchema,
 } from '@/lib/validations/lighterpack-schema';
 
 export type LighterpackImportStatus =
@@ -66,16 +66,14 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         body: JSON.stringify({ mode: 'preview', url }),
       });
 
-      const parsed = lighterpackPreviewApiResponseSchema.safeParse(await response.json());
+      const parsed = lighterpackPreviewResponseSchema.safeParse(await response.json());
 
-      if (!parsed.success || !response.ok) {
+      if (!parsed.success) {
         setStatus('error');
         setPreviewData(null);
         setPreviewItems([]);
-        setError(parsed.success
-          ? extractApiError(parsed.data, 'Failed to preview import.')
-          : 'Unexpected response from server.'
-        );
+        console.error('[useLighterpackImport] Preview response validation failed:', parsed.error);
+        setError('Unexpected response format from server.');
         return false;
       }
 
@@ -157,14 +155,12 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         }),
       });
 
-      const parsed = lighterpackFinalizeApiResponseSchema.safeParse(await response.json());
+      const parsed = lighterpackFinalizeResponseSchema.safeParse(await response.json());
 
-      if (!parsed.success || !response.ok) {
+      if (!parsed.success) {
         setStatus('error');
-        setError(parsed.success
-          ? extractApiError(parsed.data, 'Import failed.')
-          : 'Unexpected response from server.'
-        );
+        console.error('[useLighterpackImport] Finalize response validation failed:', parsed.error);
+        setError('Unexpected response format from server.');
         return false;
       }
 

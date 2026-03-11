@@ -1,16 +1,15 @@
 /**
- * Lighterpack Import API Response Schemas
+ * Lighterpack Import API Response Zod Schemas
  *
  * Feature: Lighterpack packlist import
- * Zod schemas for runtime validation of API responses from the
- * /api/loadouts/import-lighterpack endpoint.
+ * Runtime validation for API responses from /api/loadouts/import-lighterpack
  */
 
 import { z } from 'zod';
 
-// =============================================================================
-// Shared primitives
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Shared building blocks
+// ---------------------------------------------------------------------------
 
 const lighterpackResolutionTypeSchema = z.enum([
   'link_inventory',
@@ -18,10 +17,6 @@ const lighterpackResolutionTypeSchema = z.enum([
   'create_temporary',
   'unresolved',
 ]);
-
-// =============================================================================
-// Preview response schemas
-// =============================================================================
 
 const parsedItemSchema = z.object({
   name: z.string(),
@@ -94,15 +89,6 @@ const lighterpackPreviewDataSchema = z.object({
   summary: lighterpackPreviewSummarySchema,
 });
 
-export const lighterpackPreviewApiResponseSchema = z.discriminatedUnion('success', [
-  z.object({ success: z.literal(true), data: lighterpackPreviewDataSchema }),
-  z.object({ success: z.literal(false), error: z.string() }),
-]);
-
-// =============================================================================
-// Finalize response schemas
-// =============================================================================
-
 const lighterpackFinalizeSummarySchema = z.object({
   totalItems: z.number(),
   matchedInventory: z.number(),
@@ -114,14 +100,24 @@ const lighterpackFinalizeSummarySchema = z.object({
   loadoutName: z.string(),
 });
 
-export const lighterpackFinalizeApiResponseSchema = z.discriminatedUnion('success', [
-  z.object({ success: z.literal(true), data: lighterpackFinalizeSummarySchema }),
-  z.object({ success: z.literal(false), error: z.string() }),
+// ---------------------------------------------------------------------------
+// API response envelope schemas (discriminated union on `success`)
+// ---------------------------------------------------------------------------
+
+const errorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
+
+export const lighterpackPreviewResponseSchema = z.discriminatedUnion('success', [
+  z.object({ success: z.literal(true), data: lighterpackPreviewDataSchema }),
+  errorResponseSchema,
 ]);
 
-// =============================================================================
-// Inferred types
-// =============================================================================
+export const lighterpackFinalizeResponseSchema = z.discriminatedUnion('success', [
+  z.object({ success: z.literal(true), data: lighterpackFinalizeSummarySchema }),
+  errorResponseSchema,
+]);
 
-export type LighterpackPreviewApiResponse = z.infer<typeof lighterpackPreviewApiResponseSchema>;
-export type LighterpackFinalizeApiResponse = z.infer<typeof lighterpackFinalizeApiResponseSchema>;
+export type LighterpackPreviewResponse = z.infer<typeof lighterpackPreviewResponseSchema>;
+export type LighterpackFinalizeResponse = z.infer<typeof lighterpackFinalizeResponseSchema>;
