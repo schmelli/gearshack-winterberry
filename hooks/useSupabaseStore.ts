@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { getTranslation } from '@/lib/translations';
 import {
+  gearItemFromDb,
   gearItemToDbInsert,
   gearItemToDbUpdate,
 } from '@/lib/supabase/transformers';
@@ -29,7 +30,7 @@ import {
 } from '@/lib/store';
 import { triggerPriceDiscovery } from '@/lib/geargraph/price-discovery-client';
 import type { GearItem } from '@/types/gear';
-import type { TablesInsert, TablesUpdate } from '@/types/database';
+import type { Tables, TablesInsert, TablesUpdate } from '@/types/database';
 import type { ActivityType, Season } from '@/types/loadout';
 
 const t = getTranslation('Store');
@@ -87,6 +88,7 @@ interface SupabaseStore {
   setSyncState: (updates: Partial<SyncState>) => void;
   setRemoteGearItems: (items: GearItem[]) => void;
   setRemoteLoadouts: (loadouts: LoadoutLocal[]) => void;
+  refreshData: () => Promise<void>;
 }
 
 // =============================================================================
@@ -469,6 +471,96 @@ export const useSupabaseStore = create<SupabaseStore>()(
       setSyncState: (updates) => set((state) => ({ syncState: { ...state.syncState, ...updates } })),
       setRemoteGearItems: (items) => set({ items }),
       setRemoteLoadouts: (loadouts) => set({ loadouts }),
+
+      refreshData: async () => {
+        const { userId } = get();
+        if (!userId) return;
+
+        const supabase = createClient();
+
+        const [gearResult, loadoutsResult] = await Promise.all([
+          supabase
+            .from('gear_items')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'own')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('loadouts')
+            .select(`
+              *,
+              generated_images!loadouts_hero_image_id_fkey (
+                cloudinary_url
+              )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false }),
+        ]);
+
+        if (gearResult.error) {
+          console.error('[useSupabaseStore] refreshData: error fetching gear items:', gearResult.error);
+        } else {
+          const gearItems = ((gearResult.data || []) as Tables<'gear_items'>[]).map(gearItemFromDb);
+          set({ items: gearItems });
+        }
+
+        if (loadoutsResult.error) {
+          console.error('[useSupabaseStore] refreshData: error fetching loadouts:', loadoutsResult.error);
+          return;
+        }
+
+        type LoadoutWithImage = Tables<'loadouts'> & {
+          generated_images: { cloudinary_url: string } | null;
+        };
+        const typedLoadoutData = (loadoutsResult.data || []) as LoadoutWithImage[];
+
+        if (typedLoadoutData.length === 0) {
+          set({ loadouts: [] });
+          return;
+        }
+
+        const loadoutIds = typedLoadoutData.map((l) => l.id);
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('loadout_items')
+          .select('*')
+          .in('loadout_id', loadoutIds);
+
+        if (itemsError) {
+          console.error('[useSupabaseStore] refreshData: error fetching loadout items:', itemsError);
+        }
+
+        const typedItemsData = (itemsData || []) as Tables<'loadout_items'>[];
+        const itemsByLoadout = new Map<string, Tables<'loadout_items'>[]>();
+        typedItemsData.forEach((item) => {
+          const existing = itemsByLoadout.get(item.loadout_id) || [];
+          existing.push(item);
+          itemsByLoadout.set(item.loadout_id, existing);
+        });
+
+        const loadouts = typedLoadoutData.map((row) => {
+          const rowItems = itemsByLoadout.get(row.id) || [];
+          return {
+            id: row.id,
+            name: row.name,
+            tripDate: row.trip_date ? new Date(row.trip_date) : null,
+            itemIds: rowItems.map((item) => item.gear_item_id),
+            description: row.description,
+            activityTypes: (row.activity_types || []) as ActivityType[],
+            seasons: (row.seasons || []) as Season[],
+            itemStates: rowItems.map((item) => ({
+              itemId: item.gear_item_id,
+              isWorn: item.is_worn,
+              isConsumable: item.is_consumable,
+              quantity: item.quantity,
+            })),
+            heroImageUrl: row.generated_images?.cloudinary_url ?? null,
+            createdAt: new Date(row.created_at),
+            updatedAt: new Date(row.updated_at),
+          };
+        });
+
+        set({ loadouts });
+      },
     }),
     {
       name: 'gearshack-supabase-store',

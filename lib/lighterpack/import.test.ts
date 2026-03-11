@@ -85,6 +85,86 @@ describe('parseLighterpackHtml', () => {
   });
 });
 
+describe('parseLighterpackHtml – thousands-separator weights', () => {
+  it('parses EN-formatted weight "1,200 g" (no lpMG) as 1200 grams', () => {
+    const html = `
+      <ul class="lpCategories">
+        <li class="lpCategory" id="1">
+          <ul class="lpItems">
+            <li class="lpHeader lpItemsHeader">
+              <h2 class="lpCategoryName">Pack</h2>
+            </li>
+            <li class="lpItem" id="1">
+              <span class="lpName">Heavy Pack</span>
+              <span class="lpWeightCell">
+                <span class="lpWeight">1,200</span>
+                <div class="lpUnitSelect">
+                  <span class="lpDisplay">g</span>
+                </div>
+              </span>
+              <span class="lpQtyCell lpNumber" qty1>1</span>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    `;
+    const parsed = parseLighterpackHtml(html);
+    expect(parsed.items[0]?.weightGrams).toBe(1200);
+  });
+
+  it('parses "1,200,000 mg" (no lpMG) as 1200 grams', () => {
+    const html = `
+      <ul class="lpCategories">
+        <li class="lpCategory" id="1">
+          <ul class="lpItems">
+            <li class="lpHeader lpItemsHeader">
+              <h2 class="lpCategoryName">Misc</h2>
+            </li>
+            <li class="lpItem" id="2">
+              <span class="lpName">Big Item</span>
+              <span class="lpWeightCell">
+                <span class="lpWeight">1,200,000</span>
+                <div class="lpUnitSelect">
+                  <span class="lpDisplay">g</span>
+                </div>
+              </span>
+              <span class="lpQtyCell lpNumber" qty1>1</span>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    `;
+    const parsed = parseLighterpackHtml(html);
+    expect(parsed.items[0]?.weightGrams).toBe(1200000);
+  });
+
+  it('still parses decimal comma "1,2 kg" (no lpMG) as 1200 grams', () => {
+    const html = `
+      <ul class="lpCategories">
+        <li class="lpCategory" id="1">
+          <ul class="lpItems">
+            <li class="lpHeader lpItemsHeader">
+              <h2 class="lpCategoryName">Misc</h2>
+            </li>
+            <li class="lpItem" id="3">
+              <span class="lpName">Euro Item</span>
+              <span class="lpWeightCell">
+                <span class="lpWeight">1,2</span>
+                <div class="lpUnitSelect">
+                  <span class="lpDisplay">kg</span>
+                </div>
+              </span>
+              <span class="lpQtyCell lpNumber" qty1>1</span>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    `;
+    const parsed = parseLighterpackHtml(html);
+    expect(parsed.items[0]?.weightGrams).toBeCloseTo(1200, 1);
+  });
+});
+
 describe('buildInventoryCandidates', () => {
   it('scores exact matches higher and marks strong matches', () => {
     const candidates = buildInventoryCandidates(
