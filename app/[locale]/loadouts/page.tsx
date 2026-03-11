@@ -17,8 +17,9 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Plus, Backpack, Search } from 'lucide-react';
+import { Plus, Backpack, Search, Link2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLoadouts, useItems } from '@/hooks/useSupabaseStore';
 import { useScreenEffect } from '@/hooks/useScreenEffect';
@@ -26,6 +27,7 @@ import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
 import { LoadoutCard } from '@/components/loadouts/LoadoutCard';
 import { LoadoutToolbar } from '@/components/loadouts/LoadoutToolbar';
+import { LighterpackImportDialog } from '@/components/loadouts/LighterpackImportDialog';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { PageContainer } from '@/components/layout/PageContainer';
 
@@ -33,6 +35,7 @@ function LoadoutsContent() {
   const t = useTranslations('Loadouts');
   const loadouts = useLoadouts();
   const items = useItems();
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // AI Agent Context-Awareness: Set screen context for AI assistant
   useScreenEffect('loadouts-list');
@@ -56,7 +59,11 @@ function LoadoutsContent() {
   return (
     <PageContainer>
       {/* Page Header - Create New Loadout button */}
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+          <Link2 className="mr-2 h-4 w-4" />
+          {t('import.openButton')}
+        </Button>
         <Button asChild>
           <Link href="/loadouts/new">
             <Plus className="mr-2 h-4 w-4" />
@@ -122,6 +129,11 @@ function LoadoutsContent() {
           ))}
         </div>
       )}
+
+      <LighterpackImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
     </PageContainer>
   );
 }

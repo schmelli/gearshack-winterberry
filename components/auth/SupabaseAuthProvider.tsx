@@ -188,6 +188,7 @@ export function SupabaseAuthProvider({ children }: SupabaseAuthProviderProps) {
             itemId: item.gear_item_id,
             isWorn: item.is_worn,
             isConsumable: item.is_consumable,
+            quantity: item.quantity,
           })),
           heroImageUrl: row.generated_images?.cloudinary_url ?? null,
           createdAt: new Date(row.created_at),

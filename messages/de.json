@@ -1369,6 +1369,43 @@
     "requestShakedown": "Shakedown anfordern",
     "allShakedowns": "Alle Shakedowns",
     "loadoutId": "Loadout-ID",
+    "import": {
+      "openButton": "Von Lighterpack importieren",
+      "title": "Von Lighterpack importieren",
+      "description": "Füge eine öffentliche Lighterpack-URL ein, um die Liste zu prüfen und als native Packliste zu importieren.",
+      "urlLabel": "Lighterpack-URL",
+      "cancel": "Abbrechen",
+      "previewButton": "Import prüfen",
+      "loadingPreview": "Elemente werden geladen und abgeglichen...",
+      "loadingFinalize": "Packliste wird erstellt...",
+      "previewListName": "Erkannte Liste",
+      "items": "Einträge",
+      "loadoutNameLabel": "Name der Packliste",
+      "importedSuffix": "Importiert",
+      "noCategory": "Keine Kategorie",
+      "noWeight": "Kein Gewicht",
+      "qtyLabel": "Menge {qty}",
+      "suggested": "Vorschlag",
+      "actionLabel": "Aktion",
+      "inventoryCandidateLabel": "Inventar-Treffer",
+      "finalizeButton": "Import abschließen",
+      "successTitle": "Import abgeschlossen",
+      "successDescription": "\"{name}\" wurde erstellt und alle verarbeiteten Einträge wurden verknüpft.",
+      "done": "Fertig",
+      "summary": {
+        "inventory": "Inventar",
+        "geargraph": "GearGraph",
+        "temporary": "Temporär",
+        "wishlist": "Wishlist",
+        "unresolved": "Ungelöst"
+      },
+      "resolutions": {
+        "linkInventory": "Mit Inventar verknüpfen",
+        "createGearGraph": "Aus GearGraph erstellen",
+        "createTemporary": "Temporäres Item erstellen",
+        "unresolved": "Ungelöst lassen"
+      }
+    },
     "page": {
       "clearFilters": "Filter löschen",
       "createNewLoadout": "Neue Loadout erstellen",

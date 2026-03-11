@@ -114,7 +114,16 @@ export function useLoadoutEditor(loadoutId: string): UseLoadoutEditorReturn {
   // Compute loadout items
   const loadoutItems = useMemo(() => {
     if (!loadout) return [];
-    return allItems.filter((item) => loadout.itemIds.includes(item.id));
+    const quantityByItemId = new Map(
+      loadout.itemStates.map((state) => [state.itemId, state.quantity ?? 1] as const)
+    );
+
+    return allItems
+      .filter((item) => loadout.itemIds.includes(item.id))
+      .map((item) => ({
+        ...item,
+        quantity: quantityByItemId.get(item.id) ?? item.quantity ?? 1,
+      }));
   }, [loadout, allItems]);
 
   // Compute filtered picker items (FR-013)
