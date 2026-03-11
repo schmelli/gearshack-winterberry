@@ -18,7 +18,9 @@ import {
   hasStrongInventoryMatch,
   mapCatalogCandidate,
   normalizeLighterpackUrl,
+  normalizeName,
   parseLighterpackHtml,
+  toUnitGrams,
 } from '@/lib/lighterpack/import';
 import type {
   ExternalResearchResult,
@@ -56,15 +58,6 @@ interface InventoryRow {
   status: 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
 }
 
-function normalizeName(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function parsePrice(text: string): { value: number; currency: string } | null {
   const pattern = /([$€£]|USD|EUR|GBP|CHF)?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*([$€£]|USD|EUR|GBP|CHF)?/gi;
   let match: RegExpExecArray | null = null;
@@ -99,16 +92,6 @@ function parsePrice(text: string): { value: number; currency: string } | null {
     }
   }
 
-  return null;
-}
-
-function toUnitGrams(weight: number, unit: string): number | null {
-  const normalizedUnit = unit.trim().toLowerCase();
-  if (!Number.isFinite(weight)) return null;
-  if (normalizedUnit === 'g') return weight;
-  if (normalizedUnit === 'kg') return weight * 1000;
-  if (normalizedUnit === 'oz') return weight * 28.349523125;
-  if (normalizedUnit === 'lb' || normalizedUnit === 'lbs') return weight * 453.59237;
   return null;
 }
 
@@ -273,7 +256,8 @@ async function runExternalResearch(
       keyFeatures,
       confidence: Math.min(1, confidence),
     };
-  } catch {
+  } catch (error) {
+    console.error('[LighterpackImport] External research failed:', error);
     return null;
   }
 }
@@ -460,7 +444,8 @@ async function handlePreview(
           priceUsd: best.priceUsd,
           score: best.score,
         });
-      } catch {
+      } catch (error) {
+        console.error('[LighterpackImport] GearGraph search failed:', error);
         return null;
       }
     })();
@@ -614,7 +599,7 @@ async function handleFinalize(
     return createOwnItem(supabase, userId, item, normalized.url, {
       name: placeholderName,
       notes,
-      weightGrams: null,
+      weightGrams: Number.isFinite(item.weightGrams) ? item.weightGrams : null,
       sourceAttribution: {
         unresolved: true,
       },

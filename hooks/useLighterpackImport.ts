@@ -39,6 +39,14 @@ interface UseLighterpackImportReturn {
   reset: () => void;
 }
 
+function extractApiError<T extends { success: false; error: string }>(
+  parsed: { success: true; data: unknown } | T,
+  fallback: string,
+): string {
+  if (!parsed.success) return parsed.error;
+  return fallback;
+}
+
 export function useLighterpackImport(): UseLighterpackImportReturn {
   const [status, setStatus] = useState<LighterpackImportStatus>('idle');
   const [previewData, setPreviewData] = useState<LighterpackPreviewData | null>(null);
@@ -71,11 +79,11 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
 
       const payload = parsed.data;
 
-      if (!response.ok || !payload.success) {
+      if (!payload.success) {
         setStatus('error');
         setPreviewData(null);
         setPreviewItems([]);
-        setError(payload.success ? 'Failed to preview import.' : payload.error);
+        setError(payload.error);
         return false;
       }
 
@@ -158,9 +166,9 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
 
       const payload = parsed.data;
 
-      if (!response.ok || !payload.success) {
+      if (!payload.success) {
         setStatus('error');
-        setError(payload.success ? 'Import failed.' : payload.error);
+        setError(payload.error);
         return false;
       }
 
