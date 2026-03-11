@@ -599,7 +599,7 @@ async function handleFinalize(
     return createOwnItem(supabase, userId, item, normalized.url, {
       name: placeholderName,
       notes,
-      weightGrams: null,
+      weightGrams: Number.isFinite(item.weightGrams) ? item.weightGrams : null,
       sourceAttribution: {
         unresolved: true,
       },
