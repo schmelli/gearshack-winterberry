@@ -1392,6 +1392,7 @@
       "successTitle": "Import abgeschlossen",
       "successDescription": "\"{name}\" wurde erstellt und alle verarbeiteten Einträge wurden verknüpft.",
       "done": "Fertig",
+      "refreshError": "Packlisten konnten nicht aktualisiert werden. Bitte laden Sie die Seite neu.",
       "summary": {
         "inventory": "Inventar",
         "geargraph": "GearGraph",

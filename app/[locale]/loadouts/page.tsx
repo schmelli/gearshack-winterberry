@@ -18,10 +18,11 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Link } from '@/i18n/navigation';
 import { Plus, Backpack, Search, Link2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useLoadouts, useItems } from '@/hooks/useSupabaseStore';
+import { useLoadouts, useItems, useSupabaseStore } from '@/hooks/useSupabaseStore';
 import { useScreenEffect } from '@/hooks/useScreenEffect';
 import { useLoadoutSearch } from '@/hooks/useLoadoutSearch';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ function LoadoutsContent() {
   const t = useTranslations('Loadouts');
   const loadouts = useLoadouts();
   const items = useItems();
+  const refreshData = useSupabaseStore((state) => state.refreshData);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // AI Agent Context-Awareness: Set screen context for AI assistant
@@ -133,6 +135,12 @@ function LoadoutsContent() {
       <LighterpackImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
+        onImported={() => {
+          refreshData().catch((err: unknown) => {
+            console.error('[LoadoutsPage] Failed to refresh data after import:', err);
+            toast.error(t('import.refreshError'));
+          });
+        }}
       />
     </PageContainer>
   );

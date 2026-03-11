@@ -1392,6 +1392,7 @@
       "successTitle": "Import completed",
       "successDescription": "Created \"{name}\" and linked all processed items.",
       "done": "Done",
+      "refreshError": "Failed to refresh loadouts. Please reload the page.",
       "summary": {
         "inventory": "Inventory",
         "geargraph": "GearGraph",

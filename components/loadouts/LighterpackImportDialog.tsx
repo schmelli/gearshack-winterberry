@@ -96,14 +96,10 @@ export function LighterpackImportDialog({
   }, [previewItems]);
 
   const handleClose = () => {
-    const shouldReload = status === 'success';
     reset();
     setUrl('');
     setLoadoutName('');
     onOpenChange(false);
-    if (shouldReload && typeof window !== 'undefined') {
-      window.location.reload();
-    }
   };
 
   const handlePreview = async () => {
