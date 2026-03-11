@@ -13,6 +13,10 @@ import type {
   LighterpackPreviewData,
   LighterpackResolutionType,
 } from '@/types/lighterpack-import';
+import {
+  lighterpackFinalizeApiResponseSchema,
+  lighterpackPreviewApiResponseSchema,
+} from '@/lib/validations/lighterpack-schema';
 
 export type LighterpackImportStatus =
   | 'idle'
@@ -35,6 +39,14 @@ interface UseLighterpackImportReturn {
   reset: () => void;
 }
 
+function extractApiError<T extends { success: false; error: string }>(
+  parsed: { success: true; data: unknown } | T,
+  fallback: string,
+): string {
+  if (!parsed.success) return parsed.error;
+  return fallback;
+}
+
 export function useLighterpackImport(): UseLighterpackImportReturn {
   const [status, setStatus] = useState<LighterpackImportStatus>('idle');
   const [previewData, setPreviewData] = useState<LighterpackPreviewData | null>(null);
@@ -54,15 +66,26 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         body: JSON.stringify({ mode: 'preview', url }),
       });
 
-      const payload = await response.json() as
-        | { success: true; data: LighterpackPreviewData }
-        | { success: false; error: string };
+      const parsed = lighterpackPreviewApiResponseSchema.safeParse(await response.json());
 
-      if (!response.ok || !payload.success) {
+      if (!parsed.success || !response.ok) {
         setStatus('error');
         setPreviewData(null);
         setPreviewItems([]);
-        setError(payload.success ? 'Failed to preview import.' : payload.error);
+        setError(parsed.success
+          ? extractApiError(parsed.data, 'Failed to preview import.')
+          : 'Unexpected response from server.'
+        );
+        return false;
+      }
+
+      const payload = parsed.data;
+
+      if (!payload.success) {
+        setStatus('error');
+        setPreviewData(null);
+        setPreviewItems([]);
+        setError(payload.error);
         return false;
       }
 
@@ -134,13 +157,22 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         }),
       });
 
-      const payload = await response.json() as
-        | { success: true; data: LighterpackFinalizeSummary }
-        | { success: false; error: string };
+      const parsed = lighterpackFinalizeApiResponseSchema.safeParse(await response.json());
 
-      if (!response.ok || !payload.success) {
+      if (!parsed.success || !response.ok) {
         setStatus('error');
-        setError(payload.success ? 'Import failed.' : payload.error);
+        setError(parsed.success
+          ? extractApiError(parsed.data, 'Import failed.')
+          : 'Unexpected response from server.'
+        );
+        return false;
+      }
+
+      const payload = parsed.data;
+
+      if (!payload.success) {
+        setStatus('error');
+        setError(payload.error);
         return false;
       }
 
