@@ -100,7 +100,7 @@ function stripTags(html: string): string {
     .trim();
 }
 
-function normalizeName(value: string): string {
+export function normalizeName(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFKD')

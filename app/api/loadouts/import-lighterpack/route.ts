@@ -18,6 +18,7 @@ import {
   hasStrongInventoryMatch,
   mapCatalogCandidate,
   normalizeLighterpackUrl,
+  normalizeName,
   parseLighterpackHtml,
   toUnitGrams,
 } from '@/lib/lighterpack/import';
@@ -55,15 +56,6 @@ interface InventoryRow {
   brand: string | null;
   weight_grams: number | null;
   status: 'own' | 'wishlist' | 'sold' | 'lent' | 'retired';
-}
-
-function normalizeName(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 function parsePrice(text: string): { value: number; currency: string } | null {
