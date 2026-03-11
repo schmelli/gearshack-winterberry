@@ -13,6 +13,10 @@ import type {
   LighterpackPreviewData,
   LighterpackResolutionType,
 } from '@/types/lighterpack-import';
+import {
+  lighterpackFinalizeResponseSchema,
+  lighterpackPreviewResponseSchema,
+} from '@/lib/validations/lighterpack-schema';
 
 export type LighterpackImportStatus =
   | 'idle'
@@ -54,9 +58,18 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         body: JSON.stringify({ mode: 'preview', url }),
       });
 
-      const payload = await response.json() as
-        | { success: true; data: LighterpackPreviewData }
-        | { success: false; error: string };
+      const parsed = lighterpackPreviewResponseSchema.safeParse(await response.json());
+
+      if (!parsed.success) {
+        setStatus('error');
+        setPreviewData(null);
+        setPreviewItems([]);
+        console.error('[useLighterpackImport] Preview response validation failed:', parsed.error);
+        setError('Unexpected response format from server.');
+        return false;
+      }
+
+      const payload = parsed.data;
 
       if (!response.ok || !payload.success) {
         setStatus('error');
@@ -134,9 +147,16 @@ export function useLighterpackImport(): UseLighterpackImportReturn {
         }),
       });
 
-      const payload = await response.json() as
-        | { success: true; data: LighterpackFinalizeSummary }
-        | { success: false; error: string };
+      const parsed = lighterpackFinalizeResponseSchema.safeParse(await response.json());
+
+      if (!parsed.success) {
+        setStatus('error');
+        console.error('[useLighterpackImport] Finalize response validation failed:', parsed.error);
+        setError('Unexpected response format from server.');
+        return false;
+      }
+
+      const payload = parsed.data;
 
       if (!response.ok || !payload.success) {
         setStatus('error');
