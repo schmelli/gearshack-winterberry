@@ -1,15 +1,15 @@
 /**
- * Lighterpack Import API Response Zod Schemas
+ * Lighterpack Import Request Validation Schemas
  *
  * Feature: Lighterpack packlist import
- * Runtime validation for API responses from /api/loadouts/import-lighterpack
+ * Provides Zod runtime validation for API request bodies.
  */
 
 import { z } from 'zod';
 
-// ---------------------------------------------------------------------------
-// Shared building blocks
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Shared sub-schemas
+// =============================================================================
 
 const lighterpackResolutionTypeSchema = z.enum([
   'link_inventory',
@@ -64,60 +64,39 @@ const externalResearchResultSchema = z.object({
   confidence: z.number(),
 });
 
-const lighterpackPreviewItemSchema = z.object({
-  index: z.number(),
+const lighterpackFinalizeItemInputSchema = z.object({
+  index: z.number().int().nonnegative(),
   parsedItem: parsedItemSchema,
   inventoryCandidates: z.array(inventoryMatchCandidateSchema),
   gearGraphMatch: gearGraphMatchCandidateSchema.nullable(),
   externalResearch: externalResearchResultSchema.nullable(),
   suggestedResolution: lighterpackResolutionTypeSchema,
   warnings: z.array(z.string()),
+  selectedResolution: lighterpackResolutionTypeSchema.optional(),
+  selectedInventoryItemId: z.string().nullable().optional(),
 });
 
-const lighterpackPreviewSummarySchema = z.object({
-  totalItems: z.number(),
-  matchedInventory: z.number(),
-  matchedGearGraph: z.number(),
-  externalResearched: z.number(),
-  unresolved: z.number(),
+// =============================================================================
+// Request body schemas
+// =============================================================================
+
+export const lighterpackPreviewRequestSchema = z.object({
+  mode: z.literal('preview'),
+  url: z.string().min(1, 'URL is required'),
 });
 
-const lighterpackPreviewDataSchema = z.object({
-  sourceUrl: z.string(),
-  listName: z.string(),
-  items: z.array(lighterpackPreviewItemSchema),
-  summary: lighterpackPreviewSummarySchema,
+export const lighterpackFinalizeRequestSchema = z.object({
+  mode: z.literal('finalize'),
+  sourceUrl: z.string().min(1, 'sourceUrl is required'),
+  listName: z.string().min(1, 'listName is required'),
+  loadoutName: z.string().optional(),
+  items: z.array(lighterpackFinalizeItemInputSchema).min(1, 'items must not be empty'),
 });
 
-const lighterpackFinalizeSummarySchema = z.object({
-  totalItems: z.number(),
-  matchedInventory: z.number(),
-  matchedGearGraph: z.number(),
-  addedToWishlist: z.number(),
-  unresolved: z.number(),
-  warnings: z.array(z.string()),
-  loadoutId: z.string(),
-  loadoutName: z.string(),
-});
-
-// ---------------------------------------------------------------------------
-// API response envelope schemas (discriminated union on `success`)
-// ---------------------------------------------------------------------------
-
-const errorResponseSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-});
-
-export const lighterpackPreviewResponseSchema = z.discriminatedUnion('success', [
-  z.object({ success: z.literal(true), data: lighterpackPreviewDataSchema }),
-  errorResponseSchema,
+export const lighterpackRequestSchema = z.discriminatedUnion('mode', [
+  lighterpackPreviewRequestSchema,
+  lighterpackFinalizeRequestSchema,
 ]);
 
-export const lighterpackFinalizeResponseSchema = z.discriminatedUnion('success', [
-  z.object({ success: z.literal(true), data: lighterpackFinalizeSummarySchema }),
-  errorResponseSchema,
-]);
-
-export type LighterpackPreviewResponse = z.infer<typeof lighterpackPreviewResponseSchema>;
-export type LighterpackFinalizeResponse = z.infer<typeof lighterpackFinalizeResponseSchema>;
+export type LighterpackPreviewRequestSchema = z.infer<typeof lighterpackPreviewRequestSchema>;
+export type LighterpackFinalizeRequestSchema = z.infer<typeof lighterpackFinalizeRequestSchema>;

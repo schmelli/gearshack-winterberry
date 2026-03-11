@@ -34,6 +34,7 @@ import type {
   LighterpackResolutionType,
   ParsedItem,
 } from '@/types/lighterpack-import';
+import { lighterpackRequestSchema } from '@/lib/validations/lighterpack-schema';
 
 const REQUEST_TIMEOUT_MS = 15000;
 const PREVIEW_CONCURRENCY = 6;
@@ -843,25 +844,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json() as Record<string, unknown>;
-    const mode = body.mode;
+    const rawBody: unknown = await request.json();
+    const parsed = lighterpackRequestSchema.safeParse(rawBody);
 
-    if (mode === 'preview') {
-      const url = typeof body.url === 'string' ? body.url : '';
-      return handlePreview(supabase, user.id, url);
+    if (!parsed.success) {
+      return NextResponse.json<LighterpackErrorResponse>(
+        { success: false, error: parsed.error.issues.map((i) => i.message).join('; ') },
+        { status: 400 }
+      );
     }
 
-    if (mode === 'finalize') {
-      const sourceUrl = typeof body.sourceUrl === 'string' ? body.sourceUrl : '';
-      const listName = typeof body.listName === 'string' ? body.listName : '';
-      const loadoutName = typeof body.loadoutName === 'string' ? body.loadoutName : undefined;
-      const items = Array.isArray(body.items) ? body.items as LighterpackFinalizeItemInput[] : [];
+    const body = parsed.data;
 
+    if (body.mode === 'preview') {
+      return handlePreview(supabase, user.id, body.url);
+    }
+
+    if (body.mode === 'finalize') {
       return handleFinalize(supabase, user.id, {
-        sourceUrl,
-        listName,
-        loadoutName,
-        items,
+        sourceUrl: body.sourceUrl,
+        listName: body.listName,
+        loadoutName: body.loadoutName,
+      items: body.items,
       });
     }
 
