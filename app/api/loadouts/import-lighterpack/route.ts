@@ -19,6 +19,7 @@ import {
   mapCatalogCandidate,
   normalizeLighterpackUrl,
   parseLighterpackHtml,
+  toUnitGrams,
 } from '@/lib/lighterpack/import';
 import type {
   ExternalResearchResult,
@@ -99,16 +100,6 @@ function parsePrice(text: string): { value: number; currency: string } | null {
     }
   }
 
-  return null;
-}
-
-function toUnitGrams(weight: number, unit: string): number | null {
-  const normalizedUnit = unit.trim().toLowerCase();
-  if (!Number.isFinite(weight)) return null;
-  if (normalizedUnit === 'g') return weight;
-  if (normalizedUnit === 'kg') return weight * 1000;
-  if (normalizedUnit === 'oz') return weight * 28.349523125;
-  if (normalizedUnit === 'lb' || normalizedUnit === 'lbs') return weight * 453.59237;
   return null;
 }
 
