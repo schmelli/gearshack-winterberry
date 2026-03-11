@@ -1369,6 +1369,43 @@
     "requestShakedown": "Request Shakedown",
     "allShakedowns": "All Shakedowns",
     "loadoutId": "Loadout ID",
+    "import": {
+      "openButton": "Import from Lighterpack",
+      "title": "Import from Lighterpack",
+      "description": "Paste a public Lighterpack URL to preview and import items into a native packlist.",
+      "urlLabel": "Lighterpack URL",
+      "cancel": "Cancel",
+      "previewButton": "Preview Import",
+      "loadingPreview": "Fetching and matching items...",
+      "loadingFinalize": "Creating your packlist...",
+      "previewListName": "Detected list",
+      "items": "items",
+      "loadoutNameLabel": "Packlist name",
+      "importedSuffix": "Imported",
+      "noCategory": "No category",
+      "noWeight": "No weight",
+      "qtyLabel": "Qty {qty}",
+      "suggested": "Suggested",
+      "actionLabel": "Action",
+      "inventoryCandidateLabel": "Inventory match",
+      "finalizeButton": "Finalize Import",
+      "successTitle": "Import completed",
+      "successDescription": "Created \"{name}\" and linked all processed items.",
+      "done": "Done",
+      "summary": {
+        "inventory": "Inventory",
+        "geargraph": "GearGraph",
+        "temporary": "Temporary",
+        "wishlist": "Wishlist",
+        "unresolved": "Unresolved"
+      },
+      "resolutions": {
+        "linkInventory": "Link to inventory",
+        "createGearGraph": "Create from GearGraph",
+        "createTemporary": "Create temporary item",
+        "unresolved": "Keep unresolved"
+      }
+    },
     "page": {
       "clearFilters": "Clear Filters",
       "createNewLoadout": "Create New Loadout",

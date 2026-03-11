@@ -56,6 +56,7 @@ export interface ItemState {
   itemId: string;
   isWorn: boolean;
   isConsumable: boolean;
+  quantity?: number;
 }
 
 export { type SyncState };
@@ -325,7 +326,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
 
         const supabase = createClient();
         set((state) => ({
-          loadouts: state.loadouts.map((l) => l.id !== loadoutId || l.itemIds.includes(itemId) ? l : { ...l, itemIds: [...l.itemIds, itemId], itemStates: [...l.itemStates, { itemId, isWorn: false, isConsumable: false }], updatedAt: new Date() }),
+          loadouts: state.loadouts.map((l) => l.id !== loadoutId || l.itemIds.includes(itemId) ? l : { ...l, itemIds: [...l.itemIds, itemId], itemStates: [...l.itemStates, { itemId, isWorn: false, isConsumable: false, quantity: 1 }], updatedAt: new Date() }),
           syncState: startSyncOperation(state.syncState),
         }));
 
@@ -417,7 +418,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
             const idx = l.itemStates.findIndex((s) => s.itemId === itemId);
             const newStates = [...l.itemStates];
             if (idx >= 0) newStates[idx] = { ...newStates[idx], isWorn };
-            else newStates.push({ itemId, isWorn, isConsumable: false });
+            else newStates.push({ itemId, isWorn, isConsumable: false, quantity: 1 });
             return { ...l, itemStates: newStates, updatedAt: new Date() };
           }),
           syncState: startSyncOperation(state.syncState),
@@ -449,7 +450,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
             const idx = l.itemStates.findIndex((s) => s.itemId === itemId);
             const newStates = [...l.itemStates];
             if (idx >= 0) newStates[idx] = { ...newStates[idx], isConsumable };
-            else newStates.push({ itemId, isWorn: false, isConsumable });
+            else newStates.push({ itemId, isWorn: false, isConsumable, quantity: 1 });
             return { ...l, itemStates: newStates, updatedAt: new Date() };
           }),
           syncState: startSyncOperation(state.syncState),

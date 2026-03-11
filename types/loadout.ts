@@ -80,6 +80,9 @@ export interface LoadoutItemState {
 
   /** Item is consumable (food, fuel, water) - excluded from Base Weight */
   isConsumable: boolean;
+
+  /** Optional quantity for this item inside the loadout */
+  quantity?: number;
 }
 
 // =============================================================================
