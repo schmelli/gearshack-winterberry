@@ -59,8 +59,14 @@ function parseLocaleNumber(raw: string): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
-  // Only comma present, treat as decimal separator.
+  // Only comma(s) present – distinguish thousands separator from decimal separator.
+  // Pattern \d{1,3}(,\d{3})+ matches EN-style thousands grouping: e.g. "1,200" or "1,200,000".
   if (cleaned.includes(',')) {
+    if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+      const normalized = cleaned.replace(/,/g, '');
+      const parsed = Number.parseFloat(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
     const normalized = cleaned.replace(',', '.');
     const parsed = Number.parseFloat(normalized);
     return Number.isFinite(parsed) ? parsed : null;
