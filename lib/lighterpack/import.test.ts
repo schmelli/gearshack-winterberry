@@ -17,6 +17,7 @@ describe('parseLighterpackHtml', () => {
               <h2 class="lpCategoryName">Shelter</h2>
             </li>
             <li class="lpItem lpItemHasPrice" id="530">
+              <img class="lpItemImage" src="https:&#x2F;&#x2F;example.com&#x2F;tent.jpg" />
               <span class="lpName"><a href="#">Tent</a></span>
               <span class="lpDescription">Durston X-Mid 1P</span>
               <span class="lpActionsCell">
@@ -64,6 +65,7 @@ describe('parseLighterpackHtml', () => {
       name: 'Tent',
       quantity: 1,
       category: 'Shelter',
+      imageUrl: 'https://example.com/tent.jpg',
       worn: true,
       consumable: false,
       notes: 'Durston X-Mid 1P',
@@ -127,4 +129,3 @@ describe('chooseFinalWeight', () => {
     expect(decision.weightDeltaPercent).toBe(20);
   });
 });
-

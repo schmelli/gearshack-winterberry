@@ -9,6 +9,7 @@ export interface ParsedItem {
   weightGrams: number | null;
   quantity: number;
   category?: string;
+  imageUrl?: string;
   worn?: boolean;
   consumable?: boolean;
   notes?: string;
@@ -123,4 +124,3 @@ export interface LighterpackFinalizeResponse {
   success: true;
   data: LighterpackFinalizeSummary;
 }
-

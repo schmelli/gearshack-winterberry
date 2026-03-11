@@ -216,6 +216,15 @@ function extractClassAttribute(block: string, className: string, attribute: stri
   return match?.[1] ?? null;
 }
 
+function normalizeImageUrl(raw: string | null): string | undefined {
+  if (!raw) return undefined;
+  const decoded = decodeHtmlEntities(raw).trim();
+  if (!decoded) return undefined;
+  if (decoded.startsWith('//')) return `https:${decoded}`;
+  if (decoded.startsWith('/')) return `https://lighterpack.com${decoded}`;
+  return decoded;
+}
+
 function extractQtyFromCell(block: string): number | null {
   const attrMatch = block.match(/<span\b[^>]*class="[^"]*\blpQtyCell\b[^"]*"[^>]*\bqty(-?\d+)\b[^>]*>/i);
   if (attrMatch?.[1]) {
@@ -282,6 +291,7 @@ export function parseLighterpackHtml(html: string): { listName: string; items: P
     for (const itemBlock of itemBlocks) {
       const nameHtml = extractClassHtml(itemBlock, 'lpName', 'span');
       const descriptionHtml = extractClassHtml(itemBlock, 'lpDescription', 'span');
+      const imageSrc = extractClassAttribute(itemBlock, 'lpItemImage', 'src');
       const nameText = nameHtml ? stripTags(nameHtml) : '';
       const descriptionText = descriptionHtml ? stripTags(descriptionHtml) : '';
       const quantity = extractQtyFromCell(itemBlock);
@@ -296,6 +306,7 @@ export function parseLighterpackHtml(html: string): { listName: string; items: P
         weightGrams,
         quantity: quantity ?? 1,
         category: categoryName,
+        imageUrl: normalizeImageUrl(imageSrc),
         worn: extractIconActive(itemBlock, 'lpWorn'),
         consumable: extractIconActive(itemBlock, 'lpConsumable'),
         notes,
@@ -437,4 +448,3 @@ export function chooseFinalWeight(
     weightDeltaPercent: deltaPercent == null ? null : Math.round(deltaPercent * 100) / 100,
   };
 }
-

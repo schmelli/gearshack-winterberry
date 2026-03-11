@@ -10,8 +10,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Link2, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, HelpCircle, Loader2, Link2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useLighterpackImport } from '@/hooks/useLighterpackImport';
 import type { LighterpackFinalizeSummary, LighterpackResolutionType } from '@/types/lighterpack-import';
 import {
@@ -244,8 +245,23 @@ export function LighterpackImportDialog({
 
                 return (
                   <Card key={item.index} className="space-y-3 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        {item.parsedItem.imageUrl ? (
+                          <Image
+                            src={item.parsedItem.imageUrl}
+                            alt={item.parsedItem.name}
+                            width={56}
+                            height={56}
+                            className="h-14 w-14 rounded-md border object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded-md border bg-muted">
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
                         <p className="font-medium">{item.parsedItem.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {item.parsedItem.category || t('import.noCategory')}
@@ -256,6 +272,7 @@ export function LighterpackImportDialog({
                           {' • '}
                           {t('import.qtyLabel', { qty: item.parsedItem.quantity })}
                         </p>
+                        </div>
                       </div>
                       <Badge variant="outline">
                         {t('import.suggested')}: {getResolutionLabel(t, item.suggestedResolution)}
