@@ -273,7 +273,8 @@ async function runExternalResearch(
       keyFeatures,
       confidence: Math.min(1, confidence),
     };
-  } catch {
+  } catch (error) {
+    console.error('[LighterpackImport] External research failed:', error);
     return null;
   }
 }
