@@ -1402,7 +1402,7 @@
       "resolutions": {
         "linkInventory": "Link to inventory",
         "createGearGraph": "Create from GearGraph",
-        "createTemporary": "Add item to wishlist",
+        "createTemporary": "Create new item (and add to wishlist)",
         "unresolved": "Keep unresolved"
       }
     },
