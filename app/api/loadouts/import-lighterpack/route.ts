@@ -460,7 +460,8 @@ async function handlePreview(
           priceUsd: best.priceUsd,
           score: best.score,
         });
-      } catch {
+      } catch (error) {
+        console.error('[LighterpackImport] GearGraph search failed:', error);
         return null;
       }
     })();
