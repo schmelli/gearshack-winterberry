@@ -1403,7 +1403,7 @@
       "resolutions": {
         "linkInventory": "Mit Inventar verknüpfen",
         "createGearGraph": "Aus GearGraph erstellen",
-        "createTemporary": "Ausrüstungsgegenstand auf die Wunschliste setzen",
+        "createTemporary": "Neuen Artikel erstellen (und zur Wunschliste hinzufügen)",
         "unresolved": "Ungelöst lassen"
       }
     },
