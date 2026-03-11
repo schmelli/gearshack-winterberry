@@ -140,7 +140,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function toUnitGrams(weight: number, unit: string): number | null {
+export function toUnitGrams(weight: number, unit: string): number | null {
   const normalizedUnit = unit.trim().toLowerCase();
   if (!Number.isFinite(weight)) return null;
   if (normalizedUnit === 'g' || normalizedUnit === 'gram' || normalizedUnit === 'grams') return weight;
