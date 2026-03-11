@@ -59,8 +59,14 @@ function parseLocaleNumber(raw: string): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
-  // Only comma present, treat as decimal separator.
+  // Only comma(s) present – distinguish thousands separator from decimal separator.
+  // Pattern \d{1,3}(,\d{3})+ matches EN-style thousands grouping: e.g. "1,200" or "1,200,000".
   if (cleaned.includes(',')) {
+    if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+      const normalized = cleaned.replace(/,/g, '');
+      const parsed = Number.parseFloat(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
     const normalized = cleaned.replace(',', '.');
     const parsed = Number.parseFloat(normalized);
     return Number.isFinite(parsed) ? parsed : null;
@@ -100,7 +106,7 @@ function stripTags(html: string): string {
     .trim();
 }
 
-function normalizeName(value: string): string {
+export function normalizeName(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFKD')
@@ -140,7 +146,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function toUnitGrams(weight: number, unit: string): number | null {
+export function toUnitGrams(weight: number, unit: string): number | null {
   const normalizedUnit = unit.trim().toLowerCase();
   if (!Number.isFinite(weight)) return null;
   if (normalizedUnit === 'g' || normalizedUnit === 'gram' || normalizedUnit === 'grams') return weight;
@@ -216,6 +222,15 @@ function extractClassAttribute(block: string, className: string, attribute: stri
   return match?.[1] ?? null;
 }
 
+function normalizeImageUrl(raw: string | null): string | undefined {
+  if (!raw) return undefined;
+  const decoded = decodeHtmlEntities(raw).trim();
+  if (!decoded) return undefined;
+  if (decoded.startsWith('//')) return `https:${decoded}`;
+  if (decoded.startsWith('/')) return `https://lighterpack.com${decoded}`;
+  return decoded;
+}
+
 function extractQtyFromCell(block: string): number | null {
   const attrMatch = block.match(/<span\b[^>]*class="[^"]*\blpQtyCell\b[^"]*"[^>]*\bqty(-?\d+)\b[^>]*>/i);
   if (attrMatch?.[1]) {
@@ -282,6 +297,7 @@ export function parseLighterpackHtml(html: string): { listName: string; items: P
     for (const itemBlock of itemBlocks) {
       const nameHtml = extractClassHtml(itemBlock, 'lpName', 'span');
       const descriptionHtml = extractClassHtml(itemBlock, 'lpDescription', 'span');
+      const imageSrc = extractClassAttribute(itemBlock, 'lpItemImage', 'src');
       const nameText = nameHtml ? stripTags(nameHtml) : '';
       const descriptionText = descriptionHtml ? stripTags(descriptionHtml) : '';
       const quantity = extractQtyFromCell(itemBlock);
@@ -296,6 +312,7 @@ export function parseLighterpackHtml(html: string): { listName: string; items: P
         weightGrams,
         quantity: quantity ?? 1,
         category: categoryName,
+        imageUrl: normalizeImageUrl(imageSrc),
         worn: extractIconActive(itemBlock, 'lpWorn'),
         consumable: extractIconActive(itemBlock, 'lpConsumable'),
         notes,
@@ -437,4 +454,3 @@ export function chooseFinalWeight(
     weightDeltaPercent: deltaPercent == null ? null : Math.round(deltaPercent * 100) / 100,
   };
 }
-

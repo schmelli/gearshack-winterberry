@@ -1392,6 +1392,7 @@
       "successTitle": "Import completed",
       "successDescription": "Created \"{name}\" and linked all processed items.",
       "done": "Done",
+      "refreshError": "Failed to refresh loadouts. Please reload the page.",
       "summary": {
         "inventory": "Inventory",
         "geargraph": "GearGraph",
@@ -1402,7 +1403,7 @@
       "resolutions": {
         "linkInventory": "Link to inventory",
         "createGearGraph": "Create from GearGraph",
-        "createTemporary": "Create temporary item",
+        "createTemporary": "Create new item (and add to wishlist)",
         "unresolved": "Keep unresolved"
       }
     },

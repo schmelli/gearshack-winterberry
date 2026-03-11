@@ -1392,6 +1392,7 @@
       "successTitle": "Import abgeschlossen",
       "successDescription": "\"{name}\" wurde erstellt und alle verarbeiteten Einträge wurden verknüpft.",
       "done": "Fertig",
+      "refreshError": "Packlisten konnten nicht aktualisiert werden. Bitte laden Sie die Seite neu.",
       "summary": {
         "inventory": "Inventar",
         "geargraph": "GearGraph",
@@ -1402,7 +1403,7 @@
       "resolutions": {
         "linkInventory": "Mit Inventar verknüpfen",
         "createGearGraph": "Aus GearGraph erstellen",
-        "createTemporary": "Temporäres Item erstellen",
+        "createTemporary": "Neuen Artikel erstellen (und zur Wunschliste hinzufügen)",
         "unresolved": "Ungelöst lassen"
       }
     },
