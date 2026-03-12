@@ -4,8 +4,10 @@
  * Feature: URL-Import & Contributions Tracking
  *
  * POST /api/gear/import-url
- * Extracts product data from URL using Firecrawl (primary) or pattern extraction (fallback),
- * checks GearGraph catalog for matches, and suggests categories.
+ * Extracts product data from URL with a cost-aware strategy:
+ * 1) free HTML/schema extraction first
+ * 2) Firecrawl only when core fields are insufficient
+ * Then checks GearGraph catalog for matches and suggests categories.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -15,6 +17,7 @@ import { extractProductDataFromUrl } from '@/app/actions/smart-product-search';
 import { createFirecrawlClient, SSRFError, TimeoutError, FirecrawlError } from '@/lib/firecrawl/client';
 import { extractGearSpecs, type GearSpecs } from '@/lib/firecrawl/gear-specs';
 import { suggestCategory, buildCategoryPath } from '@/lib/category-suggestion';
+import type { ExtractedProductData } from '@/types/smart-search';
 import type {
   ImportUrlResponse,
   CatalogMatchResult,
@@ -71,16 +74,21 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // Step 1: Firecrawl Scraping (Primary) or Pattern Extraction (Fallback)
+    // Step 1: Free extraction first (schema/meta/patterns)
+    // -------------------------------------------------------------------------
+    const fallbackResult = await extractProductDataFromUrl(url);
+    const extracted = fallbackResult.data;
+
+    // -------------------------------------------------------------------------
+    // Step 2: Firecrawl fallback/enrichment (only if free result is insufficient)
     // -------------------------------------------------------------------------
     let specs: GearSpecs | null = null;
-    let extractionMethod: 'firecrawl' | 'schema' | 'patterns' | 'ai' = 'firecrawl';
-    let scrapeMetadata: { ogImage?: string } = {};
-
-    // Check if Firecrawl API key is available
+    let scrapeMetadata: Record<string, unknown> = {};
+    let scrapeMarkdown: string | null = null;
     const hasFirecrawlKey = !!process.env.FIRECRAWL_API_KEY;
+    const shouldUseFirecrawl = shouldEnrichWithFirecrawl(extracted);
 
-    if (hasFirecrawlKey) {
+    if (hasFirecrawlKey && shouldUseFirecrawl) {
       try {
         const firecrawl = createFirecrawlClient();
         const scrapeResult = await firecrawl.scrape(url, {
@@ -88,18 +96,56 @@ export async function POST(request: NextRequest) {
           onlyMainContent: true,
         });
 
-        // Store metadata for fallback image
-        scrapeMetadata = {
-          ogImage: scrapeResult.data.metadata?.ogImage as string | undefined,
-        };
+        scrapeMetadata = scrapeResult.data.metadata ?? {};
+        scrapeMarkdown = scrapeResult.data.markdown ?? null;
 
         // Extract specs from markdown content
-        if (scrapeResult.data.markdown) {
-          specs = extractGearSpecs(scrapeResult.data.markdown, url);
+        if (scrapeMarkdown) {
+          specs = extractGearSpecs(scrapeMarkdown, url);
         }
 
-        if (!specs) {
-          console.warn('[ImportUrl] Firecrawl returned no extractable specs, falling back');
+        // Fill core fields from metadata/markdown if extractor couldn't infer them
+        if (!specs) specs = { sourceUrl: url, scrapedAt: new Date().toISOString(), confidence: 0 };
+
+        if (!specs.name) {
+          specs.name =
+            normalizeNameFromTitle(
+              pickFirstString(
+                scrapeMetadata.title,
+                scrapeMetadata.ogTitle,
+                scrapeMetadata.twitterTitle
+              ),
+              url
+            ) ?? extractNameFromMarkdown(scrapeMarkdown) ?? extractNameFromUrl(url) ?? undefined;
+        }
+
+        if (!specs.description) {
+          specs.description =
+            pickFirstString(
+              scrapeMetadata.description,
+              scrapeMetadata.ogDescription,
+              scrapeMetadata.twitterDescription
+            ) ?? undefined;
+        }
+
+        if (!specs.imageUrl) {
+          const metadataImage = normalizeHttpUrl(
+            pickFirstString(
+              scrapeMetadata.ogImage,
+              scrapeMetadata.image,
+              scrapeMetadata.imageUrl,
+              scrapeMetadata.twitterImage
+            ),
+            url
+          );
+          if (metadataImage) specs.imageUrl = metadataImage;
+        }
+
+        if (!specs.brand) {
+          specs.brand = pickFirstString(
+            scrapeMetadata.brand,
+            scrapeMetadata.manufacturer
+          ) ?? undefined;
         }
       } catch (firecrawlError) {
         // Log specific error types
@@ -118,104 +164,64 @@ export async function POST(request: NextRequest) {
           console.warn('[ImportUrl] Firecrawl failed, falling back:', firecrawlError);
         }
 
-        // Will fall through to pattern extraction below
+        // Continue with free extraction result only
         specs = null;
       }
-    } else {
-      console.info('[ImportUrl] FIRECRAWL_API_KEY not set, using pattern extraction');
+    } else if (!hasFirecrawlKey && shouldUseFirecrawl) {
+      console.info('[ImportUrl] FIRECRAWL_API_KEY not set, using free extraction result');
     }
 
     // -------------------------------------------------------------------------
-    // Fallback: Pattern-based extraction if Firecrawl failed or unavailable
+    // Step 3: Merge best available fields
     // -------------------------------------------------------------------------
-    if (!specs) {
-      const fallbackResult = await extractProductDataFromUrl(url);
+    const mergedName = pickFirstString(
+      extracted?.name,
+      specs?.name,
+      extractNameFromMarkdown(scrapeMarkdown),
+      extractNameFromUrl(url)
+    );
 
-      if (!fallbackResult.data) {
-        return NextResponse.json<ImportUrlResponse>(
-          { success: false, error: fallbackResult.error || 'Could not extract data from URL' },
-          { status: 422 }
-        );
-      }
+    const mergedBrand = pickFirstString(extracted?.brand, specs?.brand);
 
-      // Map fallback data to specs format for unified processing
-      extractionMethod = fallbackResult.data.extractionMethod;
+    const mergedDescription = pickFirstString(
+      extracted?.description,
+      specs?.description
+    );
 
-      // Continue with fallback data (no additional specs available)
-      const extracted = fallbackResult.data;
+    const mergedImageUrl = normalizeHttpUrl(
+      pickFirstString(
+        extracted?.imageUrl,
+        specs?.imageUrl,
+        scrapeMetadata.ogImage,
+        scrapeMetadata.image,
+        scrapeMetadata.imageUrl,
+        scrapeMetadata.twitterImage
+      ),
+      url
+    );
 
-      // Build search query for catalog matching
-      const searchQuery = buildSearchQuery(extracted.name, extracted.brand);
+    const freeWeight = extracted?.weightGrams ?? null;
+    const firecrawlWeight = specs?.weight ? toWeightInGrams(specs.weight.value, specs.weight.unit) : null;
+    const mergedWeightGrams = freeWeight ?? firecrawlWeight;
+    const mergedWeightUnit: 'g' | 'kg' | 'oz' | 'lb' | null =
+      freeWeight !== null ? 'g' : (specs?.weight?.unit ?? null);
 
-      // Search GearGraph catalog for matches
-      let catalogMatch: CatalogMatchResult | null = null;
+    const mergedPriceValue = extracted?.priceValue ?? specs?.price?.value ?? null;
+    const mergedCurrency = extracted?.currency ?? specs?.price?.currency ?? null;
 
-      if (searchQuery) {
-        try {
-          const catalogResults = await fuzzyProductSearch(supabase, searchQuery, {
-            limit: MAX_MATCHES,
-          });
-
-          // Find best match above threshold
-          const bestMatch = catalogResults.find((r) => r.score >= MIN_MATCH_SCORE);
-
-          if (bestMatch) {
-            catalogMatch = {
-              id: bestMatch.id,
-              name: bestMatch.name,
-              brand: bestMatch.brand?.name ?? null,
-              categoryMain: bestMatch.categoryMain,
-              subcategory: bestMatch.subcategory,
-              productType: bestMatch.productType,
-              productTypeId: bestMatch.productTypeId,
-              description: bestMatch.description,
-              weightGrams: bestMatch.weightGrams,
-              priceUsd: bestMatch.priceUsd,
-              matchScore: bestMatch.score,
-            };
-          }
-        } catch (catalogError) {
-          console.error('[ImportUrl] Catalog search failed:', catalogError);
-        }
-      }
-
-      // Category suggestion from catalog match only (no keyword matching for fallback)
-      let categorySuggestion: CategorySuggestionResult | null = null;
-      if (catalogMatch?.productTypeId) {
-        categorySuggestion = {
-          categoryId: catalogMatch.productTypeId,
-          source: 'catalog_match',
-        };
-      }
-
-      // Return fallback result (no additional specs)
-      return NextResponse.json<ImportUrlResponse>({
-        success: true,
-        data: {
-          name: extracted.name,
-          brand: extracted.brand,
-          description: extracted.description,
-          imageUrl: extracted.imageUrl,
-          weightGrams: extracted.weightGrams,
-          weightUnit: extracted.weightUnit,
-          priceValue: extracted.priceValue,
-          currency: extracted.currency,
-          productUrl: extracted.productUrl,
-          extractionConfidence: extracted.confidence,
-          extractionMethod,
-          catalogMatch,
-          categorySuggestion,
-          additionalSpecs: null,
-        },
-      });
+    if (!mergedName && !mergedDescription && !mergedImageUrl && mergedWeightGrams === null) {
+      return NextResponse.json<ImportUrlResponse>(
+        { success: false, error: fallbackResult.error || 'Could not extract data from URL' },
+        { status: 422 }
+      );
     }
 
     // -------------------------------------------------------------------------
-    // Step 2: Continue with Firecrawl-extracted specs
+    // Step 4: Catalog matching
     // -------------------------------------------------------------------------
 
     // Build search query for catalog matching
-    const searchQuery = buildSearchQuery(specs.name ?? null, specs.brand ?? null);
+    const searchQuery = buildSearchQuery(mergedName, mergedBrand);
 
     // Search GearGraph catalog for matches
     let catalogMatch: CatalogMatchResult | null = null;
@@ -250,7 +256,7 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // Step 3: Category Suggestion
+    // Step 5: Category suggestion
     // -------------------------------------------------------------------------
     let categorySuggestion: CategorySuggestionResult | null = null;
 
@@ -262,11 +268,11 @@ export async function POST(request: NextRequest) {
         categoryPath: categoryPath || undefined,
         source: 'catalog_match',
       };
-    } else if (specs.name) {
+    } else if (mergedName || mergedDescription) {
       // Fallback to keyword-based category suggestion
       const keywordSuggestion = await suggestCategory(
-        specs.name,
-        specs.description ?? undefined
+        mergedName ?? mergedDescription ?? '',
+        mergedDescription ?? undefined
       );
 
       if (keywordSuggestion) {
@@ -280,51 +286,50 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // Step 4: Build Additional Specs
+    // Step 6: Build additional specs (only from Firecrawl)
     // -------------------------------------------------------------------------
-    const additionalSpecs: AdditionalGearSpecs = {
-      materials: specs.materials ?? null,
-      seasonRating: specs.seasonRating ?? null,
-      dimensions: specs.dimensions ?? null,
-      capacity: specs.capacity ?? null,
-      temperatureRating: specs.temperatureRating ?? null,
-      capacityPersons: specs.capacityPersons ?? null,
-      constructionType: specs.constructionType ?? null,
-      frameType: specs.frameType ?? null,
-      fuelType: specs.fuelType ?? null,
-    };
+    const additionalSpecs = specs ? mapAdditionalSpecs(specs) : null;
 
     // Check if additionalSpecs has any non-null values
-    const hasAdditionalSpecs = Object.values(additionalSpecs).some((v) => v !== null);
+    const hasAdditionalSpecs = additionalSpecs
+      ? Object.values(additionalSpecs).some((v) => v !== null)
+      : false;
 
     // -------------------------------------------------------------------------
-    // Step 5: Calculate confidence based on specs extraction
+    // Step 7: Compute confidence + return payload
     // -------------------------------------------------------------------------
-    const extractionConfidence: 'high' | 'medium' | 'low' =
-      specs.confidence && specs.confidence > 0.5
-        ? 'high'
-        : specs.confidence && specs.confidence > 0.2
-          ? 'medium'
-          : 'low';
+    const extractionConfidence = computeExtractionConfidence(
+      {
+        name: mergedName,
+        brand: mergedBrand,
+        description: mergedDescription,
+        imageUrl: mergedImageUrl,
+        weightGrams: mergedWeightGrams,
+      },
+      extracted?.confidence,
+      specs?.confidence
+    );
 
-    // -------------------------------------------------------------------------
-    // Step 6: Return combined result
-    // -------------------------------------------------------------------------
+    const extractionMethod: 'firecrawl' | 'schema' | 'patterns' | 'ai' =
+      !extracted && specs
+        ? 'firecrawl'
+        : extracted?.extractionMethod ?? 'firecrawl';
+
     return NextResponse.json<ImportUrlResponse>({
       success: true,
       data: {
         // Core extracted data
-        name: specs.name ?? null,
-        brand: specs.brand ?? null,
-        description: specs.description ?? null,
-        imageUrl: specs.imageUrl ?? scrapeMetadata.ogImage ?? null,
-        weightGrams: specs.weight?.value ?? null,
-        weightUnit: specs.weight?.unit ?? null,
-        priceValue: specs.price?.value ?? null,
-        currency: specs.price?.currency ?? null,
+        name: mergedName,
+        brand: mergedBrand,
+        description: mergedDescription,
+        imageUrl: mergedImageUrl,
+        weightGrams: mergedWeightGrams,
+        weightUnit: mergedWeightUnit,
+        priceValue: mergedPriceValue,
+        currency: mergedCurrency,
         productUrl: url,
         extractionConfidence,
-        extractionMethod: 'firecrawl',
+        extractionMethod,
 
         // Catalog match
         catalogMatch,
@@ -333,7 +338,7 @@ export async function POST(request: NextRequest) {
         categorySuggestion,
 
         // Additional specs (only include if any are present)
-        additionalSpecs: hasAdditionalSpecs ? additionalSpecs : null,
+        additionalSpecs: hasAdditionalSpecs && additionalSpecs ? additionalSpecs : null,
       },
     });
   } catch (error) {
@@ -378,4 +383,194 @@ function buildSearchQuery(
   }
 
   return parts.length > 0 ? parts.join(' ') : null;
+}
+
+/**
+ * Whether Firecrawl should run as paid fallback/enrichment.
+ */
+function shouldEnrichWithFirecrawl(
+  extracted: ExtractedProductData | null
+): boolean {
+  if (!extracted) return true;
+
+  const hasName = !!(extracted.name && extracted.name.trim().length >= 3);
+  const hasBrand = !!(extracted.brand && extracted.brand.trim().length >= 2);
+  const hasDescription = !!(extracted.description && extracted.description.trim().length >= 24);
+  const hasImage = !!extracted.imageUrl;
+  const hasWeight = extracted.weightGrams !== null && extracted.weightGrams > 0;
+
+  // Already strong enough for modal + form prefill
+  if (
+    extracted.confidence === 'high' &&
+    hasName &&
+    hasBrand &&
+    hasDescription &&
+    hasImage &&
+    hasWeight
+  ) {
+    return false;
+  }
+
+  // Run Firecrawl when one of the critical fields is missing.
+  const missingCritical = [hasName, hasDescription, hasImage, hasWeight].filter(Boolean).length;
+  return missingCritical < 4;
+}
+
+/**
+ * Pick first non-empty string from unknown candidates.
+ */
+function pickFirstString(...values: Array<unknown>): string | null {
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
+/**
+ * Normalize to absolute http(s) URL.
+ */
+function normalizeHttpUrl(rawUrl: string | null, baseUrl: string): string | null {
+  if (!rawUrl) return null;
+
+  try {
+    const resolved = new URL(rawUrl, baseUrl);
+    if (!['http:', 'https:'].includes(resolved.protocol)) return null;
+    return resolved.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Best-effort product name extraction from markdown.
+ */
+function extractNameFromMarkdown(markdown: string | null): string | null {
+  if (!markdown) return null;
+
+  const heading = markdown.match(/^#\s+(.+)$/m);
+  if (!heading?.[1]) return null;
+
+  const cleaned = heading[1].replace(/\s+/g, ' ').trim();
+  if (cleaned.length < 3 || cleaned.length > 200) return null;
+  return cleaned;
+}
+
+/**
+ * Best-effort name fallback from URL path.
+ */
+function extractNameFromUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const raw = segments[segments.length - 2] ?? segments[segments.length - 1];
+    if (!raw) return null;
+
+    const cleaned = raw
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleaned.length >= 3 ? cleaned : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clean title-style names that include shop/domain suffixes.
+ */
+function normalizeNameFromTitle(title: string | null, sourceUrl: string): string | null {
+  if (!title) return null;
+
+  let normalized = title.replace(/\s+/g, ' ').trim();
+  const pipeParts = normalized.split(/\s+\|\s+/);
+  if (pipeParts.length > 1) normalized = pipeParts[0]!.trim();
+
+  const dashParts = normalized.split(/\s+[-–—]\s+/);
+  if (dashParts.length > 1) {
+    let domainHint = '';
+    try {
+      domainHint = new URL(sourceUrl).hostname.replace(/^www\./, '').split('.')[0]!.toLowerCase();
+    } catch {
+      domainHint = '';
+    }
+    const trailing = dashParts[dashParts.length - 1]!.toLowerCase();
+    if (
+      (domainHint && trailing.includes(domainHint)) ||
+      trailing.includes('shop') ||
+      trailing.includes('store')
+    ) {
+      normalized = dashParts.slice(0, -1).join(' - ').trim();
+    }
+  }
+
+  return normalized.length >= 3 ? normalized : null;
+}
+
+/**
+ * Convert weight to grams.
+ */
+function toWeightInGrams(value: number, unit: 'g' | 'kg' | 'oz' | 'lb'): number | null {
+  if (!Number.isFinite(value) || value <= 0) return null;
+  switch (unit) {
+    case 'kg':
+      return Math.round(value * 1000);
+    case 'oz':
+      return Math.round(value * 28.3495);
+    case 'lb':
+      return Math.round(value * 453.592);
+    case 'g':
+    default:
+      return Math.round(value);
+  }
+}
+
+/**
+ * Build additional specs payload from Firecrawl extraction.
+ */
+function mapAdditionalSpecs(specs: GearSpecs): AdditionalGearSpecs {
+  return {
+    materials: specs.materials ?? null,
+    seasonRating: specs.seasonRating ?? null,
+    dimensions: specs.dimensions ?? null,
+    capacity: specs.capacity ?? null,
+    temperatureRating: specs.temperatureRating ?? null,
+    capacityPersons: specs.capacityPersons ?? null,
+    constructionType: specs.constructionType ?? null,
+    frameType: specs.frameType ?? null,
+    fuelType: specs.fuelType ?? null,
+  };
+}
+
+/**
+ * Compute extraction confidence from merged fields.
+ */
+function computeExtractionConfidence(
+  merged: {
+    name: string | null;
+    brand: string | null;
+    description: string | null;
+    imageUrl: string | null;
+    weightGrams: number | null;
+  },
+  freeConfidence?: 'high' | 'medium' | 'low',
+  firecrawlConfidence?: number
+): 'high' | 'medium' | 'low' {
+  let score = 0;
+
+  if (merged.name) score += 2;
+  if (merged.brand) score += 1;
+  if (merged.description && merged.description.length >= 24) score += 1;
+  if (merged.imageUrl) score += 1;
+  if (merged.weightGrams !== null && merged.weightGrams > 0) score += 1;
+
+  if (freeConfidence === 'high') score += 1;
+  if (freeConfidence === 'medium') score += 0.5;
+  if (typeof firecrawlConfidence === 'number') score += Math.min(firecrawlConfidence, 1) * 0.5;
+
+  if (score >= 5) return 'high';
+  if (score >= 3) return 'medium';
+  return 'low';
 }

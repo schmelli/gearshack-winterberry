@@ -1179,13 +1179,31 @@ function extractWithPatterns(html: string, url: string): ExtractedProductData {
  * Meta content attributes and og:title/h1 text often contain entities like &amp;, &#39;, etc.
  */
 function decodeHtmlEntities(str: string): string {
-  return str
+  const decoded = str
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
-    .replace(/&nbsp;/gi, ' ');
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&uuml;/gi, 'ü')
+    .replace(/&ouml;/gi, 'ö')
+    .replace(/&auml;/gi, 'ä')
+    .replace(/&Uuml;/g, 'Ü')
+    .replace(/&Ouml;/g, 'Ö')
+    .replace(/&Auml;/g, 'Ä')
+    .replace(/&szlig;/gi, 'ß');
+
+  // Numeric entities (decimal + hex), including double-encoded patterns after &amp; decode.
+  return decoded
+    .replace(/&#(\d+);/g, (_, dec: string) => {
+      const code = parseInt(dec, 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => {
+      const code = parseInt(hex, 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+    });
 }
 
 /**

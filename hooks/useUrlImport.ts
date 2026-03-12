@@ -131,6 +131,7 @@ export function useUrlImport(): UseUrlImportReturn {
 
     const catalogMatch = importedData.catalogMatch;
     const usesCatalog = useCatalogData && catalogMatch !== null;
+    const suggestedCategoryId = importedData.categorySuggestion?.categoryId ?? null;
 
     // Determine weight value and unit
     let weightValue = '';
@@ -140,10 +141,9 @@ export function useUrlImport(): UseUrlImportReturn {
       weightValue = String(catalogMatch.weightGrams);
       weightDisplayUnit = 'g';
     } else if (importedData.weightGrams) {
+      // URL import returns normalized grams, so keep display in grams to avoid double conversion.
       weightValue = String(importedData.weightGrams);
-      weightDisplayUnit = importedData.weightUnit === 'oz' ? 'oz'
-        : importedData.weightUnit === 'lb' ? 'lb'
-        : 'g';
+      weightDisplayUnit = 'g';
     }
 
     // Determine price and currency
@@ -158,17 +158,30 @@ export function useUrlImport(): UseUrlImportReturn {
       currency = importedData.currency || 'USD';
     }
 
+    const name = usesCatalog
+      ? (catalogMatch?.name || importedData.name || '')
+      : (importedData.name || catalogMatch?.name || '');
+    const brand = usesCatalog
+      ? (catalogMatch?.brand || importedData.brand || '')
+      : (importedData.brand || catalogMatch?.brand || '');
+    const description = usesCatalog
+      ? (catalogMatch?.description || importedData.description || '')
+      : (importedData.description || catalogMatch?.description || '');
+    const productTypeId = usesCatalog
+      ? (catalogMatch?.productTypeId || suggestedCategoryId || '')
+      : (suggestedCategoryId || catalogMatch?.productTypeId || '');
+
     return {
-      name: (usesCatalog ? catalogMatch?.name : importedData.name) || '',
-      brand: (usesCatalog ? catalogMatch?.brand : importedData.brand) || '',
-      description: (usesCatalog ? catalogMatch?.description : importedData.description) || '',
+      name,
+      brand,
+      description,
       primaryImageUrl: importedData.imageUrl || '',
       weightValue,
       weightDisplayUnit,
       pricePaid,
       currency,
       productUrl: importedData.productUrl,
-      productTypeId: catalogMatch?.productTypeId || '',
+      productTypeId,
       // Tracking metadata
       sourceUrl: importedData.productUrl,
       catalogMatchId: catalogMatch?.id || null,
