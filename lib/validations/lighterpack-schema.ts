@@ -1,8 +1,8 @@
 /**
- * Lighterpack Import Request Validation Schemas
+ * Lighterpack Import Validation Schemas
  *
  * Feature: Lighterpack packlist import
- * Provides Zod runtime validation for API request bodies.
+ * Provides Zod runtime validation for API request and response bodies.
  */
 
 import { z } from 'zod';
@@ -64,7 +64,7 @@ const externalResearchResultSchema = z.object({
   confidence: z.number(),
 });
 
-const lighterpackFinalizeItemInputSchema = z.object({
+const lighterpackPreviewItemSchema = z.object({
   index: z.number().int().nonnegative(),
   parsedItem: parsedItemSchema,
   inventoryCandidates: z.array(inventoryMatchCandidateSchema),
@@ -72,8 +72,35 @@ const lighterpackFinalizeItemInputSchema = z.object({
   externalResearch: externalResearchResultSchema.nullable(),
   suggestedResolution: lighterpackResolutionTypeSchema,
   warnings: z.array(z.string()),
+});
+
+const lighterpackFinalizeItemInputSchema = lighterpackPreviewItemSchema.extend({
   selectedResolution: lighterpackResolutionTypeSchema.optional(),
   selectedInventoryItemId: z.string().nullable().optional(),
+});
+
+const lighterpackPreviewSummarySchema = z.object({
+  totalItems: z.number().int().nonnegative(),
+  matchedInventory: z.number().int().nonnegative(),
+  matchedGearGraph: z.number().int().nonnegative(),
+  externalResearched: z.number().int().nonnegative(),
+  unresolved: z.number().int().nonnegative(),
+});
+
+const lighterpackFinalizeSummarySchema = z.object({
+  totalItems: z.number().int().nonnegative(),
+  matchedInventory: z.number().int().nonnegative(),
+  matchedGearGraph: z.number().int().nonnegative(),
+  addedToWishlist: z.number().int().nonnegative(),
+  unresolved: z.number().int().nonnegative(),
+  warnings: z.array(z.string()),
+  loadoutId: z.string().uuid(),
+  loadoutName: z.string(),
+});
+
+const lighterpackErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
 });
 
 // =============================================================================
@@ -98,5 +125,28 @@ export const lighterpackRequestSchema = z.discriminatedUnion('mode', [
   lighterpackFinalizeRequestSchema,
 ]);
 
+export const lighterpackPreviewResponseSchema = z.union([
+  z.object({
+    success: z.literal(true),
+    data: z.object({
+      sourceUrl: z.string().url(),
+      listName: z.string(),
+      items: z.array(lighterpackPreviewItemSchema),
+      summary: lighterpackPreviewSummarySchema,
+    }),
+  }),
+  lighterpackErrorResponseSchema,
+]);
+
+export const lighterpackFinalizeResponseSchema = z.union([
+  z.object({
+    success: z.literal(true),
+    data: lighterpackFinalizeSummarySchema,
+  }),
+  lighterpackErrorResponseSchema,
+]);
+
 export type LighterpackPreviewRequestSchema = z.infer<typeof lighterpackPreviewRequestSchema>;
 export type LighterpackFinalizeRequestSchema = z.infer<typeof lighterpackFinalizeRequestSchema>;
+export type LighterpackPreviewResponseSchema = z.infer<typeof lighterpackPreviewResponseSchema>;
+export type LighterpackFinalizeResponseSchema = z.infer<typeof lighterpackFinalizeResponseSchema>;
