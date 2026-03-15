@@ -109,7 +109,7 @@ export function NotificationMatrix({
   return (
     <div className="space-y-4">
       {/* Header Row */}
-      <div className="grid grid-cols-[1fr_60px_60px_60px] items-center gap-4 pb-2 border-b">
+      <div className="grid grid-cols-[1fr_48px_48px_48px] sm:grid-cols-[1fr_60px_60px_60px] items-center gap-2 sm:gap-4 pb-2 border-b">
         <div />
         <div className="flex flex-col items-center gap-1">
           <Smartphone className="h-4 w-4 text-muted-foreground" />
@@ -129,7 +129,7 @@ export function NotificationMatrix({
       {categories.map((cat) => (
         <div
           key={cat.key}
-          className="grid grid-cols-[1fr_60px_60px_60px] items-center gap-4"
+          className="grid grid-cols-[1fr_48px_48px_48px] sm:grid-cols-[1fr_60px_60px_60px] items-center gap-2 sm:gap-4"
         >
           <Label className="font-normal">{t(`categories.${cat.labelKey}`)}</Label>
 

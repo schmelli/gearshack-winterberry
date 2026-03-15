@@ -22,7 +22,7 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
       style={{ width: `${panelWidth}px` }}
       className={cn(
         'relative flex flex-col border-l border-border bg-background',
-        'h-[calc(100vh-6rem)]',
+        'h-[calc(100dvh-6rem)]',
         className
       )}
     >

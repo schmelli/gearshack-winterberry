@@ -163,7 +163,7 @@ export function LoadoutDisplay({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Weight and item count summary */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
             <div className="rounded-full bg-forest-100 p-2 dark:bg-forest-900/30">
               <Scale className="size-5 text-forest-600 dark:text-forest-400" />

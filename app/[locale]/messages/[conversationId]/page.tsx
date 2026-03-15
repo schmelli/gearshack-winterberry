@@ -262,7 +262,7 @@ function ConversationContent() {
 export default function ConversationPage() {
   return (
     <ProtectedRoute>
-      <div className="mx-auto h-[calc(100vh-120px)] max-w-2xl">
+      <div className="mx-auto h-[calc(100dvh-120px)] max-w-2xl">
         <Card className="h-full overflow-hidden">
           <ConversationContent />
         </Card>

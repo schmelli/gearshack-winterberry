@@ -50,7 +50,7 @@ export default async function VipDirectoryPage() {
       <div className="mb-8 space-y-2">
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" aria-hidden="true" />
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             {t('directory.title')}
           </h1>
         </div>

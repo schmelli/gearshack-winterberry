@@ -152,7 +152,7 @@ export function LoadoutList({
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-20rem)]">
+    <ScrollArea className="h-[calc(100dvh-20rem)]">
       <div className="divide-y divide-border pr-4">
         {/* Worn Items Section (Feature 150: Worn items on top) */}
         {filteredWornItems.length > 0 && (

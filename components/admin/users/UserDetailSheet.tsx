@@ -248,7 +248,7 @@ export function UserDetailSheet({
             <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
               {t('activity')}
             </h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-lg border p-3">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Package className="h-4 w-4" />

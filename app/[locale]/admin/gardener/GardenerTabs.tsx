@@ -14,7 +14,7 @@ export function GardenerTabs() {
   const t = useTranslations('Admin.gardener');
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] flex-col">
+    <div className="flex h-[calc(100dvh-12rem)] flex-col">
       <Tabs defaultValue="chat" className="flex flex-1 flex-col">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="chat" className="flex items-center gap-2">

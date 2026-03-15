@@ -144,7 +144,7 @@ export function AdminMerchantsClient() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">{t('title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('title')}</h1>
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 

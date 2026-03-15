@@ -155,7 +155,7 @@ export function SharedLoadoutAppView({
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">{payload.loadout.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{payload.loadout.name}</h1>
             {payload.loadout.description && (
               <p className="text-lg text-muted-foreground">
                 {payload.loadout.description}

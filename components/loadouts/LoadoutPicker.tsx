@@ -101,7 +101,7 @@ export function LoadoutPicker({
       </div>
 
       {/* Items List */}
-      <ScrollArea className="h-[calc(100vh-24rem)]">
+      <ScrollArea className="h-[calc(100dvh-24rem)]">
         {items.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {t('noItemsFound')}

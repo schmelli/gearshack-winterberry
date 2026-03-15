@@ -52,7 +52,7 @@ export function VipAdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('title')}</h1>
         </div>
 
         <Button onClick={() => setShowCreateDialog(true)}>

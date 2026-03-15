@@ -103,7 +103,7 @@ export function SwipeActionSelector({
       {/* Swipe Left Configuration */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">{t('swipeLeft')}</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <ActionSelect
             label={t('primary')}
             value={config.swipeLeftPrimary}
@@ -124,7 +124,7 @@ export function SwipeActionSelector({
       {/* Swipe Right Configuration */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">{t('swipeRight')}</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <ActionSelect
             label={t('primary')}
             value={config.swipeRightPrimary}

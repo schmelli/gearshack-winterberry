@@ -191,7 +191,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
       {/* Hero Image Section */}
       {userId && (
         <LoadoutHeroImageSection
