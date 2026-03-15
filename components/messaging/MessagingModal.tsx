@@ -283,7 +283,7 @@ export function MessagingModal({ open, onOpenChange }: MessagingModalProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[80vh] max-w-2xl overflow-hidden p-0">
+        <DialogContent className="max-h-[80vh] max-w-[calc(100%-1rem)] sm:max-w-2xl overflow-hidden p-0">
           <DialogHeader className="sr-only">
             <DialogTitle>{t('tabs.messages')}</DialogTitle>
           </DialogHeader>

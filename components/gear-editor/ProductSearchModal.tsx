@@ -125,7 +125,7 @@ export function ProductSearchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{t('productSearchModal.title')}</DialogTitle>
           <DialogDescription>

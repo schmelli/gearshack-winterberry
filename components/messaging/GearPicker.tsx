@@ -82,7 +82,7 @@ export function GearPicker({ open, onOpenChange, onSelect }: GearPickerProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('gearPicker.title')}</DialogTitle>
         </DialogHeader>

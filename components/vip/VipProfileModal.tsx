@@ -65,7 +65,7 @@ export function VipProfileModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden p-0">
+      <DialogContent className="max-h-[90vh] max-w-[calc(100%-1rem)] sm:max-w-2xl overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">

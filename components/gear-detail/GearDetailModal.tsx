@@ -139,7 +139,7 @@ export function GearDetailModal({
   // Desktop: Centered dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-hidden p-0">
+      <DialogContent className="max-h-[85vh] max-w-[calc(100%-1rem)] sm:max-w-lg overflow-hidden p-0">
         <VisuallyHidden>
           <DialogTitle>{item.name}</DialogTitle>
         </VisuallyHidden>

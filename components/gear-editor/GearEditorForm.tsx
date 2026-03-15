@@ -163,7 +163,7 @@ export function GearEditorForm({
             </Tabs>
           </CardContent>
 
-          <CardFooter className="flex justify-between border-t pt-6">
+          <CardFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between border-t pt-6">
             <div className="flex items-center gap-2">
               <Button
                 type="button"

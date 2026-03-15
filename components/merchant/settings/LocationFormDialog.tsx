@@ -105,7 +105,7 @@ export function LocationFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {location ? t('editLocation') : t('addLocation')}
