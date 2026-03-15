@@ -78,25 +78,25 @@ function LoginContent() {
   // This fixes the infinite loading spinner bug when Firebase Auth is slow to respond.
 
   return (
-    <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+    <div className="relative z-10 flex min-h-dvh items-center justify-center p-3 sm:p-4">
       {/* T040-T041: Rotating background images with fallback gradient */}
       <BackgroundRotator />
 
       {/* T042: Glassmorphism Card */}
-      <Card className="w-full max-w-md border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl dark:bg-black/20">
-        <CardHeader className="space-y-1 text-center">
+      <Card className="w-full max-w-sm sm:max-w-md border-white/20 bg-white/10 shadow-2xl backdrop-blur-xl dark:bg-black/20">
+        <CardHeader className="space-y-1 text-center px-4 sm:px-6">
           {/* Logo */}
-          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center">
             <Image
               src="/logos/small_gearshack_logo.png"
               alt="Gearshack Logo"
               width={64}
               height={64}
-              className="h-16 w-16"
+              className="h-12 w-12 sm:h-16 sm:w-16"
               priority
             />
           </div>
-          <h1 className="font-[family-name:var(--font-rock-salt)] text-2xl text-white">
+          <h1 className="font-[family-name:var(--font-rock-salt)] text-xl sm:text-2xl text-white">
             Gearshack
           </h1>
           <p className="text-sm text-white/70">

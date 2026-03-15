@@ -246,7 +246,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
       />
 
       {/* Two-Column Layout */}
-      <div className="container mx-auto max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="container mx-auto max-w-6xl flex-1 px-2 py-4 sm:px-4 sm:py-6 lg:px-8">
         {/* Sort/Filter Controls (desktop) */}
         <div className="mb-4 hidden md:block">
           <LoadoutSortFilter
@@ -257,7 +257,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
           />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-[2fr_3fr]">
           {/* Left: Item Picker (desktop) */}
           <div className="hidden space-y-4 md:block">
             <h2 className="text-lg font-semibold">{t('editor.addFromInventory')}</h2>
@@ -306,15 +306,15 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
       </div>
 
       {/* Mobile: Add Items Sheet */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 md:hidden">
+      <div className="fixed bottom-20 left-0 right-0 p-3 sm:p-4 md:hidden">
         <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
           <SheetTrigger asChild>
-            <Button className="w-full" size="lg">
-              <Plus className="mr-2 h-5 w-5" />
+            <Button className="w-full" size="default">
+              <Plus className="mr-2 h-4 w-4" />
               {t('editor.addItems')}
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[85vh]">
+          <SheetContent side="bottom" className="h-[80vh]">
             <SheetHeader>
               <SheetTitle>{t('editor.addFromInventory')}</SheetTitle>
             </SheetHeader>
@@ -325,7 +325,7 @@ export default function LoadoutEditorPage({ params }: LoadoutEditorPageProps) {
                 filterCategoryId={sortFilterCategoryId}
                 onFilterChange={setSortFilterCategoryId}
               />
-              <div className="h-[calc(85vh-12rem)] overflow-y-auto pb-8">
+              <div className="h-[calc(80vh-12rem)] overflow-y-auto pb-8">
                 <LoadoutPicker
                   items={sortedFilteredPickerItems}
                   loadoutItemIds={loadout.itemIds}

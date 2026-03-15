@@ -42,7 +42,7 @@ const EnhancedWeightDonut = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center">
-        <Skeleton className="h-[220px] w-[220px] rounded-full md:h-[260px] md:w-[260px]" />
+        <Skeleton className="h-[180px] w-[180px] rounded-full md:h-[260px] md:w-[260px]" />
       </div>
     ),
   }
@@ -115,7 +115,7 @@ export function LoadoutHeader({
 
   return (
     <div className="border-b bg-background">
-      <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="container mx-auto max-w-6xl px-2 py-4 sm:px-4 sm:py-6 lg:px-8">
         <div className="flex flex-col gap-6">
           {/* Main content row: stacks on mobile, side-by-side on md+ */}
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -181,7 +181,7 @@ export function LoadoutHeader({
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {tLoadouts('header.activity')}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {ACTIVITY_OPTIONS.map((activity) => (
                   <ToggleBadge
                     key={activity}
@@ -198,7 +198,7 @@ export function LoadoutHeader({
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {tLoadouts('header.season')}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {SEASON_OPTIONS.map((season) => (
                   <ToggleBadge
                     key={season}
@@ -237,7 +237,7 @@ export function LoadoutHeader({
               itemStates={itemStates}
               selectedId={selectedCategoryId}
               onSegmentClick={onSegmentClick}
-              size={220}
+              size={180}
             />
           </div>
         </div>

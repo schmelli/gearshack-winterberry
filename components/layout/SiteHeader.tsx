@@ -159,7 +159,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       {/* Issue #73: Reduced padding on mobile (px-3) to maximize space for controls */}
       {/* Issue #77: Mobile menu state management */}
       {/* Issue #206: Removed container class to allow full-width background on mobile */}
-      <div className="mx-auto flex h-16 sm:h-20 lg:h-24 max-w-7xl items-center px-3 lg:px-4">
+      <div className="mx-auto flex h-14 sm:h-16 lg:h-24 max-w-7xl items-center px-2 sm:px-3 lg:px-4">
         {/* Mobile menu - hidden on desktop, shown via logo click on mobile */}
         {/* Feature Flags: Pass filtered items and feature flags to MobileNav */}
         <MobileNav
@@ -178,25 +178,25 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         <div className="flex items-center gap-2 lg:hidden">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-white/10"
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
             aria-label={t('openMenu')}
           >
             {mobileMenuOpen ? (
-              <X className="h-6 w-6 text-white" />
+              <X className="h-5 w-5 text-white" />
             ) : (
-              <Menu className="h-6 w-6 text-white" />
+              <Menu className="h-5 w-5 text-white" />
             )}
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Image
               src="/logos/small_gearshack_logo.png"
               alt="Gearshack Logo"
-              width={40}
-              height={40}
-              className="h-10 w-10"
+              width={32}
+              height={32}
+              className="h-8 w-8"
               priority
             />
-            <span className="font-[family-name:var(--font-rock-salt)] text-lg leading-tight text-white">
+            <span className="font-[family-name:var(--font-rock-salt)] text-sm sm:text-base leading-tight text-white">
               Gearshack
             </span>
           </div>
@@ -297,7 +297,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
         {/* Right side: language switcher, notifications and user menu */}
         {/* Issue #73: Tighter spacing on mobile to fit all controls */}
         {/* Issue #77: Hide language switcher and avatar on small screens */}
-        <div className="flex items-center gap-1 lg:gap-2">
+        <div className="ml-auto flex items-center gap-0.5 sm:gap-1 lg:gap-2">
           {/* T012: Messaging icon with unread badge - only show when authenticated AND messaging feature is enabled */}
           {user && isMessagingEnabled && (
             <Button
@@ -307,7 +307,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               onClick={() => setMessagingOpen(true)}
               aria-label={unreadCount > 0 ? t('messagesWithUnread', { count: unreadCount }) : t('messages')}
             >
-              <Mail className="h-5 w-5" />
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
               {unreadCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white" aria-hidden="true">
                   {unreadCount > 99 ? '99+' : unreadCount}

@@ -125,11 +125,11 @@ export function GalleryToolbar({
   };
 
   return (
-    <div className="mb-6 space-y-4">
+    <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
       {/* Main toolbar row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         {/* Left side: Search and Category filter */}
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Search Input */}
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -138,48 +138,51 @@ export function GalleryToolbar({
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9"
+              className="h-9 pl-9 text-sm"
               aria-label={t.searchPlaceholder}
             />
           </div>
 
-          {/* Category Filter */}
-          <Select
-            value={categoryFilter ?? 'all'}
-            onValueChange={(value) =>
-              onCategoryChange(value === 'all' ? null : value)
-            }
-          >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t.filterAll}>
-              <SelectValue placeholder={t.filterAll} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.filterAll}</SelectItem>
-              {categoryOptions.map((category) => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Category + Sort side by side on mobile */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+            {/* Category Filter */}
+            <Select
+              value={categoryFilter ?? 'all'}
+              onValueChange={(value) =>
+                onCategoryChange(value === 'all' ? null : value)
+              }
+            >
+              <SelectTrigger className="h-9 w-full sm:w-[160px] text-sm" aria-label={t.filterAll}>
+                <SelectValue placeholder={t.filterAll} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.filterAll}</SelectItem>
+                {categoryOptions.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Sort Dropdown (Feature 046) */}
-          <Select
-            value={sortOption}
-            onValueChange={(value) => onSortChange(value as SortOption)}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t.sortBy}>
-              <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder={t.sortBy} />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {t.sortOptions[option]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {/* Sort Dropdown (Feature 046) */}
+            <Select
+              value={sortOption}
+              onValueChange={(value) => onSortChange(value as SortOption)}
+            >
+              <SelectTrigger className="h-9 w-full sm:w-[160px] text-sm" aria-label={t.sortBy}>
+                <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue placeholder={t.sortBy} />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {t.sortOptions[option]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Clear Filters Button */}
           {hasActiveFilters && (
@@ -187,7 +190,7 @@ export function GalleryToolbar({
               variant="ghost"
               size="sm"
               onClick={onClearFilters}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto h-9"
             >
               <X className="mr-1 h-4 w-4" />
               {t.clearFilters}
@@ -214,7 +217,7 @@ export function GalleryToolbar({
       </div>
 
       {/* Item count display */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-xs sm:text-sm text-muted-foreground">
         {showingFiltered ? (
           <span>{t.showingItems}</span>
         ) : (

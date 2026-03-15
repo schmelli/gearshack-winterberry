@@ -10,9 +10,9 @@ import { Card } from '@/components/ui/card';
 
 export default function MessagesLoading() {
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-0 overflow-hidden rounded-lg border">
+    <div className="flex h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-6rem)] gap-0 overflow-hidden rounded-lg border">
       {/* Conversation list sidebar */}
-      <div className="w-80 shrink-0 border-r p-4">
+      <div className="hidden w-80 shrink-0 border-r p-4 sm:block">
         {/* Search bar */}
         <Skeleton className="mb-4 h-10 w-full rounded-md" />
 

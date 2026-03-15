@@ -193,7 +193,7 @@ function GearCardComponent({
         'group relative overflow-hidden cursor-pointer flex flex-col',
         'border-stone-200 dark:border-stone-700 shadow-sm',
         'transition-all hover:shadow-md hover:border-stone-300 dark:hover:border-stone-600',
-        isDetailed ? 'min-h-[450px]' : 'min-h-[260px]'
+        isDetailed ? 'min-h-[350px] sm:min-h-[450px]' : 'min-h-[180px] sm:min-h-[260px]'
       )}
       onClick={onClick}
     >
@@ -210,7 +210,7 @@ function GearCardComponent({
             fill
             loading="lazy"
             className="object-contain p-4 transition-transform group-hover:scale-105 duration-500"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
             placeholder="empty"
             onError={() => setImageError(true)}
           />
@@ -253,12 +253,12 @@ function GearCardComponent({
         </div>
       </div>
 
-      <CardContent className={cn('flex flex-col flex-1', isDetailed ? 'p-5' : 'p-3')}>
+      <CardContent className={cn('flex flex-col flex-1', isDetailed ? 'p-3 sm:p-5' : 'p-2 sm:p-3')}>
         <div className="flex justify-between items-start mb-1">
           {item.brand ? (
             <HoverCard>
               <HoverCardTrigger asChild>
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary/80 cursor-pointer hover:text-primary transition-colors">
+                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-primary/80 cursor-pointer hover:text-primary transition-colors truncate max-w-[120px] sm:max-w-none">
                   {item.brand}
                 </p>
               </HoverCardTrigger>
@@ -285,7 +285,7 @@ function GearCardComponent({
           )}
 
           {item.weightGrams && (
-            <span className={cn('text-muted-foreground font-mono flex items-center gap-1', isDetailed ? 'text-sm' : 'text-xs')}>
+            <span className={cn('text-muted-foreground font-mono flex items-center gap-0.5 sm:gap-1 shrink-0', isDetailed ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs')}>
               <SpecIcon type="weight" size={isDetailed ? 14 : 12} className="opacity-60" />
               {weightDisplay}
             </span>
@@ -294,14 +294,14 @@ function GearCardComponent({
 
         <h3
           className={cn(
-            'font-bold text-foreground mb-2',
-            isDetailed ? 'text-xl leading-snug' : 'text-sm leading-tight line-clamp-2'
+            'font-bold text-foreground mb-1 sm:mb-2',
+            isDetailed ? 'text-base sm:text-xl leading-snug' : 'text-xs sm:text-sm leading-tight line-clamp-2'
           )}
         >
           {item.name}
         </h3>
 
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
           {productTypeLabel && (
             <HoverCard openDelay={200}>
               <HoverCardTrigger asChild>
