@@ -204,7 +204,7 @@ function SuggestionCard({
       </CardHeader>
       <CardContent className="pt-2">
         {/* Specs Grid */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
           {safeEnrichmentData.weightGrams && (
             <div className="text-muted-foreground">
               <span className="font-medium">{t('weight')}:</span>{' '}

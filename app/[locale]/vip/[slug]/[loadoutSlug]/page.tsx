@@ -46,7 +46,7 @@ function VipLoadoutSkeleton() {
       <div className="rounded-lg border bg-card p-6 space-y-4">
         <div className="h-6 w-40 bg-muted rounded animate-pulse" />
         <div className="h-4 w-full bg-muted rounded-full animate-pulse" />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-4 w-full bg-muted rounded animate-pulse" />
           ))}
