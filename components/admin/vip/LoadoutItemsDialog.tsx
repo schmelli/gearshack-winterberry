@@ -121,7 +121,7 @@ export function LoadoutItemsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('dialogTitle', { name: loadout.name })}</DialogTitle>
           <DialogDescription>
