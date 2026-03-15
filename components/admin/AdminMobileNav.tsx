@@ -89,7 +89,7 @@ export function AdminMobileNav() {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] overflow-y-auto">
+      <SheetContent side="left" className="w-[280px] max-w-[80vw] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Admin Panel</SheetTitle>
         </SheetHeader>

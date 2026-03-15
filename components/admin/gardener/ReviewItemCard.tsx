@@ -244,10 +244,10 @@ function ReviewItemCardComponent({
         <Separator />
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Button
             variant="default"
-            className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleApprove}
             disabled={isProcessing}
           >
@@ -260,7 +260,6 @@ function ReviewItemCardComponent({
           </Button>
           <Button
             variant="destructive"
-            className="flex-1 min-w-[120px]"
             onClick={handleReject}
             disabled={isProcessing}
           >
@@ -273,7 +272,6 @@ function ReviewItemCardComponent({
           </Button>
           <Button
             variant="outline"
-            className="flex-1 min-w-[120px]"
             onClick={handleSkip}
             disabled={isProcessing}
           >
@@ -282,7 +280,7 @@ function ReviewItemCardComponent({
           </Button>
           <Button
             variant="outline"
-            className="flex-1 min-w-[120px] border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             onClick={handleDelete}
             disabled={isProcessing}
           >

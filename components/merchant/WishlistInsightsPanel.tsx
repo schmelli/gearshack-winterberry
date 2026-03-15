@@ -290,7 +290,7 @@ export const WishlistInsightsPanel = memo(function WishlistInsightsPanel({
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
             {/* Radius Filter */}
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -312,7 +312,7 @@ export const WishlistInsightsPanel = memo(function WishlistInsightsPanel({
             </div>
 
             {/* Min Users Filter */}
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <div className="flex items-center gap-2 w-full sm:flex-1 sm:min-w-[200px]">
               <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="text-sm text-muted-foreground shrink-0">
                 {t('minUsers')}:

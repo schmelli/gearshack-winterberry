@@ -78,7 +78,7 @@ function WeightBreakdownChart({ breakdown }: { breakdown: CategoryBreakdown[] })
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         {breakdown.map((cat, index) => (
           <div key={cat.category} className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`} />

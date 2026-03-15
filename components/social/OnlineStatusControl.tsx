@@ -152,7 +152,7 @@ function CardStatusControl({ className }: { className?: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {STATUS_OPTIONS.map(({ value, icon: Icon, colorClass }) => {
             const isActive = status === value;
             return (

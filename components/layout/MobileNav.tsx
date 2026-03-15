@@ -156,7 +156,7 @@ export function MobileNav({
 
             {/* Quick action buttons - direct links to create pages */}
             {/* Feature Flags: Conditionally show actions based on enabled features */}
-            <div className="mt-4 grid grid-cols-4 gap-2 px-2">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 px-2">
               <Link
                 href="/inventory/new"
                 onClick={handleNavigate}

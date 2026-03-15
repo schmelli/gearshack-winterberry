@@ -150,6 +150,7 @@ export function LoadoutItemsDialog({
               {t('noItemsYet')}
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -200,6 +201,7 @@ export function LoadoutItemsDialog({
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
 
           {/* Catalog Search Modal */}

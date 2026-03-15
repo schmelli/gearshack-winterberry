@@ -39,7 +39,7 @@ export function WikiLayout({ children }: WikiLayoutProps) {
               {t('sidebarTrigger')}
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] p-4">
+          <SheetContent side="left" className="w-[280px] max-w-[80vw] p-4">
             <SheetTitle className="sr-only">{t('sidebarNavigation')}</SheetTitle>
             <WikiSidebar />
           </SheetContent>
