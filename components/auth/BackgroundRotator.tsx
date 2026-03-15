@@ -73,7 +73,7 @@ export function BackgroundRotator({ className }: BackgroundRotatorProps) {
   }, [images, imageIndex]);
 
   return (
-    <div className={cn('fixed inset-0 w-screen h-screen -z-10 overflow-hidden', className)}>
+    <div className={cn('fixed inset-0 -z-10 overflow-hidden', className)}>
       {/* Base gradient - always visible as fallback */}
       <div
         className="absolute inset-0"
